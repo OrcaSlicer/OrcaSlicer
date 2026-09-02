@@ -23,6 +23,10 @@
     has, is moved aside for the duration of the run and restored on exit. Only one run per work
     dir at a time.
 
+    -Vendor narrows a run to one vendor while working on that vendor's profiles - the one
+    deliberate divergence from CI, which always checks the whole tree. A check that cannot be
+    narrowed is left out of the run and reported as skipped.
+
     x64 and ARM64 hosts are both supported. A locally built validator is chosen by the machine
     type in its PE header rather than by the name of its build tree, so build\ (x64) and
     build-arm64\ side by side resolve correctly; the published nightly is x64 only and runs
@@ -31,6 +35,14 @@
 .PARAMETER ProfilesDir
     Profile tree to validate (default: resources\profiles). extra_json_check always looks at the
     tree next to the script, so this only redirects the validator checks.
+
+.PARAMETER Vendor
+    Check only this vendor, named after its <Vendor>.json (e.g. "Co Print"). validate_custom is
+    narrowed with it too, by keeping only that vendor's presets in each fixture tree. The one
+    check it cannot narrow is validate_slice for a vendor that ships no printers; the summary
+    reports that one as skipped, and naming it explicitly still runs it. extra_json_check keeps
+    its two cross-vendor checks (setting_id and filament_id) tree-wide, so a scoped run can still
+    fail on another vendor's files.
 
 .PARAMETER Validator
     OrcaSlicer_profile_validator.exe to use; also $env:ORCA_PROFILE_VALIDATOR. Default: the local
@@ -58,6 +70,9 @@
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\check_profile.ps1 validate_system validate_slice
+
+.EXAMPLE
+    scripts\check_profile.bat -Vendor Elegoo
 #>
 
 # PositionalBinding is off so that the check names are the only positional arguments; left on,
@@ -65,6 +80,7 @@
 [CmdletBinding(PositionalBinding = $false)]
 param(
     [Alias('p')] [string] $ProfilesDir,
+    [Alias('v')] [string] $Vendor,
     [string] $Validator,
     [string] $WorkDir,
     [Alias('l')] [int] $LogLevel = 2,
@@ -156,11 +172,41 @@ foreach ($name in $Checks) {
     if ($name -like '-*') { Die "unknown option '$name' (try -Help)" }
     if ($AllChecks -notcontains $name) { Die "unknown check '$name' (try -Help)" }
 }
+# A check named on the command line always runs; only the default set is narrowed (see the run
+# loop below).
+$NamedChecks = [bool] $Checks
 if (-not $Checks) { $Checks = $AllChecks }
 
 if (-not $ProfilesDir) { $ProfilesDir = Join-Path $RepoRoot 'resources\profiles' }
 if (-not (Test-Path -LiteralPath $ProfilesDir -PathType Container)) { Die "profile directory not found: $ProfilesDir" }
 $ProfilesDir = (Resolve-Path -LiteralPath $ProfilesDir).Path
+
+# A vendor neither tool knows is not an error to them: the static checks load nothing of their own
+# and still report success, so a typo would otherwise be three green checks and one baffling slice
+# failure. The match has to be made on the names themselves rather than with a Test-Path - the
+# validator compares the <Vendor>.json stem case-sensitively, while Windows' case-insensitive
+# filesystem would let "creality" pass a path test and then match no vendor. A vendor is a
+# <name>.json with a sibling <name> directory; that pair is also what tells one apart from
+# blacklist.json and retired_filament_ids.json, which sit in the same folder.
+if ($Vendor) {
+    $found = $false
+    $suggestion = ''
+    foreach ($file in (Get-ChildItem -LiteralPath $ProfilesDir -Filter '*.json' -File)) {
+        $name = [IO.Path]::GetFileNameWithoutExtension($file.Name)
+        if (-not (Test-Path -LiteralPath (Join-Path $ProfilesDir $name) -PathType Container)) { continue }
+        if ($name -ceq $Vendor) { $found = $true; break }
+        if ($name -eq $Vendor) { $suggestion = $name }
+    }
+    if (-not $found) {
+        if ($suggestion) { Die "unknown vendor '$Vendor'; vendor names are case-sensitive, did you mean '$suggestion'?" }
+        Die "unknown vendor '$Vendor': no such vendor in $ProfilesDir"
+    }
+}
+
+# The validator's -v and orca_extra_profile_check.py's --vendor both take that stem; an unscoped
+# run passes neither, so the checks below splat these in either way.
+$VendorArgs = if ($Vendor) { @('-v', $Vendor) } else { @() }
+$VendorPyArgs = if ($Vendor) { @('--vendor', $Vendor) } else { @() }
 
 if (-not $WorkDir) { $WorkDir = Join-Path $RepoRoot '.test\check_profiles' }
 $LogDir = Join-Path $WorkDir 'logs'
@@ -350,32 +396,77 @@ function Resolve-Python {
     Die 'no Python 3 found; install it (or the py launcher) and re-run'
 }
 
+# The fixtures name every preset "<vendor>_<parent preset>_orca_test", after the "name" inside
+# <Vendor>.json rather than the file stem -Vendor takes - BBL.json is "Bambulab", iQ.json is
+# "innovatiQ". Falls back to the stem for a vendor file with no readable name.
+function Get-VendorDisplayName {
+    $name = ''
+    try { $name = (Get-Content -LiteralPath (Join-Path $ProfilesDir "$Vendor.json") -Raw -ErrorAction Stop | ConvertFrom-Json).name } catch { }
+    if ($name) { return "$name" }
+    return $Vendor
+}
+
+# Unpack just the presets one vendor's profiles own, and return how many that was. Each fixture
+# preset was generated from a single system preset and inherits it by name - none inherits another
+# user preset - so the selection is self-contained.
+function Expand-VendorPresets([string] $Zip, [string] $Tree, [string] $Prefix) {
+    # .NET rather than Expand-Archive: a fixture holds around 20,000 entries, and unpacking every
+    # one of them to keep a twentieth costs more than the validation this is speeding up.
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $kept = 0
+    $archive = [IO.Compression.ZipFile]::OpenRead($Zip)
+    try {
+        foreach ($entry in $archive.Entries) {
+            # A directory entry has an empty Name, so it never matches and is never created.
+            if (-not $entry.Name.StartsWith($Prefix, [StringComparison]::Ordinal)) { continue }
+            $dest = Join-Path $Tree $entry.FullName.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($dest)) | Out-Null
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
+            $kept++
+        }
+    } finally {
+        $archive.Dispose()
+    }
+    return $kept
+}
+
 # ---------------------------------------------------------------------------- checks
 
 $CheckBodies = @{
 
     extra_json_check = {
-        Invoke-Tool -Exe (Resolve-Python) -Arguments @((Join-Path $RepoRoot 'scripts\orca_extra_profile_check.py'))
+        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_extra_profile_check.py')) + $VendorPyArgs)
     }
 
     validate_system = {
-        Invoke-Tool -Exe $Validator -Arguments @('-p', $ProfilesDir, '-l', "$LogLevel")
+        Invoke-Tool -Exe $Validator -Arguments (@('-p', $ProfilesDir) + $VendorArgs + @('-l', "$LogLevel"))
     }
 
     # Slices a two-colour cube through every printer so all custom g-code (incl.
     # change_filament_gcode) is expanded - catches undefined-placeholder / invalid-flow bugs the
     # static checks cannot see.
     validate_slice = {
-        Invoke-Tool -Exe $Validator -Arguments @('-p', $ProfilesDir, '-s', '-l', "$LogLevel")
+        Invoke-Tool -Exe $Validator -Arguments (@('-p', $ProfilesDir) + $VendorArgs + @('-s', '-l', "$LogLevel"))
     }
 
     validate_filament_subtypes = {
-        Invoke-Tool -Exe $Validator -Arguments @('-p', $ProfilesDir, '-l', "$LogLevel", '-f')
+        Invoke-Tool -Exe $Validator -Arguments (@('-p', $ProfilesDir) + $VendorArgs + @('-l', "$LogLevel", '-f'))
     }
 
     # Every released fixture is a snapshot of user presets saved by that OrcaSlicer version; each
     # is unpacked over the current system profiles and validated, so a profile change that would
     # break an existing user's presets fails here.
+    #
+    # Under -Vendor only that vendor's presets are unpacked, which is what makes the validator's
+    # -v usable here: -v filters the system vendors but never the user presets, so on a whole-tree
+    # snapshot it reports every other vendor's presets as unresolvable parents - thousands of
+    # errors saying nothing about the vendor under test. Teaching -v to filter user presets too is
+    # the deeper fix, but this runs against whatever validator is to hand, the published nightly
+    # included, so the picking has to happen here. It picks on the "<vendor display name>_"
+    # filename prefix that generate_custom_presets() (the validator's -g mode) gave every preset in
+    # these fixtures; a fixture cut from a renamed generator would surface as the "checked nothing"
+    # warning below. Presets whose source had no vendor carry no prefix - a few of those still name
+    # one in the middle, like "PET @BBL A1_orca_test" - and only an unscoped run covers them.
     validate_custom = {
         $fixturesDir = Join-Path $WorkDir 'profile-fixtures'
         $outputDir = Join-Path $WorkDir 'custom-preset-validation'
@@ -392,6 +483,8 @@ $CheckBodies = @{
             return 1
         }
 
+        $vendorPrefix = if ($Vendor) { "$(Get-VendorDisplayName)_" } else { '' }
+        $totalKept = 0
         $status = 0
         $failedLogs = @()
         $summary = @('## Custom Preset Fixture Validation', '', '| Version | Status | Log |', '| --- | --- | --- |')
@@ -424,12 +517,23 @@ $CheckBodies = @{
             Remove-Item -LiteralPath $profileTree -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Force -Path $profileTree | Out-Null
             # Piped rather than copied through <profiles>\*, so a vendor directory whose name
-            # holds a wildcard character is still copied by its literal path.
-            Get-ChildItem -LiteralPath $ProfilesDir -Force | Copy-Item -Destination $profileTree -Recurse -Force
+            # holds a wildcard character is still copied by its literal path. Under -Vendor the
+            # validator opens only that vendor and OrcaFilamentLibrary and skips the other sixty-odd
+            # (PresetBundle::load_system_presets_from_json), so the rest are left out of the copy:
+            # ~3s a fixture that was going on files nothing opens.
+            Get-ChildItem -LiteralPath $ProfilesDir -Force |
+                Where-Object { -not $Vendor -or -not $_.PSIsContainer -or $_.Name -eq $Vendor -or $_.Name -eq 'OrcaFilamentLibrary' } |
+                Copy-Item -Destination $profileTree -Recurse -Force
             Remove-Item -LiteralPath (Join-Path $profileTree 'user') -Recurse -Force -ErrorAction SilentlyContinue
-            Expand-Archive -LiteralPath $fixtureZip -DestinationPath $profileTree -Force
+            if ($Vendor) {
+                $kept = Expand-VendorPresets $fixtureZip $profileTree $vendorPrefix
+                $totalKept += $kept
+                Write-CheckLog "  $kept $Vendor preset file(s)"
+            } else {
+                Expand-Archive -LiteralPath $fixtureZip -DestinationPath $profileTree -Force
+            }
 
-            $result = Invoke-Tool -Exe $Validator -Arguments @('-p', $profileTree, '-l', "$LogLevel") -OutFile $logPath
+            $result = Invoke-Tool -Exe $Validator -Arguments (@('-p', $profileTree) + $VendorArgs + @('-l', "$LogLevel")) -OutFile $logPath
             if ($result -eq 0) {
                 $summary += "| $version | PASS | $version.log |"
                 # Only failures are worth keeping; each tree is a full copy of resources\profiles.
@@ -439,6 +543,12 @@ $CheckBodies = @{
                 $failedLogs += $logPath
                 $status = 1
             }
+        }
+
+        # A vendor added after the newest fixture was cut appears in none of them: nothing failed,
+        # but nothing was checked either.
+        if ($Vendor -and $totalKept -eq 0) {
+            Write-CheckLog "no $Vendor presets in any fixture; validate_custom checked nothing"
         }
 
         [IO.File]::WriteAllLines((Join-Path $outputDir 'summary.md'), [string[]] $summary)
@@ -473,7 +583,7 @@ $CommentHeadings = @{
 function Invoke-Check([string] $Name) {
     $log = Join-Path $LogDir "$Name.log"
     Write-Host ''
-    Write-Host "==> $Name" -ForegroundColor Cyan
+    Write-Host "==> $Name$(if ($Vendor) { " ($Vendor)" })" -ForegroundColor Cyan
 
     $script:LogWriter = New-LogWriter $log
     try {
@@ -510,26 +620,41 @@ try {
 
     if ($Checks | Where-Object { $_ -ne 'extra_json_check' }) { $Validator = Resolve-Validator }
 
+    # An empty printer set is a failure to the sweep, so validate_slice is recorded as skipped
+    # rather than run for a vendor that ships no printers (the filament-only OrcaFilamentLibrary);
+    # naming the check explicitly still runs it.
     $results = [ordered] @{}
+    $skipReasons = @{}
     foreach ($name in $AllChecks) {
-        if ($Checks -contains $name) { $results[$name] = Invoke-Check $name }
+        if ($Checks -notcontains $name) { continue }
+        if ($name -eq 'validate_slice' -and -not $NamedChecks -and $Vendor -and
+            -not (Test-Path -LiteralPath (Join-Path (Join-Path $ProfilesDir $Vendor) 'machine') -PathType Container)) {
+            $results[$name] = 'skip'
+            $skipReasons[$name] = "$Vendor ships no printers"
+        } else {
+            $results[$name] = if (Invoke-Check $name) { 'pass' } else { 'fail' }
+        }
     }
 
     Write-Host ''
     Write-Host '==> summary' -ForegroundColor Cyan
     foreach ($name in $results.Keys) {
-        if ($results[$name]) {
-            Write-Host "    PASS  $name" -ForegroundColor Green
-        } else {
-            Write-Host "    FAIL  $name  ($(Join-Path $LogDir "$name.log"))" -ForegroundColor Red
+        switch ($results[$name]) {
+            'pass' { Write-Host "    PASS  $name" -ForegroundColor Green }
+            'skip' { Write-Host "    SKIP  $name  ($($skipReasons[$name]))" -ForegroundColor Yellow }
+            default { Write-Host "    FAIL  $name  ($(Join-Path $LogDir "$name.log"))" -ForegroundColor Red }
         }
     }
 
-    $failed = @($results.Keys | Where-Object { -not $results[$_] })
+    $failed = @($results.Keys | Where-Object { $results[$_] -eq 'fail' })
     if (-not $failed) {
         Remove-Item -LiteralPath (Join-Path $WorkDir 'pr_comment.md') -Force -ErrorAction SilentlyContinue
         Write-Host ''
-        Write-Host "All checks passed. Logs: $LogDir" -ForegroundColor Green
+        if (@($results.Values) -contains 'skip') {
+            Write-Host "Every check that ran passed, but CI runs the skipped ones too. Logs: $LogDir" -ForegroundColor Green
+        } else {
+            Write-Host "All checks passed. Logs: $LogDir" -ForegroundColor Green
+        }
         exit 0
     }
 

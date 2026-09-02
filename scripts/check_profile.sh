@@ -14,6 +14,10 @@
 # has, is moved aside for the duration of the run and restored on exit. Only one run per work
 # dir at a time.
 #
+# -v/--vendor narrows a run to one vendor while working on that vendor's profiles - the one
+# deliberate divergence from CI, which always checks the whole tree. A check that cannot be
+# narrowed is left out of the run and reported as skipped; see usage().
+#
 # Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 # The check_* functions run through run_check, which dispatches on the check name, so
@@ -33,14 +37,20 @@ HOST_ARCH="$(uname -m)"
 PROFILES_DIR="${REPO_ROOT}/resources/profiles"
 WORK_DIR="${REPO_ROOT}/.test/check_profiles"
 VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
+# Vendor to check, named after its <Vendor>.json - empty means every vendor, which is exactly what
+# both the validator's -v and orca_extra_profile_check.py's --vendor take an empty value to mean.
+# So the flag is passed unconditionally below rather than kept in an array bash 3.2 cannot expand
+# empty under `set -u`.
+VENDOR=""
 LOG_LEVEL=2
 PREFER_DOWNLOAD=0
 REFRESH=0
 
 ALL_CHECKS=(extra_json_check validate_system validate_slice validate_filament_subtypes validate_custom)
 CHECKS=()
-# "<check><TAB>pass|fail" per check that ran; a string rather than an array because bash 3.2
-# (still the /bin/bash on macOS) cannot expand an empty array under `set -u`.
+# "<check><TAB>pass|fail" per check that ran, plus "<check><TAB>skip<TAB>why" for one a vendor
+# scope left out; a string rather than an array because bash 3.2 (still the /bin/bash on macOS)
+# cannot expand an empty array under `set -u`.
 RESULTS=""
 
 usage() {
@@ -58,6 +68,7 @@ Checks (default: all, in this order):
 
 Options:
   -p, --profiles DIR   profile tree to validate (default: resources/profiles)
+  -v, --vendor NAME    check only this vendor, named after its <Vendor>.json (e.g. "Co Print")
       --validator BIN  OrcaSlicer_profile_validator to use; also \$ORCA_PROFILE_VALIDATOR.
                        Default: the local build*/ Release build (then RelWithDebInfo, then
                        Debug) for this architecture, else the nightly release build is
@@ -70,6 +81,12 @@ Options:
 
 Note: extra_json_check always looks at the tree next to the script
 (<repo>/resources/profiles); --profiles only redirects the validator checks.
+
+Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
+fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
+printers; the summary reports that one as skipped, and naming it explicitly still runs it.
+extra_json_check keeps its two cross-vendor checks (setting_id and filament_id) tree-wide,
+so a scoped run can still fail on another vendor's files.
 EOF
 }
 
@@ -88,6 +105,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         -h|--help) usage; exit 0 ;;
         -p|--profiles) [ $# -ge 2 ] || die "$1 needs a directory"; PROFILES_DIR="$2"; shift 2 ;;
+        -v|--vendor) [ $# -ge 2 ] || die "$1 needs a vendor name"; VENDOR="$2"; shift 2 ;;
         --validator) [ $# -ge 2 ] || die "$1 needs a path"; VALIDATOR="$2"; shift 2 ;;
         --work-dir) [ $# -ge 2 ] || die "$1 needs a directory"; WORK_DIR="$2"; shift 2 ;;
         -l|--log-level) [ $# -ge 2 ] || die "$1 needs a number"; LOG_LEVEL="$2"; shift 2 ;;
@@ -106,10 +124,39 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ "${#CHECKS[@]}" -gt 0 ] || CHECKS=("${ALL_CHECKS[@]}")
+# A check named on the command line always runs; only the default set is narrowed (see the run
+# loop below).
+NAMED_CHECKS="${#CHECKS[@]}"
+[ "${NAMED_CHECKS}" -gt 0 ] || CHECKS=("${ALL_CHECKS[@]}")
 
 [ -d "${PROFILES_DIR}" ] || die "profile directory not found: ${PROFILES_DIR}"
 PROFILES_DIR="$(cd -- "${PROFILES_DIR}" && pwd)"
+
+# A vendor neither tool knows is not an error to them: the static checks load nothing of their own
+# and still report success, so a typo would otherwise be three green checks and one baffling slice
+# failure. The match has to be made on the names themselves rather than with a -f test - the
+# validator compares the <Vendor>.json stem case-sensitively, while a case-insensitive filesystem
+# (macOS, Windows) would let "creality" pass a file test and then match no vendor. A vendor is a
+# <name>.json with a sibling <name>/ directory; that pair is also what tells one apart from
+# blacklist.json and retired_filament_ids.json, which sit in the same folder.
+if [ -n "${VENDOR}" ]; then
+    wanted="$(printf '%s' "${VENDOR}" | tr '[:upper:]' '[:lower:]')"
+    found=""
+    suggestion=""
+    for file in "${PROFILES_DIR}"/*.json; do
+        name="${file##*/}"; name="${name%.json}"
+        [ -d "${PROFILES_DIR}/${name}" ] || continue
+        if [ "${name}" = "${VENDOR}" ]; then
+            found=1
+            break
+        fi
+        [ "$(printf '%s' "${name}" | tr '[:upper:]' '[:lower:]')" = "${wanted}" ] && suggestion="${name}"
+    done
+    if [ -z "${found}" ]; then
+        [ -z "${suggestion}" ] || die "unknown vendor '${VENDOR}'; vendor names are case-sensitive, did you mean '${suggestion}'?"
+        die "unknown vendor '${VENDOR}': no such vendor in ${PROFILES_DIR}"
+    fi
+fi
 
 LOG_DIR="${WORK_DIR}/logs"
 mkdir -p "${LOG_DIR}" || die "cannot create ${LOG_DIR}"
@@ -315,34 +362,65 @@ resolve_validator() {
 # ---------------------------------------------------------------------------- checks
 
 check_extra_json_check() {
-    python3 "${REPO_ROOT}/scripts/orca_extra_profile_check.py"
+    python3 "${REPO_ROOT}/scripts/orca_extra_profile_check.py" --vendor "${VENDOR}"
 }
 
 check_validate_system() {
-    "${VALIDATOR}" -p "${PROFILES_DIR}" -l "${LOG_LEVEL}"
+    "${VALIDATOR}" -p "${PROFILES_DIR}" -v "${VENDOR}" -l "${LOG_LEVEL}"
 }
 
 # Slices a two-colour cube through every printer so all custom g-code (incl. change_filament_gcode)
 # is expanded - catches undefined-placeholder / invalid-flow bugs the static checks cannot see.
 check_validate_slice() {
-    "${VALIDATOR}" -p "${PROFILES_DIR}" -s -l "${LOG_LEVEL}"
+    "${VALIDATOR}" -p "${PROFILES_DIR}" -v "${VENDOR}" -s -l "${LOG_LEVEL}"
 }
 
 check_validate_filament_subtypes() {
-    "${VALIDATOR}" -p "${PROFILES_DIR}" -l "${LOG_LEVEL}" -f
+    "${VALIDATOR}" -p "${PROFILES_DIR}" -v "${VENDOR}" -l "${LOG_LEVEL}" -f
+}
+
+# The fixtures name every preset "<vendor>_<parent preset>_orca_test", after the "name" inside
+# <Vendor>.json rather than the file stem --vendor takes - BBL.json is "Bambulab", iQ.json is
+# "innovatiQ". Falls back to the stem for a vendor file with no readable name.
+vendor_display_name() {
+    local name
+    name="$(VENDOR_JSON="${PROFILES_DIR}/${VENDOR}.json" python3 - <<'PY'
+import json
+import os
+
+try:
+    with open(os.environ["VENDOR_JSON"], encoding="utf-8") as fh:
+        print(json.load(fh).get("name", ""))
+except Exception:
+    pass
+PY
+)"
+    printf '%s\n' "${name:-${VENDOR}}"
 }
 
 # Every released fixture is a snapshot of user presets saved by that OrcaSlicer version; each is
 # unpacked over the current system profiles and validated, so a profile change that would break
 # an existing user's presets fails here.
+#
+# Under --vendor only that vendor's presets are unpacked, which is what makes the validator's -v
+# usable here: -v filters the system vendors but never the user presets, so on a whole-tree
+# snapshot it reports every other vendor's presets as unresolvable parents - thousands of errors
+# saying nothing about the vendor under test. Teaching -v to filter user presets too is the deeper
+# fix, but this runs against whatever validator is to hand, the published nightly included, so the
+# picking has to happen here. It picks on the "<vendor display name>_" filename prefix that
+# generate_custom_presets() (the validator's -g mode) gave every preset in these fixtures; a
+# fixture cut from a renamed generator would surface as the "checked nothing" warning below.
+# Presets whose source had no vendor carry no prefix - a few of those still name one in the
+# middle, like "PET @BBL A1_orca_test" - and only an unscoped run covers them.
 check_validate_custom() {
     local fixtures_dir="${WORK_DIR}/profile-fixtures"
     local output_dir="${WORK_DIR}/custom-preset-validation"
     local summary="${output_dir}/summary.md"
-    local status=0 failed_logs=""
-    local version asset expected_sha256 asset_url fixture_zip profile_tree log_path actual_sha256 result
+    local status=0 failed_logs="" vendor_prefix="" total_kept=0
+    local version asset expected_sha256 asset_url fixture_zip profile_tree log_path actual_sha256 result kept
 
     command -v unzip >/dev/null 2>&1 || { msg "unzip is required for validate_custom"; return 1; }
+    [ -z "${VENDOR}" ] || vendor_prefix="$(vendor_display_name)_"
     mkdir -p "${fixtures_dir}" "${output_dir}" || return 1
 
     fetch "${FIXTURE_RELEASE_URL}/manifest.json" "${fixtures_dir}/manifest.json" force || return 1
@@ -407,11 +485,28 @@ PY
         msg "validating custom presets from ${version} ..."
         rm -rf "${profile_tree}"
         mkdir -p "${profile_tree}" || return 1
-        cp -a "${PROFILES_DIR}/." "${profile_tree}/" || return 1
-        rm -rf "${profile_tree}/user"
-        unzip -q "${fixture_zip}" -d "${profile_tree}" || return 1
+        if [ -n "${VENDOR}" ]; then
+            # -v has the validator open this vendor and OrcaFilamentLibrary and skip the rest
+            # (PresetBundle::load_system_presets_from_json), and unzip's * spans '/', so one
+            # pattern reaches every preset type. Copying and unpacking only those turns a ~5s
+            # setup per fixture into ~0.5s. Naming the vendor twice, when it is the library
+            # itself, is not an error to cp; exit 11 is unzip's "nothing matched", which is the
+            # fixture-predates-the-vendor case the warning below reports.
+            cp -a "${PROFILES_DIR}"/*.json "${PROFILES_DIR}/${VENDOR}" \
+                "${PROFILES_DIR}/OrcaFilamentLibrary" "${profile_tree}/" || return 1
+            unzip -q "${fixture_zip}" "user/*/${vendor_prefix}*" -d "${profile_tree}"
+            result=$?
+            [ "${result}" -eq 0 ] || [ "${result}" -eq 11 ] || return 1
+            kept="$(find "${profile_tree}/user" -type f 2>/dev/null | wc -l | tr -d ' ')"
+            total_kept=$((total_kept + kept))
+            msg "  ${kept} ${VENDOR} preset file(s)"
+        else
+            cp -a "${PROFILES_DIR}/." "${profile_tree}/" || return 1
+            rm -rf "${profile_tree}/user"
+            unzip -q "${fixture_zip}" -d "${profile_tree}" || return 1
+        fi
 
-        "${VALIDATOR}" -p "${profile_tree}" -l "${LOG_LEVEL}" > "${log_path}" 2>&1
+        "${VALIDATOR}" -p "${profile_tree}" -v "${VENDOR}" -l "${LOG_LEVEL}" > "${log_path}" 2>&1
         result=$?
 
         if [ "${result}" -eq 0 ]; then
@@ -424,6 +519,12 @@ PY
             status=1
         fi
     done < "${fixtures_dir}/fixtures.tsv"
+
+    # A vendor added after the newest fixture was cut appears in none of them: nothing failed, but
+    # nothing was checked either.
+    if [ -n "${VENDOR}" ] && [ "${total_kept}" -eq 0 ]; then
+        msg "no ${VENDOR} presets in any fixture; validate_custom checked nothing"
+    fi
 
     cat "${summary}"
     if [ -n "${failed_logs}" ]; then
@@ -461,7 +562,7 @@ run_check() {
     local name="$1"
     local log="${LOG_DIR}/${name}.log"
     local result
-    printf '\n%s==> %s%s\n' "${C_BOLD}" "${name}" "${C_RESET}"
+    printf '\n%s==> %s%s%s\n' "${C_BOLD}" "${name}" "${VENDOR:+ (${VENDOR})}" "${C_RESET}"
     "check_${name}" 2>&1 | tee "${log}"
     result="${PIPESTATUS[0]}"
     if [ "${result}" -eq 0 ]; then
@@ -477,17 +578,30 @@ if wants validate_system || wants validate_slice || wants validate_filament_subt
     resolve_validator
 fi
 
+# An empty printer set is a failure to the sweep, so validate_slice is recorded as skipped rather
+# than run for a vendor that ships no printers (the filament-only OrcaFilamentLibrary); naming the
+# check explicitly still runs it.
 for check in "${ALL_CHECKS[@]}"; do
-    wants "${check}" && run_check "${check}"
+    wants "${check}" || continue
+    if [ "${check}" = validate_slice ] && [ "${NAMED_CHECKS}" -eq 0 ] && [ -n "${VENDOR}" ] &&
+        [ ! -d "${PROFILES_DIR}/${VENDOR}/machine" ]; then
+        RESULTS="${RESULTS}${check}"$'\t'"skip"$'\t'"${VENDOR} ships no printers"$'\n'
+    else
+        run_check "${check}"
+    fi
 done
 
 # Summary, plus the comment check_profiles_comment.yml would post when something fails.
 failed=0
+skipped=0
 printf '\n%s==> summary%s\n' "${C_BOLD}" "${C_RESET}"
-while IFS=$'\t' read -r name result; do
+while IFS=$'\t' read -r name result why; do
     [ -n "${name}" ] || continue
     if [ "${result}" = "pass" ]; then
         printf '%s    PASS%s  %s\n' "${C_GREEN}" "${C_RESET}" "${name}"
+    elif [ "${result}" = "skip" ]; then
+        printf '%s    SKIP%s  %s  (%s)\n' "${C_BOLD}" "${C_RESET}" "${name}" "${why}"
+        skipped=1
     else
         printf '%s    FAIL%s  %s  (%s)\n' "${C_RED}" "${C_RESET}" "${name}" "${LOG_DIR}/${name}.log"
         failed=1
@@ -498,7 +612,12 @@ EOF
 
 if [ "${failed}" -eq 0 ]; then
     rm -f "${WORK_DIR}/pr_comment.md"
-    printf '\n%sAll checks passed.%s Logs: %s\n' "${C_GREEN}" "${C_RESET}" "${LOG_DIR}"
+    if [ "${skipped}" -eq 0 ]; then
+        printf '\n%sAll checks passed.%s Logs: %s\n' "${C_GREEN}" "${C_RESET}" "${LOG_DIR}"
+    else
+        printf '\n%sEvery check that ran passed%s, but CI runs the skipped ones too. Logs: %s\n' \
+            "${C_GREEN}" "${C_RESET}" "${LOG_DIR}"
+    fi
     exit 0
 fi
 
