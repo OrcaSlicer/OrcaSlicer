@@ -71,7 +71,7 @@ wxFlexGridSizer* TroubleshootDialog::create_item_loaded_profiles()
     auto gen_stats = GetProfilesOverview();
     gen_stats      = ""; // clear mem. not needed after generating m_..._act, m_..._usr variables
    
-    auto add_sizer = [this, g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
+    auto add_sizer = [g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
         int sys = 0;
         for (auto it = col->begin(); it != col->end(); it++) {
             if (it->is_system)
@@ -178,7 +178,7 @@ TroubleshootDialog::TroubleshootDialog()
         return wxTheClipboard->SetData(new wxTextDataObject(GetSysInfoAll()));
     });
 
-    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines, sys_copy_btn](wxCommandEvent &e) {
+    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines](wxCommandEvent &e) {
         m_sys_panel_mode = !m_sys_panel_mode;
         sys_panel->SetText(sys_info_lines(m_sys_panel_mode));
         sys_less_btn->SetLabel(m_sys_panel_mode ? _L("Hide") : _L("Show"));

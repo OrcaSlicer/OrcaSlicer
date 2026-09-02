@@ -627,7 +627,7 @@ void C3DPrinterOS::send_form(
             responseTree.put("result", false);
             responseTree.put("message", error);
         })
-        .on_complete([&, this](std::string body, unsigned) {
+        .on_complete([&](std::string body, unsigned) {
             std::stringstream ss(body);
             try {
                 pt::read_json(ss, responseTree);

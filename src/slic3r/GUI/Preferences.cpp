@@ -519,7 +519,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                 }
             }
 
-            auto check = [this](bool yes_or_no) {
+            auto check = [](bool yes_or_no) {
                 // if (yes_or_no)
                 //    return true;
                 int act_btns = ActionButtons::SAVE;
@@ -1200,7 +1200,7 @@ wxBoxSizer* PreferencesDialog::create_item_button(wxString title, wxString title
     m_button_download->SetStyle(title2 == _L("Clear") ? ButtonStyle::Alert : ButtonStyle::Regular, ButtonType::Parameter);
     m_button_download->SetToolTip(tooltip2.IsEmpty() ? tooltip : tooltip2); // use label tooltip if button tooltip empty
 
-    m_button_download->Bind(wxEVT_BUTTON, [this, onclick](auto &e) { onclick(); });
+    m_button_download->Bind(wxEVT_BUTTON, [onclick](auto &e) { onclick(); });
 
     m_sizer->Add(m_button_download, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -1490,7 +1490,7 @@ void PreferencesDialog::create()
     m_sizer_body = new wxBoxSizer(wxVERTICAL);
 
     m_pref_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
-    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
+    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable right select
     m_pref_tabs->SetFont(Label::Body_14);
 
     create_items();

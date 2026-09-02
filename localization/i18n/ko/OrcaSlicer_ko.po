@@ -4829,7 +4829,7 @@ msgstr ""
 "\n"
 "값이 0으로 재설정됩니다."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "세로 쉘 두께가 모두로 설정된 경우 대체 여분의 벽이 제대로 작동하지 않습니다."
 
 msgid ""
@@ -4875,7 +4875,7 @@ msgstr ""
 "아니요 - 독립적 서포트 레이어 높이 유지"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "심_경사_시작_높이는 레이어_높이보다 작아야 합니다.\n"
@@ -4883,7 +4883,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "잠금 깊이는 스킨 깊이보다 작아야 합니다.\n"
