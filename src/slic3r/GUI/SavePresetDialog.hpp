@@ -85,14 +85,13 @@ class SavePresetDialog : public DPIDialog
     wxStaticText*       m_label             {nullptr};
     wxBoxSizer*         m_radio_sizer       {nullptr};  
     ActionType          m_action            {UndefAction};
-    int                 m_mode;
 
     std::string         m_ph_printer_name;
     std::string         m_old_preset_name;
 
 public:
-    SavePresetDialog(wxWindow* parent, Preset::Type type, int mode = 0, std::string suffix = "");
-    SavePresetDialog(wxWindow* parent, std::vector<Preset::Type> types, int mode = 0, std::string suffix = "");
+    SavePresetDialog(wxWindow* parent, Preset::Type type, std::string suffix = "");
+    SavePresetDialog(wxWindow* parent, std::vector<Preset::Type> types, std::string suffix = "");
     ~SavePresetDialog();
 
     void AddItem(Preset::Type type, const std::string& suffix);

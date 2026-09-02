@@ -345,6 +345,13 @@ public:
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
 
+    // Orca: name of the printer this one was cloned from by "Detach from parent". Unlike inherits(),
+    // it carries no configuration - the copy is never rebased on it - and only keeps the source
+    // printer's process and filament profiles compatible. See is_compatible_with_parent_printer().
+    static std::string& cloned_from(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("cloned_from", true)->value; }
+    std::string&        cloned_from() { return Preset::cloned_from(this->config); }
+    const std::string&  cloned_from() const { return Preset::cloned_from(const_cast<Preset*>(this)->config); }
+
     // Rewrite cfg's "inherits" to the resolved parent's canonical name. find_preset2 may
     // resolve a renamed parent, or a removed vendor profile auto-matched to the
     // OrcaFilamentLibrary; persisting the canonical name lets later plain find_preset()
@@ -587,6 +594,9 @@ public:
     Preset&         load_preset(const std::string &path, const std::string &name, DynamicPrintConfig &&config, bool select = true, Semver file_version = Semver());
 
     bool clone_presets(std::vector<Preset const *> const &presets, std::vector<std::string> &failures, std::function<void(Preset &, Preset::Type &)> modifier, bool force_rewritten = false);
+    // Orca: the name clone_presets_for_printer() gives a copy of "preset_name" bound to "printer",
+    // so a caller can tell beforehand whether that copy already exists.
+    static std::string cloned_preset_name(const std::string &preset_name, const std::string &printer);
     bool clone_presets_for_printer(
         std::vector<Preset const *> const &templates, std::vector<std::string> &failures, std::string const &printer, std::function <std::string(std::string)> create_filament_id, bool force_rewritten = false);
     bool clone_presets_for_filament(Preset const *const &     preset,
@@ -832,6 +842,14 @@ public:
     // Generate a file path from a profile name. Add the ".ini" suffix if it is missing.
     std::string     path_from_name(const std::string &new_name, bool detach = false) const;
     std::string     path_for_preset(const Preset & preset) const;
+    // Orca: root of a preset's inheritance chain. Nozzle variants of one printer share a root, so it
+    // identifies the family a preset belongs to. Safe against a cycle in a hand-edited profile.
+    std::string     family_root_name(const Preset &preset);
+    // Orca: that root when it is a detached printer - one saved with "Detach from parent", which
+    // roots at itself. nullptr for a system preset or a copy that still inherits from one: system
+    // presets are materialised with an empty "inherits", so each is its own root and they form no
+    // family. Only a detached printer's variants can be treated as one printer.
+    const Preset*   detached_family_root(const Preset &preset);
 
     // Get the alias of a preset, setting it if it's empty
     std::string     get_preset_alias(Preset &preset, bool force = false);
@@ -979,6 +997,9 @@ public:
     const Preset&   default_preset_for(const DynamicPrintConfig &config) const override;
 
     const Preset*   find_system_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
+    // Orca: system preset of the same model with a matching nozzle. Matched on the diameter rather
+    // than the "printer_variant" string, so it does not depend on how that string is formatted.
+    const Preset*   find_system_preset_by_model_and_nozzle(const std::string &model_id, double nozzle_diameter) const;
     const Preset*   find_custom_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
 
     bool            only_default_printers() const;
@@ -995,6 +1016,12 @@ namespace PresetUtils {
 	const VendorProfile::PrinterModel* system_printer_model(const Preset &preset);
     std::string system_printer_bed_model(const Preset& preset);
     std::string system_printer_bed_texture(const Preset& preset);
+    // Orca: artwork copied beside a detached printer as "<preset><suffix>.<ext>", so it survives the
+    // source vendor being uninstalled. Found by name rather than stored in the config, keeping
+    // absolute paths out of the profile. Walks up the chain: nozzle variants share their root's.
+    std::string detached_printer_asset(PresetCollection &printers, const Preset& preset, const std::string& suffix);
+    // Orca: "printer_variant" as the nozzle dropdown spells it. The two are compared as strings.
+    std::string nozzle_variant_string(double nozzle_diameter);
     std::string system_printer_hotend_model(const Preset& preset);
 } // namespace PresetUtils
 

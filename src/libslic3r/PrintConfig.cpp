@@ -4687,6 +4687,14 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionString());
     def->cli = ConfigOptionDef::nocli;
 
+    // Orca: set by "Detach from parent". Nothing is inherited from this profile - the copy is
+    // complete - the name is only kept so the source printer's profiles stay compatible.
+    def = this->add("cloned_from", coString);
+    def->label = L("Cloned from profile");
+    def->tooltip = L("Name of the profile this standalone copy was created from.");
+    def->set_default_value(new ConfigOptionString());
+    def->cli = ConfigOptionDef::nocli;
+
     // The following value is to be stored into the project file (AMF, 3MF, Config ...)
     // and it contains a sum of "inherits" values over the print and filament profiles.
     def = this->add("inherits_group", coStrings);

@@ -263,17 +263,9 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 #define PRINTER_PANEL_RADIUS (6) // ORCA
 #define BTN_SYNC_SIZE (wxSize(FromDIP(96), FromDIP(98)))
 
-static string get_diameter_string(float diameter)
-{
-    std::ostringstream stream; // ORCA ensure 0.25 returned as 0.25. previous code returned as 0.2 because of std::setprecision(1)
-    stream << std::fixed << std::setprecision(2) << diameter;  // Use 2 decimals to capture 0.25 / 0.15 reliably
-    std::string s = stream.str();
-    if (s.find('.') != std::string::npos) {   // Remove trailing zeros, but keep at least one decimal if needed
-        s.erase(s.find_last_not_of('0') + 1);
-        if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
-    }
-    return s;
-}
+// ORCA ensure 0.25 returned as 0.25. Delegates to PresetUtils so the spelling written into
+// "printer_variant" when a preset is saved cannot drift from the one shown in the dropdown.
+static string get_diameter_string(float diameter) { return Slic3r::PresetUtils::nozzle_variant_string(diameter); }
 
 template <typename T, typename OptionType>
 static void set_config_values(DynamicPrintConfig *config, const std::string &key, T value)
@@ -6452,6 +6444,17 @@ void Sidebar::update_printer_thumbnail()
             return;
         } catch (...) {}
         */
+
+        // Orca: a detached printer keeps a copy of the cover beside its preset, so it still has an
+        // icon once its vendor's profile folder is gone.
+        const auto own_cover = PresetUtils::detached_printer_asset(preset_bundle->printers, selected_preset, "_cover");
+        if (!own_cover.empty()) {
+            try {
+                p->image_printer->SetBitmap(create_scaled_bitmap(own_cover, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+                printer_thumbnails[printer_type] = own_cover;
+                return;
+            } catch (...) {}
+        }
 
         // Orca: try to use the printer model cover as the thumbnail
         const auto model_name = selected_preset.config.opt_string("printer_model");
@@ -19830,8 +19833,10 @@ void Plater::set_bed_shape() const
         if (curr->is_system)
             texture_filename = PresetUtils::system_printer_bed_texture(*curr);
         else {
+            // Orca: a detached copy owns its bed texture, so it survives its vendor being removed.
+            texture_filename = PresetUtils::detached_printer_asset(bundle->printers, *curr, "_bed_texture");
             auto *printer_model = curr->config.opt<ConfigOptionString>("printer_model");
-            if (printer_model != nullptr && ! printer_model->value.empty()) {
+            if (texture_filename.empty() && printer_model != nullptr && ! printer_model->value.empty()) {
                 texture_filename = bundle->get_texture_for_printer_model(printer_model->value);
             }
         }
