@@ -128,7 +128,6 @@ private:
     bool      is_drag_mode();
 
     boost::shared_ptr<PrinterFileSystem> m_file_sys;
-    bool                                 m_file_sys_result{false};
     std::string                          m_timestamp;
     std::string                          m_tmp_path;
     std::vector<string>                  m_local_paths;

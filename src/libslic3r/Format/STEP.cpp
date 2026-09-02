@@ -111,14 +111,19 @@ bool StepPreProcessor::isUtf8File(const char* path)
 bool StepPreProcessor::isUtf8(const std::string str)
 {
     size_t num = 0;
-    int i = 0;
+    size_t i = 0;
     while (i < str.length()) {
-        if ((str[i] & 0x80) == 0x00) {
+        const unsigned char lead = static_cast<unsigned char>(str[i]);
+        if ((lead & 0x80) == 0x00) {
             i++;
-        } else if ((num = preNum(str[i])) > 2) {
+        // preNum() counts the leading 1 bits, and a multi-byte sequence is 2 to 4
+        // bytes long, so anything outside that range is not a lead byte.
+        } else if ((num = preNum(lead)) >= 2 && num <= 4) {
+            if (i + num > str.length())
+                return false;
             i++;
-            for (int j = 0; j < num - 1; j++) {
-                if ((str[i] & 0xc0) != 0x80)
+            for (size_t j = 0; j < num - 1; j++) {
+                if ((static_cast<unsigned char>(str[i]) & 0xc0) != 0x80)
                     return false;
                 i++;
             }
@@ -132,15 +137,20 @@ bool StepPreProcessor::isUtf8(const std::string str)
 bool StepPreProcessor::isGBK(const std::string str) {
     size_t i = 0;
     while (i < str.length()) {
-        if (str[i] <= 0x7f) {
+        // char is signed here, so every byte compares <= 0x7f unless widened first.
+        const unsigned char lead = static_cast<unsigned char>(str[i]);
+        if (lead <= 0x7f) {
             i++;
             continue;
         } else {
-            if (str[i] >= 0x81 &&
-                str[i] <= 0xfe &&
-                str[i + 1] >= 0x40 &&
-                str[i + 1] <= 0xfe &&
-                str[i + 1] != 0xf7) {
+            if (i + 1 >= str.length())
+                return false;
+            const unsigned char trail = static_cast<unsigned char>(str[i + 1]);
+            if (lead >= 0x81 &&
+                lead <= 0xfe &&
+                trail >= 0x40 &&
+                trail <= 0xfe &&
+                trail != 0xf7) {
                 i += 2;
                 continue;
             }
@@ -586,7 +596,7 @@ Step::Step_Status Step::mesh(Model* model,
                     for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                         gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                         aPnt.Transform(aTrsf);
-                        points.emplace_back(std::move(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z())));
+                        points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
                     }
                     // BBS: copy triangles
                     const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();

@@ -223,7 +223,7 @@ void ObjectLayers::update_layers_list()
 
     // only call sizer->Clear(true) via CallAfter, otherwise crash happens in Linux when press enter in Height Range
     // because an element cannot be destroyed while there are pending events for this element.(https://github.com/wxWidgets/Phoenix/issues/1854)
-    wxGetApp().CallAfter([this, type, objects_ctrl, range]() {
+    wxGetApp().CallAfter([this, type, range]() {
         m_og->ctrl_parent()->Freeze();
 
         // Delete all controls from options group
