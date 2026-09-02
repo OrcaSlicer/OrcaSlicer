@@ -4018,11 +4018,6 @@ std::vector<int> PartPlate::get_physical_filament_maps() const
     return {};
 }
 
-void PartPlate::set_physical_filament_maps(const std::vector<int>& f_maps)
-{
-    m_config.option<ConfigOptionInts>("filament_physical_map", true)->values = f_maps;
-}
-
 std::vector<int> PartPlate::get_filament_volume_maps() const
 {
     std::string key = "filament_volume_map";
