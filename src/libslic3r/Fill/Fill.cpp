@@ -1596,7 +1596,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
 }
 
 // Returns the filament id (1-based) the region is ironed with, or -1 when the
-// region is not ironed. AllSolid always irons. TopSurfaces and TopmostOnly need
+// region is not ironed. AllSolid always irons. TopSurfaces, PaintedOnly and TopmostOnly need
 // either some top shells or, in spiral mode, more than one bottom shell, and
 // TopmostOnly additionally needs the layer to be the topmost one.
 int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
@@ -1608,6 +1608,7 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
     const bool gate = (cfg.ironing_type == IroningType::AllSolid)
         || ((cfg.top_shell_layers > 0 || (spiral_mode && cfg.bottom_shell_layers > 1))
             && (cfg.ironing_type == IroningType::TopSurfaces
+                || cfg.ironing_type == IroningType::PaintedOnly
                 || (cfg.ironing_type == IroningType::TopmostOnly && is_topmost_layer)));
     if (!gate)
         return -1;
@@ -1775,16 +1776,25 @@ void Layer::make_ironing()
 							break;
 						}
 				}
+				// Orca: Collect this region's contribution separately, so that a region set to
+				// IroningType::PaintedOnly can be trimmed to its own painted area before the
+				// regions sharing these ironing parameters are merged together.
+				Polygons region_polys;
 				if (iron_completely) {
 					// Iron everything. This is likely only good for solid transparent objects.
 					for (const Surface &surface : ironing_params.layerm->slices.surfaces)
-						polygons_append(polys, surface.expolygon);
+						polygons_append(region_polys, surface.expolygon);
 				} else {
 					for (const Surface &surface : ironing_params.layerm->slices.surfaces)
 						if ((surface.surface_type == stTop && (region_config.top_shell_layers > 0 || this->object()->print()->config().spiral_mode)) || (iron_everything && surface.surface_type == stBottom && region_config.bottom_shell_layers > 0))
 							// stBottomBridge is not being ironed on purpose, as it would likely destroy the bridges.
-							polygons_append(polys, surface.expolygon);
+							polygons_append(region_polys, surface.expolygon);
 				}
+				if (region_config.ironing_type == IroningType::PaintedOnly)
+					// Ironing only ever runs over upward facing surfaces, so intersecting with the
+					// projection of the upward facing painted triangles is all that is needed here.
+					region_polys = to_polygons(intersection_ex(region_polys, this->ironing_painted));
+				append(polys, std::move(region_polys));
 				if (iron_everything && ! iron_completely) {
 					// Add solid fill surfaces. This may not be ideal, as one will not iron perimeters touching these
 					// solid fill surfaces, but it is likely better than nothing.
