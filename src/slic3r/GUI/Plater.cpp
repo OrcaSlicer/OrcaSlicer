@@ -6750,6 +6750,12 @@ struct Plater::priv
     SendToPrinterDialog* m_send_to_sdcard_dlg = nullptr;
     PublishDialog* m_publish_dlg              = nullptr;
 
+    // Session-level stash of the last published selection. Written on publish and on
+    // loading a published 3MF; read when the Publish dialog is opened.
+    bool                                        m_has_pending_published{false};
+    std::vector<std::string>                    m_pending_published_keys;
+    std::vector<Slic3r::PublishedMaterialEntry> m_pending_material_keys;
+
     // Data
     Slic3r::DynamicPrintConfig* config; // FIXME: leak?
     Slic3r::Print fff_print;
@@ -9087,6 +9093,15 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                      NotificationManager::NotificationLevel::WarningNotificationLevel);
                             }
 
+                            // Remember the imported published selection so the Publish dialog is
+                            // pre-seeded with the file's settings. Stored after the load so any
+                            // per-slot relocations are already reflected in material_keys.
+                            if (published_config.published) {
+                                this->m_has_pending_published = true;
+                                this->m_pending_published_keys = published_config.published_keys;
+                                this->m_pending_material_keys  = published_config.material_keys;
+                            }
+
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
                                 BedType bed_type = (BedType) bed_type_opt->getInt();
@@ -10289,6 +10304,11 @@ void Plater::priv::reset(bool apply_presets_change)
     Plater::TakeSnapshot snapshot(q, _u8L("Reset Project"), UndoRedo::SnapshotType::ProjectSeparator);
 
     clear_warnings();
+
+    // A new project must not inherit the previous project's published selection (Feature A/B).
+    m_has_pending_published   = false;
+    m_pending_published_keys.clear();
+    m_pending_material_keys.clear();
 
     set_project_filename("");
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
@@ -18409,6 +18429,24 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     wxGetApp().mainframe->add_to_recent_projects(path);
 
     return wxID_YES;
+}
+
+bool Plater::get_pending_published(std::vector<std::string>& out_keys,
+                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material) const
+{
+    if (!p->m_has_pending_published)
+        return false;
+    out_keys     = p->m_pending_published_keys;
+    out_material = p->m_pending_material_keys;
+    return true;
+}
+
+void Plater::set_pending_published(const std::vector<std::string>& published_keys,
+                                   const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
+{
+    p->m_has_pending_published = true;
+    p->m_pending_published_keys = published_keys;
+    p->m_pending_material_keys  = material_keys;
 }
 
 Preset* get_printer_preset(const MachineObject* obj)

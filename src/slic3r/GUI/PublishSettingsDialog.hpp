@@ -46,7 +46,14 @@ struct MixedDependencyIssue
 class PublishSettingsDialog : public DPIDialog
 {
 public:
-    PublishSettingsDialog(wxWindow* parent = nullptr);
+    // Optional published selection (Feature A/B): when the caller supplies one (either a
+    // remembered session selection or the payload of a freshly loaded published 3MF) the dialog
+    // is seeded from it, overriding the dirty-default pre-check. A non-null pointer to an empty
+    // selection means "publish nothing" (an intentional empty state); a null pointer means "no
+    // remembered selection" (keep the dirty defaults).
+    PublishSettingsDialog(wxWindow* parent = nullptr,
+                          const std::vector<std::string>* published_keys = nullptr,
+                          const std::vector<Slic3r::PublishedMaterialEntry>* material_keys = nullptr);
     ~PublishSettingsDialog();
 
     // The selected print/printer setting keys (in display order); printer keys carry a '#N'
@@ -179,6 +186,12 @@ private:
     };
 
     void build_option_model();
+    // Seed the dialog from a published selection (print/printer keys + per-slot material keys):
+    // the supplied selection is authoritative - it is applied after the dirty pre-check and
+    // overrides it, so deselected dirty keys stay off. Rows/slots not present in the selection
+    // are left unselected. Unknown or out-of-range entries are skipped gracefully.
+    void apply_selection(const std::vector<std::string>& published_keys,
+                         const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     // Frozen snapshot of a mixed slot's definition for the page visualization, resolved from
     // the full config once at dialog-build time. Gradient slots pre-sample exactly what the
     // slicer will print: the custom curve wins over the gradient_range endpoints over the

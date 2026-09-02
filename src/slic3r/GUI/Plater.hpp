@@ -520,6 +520,10 @@ public:
     // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
     // pure export that leaves the in-memory project untouched.
     int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
+    // Session-level stash of the last published selection, seeded into the Publish dialog on
+    // open and written on publish or on loading a published 3MF
+    bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material) const;
+    void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
     void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf

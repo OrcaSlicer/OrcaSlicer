@@ -434,7 +434,8 @@ PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_
     return spec;
 }
 
-PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
+PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent, const std::vector<std::string>* published_keys,
+                                             const std::vector<Slic3r::PublishedMaterialEntry>* material_keys)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe),
                 wxID_ANY,
                 _L("Publish 3MF..."),
@@ -521,6 +522,11 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     w_sizer->Add(m_outer_host, 1, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
 
     build_option_model();
+
+    // Seed from a remembered session selection or a freshly loaded published 3MF (authoritative).
+    if (published_keys != nullptr || material_keys != nullptr)
+        apply_selection(published_keys != nullptr ? *published_keys : std::vector<std::string>(),
+                        material_keys != nullptr ? *material_keys : std::vector<Slic3r::PublishedMaterialEntry>());
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
@@ -1689,6 +1695,89 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
     wxPoint screen_pos = src->ClientToScreen(evt.GetPosition());
     wxPoint local_pos  = ScreenToClient(screen_pos);
     PopupMenu(&m, local_pos);
+}
+
+void PublishSettingsDialog::apply_selection(const std::vector<std::string>& published_keys,
+                                            const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
+{
+    // The supplied selection is authoritative: clear the dirty-default pre-check first so a
+    // dirty key the user deselected stays off, then re-select exactly what the selection names.
+    for (Row& row : m_rows)
+        if (row.check != nullptr)
+            row.check->SetValue(false);
+    for (Category& cat : m_categories) {
+        if (cat.section != Section::Material)
+            continue;
+        if (cat.enable_check != nullptr)
+            cat.enable_check->SetValue(false);
+        if (cat.full_check != nullptr)
+            cat.full_check->SetValue(false);
+    }
+
+    // Print / printer rows: match by exact row key (the full "#N" opt_id where present).
+    for (const std::string& key : published_keys)
+        for (Row& row : m_rows)
+            if ((row.section == Section::Print || row.section == Section::Printer) && row.check != nullptr && row.key == key) {
+                row.check->SetValue(true);
+                break;
+            }
+
+    // Per-slot material selections, applied positionally by slot.
+    for (const Slic3r::PublishedMaterialEntry& entry : material_keys) {
+        if (entry.slot < 0)
+            continue;
+        bool entry_mixed = false;
+        for (const std::string& k : entry.keys)
+            if (publish_mixed_keys().count(publish_base_key(k)) != 0) {
+                entry_mixed = true;
+                break;
+            }
+        size_t cat_idx = size_t(-1);
+        for (size_t c = 0; c < m_categories.size(); ++c) {
+            const Category& cat = m_categories[c];
+            if (cat.section != Section::Material || cat.is_mixed != entry_mixed || cat.filament_slot != size_t(entry.slot))
+                continue;
+            cat_idx = c;
+            break;
+        }
+        if (cat_idx == size_t(-1))
+            continue; // slot not present in the receiver (out of range / skipped)
+        Category& cat = m_categories[cat_idx];
+        if (cat.enable_check != nullptr) {
+            cat.enable_check->SetValue(true);
+            on_enable_toggle(cat_idx);
+        }
+        if (entry.full && cat.full_check != nullptr) {
+            cat.full_check->SetValue(true);
+            on_full_toggle(cat_idx);
+        } else {
+            // Setting rows are keyed by the base key.
+            for (const std::string& key : entry.keys) {
+                const std::string base = publish_base_key(key);
+                for (const size_t r : cat.rows) {
+                    Row& row = m_rows[r];
+                    if (row.kind == RowKind::Setting && row.key == base) {
+                        row.check->SetValue(true);
+                        break;
+                    }
+                }
+            }
+            if (entry.publish_type && !entry.publish_type_value.empty())
+                for (const size_t r : cat.rows)
+                    if (m_rows[r].kind == RowKind::Type && m_rows[r].check != nullptr) {
+                        m_rows[r].check->SetValue(true);
+                        break;
+                    }
+            if (entry.publish_color && !entry.color.empty())
+                for (const size_t r : cat.rows)
+                    if (m_rows[r].kind == RowKind::Color && m_rows[r].check != nullptr) {
+                        m_rows[r].check->SetValue(true);
+                        break;
+                    }
+        }
+    }
+
+    apply_visibility();
 }
 
 std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
