@@ -17,6 +17,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
 #include <wx/display.h>
@@ -305,6 +306,114 @@ wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, 
     }
     memdc.SelectObject(wxNullBitmap);
     return composite;
+}
+
+// The filament slots (0-based) the current project actually uses, across every plate: base and
+// MMU-painted volume extruders, per-object layer-range and support/wall/infill filament
+// overrides, and custom-gcode tool changes. Used mixed slots are preserved as themselves (so an
+// in-use mix is publishable) while their physical components are added too - a mix always ships
+// with the materials of its components even if a component is not referenced directly anywhere.
+std::set<size_t> project_used_filament_slots(const PresetBundle& bundle, const DynamicPrintConfig& full, const Model& model)
+{
+    std::set<size_t> used; // 0-based used slots, mixed slots not yet expanded
+    if (model.objects.empty())
+        return used;
+
+    auto add_1based = [&used](int id) {
+        if (id > 0)
+            used.insert(size_t(id - 1));
+    };
+
+    const DynamicPrintConfig& print_cfg = bundle.prints.get_edited_preset().config;
+    const int glb_support_intf   = print_cfg.opt_int("support_interface_filament");
+    const int glb_support        = print_cfg.opt_int("support_filament");
+    const int glb_outer_wall     = print_cfg.opt_int("outer_wall_filament_id");
+    const int glb_inner_wall     = print_cfg.opt_int("inner_wall_filament_id");
+    const int glb_sparse_infill  = print_cfg.opt_int("sparse_infill_filament_id");
+    const int glb_internal_solid = print_cfg.opt_int("internal_solid_filament_id");
+    const int glb_top_surface    = print_cfg.opt_int("top_surface_filament_id");
+    const int glb_bottom_surface = print_cfg.opt_int("bottom_surface_filament_id");
+    const bool glb_support_on    = print_cfg.opt_bool("enable_support") || print_cfg.opt_int("raft_layers") > 0;
+
+    for (ModelObject* mo : model.objects) {
+        for (ModelVolume* mv : mo->volumes)
+            for (int e : mv->get_extruders())
+                add_1based(e);
+
+        for (const auto& range_entry : mo->layer_config_ranges)
+            if (const ConfigOption* ext_opt = range_entry.second.option("extruder"))
+                add_1based(ext_opt->getInt());
+
+        bool obj_support = glb_support_on;
+        if (const ConfigOption* s_opt = mo->config.option("enable_support"); s_opt != nullptr)
+            obj_support = s_opt->getBool();
+        else if (const ConfigOption* r_opt = mo->config.option("raft_layers"); r_opt != nullptr)
+            obj_support = r_opt->getInt() > 0;
+
+        if (obj_support) {
+            if (const ConfigOption* opt = mo->config.option("support_interface_filament"); opt != nullptr && opt->getInt() != 0)
+                add_1based(opt->getInt());
+            else
+                add_1based(glb_support_intf);
+
+            if (const ConfigOption* opt = mo->config.option("support_filament"); opt != nullptr && opt->getInt() != 0)
+                add_1based(opt->getInt());
+            else
+                add_1based(glb_support);
+        }
+
+        auto obj_id = [&mo](const char* key) {
+            const ConfigOption* opt = mo->config.option(key);
+            return (opt != nullptr) ? opt->getInt() : 0;
+        };
+
+        int obj_outer_wall = obj_id("outer_wall_filament_id");
+        if (obj_outer_wall == 0)
+            obj_outer_wall = obj_id("inner_wall_filament_id");
+        add_1based(obj_outer_wall != 0 ? obj_outer_wall : glb_outer_wall);
+
+        int obj_inner_wall = obj_id("inner_wall_filament_id");
+        if (obj_inner_wall == 0)
+            obj_inner_wall = obj_id("outer_wall_filament_id");
+        add_1based(obj_inner_wall != 0 ? obj_inner_wall : glb_inner_wall);
+
+        const int obj_sparse = obj_id("sparse_infill_filament_id");
+        add_1based(obj_sparse != 0 ? obj_sparse : glb_sparse_infill);
+
+        const int obj_internal_solid = obj_id("internal_solid_filament_id");
+        add_1based(obj_internal_solid != 0 ? obj_internal_solid : glb_internal_solid);
+
+        int obj_top = obj_id("top_surface_filament_id");
+        if (obj_top == 0)
+            obj_top = obj_internal_solid;
+        add_1based(obj_top != 0 ? obj_top : glb_top_surface);
+
+        int obj_bottom = obj_id("bottom_surface_filament_id");
+        if (obj_bottom == 0)
+            obj_bottom = obj_internal_solid;
+        add_1based(obj_bottom != 0 ? obj_bottom : glb_bottom_surface);
+    }
+
+    for (const auto& plate_entry : model.plates_custom_gcodes)
+        for (const CustomGCode::Item& item : plate_entry.second.gcodes)
+            if (item.type == CustomGCode::Type::ToolChange)
+                add_1based(item.extruder);
+
+    // Expand used mixed slots to their physical components and keep each mixed slot itself so the
+    // dialog shows the mix. A component both used directly and pulled in via a mix is deduped.
+    const auto* is_mixed_opt = full.opt<ConfigOptionBools>("filament_is_mixed");
+    const auto* comp_opt     = full.opt<ConfigOptionStrings>("filament_mixed_components");
+    if (is_mixed_opt != nullptr && comp_opt != nullptr && has_any_mixed_filament(is_mixed_opt->values)) {
+        const std::vector<unsigned int> raw(used.begin(), used.end());
+        const std::vector<unsigned int> expanded = expand_mixed_filaments(raw, is_mixed_opt->values, comp_opt->values);
+        std::set<size_t> result(expanded.begin(), expanded.end());
+        for (unsigned int s : raw)
+            if (s < is_mixed_opt->values.size() && is_mixed_opt->values[s])
+                result.insert(s);
+        return result;
+    }
+
+    return used;
 }
 
 } // namespace
@@ -732,9 +841,15 @@ void PublishSettingsDialog::build_option_model()
                 // settings; their "Enable" toggle always embeds the mix definition (components,
                 // ratios, gradient). Detect them via the project-level flag.
                 const ConfigOptionBools* is_mixed_opt = full.opt<ConfigOptionBools>("filament_is_mixed");
-                // One section per filament slot (a 4-slot printer shows 4 pages), each
-                // disambiguated by its colour chip and slot identity while showing the bare name.
+                // Only the slots the project actually uses: base/MMU-painted volume extruders,
+                // support/wall/infill overrides and custom-gcode tool changes, plus the physical
+                // components of any in-use mixed slot. Unused slots get no section at all (and are
+                // therefore never published). One section per used slot, disambiguated by its
+                // colour chip and slot identity while showing the bare name.
+                const std::set<size_t> used_slots = project_used_filament_slots(*bundle, full, wxGetApp().plater()->model());
                 for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
+                    if (used_slots.find(slot) == used_slots.end())
+                        continue;
                     const bool is_mixed = is_mixed_opt != nullptr && slot < is_mixed_opt->size() && is_mixed_opt->values[slot];
                     const PublishMaterialIdentity identity = material_identity(slot, full);
                     // A mixed slot's title is its component composition (e.g. "1 (60%) + 2
