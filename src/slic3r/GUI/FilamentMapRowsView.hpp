@@ -71,7 +71,6 @@ public:
 
     // True while "Automatic" is armed with no manual pick since: a host that persists a mapping
     // onto a plate should save it in live (re-mapped every slice) mode rather than freezing it.
-    bool LiveAutoPending() const { return m_live_auto_pending; }
 
     // Restores the rows to the proposal this view was built with, badges included.
     void ResetToInitial();

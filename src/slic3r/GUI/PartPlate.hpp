@@ -267,7 +267,6 @@ public:
 
     // per project filament, the id of the physical filament it resolves to (0 = unassigned)
     std::vector<int> get_physical_filament_maps() const;
-    void set_physical_filament_maps(const std::vector<int>& f_maps);
 
     // per-filament nozzle-volume choice (NozzleVolumeType values, 0 based filament ids)
     std::vector<int> get_filament_volume_maps() const;
