@@ -85,6 +85,9 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
         m_shared_volume.data[2] = m_bboxf.max.x();
         m_shared_volume.data[3] = m_bboxf.max.y();
         m_shared_volume.zs[1] = m_bboxf.max.z();
+        if (extruder_printable_heights.size() < m_extruder_shapes.size())
+            BOOST_LOG_TRIVIAL(warning) << boost::format("extruder_printable_height has only %1% entries but extruder_printable_area has %2%, falling back to the bed printable_height for the missing ones")
+                    % extruder_printable_heights.size() % m_extruder_shapes.size();
         for (unsigned int index = 0; index < m_extruder_shapes.size(); index++)
         {
             std::vector<Vec2d>& extruder_shape = m_extruder_shapes[index];
@@ -99,9 +102,6 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
                 return;
             }
 
-            if (index >= extruder_printable_heights.size())
-                BOOST_LOG_TRIVIAL(warning) << boost::format("extruder_printable_height has only %1% entries but extruder_printable_area has %2%; using bed printable_height for extruder %3%")
-                        % extruder_printable_heights.size() % m_extruder_shapes.size() % index;
             const double extruder_height = index < extruder_printable_heights.size() ? extruder_printable_heights[index] : printable_height;
 
             if ((extruder_shape == printable_area)&&(extruder_height == printable_height)) {
