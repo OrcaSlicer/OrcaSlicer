@@ -42,6 +42,7 @@
 #include <ShapeFix_Face.hxx>
 #include <GeomAbs_Shape.hxx>
 #include <Standard_Failure.hxx>
+#include <Precision.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Wire.hxx>
 #include <GeomAPI_IntCS.hxx>
@@ -50,6 +51,14 @@
 #include <stdexcept>
 
 namespace Slic3r {
+
+// Single source of truth for the weld tolerance the viewport and the kernel share.
+// Defaults ON so headless/kernel-only callers keep welding; the GUI pushes the
+// "auto_close_sketch_loops" preference in via set_sketch_auto_close().
+static bool s_auto_close = true;
+
+double sketch_join_tol() { return s_auto_close ? kSketchJoinTol : 0.0; }
+void   set_sketch_auto_close(bool on) { s_auto_close = on; }
 
 // ---- SketchPlane ----
 
@@ -535,6 +544,11 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
 std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<SketchEntity>& entities,
                                                          const SketchPlane& plane)
 {
+    // Effective weld tolerance: kSketchJoinTol when auto-close is on, 0.0 when off.
+    // Read ONCE so the union-find, the node weld and the vertex tolerance below all
+    // agree. With 0.0 the comparisons use <= so exactly coincident endpoints still join.
+    const double tol = sketch_join_tol();
+
     struct Item { const SketchEntity* e; size_t idx; };
     std::vector<Item> valid;
     valid.reserve(entities.size());
@@ -600,12 +614,12 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         return true;
     };
 
-    // Sketch weld tolerance. Nothing legitimate in a mm-scale sketch is 0.1 um apart, so two
+    // Sketch weld tolerance. Nothing legitimate in a mm-scale sketch is 1 um apart, so two
     // endpoints within this distance count as one joint. The union-find grouping and the wire
     // build below MUST use the SAME number, or a joint can be united into a loop and then
     // rejected by the wire builder (which silently drops the edge — see the wire build).
-    static constexpr double kSketchWeldTol = 1e-4; // mm
-    auto same = [&](const Vec2d& p, const Vec2d& q) { return (p - q).norm() < kSketchWeldTol; };
+    // `<=` (not `<`) so exactly coincident endpoints still join when tol == 0 (auto-close off).
+    auto same = [&](const Vec2d& p, const Vec2d& q) { return (p - q).norm() <= tol; };
 
     // Union-find over the valid index list: chain entities sharing an endpoint belong to one loop.
     std::vector<int> parent(valid.size());
@@ -687,7 +701,7 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
             // loop.members is in ENTITY-CREATION order, not loop-traversal order. A partial
             // wire rejects an out-of-order edge even for a perfectly closed sketch, so first
             // weld every endpoint into a shared node, then traverse the chain in order. Each
-            // endpoint snaps to an existing node when within kSketchWeldTol, and every edge
+            // endpoint snaps to an existing node when within `tol`, and every edge
             // touching a node shares ONE TopoDS_Vertex: the wire builder then sees vertex
             // identity, not geometric proximity, so a joint open by a few um (larger than
             // OCCT's default 1e-7 vertex tolerance) still connects.
@@ -696,7 +710,7 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
             std::vector<int>   node_deg;                // endpoint count per node
             auto node_id = [&](const Vec2d& p) -> int {
                 for (size_t i = 0; i < node_pt.size(); ++i)
-                    if ((node_pt[i] - p).norm() < kSketchWeldTol) return int(i);
+                    if ((node_pt[i] - p).norm() <= tol) return int(i);
                 node_pt.push_back(p);
                 node_deg.push_back(0);
                 return int(node_pt.size()) - 1;
@@ -736,15 +750,16 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
             if (order.size() != ms.size()) return {};
 
             // One TopoDS_Vertex per node at the welded world point. Tolerance widened to
-            // kSketchWeldTol because MakeEdge(curve, va, vb) projects each vertex onto the
+            // `tol` because MakeEdge(curve, va, vb) projects each vertex onto the
             // curve within the vertex tolerance (BRepLib_MakeEdge::Init), and a welded node
-            // can be up to the weld gap off another entity's curve.
+            // can be up to the weld gap off another entity's curve. OCCT must never be handed
+            // a zero vertex tolerance, so clamp at Precision::Confusion() when tol == 0.
             std::vector<TopoDS_Vertex> verts(node_pt.size());
             BRep_Builder B;
             for (size_t i = 0; i < node_pt.size(); ++i) {
                 Vec3d w = plane.to_world(node_pt[i]);
                 verts[i] = BRepBuilderAPI_MakeVertex(gp_Pnt(w.x(), w.y(), w.z())).Vertex();
-                B.UpdateVertex(verts[i], kSketchWeldTol);
+                B.UpdateVertex(verts[i], std::max(tol, Precision::Confusion()));
             }
 
             for (size_t o : order) {

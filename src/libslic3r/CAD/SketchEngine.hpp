@@ -78,6 +78,24 @@ struct SketchProfile {
     void serialize(Archive& ar) { ar(points, closed); }
 };
 
+// Two sketch endpoints this close are ONE joint. Shared deliberately by the viewport
+// (region_loops / connected_loop / open-end detection) and by the kernel
+// (entities_to_wires): the viewport is what shades a region closed and offers it for
+// extrude, so the kernel MUST be able to build every loop the viewport shades. When
+// these two numbers disagreed the viewport promised a closed region at 1e-3 and the
+// kernel refused it at 1e-4, which extruded a solid the user never drew.
+// Nothing legitimate in a mm-scale sketch is 1 um apart.
+inline constexpr double kSketchJoinTol = 1e-3;   // mm
+
+// Effective sketch joint tolerance. ONE value for the viewport (region_loops /
+// loop_report / connected_loop) and the kernel (entities_to_wires): if these ever
+// disagree again, the viewport shades a region closed that the kernel refuses to
+// build, which is how a sketch got extruded into the wrong solid. The GUI pushes
+// the "auto_close_sketch_loops" preference in via set_sketch_auto_close(); the
+// kernel defaults to ON so headless/kernel-only callers keep welding.
+double sketch_join_tol();
+void   set_sketch_auto_close(bool on);
+
 enum class SketchConstraintType {
     Fix, Coincident, Horizontal, Vertical, Distance,
     LockX, LockY, EqualLength, Parallel, Perpendicular,

@@ -555,3 +555,100 @@ TEST_CASE("entities_to_wires keeps every edge of a loop drawn out of order", "[S
 
     REQUIRE(wires[0].Closed());
 }
+
+// Regression guard: this fails at 1e-4 (the wire builder refuses a joint the viewport had
+// already shaded closed) and passes at kSketchJoinTol. A 20x10 quad with one joint left open
+// by 9e-4 mm — just inside kSketchJoinTol, exactly the case the viewport shades closed — given
+// in an order that is NOT traversal order, so the ordering path is covered too.
+TEST_CASE("a loop the viewport shades closed is buildable by the kernel", "[SketchEngine]")
+{
+    std::vector<SketchEntity> ents(4);
+
+    // (0,0) -> (20,0) -> (20,10) -> (0,10) -> (0.0009, 0): last endpoint misses (0,0) by 9e-4.
+    ents[0].type = SketchEntity::Type::Line;
+    ents[0].p0   = Vec2d(0, 0);
+    ents[0].p1   = Vec2d(20, 0);
+
+    // Index 1 is the FAR side, not the neighbour of index 0: creation order here is
+    // deliberately not traversal order, so a partial wire would reject it without the
+    // traversal walk.
+    ents[1].type = SketchEntity::Type::Line;
+    ents[1].p0   = Vec2d(20, 10);
+    ents[1].p1   = Vec2d(0, 10);
+
+    ents[2].type = SketchEntity::Type::Line;
+    ents[2].p0   = Vec2d(20, 0);
+    ents[2].p1   = Vec2d(20, 10);
+
+    ents[3].type = SketchEntity::Type::Line;
+    ents[3].p0   = Vec2d(0, 10);
+    ents[3].p1   = Vec2d(0.0009, 0);
+
+    auto wires = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+
+    REQUIRE(wires.size() == 1);
+
+    int edge_count = 0;
+    for (TopExp_Explorer ex(wires[0], TopAbs_EDGE); ex.More(); ex.Next())
+        ++edge_count;
+    REQUIRE(edge_count == 4);
+
+    REQUIRE(wires[0].Closed());
+}
+
+// Regression guard for the auto-close preference. Same 20x10 quad, one joint open by 9e-4 mm
+// and given out of traversal order, as "a loop the viewport shades closed is buildable by the
+// kernel". With auto-close ON the gap welds (one closed wire); with auto-close OFF it must not.
+TEST_CASE("auto-close off makes the kernel demand an exact joint", "[SketchEngine]")
+{
+    std::vector<SketchEntity> ents(4);
+
+    ents[0].type = SketchEntity::Type::Line;
+    ents[0].p0   = Vec2d(0, 0);
+    ents[0].p1   = Vec2d(20, 0);
+
+    ents[1].type = SketchEntity::Type::Line;
+    ents[1].p0   = Vec2d(20, 10);
+    ents[1].p1   = Vec2d(0, 10);
+
+    ents[2].type = SketchEntity::Type::Line;
+    ents[2].p0   = Vec2d(20, 0);
+    ents[2].p1   = Vec2d(20, 10);
+
+    ents[3].type = SketchEntity::Type::Line;
+    ents[3].p0   = Vec2d(0, 10);
+    ents[3].p1   = Vec2d(0.0009, 0);
+
+    auto edge_count = [](const TopoDS_Wire& w) {
+        int n = 0;
+        for (TopExp_Explorer ex(w, TopAbs_EDGE); ex.More(); ex.Next()) ++n;
+        return n;
+    };
+
+    // ON: the 9e-4 mm gap is inside kSketchJoinTol, so the loop welds into one closed wire.
+    Slic3r::set_sketch_auto_close(true);
+    auto wires_on = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+    REQUIRE(wires_on.size() == 1);
+    REQUIRE(edge_count(wires_on[0]) == 4);
+    REQUIRE(wires_on[0].Closed());
+
+    // OFF: the joint is not exact, so the gap is NOT welded. entities_to_wires legitimately
+    // returns open chains (a sweep path is open), so the observable is an OPEN wire — the
+    // kernel no longer hands back the closed loop the viewport would have shaded.
+    Slic3r::set_sketch_auto_close(false);
+    auto wires_off = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+    REQUIRE(wires_off.size() == 1);
+    REQUIRE(edge_count(wires_off[0]) == 4);
+    REQUIRE_FALSE(wires_off[0].Closed());
+
+    // OFF + an EXACT joint (last endpoint exactly (0,0)): the quad still builds closed,
+    // proving "off" means exact rather than broken.
+    ents[3].p1 = Vec2d(0, 0);
+    auto wires_exact = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+    REQUIRE(wires_exact.size() == 1);
+    REQUIRE(edge_count(wires_exact[0]) == 4);
+    REQUIRE(wires_exact[0].Closed());
+
+    // Restore the default so test order cannot leak OFF into the other cases.
+    Slic3r::set_sketch_auto_close(true);
+}

@@ -316,6 +316,12 @@ void AppConfig::set_defaults()
     if (get("enable_cad_feature").empty())
         set_bool("enable_cad_feature", false);
 
+    // Auto-weld sketch endpoints within kSketchJoinTol when building closed loops.
+    // Default ON: it is what the ~90% case wants; OFF makes the kernel demand an exact
+    // joint. The GUI pushes it into SketchEngine via set_sketch_auto_close().
+    if (get("auto_close_sketch_loops").empty())
+        set_bool("auto_close_sketch_loops", true);
+
     // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
     // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
     // verse read without being learned, which no abstract glyph achieves. Turning it off

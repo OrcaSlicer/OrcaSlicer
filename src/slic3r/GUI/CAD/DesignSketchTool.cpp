@@ -62,8 +62,19 @@ static double ray_segment_dist3(const Vec3d& ro, const Vec3d& rd, const Vec3d& a
     return wxPoint(int(sx + 0.5), int(sy + 0.5));
 }
 
+// The kernel's weld tolerance follows the app preference, and it must be pushed at EVERY
+// point that starts a sketch session: a Constrain session never passes through begin(), and
+// it uses region_loops()/connected_loop(), which read the same tolerance. Pushing in one
+// place only would leave those sessions on whatever the previous session set.
+static void push_auto_close_pref()
+{
+    Slic3r::set_sketch_auto_close(wxGetApp().is_auto_close_sketch_loops());
+}
+
 void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
 {
+    push_auto_close_pref();
+
     m_plane = plane;
     m_mode = mode;
     m_step_mode_last = -1;        // a new session re-announces its step, even if it repeats the last
@@ -2221,6 +2232,7 @@ void DesignSketchTool::finish()
 
 void DesignSketchTool::begin_constrain(const SketchProfile& prof, const SketchPlane& plane)
 {
+    push_auto_close_pref();
     m_plane = plane;
     m_mode = Mode::Constrain;
     m_points = prof.points;
@@ -2235,6 +2247,7 @@ void DesignSketchTool::begin_constrain(const SketchProfile& prof, const SketchPl
 void DesignSketchTool::begin_constrain_entities(const std::vector<SketchEntity>& ents,
                                                 const SketchPlane& plane)
 {
+    push_auto_close_pref();
     m_plane = plane;
     m_mode = Mode::Constrain;
     m_constrain_entities = true;
@@ -6333,7 +6346,7 @@ std::vector<DesignSketchTool::RegionLoop>
 DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
 {
     std::vector<RegionLoop> regions;
-    const double eps2 = 1e-3 * 1e-3;
+    const double eps2 = sketch_join_tol() * sketch_join_tol();
     auto is_near = [&](const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() < eps2; };
 
     // Circles are self-closed regions; lines/arcs are open segments to be chained. Each
@@ -9420,7 +9433,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
             ends.push_back({ e.p1 });
         }
     }
-    const double eps = 1e-3;
+    const double eps = sketch_join_tol();
     for (size_t i = 0; i < ends.size(); ++i) {
         int met = 0;
         for (size_t j = 0; j < ends.size(); ++j) {
@@ -9553,7 +9566,7 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
 {
     std::vector<int> out;
     if (seed < 0 || seed >= int(m_entities.size())) return out;
-    const double eps2 = 1e-6;
+    const double eps2 = sketch_join_tol() * sketch_join_tol();
     std::vector<bool> vis(m_entities.size(), false);
     std::vector<int> stack = { seed };
     vis[seed] = true;
