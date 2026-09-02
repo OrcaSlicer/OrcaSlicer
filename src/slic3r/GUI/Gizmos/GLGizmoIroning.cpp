@@ -350,9 +350,15 @@ void GLGizmoIroning::on_render_input_window(float x, float y, float bottom_limit
             ImGui::GetWindowDrawList()->AddLine(line_start, line_end, HyperColor);
             if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)
                 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Iron only the painted surfaces"),
+                                              UndoRedo::SnapshotType::GizmoAction);
                 DynamicPrintConfig new_conf = obj_cfg;
                 new_conf.set_key_value("ironing_type", new ConfigOptionEnum<IroningType>(IroningType::PaintedOnly));
                 mo->config.assign_config(new_conf);
+                // Show the override in the object settings, and reslice: without this the preview
+                // keeps the toolpaths from the previous ironing type until something else runs.
+                wxGetApp().obj_list()->update_and_show_object_settings_item();
+                m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
             }
         };
         ImGui::Separator();
