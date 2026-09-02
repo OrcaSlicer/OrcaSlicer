@@ -61,7 +61,7 @@ public:
         const double dist =
             AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
                 its.vertices, its.indices, m_tree, point, idx_unsigned,
-                closest_vec3d) };
+                closest_vec3d);
         i       = int(idx_unsigned);
         closest = closest_vec3d;
         return dist;
