@@ -3,8 +3,11 @@ set -e
 
 # Usage:
 #   Linux/macOS:  ./dev-build_and_run.sh [--no-kill] [file.3mf]
-#   Windows(Git Bash):      bash dev-build_and_run.bat [--no-kill] [file.3mf]
+#   Windows(Git Bash):      bash dev-build_and_run.sh [--no-kill] [file.3mf]
 #   Overrides:    BUILD_DIR=build CONFIG=RelWithDebInfo CMAKE=cmake TARGET=OrcaSlicer_app_gui
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
 
 BUILD_DIR="${BUILD_DIR:-build}"
 CONFIG="${CONFIG:-RelWithDebInfo}"
@@ -46,7 +49,7 @@ find_cmake() {
 setup_msvc_env() {
     # Import MSVC environment on Windows (INCLUDE/LIB unset in plain Git Bash).
     # Missing VS is a warning here, not fatal: the build still attempts to run.
-    source "$(dirname "$0")/scripts/pipeline-helpers/msvc_env.sh"
+    source "$ROOT/scripts/pipeline-helpers/msvc_env.sh"
     import_msvc_env "[dev-build_and_run] " || true
 }
 
@@ -90,6 +93,9 @@ launch_linux() {
 
 ensure_bash_on_wsl "$@"
 find_cmake
+# Source the shared deps helper and build deps on first run if missing (fast skip once present).
+source "$ROOT/scripts/dev-helpers/setup_deps.sh"
+ensure_deps
 setup_msvc_env
 
 log "config: BUILD_DIR=${BUILD_DIR} CONFIG=${CONFIG} TARGET=${TARGET} CMAKE=${CMAKE}"
