@@ -735,6 +735,14 @@ REM worked out the same way in either run.
     set "slicer_exe=%build_dir%\src\%build_type%\orca-slicer.exe"
     if "%install_slicer%" == "ON" set "slicer_exe=%build_dir%\OrcaSlicer\orca-slicer.exe"
     for %%p in ("!slicer_exe!") do set "slicer_full=%%~fp"
+    REM The 2026 generator writes OrcaSlicer.slnx, the releases before it
+    REM OrcaSlicer.sln. A file already there wins, in case an older CMake
+    REM configured the build.
+    set "solution=OrcaSlicer.sln"
+    if "%vs_version%" == "2026" set "solution=OrcaSlicer.slnx"
+    if exist "!build_full!\OrcaSlicer.sln" set "solution=OrcaSlicer.sln"
+    if exist "!build_full!\OrcaSlicer.slnx" set "solution=OrcaSlicer.slnx"
+
     REM Naming a target builds it and its dependencies, not its dependents,
     REM so only a full build or the executable's own target relinks.
     set "linked=ON"
@@ -752,14 +760,14 @@ REM worked out the same way in either run.
     if "%build_deps%" == "ON" echo   Dependencies  !dep_full!
     if "%build_slicer%" == "ON" if "%linked%" == "ON" echo   OrcaSlicer    !slicer_full!
     if "%build_slicer%" == "ON" if not "%linked%" == "ON" echo   Target        %slicer_target%
-    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\OrcaSlicer.sln
+    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\!solution!
     if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
 
     echo.
     echo Next
     if "%build_slicer%" == "ON" (
         if "%linked%" == "ON" echo     Run it                !slicer_exe!
-        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\OrcaSlicer.sln
+        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\!solution!
         if "%linked%" == "ON" echo     Rebuild after edits   build_win.bat -s!recall! --no-configure
         if not "%linked%" == "ON" echo     Relink the binary     build_win.bat -s!recall! --no-configure
         if "%linked%" == "ON" if "%using_ninja%" == "ON" echo     Rebuild one target    build_win.bat -s!recall! --no-configure --slicer-target libslic3r

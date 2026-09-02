@@ -97,6 +97,12 @@ $clangOnPath = "$clangDir;$env:PATH"
 $noVs = Join-Path $fixtures 'no-vs'
 New-Item -ItemType Directory -Force -Path $noVs | Out-Null
 
+# A build directory that already holds a classic solution, for the case where
+# what is on disk disagrees with what the generator would write.
+$slnDir = Join-Path $fixtures 'sln'
+New-Item -ItemType Directory -Force -Path $slnDir | Out-Null
+Set-Content -Path (Join-Path $slnDir 'OrcaSlicer.sln') -Value '' -Encoding ascii
+
 # The pack stamp is checked against real dates, so a locale-dependent parse
 # in the script cannot pass by looking date-shaped. Yesterday is accepted too,
 # so a run that crosses midnight does not flake.
@@ -743,18 +749,28 @@ $cases = @(
        Contains = @('Next', 'Rebuild after edits') }
 
     'pointing at the solution'
+    # The extension follows the generator, so these two pin the release and a
+    # build directory that cannot already hold a solution of either kind.
+    @{ Name = 'the 2026 generator gets the XML solution'; Args = @('-s', '--vs', '2026', '--build-dir', 'D:\tree')
+       Contains = @('Solution      D:\tree\OrcaSlicer.slnx', 'Open in Visual Studio D:\tree\OrcaSlicer.slnx') }
+    @{ Name = 'the releases before it get the classic one'; Args = @('-s', '--vs', '2022', '--build-dir', 'D:\tree')
+       Contains = @('Solution      D:\tree\OrcaSlicer.sln', 'Open in Visual Studio D:\tree\OrcaSlicer.sln') }
+    @{ Name = 'a solution already on disk wins over the generator'; Args = @('-s', '--vs', '2026', '--build-dir', $slnDir)
+       Match = @('^  Solution      .*\\OrcaSlicer\.sln$') }
+    # Extension-agnostic from here: these cases are about the directory, and
+    # the release is whatever is installed.
     @{ Name = 'the VS generator says where the solution is'; Args = @('-s')
-       Match = @('^  Solution      .*\\build\\OrcaSlicer\.sln$') }
+       Match = @('^  Solution      .*\\build\\OrcaSlicer\.slnx?$') }
     @{ Name = 'the solution path follows the configuration'; Args = @('-s', '--config', 'debug')
-       Match = @('^  Solution      .*\\build-dbg\\OrcaSlicer\.sln$') }
+       Match = @('^  Solution      .*\\build-dbg\\OrcaSlicer\.slnx?$') }
     @{ Name = 'the solution line survives an install'; Args = @('-s', '-i')
        Contains = @('  Solution      ') }
     # The path is resolved, not pasted onto the repository root, so it is
     # right whether --build-dir came absolute or with forward slashes.
     @{ Name = 'a moved build still prints one real path'; Args = @('-s', '--build-dir', 'out/build/x64-clang')
-       Match = @('^  Solution      [A-Za-z]:\\[^/]+\\OrcaSlicer\.sln$') }
+       Match = @('^  Solution      [A-Za-z]:\\[^/]+\\OrcaSlicer\.slnx?$') }
     @{ Name = 'an absolute --build-dir is not glued onto the repo root'; Args = @('-s', '--build-dir', 'D:\tree')
-       Contains = @('Solution      D:\tree\OrcaSlicer.sln') }
+       Match = @('^  Solution      D:\\tree\\OrcaSlicer\.slnx?$') }
 )
 
 function Invoke-BuildScript {
