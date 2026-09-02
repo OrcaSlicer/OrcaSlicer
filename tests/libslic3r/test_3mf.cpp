@@ -146,6 +146,10 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
 
 TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][ExclusionVolume][MultiNozzle]")
 {
+    // The importer creates a backup tree for the reloaded model. Give that
+    // process-global temp root a writable, isolated location on every OS.
+    ScopedSlic3rTemporaryDir temporary_dir("orca_exclusion");
+
     Model model;
     ModelObject *object = model.add_object();
     object->add_volume(make_cube(10.0, 10.0, 10.0));
@@ -163,13 +167,10 @@ TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][
         "30..80;40x40,55x40,55x55,40x55|0..5;70x10,80x10,80x20,70x20",
     });
 
-    const boost::filesystem::path backup_dir =
-        boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_exclusion_backup_%%%%%%%%");
-    boost::filesystem::create_directories(backup_dir);
+    const boost::filesystem::path backup_dir = temporary_dir.path() / "source_backup";
     model.set_backup_path(backup_dir.string());
 
-    const boost::filesystem::path path =
-        boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_exclusion_%%%%%%%%.3mf");
+    const boost::filesystem::path path = temporary_dir.path() / "round_trip.3mf";
     const std::string path_string = path.string();
     auto plate = std::make_unique<PlateData>();
     plate->plate_index = 0;
@@ -193,8 +194,6 @@ TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][
         path_string.c_str(), &reloaded, &substitutions, &reloaded_model, &reloaded_plates,
         &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
         LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-    boost::filesystem::remove(path);
-    boost::filesystem::remove_all(backup_dir);
     release_PlateData_list(reloaded_plates);
 
     REQUIRE(loaded);
