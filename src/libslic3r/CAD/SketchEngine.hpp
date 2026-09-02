@@ -288,15 +288,18 @@ public:
                                    double angular_deflection = 0.5);
 
     static TopoDS_Wire entities_to_wire(const std::vector<SketchEntity>& entities,
-                                        const SketchPlane& plane);
+                                        const SketchPlane& plane,
+                                        bool closed_only = false);
 
-    // Every closed loop the sketch holds, in the order each loop's FIRST entity appears in
+    // Every loop the sketch holds, in the order each loop's FIRST entity appears in
     // `entities`. A Circle or Ellipse is a loop on its own; Line/Arc/EllipseArc/BSpline
     // entities are grouped into loops by shared endpoints. An OPEN chain is returned too —
-    // a sweep path is legitimately open, so open-ness is not an error here.
-    // Empty vector = nothing usable; the caller decides whether that is an error.
+    // a sweep path is legitimately open, so open-ness is not an error here — unless
+    // `closed_only` is true, in which case an open chain is DISCARDED (skipped, not an
+    // error). Empty vector = nothing usable; the caller decides whether that is an error.
     static std::vector<TopoDS_Wire> entities_to_wires(const std::vector<SketchEntity>& entities,
-                                                      const SketchPlane& plane);
+                                                      const SketchPlane& plane,
+                                                      bool closed_only = false);
 
     // A planar face from a set of coplanar loops: the largest-area loop is the outer boundary
     // and every other loop is a hole in it. Throws std::runtime_error with a message naming the
@@ -360,6 +363,10 @@ public:
     static SketchEntity make_bridge(const SketchEntity& a, int a_end,
                                     const SketchEntity& b, int b_end);
 };
+
+// Free endpoints of a sketch: the sketch-space points where a chain fails to close.
+// Same weld tolerance as the wire build, so it can never contradict it.
+std::vector<Vec2d> sketch_open_ends(const std::vector<SketchEntity>&, const SketchPlane&);
 
 } // namespace Slic3r
 

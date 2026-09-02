@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include <cmath>
+#include <algorithm>
 #include <TopExp_Explorer.hxx>
 #include <TopAbs.hxx>
 
@@ -651,4 +652,79 @@ TEST_CASE("auto-close off makes the kernel demand an exact joint", "[SketchEngin
 
     // Restore the default so test order cannot leak OFF into the other cases.
     Slic3r::set_sketch_auto_close(true);
+}
+
+// A stray open segment touching nothing must not break a closed profile: the viewport
+// discards open chains when it shades a region extrudable, so with closed_only the kernel
+// must discard them too — otherwise Revolve/Extrude fail on a sketch that looks perfect.
+TEST_CASE("a stray open segment does not break a closed profile", "[SketchEngine]")
+{
+    auto line = [](double x0, double y0, double x1, double y1) {
+        SketchEntity e;
+        e.type = SketchEntity::Type::Line;
+        e.p0   = Vec2d(x0, y0);
+        e.p1   = Vec2d(x1, y1);
+        return e;
+    };
+
+    std::vector<SketchEntity> ents;
+    ents.push_back(line(0, 0, 20, 0));     // 20x10 quad
+    ents.push_back(line(20, 0, 20, 10));
+    ents.push_back(line(20, 10, 0, 10));
+    ents.push_back(line(0, 10, 0, 0));
+    ents.push_back(line(5, 5, 6, 5.2));    // stray, touches nothing
+
+    auto edge_count = [](const TopoDS_Wire& w) {
+        int n = 0;
+        for (TopExp_Explorer ex(w, TopAbs_EDGE); ex.More(); ex.Next()) ++n;
+        return n;
+    };
+
+    // Unchanged behaviour: the stray line is its own open wire.
+    auto wires_all = SketchEngine::entities_to_wires(ents, SketchPlane::XY(), /*closed_only=*/false);
+    REQUIRE(wires_all.size() == 2);
+
+    // closed_only drops the open chain: one closed quad survives.
+    auto wires_closed = SketchEngine::entities_to_wires(ents, SketchPlane::XY(), /*closed_only=*/true);
+    REQUIRE(wires_closed.size() == 1);
+    REQUIRE(edge_count(wires_closed[0]) == 4);
+    REQUIRE(wires_closed[0].Closed());
+
+    // The Revolve path (entities_to_wire) finds the single closed loop.
+    TopoDS_Wire w = SketchEngine::entities_to_wire(ents, SketchPlane::XY(), /*closed_only=*/true);
+    REQUIRE_FALSE(w.IsNull());
+    REQUIRE(edge_count(w) == 4);
+}
+
+// sketch_open_ends names the two free endpoints of an open chain, so the "does not form a
+// single closed wire" failure can say WHERE the sketch is open.
+TEST_CASE("sketch_open_ends names where a chain fails to close", "[SketchEngine]")
+{
+    auto line = [](double x0, double y0, double x1, double y1) {
+        SketchEntity e;
+        e.type = SketchEntity::Type::Line;
+        e.p0   = Vec2d(x0, y0);
+        e.p1   = Vec2d(x1, y1);
+        return e;
+    };
+
+    // Open C shape: three lines, free endpoints at (0,0) and (0,10).
+    std::vector<SketchEntity> ents;
+    ents.push_back(line(0, 0, 10, 0));
+    ents.push_back(line(10, 0, 10, 10));
+    ents.push_back(line(10, 10, 0, 10));
+
+    auto got = sketch_open_ends(ents, SketchPlane::XY());
+    REQUIRE(got.size() == 2);
+
+    std::sort(got.begin(), got.end(), [](const Vec2d& a, const Vec2d& b) {
+        if (a.x() < b.x()) return true;
+        if (a.x() > b.x()) return false;
+        return a.y() < b.y();
+    });
+
+    REQUIRE_THAT(got[0].x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(got[0].y(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(got[1].x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(got[1].y(), WithinAbs(10.0, 1e-9));
 }

@@ -542,7 +542,8 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
 }
 
 std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<SketchEntity>& entities,
-                                                         const SketchPlane& plane)
+                                                         const SketchPlane& plane,
+                                                         bool closed_only)
 {
     // Effective weld tolerance: kSketchJoinTol when auto-close is on, 0.0 when off.
     // Read ONCE so the union-find, the node weld and the vertex tolerance below all
@@ -733,9 +734,10 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
             size_t start = 0;
             for (size_t i = 0; i < ms.size(); ++i)
                 if (node_deg[ms[i].a] == 1 || node_deg[ms[i].b] == 1) { start = i; break; }
-            int open = (node_deg[ms[start].a] == 1) ? ms[start].a
-                     : (node_deg[ms[start].b] == 1) ? ms[start].b
-                     : ms[start].a;
+            const int start_node = (node_deg[ms[start].a] == 1) ? ms[start].a
+                                 : (node_deg[ms[start].b] == 1) ? ms[start].b
+                                 : ms[start].a;
+            int open = start_node;
             for (;;) {
                 size_t next = ms.size();
                 for (size_t k = 0; k < ms.size(); ++k) {
@@ -748,6 +750,27 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
                 open = (ms[next].a == open) ? ms[next].b : ms[next].a;
             }
             if (order.size() != ms.size()) return {};
+
+            // The walk ends on the node it could not leave; that node equals the starting
+            // node exactly when the chain is a closed cycle. When closed_only is set, an open
+            // chain is DISCARDED (skipped), never an error: the viewport discards open chains
+            // when it decides a region is extrudable (region_loops exists to find EXTRUDABLE
+            // regions), so the kernel must discard them too, or the two disagree about what
+            // belongs to the profile and a stray click breaks a feature that looks perfect on
+            // screen. Reuses the welded node ids — no second tolerance.
+            // A component is OPEN exactly when some welded node has only one edge on it —
+            // that free endpoint is where the chain stops. Do NOT define it as "the walk
+            // returned to its starting node": a legitimately closed loop that also carries an
+            // extra edge between two of its nodes (a bridge added across a C profile, so the
+            // gap is spanned twice) has no free endpoint but its Eulerian walk still ends
+            // somewhere else, and that definition discarded it. Degree-1 is the property that
+            // actually distinguishes a stray segment from a closed profile.
+            if (closed_only) {
+                bool has_free_end = false;
+                for (const Member& mm : ms)
+                    if (node_deg[mm.a] == 1 || node_deg[mm.b] == 1) { has_free_end = true; break; }
+                if (has_free_end) continue;
+            }
 
             // One TopoDS_Vertex per node at the welded world point. Tolerance widened to
             // `tol` because MakeEdge(curve, va, vb) projects each vertex onto the
@@ -811,10 +834,59 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
 }
 
 TopoDS_Wire SketchEngine::entities_to_wire(const std::vector<SketchEntity>& entities,
-                                           const SketchPlane& plane)
+                                           const SketchPlane& plane,
+                                           bool closed_only)
 {
-    const std::vector<TopoDS_Wire> w = entities_to_wires(entities, plane);
+    const std::vector<TopoDS_Wire> w = entities_to_wires(entities, plane, closed_only);
     return w.size() == 1 ? w[0] : TopoDS_Wire{};
+}
+
+std::vector<Vec2d> sketch_open_ends(const std::vector<SketchEntity>& entities,
+                                    const SketchPlane& /*plane*/)
+{
+    const double tol = sketch_join_tol();
+
+    auto is_chain = [](const SketchEntity& e) {
+        return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc ||
+               e.type == SketchEntity::Type::EllipseArc || e.type == SketchEntity::Type::BSpline;
+    };
+    auto endpoints = [](const SketchEntity& e, Vec2d& a, Vec2d& b) -> bool {
+        if (e.type == SketchEntity::Type::BSpline) {
+            if (e.ctrl.size() < 2) return false;
+            a = e.ctrl.front(); b = e.ctrl.back();
+            return true;
+        }
+        a = e.p0; b = e.p1;
+        return true;
+    };
+
+    // Weld every chain endpoint into a shared node under the SAME tolerance the wire
+    // build uses, then report the degree-1 nodes: they are where a chain fails to close.
+    // Circle/Ellipse are always closed and contribute no endpoint.
+    std::vector<Vec2d> node_pt;
+    std::vector<int>   node_deg;
+    auto node_id = [&](const Vec2d& p) -> int {
+        for (size_t i = 0; i < node_pt.size(); ++i)
+            if ((node_pt[i] - p).norm() <= tol) return int(i);
+        node_pt.push_back(p);
+        node_deg.push_back(0);
+        return int(node_pt.size()) - 1;
+    };
+
+    for (const SketchEntity& e : entities) {
+        if (e.construction) continue;
+        if (!is_chain(e)) continue;
+        Vec2d a, b;
+        if (!endpoints(e, a, b)) continue;
+        int ia = node_id(a), ib = node_id(b);
+        node_deg[ia]++;
+        node_deg[ib]++;
+    }
+
+    std::vector<Vec2d> out;
+    for (size_t i = 0; i < node_pt.size(); ++i)
+        if (node_deg[i] == 1) out.push_back(node_pt[i]);
+    return out;
 }
 
 TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,

@@ -68,6 +68,7 @@
 #include <GProp_GProps.hxx>
 #include <cmath>
 #include <cctype>
+#include <cstdio>
 #include <stdexcept>
 #include <algorithm>
 #include <sstream>
@@ -2109,10 +2110,33 @@ bool CadDocument::replace_sketch_extrude(int sketch_idx, int extrude_idx,
     return commit_or_rollback(*this, snapshot);
 }
 
-TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch) const
+// "the sketch is open" is not actionable; WHERE it is open is. Shared by both throws so the
+// two ways of reaching an open profile (Revolve via build_sketch_wire, Extrude via
+// build_sketch_face) report it identically.
+static std::string open_loop_message(const CadFeature& sketch,
+                                     const char* head = "sketch entities do not form a closed loop")
+{
+    std::string msg = head;
+    const std::vector<Vec2d> open = Slic3r::sketch_open_ends(sketch.entities, sketch.plane);
+    if (!open.empty()) {
+        const size_t shown = std::min<size_t>(open.size(), 3);
+        char buf[96];
+        for (size_t i = 0; i < shown; ++i) {
+            std::snprintf(buf, sizeof buf, "\n  Open at (%.3f, %.3f)", open[i].x(), open[i].y());
+            msg += buf;
+        }
+        if (open.size() > shown) {
+            std::snprintf(buf, sizeof buf, "\n  ...and %zu more open end(s)", open.size() - shown);
+            msg += buf;
+        }
+    }
+    return msg;
+}
+
+TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed_only) const
 {
     if (!sketch.entities.empty()) {
-        TopoDS_Wire w = SketchEngine::entities_to_wire(sketch.entities, sketch.plane);
+        TopoDS_Wire w = SketchEngine::entities_to_wire(sketch.entities, sketch.plane, closed_only);
         if (!w.IsNull()) return w;
         // An entity sketch that yields no wire is an ERROR, not a cue to fall through. The
         // legacy tail of this function ends in a default rectangle built from width/height,
@@ -2123,9 +2147,10 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch) const
         // looked deliberate. The legacy profile/shape paths below are still reached by sketches
         // that legitimately carry no entities at all.
         throw std::runtime_error(
-            "sketch has entities but they do not form a single closed wire — a closed entity "
-            "(circle/ellipse) combined with other entities, or several closed entities, is not "
-            "supported yet");
+            open_loop_message(sketch,
+                "sketch has entities but they do not form a single closed wire — a closed "
+                "entity (circle/ellipse) combined with other entities, or several closed "
+                "entities, is not supported yet"));
     }
     if (!sketch.profile.points.empty()) {
         SketchProfile prof = sketch.profile;
@@ -2157,12 +2182,15 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch) const
 TopoDS_Face CadDocument::build_sketch_face(const CadFeature& sketch) const
 {
     if (!sketch.entities.empty()) {
-        const std::vector<TopoDS_Wire> loops = SketchEngine::entities_to_wires(sketch.entities, sketch.plane);
+        const std::vector<TopoDS_Wire> loops = SketchEngine::entities_to_wires(sketch.entities, sketch.plane, true);
         if (loops.empty())
-            throw std::runtime_error("sketch entities do not form a closed loop");
+            // Same courtesy as build_sketch_wire: name WHERE the sketch is open. Extrude
+            // reaches its failure through here, not through build_sketch_wire, so without
+            // this the most common way to hit an open profile is also the least informative.
+            throw std::runtime_error(open_loop_message(sketch));
         return SketchEngine::wires_to_face(loops, sketch.plane);
     }
-    return BRepBuilderAPI_MakeFace(build_sketch_wire(sketch)).Face();
+    return BRepBuilderAPI_MakeFace(build_sketch_wire(sketch, true)).Face();
 }
 
 void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
@@ -2232,7 +2260,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                           for (TopExp_Explorer ex(profile, TopAbs_WIRE); ex.More(); ex.Next()) ++nloops;
                           if (nloops > 1)
                               throw std::runtime_error("tapered extrude of a sketch with holes is not supported yet");
-                          return SketchEngine::make_extrude_taper(build_sketch_wire(sk), sk.plane, L, f.taper_deg);
+                          return SketchEngine::make_extrude_taper(build_sketch_wire(sk, true), sk.plane, L, f.taper_deg);
                       };
                       TopoDS_Shape t;
                       switch (f.extrude_end) {
@@ -2294,7 +2322,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                 && (features[f.sketch_ref].type == CadFeatureType::Sketch
                                     || features[f.sketch_ref].type == CadFeatureType::Project))
                                ? features[f.sketch_ref] : f;
-        TopoDS_Wire wire = build_sketch_wire(sk);
+        TopoDS_Wire wire = build_sketch_wire(sk, true);
         const double ang = f.flip ? -f.revolve_angle : f.revolve_angle;
         TopoDS_Shape tool = SketchEngine::make_revolve(wire, sk.plane, ang, f.revolve_axis);
         if (!have_body || f.mode == BooleanMode::New) {
@@ -2404,7 +2432,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         } else {
             throw std::runtime_error("sweep path must be a sketch or helix");
         }
-        TopoDS_Wire profile = build_sketch_wire(sk);
+        TopoDS_Wire profile = build_sketch_wire(sk, true);
         TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
         if (!have_body || f.mode == BooleanMode::New) {
             result = tool;
@@ -2433,7 +2461,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 || (features[ref].type != CadFeatureType::Sketch
                     && features[ref].type != CadFeatureType::Project))
                 continue;
-            profiles.push_back(build_sketch_wire(features[ref]));
+            profiles.push_back(build_sketch_wire(features[ref], true));
         }
         if (profiles.size() < 2)
             throw std::runtime_error("loft needs 2+ valid profile sketches");

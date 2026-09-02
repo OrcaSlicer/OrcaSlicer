@@ -722,7 +722,7 @@ public:
                  std::vector<TriangleMesh>& out_body_meshes, std::string& err) const;
 
 private:
-    TopoDS_Wire build_sketch_wire(const CadFeature& sketch) const;
+    TopoDS_Wire build_sketch_wire(const CadFeature& sketch, bool closed_only = false) const;
     // The planar region an Extrude sweeps: the sketch's outer loop with its inner loops as
     // holes. Falls back to a face over build_sketch_wire() for the legacy profile/shape paths,
     // which have no concept of a second loop.

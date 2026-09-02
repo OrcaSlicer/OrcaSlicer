@@ -4703,14 +4703,23 @@ TEST_CASE("bridge round-trip serialization", "[CadDocument][bridge]")
     using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
+    // The two collinear stubs plus the bridge span (0,0)->(30,0); the remaining three lines
+    // return to the origin so the profile is genuinely CLOSED. It used to be just the two
+    // stubs and the bridge, an entirely open chain that "extruded" only because OCCT will
+    // make a face out of an open wire — the silently-wrong geometry this area exists to stop.
+    // This test is about the bridge's serialization round-trip, and deserialize_recipe
+    // recomputes, so the document has to be one that legitimately builds.
     std::vector<SketchEntity> ents = {
-        {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)},
-        {SketchEntity::Type::Line, Vec2d(20,0), Vec2d(30,0)},
+        {SketchEntity::Type::Line, Vec2d(0,0),   Vec2d(10,0)},
+        {SketchEntity::Type::Line, Vec2d(20,0),  Vec2d(30,0)},
+        {SketchEntity::Type::Line, Vec2d(30,0),  Vec2d(30,10)},
+        {SketchEntity::Type::Line, Vec2d(30,10), Vec2d(0,10)},
+        {SketchEntity::Type::Line, Vec2d(0,10),  Vec2d(0,0)},
     };
     int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
     REQUIRE(sk == 0);
     int bi = doc.add_bridge(sk, 0, 1, 1, 0, "Bridge");
-    REQUIRE(bi == 2);
+    REQUIRE(bi == 5);
     doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
     REQUIRE(doc.recompute());
 
@@ -4721,7 +4730,7 @@ TEST_CASE("bridge round-trip serialization", "[CadDocument][bridge]")
     REQUIRE(doc2.deserialize_recipe(blob));
     REQUIRE(doc2.features.size() == 2);
 
-    const auto& br = doc2.features[0].entities[2];
+    const auto& br = doc2.features[0].entities[5];
     REQUIRE(br.type == SketchEntity::Type::BSpline);
     REQUIRE(br.ctrl.size() == 4);
     REQUIRE_THAT(br.ctrl.front().x(), WithinAbs(10.0, 1e-9));
@@ -7484,14 +7493,21 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
                    Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
     }
 
-    SECTION("circle + stray line is rejected, not silently turned into a box") {
+    // Behaviour CHANGED 2026-09-02 by Tommaso's decision. This used to require a refusal,
+    // because back then ignoring the stray meant falling through to a default rectangle — a
+    // box the user never drew. That fallback is gone: the closed profile is now built and the
+    // stray open chain is discarded, exactly as the viewport's region_loops already discards
+    // open chains when it decides what is extrudable. A stray click must not break a model
+    // that looks perfect on screen.
+    SECTION("circle + stray line builds the circle and ignores the stray") {
         CadDocument doc;
         int sk = doc.add_sketch_entities({ circle({0, 0}, 10.0), line({40, 40}, {60, 40}) },
                                         SketchPlane::XY(), "Sketch");
         doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
-        CHECK_FALSE(doc.recompute());
-        CHECK(doc.error.find("does not bound a face") != std::string::npos);
-        CHECK(doc.bodies.empty());
+        REQUIRE(doc.recompute());
+        CHECK(doc.error.empty());
+        CHECK_THAT(doc.body_mass_properties(0).volume,
+                   Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
     }
 
     SECTION("two disjoint circles are rejected too") {
