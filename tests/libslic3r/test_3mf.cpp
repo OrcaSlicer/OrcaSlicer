@@ -866,6 +866,65 @@ SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer ta
     }
 }
 
+// A minimal published 3MF must not leak the slicer tags of the source project. The exporter seeds
+// metadata_item_map from the input file's metadata_items, so re-publishing a project opened from a
+// regular Orca/BBS 3MF (the typical remix flow) must strip the Application / OrcaSlicer tags it
+// came with, otherwise old receivers route onto the baked-in "old version" popup.
+SCENARIO("MinimalPublished strips slicer tags carried by the source project", "[3mf]") {
+    GIVEN("a model loaded from a regular Orca/BBS 3MF whose metadata carries the slicer tags") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = "1";
+        model.model_info->metadata_items["Application"]     = "BambuStudio-2.0.0";
+        model.model_info->metadata_items["OrcaSlicer"]      = "2.1.0";
+
+        ScopedTemporaryDir backup_dir("orca_strip_tags");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored using SaveStrategy::MinimalPublished and reloaded") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> loaded_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &loaded_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the source slicer tags are stripped, not carried through") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items.count("Application") == 0);
+                REQUIRE(dst_model.model_info->metadata_items.count("OrcaSlicer") == 0);
+                // The published marker itself must survive.
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+            }
+            THEN("the file classifies as a generic 3MF without a version popup") {
+                REQUIRE_FALSE(is_bbl_3mf);
+                REQUIRE_FALSE(is_orca_3mf);
+                REQUIRE_FALSE(file_version.valid());
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
 // An entry masks the non-published slots to their defaults so publishing slot 1 never leaks slot
 // 0's value into the file. Both a full entry (the whole-slot key list) and a partial entry (a
 // per-slot key) go through the same masking path in filter_published_config (keys and full_keys
@@ -933,6 +992,40 @@ SCENARIO("Unmaskable keys are dropped from the published payload instead of leak
             }
             THEN("the identity keys stay present") {
                 REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// A per-extruder printer key carrying a "#N" variant (e.g. retraction_length#1) must not serialize
+// every extruder's value: the base is masked to the author's extruder and the other slots are
+// restored to their option default, matching the material-side slot-masking invariant. A bare
+// printer base key (no variant) keeps whole-vector serialization.
+SCENARIO("Published per-extruder printer keys mask the other extruders to their defaults", "[3mf]") {
+    GIVEN("a full print configuration with three extruders carrying per-extruder retraction values") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        // Non-default values on the un-selected slots, so a leak is distinguishable from the mask
+        // restoring the option default (retraction_length defaults to {0.8}).
+        full_cfg.opt<ConfigOptionFloats>("retraction_length")->values = { 3.0, 1.2, 4.0 };
+
+        WHEN("filtering with only extruder 1's retraction_length checked") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "retraction_length#1" }, {});
+
+            THEN("the author's extruder value survives") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[1], Catch::Matchers::WithinAbs(1.2, 1e-6));
+            }
+            THEN("the other extruders are masked to their default") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[0], Catch::Matchers::WithinAbs(0.8, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[2], Catch::Matchers::WithinAbs(0.8, 1e-6));
+            }
+        }
+        WHEN("filtering the bare base key without a '#N' variant") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "retraction_length" }, {});
+
+            THEN("the whole vector is serialized unmasked") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[0], Catch::Matchers::WithinAbs(3.0, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[1], Catch::Matchers::WithinAbs(1.2, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[2], Catch::Matchers::WithinAbs(4.0, 1e-6));
             }
         }
     }

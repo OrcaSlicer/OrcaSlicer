@@ -3343,17 +3343,7 @@ size_t NotificationManager::get_notification_count() const
 void NotificationManager::bbl_show_plateinfo_notification(const std::string &text)
 {
     NotificationData data{NotificationType::BBLPlateInfo, NotificationLevel::PrintInfoNotificationLevel, BBL_NOTICE_MAX_INTERVAL, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBLPlateInfo) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_3mf_warn_notification()
@@ -3367,17 +3357,7 @@ void NotificationManager::bbl_close_3mf_warn_notification()
 void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level)
 {
     NotificationData data{NotificationType::BBL3MFInfo, level, BBL_NOTICE_MAX_INTERVAL, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBL3MFInfo) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_plateinfo_notification()
@@ -3392,17 +3372,7 @@ void NotificationManager::bbl_close_plateinfo_notification()
 void NotificationManager::bbl_show_preview_only_notification(const std::string &text)
 {
     NotificationData data{NotificationType::BBLPreviewOnlyMode, NotificationLevel::WarningNotificationLevel, 0, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBLPreviewOnlyMode) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_preview_only_notification()

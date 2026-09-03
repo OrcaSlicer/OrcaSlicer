@@ -19,6 +19,27 @@ std::string publish_base_key(const std::string &key)
     return pos == std::string::npos ? key : key.substr(0, pos);
 }
 
+// Parse the trailing "#N" variant index ("retraction_length#2" -> 2). Returns -1 when the key
+// carries no '#' separator or its suffix is malformed; mirrors the importer's strict parse
+// (PresetBundle.cpp) so the export side rejects the same variants the receiver would skip.
+static int publish_variant_index(const std::string &key, const std::string &base_key)
+{
+    if (key.size() <= base_key.size() || key.compare(0, base_key.size(), base_key) != 0 || key[base_key.size()] != '#')
+        return -1;
+    const std::string suffix = key.substr(base_key.size() + 1);
+    if (suffix.empty())
+        return -1;
+    int idx = 0;
+    for (const char c : suffix) {
+        if (c < '0' || c > '9')
+            return -1;
+        idx = idx * 10 + (c - '0');
+        if (idx > 1000000) // overflow guard; real vector sizes are tiny
+            return -1;
+    }
+    return idx;
+}
+
 std::string normalize_filament_type(const std::string& type)
 {
     if (type.empty())
@@ -174,8 +195,8 @@ DynamicPrintConfig filter_published_config(
     DynamicPrintConfig filtered;
 
     std::set<std::string> base_keys_to_include;
-    // Never masked (whole-vector serialization): identity, plate geometry and process/printer
-    // keys.
+    // Never masked (whole-vector serialization): identity, plate geometry, process keys and
+    // printer keys without a "#N" variant.
     std::set<std::string>         mask_exempt_keys;
     // Material entries: base key -> author slots whose values must survive; other slots are
     // masked to their defaults so a publish (partial or full) does not leak unrelated slot
@@ -209,12 +230,23 @@ DynamicPrintConfig filter_published_config(
         mask_exempt_keys.insert(key);
     }
 
-    // 3. Process and printer published keys
+    // 3. Process and printer published keys. Printer per-extruder keys carry a "#N" variant
+    // (e.g. retraction_length#2): mask the base to the author's extruder index so a partial
+    // publish does not serialize every extruder's value (same slot-masking as the material side).
+    const std::set<std::string> &printer_keys = publishable_printer_keys();
     for (const std::string &key : published_keys) {
         const std::string base_key = publish_base_key(key);
-        if (!base_key.empty()) {
-            base_keys_to_include.insert(base_key);
-            mask_exempt_keys.insert(base_key);
+        if (base_key.empty())
+            continue;
+        base_keys_to_include.insert(base_key);
+        if (printer_keys.count(base_key) != 0) {
+            const int variant_idx = publish_variant_index(key, base_key);
+            if (variant_idx >= 0)
+                slot_mask_map[base_key].insert(variant_idx);
+            else
+                mask_exempt_keys.insert(base_key); // bare printer key or malformed variant: whole vector
+        } else {
+            mask_exempt_keys.insert(base_key); // process key: whole vector
         }
     }
 

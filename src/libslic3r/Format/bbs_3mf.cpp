@@ -6997,8 +6997,16 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // receivers onto a geometry-only fallback whose baked-in popup misreports the
                 // file ("old OrcaSlicer version" / "BambuStudio"), while tag-less files classify
                 // as From_Other and import the geometry silently.
-                if (!m_minimal_published)
+                if (m_minimal_published) {
+                    // metadata_item_map is seeded from the input file's metadata_items above, so a
+                    // project opened from a regular Orca/BBS 3MF still carries the Application /
+                    // OrcaSlicer tags it came with. Erase them: skipping the overwrite is not enough,
+                    // and an empty value would still emit a "present-looking" tag to old receivers.
+                    metadata_item_map.erase(BBL_APPLICATION_TAG);
+                    metadata_item_map.erase(ORCASLICER_TAG);
+                } else {
                     metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
+                }
             }
             metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
@@ -7025,7 +7033,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
                 if (item.first == BBL_APPLICATION_TAG) {
                     // The OrcaSlicer tag is only written for files that carry the Application
-                    // tag, which a minimal published 3MF omits (see the map assignment above):
+                    // tag, which a minimal published 3MF erases (see the map assignment above):
                     // the branch below is unreachable in minimal mode.
                     stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
                            << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";

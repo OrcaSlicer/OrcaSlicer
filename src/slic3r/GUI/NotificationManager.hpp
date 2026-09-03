@@ -1083,7 +1083,10 @@ private:
 		NotificationType::ProgressBar,
 		NotificationType::PrintHostUpload,
         NotificationType::SimplifySuggestion,
-        NotificationType::ValidateWarning
+        NotificationType::ValidateWarning,
+        // A published file load can produce several distinct 3MF warnings (invalid values,
+        // skipped settings, changed slots); let them stack rather than clobber each other.
+        NotificationType::BBL3MFInfo
 	};
 	//prepared (basic) notifications
 	// non-static so its not loaded too early. If static, the translations wont load correctly.

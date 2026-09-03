@@ -3096,6 +3096,8 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     // effects or project-embedded path.
     lock();
     const auto it = this->find_preset_internal(final_name);
+    if (m_presets.begin() + m_idx_selected >= it)
+        ++m_idx_selected;
     Preset &preset = *m_presets.insert(it, stored);
     preset.name = final_name;
     preset.vendor = nullptr;
