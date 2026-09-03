@@ -1274,9 +1274,10 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 bool show_read_wipe_tower = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->fff_print()->is_step_done(psWipeTower);
-                float brim_width = wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("prime_tower_brim_width");
-
-                const double margin = show_read_wipe_tower ? WIPE_TOWER_MARGIN : brim_width + 0.5; // 0.5 is the line width of wipe tower
+                // Both preview volumes carry the brim in their bounding box (the estimate
+                // preview merges a brim slab, the sliced preview the real brim mesh), so the
+                // drag clamp only pads by the wipe tower line width.
+                const double margin = show_read_wipe_tower ? WIPE_TOWER_MARGIN : 0.5; // 0.5 is the line width of wipe tower
 
                 actual_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() *
                                         m_cache.volumes_data[i].get_instance_mirror_matrix())

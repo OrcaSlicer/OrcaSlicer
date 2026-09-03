@@ -2907,7 +2907,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
 
                 // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
-                // filament count, so redo its clamp here on every reload.
+                // filament count, so redo its clamp here on every reload — unconditionally: a
+                // paint-triggered reload can arrive before the background process invalidates
+                // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
                 {
                     Vec3d clamped_pos, clamped_size;
                     part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size, nozzle_nums, 0, false);
