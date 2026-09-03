@@ -25,12 +25,6 @@
 	"filament_loading_speed_start": [
 		"50"
 	],
-	"filament_multitool_ramming": [
-		"1"
-	],
-	"filament_multitool_ramming_flow": [
-		"40"
-	],
 	"filament_stamping_distance": [
 		"45"
 	],

@@ -1,6 +1,7 @@
 #include "HMS.hpp"
 
 #include "GUI.hpp"
+#include "GUI_App.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"

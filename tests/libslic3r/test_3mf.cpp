@@ -1,5 +1,6 @@
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
@@ -155,10 +156,8 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
 
         // store_bbs_3mf stages Metadata/project_settings.config through the model's backup path;
         // point it at a writable temp dir (the default lives under a read-only root in CI).
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_mn_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_mn");
+        model.set_backup_path(backup_dir.string());
 
         // Global (printer) config: give nozzle_volume_type a non-default value so the slice_info
         // read-back is a meaningful assertion (High Flow == 1).
@@ -180,7 +179,8 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
         plate->config.set_key_value("enable_filament_dynamic_map", new ConfigOptionBool(true));
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/mn_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -202,8 +202,6 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("every multi-nozzle key round-trips as expected") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -233,7 +231,6 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate; // store_bbs_3mf does not take ownership of the source plate
-        boost::filesystem::remove_all(backup_dir);
     }
 }
 
@@ -250,10 +247,8 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
 
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_nd_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_nd");
+        model.set_backup_path(backup_dir.string());
 
         // Single extruder with a non-standard 0.5 mm nozzle; extruder_max_nozzle_count stays at its
         // default (no nozzle cluster), so the writer must emit the exact config diameter.
@@ -276,7 +271,8 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
         plate->slice_filaments_info.push_back(fi);
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/nd_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -296,8 +292,6 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("the saved nozzle diameter is the exact 0.5, not the rounded 0.4") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -315,7 +309,6 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
             release_PlateData_list(dst_plates);
         }
         delete plate; // store_bbs_3mf does not take ownership of the source plate
-        boost::filesystem::remove_all(backup_dir);
     }
 }
 
@@ -436,10 +429,8 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
 
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_ng_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_ng");
+        model.set_backup_path(backup_dir.string());
 
         DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
 
@@ -459,7 +450,8 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
         plate->config.set_key_value("filament_map", new ConfigOptionInts({ 1, 2, 1 }));
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/ng_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -479,8 +471,6 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("the <nozzle> tags round-trip into the loaded plate's nozzles_info") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -506,67 +496,97 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate;
-        boost::filesystem::remove_all(backup_dir);
     }
 }
 
-SCENARIO("2D convex hull of sinking object", "[3mf][.]") {
-    GIVEN("model") {
-        // load a model
+
+// A mixed-color filament occupies an ordinary filament slot, and painting with it stores an
+// ordinary extruder state: a project saved by BambuStudio encodes filament 5 of a 5-slot setup
+// as paint state 5, with the mix described by the parallel filament_mixed_* project arrays.
+SCENARIO("Mixed-color filament setup and painting round-trip through a .3mf", "[3mf][MixedFilament]") {
+    GIVEN("a painted model whose project config describes a mixed filament in the last slot") {
         Model model;
         std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
 
-        WHEN("model is rotated, scaled and set as sinking") {
-            ModelObject* object = model.objects[0];
-            object->center_around_origin(false);
+        // Both the exporter and the importer stage Metadata/project_settings.config through the
+        // model's backup path; point them at writable temp dirs.
+        ScopedTemporaryDir backup_dir("orca_mixed_src");
+        model.set_backup_path(backup_dir.string());
 
-	    // This outputs the same exact data as the Prusaslicer test
-	    write_debug_stl("3mf/orca.ascii", object->volumes[0]->mesh());
+        ModelVolume* mv = model.objects.front()->volumes.front();
+        {
+            TriangleSelector selector(mv->mesh());
+            selector.set_facet(0, EnforcerBlockerType::Extruder5); // the mixed slot
+            selector.set_facet(1, EnforcerBlockerType::Extruder2);
+            REQUIRE(mv->mmu_segmentation_facets.set(selector));
+        }
 
-            // set instance's attitude so that it is rotated, scaled (and sinking? how is it sinking? the rotation? does it matter if it's sinking?)
-            ModelInstance* instance = object->instances[0];
-            instance->set_rotation(X, -M_PI / 4.0);
-            instance->set_offset(Vec3d::Zero());
-            instance->set_scaling_factor({ 2.0, 2.0, 2.0 });
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_key_value("filament_colour", new ConfigOptionStrings(
+            { "#00AE42", "#FFFF00", "#FF0000", "#0000FF", "#FF6A26" }));
+        config.set_key_value("filament_is_mixed", new ConfigOptionBools(
+            { false, false, false, false, true }));
+        config.set_key_value("filament_mixed_components", new ConfigOptionStrings(
+            { "", "", "", "", "3,2" }));
+        config.set_key_value("filament_mixed_sublayer_ratios", new ConfigOptionStrings(
+            { "", "", "", "", "0.4200,0.5800" }));
 
-            // calculate 2D convex hull
-	    auto trafo = instance->get_transformation().get_matrix();
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
-	    // This matrix is the same exact matrix as the Prusaslicer test
-	    CAPTURE(trafo);
-            Polygon hull_2d = object->convex_hull_2d(trafo);
+            PlateData* plate = new PlateData();
+            plate->plate_index = 0;
 
-	    // But we get different hull_2d.points here (and somehow decimal numbers despite being int64_t values, but that's probabaly printing configuration somewhere -- Prusaslicer's prints out with newlines between the X&Y and not one between coordinates, which is about the worse possible output).
-	    // I think it's something to do with PrusaSlicer ignoring everything under the Z plane, which makes sense from the results.
-	    // See the comments added to ModelObject::convex_hull_2d for more information.
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            store_params.plate_data_list.push_back(plate);
+            REQUIRE(store_bbs_3mf(store_params));
 
-            // verify result
-            Points result = {
-                { -91501496, -15914144 },
-                { 91501496, -15914144 },
-                { 91501496, 4243 },
-                { 78229680, 4246883 },
-                { 56898100, 4246883 },
-                { -85501496, 4242641 },
-                { -91501496, 4243 }
-            };
+            Model dst_model;
+            ScopedTemporaryDir dst_backup_dir("orca_mixed_dst");
+            dst_model.set_backup_path(dst_backup_dir.string());
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                 &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                 LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
 
-            THEN("2D convex hull should match with reference") {
-                // Allow 1um error due to floating point rounding.
-                bool res = hull_2d.points.size() == result.size();
-                if (res) {
-                    for (size_t i = 0; i < result.size(); ++ i) {
-                        const Point &p1 = result[i];
-                        const Point &p2 = hull_2d.points[i];
-                        CHECK((std::abs(p1.x() - p2.x()) > 1 || std::abs(p1.y() - p2.y()) > 1));
-                    }
-                }
+            THEN("the mixed-filament project keys survive") {
+                auto* is_mixed = dst_config.option<ConfigOptionBools>("filament_is_mixed");
+                REQUIRE(is_mixed != nullptr);
+                REQUIRE(is_mixed->values == std::vector<unsigned char>({ 0, 0, 0, 0, 1 }));
 
-                CAPTURE(hull_2d.points);
-                REQUIRE(res);
+                auto* components = dst_config.option<ConfigOptionStrings>("filament_mixed_components");
+                REQUIRE(components != nullptr);
+                REQUIRE(components->values.size() == 5);
+                REQUIRE(components->values[4] == "3,2");
+
+                auto* ratios = dst_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+                REQUIRE(ratios != nullptr);
+                REQUIRE(ratios->values.size() == 5);
+                REQUIRE(ratios->values[4] == "0.4200,0.5800");
             }
+
+            THEN("the painted facets survive, including the one painted with the mixed slot") {
+                REQUIRE(dst_model.objects.size() == 1);
+                ModelVolume* dst_mv = dst_model.objects.front()->volumes.front();
+                REQUIRE_FALSE(dst_mv->mmu_segmentation_facets.empty());
+                REQUIRE(dst_mv->mmu_segmentation_facets.has_facets(*dst_mv, EnforcerBlockerType::Extruder2));
+                REQUIRE(dst_mv->mmu_segmentation_facets.has_facets(*dst_mv, EnforcerBlockerType::Extruder5));
+            }
+
+            release_PlateData_list(dst_plates);
+            delete plate; // store_bbs_3mf does not take ownership of the source plate
         }
     }
 }

@@ -21,14 +21,14 @@ public:
     ~CrealityPrint() override = default;
 
     const char* get_name() const override;
-    virtual bool can_test() const { return true; };
+    virtual bool can_test() const override { return true; };
     std::string  get_host() const override;
     bool has_auto_discovery() const override { return true; }
 
     wxString                           get_test_ok_msg() const override;
     wxString                           get_test_failed_msg(wxString& msg) const override;
     virtual bool                       test(wxString& curl_msg) const override;
-    PrintHostPostUploadActions         get_post_upload_actions() const;
+    PrintHostPostUploadActions         get_post_upload_actions() const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool supports_multi_color_print() const;
     std::string query_boxes_info() const;

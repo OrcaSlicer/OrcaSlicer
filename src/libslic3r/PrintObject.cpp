@@ -915,7 +915,7 @@ void PrintObject::detect_overhangs_for_lift()
                     Layer& lower_layer = *layer.lower_layer;
 
                     ExPolygons overhangs = diff_ex(layer.lslices, offset_ex(lower_layer.lslices, scale_(min_overlap)));
-                    layer.loverhangs = std::move(offset2_ex(overhangs, -0.1f * scale_(line_width), 0.1f * scale_(line_width)));
+                    layer.loverhangs = offset2_ex(overhangs, -0.1f * scale_(line_width), 0.1f * scale_(line_width));
                     layer.loverhangs_bbox = get_extents(layer.loverhangs);
                 }
             });
@@ -1290,6 +1290,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
+            || opt_key == "brim_ears_outer_only"
             // BBS: brim generation depends on printing speed
             || opt_key == "outer_wall_speed"
             || opt_key == "small_perimeter_speed"
@@ -1524,6 +1525,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "sparse_infill_smooth_factor"
                    || opt_key == "symmetric_infill_y_axis"
                    || opt_key == "infill_shift_step"
                    || opt_key == "sparse_infill_rotate_template"
@@ -3933,7 +3935,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         else {
                             ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(my_opt);
                             const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(it->second.get());
-                            opt_vec_src->set_to_index(opt_vec_dest, variant_index, 1);
+                            set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index);
                         }
                     }
                 }

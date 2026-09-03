@@ -4,6 +4,7 @@
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
 #include "Geometry.hpp"
+#include "FilamentMixer.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
@@ -74,6 +75,8 @@ const std::vector<std::string> filament_extruder_override_keys = {
     "filament_deretraction_speed",
     "filament_retract_restart_extra",  //not in filament_options_with_variant, added on 20250816
     "filament_retraction_minimum_travel",
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange",
     // BBS: floats
     "filament_wipe_distance",
     // bools
@@ -2029,6 +2032,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
+    def = this->add("brim_ears_outer_only", coBool);
+    def->label = L("Brim ears outer only");
+    def->category = L("Support");
+    def->tooltip = L("Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("compatible_printers", coStrings);
     def->label = L("Select printers");
     def->mode = comAdvanced;
@@ -3346,6 +3356,62 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools { false });
 
+    // Mixed-color filament. A slot flagged here is virtual: it is not loaded into any
+    // physical extruder, but resolved at slicing time into the physical filaments listed
+    // in filament_mixed_components, blended either by splitting each layer into
+    // sub-layers or by alternating whole layers (see enable_mixed_color_sublayer).
+    def          = this->add("filament_is_mixed", coBools);
+    def->label   = L("Is mixed filament");
+    def->tooltip = L("Whether this filament slot is a mixed filament composed of multiple physical filaments");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
+    def          = this->add("filament_mixed_components", coStrings);
+    def->label   = L("Mixed filament components");
+    def->tooltip = L("Comma-separated 1-based indices of component filaments, e.g. \"1,3\"");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_sublayer_ratios", coStrings);
+    def->label   = L("Mixed filament sublayer ratios");
+    def->tooltip = L("Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\"");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient", coBools);
+    def->label   = L("Mixed filament gradient");
+    def->tooltip = L("Enable Z-direction gradient mode for mixed filament sub-layers. "
+                     "When enabled, the sub-layer ratios vary linearly across layers.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
+    def          = this->add("filament_mixed_gradient_range", coStrings);
+    def->label   = L("Mixed filament gradient range");
+    def->tooltip = L("Start and end ratios for the first component in gradient mode. "
+                     "Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient_curve", coStrings);
+    def->label   = L("Mixed filament gradient curve");
+    def->tooltip = L("Optional Photoshop-style custom curve mapping Z progress to the first "
+                     "component ratio. Encoded as pipe-separated control points, "
+                     "either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override "
+                     "is needed (empty token or \"nan\" means use PCHIP default). "
+                     "x in [0,1]; y is clamped to the configured ratio range, "
+                     "e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear "
+                     "gradient_range is used instead.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient_per_part", coBools);
+    def->label   = L("Mixed filament per-part gradient");
+    def->tooltip = L("When gradient mode is enabled, apply the gradient to each part of an "
+                     "assembly independently rather than treating the whole assembly as one "
+                     "Z range.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
     // defined in bits
     // 0 means cannot support, 1 means support
     // 0 bit: can support in left extruder
@@ -3548,6 +3614,17 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
+
+    def = this->add("sparse_infill_smooth_factor", coPercent);
+    def->label = L("Sparse infill smooth factor");
+    def->category = L("Strength");
+    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, "
+                     "while 100% produces the largest possible curves between adjacent infill lines.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
 
     def = this->add("top_surface_acceleration", coFloats);
     def->label = L("Top surface");
@@ -4332,6 +4409,15 @@ void PrintConfigDef::init_fff_params()
     def->readonly = false;
     def->set_default_value(new ConfigOptionEnum<GCodeFlavor>(gcfMarlinLegacy));
 
+    def = this->add("gcode_skip_config_block", coBool);
+    def->label = L("Skip G-code config block");
+    def->tooltip = L("Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. "
+                   "This can help with printers whose firmware crashes when parsing these comment lines "
+                   "(e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, "
+                   "so importing it back into OrcaSlicer will not restore the configuration.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def          = this->add("pellet_modded_printer", coBool);
     def->label   = L("Pellet Modded Printer");
     def->tooltip = L("Enable this option if your printer uses pellets instead of filaments.");
@@ -4365,7 +4451,7 @@ void PrintConfigDef::init_fff_params()
                    "slow down.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
-    
+
     //BBS
     def = this->add("infill_combination", coBool);
     def->label = L("Infill combination");
@@ -5798,12 +5884,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsNullable{10});
 
     def = this->add("retract_length_toolchange", coFloats);
-    def->label = L("Length");
-    //def->full_label = L("Retraction Length (Toolchange)");
-    def->full_label = "Retraction Length (Toolchange)";
-    //def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
-    //               "by the specified amount (the length is measured on raw filament, before it enters "
-    //               "the extruder).");
+    def->label = L("Retraction Length (Toolchange)");
+    def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
+                  "by the specified amount (the length is measured on raw filament, before it enters "
+                  "the extruder).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -6057,7 +6141,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloats { 0. });
 
     def = this->add("retract_restart_extra_toolchange", coFloats);
-    def->label = L("Extra length on restart");
+    def->label = L("Extra length on restart (Toolchange)");
     def->tooltip = L("When the retraction is compensated after changing tool, the extruder will push "
                   "this additional amount of filament.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
@@ -6631,6 +6715,17 @@ void PrintConfigDef::init_fff_params()
                      "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
                      "which can result in the Tx command being issued above the printed part. "
                      "Enable this option if you want the tool change to always be issued above the wipe tower instead.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wait_for_temp_on_wipe_tower", coBool);
+    def->label = L("Wait for temperature on wipe tower");
+    def->tooltip = L("Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe "
+                     "tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on "
+                     "the tower instead of the model, and the travel overlaps with the heating. "
+                     "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
+                     "The firmware or tool change macro must not wait for the temperature itself. "
+                     "When disabled, the temperature wait is issued right after the tool change command.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -7747,6 +7842,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 1. });
 
+    def = this->add("enable_mixed_color_sublayer", coBool);
+    def->label = L("Mixed color sublayer");
+    def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
+                     "filaments will be split into sub-layers to achieve color mixing effects.");
+    def->category = L("Quality");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("enable_prime_tower", coBool);
     def->label = L("Enable");
     def->tooltip = L("The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects.");
@@ -8528,10 +8631,12 @@ void PrintConfigDef::init_extruder_option_keys()
         "long_retractions_when_cut",
         "retract_after_wipe",
         "retract_before_wipe",
+        "retract_length_toolchange",
         "retract_lift_above",
         "retract_lift_below",
         "retract_lift_enforce",
         "retract_restart_extra",
+        "retract_restart_extra_toolchange",
         "retract_when_changing_layer",
         "retraction_distances_when_cut",
         "retraction_length",
@@ -9619,6 +9724,8 @@ std::set<std::string> filament_options_with_variant = {
     "filament_retract_lift_below",
     "filament_retract_lift_enforce",
     "filament_retract_restart_extra",
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange",
     "filament_retraction_speed",
     "filament_deretraction_speed",
     "filament_retraction_minimum_travel",
@@ -9956,7 +10063,15 @@ t_config_option_keys DynamicPrintConfig::normalize_fdm_2(int num_objects, int us
         ConfigOptionBool *enable_wrapping_opt = this->option<ConfigOptionBool>("enable_wrapping_detection");
         bool enable_wrapping = enable_wrapping_opt != nullptr && enable_wrapping_opt->value;
 
-        if (!is_smooth_timelapse && !enable_wrapping && (used_filaments == 1 || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
+        bool has_mixed_filament = false;
+        {
+            auto *mixed_opt = this->option<ConfigOptionBools>("filament_is_mixed");
+            if (mixed_opt)
+                has_mixed_filament = has_any_mixed_filament(mixed_opt->values);
+        }
+        if (!is_smooth_timelapse && !enable_wrapping
+            && (  (used_filaments == 1 && !has_mixed_filament)
+                || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
             if (ept_opt->value) {
                 ept_opt->value = false;
                 changed_keys.push_back("enable_prime_tower");
@@ -10774,6 +10889,16 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
 
     return 0;
 
+}
+
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride)
+{
+    // A single-value object or region override applies to every nozzle variant.
+    std::vector<int> indices = variant_index;
+    if (source.size() == 1 && !source.is_nil(0))
+        std::fill(indices.begin(), indices.end(), 0);
+    target.set_to_index(&source, indices, stride);
 }
 
 
@@ -11853,7 +11978,7 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
                 else {
                     ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                     const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
-                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                    set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index, stride);
                 }
             }
         }
@@ -12092,6 +12217,23 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
                 error_message.emplace(opt_key, opt->serialize() + L(" not in range ") +"[" + std::to_string(optdef->min) + "," + std::to_string(optdef->max) + "]");
             //return std::string("Value out of range: " + opt_key);
         }
+    }
+
+    // Mixed-color (混色) parameter validation.
+    {
+        const auto &is_mixed       = cfg.filament_is_mixed.values;
+        const auto &comp_strs      = cfg.filament_mixed_components.values;
+        const auto &ratio_strs     = cfg.filament_mixed_sublayer_ratios.values;
+        const auto &gradient_flags = cfg.filament_mixed_gradient.values;
+        const auto &range_strs     = cfg.filament_mixed_gradient_range.values;
+        const auto &curve_strs     = cfg.filament_mixed_gradient_curve.values;
+
+        std::map<std::string, std::string> mixed_errors = validate_mixed_filament_params(
+            is_mixed, comp_strs, ratio_strs, gradient_flags,
+            range_strs, curve_strs);
+        for (const auto &kv : mixed_errors)
+            if (error_message.find(kv.first) == error_message.end())
+                error_message.emplace(kv.first, kv.second);
     }
 
     // The configuration is valid.

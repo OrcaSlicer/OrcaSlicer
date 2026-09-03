@@ -125,6 +125,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"sparse_infill_density", "", 1},
        {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
+       {"sparse_infill_smooth_factor", "", 1},
        {"lateral_lattice_angle_1", "", 1},
        {"lateral_lattice_angle_2", "", 1},
        {"infill_overhang_angle", "", 1},
@@ -1657,16 +1658,16 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
 {
     wxMenu *menu = &m_filament_action_menu;
 
-    if (init) {
+    // ORCA rebuild menu everytime instead checking existing of every item then deleting
+    while (menu->GetMenuItemCount() > 0)
+        menu->Destroy(menu->FindItemByPosition(0));
+
+    //if (init) { //
         append_menu_item(
             menu, wxID_ANY, _L("Edit"), "", [](wxCommandEvent&) {
                 plater()->sidebar().edit_filament(); }, "", nullptr,
             []() { return true; }, m_parent);
-    }
-
-    const int item_id = menu->FindItem(_L("Merge with"));
-    if (item_id != wxNOT_FOUND)
-        menu->Destroy(item_id);
+    //}
 
     wxMenu* sub_menu = new wxMenu();
     std::vector<wxBitmap*> icons = get_extruder_color_icons(true);
@@ -1685,11 +1686,15 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     append_submenu(menu, sub_menu, wxID_ANY, _L("Merge with"), "", "",
         [filaments_cnt]() { return filaments_cnt > 1; }, m_parent);
 
+    // Decompose a target colour into a printable mix of the loaded filaments. Placed before the
+    append_menu_item(
+        menu, wxID_ANY, _L("Decompose Color"), "", [](wxCommandEvent&) {
+            plater()->sidebar().decompose_filament_color(kSidebarContextMenuFilamentId); }, "", nullptr,
+        []() { return plater()->sidebar().combos_filament().size() >= 2; }, m_parent);
+
+    menu->AppendSeparator(); // ORCA use seperator for reducing accidental clicks to delete
+
     // ORCA use delete item on end of menu to prevent accidental clicks. clicking to submenus(merge) already not allowed by OS
-    const int delete_id = menu->FindItem(_L("Delete"));
-    if (delete_id != wxNOT_FOUND)
-        menu->Destroy(delete_id);
-    
     append_menu_item(
         menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
             plater()->sidebar().delete_filament(-2); }, "", nullptr,

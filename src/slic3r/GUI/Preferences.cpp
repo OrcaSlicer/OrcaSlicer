@@ -79,7 +79,7 @@ public:
         Bind(wxEVT_LEFT_DOWN,    &WikiLabel::OnLeftDown, this);
     }
 
-    void SetLabel(const wxString& label)
+    void SetLabel(const wxString& label) override
     {
         m_label = label;
         m_last_wrap_width = -1; // force re-wrap
@@ -1135,6 +1135,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
+        if (param == "use_printer_agents")
+        {
+            // Rebuild the Device tab so the native/web-UI choice reflects the new flag
+            // immediately, instead of only on the next printer-preset change or restart.
+            if (wxGetApp().plater())
+                wxGetApp().plater()->sidebar().update_all_preset_comboboxes();
+        }
+
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
@@ -1740,11 +1748,26 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
+    //// GENERAL > Plugins
+    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
+
+    auto item_plugin_pages_visible_count = create_item_spinctrl(
+        _L("Visible plugin pages"),
+        "",
+        _L("pages"),
+        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
+        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
+        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
+        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
+        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
+    );
+    g_sizer->Add(item_plugin_pages_visible_count);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
-    //// CONTROL TAB 
+    //// CONTROL TAB
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
@@ -2100,6 +2123,12 @@ void PreferencesDialog::create_items()
   
     auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
     g_sizer->Add(item_show_unsupported);
+
+    auto item_plugin_printer_agents = create_item_checkbox(
+        _L("(Experimental) Use printer agents instead of print hosts"), _L(
+            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior."),
+        "use_printer_agents");
+    g_sizer->Add(item_plugin_printer_agents);
 
     //// DEVELOPER > Experimental Features
     g_sizer->Add(create_item_title(_L("Experimental Features")), 1, wxEXPAND);

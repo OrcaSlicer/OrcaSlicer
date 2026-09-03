@@ -6,6 +6,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
+#include "libslic3r/Layer.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -37,6 +38,30 @@ static size_t brim_loop_count(Print &print)
     for (const auto &kv : print.get_brimMap())
         n += kv.second.items_count();
     return n;
+}
+
+static bool brim_enters_first_layer_hole(Print &print)
+{
+    const PrintObject *object = print.get_object(0);
+    Polygons holes;
+    for (const ExPolygon &slice : object->layers().front()->lslices)
+        holes.insert(holes.end(), slice.holes.begin(), slice.holes.end());
+
+    const Vec3d plate_origin = print.get_plate_origin();
+    Point shift = object->instances().front().shift_without_plate_offset();
+    shift += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
+    for (Polygon &hole : holes)
+        hole.translate(shift);
+
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines brim_paths;
+        kv.second.collect_polylines(brim_paths);
+        for (const Polyline &path : brim_paths)
+            for (const Point &point : path.points)
+                if (contains(holes, point, false))
+                    return true;
+    }
+    return false;
 }
 
 // The span is skirt_height layers, or every layer when a draft shield is on (forced even at
@@ -230,6 +255,131 @@ TEST_CASE("Brim ears appear only at corners within the max angle", "[SkirtBrim]"
         if (expect_ears) CHECK(brim_loop_count(print) > 0);
         else             CHECK(brim_loop_count(print) == 0);
     }
+}
+
+TEST_CASE("Outer-only brim ears stay out of model holes", "[SkirtBrim]")
+{
+    const bool outer_only = GENERATE(false, true);
+    DYNAMIC_SECTION("brim_ears_outer_only=" << outer_only) {
+        Print print;
+        init_and_process_print({ TestMesh::cube_with_concave_hole }, print, {
+            { "skirt_loops",                0 },
+            { "brim_type",                  "brim_ears" },
+            { "brim_width",                 2 },
+            { "brim_ears_max_angle",        125 },
+            { "brim_ears_detection_length", 0 },
+            { "brim_ears_outer_only",       outer_only },
+            { "initial_layer_line_width",   0.5 },
+        });
+
+        REQUIRE(brim_loop_count(print) > 0);
+        CHECK(brim_enters_first_layer_hole(print) != outer_only);
+    }
+}
+
+TEST_CASE("Painted brim ear radius controls sliced size", "[SkirtBrim]")
+{
+    constexpr double ear_radius = 10.0;
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                0 },
+        { "brim_type",                  "painted" },
+        { "brim_width",                 15 },
+        { "brim_object_gap",            0.1 },
+        { "brim_ears_outer_only",       true },
+        { "initial_layer_line_width",   0.5 },
+    });
+
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.process();
+
+    const PrintObject *object = print.get_object(0);
+    REQUIRE(!object->layers().front()->lslices.empty());
+    const Point ear_center = object->layers().front()->lslices.front().contour.points.front();
+
+    Transform3d model_transform = model.objects.front()->instances.front()->get_transformation().get_matrix_no_offset();
+    const Point &center_offset = object->center_offset();
+    model_transform = model_transform.pretranslate(
+        Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+    Vec3d model_pos = model_transform.inverse() *
+        Vec3d(unscale<double>(ear_center.x()), unscale<double>(ear_center.y()), 0);
+    model_pos.z() = model.objects.front()->raw_mesh_bounding_box().min.z() - 0.0001;
+    model.objects.front()->brim_points = {
+        BrimPoint(model_pos.cast<float>(), float(ear_radius)),
+    };
+
+    print.apply(model, config);
+    print.process();
+
+    const Vec3d plate_origin = print.get_plate_origin();
+    Point path_center = ear_center + object->instances().front().shift_without_plate_offset();
+    path_center += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
+
+    double max_path_radius = 0.0;
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines brim_paths;
+        kv.second.collect_polylines(brim_paths);
+        for (const Polyline &path : brim_paths)
+            for (const Point &point : path.points)
+                max_path_radius = std::max(max_path_radius, unscale<double>((point - path_center).cast<double>().norm()));
+    }
+
+    REQUIRE(max_path_radius > 0.0);
+    INFO("Outermost painted-ear path radius: " << max_path_radius << " mm");
+    CHECK(max_path_radius > ear_radius - 0.5);
+    CHECK(max_path_radius < ear_radius);
+}
+
+TEST_CASE("Outer-only painted brim ears stay out of model holes", "[SkirtBrim]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                0 },
+        { "brim_type",                  "painted" },
+        { "brim_ears_outer_only",       true },
+        { "initial_layer_line_width",   0.5 },
+    });
+
+    Print print;
+    Model model;
+    init_print({ TestMesh::cube_with_concave_hole }, print, model, config);
+
+    // Slice once to obtain exact outer and inner contour points in print
+    // coordinates, then express them in the model coordinates painted ears store.
+    print.process();
+    const PrintObject *object = print.get_object(0);
+    REQUIRE(!object->layers().front()->lslices.empty());
+    REQUIRE(!object->layers().front()->lslices.front().holes.empty());
+
+    Transform3d model_transform = model.objects.front()->instances.front()->get_transformation().get_matrix_no_offset();
+    const Point &center_offset = object->center_offset();
+    model_transform = model_transform.pretranslate(
+        Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+    const double bottom_z = model.objects.front()->raw_mesh_bounding_box().min.z() - 0.0001;
+    auto painted_point = [&model_transform, bottom_z](const Point &point) {
+        Vec3d model_pos = model_transform.inverse() *
+            Vec3d(unscale<double>(point.x()), unscale<double>(point.y()), 0);
+        model_pos.z() = bottom_z;
+        return BrimPoint(model_pos.cast<float>(), 3.f);
+    };
+
+    const ExPolygon &first_slice = object->layers().front()->lslices.front();
+    Polygon inner_contour = first_slice.holes.front();
+    inner_contour.reverse();
+    const Points inner_ear_points = inner_contour.concave_points(55. * PI / 180.);
+    REQUIRE(!inner_ear_points.empty());
+    model.objects.front()->brim_points = {
+        painted_point(first_slice.contour.points.front()),
+        painted_point(inner_ear_points.front()),
+    };
+    print.apply(model, config);
+    print.process();
+
+    REQUIRE(brim_loop_count(print) > 0);
+    CHECK_FALSE(brim_enters_first_layer_hole(print));
 }
 
 SCENARIO("Skirt has the configured number of loops", "[SkirtBrim]") {
@@ -474,6 +624,7 @@ static DynamicPrintConfig belt_brim_config()
         { "top_shell_layers",           0 },
         { "bottom_shell_layers",        1 },
         { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
     });
     return config;
 }
@@ -499,6 +650,7 @@ static DynamicPrintConfig belt_brim_multifilament_config(unsigned int filaments,
         { "top_shell_layers",           0 },
         { "bottom_shell_layers",        1 },
         { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
     });
     if (extra.size() > 0)
         config.set_deserialize_strict(extra);
@@ -739,11 +891,24 @@ TEST_CASE("Belt inner-only leading brim does not reject the prime tower or spira
         config.set_deserialize_strict(extra);
         return config;
     };
+    auto init_inner_leading_with_prime_tower = [](Print &print, Model &model, double brim_width) {
+        DynamicPrintConfig config = belt_brim_multifilament_config(2, {
+            { "brim_type",                 "inner_only" },
+            { "brim_width",                brim_width },
+            { "leading_brim_length",       6 },
+            { "brim_object_gap",           0 },
+            { "enable_prime_tower",        1 },
+        });
+        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
+            { { "extruder", 1 } }, { { "extruder", 2 } },
+        };
+        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    };
 
     SECTION("prime tower is left alone") {
         Print print;
         Model model;
-        init_print({ cube(20) }, print, model, inner_leading({ { "enable_prime_tower", 1 } }));
+        init_inner_leading_with_prime_tower(print, model, 0);
         CHECK_FALSE(print.objects().front()->has_belt_brim());
         CHECK(print.validate().string.empty());
     }
@@ -755,16 +920,9 @@ TEST_CASE("Belt inner-only leading brim does not reject the prime tower or spira
         CHECK(print.validate().string.empty());
     }
     SECTION("a real inner brim still rejects the prime tower") {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",          "inner_only" },
-            { "brim_width",         4 },
-            { "brim_object_gap",    0 },
-            { "enable_prime_tower", 1 },
-        });
         Print print;
         Model model;
-        init_print({ cube(20) }, print, model, config);
+        init_inner_leading_with_prime_tower(print, model, 4);
         CHECK(print.objects().front()->has_belt_brim());
         CHECK_FALSE(print.validate().string.empty());
     }

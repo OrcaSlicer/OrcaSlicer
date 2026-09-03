@@ -5,7 +5,7 @@
 	"name": "re3D rPP @1.75 nozzle",
 	"from": "system",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pet",
+	"inherits": "fdm_filament_pp",
 	"filament_type": [
 		"PP"
 	],
