@@ -1155,6 +1155,39 @@ TEST_CASE("A dense-numbering printer slices a sparse plate to consecutive tool i
     }
 }
 
+// A mixed filament is numbered after every physical one and never commanded itself; on a
+// dense-numbering printer the renumbering must hand the printer only the components' tools.
+TEST_CASE("A dense-numbering printer commands only a mix's components", "[MultiFilament]") {
+    // Six project filaments on four heads: the plate prints filament 3 and a mix of 1 and 3 in
+    // slot 5. Two physical filaments -> T0 (filament 1) and T1 (filament 3), nothing else.
+    DynamicPrintConfig config = multifilament_config(6, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "filament_is_mixed",              "0,0,0,0,1,0" },
+        { "filament_mixed_components",      ";;;;1,3;" },
+        { "filament_mixed_sublayer_ratios", ";;;;0.5,0.5;" },
+        { "filament_mixed_gradient",        "0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",  ";;;;;" },
+        { "filament_mixed_gradient_curve",  ";;;;;" },
+        { "filament_mixed_gradient_per_part","0,0,0,0,0,0" },
+        { "wall_filament",                  "3" },
+        { "sparse_infill_filament",         "5" },
+        { "solid_infill_filament",          "5" },
+        { "enable_prime_tower",             "0" },
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "wondermaker" } });
+
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::cube_with_hole }, config);
+    REQUIRE(!gcode.empty());
+
+    std::set<int> tools;
+    for (int tool = 0; tool < 6; ++tool)
+        if (gcode.find("\nT" + std::to_string(tool)) != std::string::npos)
+            tools.insert(tool);
+    CHECK(tools == std::set<int>{ 0, 1 });
+}
+
 // Count decoupling and per-plate routing capacity are different capabilities. The Snapmaker U1
 // owns a 32-entry extruder_map_table and merges surplus logical tools onto its four heads, so a
 // five-filament plate is fine there. Firmware that only permutes its tools (the WonderMaker ZR

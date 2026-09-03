@@ -26,22 +26,28 @@ class DynamicPrintConfig;
 //
 // Gated on protocol_requires_dense_tool_numbering(): printers without a native protocol never
 // build a compaction, so nothing below runs for them.
+//
+// Mixed-colour filaments are virtual slots: ToolOrdering resolves each to its component
+// filaments and only those are ever commanded as tools. The dense space still has to hold the
+// mix itself -- objects reference it and its per-filament config rows travel with it -- so a
+// used mix is numbered AFTER the physical tools. T0..T(n-1) stay exactly the filaments the
+// printer loads, and the printer never sees a mix's number.
 struct FilamentCompaction
 {
-    // The 0-based project filament slot each dense tool number prints, in ascending slot order.
-    // Empty means "no renumbering" -- either the printer doesn't ask for it or the plate already
-    // uses a dense prefix.
+    // The 0-based project filament slot each dense tool number prints: the used physical slots
+    // in ascending order, then any used mixed slots. Empty means "no renumbering" -- either the
+    // printer doesn't ask for it or the plate already uses a dense prefix.
     std::vector<int> slot_of_tool;
 
     bool is_identity() const;
     // The dense tool number that prints a project slot, or -1 when the plate doesn't use it.
     int  tool_of_slot(int slot_0based) const;
-    size_t tool_count() const { return slot_of_tool.size(); }
 };
 
-// The 0-based filament slots the printable objects of the model's current plate actually use,
-// sorted and deduplicated. Mirrors PartPlate::get_extruders(true), which is what the mapping
-// widget lists, so the slicer's tool order and the widget's row order cannot drift.
+// The 0-based PHYSICAL filament slots the printable objects of the model's current plate use,
+// sorted and deduplicated, with every mixed slot replaced by its components. Mirrors
+// PartPlate::get_extruders(true), which is what the mapping widget lists, so the slicer's tool
+// order and the widget's row order cannot drift.
 std::vector<int> used_filament_slots(const Model& model, const DynamicPrintConfig& config);
 
 // is_identity() unless the used slots are something other than a dense prefix (0..n-1).
@@ -62,7 +68,8 @@ FilamentCompaction build_filament_compaction(const Model& model, const DynamicPr
 void apply_filament_compaction(Model& model, const Model& source, const FilamentCompaction& compaction);
 
 // Gather every per-filament config vector down to the used slots, in dense order, and renumber
-// the scalar 1-based filament references (support_filament, *_filament_id, wipe_tower_filament).
+// the scalar 1-based filament references (support_filament, *_filament_id, wipe_tower_filament)
+// and the component lists of the mixed slots.
 void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompaction& compaction);
 
 } // namespace Slic3r

@@ -41,6 +41,19 @@ DynamicPrintConfig plain_config(size_t filament_count)
     return config;
 }
 
+// plain_config with project filament `mix_1based` a mix of `components` ("1,3": 1-based).
+DynamicPrintConfig mixed_config(size_t filament_count, int mix_1based, const std::string& components)
+{
+    DynamicPrintConfig config = plain_config(filament_count);
+    std::vector<unsigned char> is_mixed(filament_count, 0);
+    std::vector<std::string>   comps(filament_count, "");
+    is_mixed[mix_1based - 1] = 1;
+    comps[mix_1based - 1]    = components;
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools(is_mixed));
+    config.set_key_value("filament_mixed_components", new ConfigOptionStrings(comps));
+    return config;
+}
+
 } // namespace
 
 TEST_CASE("Used filament slots are the plate's filaments, 0-based and ascending", "[FilamentCompaction]")
@@ -184,4 +197,40 @@ TEST_CASE("A filament the plate does not print keeps its number", "[FilamentComp
     const FilamentCompaction compaction = build_filament_compaction(model, plain_config(8));
     apply_filament_compaction(model, model, compaction);
     CHECK(model.objects[0]->config.option("support_filament")->getInt() == 2);
+}
+
+// A mixed filament is a virtual slot: ToolOrdering prints its components, never the slot itself.
+// The plate's tools are therefore the components, and the mix -- which objects still reference
+// and whose config rows must travel along -- is numbered after them so T0..T(n-1) stay exactly
+// what the printer loads.
+TEST_CASE("A mixed slot is used through its components", "[FilamentCompaction]")
+{
+    // Filament 5 blends 1 and 3; the plate prints only filament 5.
+    const Model model = model_using({5});
+    CHECK(used_filament_slots(model, mixed_config(6, 5, "1,3")) == std::vector<int>{0, 2});
+}
+
+TEST_CASE("A used mix is numbered after the physical tools", "[FilamentCompaction]")
+{
+    const FilamentCompaction compaction = build_filament_compaction(model_using({5}), mixed_config(6, 5, "1,3"));
+    REQUIRE(compaction.slot_of_tool == std::vector<int>{0, 2, 4});
+    CHECK(compaction.tool_of_slot(4) == 2);
+}
+
+TEST_CASE("Four physical filaments and their mixes need no renumbering", "[FilamentCompaction]")
+{
+    // The field case: filaments 1-4 loaded, 5 a mix of two of them, on a four-tool printer.
+    const FilamentCompaction compaction = build_filament_compaction(model_using({1, 2, 3, 4, 5}), mixed_config(5, 5, "2,4"));
+    CHECK(compaction.slot_of_tool.empty());
+}
+
+TEST_CASE("Compaction renumbers a mix's components", "[FilamentCompaction]")
+{
+    DynamicPrintConfig config = mixed_config(6, 5, "1,3");
+    FilamentCompaction compaction;
+    compaction.slot_of_tool = {0, 2, 4};
+    apply_filament_compaction(config, compaction);
+
+    CHECK(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>{0, 0, 1});
+    CHECK(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>{"", "", "1,2"});
 }
