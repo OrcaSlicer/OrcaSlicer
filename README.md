@@ -197,7 +197,15 @@ All updated build instructions for Windows, macOS, and Linux are now available o
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
-For local development builds, run `build_win.bat` on Windows or `./build_linux.sh` on Linux. A bare run builds the dependencies when missing, builds the slicer, and relaunches it.
+For local development builds:
+
+**Windows:**
+- install deps if missing, build: ``build_win.bat`
+- install deps if missing, build, kill running instance and launch: `build_win_and_launch.bat`
+
+**Linux:**
+- install deps if missing, build: `build_linux.sh`
+- install deps if missing, build, kill running instance and launch: `./build_linux_and_launch.sh`
 
 # Klipper Note
 

@@ -501,6 +501,12 @@ if "!DEP_TREE_FLAG!" == "" if not "%build_dir%" == "!dep_name!" (
     set "DEP_TREE_FLAG=-DDEP_BUILD_DIR="%WP%\deps\!dep_name!""
 )
 
+REM A slicer build needs the dependency tree. When the default tree (no
+REM --deps-dir) is missing, build it first instead of failing at the slicer
+REM stage below. An explicit --deps-dir is the caller's to manage, so it keeps
+REM the existing clear error; --dry-run and --no-configure do not build deps.
+if "%build_slicer%" == "ON" if "%build_deps%" == "" if "%deps_dir%" == "" if not "%dry_run%" == "ON" if not "%no_configure%" == "ON" if not exist "!DEP_TREE!\OrcaSlicer_dep\usr\local\" set "build_deps=ON"
+
 set "VERBOSE_FLAG="
 if "%verbose%" == "ON" set "VERBOSE_FLAG=--verbose"
 

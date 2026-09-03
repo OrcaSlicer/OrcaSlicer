@@ -93,9 +93,8 @@ $stampPattern = '_(' + ($dateStamps -join '|') + ')\.zip$'
 
 $cases = @(
     'argument handling'
-    @{ Name = 'no arguments runs the dev loop, not help'; Args = @()
-       Contains = @('Building OrcaSlicer...', 'Dry run: would launch')
-       NotContains = @('Usage: build_win.bat [options]') }
+    @{ Name = 'no arguments prints help'; Args = @(); DryRun = $false
+       Contains = @('Usage: build_win.bat [options]', '--clang-cl') }
     @{ Name = "--help lists all $($longFlags.Count) options the script defines"; Args = @('--help'); DryRun = $false
        Contains = $longFlags }
     @{ Name = 'help is grouped and shows usage, examples and environment'; Args = @('--help'); DryRun = $false
@@ -391,22 +390,19 @@ $cases = @(
     # way --install-vs does.
     @{ Name = '--run-tests is an action on its own'; Args = @('--run-tests')
        Contains = @('-DBUILD_TESTS=ON', 'ctest --test-dir')
-       NotContains = @('Dry run: would launch') }
+       NotContains = @('Nothing to do') }
     @{ Name = '--tests is too'; Args = @('--tests')
        Contains = @('-DBUILD_TESTS=ON')
-       NotContains = @('ctest --test-dir') }
+       NotContains = @('Nothing to do', 'ctest --test-dir') }
     # Naming an action means that action, not a fuller build.
     @{ Name = 'they do not add a slicer build to one already asked for'; Args = @('-d', '--tests')
        Contains = @('cmake -S deps')
        NotContains = @('cmake -B "build"') }
-    # Options with no action at all now mean the dev loop: build the slicer and
-    # relaunch it, honouring whatever those options shape.
-    @{ Name = 'shaping options alone run the dev loop'; Args = @('--config', 'debug')
-       Contains = @('Building OrcaSlicer...', '-DCMAKE_BUILD_TYPE=Debug')
-       NotContains = @('Nothing to do.') }
-    @{ Name = '-j alone runs the dev loop too'; Args = @('-j', '4')
-       Contains = @('Building OrcaSlicer...', 'Parallel jobs: 4')
-       NotContains = @('Nothing to do.') }
+    @{ Name = 'shaping options alone are not an action'; Args = @('--config', 'debug'); ExpectExit = 1
+       Contains = @('Nothing to do.')
+       NotContains = @('Build completed') }
+    @{ Name = '-j alone is not an action either'; Args = @('-j', '4'); ExpectExit = 1
+       Contains = @('Nothing to do.') }
     @{ Name = '--install-vs counts as an action on its own'; Args = @('--install-vs', 'ide')
        NotContains = @('Nothing to do.') }
 

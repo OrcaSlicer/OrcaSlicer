@@ -38,9 +38,6 @@ function usage() {
     echo "For a GitHub Actions-like Linux build locally, use './${SCRIPT_NAME} -g -istrlL'"
     echo "Use './${SCRIPT_NAME} -gF -istrlL' to rebuild the cached runner image first."
     echo "Set ORCA_CONTAINER_CLI, ORCA_DOCKER_IMAGE, ORCA_DOCKER_BASE_IMAGE, or ORCA_DOCKER_CMAKE_VERSION to override the container runtime, cached image tag, base image, or CMake version."
-    echo "Running './${SCRIPT_NAME}' with no action builds the deps if needed, builds the"
-    echo "   slicer and relaunches it (dev loop). Set ORCA_NO_KILL or ORCA_NO_RUN to skip the"
-    echo "   stop or the relaunch, and ORCA_DEV_FILE=<path> to open a file."
 }
 
 SLIC3R_PRECOMPILED_HEADERS="ON"
@@ -133,21 +130,14 @@ while getopts ":1j:bcCdDeFghiprstulL" opt ; do
   esac
 done
 
-# A run that names no action is the dev loop, mirroring build_win.bat: make
-# sure the dependencies are built, build the slicer, then stop any running
-# OrcaSlicer and start the one just built. ORCA_NO_KILL skips the stop and
-# ORCA_NO_RUN builds without relaunching. Run the system dependency install
-# first with -u.
-NO_ACTION=1
-for var in BUILD_DEPS BUILD_ORCA BUILD_TESTS BUILD_IMAGE UPDATE_LIB USE_DOCKER; do
-    if [[ -n "${!var}" ]] ; then
-        NO_ACTION=0
-        break
-    fi
-done
-if [[ "${NO_ACTION}" == "1" ]] ; then
-    DEV_LOOP="1"
-    BUILD_ORCA="1"
+if [ ${OPTIND} -eq 1 ] ; then
+    usage
+    exit 1
+fi
+
+# A slicer build needs the dependency tree. When the default tree (in deps/)
+# is missing, build it first instead of failing later. Skipped under a dry run.
+if [[ -n "${BUILD_ORCA}" ]] && [[ -z "${BUILD_DEPS}" ]] && [[ -z "${DRY_RUN}" ]] ; then
     if [[ ! -d "deps/${BUILD_DIR}/OrcaSlicer_dep/usr/local" ]] && [[ ! -d "deps/${BUILD_DIR}/destdir/usr/local" ]] ; then
         BUILD_DEPS="1"
     fi
@@ -618,32 +608,5 @@ fi
 
 elapsed=$SECONDS
 printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
-
-# Dev loop: relaunch the OrcaSlicer that was just built. Skipped by ORCA_NO_RUN
-# (build only) or by ORCA_NO_KILL leaving a running instance alone; launch with
-# ORCA_DEV_FILE=<path> to open a file. The kill happens after a successful build
-# and mirrors the older build_and_run helper.
-if [[ -n "${DEV_LOOP}" ]] && [[ -n "${BUILD_ORCA}" ]] && [[ -z "${ORCA_NO_RUN}" ]] && [[ -z "${DRY_RUN}" ]] ; then
-    APP="${BUILD_DIR}/orca-slicer"
-    if [[ ! -x "${APP}" ]] ; then
-        APP="${BUILD_DIR}/package/bin/orca-slicer"
-    fi
-    if [[ -n "${ORCA_NO_KILL}" ]] || ! command -v pkill >/dev/null 2>&1 ; then
-        echo "dev loop: not stopping a running OrcaSlicer (ORCA_NO_KILL set)"
-    else
-        echo "dev loop: stopping running OrcaSlicer instances..."
-        pkill -f "orca-slicer" 2>/dev/null || true
-    fi
-    if [[ -x "${APP}" ]] ; then
-        echo "dev loop: launching ${APP}"
-        if [[ -n "${ORCA_DEV_FILE}" ]] ; then
-            "${APP}" "${ORCA_DEV_FILE}" &
-        else
-            "${APP}" &
-        fi
-    else
-        echo "dev loop: no executable found at ${APP}; the build produced no launchable binary" >&2
-    fi
-fi
 
 popd > /dev/null # ${SCRIPT_PATH}
