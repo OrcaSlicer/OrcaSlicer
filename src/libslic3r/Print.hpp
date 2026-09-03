@@ -800,7 +800,7 @@ struct WipeTowerData
         rib_offset = Vec2f::Zero();
         wipe_tower_mesh_data  = std::nullopt;
     }
-    void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall);
+    void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall, float cone_angle = 0.f);
 
 private:
 	// Only allow the WipeTowerData to be instantiated internally by Print, 
