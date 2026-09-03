@@ -24,6 +24,69 @@ class PresetBundle;
 inline constexpr const char* kImexPrimaryMode = "primary";
 
 // =============================================================================
+// The printer's IMEX mode table
+// =============================================================================
+// `imex_mode_names`, `imex_mode_active_tools` and `imex_mode_gcodes` are three
+// independent ConfigOptionStrings coupled only by POSITION: entry i of each describes
+// mode i. Nothing in the config system enforces equal length, and all three are on-disk
+// format, so a hand-edited preset, a profile written before a key existed, or a 3MF from
+// another build can arrive with a sibling array shorter than `imex_mode_names`.
+//
+// ImexMode is the in-memory view of one row. It is NOT a config type — nothing
+// serializes it, and the three keys keep their names, their types and their on-disk
+// representation exactly as before.
+//
+// Resolution rule. Applied by find_imex_mode() / imex_mode_table() and NOWHERE else;
+// every consumer in the tree goes through one of the two:
+//   * `imex_mode_names` is the roster. A mode exists iff a row of that array carries its
+//     name, and the FIRST such row wins. (The modes editor uniquifies names on entry, so
+//     duplicates only reach here from a hand-edited profile; first-match is what a
+//     std::find over the names array already did, and what the editor's own row order
+//     means.)
+//   * A sibling array too short to reach that row yields an EMPTY string for that field
+//     and sets `ragged`. It never yields an out-of-range read, and it never degrades to
+//     "no such mode": a missing script is a mode with no script, and the row's index
+//     still has to be reported to {imex_mode_index}. Callers that need tools already
+//     treat an empty tools string as "no tools" (imex_primary_tool_for_mode() returns -1,
+//     parse_imex_active_tools() returns {}), which is the behaviour they had before.
+//   * `ragged` separates "the profile omitted this row" from "the author wrote an empty
+//     entry" — a distinction every open-coded call site used to lose.
+//
+// Reporting: a non-Primary mode that resolves to an empty tool roster produces G-code
+// that is wrong rather than merely unconfigured (no per-head temperature transition, and
+// a suppressed initial T<n>), so GCode::_do_export() warns and falls back to Primary,
+// exactly as it already does for a name that resolves to no row at all.
+struct ImexMode
+{
+    // Position in `imex_mode_names`. -1 means no row carries the requested name — the
+    // not-found case, explicit rather than implied by an out-of-range index.
+    int         index = -1;
+    // The row's entry in `imex_mode_names`. Empty when !found().
+    std::string name;
+    // `imex_mode_active_tools[index]`, or "" when that array is shorter than index + 1.
+    std::string active_tools;
+    // `imex_mode_gcodes[index]`, or "" when that array is shorter than index + 1.
+    std::string gcode;
+    // At least one sibling array was too short to cover `index`. Always false when
+    // !found().
+    bool        ragged = false;
+
+    bool found() const { return this->index >= 0; }
+    explicit operator bool() const { return this->found(); }
+};
+
+// Resolves `name` against the printer's mode table; see the rule above. `cfg` is any
+// config carrying the printer keys (a DynamicPrintConfig, a PrintConfig, ...). A config
+// with no `imex_mode_names` yields a not-found ImexMode rather than throwing, so callers
+// need no null check of their own.
+ImexMode find_imex_mode(const ConfigBase& cfg, const std::string& name);
+
+// The whole roster: one ImexMode per entry of `imex_mode_names`, in config order, padded
+// by the same rule. Empty when `imex_mode_names` is absent. Use this where the caller
+// wants every mode (the modes editor, the plate's mode menu) rather than one by name.
+std::vector<ImexMode> imex_mode_table(const ConfigBase& cfg);
+
+// =============================================================================
 // PHYSICAL vs LOGICAL extruder indices — read this before adding a new IMEX call site
 // =============================================================================
 // IMEX has two distinct index spaces and they are NOT interchangeable on MMU/AFC
@@ -189,13 +252,24 @@ int imex_primary_tool_for_mode(const std::string& active_tools_for_mode);
 
 // Parses the "phys:slot,phys:slot" serialization of imex_head_filament_map.
 // Keys are physical T-indices (0-based); values are 1-based filament slots.
-// Returns empty map on empty/malformed input.
+// Returns empty map on empty/malformed input. This string arrives straight from 3MF
+// metadata, so tokens outside [0, MAXIMUM_EXTRUDER_NUMBER) are dropped here as an absolute
+// sanity cap; the bound against the *project's* filament count lives in
+// resolve_filament_for_head, which is where that count is actually known.
 std::map<int,int> parse_imex_head_filament_map(const std::string& s);
 
 // Resolves which 0-based logical filament to use for a physical head.
-// 1. If the plate map overrides `physical`, returns (slot - 1) — 1-based → 0-based.
+// 1. If the plate map overrides `physical` with a slot that indexes an existing filament,
+//    returns (slot - 1) — 1-based → 0-based.
 // 2. Else falls back to first_filament_for_physical_head(pem, physical).
 // Returns -1 if neither source yields a valid filament.
+//
+// `pem` has one entry per logical filament slot, so its size is the slot count and the
+// result is always a valid index into it (or -1). An override naming a slot at or past
+// that size cannot be honoured — every consumer indexes a per-filament array, and the
+// ConfigOption get_at() several of them use clamps rather than failing, which would turn a
+// corrupt 3MF's "1:9999" into a silently wrong filament. Such an override is ignored and
+// the printer's own routing applies, exactly as if the override were absent.
 int resolve_filament_for_head(const std::map<int,int>& plate_map,
                               const ConfigOptionInts&  pem,
                               int                       physical);
@@ -233,6 +307,40 @@ std::vector<int> imex_secondary_logical_slots(const std::vector<int>&   active_p
 
 enum class ImexRole { Primary, Copy, Mirror, Span };
 
+// The one table a new role has to be added to.
+//
+// `letter` is the suffix the role carries in the `imex_mode_active_tools` on-disk format
+// ("0:P,1:C,2:M,3:S"). That string is written into printer profiles and into 3MF projects,
+// so the letters are FORMAT: never renumber, rename or reorder them, only append. The table
+// order is also the order the modes editor cycles its tiles through and lists its colour
+// legend in, which is why Primary comes first.
+//
+// Everything that used to open-code the letters or a parallel small-int encoding of the
+// enum now goes through this table or through ImexRole itself, so adding a fifth role means
+// editing the enum, this table, and the places that must genuinely make a new decision
+// about it (the transform switch, the zone/marker classification, the editor's per-role
+// colour + label) — not a scattered set of int mappings that fail silently when missed.
+struct ImexRoleDesc {
+    ImexRole role;
+    char     letter;
+};
+inline constexpr ImexRoleDesc kImexRoleTable[] = {
+    { ImexRole::Primary, 'P' },
+    { ImexRole::Copy,    'C' },
+    { ImexRole::Mirror,  'M' },
+    { ImexRole::Span,    'S' },
+};
+
+// The on-disk suffix letter for `role`. Inverse of imex_role_from_suffix().
+char imex_role_letter(ImexRole role);
+
+// Reads a whole token suffix — everything after the ':' — back into a role. Anything that
+// is not exactly one of the table's letters is Copy: that covers "C" itself, an empty
+// suffix ("3:"), a multi-character suffix, and any letter a future build might write that
+// this one does not know. Copy is the historical fallback for an unrecognised suffix and
+// must stay so, or a project saved by a newer build changes meaning when reopened here.
+ImexRole imex_role_from_suffix(const std::string& suffix);
+
 // Parses `imex_mode_active_tools[mode]` into a list of (physical_head, role) pairs.
 // Accepted token forms (comma-separated, whitespace-tolerant):
 //   "phys"      — bare index, role defaults to Copy
@@ -250,6 +358,61 @@ enum class ImexRole { Primary, Copy, Mirror, Span };
 // use that helper. This parser is for call sites that already have the primary
 // in hand and need the full head/role list (e.g. ghost factory/updater).
 std::vector<std::pair<int, ImexRole>> parse_imex_active_tools(const std::string& active_tools_for_mode);
+
+// =============================================================================
+// The one derivation of "what does this plate's mode do, and does its filament reach
+// the primary" — shared by the hard block and the pre-slice warning
+// =============================================================================
+// Print::validate() refuses a plate whose filaments do not route to the mode's declared
+// primary; Plater's collect_imex_warnings() names that same primary's filament in its
+// bed-temperature and filament-type warnings. Both need the identical chain: resolve the
+// mode row -> parse its tool roster -> find the declared primary -> ask whether any used
+// filament slot routes there. Computed twice, the two drift, and the warning ends up
+// describing a plate the block describes differently. Computed here, they cannot.
+//
+// Everything in ImexRouting is a pure function of the four inputs. Deliberately absent:
+// the `is_imex` gate (Print::validate's, and only its, outer condition) and any bound on
+// the tool roster against the project's filament count (the plater's, and only its, way of
+// dropping tools it has no filament preset to name). Those are genuinely per-caller and
+// each stays with the caller that owns it.
+struct ImexRouting
+{
+    // The mode is a parallel mode: non-empty and not kImexPrimaryMode. False leaves every
+    // other field at its default — no mode row is even looked up.
+    bool                                  parallel = false;
+    // `imex_mode_active_tools` for this mode, or "" when the mode resolves to no row / a
+    // ragged table. See find_imex_mode().
+    std::string                           active_tools;
+    // The parsed roster, physical head + role, in the order the string lists them.
+    std::vector<std::pair<int, ImexRole>> tools;
+    // Declared primary PHYSICAL head, from imex_primary_tool_for_mode(). -1 when the mode
+    // resolves to no row, an empty roster, or a roster with no Primary marker.
+    int                                   primary_phys    = -1;
+    // The 0-based LOGICAL filament slot the primary prints with: the first entry of
+    // `used_slots_1b` whose pem entry maps to `primary_phys`. -1 when nothing on the plate
+    // routes there (which is exactly what `primary_unrouted` reports as a hard error, and
+    // what the plater's warning path falls back out of so it still has a filament to name).
+    int                                   primary_logical = -1;
+    // Sorted, deduplicated PHYSICAL heads that `used_slots_1b` actually reach. Slots outside
+    // the pem are dropped rather than clamped: ConfigOption::get_at() clamps to values front,
+    // which would let an error message name the very head it just said nothing routes to.
+    std::vector<int>                      routed_heads;
+    // The mode declares a primary, the printer has a routing map, and no used filament
+    // reaches that primary. The precise condition Print::validate refuses the plate on.
+    bool                                  primary_unrouted = false;
+
+    bool routes_to_primary() const { return this->primary_logical >= 0; }
+};
+
+// `cfg` is any config carrying the printer's mode-table keys — the Print's applied config
+// in the slicer, the edited printer preset in the GUI. `used_slots_1b` is 1-based filament
+// indices (Print::extruders() + 1, or PartPlate::get_extruders()). `pem` is the effective
+// physical_extruder_map: already normalised on the Print's config by Print::apply(), and
+// obtained from effective_physical_extruder_map(PresetBundle) in the GUI.
+ImexRouting imex_resolve_routing(const ConfigBase&       cfg,
+                                 const std::string&      parallel_mode,
+                                 const std::vector<int>& used_slots_1b,
+                                 const ConfigOptionInts& pem);
 
 // Per-gantry grouping derived from the active_tools string. The single source of
 // truth for paired-gantry visualization aggregation: when the primary's gantry
@@ -319,6 +482,10 @@ ImexMirrorAxis imex_mirror_axis_for(int primary_phys, int target_phys, int tools
 //          while the other axis tracks 1:1.
 //          Zero-length gantry_offset degenerates to identity.
 // Primary: identity.
+// Span:    identity, same as Primary. A Span tool shares the primary's gantry AND its zone,
+//          printing the same objects through mid-print toolchanges rather than a duplicate
+//          placed elsewhere, so there is nothing to translate or reflect. calc_imex_ghosts
+//          bakes no ghost for a Span head, so no caller reaches this today.
 Transform3d imex_head_transform(int primary, int target, ImexRole role,
                                 const Vec2d& gantry_offset,
                                 const Vec2d& primary_zone_center,
