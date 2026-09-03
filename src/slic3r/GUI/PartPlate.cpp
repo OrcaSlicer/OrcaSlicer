@@ -22,6 +22,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
+#include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -2333,22 +2334,20 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
 {
     // The CLI calls this too, so the plate's filaments are derived from the passed config:
     // get_extruders(bool) reads the same keys off wxGetApp()'s presets, which the CLI has none of.
-    std::vector<int> plate_extruders;
-    if (plate_extruder_size == 0) {
-        plate_extruders     = get_extruders(true, config, config);
-        plate_extruder_size = int(plate_extruders.size());
-    }
+    // An explicit count is a floor: init-time and arrange estimates size an empty plate for that
+    // many generic filaments, the lowest ids not already on the plate.
+    std::vector<int> plate_extruders = get_extruders(true, config, config);
+    for (int id = 1; int(plate_extruders.size()) < plate_extruder_size; ++id)
+        if (std::find(plate_extruders.begin(), plate_extruders.end(), id) == plate_extruders.end())
+            plate_extruders.push_back(id);
     // The wipe tower filament joins the tool ordering even when unused (Print::extruders), so
-    // validation counts it. An explicit count is the plate's painted filaments, which never do.
+    // validation counts it.
     const ConfigOption *wipe_tower_filament_opt = config.option("wipe_tower_filament");
     const int           wipe_tower_filament     = wipe_tower_filament_opt != nullptr ? wipe_tower_filament_opt->getInt() : 0;
-    if (plate_extruder_size > 1 && wipe_tower_filament > 0) {
-        if (plate_extruders.empty())
-            plate_extruders = get_extruders(true, config, config);
-        if (std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
-            ++plate_extruder_size;
-    }
-    if (plate_extruder_size == 0)
+    if (plate_extruders.size() > 1 && wipe_tower_filament > 0 &&
+        std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
+        plate_extruders.push_back(wipe_tower_filament);
+    if (plate_extruders.empty())
         return WipeTowerFootprint();
 
     // Tallest object on this plate and the thinnest layer it is sliced at, resolved per object
@@ -2376,7 +2375,11 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
     if (layer_height == std::numeric_limits<double>::max())
         layer_height = global_layer_height;
 
-    return Slic3r::estimate_wipe_tower_footprint(config, size_t(plate_extruder_size), layer_height, max_height);
+    std::vector<unsigned int> filament_ids;
+    for (int id : plate_extruders)
+        if (id > 0)
+            filament_ids.push_back(static_cast<unsigned int>(id - 1));
+    return Slic3r::estimate_wipe_tower_footprint(config, resolve_wipe_tower_type(config), filament_ids, layer_height, max_height);
 }
 
 arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size, bool use_global_objects) const
@@ -2391,8 +2394,17 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	float depth = wt_size(1);
 	// Resolved brim, not the raw option: "Auto" (-1) would yield a margin of 0 and let the
 	// clamp put the brim off the bed. Matches set_default_wipe_tower_pos_for_plate.
-	const float wp_brim_width = float(footprint.brim_width);
-	const float margin        = WIPE_TOWER_MARGIN + wp_brim_width;
+	float wp_brim_width = float(footprint.brim_width);
+	// A Type2 stabilization cone bulges past the body box like a brim does - fold its worst-axis
+	// bulge into the same margin (Type1 ignores the cone option).
+	const auto *cone_wall_opt  = config.option("wipe_tower_wall_type");
+	const auto *cone_angle_opt = config.option("wipe_tower_cone_angle");
+	if (cone_wall_opt != nullptr && cone_wall_opt->getInt() == int(WipeTowerWallType::wtwCone) && cone_angle_opt != nullptr &&
+	    cone_angle_opt->getFloat() > EPSILON && resolve_wipe_tower_type(config) == WipeTowerType::Type2) {
+		const BoundingBox cb = get_extents(WipeTower2::cone_base_polygon(w, depth, wt_size.z(), cone_angle_opt->getFloat()));
+		wp_brim_width += float(std::max({0., unscaled(cb.max.x()) - w, unscaled(cb.max.y()) - depth, -unscaled(cb.min.x()), -unscaled(cb.min.y())}));
+	}
+	const float margin = WIPE_TOWER_MARGIN + wp_brim_width;
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
 
 	// A tower too deep for the plate leaves no valid position: clamping with hi < lo is UB and

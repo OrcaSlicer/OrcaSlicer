@@ -4010,7 +4010,7 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
     if (max_height < EPSILON)
         return m_wipe_tower_data;
 
-    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, filaments_cnt, layer_height, max_height);
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, this->wipe_tower_type(), this->extruders(true), layer_height, max_height);
     WipeTowerData &data = const_cast<Print *>(this)->m_wipe_tower_data;
     data.depth      = float(footprint.depth);
     data.width      = float(footprint.width);
