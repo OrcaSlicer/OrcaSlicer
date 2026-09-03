@@ -152,6 +152,8 @@ static DynamicPrintConfig wipe_tower_toolchange_config(const std::string &gcode_
         { "outer_wall_filament_id",     2 },
         { "inner_wall_filament_id",     2 },
         { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 }, // inside the 200x200 test bed
+        { "wipe_tower_y",               50 }, // (the default y, 220, is not)
         { "layer_height",               0.3 },
         { "gcode_flavor",               gcode_flavor },
     });
