@@ -32,7 +32,6 @@ on:
      - '**/CMakeLists.txt'
      - 'version.inc'
      - ".github/workflows/build_*.yml"
-     - 'scripts/pipeline-helpers/build_linux.sh'
      - 'scripts/pipeline-helpers/build_release_vs.bat'
      - 'scripts/pipeline-helpers/build_release_vs2022.bat'
      - 'scripts/pipeline-helpers/build_release_macos.sh'

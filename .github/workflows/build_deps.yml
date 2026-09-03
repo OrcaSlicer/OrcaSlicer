@@ -180,7 +180,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             mkdir -p ${{ github.workspace }}/deps/build/destdir
-            ./scripts/pipeline-helpers/build_linux.sh -drlL
+            ./build_linux.sh -drlL
             cd deps/build
             tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
 
