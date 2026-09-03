@@ -631,7 +631,7 @@ void parse_metadata_rfc822(const std::string& content,
 bool is_ignored_plugin_directory(const boost::filesystem::path& path)
 {
     const std::string name = path.filename().string();
-    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR;
+    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR || name == PLUGIN_DATA_DIR;
 }
 
 bool is_safe_relative_path(const boost::filesystem::path& path)
@@ -784,6 +784,23 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             parsed.plugin_name = state["plugin_name"].get<std::string>();
         if (state.contains("cloud_uuid") && state["cloud_uuid"].is_string())
             parsed.cloud_uuid = state["cloud_uuid"].get<std::string>();
+
+        if (state.contains("permissions") && state["permissions"].is_object()) {
+            const auto& permissions = state["permissions"];
+            auto read_string_list = [&permissions](const char* key, std::vector<std::string>& out) {
+                if (!permissions.contains(key) || !permissions[key].is_array())
+                    return;
+                for (const auto& entry : permissions[key])
+                    if (entry.is_string())
+                        out.push_back(entry.get<std::string>());
+            };
+            read_string_list("fs_read", parsed.permissions.fs_read);
+            read_string_list("fs_readwrite", parsed.permissions.fs_readwrite);
+            read_string_list("network_http", parsed.permissions.network_http);
+            read_string_list("network_socket", parsed.permissions.network_socket);
+            read_string_list("process", parsed.permissions.process);
+        }
+
         if (state.contains("enabled") && state["enabled"].is_boolean())
             parsed.enabled = state["enabled"].get<bool>();
 
@@ -819,6 +836,14 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     if (!state.cloud_uuid.empty())
         json["cloud_uuid"] = state.cloud_uuid;
 
+    json["permissions"] = {
+        {"fs_read", state.permissions.fs_read},
+        {"fs_readwrite", state.permissions.fs_readwrite},
+        {"network_http", state.permissions.network_http},
+        {"network_socket", state.permissions.network_socket},
+        {"process", state.permissions.process},
+    };
+
     nlohmann::json capabilities = nlohmann::json::array();
     for (const auto& [name, enabled] : state.capabilities)
         capabilities.push_back(nlohmann::json{{name, enabled}});
@@ -836,6 +861,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
                          const std::vector<std::pair<std::string, bool>>& capabilities)
 {
     PluginInstallState state;
+    // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
+    // during register_capabilities() or by a previous runtime audit prompt.
+    read_install_state(plugin_dir, state);
     state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
     // Prefer the descriptor's recorded installed_version (the version fetched from the cloud
     // at install time, preserved across sidecar re-writes) so a stale manifest/PEP723 header
@@ -852,10 +880,16 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry)
 {
     // Install-time writer: the package is not loaded, so its capabilities are not known yet and the
-    // sidecar is (re)initialized to "auto-load, nothing disabled". PluginManager writes the real
-    // per-capability flags once the package is loaded, via the (dir, entry, enabled, capabilities)
-    // overload.
-    return write_install_state(plugin_dir, entry, true, {});
+    // sidecar is (re)initialized to "auto-load, nothing disabled". This intentionally resets
+    // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
+    // while preserving permissions once the package is loaded, via the overload above.
+    PluginInstallState state;
+    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
+    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
+    state.plugin_name       = entry.name;
+    state.cloud_uuid        = entry.cloud_uuid();
+    state.enabled           = true;
+    return write_install_state(plugin_dir, state);
 }
 
 bool read_python_plugin_metadata(const boost::filesystem::path& py_path, PluginDescriptor& descriptor, std::string& error)

@@ -156,7 +156,7 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
 
     auto daa_chk = new CheckBox(this);
     daa_chk->SetValue(cfg->is_network_update_prompt_disabled());
-    daa_chk->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e){
+    daa_chk->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent& e){
         auto cfg = wxGetApp().app_config;
         cfg->set_network_update_prompt_disabled(e.IsChecked());
         cfg->save();

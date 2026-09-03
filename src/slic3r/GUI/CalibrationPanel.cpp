@@ -488,7 +488,6 @@ void CalibrationPanel::init_tabpanel() {
             selected = true;
         m_tabpanel->AddPage(m_cali_panels[i],
             get_calibration_type_name(m_cali_panels[i]->get_calibration_mode()),
-            "",
             selected);
     }
 

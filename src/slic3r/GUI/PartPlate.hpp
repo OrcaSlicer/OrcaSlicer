@@ -354,6 +354,9 @@ public:
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
+    // Warns when a mixed-color filament is used on a single-nozzle printer, where every
+    // component switch costs a full filament change and purge.
+    bool check_single_extruder_mixed_filament_risk(const DynamicPrintConfig &config, std::string &warning_text) const;
     bool check_mixture_filament_compatible(const DynamicPrintConfig& config, std::string &error_msg);
     bool check_compatible_of_nozzle_and_filament(const DynamicPrintConfig & config, const std::vector<std::string>& filament_presets, std::string& error_msg);
 
@@ -672,16 +675,6 @@ public:
                 offset = Vec2d(0, 0);
             }
 
-            TexturePart(const TexturePart& part) {
-                this->x = part.x;
-                this->y = part.y;
-                this->w = part.w;
-                this->h = part.h;
-                this->offset = part.offset;
-                this->buffer    = part.buffer;
-                this->filename  = part.filename;
-                this->texture   = part.texture;
-            }
             void update_pos(float xx, float yy, float ww, float hh) {
                 x = xx;
                 y = yy;

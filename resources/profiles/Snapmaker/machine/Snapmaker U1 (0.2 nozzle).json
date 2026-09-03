@@ -186,7 +186,6 @@
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\nTIMELAPSE_TAKE_FRAME\nDEFECT_DETECTION_DETECT",
 	"machine_pause_gcode": "M600",
 	"nozzle_volume": "143",
-	"support_multi_bed_types": "0",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\nSET_PRINT_STATS_INFO TOTAL_LAYER={total_layer_count} CURRENT_LAYER={layer_num+1}",
 	"default_print_profile": "0.10 Standard @Snapmaker U1 (0.2 nozzle)"
 }

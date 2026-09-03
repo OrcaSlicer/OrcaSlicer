@@ -235,6 +235,56 @@ SCENARIO("Config ini load/save interface", "[Config]") {
     }
 }
 
+TEST_CASE("Flush-volume warning predicate respects used filament transitions", "[Config][Regression]")
+{
+    const std::vector<double> multipliers = {1.0};
+
+    SECTION("Single used filament does not trigger warning with zero transition entries")
+    {
+        const std::vector<double> matrix = {
+            0.0, 0.0,
+            0.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1};
+
+        REQUIRE_FALSE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Two used filaments trigger warning when transition flush entry is zero")
+    {
+        const std::vector<double> matrix = {
+            0.0, 0.0,
+            0.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Two used filaments do not trigger warning when transitions are non-zero")
+    {
+        const std::vector<double> matrix = {
+            0.0, 280.0,
+            280.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE_FALSE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Zero multiplier still triggers warning when multiple filaments are used")
+    {
+        const std::vector<double> matrix = {
+            0.0, 280.0,
+            280.0, 0.0
+        };
+        const std::vector<double> zero_multiplier = {0.0};
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE(has_zero_flush_volume_for_used_filaments(matrix, zero_multiplier, used_filaments));
+    }
+}
+
 // TODO: https://github.com/SoftFever/OrcaSlicer/issues/11269 - Is this test still relevant? Delete if not.
 // It was failing so at least "nozzle_type" and "extruder_printable_area" could not be serialized
 // and an exception was thrown, but "nozzle_type" has been around for at least 3 months now.
