@@ -24,6 +24,7 @@ add_executable(${_TEST_NAME}_tests
     test_fill_plane_path.cpp
     test_geometry.cpp
     test_imex_helpers.cpp
+    test_imex_zones.cpp
     test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
     test_polygon.cpp

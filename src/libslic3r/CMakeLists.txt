@@ -295,6 +295,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiVisualUtils.hpp
     IMEXHelpers.cpp
     IMEXHelpers.hpp
+    IMEXZones.cpp
+    IMEXZones.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
