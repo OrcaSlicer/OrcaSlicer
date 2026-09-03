@@ -15300,11 +15300,12 @@ void Plater::load_project(wxString const& filename2,
         if (using_exported_file()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
             p->set_project_filename(filename);
-        } else if (loaded_published) {
+        } else if (loaded_published && !res.empty()) {
             // A "published" 3MF loads as a new project: its path must not become the project
             // filename (Save/Ctrl-S prompts for a destination instead of overwriting it);
             // reset() already cleared the project name, so restore the default title and keep
-            // the file in recents.
+            // the file in recents. Only on a successful load (res not empty): a failed or
+            // cancelled load must not pollute "Recently opened".
             p->set_project_name(_L("Untitled"));
             if (!filename.IsEmpty())
                 wxGetApp().mainframe->add_to_recent_projects(filename);
@@ -18316,8 +18317,18 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
         std::string payload;
-        for (const std::string& key : filtered_cfg.keys())
-            payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
+        for (const std::string& key : filtered_cfg.keys()) {
+            // A value containing a newline would break the INI written below (read_ini throws),
+            // so load_from_ini_string discards the whole settings block on import. Skip such
+            // keys instead of silently dropping every setting.
+            std::string value = filtered_cfg.opt_serialize(key);
+            if (value.find('\n') != std::string::npos) {
+                BOOST_LOG_TRIVIAL(warning) << "publish: dropping key \"" << key
+                                           << "\" from the published payload (value contains a newline)";
+                continue;
+            }
+            payload += key + " = " + value + "\n";
+        }
         model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
 
         // Same file layout as save_project(), plus Silence (so export_3mf does not set the project

@@ -10,20 +10,16 @@ class PresetBundle;
 std::string publish_base_key(const std::string &key);
 
 // Structural keys that are never applied onto the receiver's presets when loading a published
-// 3MF (single source of truth for the denylist): applying them would rewrite the user's preset
-// inheritance/structure. filament_ids is nevertheless exported via the identity list in
-// filter_published_config because 3MF validation needs it - exported, never applied.
+// 3MF (single source of truth for the denylist); applying them would rewrite the user's preset
+// inheritance/structure. filament_ids is still exported via the identity list (3MF validation
+// needs it) - exported, never applied.
 const std::set<std::string>& publish_structural_keys();
 
 // The mixed-color filament project keys (parallel per-slot arrays, see PresetBundle's
-// s_project_options): a mixed slot's full definition - which slots it blends, the sublayer
-// ratios and the optional Z-gradient description. A published mixed slot always serializes
-// these keys; on import they are applied into the receiver's project_config (not a filament
-// preset), so the mix survives the round-trip.
+// s_project_options). Import applies them into project_config, not a filament preset.
 const std::set<std::string>& publish_mixed_keys();
 
-// One row of the printer tab's "Retraction" / "Z-Hop" optgroups (key + tab icon id), kept
-// together so the tab can later be migrated onto these lists.
+// One row of the printer tab's "Retraction" / "Z-Hop" optgroups (config key + tab icon id).
 struct PublishablePrinterOption {
     const char *key;  // config key, e.g. "retraction_length"
     const char *icon; // tab icon id, e.g. "printer_extruder_retraction#length"
@@ -33,8 +29,8 @@ struct PublishablePrinterOption {
 const std::vector<PublishablePrinterOption>& publishable_printer_retraction_options();
 const std::vector<PublishablePrinterOption>& publishable_printer_z_hop_options();
 
-// Union of the two optgroup option lists; the published-3MF overlay applies printer keys only
-// when their base key is in this allowlist (anything else is contract-excluded).
+// Union of the two optgroup option lists; printer keys apply on import only if their base
+// key is in this allowlist.
 const std::set<std::string>& publishable_printer_keys();
 
 // Union of setting keys differing from the base/system preset across the current print,
@@ -60,32 +56,25 @@ struct PublishedMaterialEntry {
     // 0-based author filament slot; -1 (hand-crafted files) is skipped.
     int         slot{-1};
     std::vector<std::string> keys;
-    // "Full Publish": the whole filament preset (full_keys) is published. On the receiver
-    // Full Publish always creates a standalone parentless copy (libslic3r's "Detach from
-    // parent"): a new project-embedded preset ("Preset Inside Project") with the full
-    // resolved config, universally compatible (compatible_printers/condition cleared).
-    // It lives inside the loaded project only - never written to the user's library,
-    // no existing preset is ever selected-by-reference or mutated. Identical Full
-    // entries inside one load share one created instance (within-load dedup).
+    // "Full Publish": the whole filament preset (full_keys) is published. On the receiver Full
+    // Publish always creates a standalone parentless copy (libslic3r's "Detach from parent"),
+    // universally compatible and project-embedded only - never written to the user's library.
+    // Identical Full entries within one load share one created instance (within-load dedup).
     bool full{false};
     // All non-structural filament keys of the author's slot preset; values travel in the file
     // config, masked to the author's slot index.
     std::vector<std::string> full_keys;
     // Vendor-agnostic (MaterialType) filament type the author requires for this slot; on a
-    // partial entry's mismatch the slot is replaced with a same-type filament from the
-    // receiver's library. Full entries consult no gate: they detach unconditionally, and the
-    // copy carries whatever values the payload bakes.
+    // partial entry's mismatch the slot is replaced with a same-type filament. Full entries
+    // consult no gate.
     bool publish_type{false};
     std::string publish_type_value;
     // Required filament colour, applied on load regardless of the type match.
     bool publish_color{false};
     std::string color;
-    // Import-side only, never serialized: the entry's authored slot sits past the receiver
-    // printer's physical filament capacity, so instead of growing a physical slot the entry
-    // is appended as an empty mixed-filament placeholder (virtual tail slot; the GUI flags
-    // it and the user assigns components from their own filaments). The flag also keeps the
-    // entry out of the payload mixed-definition validation and the value-apply passes,
-    // which only make sense for a slot that carries a real material.
+    // Import-side only, never serialized: the authored slot sits past the receiver's physical
+    // capacity, so the entry is appended as an empty mixed-filament placeholder (virtual tail
+    // slot; the GUI flags it for the user to assign components).
     bool mixed_placeholder{false};
 };
 
@@ -93,16 +82,12 @@ struct PublishedMaterialEntry {
 std::string normalize_filament_type(const std::string& type);
 
 class DynamicPrintConfig;
-// Clear the compatibility lists/conditions on a filament config so it is compatible
-// with every printer and every print profile. A detached published material is
-// universally compatible by construction: the baseline clone may carry machine-specific
-// restrictions. Empty lists + empty conditions => compatible with everything
-// (see is_compatible_with_printer, Preset.cpp:840).
+// Clear the compatibility lists/conditions on a filament config so it is universally
+// compatible once detached (empty lists + empty conditions = compatible with everything).
 void make_publish_universal(DynamicPrintConfig &config);
 
-// Naming base for a detached published-material copy: "Generic PLA @System" ->
-// "Generic PLA" (truncate at the first '@' variant tail, right-trimmed). Unchanged
-// when the name carries no '@'. Empty result means "fall back to identity fields".
+// Naming base for a detached published-material copy: "Generic PLA @System" -> "Generic PLA"
+// (truncate/right-trim at the first '@' tail). Empty result means "fall back to identity".
 std::string publish_material_base_name(const std::string &preset_name);
 
 // Minimal DynamicPrintConfig for a published 3MF export: only the selected published keys,

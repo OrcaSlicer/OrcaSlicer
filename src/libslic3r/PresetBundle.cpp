@@ -5220,29 +5220,18 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
         // Material pass: positional per-slot entries. The author published, per slot, either the
         // entire filament (full) or specific keys plus optionally a curated type and/or colour.
-        //   - full: the slot always lands on a freshly created standalone detached copy
-        //     ("Detach from parent", project-embedded, universally compatible, within-load
-        //     deduped) - handled up front in the entry loop below; no library preset is ever
-        //     reused or mutated;
-        //   - partial: a type requirement gates the application - on type match (or no
-        //     requirement) the keys are applied onto the slot's effective preset; on mismatch
-        //     the slot is replaced with the best visible candidate, scored by the published
-        //     identity (exact preset name resolved through the collection's name machinery,
-        //     then exact setting_id, exact filament_id, then vendor+type, then type only); a
-        //     preset no other slot references wins on equal scores; with no replacement
-        //     available the receiver's material is kept and the keys are reported as skipped;
-        //   - colour: applied to the slot regardless of the type gate.
-        //   - capacity: on a non-SEMM receiver whose printer has fewer nozzles than the
-        //     authored slot needs, the entry becomes an empty mixed-filament placeholder
-        //     appended at the tail (the GUI flags it; the user assigns components from their
-        //     own filaments); on a single-physical-slot receiver it is dropped and reported
-        //     instead, since an empty mix could never be edited there.
+        //   - full: lands on a freshly created standalone detached copy (no library preset used
+        //     or mutated);
+        //   - partial: a type requirement gates application; on mismatch the slot is replaced
+        //     with the best visible candidate by published identity (exact name, setting_id,
+        //     filament_id, vendor+type, type); with no replacement the receiver's material is
+        //     kept and the keys are reported as skipped;
+        //   - colour: applied regardless of the type gate.
+        //   - capacity: past the printer's physical nozzles the entry becomes an empty
+        //     mixed-filament placeholder; on a single-physical-slot receiver it is dropped.
         // Applied partial values land on the collection's edited layer when the slot references
-        // it and that layer survives the load (visible as a modification, revertible, the user's
-        // unsaved edits preserved), otherwise on the stored preset in place.
-        // To keep slot-to-slot aliasing (several slots referencing one preset) from leaking one
-        // slot's values into another, published slots sharing a preset with another slot are
-        // re-pointed at distinct presets before the values are applied.
+        // it and that layer survives the load, otherwise on the stored preset in place. Slots
+        // aliasing a shared preset are re-pointed at distinct presets before the values apply.
         {
             // Grow the receiver's slots only as far as the highest published slot (never
             // shrink, never pull filler materials for unpublished slots).
@@ -5281,26 +5270,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 grow_target = std::max(grow_target, size_t(entry.slot) + 1);
             }
             // Mixed-filament definitions live in project-level virtual slots, so applying one
-            // positionally onto a receiver slot that holds a real, physical filament would
-            // silently convert hardware-backed state into a virtual mix. Compute each mixed
-            // entry's destination before anything consumes entry.slot (growth, seeding,
-            // de-aliasing, the overlay below):
-            //   - a definition landing on a receiver slot that already carries a mixed
-            //     definition keeps its place (a like-for-like override of a virtual slot);
-            //   - everything else goes through one monotone append counter preserving author
-            //     order: dest = max(authored, next_free). With a receiver shorter than the
-            //     publish this keeps the authored positions intact; past them (or around a
-            //     collision with a real filament) the mixes pack onto consecutive fresh slots
-            //     AFTER every positional (real-filament) territory. The definition's cells are
-            //     shifted inside the file-side per-slot mixed arrays so they stay readable
-            //     from the new index. No existing slot changes meaning.
-            //   - destinations are also capped: appends past the extruder limit are dropped
-            //     and reported instead of being forced onto a physical filament.
-            // Physical entries past the printer's capacity join the same append counter
-            // (dest = next_free, packed consecutively at the tail - never max(authored,
-            // next_free), which would grow filler physical slots past the capacity) and are
-            // flagged mixed_placeholder: they become empty mixed-filament placeholders the
-            // GUI flags for the user to assign components to.
+            // positionally onto a receiver slot holding a real filament would convert hardware
+            // state into a virtual mix. Compute each entry's destination before anything
+            // consumes entry.slot: a definition on a slot that already holds a mixed definition
+            // keeps its place (like-for-like); everything else follows one monotone append
+            // counter preserving author order (dest = max(authored, next_free)). Appends past
+            // the extruder limit are dropped and reported. Physical entries past capacity join
+            // the same counter as mixed_placeholder empties the GUI flags for assignment.
             size_t next_free_slot      = this->filament_presets.size();
             bool   any_mixed_relocated = false;
             // All authored-slot -> destination moves decided by this pass, applied to the
@@ -5441,20 +5417,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     const auto it = exact_name_by_slot.find(slot);
                     return it == exact_name_by_slot.end() ? std::string() : it->second;
                 };
-                std::set<std::string> used_preset_names(this->filament_presets.begin(), this->filament_presets.end());
                 // Mirror first_visible_idx()'s start index so suppressed default presets are
                 // never picked as a slot material.
                 const size_t first_candidate = this->filaments.is_default_suppressed() ? this->filaments.num_default_presets() : 0;
-                // Candidate preference for a published entry: exact preset name (the raw author
-                // name and the collection-resolved name - renames, removed vendor-generic
-                // library fallback - both identify the exact preset, unambiguous even when ids
-                // are shared between variants or missing from older files), then the trimmed
-                // bare form / alias ("Generic PLA" from "Generic PLA @System"): a same-family
-                // match that must never outrank the exact preset, then exact setting_id
-                // (variant-level, since "Generic PLA" and "Generic PLA Matte" share
-                // filament_id), then exact filament_id, then vendor+type, then type only (a
-                // type-only pick may surface an unrelated preset, e.g. a different vendor's
-                // PLA).
+                // Candidate preference for a published entry: exact preset name (raw author and
+                // collection-resolved), then trimmed bare form / alias, then exact setting_id
+                // (variant-level), then exact filament_id, then vendor+type, then type only.
                 auto candidate_score = [](const Preset& candidate, const PublishedMaterialEntry& entry,
                                           const std::string& resolved_name) -> int {
                     // Exact preset name: raw and collection-resolved forms both outrank the
@@ -5512,7 +5480,6 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         initial_preset = this->filament_presets.empty() ? this->filaments.first_visible().name :
                                                                           this->filament_presets.back();
                     this->filament_presets.emplace_back(initial_preset);
-                    used_preset_names.insert(initial_preset);
                 }
                 // Published slots that alias another slot (multi-extruder with one filament)
                 // get re-pointed at distinct presets: the overlay writes onto the slot's
