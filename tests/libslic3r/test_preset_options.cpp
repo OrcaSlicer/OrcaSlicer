@@ -35,6 +35,7 @@ const std::set<std::string> kDeprecatedRegionFields = {
 
 void check_keys_are_in_a_preset(const t_config_option_keys& keys, const std::string& class_name)
 {
+    REQUIRE_FALSE(keys.empty());
     const auto& print_options    = Preset::print_options();
     const auto& filament_options = Preset::filament_options();
     const std::set<std::string> in_print(print_options.begin(), print_options.end());
