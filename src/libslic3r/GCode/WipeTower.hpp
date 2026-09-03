@@ -42,9 +42,27 @@ public:
 	static const std::map<float, float> min_depth_per_height;
     static float get_limit_depth_by_height(float max_height);
     static float get_auto_brim_by_height(float max_height);
+    // Both generators round the brim up to whole loops (see loops_num in the brim code), so
+    // the printed brim can exceed the configured width; estimates must round the same way.
+    static float estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height);
     static TriangleMesh                 its_make_rib_tower(float width, float depth, float height, float rib_length, float rib_width, bool fillet_wall);
     static TriangleMesh                 its_make_rib_brim(const Polygon& brim, float layer_height);
     static Polygon                      rib_section(float width, float depth, float rib_length, float rib_width, bool fillet_wall);
+    // Pre-generation estimate of the rib tower's bounding-square side (brim excluded),
+    // mirroring plan_tower_new(): block-stack depth squared plus the first-layer rib
+    // bulge. Lives beside the planner so the two stay in sync.
+    static float estimate_rib_tower_bbox_side(const std::vector<float> &prime_volumes,
+                                              const std::vector<int>   &adhesiveness_categories,
+                                              float width, float layer_height, float nozzle_diameter,
+                                              float extra_spacing, float rib_width, float extra_rib_length,
+                                              float max_height);
+    // Depth of the Type1 purge stack at the given width (rib estimator core, also the
+    // rectangle-wall depth): quantized purge lines, one block per adhesiveness category
+    // stacked with its finishing line, plus one perimeter width.
+    static float estimate_tower_blocks_depth(const std::vector<float> &prime_volumes,
+                                             const std::vector<int>   &adhesiveness_categories,
+                                             float width, float layer_height, float nozzle_diameter,
+                                             float extra_spacing);
     // Translation that brings a footprint inside the printable outline, padded by offset. The prime
     // tower is validated against the real outline (see layered_print_cleareance_valid), so clamping
     // against the bounding box alone would leave it off a delta or hexagonal bed. box and polygons
