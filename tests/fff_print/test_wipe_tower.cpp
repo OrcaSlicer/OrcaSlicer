@@ -184,11 +184,13 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
 }
 
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
-// they call the estimator directly.
-static DynamicPrintConfig tower_estimate_config(const char *wall_type)
+// they call the estimator directly. The estimate counts the filaments the print really uses,
+// so the two-filament shape gives the outer wall the second one.
+static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned int filaments = 2)
 {
     // 100 mm3 per purge on a 50 mm wide tower: one purge is 100/(layer_height * 50) of depth.
-    return multifilament_config(2, {
+    return multifilament_config(filaments, {
+        { "outer_wall_filament_id",         filaments == 2 ? "2" : "1" },
         { "enable_prime_tower",             "1"       },
         { "wipe_tower_wall_type",           wall_type },
         { "prime_tower_width",              "50"      },
@@ -253,13 +255,13 @@ TEST_CASE("A single-filament plate reserves a tower only when one is actually pr
     Model model;
 
     SECTION("no tool change and nothing else that prints one") {
-        const DynamicPrintConfig config = tower_estimate_config("rib");
+        const DynamicPrintConfig config = tower_estimate_config("rib", 1);
         init_print({ cube(20) }, print, model, config);
         CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
     }
 
     SECTION("a raft puts the tower on every layer below the object") {
-        DynamicPrintConfig config = tower_estimate_config("rib");
+        DynamicPrintConfig config = tower_estimate_config("rib", 1);
         config.set_deserialize_strict({ { "raft_layers", "3" } });
         init_print({ cube(20) }, print, model, config);
         CHECK(print.wipe_tower_data(1).depth > 0.f);

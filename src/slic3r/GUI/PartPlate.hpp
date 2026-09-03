@@ -340,7 +340,8 @@ public:
 
     Vec3d get_origin() { return m_origin; }
     //Vec3d calculate_wipe_tower_size(const DynamicPrintConfig &config, const double w, const double wipe_volume, int plate_extruder_size = 0, bool use_global_objects = false) const;
-    // plate_extruder_size: filaments purged on the plate; 0 derives it from the plate's objects.
+    // plate_extruder_size: at least this many filaments are purged on the plate; the plate's own
+    //                      filaments are always counted, so 0 sizes for exactly those.
     WipeTowerFootprint estimate_wipe_tower_footprint(const DynamicPrintConfig & config, int plate_extruder_size = 0, bool use_global_objects = false) const;
     Vec3d estimate_wipe_tower_size(const DynamicPrintConfig & config, int plate_extruder_size = 0, bool use_global_objects = false) const;
     arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false) const;
