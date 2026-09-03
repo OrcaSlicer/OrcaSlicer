@@ -12,6 +12,7 @@
 #include "BuildCommit.hpp"
 #include "Downloader.hpp"
 #include <boost/chrono/duration.hpp>
+#include <boost/locale/encoding_utf.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
 #include <mutex>
