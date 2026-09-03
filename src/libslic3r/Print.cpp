@@ -1382,10 +1382,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     const DynamicPrintConfig& printer_config = this->full_print_config();
     if (device_resolves_filament_mapping(printer_config)) {
         const size_t max_plate_filaments = protocol_max_plate_filaments(filament_mapping_protocol_of(printer_config), nozzles);
-        // extruders is sorted and deduplicated, so its last entry is the highest used filament
-        // (0-based); +1 is both the count of logical tools the g-code will address and the
-        // filament's 1-based number as the user sees it.
-        const size_t highest_used_filament = size_t(extruders.back()) + 1;
+        // A mixed (virtual) slot never reaches the printer: ToolOrdering resolves it to its
+        // component filaments and only those are commanded as tools. Bound the components, not
+        // the slot's own number -- a project's mixes are numbered after every physical filament,
+        // so counting them rejected a four-filament plate on a four-tool printer.
+        const std::vector<unsigned int> physical_extruders = has_any_mixed_filament(m_config.filament_is_mixed.values)
+            ? expand_mixed_filaments(extruders, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values)
+            : extruders;
+        // Sorted and deduplicated, so the last entry is the highest used filament (0-based); +1 is
+        // both the count of logical tools the g-code will address and the filament's 1-based number
+        // as the user sees it.
+        const size_t highest_used_filament = physical_extruders.empty() ? 0 : size_t(physical_extruders.back()) + 1;
         if (highest_used_filament > max_plate_filaments)
             return {(boost::format(L("This plate uses filament %1%, but this printer can only address %2% filaments on one plate. "
                                      "Reduce the number of filaments used on this plate, or renumber them so they fit within the "
