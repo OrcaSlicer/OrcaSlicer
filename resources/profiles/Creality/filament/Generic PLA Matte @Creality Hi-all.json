@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Matte @Creality Hi-all",
-	"inherits": "Creality Generic PLA @Hi-all",
+	"inherits": "Generic PLA @Creality Hi-all",
 	"renamed_from": "Creality Generic PLA Matte @Hi-all;Creality Generic PLA Matte Hi-all",
 	"from": "system",
 	"setting_id": "pFxJgjam0WAeSKqf",

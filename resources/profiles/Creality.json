@@ -1,6 +1,6 @@
 {
 	"name": "Creality",
-	"version": "02.03.02.78",
+	"version": "02.03.02.79",
 	"force_update": "0",
 	"description": "Creality configurations",
 	"machine_model_list": [
@@ -1809,8 +1809,8 @@
 			"sub_path": "filament/Generic PLA @Creality Ender-3V3-all.json"
 		},
 		{
-			"name": "Creality Generic PLA @Hi-all",
-			"sub_path": "filament/Creality Generic PLA @Hi-all.json"
+			"name": "Generic PLA @Creality Hi-all",
+			"sub_path": "filament/Generic PLA @Creality Hi-all.json"
 		},
 		{
 			"name": "Generic PLA @Creality K1-all",

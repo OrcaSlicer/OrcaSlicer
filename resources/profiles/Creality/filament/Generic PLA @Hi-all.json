@@ -136,8 +136,6 @@
     "pressure_advance": "0.04",
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
-        "Creality Hi 0.4 nozzle",
-        "Creality Hi 0.6 nozzle",
         "Creality Hi 0.8 nozzle"
     ],
     "filament_id": "OFDSrzZ8"
