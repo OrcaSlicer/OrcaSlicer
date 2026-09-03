@@ -81,8 +81,8 @@
 	],
 	"filament_list": [
 		{
-			"name": "Generic 95A TPU @TwoTrees SK1",
-			"sub_path": "filament/Generic 95A TPU @TwoTrees SK1.json"
+			"name": "Generic TPU 95A @TwoTrees SK1",
+			"sub_path": "filament/Generic TPU 95A @TwoTrees SK1.json"
 		},
 		{
 			"name": "Generic HS PLA @TwoTrees SK1",

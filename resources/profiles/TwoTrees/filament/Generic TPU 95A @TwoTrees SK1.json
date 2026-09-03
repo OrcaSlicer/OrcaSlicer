@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"name": "Generic 95A TPU @TwoTrees SK1",
+	"name": "Generic TPU 95A @TwoTrees SK1",
 	"inherits": "fdm_filament_tpu",
 	"renamed_from": "TwoTrees Generic 95A TPU @SK1;TwoTrees Generic 95A TPU SK1",
 	"from": "system",
-	"setting_id": "LR7ufBEnGhieNdB7",
-	"filament_id": "OF6MMR8P",
+	"setting_id": "hAqaYYR7xzkcr2xC",
+	"filament_id": "OFjiXpyf",
 	"instantiation": "true",
 	"compatible_printers": [
 		"TwoTrees SK1 0.4 nozzle"

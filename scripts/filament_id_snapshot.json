@@ -1776,9 +1776,6 @@
    "Elegoo/Elegoo PETG Translucent",
    "OrcaFilamentLibrary/Elegoo PETG Translucent"
   ],
-  "OF6MMR8P": [
-   "TwoTrees/Generic 95A TPU"
-  ],
   "OF6MOPWx": [
    "Creality/Generic PET",
    "Elegoo/Generic PET",
@@ -3662,7 +3659,8 @@
    "Cubicon/Cubicon PLA"
   ],
   "OFjiXpyf": [
-   "Qidi/Generic TPU 95A"
+   "Qidi/Generic TPU 95A",
+   "TwoTrees/Generic TPU 95A"
   ],
   "OFjkdnyN": [
    "Snapmaker/Snapmaker Dual TPU"
@@ -6879,8 +6877,8 @@
   "Tiertime/Tiertime PVA@300HS",
   "Tiertime/Tiertime TPU 95A",
   "Tiertime/Tiertime TPU 95A@300HS",
-  "TwoTrees/Generic 95A TPU @TwoTrees SK1",
   "TwoTrees/Generic HS PLA @TwoTrees SK1",
+  "TwoTrees/Generic TPU 95A @TwoTrees SK1",
   "Volumic/Désactivé",
   "Volumic/PA6 CF20 (Performance)",
   "Volumic/PETG ESD (Performance)",
@@ -7572,13 +7570,6 @@
     "Elegoo",
     "PETG",
     "Elegoo PETG Translucent"
-   ]
-  ],
-  "OF6MMR8P": [
-   [
-    "Generic",
-    "TPU",
-    "Generic 95A TPU"
    ]
   ],
   "OF6MOPWx": [
