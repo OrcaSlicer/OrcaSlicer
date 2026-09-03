@@ -6604,7 +6604,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
+    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers.
+    // Every key in this group is read at slice time from m_config, and the two per-plate process
+    // keys (imex_parallel_mode, imex_head_filament_map) round-trip through the 3MF's
+    // model_settings.config plate metadata, so none of them needs to appear in the exported
+    // g-code. They all carry non-nil defaults, so emitting them would add a line to every
+    // printer's dump. Kept out of the g-code config block (banned_keys).
     def = this->add("is_imex", coBool);
     def->label = L("IMEX Printer");
     def->tooltip = L("Enable IMEX parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
