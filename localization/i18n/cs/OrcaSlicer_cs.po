@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -2977,6 +2977,10 @@ msgstr "Upravit"
 msgid "Merge with"
 msgstr "Sloučit s"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Rozložit barvu"
+
 msgid "Delete this filament"
 msgstr "Smazat tento filament"
 
@@ -3278,6 +3282,10 @@ msgstr "Sestava"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Sloučit části do objektu"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Použití proměnné výšky vrstvy společně s podvrstvou míchané barvy může zhoršit kvalitu míchání barev."
 
 # AI Translated
 msgid "Add layers"
@@ -6380,10 +6388,10 @@ msgstr "Importovat 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Načíst model"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importovat ZIP archiv"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Načíst modely obsažené v zip archivu"
 
 msgid "Import Configs"
@@ -7921,6 +7929,10 @@ msgstr "Přizpůsobit aktuální desku"
 msgid "The %s nozzle can not print %s."
 msgstr "Tryska %s nemůže tisknout %s."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Tisk filamentu s míchanou barvou na tiskárně s jedním extruderem vyžaduje časté výměny filamentu a čištění, což může výrazně zvýšit množství odpadu a riziko ucpání trysky nebo odpadního skluzu."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Míchání %1% s %2% při tisku není doporučeno.\n"
@@ -8050,11 +8062,43 @@ msgstr "Synchronizovat seznam filamentů z AMS"
 msgid "Set filaments to use"
 msgstr "Nastavit používané filamenty"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Přidat míchaný filament"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Míchaný filament"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Odebrat poslední míchaný filament"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Přidat míchaný filament"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "Míchaný filament má neplatné nebo neodpovídající komponenty. Upravte prosím dotčené položky znovu."
+
 msgid "Search plate, object and part."
 msgstr "Hledat desku, objekt a díl."
 
 msgid "Pellets"
 msgstr "Pelety"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "Míchaný filament má poškozené odkazy na komponenty"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Upravit / Smazat / Sloučit"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Cílový míchaný filament používá tento fyzický filament jako komponentu. Sloučením se tento fyzický filament odstraní a míchaný filament může přestat být platný. Pokračovat?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8193,7 +8237,7 @@ msgstr "Potvrďte prosím, že je G-code v těchto předvolbách bezpečný, aby
 msgid "Customized Preset"
 msgstr "Přizpůsobená předvolba"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Názvy komponent v souboru STEP nejsou ve formátu UTF-8!"
 
 # AI Translated
@@ -8216,7 +8260,7 @@ msgstr "Objem objektu je nula."
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Objekt ze souboru %s je příliš malý a může být v metrech nebo palcích.\n"
 "Chcete převést měřítko na milimetry?"
@@ -8236,6 +8280,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Detekován vícedílný objekt"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Přiřazování textur k filamentům"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Upozornění při importu textury"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Načíst tyto soubory jako jeden objekt s více částmi?\n"
@@ -8446,6 +8498,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Synchronizovat nyní"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Import textury se nezdařil. Zdá se, že model obsahuje data textury, ale proces importu nebylo možné dokončit. Model bude importován pouze jako geometrie."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Aplikují se barvy textury..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "Aktualizuje se 3D náhled..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Barvy textury byly použity."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Upravené předvolby můžete ponechat v novém projektu nebo je zahodit"
@@ -9727,6 +9795,10 @@ msgstr "Spirálová váza"
 
 msgid "First layer filament sequence"
 msgstr "Pořadí filamentů v první vrstvě"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "Seznam filamentů obsahuje míchané filamenty. Vlastní pořadí filamentů se neuplatní."
 
 msgid "By Layer"
 msgstr "Podle vrstvy"
@@ -11133,12 +11205,12 @@ msgid "No modifications need to be copied."
 msgstr "Není třeba kopírovat žádné úpravy."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Kopírovat parametry"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Upravit parametry %s"
 
 # AI Translated
@@ -11696,34 +11768,6 @@ msgstr "Objemy čištění při výměně filamentu"
 # AI Translated
 msgid "Please choose the filament colour"
 msgstr "Vyberte prosím barvu filamentu"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Nativní živý náhled ve Waylandu vyžaduje video sink GStreamer GTK. Nainstalujte prosím plugin gtksink pro GStreamer a poté restartujte OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Nepodařilo se inicializovat nativní video sink GStreamer pro Wayland. Zkontrolujte prosím instalaci pluginu GStreamer GTK."
-
-# AI Translated
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Pro tuto úlohu je vyžadován Windows Media Player! Chcete ve svém operačním systému povolit „Windows Media Player“?"
-
-# AI Translated
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource nebyl správně zaregistrován pro přehrávání médií! Stisknutím Ano jej znovu zaregistrujete. Budete vyzváni dvakrát"
-
-# AI Translated
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Chybí komponenta BambuSource registrovaná pro přehrávání médií! Přeinstalujte prosím OrcaSlicer nebo požádejte o pomoc komunitu."
-
-# AI Translated
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Používá se BambuSource z jiné instalace, přehrávání videa nemusí fungovat správně! Stisknutím Ano to opravíte."
-
-# AI Translated
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Ve vašem systému chybí kodeky H.264 pro GStreamer, které jsou nutné k přehrávání videa. (Zkuste nainstalovat balíčky gstreamer1.0-plugins-bad nebo gstreamer1.0-libav a poté restartovat Orca Slicer?)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12446,6 +12490,10 @@ msgstr "Pokud chcete přesto tisknout, můžete povolit možnost v Nastavení / 
 msgid "No extrusions under current settings."
 msgstr "Při aktuálním nastavení nejsou žádné extruze."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Je použit míchaný filament s gradientem, ale 'Podvrstva míchané barvy' je vypnutá. Gradient nebude vytištěn."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Plynulý režim časosběru není podporován, pokud je povoleno pořadí tisku „podle objektu“."
 
@@ -12481,6 +12529,10 @@ msgstr "Možná budete chtít zmenšit velikost modelu nebo změnit aktuální n
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Proměnná výška vrstvy není podporována s organickými podporami."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Filament věže na očištění trysky nemůže být míchaný filament."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Různé průměry trysek a filamentu nemusí správně fungovat, pokud je povolena základní věž. Jedná se o velmi experimentální funkci, proto pokračujte opatrně."
@@ -12853,7 +12905,7 @@ msgstr "mm nebo %"
 msgid "Other layers"
 msgstr "Ostatní vrstvy"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Teplota desky pro vrstvy kromě počáteční. Hodnota 0 znamená, že filament nepodporuje tisk na chladicí podložce SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -14232,6 +14284,8 @@ msgstr "Čas vrstvy"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Ventilátor chlazení části bude spuštěn u vrstev, jejichž odhadovaný čas je kratší než tato hodnota. Rychlost ventilátoru je interpolována mezi minimální a maximální podle času tisku vrstvy."
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -14539,6 +14593,62 @@ msgstr "Podpůrný materiál"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Podpůrný materiál se běžně používá pro tisk podpěr a rozhraní podpěr."
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Je míchaný filament"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Určuje, zda je tato pozice filamentu míchaným filamentem složeným z několika fyzických filamentů"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Komponenty míchaného filamentu"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Čárkami oddělené indexy komponentních filamentů počítané od 1, např. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Poměry podvrstev míchaného filamentu"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Čárkami oddělené hodnoty poměrů, jejichž součet je 1.0, např. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Gradient míchaného filamentu"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Zapne režim gradientu ve směru Z pro podvrstvy míchaného filamentu. Je-li zapnutý, poměry podvrstev se mění lineárně napříč vrstvami."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Rozsah gradientu míchaného filamentu"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Počáteční a koncový poměr první komponenty v režimu gradientu. Dvojice oddělená čárkou, např. \"0.10,0.90\" znamená 10% až 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Křivka gradientu míchaného filamentu"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Volitelná vlastní křivka ve stylu Photoshopu, která mapuje postup v ose Z na poměr první komponenty. Zapisuje se jako řídicí body oddělené svislými čarami, buď ve tvaru \"x,y\" (starší formát), nebo \"x,y,m_in,m_out\", pokud je potřeba přepsat tečnu (prázdná hodnota nebo \"nan\" použije výchozí PCHIP). x je v intervalu [0,1]; y je omezeno na nastavený rozsah poměrů, např. \"0,0.15|0.5,0.50|1,0.85\". Pokud je pole prázdné, použije se lineární gradient_range."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Gradient míchaného filamentu podle dílu"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Je-li zapnutý režim gradientu, aplikuje gradient na každý díl sestavy samostatně místo toho, aby se celá sestava brala jako jeden rozsah Z."
 
 msgid "Filament printable"
 msgstr "Tisknutelný filament"
@@ -15816,6 +15926,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Povolená maximální výstupní síla osy Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15828,6 +15939,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Zatížení osy Y hmotností podložky stroje"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -16143,8 +16255,8 @@ msgstr "Počáteční a koncové body, které vedou z oblasti řezače do odpadk
 msgid "Reduce infill retraction"
 msgstr "Snížit retrakci při výplni"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Neprovádět retrakci, pokud se přejezd nachází zcela uvnitř oblasti výplně. Případné vytékání materiálu tak nebude viditelné. To může snížit počet retrakčních pohybů u složitých modelů a zkrátit dobu tisku, ale zároveň zpomalit slicování a generování G-code. V oblastech, kde je retrakce přeskočena, se zároveň neprovádí ani z-hop."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Neprovádět retrakci, pokud se přejezd nachází zcela uvnitř oblasti výplně. Případné vytékání materiálu tak nebude viditelné. To může snížit počet retrakčních pohybů u složitých modelů a zkrátit dobu tisku, ale zároveň zpomalit slicování a generování G-code. V oblastech, kde je retrakce přeskočena, se zároveň neprovádí ani Z-hop."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Tato možnost sníží teplotu neaktivních extruderů, aby se zabránilo vytékání."
@@ -16317,7 +16429,7 @@ msgstr "Délka retrakce po očištění"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Délka rychlé retrakce po očištění, vztažená k délce retrakce.\n"
@@ -16364,7 +16476,7 @@ msgstr "Když je retrakce spuštěna před změnou nástroje, filament se zatáh
 msgid "Z-hop height"
 msgstr "Výška Z-hopu"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Po každém stažení filamentu se tryska mírně zvedne, aby vznikla mezera mezi tryskou a tiskem. Zabrání kolizi trysky s tiskem při přesunu. Použití spirálových linií pro zvedání v ose Z může zabránit vytahování vláken."
 
 msgid "Z-hop lower boundary"
@@ -17426,6 +17538,14 @@ msgstr ""
 "V závislosti na délce očištění a nastavení rychlosti či délky retrakce extruderu/filamentu může být potřeba další retrakční pohyb pro zatažení zbývajícího filamentu.\n"
 "\n"
 "Nastavení hodnoty v parametru množství retrakce před očištěním níže provede případnou dodatečnou retrakci před očištěním, jinak bude provedena po něm."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Podvrstva míchané barvy"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Zapne dělení na podvrstvy míchané barvy. Je-li zapnuto, vrstvy obsahující filamenty s míchanou barvou se rozdělí na podvrstvy, aby vznikl efekt míchání barev."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Čistící věž lze použít k odstranění zbytků materiálu na trysce a ke stabilizaci tlaku v komoře trysky, aby se předešlo vizuálním vadám při tisku objektů."
@@ -18499,6 +18619,10 @@ msgstr "Síťování modelového souboru selhalo nebo nebyl nalezen platný tvar
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Zadaný soubor nelze načíst, protože je prázdný."
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "Formát souboru není kompatibilní a nelze jej načíst."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj nebo .amf(.xml)."
@@ -19992,19 +20116,19 @@ msgstr "Zobrazit pouze názvy tiskáren se změnami v předvolbách tiskárny, f
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Zobrazit pouze názvy filamentů se změnami ve filamentových profilech."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Zobrazí se pouze názvy tiskáren s uživatelskými předvolbami tiskárny, každá vybraná předvolba bude exportována jako zip archiv."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Zobrazí se pouze názvy filamentů s uživatelskými filamentovými profily. \n"
 "Všechny uživatelské filamentové profily ve vybraných filamentech budou exportovány jako zip archiv."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Zobrazí se pouze názvy tiskáren se změněnými procesními předvolbami. \n"
 "Všechny uživatelské procesní předvolby ve vybraných tiskárnách budou exportovány jako zip archiv."
@@ -20250,7 +20374,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Pro diagnostiku zdroje problému potřebujeme informace. Podrobný návod najdete na stránce wiki."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Tlačítko Zabalit shromáždí soubor projektu a protokoly aktuální relace do souboru zip."
 
 # AI Translated
@@ -20306,7 +20430,7 @@ msgid "Stored logs"
 msgstr "Uložené protokoly"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Zabalí všechny uložené protokoly do souboru zip."
 
 # AI Translated
@@ -20394,8 +20518,8 @@ msgid "Authorizing..."
 msgstr "Probíhá autorizace..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
-msgstr "Chyba. Nelze získat api token pro autorizaci"
+msgid "Error. Can't get API token for authorization"
+msgstr "Chyba. Nelze získat API token pro autorizaci"
 
 # AI Translated
 msgid "Could not parse server response."
@@ -20851,8 +20975,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Povolit chytré přiřazení filamentu: přiřadit jeden filament více tryskám pro maximální úsporu"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Úspora filamentu"
+msgid "File Saving"
+msgstr "Ukládání souboru"
 
 # AI Translated
 msgid "Don't remind me again"
@@ -21307,6 +21431,9 @@ msgstr "Restartovat nyní"
 # AI Translated
 msgid "NO RAMMING AT ALL"
 msgstr "ŽÁDNÝ RAMMING"
+
+msgid "s"
+msgstr "s"
 
 # AI Translated
 msgid "Volumetric speed"
@@ -21974,6 +22101,46 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Nativní živý náhled ve Waylandu vyžaduje video sink GStreamer GTK. Nainstalujte prosím plugin gtksink pro GStreamer a poté restartujte OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Nepodařilo se inicializovat nativní video sink GStreamer pro Wayland. Zkontrolujte prosím instalaci pluginu GStreamer GTK."
+
+# AI Translated
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Pro tuto úlohu je vyžadován Windows Media Player! Chcete ve svém operačním systému povolit „Windows Media Player“?"
+
+# AI Translated
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource nebyl správně zaregistrován pro přehrávání médií! Stisknutím Ano jej znovu zaregistrujete. Budete vyzváni dvakrát"
+
+# AI Translated
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Chybí komponenta BambuSource registrovaná pro přehrávání médií! Přeinstalujte prosím OrcaSlicer nebo požádejte o pomoc komunitu."
+
+# AI Translated
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Používá se BambuSource z jiné instalace, přehrávání videa nemusí fungovat správně! Stisknutím Ano to opravíte."
+
+# AI Translated
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Ve vašem systému chybí kodeky H.264 pro GStreamer, které jsou nutné k přehrávání videa. (Zkuste nainstalovat balíčky gstreamer1.0-plugins-bad nebo gstreamer1.0-libav a poté restartovat Orca Slicer?)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Úspora filamentu"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

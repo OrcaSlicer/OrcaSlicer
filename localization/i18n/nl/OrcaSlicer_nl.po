@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3198,6 +3198,10 @@ msgid "Merge with"
 msgstr "Samenvoegen met"
 
 # AI Translated
+msgid "Decompose Color"
+msgstr "Kleur ontleden"
+
+# AI Translated
 msgid "Delete this filament"
 msgstr "Dit filament verwijderen"
 
@@ -3518,6 +3522,10 @@ msgstr "Montage"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Onderdelen samenvoegen tot een object"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Het gebruik van variabele laaghoogte in combinatie met de sublaag met gemengde kleur kan de kwaliteit van de kleurmenging verslechteren."
 
 # AI Translated
 msgid "Add layers"
@@ -6887,11 +6895,11 @@ msgid "Load a model"
 msgstr "Laad een model"
 
 # AI Translated
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "ZIP-archief importeren"
 
 # AI Translated
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Laad modellen uit een ZIP-archief"
 
 msgid "Import Configs"
@@ -8553,6 +8561,10 @@ msgid "The %s nozzle can not print %s."
 msgstr "Het %s-mondstuk kan %s niet printen."
 
 # AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Het printen van filament met gemengde kleur op een printer met één extruder vereist frequente filamentwissels en spoelbeurten, wat het afval en het risico op verstopping van het mondstuk of de afvalgoot aanzienlijk kan vergroten."
+
+# AI Translated
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Het combineren van %1% met %2% bij het printen wordt afgeraden.\n"
@@ -8695,12 +8707,44 @@ msgstr "Synchroniseer filamentlijst vanuit AMS"
 msgid "Set filaments to use"
 msgstr "Stel filamenten in om te gebruiken"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Gemengd filament toevoegen"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Gemengd filament"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Laatste gemengde filament verwijderen"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Gemengd filament toevoegen"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "Het gemengde filament bevat ongeldige of niet-overeenkomende componenten. Bewerk de betrokken items opnieuw."
+
 msgid "Search plate, object and part."
 msgstr "Zoek plaat, object en onderdeel."
 
 # AI Translated
 msgid "Pellets"
 msgstr "Pellets"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "Het gemengde filament bevat ongeldige componentverwijzingen"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Bewerken / Verwijderen / Samenvoegen"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Het gemengde doelfilament gebruikt dit fysieke filament als component. Bij het samenvoegen wordt dit fysieke filament verwijderd en kan het gemengde filament ongeldig worden. Doorgaan?"
 
 # AI Translated
 #, c-format, boost-format
@@ -8860,8 +8904,8 @@ msgstr "Controleer of de G-codes in deze presets veilig zijn om schade aan de ma
 msgid "Customized Preset"
 msgstr "Aangepaste voorinstelling"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Naam van componenten in step-bestand is niet UTF8-formaat!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Naam van componenten in step-bestand is niet UTF-8-formaat!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Vanwege niet-ondersteunde tekstcodering kunnen er onjuiste tekens verschijnen!"
@@ -8883,10 +8927,10 @@ msgstr "Het volume van het object is 0"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Het object uit bestand %s is erg klein, en misschien in meters of inches.\n"
-" Wil je schalen naar millimeters?"
+"Wil je schalen naar millimeters?"
 
 msgid "Object too small"
 msgstr "He tobject is te klein"
@@ -8902,6 +8946,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Object met meerdere onderdelen gedetecteerd"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Texturen aan filamenten koppelen"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Waarschuwing bij importeren van textuur"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Wilt u deze bestanden laden als een enkel object bestaande uit meerdere onderdelen?\n"
@@ -9133,6 +9185,22 @@ msgstr ""
 # AI Translated
 msgid "Sync now"
 msgstr "Nu synchroniseren"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Het importeren van de textuur is mislukt. Het model lijkt textuurgegevens te bevatten, maar het importproces kon niet worden voltooid. Het model wordt alleen als geometrie geïmporteerd."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Textuurkleuren toepassen..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "3D-weergave bijwerken..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Textuurkleuren toegepast."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Je kunt de aangepaste voorinstellingen bewaren voor het nieuwe project of ze laten vervallen"
@@ -10526,6 +10594,10 @@ msgstr "Spiraalvaas"
 
 msgid "First layer filament sequence"
 msgstr "Eerste laag filamentvolgorde"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "De filamentlijst bevat gemengde filamenten. De aangepaste filamentvolgorde wordt niet toegepast."
 
 msgid "By Layer"
 msgstr "Op laag"
@@ -12027,12 +12099,12 @@ msgid "No modifications need to be copied."
 msgstr "Er hoeven geen wijzigingen te worden gekopieerd."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Parameters kopiëren"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Parameters van %s wijzigen"
 
 # AI Translated
@@ -12617,33 +12689,6 @@ msgstr "Volumes reinigen voor filament wijziging"
 # AI Translated
 msgid "Please choose the filament colour"
 msgstr "Kies de filamentkleur"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Voor de native Wayland-liveview is de GStreamer GTK-videosink nodig. Installeer de gtksink-plug-in voor GStreamer en start OrcaSlicer opnieuw."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Initialiseren van de native Wayland GStreamer-videosink is mislukt. Controleer de installatie van uw GStreamer GTK-plug-in."
-
-# AI Translated
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Voor deze taak is Windows Media Player vereist! Wilt u 'Windows Media Player' inschakelen voor uw besturingssysteem?"
-
-# AI Translated
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource is niet correct geregistreerd voor het afspelen van media! Klik op Ja om het opnieuw te registreren. U krijgt twee keer een melding"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Ontbrekend BambuSource-component geregistreerd voor media afspelen! Installeer OrcaSlicer opnieuw of zoek hulp in de community."
-
-# AI Translated
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Er wordt een BambuSource van een andere installatie gebruikt; het afspelen van video werkt mogelijk niet correct! Klik op Ja om dit te herstellen."
-
-# AI Translated
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Op uw systeem ontbreken H.264-codecs voor GStreamer, die nodig zijn om video af te spelen. (Probeer de pakketten gstreamer1.0-plugins-bad of gstreamer1.0-libav te installeren en Orca Slicer opnieuw te starten.)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -13410,6 +13455,10 @@ msgstr "Als u toch wilt printen, kunt u de optie inschakelen via Voorkeuren / Be
 msgid "No extrusions under current settings."
 msgstr "Geen extrusion onder de huidige instellingen"
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Er wordt een gemengd filament met verloop gebruikt, maar 'Sublaag met gemengde kleur' is uitgeschakeld. Het verloop wordt niet geprint."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Vloeiende modus van timelapse wordt niet ondersteund wanneer \"per object\" sequentie is ingeschakeld."
 
@@ -13451,6 +13500,10 @@ msgstr "Verklein eventueel uw model of wijzig de huidige printinstellingen en pr
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Variabele laaghoogte wordt niet ondersteund met organische steunen."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Het filament van het afveegblok mag geen gemengd filament zijn."
 
 # AI Translated
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
@@ -13843,14 +13896,12 @@ msgstr "mm of %"
 msgid "Other layers"
 msgstr "Andere lagen"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Bedtemperatuur voor alle lagen behalve de eerste. Een waarde van 0 betekent dat het filament printen op de Cool Plate SuperTack niet ondersteunt."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Dit is de bedtemperatuur voor alle lagen behalve de eerste. Een waarde van 0 betekent dat het filament het afdrukken op de Cool Plate niet ondersteunt."
 
-# AI Translated
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Dit is de bedtemperatuur voor alle lagen behalve de eerste. Een waarde van 0 betekent dat het filament printen op de Textured Cool Plate niet ondersteunt."
 
@@ -15365,6 +15416,8 @@ msgstr "Laag tijd"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "De printkop ventilator wordt ingeschakeld voor lagen waarvan de geschatte printtijd korter is dan deze waarde. Ventilatorsnelheid wordt geïnterpoleerd tussen de minimale en maximale ventilatorsnelheden volgens de printtijd van de laag"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -15723,6 +15776,62 @@ msgstr "Support materiaal"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Support materiaal wordt vaak gebruikt om support en support interfaces af te drukken."
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Is gemengd filament"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Geeft aan of dit filamentslot een gemengd filament is dat uit meerdere fysieke filamenten bestaat"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Componenten van gemengd filament"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Door komma's gescheiden indexen van de componentfilamenten, beginnend bij 1, bijv. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Sublaagverhoudingen van gemengd filament"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Door komma's gescheiden verhoudingswaarden die samen 1.0 zijn, bijv. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Verloop van gemengd filament"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Schakelt de verloopmodus in Z-richting in voor de sublagen van gemengd filament. Wanneer ingeschakeld variëren de sublaagverhoudingen lineair over de lagen."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Verloopbereik van gemengd filament"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Begin- en eindverhouding van de eerste component in de verloopmodus. Door een komma gescheiden paar, bijv. \"0.10,0.90\" betekent 10% tot 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Verloopcurve van gemengd filament"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Optionele aangepaste curve in Photoshop-stijl die de Z-voortgang koppelt aan de verhouding van de eerste component. Gecodeerd als door verticale strepen gescheiden controlepunten, in de vorm \"x,y\" (verouderd) of \"x,y,m_in,m_out\" wanneer de raaklijn moet worden overschreven (een lege waarde of \"nan\" gebruikt de PCHIP-standaard). x ligt in [0,1]; y wordt begrensd tot het ingestelde verhoudingsbereik, bijv. \"0,0.15|0.5,0.50|1,0.85\". Wanneer het veld leeg is, wordt het lineaire gradient_range gebruikt."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Verloop per onderdeel van gemengd filament"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Wanneer de verloopmodus is ingeschakeld, wordt het verloop op elk onderdeel van een montage afzonderlijk toegepast in plaats van de hele montage als één Z-bereik te behandelen."
 
 # AI Translated
 msgid "Filament printable"
@@ -17162,6 +17271,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "De maximaal toegestane uitgangskracht van de Y-as"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -17172,6 +17282,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "De massabelasting van het machinebed op de Y-as"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -17510,8 +17621,8 @@ msgid "Reduce infill retraction"
 msgstr "Reduceer terugtrekken (retraction) bij vulling (infill)"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken. Let op: z-hop wordt ook niet uitgevoerd in gebieden waar het terugtrekken wordt overgeslagen."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken. Let op: Z-hop wordt ook niet uitgevoerd in gebieden waar het terugtrekken wordt overgeslagen."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -17700,7 +17811,7 @@ msgstr "Terugtrekhoeveelheid na vegen"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "De lengte van de snelle terugtrekking na het vegen, relatief ten opzichte van de terugtreklengte.\n"
@@ -17754,7 +17865,7 @@ msgstr "Wanneer het terugtrekken vóór een gereedschapswissel wordt geactiveerd
 msgid "Z-hop height"
 msgstr "Z-hop-hoogte"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Wanneer er een terugtrekking (retraction) is, wordt het mondstuk een beetje opgetild om ruimte te creëren tussen het mondstuk en de print. Dit voorkomt dat het mondstuk de print raakt bij verplaatsen. Het gebruik van spiraallijnen om Z op te tillen kan stringing voorkomen."
 
 msgid "Z-hop lower boundary"
@@ -18947,6 +19058,14 @@ msgstr ""
 "\n"
 "Als u hieronder een waarde instelt bij de terugtrekhoeveelheid vóór het vegen, wordt de overtollige terugtrekking vóór het vegen uitgevoerd; anders gebeurt dat erna."
 
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Sublaag met gemengde kleur"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Schakelt het opsplitsen in sublagen met gemengde kleur in. Wanneer ingeschakeld worden lagen die filamenten met gemengde kleur bevatten opgesplitst in sublagen om kleurmengeffecten te bereiken."
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "De veegtoren kan worden gebruikt om resten op het mondstuk te verwijderen en de druk in het mondstuk te stabiliseren om uiterlijke gebreken bij het printen van objecten te voorkomen."
 
@@ -19764,7 +19883,7 @@ msgid "Allow 3MF with newer version to be sliced."
 msgstr "Sta toe dat een 3MF met een nieuwere versie wordt geslicet."
 
 msgid "Current Z-hop"
-msgstr "Huidige z-hop"
+msgstr "Huidige Z-hop"
 
 # AI Translated
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
@@ -20212,6 +20331,10 @@ msgstr "Het meshen van een modelbestand is mislukt of er is geen geldige vorm."
 # AI Translated
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Het opgegeven bestand kon niet worden gelezen omdat het leeg is."
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "De bestandsindeling is niet compatibel en kan niet worden gelezen."
 
 # AI Translated
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
@@ -21801,19 +21924,19 @@ msgstr "Alleen printers met wijzigingen in printer-, filament- en proces presets
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Geef alleen de filamentnamen weer met wijzigingen in filament presets."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Alleen printernamen met gebruikersprinter presets worden weergegeven en elke preset die je kiest, wordt als zip geëxporteerd."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Alleen de filamentnamen met gebruikers presets worden weergegeven, \n"
 "en alle gebruikers presets in elke filamentnaam die u selecteert, worden geëxporteerd als zip-bestand."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Alleen printernamen met gewijzigde proces presets worden weergegeven, \n"
 "en alle gebruikersproces presets in elke printernaam die u selecteert, worden als zip geëxporteerd."
@@ -22068,7 +22191,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "We hebben informatie nodig om de oorzaak van het probleem te achterhalen. Raadpleeg de wikipagina voor een uitgebreide handleiding."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "De knop Inpakken verzamelt het projectbestand en de logboeken van de huidige sessie in een zipbestand."
 
 # AI Translated
@@ -22124,7 +22247,7 @@ msgid "Stored logs"
 msgstr "Opgeslagen logboeken"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Pakt alle opgeslagen logboeken in een zipbestand."
 
 # AI Translated
@@ -22212,7 +22335,7 @@ msgid "Authorizing..."
 msgstr "Autoriseren..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Fout. Kan geen API-token voor autorisatie ophalen"
 
 # AI Translated
@@ -22761,8 +22884,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Slimme filamenttoewijzing inschakelen: wijs één filament aan meerdere mondstukken toe om de besparing te maximaliseren"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Filamentbesparing"
+msgid "File Saving"
+msgstr "Bestand opslaan"
 
 # AI Translated
 msgid "Don't remind me again"
@@ -23216,6 +23339,9 @@ msgstr "Nu opnieuw starten"
 # AI Translated
 msgid "NO RAMMING AT ALL"
 msgstr "HELEMAAL GEEN RAMMING"
+
+msgid "s"
+msgstr "s"
 
 # AI Translated
 msgid "Volumetric speed"
@@ -23882,6 +24008,45 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Voor de native Wayland-liveview is de GStreamer GTK-videosink nodig. Installeer de gtksink-plug-in voor GStreamer en start OrcaSlicer opnieuw."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Initialiseren van de native Wayland GStreamer-videosink is mislukt. Controleer de installatie van uw GStreamer GTK-plug-in."
+
+# AI Translated
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Voor deze taak is Windows Media Player vereist! Wilt u 'Windows Media Player' inschakelen voor uw besturingssysteem?"
+
+# AI Translated
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource is niet correct geregistreerd voor het afspelen van media! Klik op Ja om het opnieuw te registreren. U krijgt twee keer een melding"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Ontbrekend BambuSource-component geregistreerd voor media afspelen! Installeer OrcaSlicer opnieuw of zoek hulp in de community."
+
+# AI Translated
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Er wordt een BambuSource van een andere installatie gebruikt; het afspelen van video werkt mogelijk niet correct! Klik op Ja om dit te herstellen."
+
+# AI Translated
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Op uw systeem ontbreken H.264-codecs voor GStreamer, die nodig zijn om video af te spelen. (Probeer de pakketten gstreamer1.0-plugins-bad of gstreamer1.0-libav te installeren en Orca Slicer opnieuw te starten.)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Filamentbesparing"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

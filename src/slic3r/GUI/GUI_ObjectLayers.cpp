@@ -48,7 +48,7 @@ void ObjectLayers::select_editor(LayerRangeEditor* editor, const bool is_last_ed
      * And as a result we couldn't edit this control.
      * */
 #ifdef __WXOSX__
-        wxTheApp->CallAfter([editor]() {
+        wxTheApp->CallAfter([]() {
 #endif
         //editor->SetFocus();
         //editor->SelectAll();

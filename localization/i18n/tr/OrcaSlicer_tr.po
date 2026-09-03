@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -2969,6 +2969,10 @@ msgstr "Düzenle"
 msgid "Merge with"
 msgstr "Şununla birleştir"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Rengi ayrıştır"
+
 msgid "Delete this filament"
 msgstr "Bu filamenti sil"
 
@@ -3268,6 +3272,10 @@ msgstr "Birleştir"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Parçaları bir nesnede birleştir"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Değişken katman yüksekliğinin karışık renk alt katmanı ile birlikte kullanılması renk karışımının kalitesini düşürebilir."
 
 # AI Translated
 msgid "Add layers"
@@ -6370,10 +6378,10 @@ msgstr "3MF/STL/STEP/SVG/OBJ/AMF'yi içe aktar"
 msgid "Load a model"
 msgstr "Model yükle"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Zip Arşivini İçe Aktar"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Zip arşivindeki modelleri yükle"
 
 msgid "Import Configs"
@@ -7897,6 +7905,10 @@ msgstr "Mevcut plakayı özelleştir"
 msgid "The %s nozzle can not print %s."
 msgstr "%s püskürtme ucu %s'yi yazdıramıyor."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Karışık renkli filamenti tek ekstruderli bir yazıcıda basmak sık filament değişimi ve yıkama gerektirir; bu da atığı ve nozul ya da atık oluğu tıkanma riskini önemli ölçüde artırabilir."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Yazdırmada %1% ile %2%'nin karıştırılması önerilmez.\n"
@@ -8022,11 +8034,43 @@ msgstr "Filament listesini AMS'den senkronize edin"
 msgid "Set filaments to use"
 msgstr "Kullanılacak filamentleri ayarla"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Karışık Filament Ekle"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Karışık Filament"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Son karışık filamenti kaldır"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Karışık filament ekle"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "Karışık filamentte geçersiz veya uyumsuz bileşenler var. Lütfen etkilenen girdileri yeniden düzenleyin."
+
 msgid "Search plate, object and part."
 msgstr "Arama plakası, nesne ve parça."
 
 msgid "Pellets"
 msgstr "Peletler"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "Karışık filamentin bileşen referansları bozuk"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Düzenle / Sil / Birleştir"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Hedef karışık filament bu fiziksel filamenti bileşen olarak kullanıyor. Birleştirme bu fiziksel filamenti kaldıracak ve karışık filamenti geçersiz kılabilir. Devam edilsin mi?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8171,8 +8215,8 @@ msgstr "Lütfen bu ön ayarlar içindeki G-code'larının makineye herhangi bir 
 msgid "Customized Preset"
 msgstr "Özel Ayar"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Step dosyasındaki bileşenlerin adı UTF8 formatında değil!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Step dosyasındaki bileşenlerin adı UTF-8 formatında değil!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8194,10 +8238,10 @@ msgstr "Cismin hacmi sıfır"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s dosyasındaki nesne çok küçük; metre veya inç cinsinden olabilir.\n"
-" Milimetreye ölçeklendirmek istiyor musunuz?"
+"Milimetreye ölçeklendirmek istiyor musunuz?"
 
 msgid "Object too small"
 msgstr "Nesne çok küçük"
@@ -8213,6 +8257,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Çok parçalı nesne algılandı"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Dokular filamentlerle eşleştiriliyor"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Doku İçe Aktarma Uyarısı"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Bu dosyalar birden fazla parçadan oluşan tek bir nesne olarak mı yüklensin?\n"
@@ -8424,6 +8476,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Şimdi senkronize et"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Doku içe aktarılamadı. Model doku verisi içeriyor gibi görünüyor, ancak içe aktarma işlemi tamamlanamadı. Model yalnızca geometri olarak içe aktarılacak."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Doku renkleri uygulanıyor..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "3D görünüm güncelleniyor..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Doku renkleri uygulandı."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Değiştirilen ön ayarları yeni projede tutabilir veya silebilirsiniz"
@@ -9711,6 +9779,10 @@ msgstr "Spiral vazo"
 
 msgid "First layer filament sequence"
 msgstr "İlk katman filament dizisi"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "Filament listesi karışık filamentler içeriyor. Özel filament sırası etkili olmayacak."
 
 msgid "By Layer"
 msgstr "Katmana göre"
@@ -11128,12 +11200,12 @@ msgid "No modifications need to be copied."
 msgstr "Kopyalanması gereken değişiklik yok."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Parametreleri kopyala"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%s parametrelerini değiştir"
 
 # AI Translated
@@ -11652,29 +11724,6 @@ msgstr "Filament değişimi için temizleme hacmi"
 
 msgid "Please choose the filament colour"
 msgstr "Lütfen filament rengini seçin"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Yerel Wayland canlı görüntüsü, GStreamer GTK video alıcısını gerektirir. Lütfen GStreamer için gtksink eklentisini yükleyin ve ardından OrcaSlicer'ı yeniden başlatın."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Yerel Wayland GStreamer video alıcısı başlatılamadı. Lütfen GStreamer GTK eklentisi kurulumunuzu denetleyin."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Bu görev için Windows Media Player gereklidir! İşletim sisteminiz için ‘Windows Media Player’ı etkinleştirmek istiyor musunuz?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource medya oynatımı için doğru şekilde kaydedilmemiş! Yeniden kaydetmek için Evet’e basın"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Medya oynatma için kayıtlı BambuSource bileşeni eksik! Lütfen OrcaSlicer'ı yeniden yükleyin veya topluluk yardımı isteyin."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Farklı bir kurulumdan bir BambuSource kullanıyorsunuz, video oynatma doğru çalışmayabilir! Düzeltmek için Evet’e basın."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Sisteminizde video oynatmak için gerekli olan GStreamer H.264 codec bileşenleri eksik. (gstreamer1.0-plugins-bad veya gstreamer1.0-libav paketlerini kurmayı deneyin, ardından Orca Slicer’ı yeniden başlatın)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12401,6 +12450,10 @@ msgstr "Yine de yazdırmak istiyorsanız Tercihler / Denetim / Dilimleme / Karı
 msgid "No extrusions under current settings."
 msgstr "Mevcut ayarlarda ekstrüzyon yok."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Gradyanlı bir karışık filament kullanılıyor ancak 'Karışık renk alt katmanı' devre dışı. Gradyan basılmayacak."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "\"Nesneye göre\" dizisi etkinleştirildiğinde, hızlandırılmış çekimin yumuşak modu desteklenmez."
 
@@ -12436,6 +12489,10 @@ msgstr "Modelinizin boyutunu küçültmek veya mevcut yazdırma ayarlarını de�
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Değişken katman yüksekliği Organik desteklerle desteklenmez."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Silme kulesi filamenti karışık filament olamaz."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Farklı püskürtme ucu çapları ve farklı filament çapları, ana kule etkinleştirildiğinde iyi çalışmayabilir. Oldukça deneysel olduğundan lütfen dikkatli ilerleyin."
@@ -12805,7 +12862,7 @@ msgstr "mm veya %"
 msgid "Other layers"
 msgstr "Diğer katmanlar"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "İlk katman hariç tüm katmanlar için yatak sıcaklığı. 0 değeri, filamentin Cool Plate SuperTack üzerine baskıyı desteklemediği anlamına gelir."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -14193,6 +14250,8 @@ msgstr "Katman süresi"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Tahmini süresi bu değerden kısa olan katlarda parça soğutma fanı devreye girecektir. Fan hızı, katman yazdırma süresine göre minimum ve maksimum fan hızları arasında enterpole edilir."
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -14501,6 +14560,62 @@ msgstr "Destek malzemesi"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Destek malzemesi yaygın olarak destek ve destek arayüzünü yazdırmak için kullanılır."
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Karışık filament mi"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Bu filament yuvasının birden fazla fiziksel filamentten oluşan bir karışık filament olup olmadığını belirler"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Karışık filament bileşenleri"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Bileşen filamentlerin virgülle ayrılmış, 1'den başlayan sıra numaraları; ör. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Karışık filament alt katman oranları"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Toplamı 1.0 olan, virgülle ayrılmış oran değerleri; ör. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Karışık filament gradyanı"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Karışık filamentin alt katmanları için Z yönünde gradyan modunu etkinleştirir. Etkinleştirildiğinde alt katman oranları katmanlar boyunca doğrusal olarak değişir."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Karışık filament gradyan aralığı"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Gradyan modunda ilk bileşenin başlangıç ve bitiş oranları. Virgülle ayrılmış çift; ör. \"0.10,0.90\" %10 ile %90 arasını ifade eder."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Karışık filament gradyan eğrisi"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Z ilerlemesini ilk bileşenin oranına eşleyen, isteğe bağlı Photoshop tarzı özel eğri. Dikey çizgiyle ayrılmış kontrol noktaları olarak kodlanır; \"x,y\" (eski) veya teğetin geçersiz kılınması gerektiğinde \"x,y,m_in,m_out\" biçiminde (boş değer ya da \"nan\" varsayılan PCHIP değerini kullanır). x [0,1] aralığındadır; y yapılandırılmış oran aralığına kırpılır; ör. \"0,0.15|0.5,0.50|1,0.85\". Boş bırakıldığında bunun yerine doğrusal gradient_range kullanılır."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Karışık filamentte parça başına gradyan"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Gradyan modu etkinleştirildiğinde, gradyan montajın tamamı tek bir Z aralığı olarak ele alınmak yerine montajdaki her parçaya bağımsız olarak uygulanır."
 
 msgid "Filament printable"
 msgstr "Filament yazdırılabilir"
@@ -15793,6 +15908,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Y ekseninin izin verilen maksimum çıkış kuvveti"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15805,6 +15921,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Y ekseninin makine yatağı kütle yükü"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -16129,8 +16246,8 @@ msgid "Reduce infill retraction"
 msgstr "Dolguda geri çekmeyi azalt"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G-code oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda z-hop'un da uygulanmadığını unutmayın."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G-code oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda Z-hop'un da uygulanmadığını unutmayın."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Bu seçenek sızıntıyı önlemek için aktif olmayan ekstrüderlerin sıcaklığını düşürecektir."
@@ -16305,7 +16422,7 @@ msgstr "Silme sonrası geri çekme miktarı"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Silme sonrasındaki hızlı geri çekmenin uzunluğu; geri çekme uzunluğuna göredir.\n"
@@ -16352,7 +16469,7 @@ msgstr "Takım değişiminden önce geri çekme tetiklendiğinde, filament belir
 msgid "Z-hop height"
 msgstr "Z-Sıçrama yüksekliği"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Geri çekme işlemi her yapıldığında, nozul ile baskı arasında açıklık oluşturmak için nozul biraz kaldırılır. Hareket halindeyken nozulun baskıya çarpmasını önler. Z'yi kaldırmak için spiral çizgi kullanmak çekmeyi önleyebilir."
 
 msgid "Z-hop lower boundary"
@@ -17417,6 +17534,14 @@ msgstr ""
 "\n"
 "Aşağıdaki silme ayarından önce geri çekme miktarına bir değer ayarlamak, silme işleminden önce aşırı geri çekme işlemini gerçekleştirecektir, aksi takdirde silme işleminden sonra gerçekleştirilecektir."
 
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Karışık renk alt katmanı"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Karışık renk alt katmanlarına bölmeyi etkinleştirir. Etkinleştirildiğinde, karışık renkli filament içeren katmanlar renk karışımı efektleri elde etmek için alt katmanlara bölünür."
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Temizleme kulesi, nesneleri yazdırırken görünüm kusurlarını önlemek amacıyla nozul üzerindeki kalıntıları temizlemek ve nozul içindeki oda basıncını dengelemek için kullanılabilir."
 
@@ -18155,10 +18280,10 @@ msgid "Allow 3MF with newer version to be sliced."
 msgstr "Daha yeni sürüme sahip 3mf’nin dilimlenmesine izin ver."
 
 msgid "Current Z-hop"
-msgstr "Mevcut z-hop"
+msgstr "Mevcut Z-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Özel G-code bloğunun başında bulunan z-hop'u içerir."
+msgstr "Özel G-code bloğunun başında bulunan Z-hop'u içerir."
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
 msgstr "Ekstruderin özel G-code bloğunun başlangıcındaki konumu. Özel G-code başka bir yere seyahat ederse, Slicer'ın kontrolü geri aldığında nereden seyahat ettiğini bilmesi için bu değişkene yazması gerekir."
@@ -18504,6 +18629,10 @@ msgstr "Bir model dosyasının meshlenmesi başarısız oldu veya geçerli bir �
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Seçilen dosya boş olduğundan okunamıyor."
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "Dosya biçimi uyumsuz olduğundan ayrıştırılamıyor."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Bilinmeyen dosya formatı. Giriş dosyası .stl, .obj, .amf(.xml) uzantılı olmalıdır."
@@ -20003,19 +20132,19 @@ msgstr "Yazıcı adlarını yalnızca yazıcı, filament ve işlem ön ayarları
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Filament adlarını yalnızca filament ön ayarlarında yapılan değişikliklerle görüntüleyin."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Yalnızca kullanıcı yazıcı ön ayarlarına sahip yazıcı adları görüntülenecek ve seçtiğiniz her ön ayar zip olarak dışa aktarılacaktır."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Yalnızca kullanıcı filamenti ön ayarlarına sahip filament adları \n"
 "görüntülenecek ve seçtiğiniz her filament adındaki tüm kullanıcı filamenti ön ayarları zip olarak dışa aktarılacaktır."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Yalnızca işlem ön ayarları değiştirilen yazıcı adları görüntülenecek \n"
 "ve seçtiğiniz her yazıcı adındaki tüm kullanıcı işlem ön ayarları zip olarak dışa aktarılacaktır."
@@ -20260,7 +20389,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Sorunun kaynağını teşhis etmek için bilgiye ihtiyacımız var. Ayrıntılı kılavuz için wiki sayfasına bakın."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Paketle düğmesi, geçerli oturumun proje dosyasını ve günlüklerini bir zip dosyasında toplar."
 
 # AI Translated
@@ -20316,7 +20445,7 @@ msgid "Stored logs"
 msgstr "Saklanan günlükler"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Saklanan tüm günlükleri bir zip dosyasında paketler."
 
 # AI Translated
@@ -20402,7 +20531,7 @@ msgid "Authorizing..."
 msgstr "Yetkilendiriliyor..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Hata. Yetkilendirme için api belirteci alınamıyor"
 
 # AI Translated
@@ -20859,8 +20988,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Akıllı filament atamasını etkinleştir: Tasarrufu en üst düzeye çıkarmak için bir filamenti birden çok nozula atayın"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Filament Tasarrufu"
+msgid "File Saving"
+msgstr "Dosya Kaydetme"
 
 msgid "Don't remind me again"
 msgstr "Bana bir daha hatırlatma"
@@ -21267,6 +21396,9 @@ msgstr "Şimdi Yeniden Başlat"
 
 msgid "NO RAMMING AT ALL"
 msgstr "HİÇBİR ŞEKİLDE ÇARPMA YOK"
+
+msgid "s"
+msgstr "s"
 
 msgid "Volumetric speed"
 msgstr "Hacimsel hız"
@@ -21829,7 +21961,8 @@ msgstr ""
 "Baskılarınızı plakalara ayırın\n"
 "Çok sayıda parçası olan bir modeli baskıya hazır ayrı kalıplara bölebileceğinizi biliyor muydunuz? Bu, tüm parçaları takip etme sürecini basitleştirecektir."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -21902,7 +22035,8 @@ msgstr ""
 "Gücü artırın\n"
 "Modelin gücünü artırmak için daha fazla duvar halkası ve daha yüksek seyrek dolgu yoğunluğu kullanabileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -21917,6 +22051,41 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Yerel Wayland canlı görüntüsü, GStreamer GTK video alıcısını gerektirir. Lütfen GStreamer için gtksink eklentisini yükleyin ve ardından OrcaSlicer'ı yeniden başlatın."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Yerel Wayland GStreamer video alıcısı başlatılamadı. Lütfen GStreamer GTK eklentisi kurulumunuzu denetleyin."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Bu görev için Windows Media Player gereklidir! İşletim sisteminiz için ‘Windows Media Player’ı etkinleştirmek istiyor musunuz?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource medya oynatımı için doğru şekilde kaydedilmemiş! Yeniden kaydetmek için Evet’e basın"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Medya oynatma için kayıtlı BambuSource bileşeni eksik! Lütfen OrcaSlicer'ı yeniden yükleyin veya topluluk yardımı isteyin."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Farklı bir kurulumdan bir BambuSource kullanıyorsunuz, video oynatma doğru çalışmayabilir! Düzeltmek için Evet’e basın."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Sisteminizde video oynatmak için gerekli olan GStreamer H.264 codec bileşenleri eksik. (gstreamer1.0-plugins-bad veya gstreamer1.0-libav paketlerini kurmayı deneyin, ardından Orca Slicer’ı yeniden başlatın)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Filament Tasarrufu"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"
