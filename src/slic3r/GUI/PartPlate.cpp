@@ -2498,13 +2498,25 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 			wp_brim_width += bulge;
 		}
 	}
-	float margin = WIPE_TOWER_MARGIN + wp_brim_width;
-
-	// std::clamp is UB if lo > hi, which a large tower can trigger here; keep hi >= lo.
-	float x_hi = std::max(margin, (float) plate_width - w - margin);
-	float y_hi = std::max(margin, (float) plate_depth - depth - margin);
-	x = std::clamp(x, margin, x_hi);
-    y = std::clamp(y, margin, y_hi);
+	// A position valid by WIPE_TOWER_MARGIN is the user's choice and stays untouched; an
+	// invalid one is re-placed with the comfort margin (falling back to the validity bounds
+	// on cramped plates). std::clamp is UB if lo > hi, so keep every hi >= lo.
+	const float margin = WIPE_TOWER_MARGIN + wp_brim_width;
+	const float x_hi   = std::max(margin, (float) plate_width - w - margin);
+	const float y_hi   = std::max(margin, (float) plate_depth - depth - margin);
+	const float margin_c = (float) WIPE_TOWER_AUTO_MARGIN + wp_brim_width;
+	float x_lo_c = margin_c, x_hi_c = (float) plate_width - w - margin_c;
+	if (x_lo_c > x_hi_c) { x_lo_c = margin; x_hi_c = x_hi; }
+	float y_lo_c = margin_c, y_hi_c = (float) plate_depth - depth - margin_c;
+	if (y_lo_c > y_hi_c) { y_lo_c = margin; y_hi_c = y_hi; }
+	// Drag clamps reach this limit through the volume's bounding box (post-slice: the real
+	// mesh, a couple of mm inside this reserved estimate), so a drop can land slightly out
+	// of bounds — snap it onto the bound; only far-out positions get the comfort re-place.
+	const float tol = 5.f;
+	if (x < margin - tol || x > x_hi + tol) x = std::clamp(x, x_lo_c, x_hi_c);
+	else                                    x = std::clamp(x, margin, x_hi);
+	if (y < margin - tol || y > y_hi + tol) y = std::clamp(y, y_lo_c, y_hi_c);
+	else                                    y = std::clamp(y, margin, y_hi);
     wt_pos(0) = x;
     wt_pos(1) = y;
     wt_pos(2) = 0.f;
@@ -4594,7 +4606,7 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         brim_width = brim_opt->value;
         if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
     }
-    const float margin = WIPE_TOWER_MARGIN + brim_width;
+    const float margin = WIPE_TOWER_AUTO_MARGIN + brim_width;
 
     // clamp wipe tower position within plate boundaries
     {
