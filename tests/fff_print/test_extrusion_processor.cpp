@@ -12,6 +12,7 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -417,6 +418,22 @@ std::string bind_overhang_arc_profile(std::string arc)
     return arc;
 }
 
+// Orca: Tests that select a tag dialect must restore the process-wide setting so randomized test
+// ordering cannot make another G-code parser test depend on which case ran immediately before it.
+class ScopedBblPrinterFlag
+{
+public:
+    explicit ScopedBblPrinterFlag(bool value) : m_previous(GCodeProcessor::s_IsBBLPrinter)
+    {
+        GCodeProcessor::s_IsBBLPrinter = value;
+    }
+
+    ~ScopedBblPrinterFlag() { GCodeProcessor::s_IsBBLPrinter = m_previous; }
+
+private:
+    bool m_previous;
+};
+
 } // namespace
 
 // Orca: The middle of a quarter-circle is not the middle of its chord. Check both directions
@@ -619,10 +636,14 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
 
 TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
 {
+    const bool bbl_printer = GENERATE(false, true);
+    CAPTURE(bbl_printer);
+    const ScopedBblPrinterFlag scoped_printer_flag(bbl_printer);
     // Orca: Drive the streaming parser used for freshly generated G-code and verify that only a
-    // valid tag advertises the optional preview mode.
+    // valid tag advertises the optional preview mode in both supported tag dialects.
     GCodeProcessor processor;
-    const std::string tag_prefix = GCodeProcessor::s_IsBBLPrinter ? "; OVERHANG: " : ";OVERHANG:";
+    const std::string tag_prefix = bbl_printer ? "; OVERHANG: " : ";OVERHANG:";
+    CHECK(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) == tag_prefix.substr(1));
     // Orca: Reference spacing alone is not sufficient to offer the Overhang view.
     processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance) + "0.2\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
@@ -662,6 +683,71 @@ TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCo
     CHECK(processor.get_result().has_overhang_metadata == preceding_valid_tag);
     REQUIRE_FALSE(processor.get_result().moves.empty());
     CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+}
+
+// Orca: Guard values are part of the public preview conversion contract: fully unsupported remains
+// a ceiling even without dimensions, while supported or geometrically incomplete data remains a wall.
+TEST_CASE("Overhang angle conversion handles boundary and incomplete metadata", "[ExtrusionProcessor][Overhang]")
+{
+    struct Case {
+        const char *name;
+        float percentage;
+        float width;
+        float height;
+        float z_distance;
+        float expected_degree;
+    };
+    const std::array<Case, 6> cases{{
+        {"fully unsupported without dimensions", 100.0f, 0.0f, 0.0f, 0.0f, 90.0f},
+        {"percentage above the supported range", 120.0f, 0.4f, 0.2f, 0.2f, 90.0f},
+        {"fully supported", 0.0f, 0.4f, 0.2f, 0.2f, 0.0f},
+        {"percentage below the supported range", -10.0f, 0.4f, 0.2f, 0.2f, 0.0f},
+        {"missing width", 50.0f, 0.0f, 0.2f, 0.2f, 0.0f},
+        {"missing vertical separation", 50.0f, 0.4f, 0.0f, 0.0f, 0.0f},
+    }};
+
+    for (const Case &test : cases) {
+        DYNAMIC_SECTION(test.name) {
+            libvgcode::PathVertex vertex;
+            vertex.overhang_percentage = test.percentage;
+            vertex.width = test.width;
+            vertex.height = test.height;
+            vertex.overhang_z_distance = test.z_distance;
+            CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(test.expected_degree, 1e-6));
+        }
+    }
+}
+
+// Orca: A role change must clear perimeter-only metadata before unrelated extrusions, but a bridge
+// deliberately consumes the same unsupported-width value and therefore retains it.
+TEST_CASE("Overhang metadata follows perimeter and bridge extrusion roles", "[GCodeProcessor][Overhang][Regression]")
+{
+    struct Case {
+        ExtrusionRole role;
+        float expected_percentage;
+    };
+    const std::array<Case, 3> cases{{
+        {erExternalPerimeter, 42.0f},
+        {erBridgeInfill, 42.0f},
+        {erInternalInfill, 0.0f},
+    }};
+
+    for (const Case &test : cases) {
+        DYNAMIC_SECTION(ExtrusionEntity::role_to_string(test.role)) {
+            GCodeProcessor processor;
+            processor.apply_config(FullPrintConfig());
+            const std::string overhang_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) + "42\n";
+            const std::string role_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
+                ExtrusionEntity::role_to_string(test.role) + "\n";
+            processor.process_buffer("G90\nM83\nT0\n" + overhang_tag + role_tag + "G1 X10 Z0.2 E1 F600\n");
+
+            REQUIRE_FALSE(processor.get_result().moves.empty());
+            const auto &move = processor.get_result().moves.back();
+            REQUIRE(move.type == EMoveType::Extrude);
+            CHECK(move.extrusion_role == test.role);
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
+        }
+    }
 }
 
 // Orca: Both ends of an unsplit wall are supported, but a recessed contour leaves half its width
