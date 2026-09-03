@@ -34,6 +34,29 @@ set "error_check=if not ^!errorlevel^! == 0 (set rc=^!errorlevel^!& goto :die)"
 set VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 
 REM ===========================================================================
+REM  Console colors
+REM ===========================================================================
+REM ANSI escape sequences, so milestones, warnings and errors stand out when the
+REM output goes to a terminal. Set ORCA_NO_COLOR (or the standard NO_COLOR) to
+REM turn them off, e.g. when piping into a file or a test harness.
+set "RED="
+set "GREEN="
+set "YELLOW="
+set "CYAN="
+set "BOLD="
+set "NC="
+REM The ESC byte is captured via a nested cmd so the file stays free of raw control bytes.
+for /f %%E in ('echo prompt $E ^| cmd') do set "ESC=%%E"
+if not defined ORCA_NO_COLOR if not defined NO_COLOR (
+    set "RED=!ESC![91m"
+    set "GREEN=!ESC![92m"
+    set "YELLOW=!ESC![93m"
+    set "CYAN=!ESC![96m"
+    set "BOLD=!ESC![1m"
+    set "NC=!ESC![0m"
+)
+
+REM ===========================================================================
 REM  Command line options
 REM ===========================================================================
 
@@ -411,15 +434,17 @@ REM Strawberry Perl ships a c/bin full of GNU tools, and the top-level
 REM CMakeLists refuses to configure when it precedes CMake on PATH. Put a real
 REM CMake first, skipping any hit from Strawberry's own cmake.exe. When none is
 REM on PATH, fall back to the dev-tool layout under %USERPROFILE%\tools, where
-REM a pinned CMake is installed for local development. The findstr needle must
-REM not end in a backslash, which escapes the quote and matches nothing.
+REM a pinned CMake is installed for local development (disable with
+REM ORCA_NO_CMAKE_FALLBACK, e.g. to test the missing-cmake path). The findstr
+REM needle must not end in a backslash, which escapes the quote and matches
+REM nothing.
 set "cmake_bin="
 for /f "delims=" %%i in ('where cmake 2^>nul') do (
     if not defined cmake_bin (
         echo %%~dpi| findstr /i /c:"\Strawberry\c\bin" >nul || set "cmake_bin=%%~dpi"
     )
 )
-if not defined cmake_bin if defined USERPROFILE (
+if not defined cmake_bin if not defined ORCA_NO_CMAKE_FALLBACK if defined USERPROFILE (
     for /d %%d in ("%USERPROFILE%\tools\cmake-*") do (
         if not defined cmake_bin if exist "%%~d\bin\cmake.exe" set "cmake_bin=%%~d\bin\"
     )
@@ -563,7 +588,7 @@ if "%build_deps%" == "ON" (
     REM Which stage is running, so a failure can name it and suggest a
     REM retry scoped to it rather than to the whole run.
     set "stage=d"
-    echo Building the dependencies...
+    call :log_info "Building the dependencies..."
 
     if "%clean%" == "ON" (
         call :clean_tree "!DEP_TREE!"
@@ -630,7 +655,7 @@ if "%pack_deps%" == "ON" (
 
 if "%build_slicer%" == "ON" (
     set "stage=s"
-    echo Building OrcaSlicer...
+    call :log_info "Building OrcaSlicer..."
 
     if "%clean%" == "ON" (
         call :clean_tree "%build_dir%"
@@ -697,13 +722,13 @@ REM The hash block is what CMakeLists already uses for a build that cannot
 REM continue, so it means the same thing here.
 :die
 echo.
-echo #############################################################
+call :log_error "#############################################################"
 REM The paths that set die_reason had no command fail, so last_cmd there
 REM names one that succeeded.
-if defined die_reason echo !die_reason!
-if not defined die_reason if defined last_cmd echo Failed: !last_cmd!
-if defined die_hint echo !die_hint!
-echo Exit code %rc%.
+if defined die_reason echo %RED%!die_reason!%NC%
+if not defined die_reason if defined last_cmd echo %RED%Failed: !last_cmd!%NC%
+if defined die_hint echo %YELLOW%!die_hint!%NC%
+call :log_error "Exit code %rc%."
 REM -v only makes the build verbose, so it has nothing to offer a configure
 REM that failed before any compiler ran.
 set "failed_configure="
@@ -715,11 +740,11 @@ REM anything for a failed pack. A named reason already carries its own advice.
 if "!stage!" == "d" set "recall=!recall_tc!!recall_dd!"
 if not defined die_reason if defined stage if not "!stage!" == "p" (
     echo.
-    echo Try
+    call :log_error "Try"
     if not defined failed_configure echo     build_win.bat -!stage!!recall! -v     show the failing compiler command line
     echo     build_win.bat -!stage!!recall! -c     discard that tree and configure from scratch
 )
-echo #############################################################
+call :log_error "#############################################################"
 exit /b %rc%
 
 REM ===========================================================================
@@ -746,7 +771,7 @@ REM worked out the same way in either run.
     if "%dry_run%" == "ON" (
         echo Dry run: nothing was built. A real run would report:
     ) else (
-        echo Build completed in %_hours%h %_mins%m %_secs%s
+        call :log_ok "Build completed in %_hours%h %_mins%m %_secs%s"
     )
 
     if "%build_deps%" == "ON" echo   Dependencies  !dep_full!
@@ -1267,3 +1292,29 @@ REM handle_args <args...>
     endlocal %finalize_cmd%
     shift
     goto :handle_args
+
+REM ===========================================================================
+REM  Log helpers
+REM ===========================================================================
+REM Leveled status lines, so callers stay free of color codes. Each prints the
+REM message (%~1) wrapped in its level's color; with ORCA_NO_COLOR/NO_COLOR the
+REM codes are empty and the line comes out plain. Messages containing % or !
+REM must be expanded by the caller before the call (pass the value, not a raw
+REM format string) - the helpers never re-scan their argument for % or !.
+REM
+REM   call :log_info  "message"   cyan    milestones
+REM   call :log_ok    "message"   green   success
+REM   call :log_warn  "message"   yellow  warnings, hints
+REM   call :log_error "message"   red     failures
+:log_info
+    echo %CYAN%%~1%NC%
+    exit /b 0
+:log_ok
+    echo %GREEN%%~1%NC%
+    exit /b 0
+:log_warn
+    echo %YELLOW%%~1%NC%
+    exit /b 0
+:log_error
+    echo %RED%%~1%NC%
+    exit /b 0

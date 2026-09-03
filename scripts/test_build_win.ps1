@@ -42,6 +42,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# The assertions match literal output lines, so run the script without colour.
+# build_win.bat honours ORCA_NO_COLOR (and the standard NO_COLOR).
+$env:ORCA_NO_COLOR = '1'
+
 if (-not $Script) {
     $here = $PSScriptRoot
     if (-not $here) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
@@ -572,7 +576,7 @@ $cases = @(
 
     'failures are reported'
     @{ Name = 'a missing cmake is caught and exits non-zero'; Args = @('-d'); ExpectExit = 1
-       Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
+       Env = @{ PATH = 'C:\Windows\system32;C:\Windows'; ORCA_NO_CMAKE_FALLBACK = '1' }
        Contains = @('CMake was not found') }
     @{ Name = 'packing does not need cmake, only an archiver'; Args = @('-p')
        Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
