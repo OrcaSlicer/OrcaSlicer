@@ -138,7 +138,7 @@ PROFILES_DIR="$(cd -- "${PROFILES_DIR}" && pwd)"
 # validator compares the <Vendor>.json stem case-sensitively, while a case-insensitive filesystem
 # (macOS, Windows) would let "creality" pass a file test and then match no vendor. A vendor is a
 # <name>.json with a sibling <name>/ directory; that pair is also what tells one apart from
-# blacklist.json and retired_filament_ids.json, which sit in the same folder.
+# blacklist.json, which sits in the same folder.
 if [ -n "${VENDOR}" ]; then
     wanted="$(printf '%s' "${VENDOR}" | tr '[:upper:]' '[:lower:]')"
     found=""

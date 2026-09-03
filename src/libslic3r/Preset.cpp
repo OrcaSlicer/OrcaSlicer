@@ -572,60 +572,6 @@ std::string generate_preset_setting_id(const std::string& vendor, const std::str
     return std::string(out, 16);
 }
 
-std::string follow_filament_id_succession(const std::string& id, const std::map<std::string, std::string>& forwards)
-{
-    auto it = forwards.find(id);
-    if (it == forwards.end())
-        return std::string();
-    std::set<std::string> visited { id };
-    std::string current = id;
-    while (it != forwards.end() && visited.insert(it->second).second) {
-        current = it->second;
-        it = forwards.find(current);
-    }
-    // it == end(): current is the live end of the chain; otherwise the ledger is
-    // cyclic and current is the last id reached before a repeat.
-    return current;
-}
-
-const std::map<std::string, std::string>& filament_id_succession_map()
-{
-    // Loaded once; C++11 magic-static initialization makes this thread-safe.
-    // Succession is a best-effort miss-path fallback, so a missing or corrupt
-    // ledger is not an error for the client - it just yields an empty map.
-    static const std::map<std::string, std::string> forwards = []() {
-        std::map<std::string, std::string> map;
-        const std::string path = Slic3r::resources_dir() + "/profiles/retired_filament_ids.json";
-        boost::nowide::ifstream file(path.c_str());
-        if (!file.is_open()) {
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": cannot open " << path;
-            return map;
-        }
-        try {
-            nlohmann::json ledger;
-            file >> ledger;
-            if (ledger.contains("retired") && ledger["retired"].is_object())
-                for (auto& [old_id, entry] : ledger["retired"].items())
-                    if (entry.is_object() && entry.contains("successor") && entry["successor"].is_string())
-                        map[old_id] = entry["successor"].get<std::string>();
-            if (ledger.contains("hints") && ledger["hints"].is_object())
-                for (auto& [old_id, target] : ledger["hints"].items())
-                    if (target.is_string())
-                        map[old_id] = target.get<std::string>();
-        } catch (...) {
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": failed to parse " << path;
-            map.clear();
-        }
-        return map;
-    }();
-    return forwards;
-}
-
-std::string resolve_filament_id_succession(const std::string& id)
-{
-    return follow_filament_id_succession(id, filament_id_succession_map());
-}
-
 std::string  Preset::get_iot_type_string(Preset::Type type)
 {
     switch (type) {

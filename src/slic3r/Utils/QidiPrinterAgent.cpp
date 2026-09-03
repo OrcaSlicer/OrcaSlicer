@@ -188,13 +188,7 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
             } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
                 tray.tray_info_idx = setting_id;
             } else {
-                // Retired QD_* protocol ids forward to their minted successors via the shipped ledger.
-                const std::string successor = setting_id.empty() ? std::string()
-                                                                 : resolve_filament_id_succession(setting_id);
-                if (!successor.empty() && has_visible_base_preset(bundle->filaments, successor))
-                    tray.tray_info_idx = successor;
-                else
-                    tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
             }
 
             // Look up color from dictionary
@@ -330,10 +324,6 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
 
 std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string& filament_type)
 {
-    // These QD_* protocol ids no longer appear on any preset: they are retired ledger keys
-    // that parse_box_status resolves through resolve_filament_id_succession(). Each literal
-    // must stay a ledger key whose chain ends at a live preset id —
-    // scripts/tests/test_filament_id.py parses this function and enforces that.
     const std::string upper = trim_and_upper(filament_type);
 
     if (upper == "PLA") {

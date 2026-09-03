@@ -69,7 +69,7 @@ static wxString nozzle_id_code_to_string(int code)
     }
 }
 
-static wxString get_preset_name_by_filament_id(std::string filament_id, bool follow_succession = true)
+static wxString get_preset_name_by_filament_id(std::string filament_id)
 {
     auto preset_bundle = wxGetApp().preset_bundle;
     auto collection = &preset_bundle->filaments;
@@ -102,12 +102,6 @@ static wxString get_preset_name_by_filament_id(std::string filament_id, bool fol
                 }
             }
         }
-    }
-    if (preset_name.empty() && follow_succession) {
-        // Retired/renamed ids forward to a live successor through the shipped succession ledger.
-        const std::string successor = resolve_filament_id_succession(filament_id);
-        if (!successor.empty())
-            preset_name = get_preset_name_by_filament_id(successor, false);
     }
     return preset_name;
 }

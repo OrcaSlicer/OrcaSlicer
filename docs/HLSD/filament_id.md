@@ -23,8 +23,9 @@ When a printer reports what a tray holds (Bambu AMS, Qidi box, Creality CFS,
 Klipper, Snapmaker), OrcaSlicer matches the reported id against the filament presets
 compatible with that printer to select the right profile; other features — tray display
 names, support-material detection, vitrification warnings, multi-nozzle filament grouping —
-look up material properties by id alone. When an id has been retired, a shipped succession
-ledger forwards it to its successor so old trays and records keep resolving.
+look up material properties by id alone. An id that changes is not forwarded anywhere: a
+tray or record still holding the old value falls back to matching by material type until the
+user re-selects the filament, so identity changes are made deliberately and rarely.
 
 This page is the rule for authoring `filament_id` in system profiles
 (`resources/profiles/**`). CI enforces everything below; the short version is:
@@ -33,13 +34,13 @@ This page is the rule for authoring `filament_id` in system profiles
 > **Never write a `filament_id` value by hand.** New families get their id from
 > `python scripts/assign_filament_ids.py`; existing families already have one — inherit it.
 
-## The design, in three pieces
+## The design, in two pieces
 
 Because several consumers match **globally by id alone, first hit wins** (see the next
 section), any two materials sharing one id feed wrong data somewhere — a wrong tray name, a
 wrong support-material flag, a wrong nozzle grouping — and inside one printer a duplicated id
 makes AMS spool matching a coin toss. Hand-written ids produce such collisions constantly, so
-the system is built to make them impossible and to make identity corrections safe:
+the system is built to make them impossible:
 
 1. **Deterministic minting.** An id is a pure hash of the product's identity — no registry to
    maintain, no next-free-number ceremony, no way for two concurrent PRs to race for the same
@@ -48,9 +49,6 @@ the system is built to make them impossible and to make identity corrections saf
    `scripts/filament_id_snapshot.json` exactly, so every change to ids, claims (which bundles
    ship which id, and for which family), or product identity surfaces as a reviewable diff to
    one file — the maintainer gate.
-3. **A shipped succession ledger.** Ids live outside the tree too — on device trays, in
-   calibration records, in user presets, in project files. When an id is retired, the ledger
-   forwards it to its successor so none of those references degrade to a generic fallback.
 
 ## Who consumes the id
 
@@ -60,9 +58,8 @@ friends) resolves it to a preset. The matcher is printer-scoped and first-match-
 scanning only compatible family roots — system roots plus user-made custom filaments, which
 are user roots carrying their own `P*` ids; a preset derived from another resolves through
 its root and never matches directly — it picks the first one whose `filament_id` equals the
-tray's and retries once through the succession ledger on a miss. Only then does it fall back
-by filament type: a system `Generic <type>` preset (matched by name, then by type
-similarity), else the slot's previous selection, else any compatible system generic or,
+tray's. On a miss it falls back by filament type: a system `Generic <type>` preset
+(matched by name, then by type similarity), else the slot's previous selection, else any compatible system generic or,
 failing that, any compatible system preset, else the slot is skipped — every fallback
 selection surfaces a user-visible notice.
 
@@ -75,7 +72,7 @@ pattern, with the device-reported tray material id flowing through the shared ma
 | Ecosystem | Where the tray id comes from today |
 | --- | --- |
 | Bambu AMS | the device itself (RFID / user tray setting) — the `GF*` catalog |
-| Qidi box | composed at runtime as `QD_<series>_<vendor>_<typeidx>` — vendor and type indices from the device's per-slot saved variables, the series digit inferred client-side from the printer model/name — then translated through the succession ledger to the family's minted id (the `QD_*` values themselves no longer exist as preset ids — see the reserved-namespaces section) |
+| Qidi box | composed at runtime as `QD_<series>_<vendor>_<typeidx>` — vendor and type indices from the device's per-slot saved variables, the series digit inferred client-side from the printer model/name. No preset carries a `QD_*` value, so the slot currently resolves by filament type; mapping the composed id onto the family's minted id belongs in the agent |
 | Creality CFS | runtime brand/type scoring returns the winning preset's id |
 | Klipper (AFC / Happy Hare) | runtime lookup by filament type |
 | Snapmaker | runtime color/vendor/type match |
@@ -155,12 +152,12 @@ the `Generic X` base name, write no id key).
    e.g. `Generic PLA @Sovol SV08 MAX` inherits `Generic PLA @System` and lists three Sovol
    nozzles. A vendor-*branded* filament never rides a generic family id.
 5. **Ids follow the product identity.** The id is a pure function of the product triple
-   `(filament_vendor, filament_type, family name)` — correcting any of them re-mints the id
-   **by design** (via `--remint <Vendor>`; the exact sequence is in the FAQ), and
-   `--update-snapshot` records the old id in the shipped succession ledger with its successor
-   so device trays, calibration records, and user presets keep resolving (`renamed_from`
-   still gates preset-*name* compatibility as before). A shipped id is never recycled for a
-   different material: retired ids are blocked forever.
+   `(filament_vendor, filament_type, family name)`, so correcting any of them re-mints the id
+   **by design** (via `--remint <Vendor>`; the exact sequence is in the FAQ). Nothing forwards
+   the old value, so anything outside the tree that stored it — a device tray, a calibration
+   record, a saved project — falls back to matching by filament type until the user re-selects
+   the filament. Re-mint deliberately, and only to fix a genuinely wrong identity.
+   (`renamed_from` still gates preset-*name* compatibility, as before.)
 
 ## Minting — nobody invents ids
 
@@ -191,7 +188,7 @@ Snapmaker bundles alike; the OFL generic `Generic/PLA/Generic PLA` mints `OFDSrz
 by ten bundles — most by independent declarations converging on the same mint, the rest
 purely through inheritance from the OFL family.
 
-On the rare collision with any existing or retired id, the minter salts the input (`…/1`,
+On the rare collision with an existing id, the minter salts the input (`…/1`,
 `…/2`, …) until free, and the result is frozen in the profile file. Salting is also used
 deliberately: a *salt split* keeps two presets of one product on distinct ids where a single
 id would be AMS-ambiguous on the same printer — the "selectable alongside" situation from the
@@ -224,14 +221,6 @@ normally only used by id migrations):
   *same* triple is legal by design — that is the point.
 - `--drop-redundant-ids VENDOR` deletes declarations that merely re-declare an inherited
   OrcaFilamentLibrary id.
-- `--add-hint "OLD=NEW"` records a succession hint for an id a foreign catalog owns
-  (`GF*` only — see the ledger section).
-- `--retire "OLD=NEW"` records succession for a shipped id that vanished while another
-  declarer kept it alive — lineage the automatic claim vote (see the succession-ledger
-  section) can no longer see.
-- `--forget-never-shipped FILE` (with `--update-snapshot`) — given a JSON list of ids that
-  never shipped in any release, drops them from the lineage entirely (no retirement entry)
-  and splices succession chains that pointed through them.
 - `--profiles DIR` points the tooling at a different profile tree (default
   `resources/profiles`).
 
@@ -248,10 +237,9 @@ or device contract owns it.
 | Space | Status | Rule |
 | --- | --- | --- |
 | `GF*` | Bambu AMS/RFID catalog — the one remaining *island* | BBL vendor only; a claim by anyone else is refused unless the snapshot sanctions that exact claim (via `--allow-shared-catalog` — see the CI section) |
-| `QD_*` | Qidi device protocol — *dissolved island* | declarable by **nobody**, Qidi included; every shipped `QD_*` id is retired in the ledger with a live successor |
+| `QD_*` | Qidi device protocol | declarable by **nobody**, Qidi included: the box composes these ids at runtime and they are not preset ids |
 | `P` + 7 hex chars (case-insensitive), `"null"` | user-created custom filaments (`CreatePresetsDialog.cpp`) | never appears in system profiles |
 | every already-shipped id | frozen in the snapshot (grandfathered) | frozen as-is; new claims need maintainer sign-off |
-| every retired id | `resources/profiles/retired_filament_ids.json` | never used again, for anything |
 
 The two device namespaces, in detail:
 
@@ -259,43 +247,14 @@ The two device namespaces, in detail:
   declarations are frozen as-is and never re-minted. BBL also carries several dozen
   grandfathered legacy codes that are neither `GF*` nor `OF*` (the `BETA` family's `B*` ids,
   plus `Generic SBS`'s legacy `BFLSBS99`) — frozen the same way, via the snapshot.
-- **Qidi (`QD_*`) — dissolved.** `QD_*` is a device-*protocol* namespace, not a preset id
-  space: the Qidi box path composes `QD_<series>_<vendor>_<typeidx>` ids at runtime (slot
-  vendor and type indices reported by the device, the series digit inferred client-side
-  from the printer model/name), and the Qidi agent translates a composed id through the
-  succession ledger to the family's minted id. Qidi presets themselves carry ordinary minted
-  `OF*` ids (generics share the OFL ids), and all 204 `QD_*` ids that ever shipped sit in
-  the ledger as retired entries with live successors — which is also what makes CI refuse
-  any future `QD_*` occurrence permanently. The alternative — treating per-series protocol ids
-  as preset ids — would put one product under five ids (`QIDI PLA Rapido` would be `QD_0_1_1`
-  through `QD_4_1_1`), exactly the fragmentation the mint rule removes.
-
-## The succession ledger
-
-`resources/profiles/retired_filament_ids.json` ships with the app and has two maps:
-
-- **`retired`** — ids Orca owned and withdrew. Each maps to
-  `{"claims": [...], "successor": <id|null>}`; successor chains are followed to the live end.
-  When `--update-snapshot` retires a vanished id, it picks the successor by an automatic
-  *claim vote*: every old claim whose family still exists votes for that family's current id,
-  most votes wins. Alongside the deliberate re-mints, this map carries the whole pre-rule
-  legacy — old ad-hoc vendor codes, Creality's and Snapmaker's numeric ids, and the 204
-  `QD_*` protocol ids.
-- **`hints`** — the same forwarding for ids Orca *cannot* retire because a foreign island owns
-  them and may legitimately keep shipping them. That means `GF*` only: e.g.
-  `GFL99 → OFDSrzZ8` forwards Bambu's Generic PLA catalog id to the OFL generic family on
-  installs where no live preset carries `GFL99`.
-
-The client consults the ledger **only on resolution miss** — AMS tray sync and the sync-AMS
-dialog's filament listing, the sidebar AMS dropdown, tray-id type lookup, calibration
-history, the global filament-id preset lookup, and the Qidi box path. A live preset always
-wins first, so BBL installs resolve `GF*` natively and behavior is unchanged wherever the
-raw id still exists. This on-miss rule is what makes
-identity-driven re-mints (structure rule 5) safe: the old id keeps resolving to the family's
-current preset instead of degrading to a `Generic <type>` fallback. The file is append-only in
-its keys — entries are never removed and a retired id never returns — and maintained
-exclusively by `--update-snapshot` / `--add-hint` / `--retire` (`--forget-never-shipped`, an
-`--update-snapshot` mode, may rewrite an existing entry's successor when splicing chains).
+- **Qidi (`QD_*`).** `QD_*` is a device-*protocol* namespace, not a preset id space: the
+  Qidi box path composes `QD_<series>_<vendor>_<typeidx>` ids at runtime (slot vendor and
+  type indices reported by the device, the series digit inferred client-side from the printer
+  model/name). Qidi presets carry ordinary minted `OF*` ids (generics share the OFL ids), so
+  a composed id matches no preset and the slot falls back to filament type; translating it to
+  the family's id belongs in `QidiPrinterAgent`. The alternative — treating per-series
+  protocol ids as preset ids — would put one product under five ids (`QIDI PLA Rapido` would
+  be `QD_0_1_1` through `QD_4_1_1`), exactly the fragmentation the mint rule removes.
 
 ## How CI enforces this
 
@@ -319,11 +278,6 @@ The checks, in brief:
 - **Mint conformance** — a non-grandfathered `OF*` id must equal the mint (or a low salt
   iteration) of its declarer's product triple; the error prints the expected id to paste into
   the family root.
-- **Retired reuse** — any tree id present in the `retired` map of
-  `resources/profiles/retired_filament_ids.json` is an error, with no grandfathering (keys in
-  the same file's `hints` map may legitimately stay live — BBL still ships them). Ids that
-  fully vanish from the tree are appended to the `retired` map by `--update-snapshot`; ids
-  are only ever added there, never removed or reused.
 - **Alias hygiene** — a vendor preset riding an OFL family id must keep the library preset's
   base name (a rename re-exposes the library preset, since alias shadowing is name-based),
   a non-empty `compatible_printers` (an empty one shadows nothing), and no own id key
@@ -331,12 +285,8 @@ The checks, in brief:
 - **Triple integrity** — every declarer outside the BBL island must resolve a non-empty
   `filament_vendor` and `filament_type` (generics use `"Generic"`), and all declarers of one
   family within a bundle must agree on the triple.
-- **Succession integrity** — retired successor chains terminate at a live id (or null) with
-  no cycles; `hints` keys stay in the island namespace (`GF*`), are never also retired, and
-  their chains end at a live tree id.
 - **Reserved namespaces** — `GF*` outside BBL, `P<7-hex>` or `"null"` anywhere, unless that
-  exact claim is grandfathered in the snapshot; `QD_*` anywhere, with no exception (all are
-  retired).
+  exact claim is grandfathered in the snapshot; `QD_*` anywhere, with no exception.
 - **Structure** — no `filament_id` key on newly instantiated presets; no new
   declared-vs-inherited id drift; every instantiated system filament must resolve an
   effective id through its `inherits` chain (recall: an id-less one is a hard load error in
@@ -364,18 +314,15 @@ ambiguity check behind structure rule 3.
 - **A tuned generic ("our profile for Generic PLA")?** Inherit `Generic PLA @System`, keep the
   `Generic PLA` base name, set `compatible_printers`, write no id key.
 - **I need to fix a family's `filament_vendor` or `filament_type`.** Fix the config, run
-  `--remint <Vendor>` then `--update-snapshot`: the id re-derives from the corrected identity
-  and the old id lands in the succession ledger pointing at the new one. Commit the profile,
-  snapshot, and ledger diffs together.
-- **I need to rename a family.** Renames need one extra step, because the succession vote
-  follows family names (`renamed_from` gates preset-name compatibility but is not read by the
-  id tooling): rename the presets (adding `renamed_from`), run `--update-snapshot` once to
-  sanction the renamed claims on the old id, then `--remint <Vendor>`, then `--update-snapshot`
-  again — the old id now lands in the ledger pointing at the new one. Re-minting first would
-  retire the old id *heirless* (successor `null`), which cannot be repaired afterwards.
-- **Can I reuse a `QD_*` id for a Qidi profile?** No — nobody can. The namespace is a
-  dissolved island: the device still composes those ids at runtime, and the succession ledger
-  translates them to the families' minted ids. Author Qidi filaments like any other vendor's.
+  `--remint <Vendor>` then `--update-snapshot`, and commit the profile and snapshot diffs
+  together. The id re-derives from the corrected identity, and nothing forwards the old
+  value, so a tray or record still holding it falls back to matching by filament type.
+- **I need to rename a family.** Rename the presets (adding `renamed_from`, which keeps the
+  preset *name* resolving), then `--remint <Vendor>`, then `--update-snapshot`. The id follows
+  the new family name; as with any identity fix, the old id is not forwarded.
+- **Can I reuse a `QD_*` id for a Qidi profile?** No — nobody can. It is the device protocol's
+  own id space: the box composes those values at runtime and no preset carries one. Author
+  Qidi filaments like any other vendor's.
 - **CI says my family needs an id.** Run `python scripts/assign_filament_ids.py`, then
   `--update-snapshot`, and commit both diffs. Do not type an id by hand.
 

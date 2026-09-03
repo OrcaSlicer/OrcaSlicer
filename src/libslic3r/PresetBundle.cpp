@@ -801,12 +801,6 @@ std::optional<FilamentBaseInfo> PresetBundle::get_filament_by_filament_id(const 
             }
         }
     }
-    // Miss: a retired/renamed id may forward to a live successor through the shipped
-    // succession ledger. resolve() returns a chain-final id, so the retry below cannot
-    // recurse further (a malformed cyclic ledger yields a non-final id, rejected here).
-    const std::string successor = resolve_filament_id_succession(filament_id);
-    if (!successor.empty() && resolve_filament_id_succession(successor).empty())
-        return get_filament_by_filament_id(successor, printer_name);
     return std::nullopt;
 }
 
@@ -3421,15 +3415,6 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
                                  [this, &filament_id](auto &f) { return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
         warn_ambiguous_filament_id_match(filaments, iter, filament_id);
         if (iter == filaments.end()) {
-            // Retired/renamed ids forward to a live successor through the shipped succession ledger.
-            const std::string successor = resolve_filament_id_succession(filament_id);
-            if (!successor.empty()) {
-                iter = std::find_if(filaments.begin(), filaments.end(),
-                                    [this, &successor](auto &f) { return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == successor; });
-                warn_ambiguous_filament_id_match(filaments, iter, successor);
-            }
-        }
-        if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             auto filament_type = ams.opt_string("filament_type", 0u);
             if (!filament_type.empty()) {
@@ -3532,16 +3517,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
             return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
         warn_ambiguous_filament_id_match(filaments, iter, filament_id);
-        if (iter == filaments.end()) {
-            // Retired/renamed ids forward to a live successor through the shipped succession
-            // ledger (has_type is already complete: the miss above scanned every preset).
-            const std::string successor = resolve_filament_id_succession(filament_id);
-            if (!successor.empty()) {
-                iter = std::find_if(filaments.begin(), filaments.end(), [this, &successor](auto &f) {
-                    return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == successor; });
-                warn_ambiguous_filament_id_match(filaments, iter, successor);
-            }
-        }
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {

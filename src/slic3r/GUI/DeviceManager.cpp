@@ -2764,22 +2764,14 @@ std::string MachineObject::setting_id_to_type(std::string setting_id, std::strin
     std::string type;
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
-        auto lookup_system_type = [preset_bundle](const std::string &id) {
-            std::string display_filament_type;
-            for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
-                if (it->filament_id.compare(id) == 0 && it->is_system) {
-                    it->config.get_filament_type(display_filament_type);
-                    break;
-                }
+        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
+
+            if (it->filament_id.compare(setting_id) == 0 && it->is_system) {
+                std::string display_filament_type;
+                it->config.get_filament_type(display_filament_type);
+                type = display_filament_type;
+                break;
             }
-            return display_filament_type;
-        };
-        type = lookup_system_type(setting_id);
-        if (type.empty()) {
-            // Retired/renamed ids forward to a live successor through the shipped succession ledger.
-            const std::string successor = resolve_filament_id_succession(setting_id);
-            if (!successor.empty())
-                type = lookup_system_type(successor);
         }
     }
 

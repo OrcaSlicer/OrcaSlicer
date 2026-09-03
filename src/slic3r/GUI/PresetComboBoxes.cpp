@@ -557,13 +557,6 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
             auto iter = std::find_if(filaments.begin(), filaments.end(),
                 [&filament_id, this](auto &f) { return f.is_compatible && m_collection->get_preset_base(f) == &f && f.filament_id == filament_id; });
             if (iter == filaments.end()) {
-                // Retired/renamed ids forward to a live successor through the shipped succession ledger.
-                const std::string successor = resolve_filament_id_succession(filament_id);
-                if (!successor.empty())
-                    iter = std::find_if(filaments.begin(), filaments.end(),
-                        [&successor, this](auto &f) { return f.is_compatible && m_collection->get_preset_base(f) == &f && f.filament_id == successor; });
-            }
-            if (iter == filaments.end()) {
                 auto filament_type = tray.opt_string("filament_type", 0u);
                 if (!filament_type.empty()) {
                     filament_type = "Generic " + filament_type;

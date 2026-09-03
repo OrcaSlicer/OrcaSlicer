@@ -101,23 +101,6 @@ std::string generate_preset_setting_id(const std::string& vendor,
                                        const std::string& type,
                                        const std::string& name);
 
-// Succession forwarding for retired/renamed filament_ids, backed by the shipped
-// ledger resources/profiles/retired_filament_ids.json. Consulted on a filament_id
-// resolution miss only, so live ids always resolve natively first.
-//
-// Pure chain walk over `forwards` (old id -> successor). Returns the final id of the
-// chain, or an empty string when `id` has no entry. Cycle-guarded: on a malformed
-// cyclic ledger it stops at the last id reached before any repeat (a self-loop
-// returns `id` itself).
-std::string follow_filament_id_succession(const std::string& id,
-                                          const std::map<std::string, std::string>& forwards);
-// Forwarding map loaded once (thread-safe) from the ledger, merging
-// "retired" {id -> non-null successor} and "hints" {island-owned id -> live id}.
-// A missing or corrupt file yields an empty map.
-const std::map<std::string, std::string>& filament_id_succession_map();
-// Convenience: follow_filament_id_succession(id, filament_id_succession_map()).
-std::string resolve_filament_id_succession(const std::string& id);
-
 enum ConfigFileType
 {
     CONFIG_FILE_TYPE_UNKNOWN,

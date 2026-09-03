@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Mint deterministic filament_id values for OrcaSlicer system filament products and
-validate the tree against the sanctioned-state ledger.
+validate the tree against the sanctioned-state snapshot.
 
-Policy (companion to assign_vendor_setting_ids.py; see filament_id_plan_v3.md):
+Policy (companion to assign_vendor_setting_ids.py; see docs/HLSD/filament_id.md):
   * filament_id is a PRODUCT id: one commercial product line = one id, shared by
     all of that material's per-printer/per-nozzle variants in every bundle.
     OrcaFilamentLibrary (OFL) is the product catalog: a family's id is declared
@@ -19,34 +19,22 @@ Policy (companion to assign_vendor_setting_ids.py; see filament_id_plan_v3.md):
         filament_id = "OF" + base62_6( uuid5(FILAMENT_ID_NAMESPACE,
             "filament_product/<filament_vendor>/<filament_type>/<family_name>") )
     8 chars total, which satisfies the AMS length limit. Nobody invents ids by
-    hand; on the astronomically rare collision with any existing or retired id
-    the input is salted ("/1", "/2", ...) until free and the result is frozen
-    in file. Identity changes (a family rename, a filament_vendor/filament_type
-    fix) change the id BY DESIGN — the succession ledger keeps old ids
-    resolving.
+    hand; on the astronomically rare collision with an existing id the input
+    is salted ("/1", "/2", ...) until free and the result is frozen in file.
+    Identity changes (a family rename, a filament_vendor/filament_type fix)
+    change the id BY DESIGN.
   * Reserved id spaces that are never minted into or altered:
       - GF*                    Bambu AMS/RFID catalog (vendor BBL untouchable)
-      - QD_*                   Qidi device protocol (dissolved island, plan v4:
-                               every shipped QD_* id is retired in the ledger and
-                               the QidiPrinterAgent translates device-composed
-                               QD_* ids through the succession walk; no preset
-                               may ever declare one again)
+      - QD_*                   Qidi device protocol: the box composes these ids
+                               at runtime, they are not preset ids, and no
+                               preset may declare one
       - P + 7 hex chars (case-insensitive) and the literal "null"
                                user-custom presets (CreatePresetsDialog.cpp)
       - every already-shipped id, grandfathered via scripts/filament_id_snapshot.json
-  * scripts/filament_id_snapshot.json is the sanctioned-state ledger (ids,
+  * scripts/filament_id_snapshot.json is the sanctioned-state snapshot (ids,
     claims and declared triples): it must exactly equal the tree-derived state
     at all times, so any id/claim/triple change shows up as a reviewable diff to
-    that file (the maintainer gate). Ids that fully vanish from the tree are
-    appended to the SHIPPED succession ledger
-    resources/profiles/retired_filament_ids.json as
-    {"claims": [...], "successor": <id|null>} — successor picked by the mode
-    rule over the vanished id's old claims — and the runtime follows those
-    chains (plus cross-island "hints" for ids Orca cannot retire, e.g. GF*)
-    on resolution miss. A retired id may never be used again for anything.
-    Vanished ids in a FOREIGN island's space (GF*) are released with a
-    hint instead of retired: the island's catalog owns them and may
-    legitimately (re)ship them.
+    that file (the maintainer gate).
 
 The effective-id resolution below is loader-faithful (PresetBundle.cpp
 load_vendor_configs_from_json): own filament_id key, else walk `inherits` within
@@ -59,16 +47,7 @@ Run from anywhere:  python3 scripts/assign_filament_ids.py
                      rewrites a valid existing id; a no-op on a fully-idded tree
   --mint "Vendor/Type/Family"
                      print the id that triple would mint; touches nothing
-  --update-snapshot  regenerate the snapshot from the tree; retire vanished ids
-                     with a mode-rule successor (--forget-never-shipped FILE
-                     drops listed never-shipped ids from lineage instead)
-  --add-hint "OLD=NEW"
-                     record a cross-island succession hint (standalone)
-  --retire "OLD=NEW"
-                     retire a vanished non-island shipped id with an explicit
-                     successor (standalone; for lineage the claim vote can no
-                     longer see because the claims migrated while another
-                     declarer kept the id alive)
+  --update-snapshot  regenerate the snapshot from the tree
   --remint VENDOR    re-derive VENDOR's declared ids from their triples and
                      rewrite mismatches in place (repeatable)
   --drop-redundant-ids VENDOR
@@ -96,10 +75,6 @@ FILAMENT_ID_LENGTH = 6  # base62 digits after the "OF" prefix -> 8 chars total
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "resources", "profiles"))
 SNAPSHOT_PATH = os.path.join(SCRIPTS_DIR, "filament_id_snapshot.json")
-# The succession ledger ships with the app (resources/) so the runtime can
-# follow retired->successor chains and cross-island hints on resolution miss.
-RETIRED_PATH = os.path.join(PROFILES_DIR, "retired_filament_ids.json")
-RETIRED_REL = "resources/profiles/retired_filament_ids.json"
 
 OFL = "OrcaFilamentLibrary"
 
@@ -171,7 +146,7 @@ def generate_filament_id(filament_vendor, filament_type, family, salt=0):
 
 
 def mint_filament_id(filament_vendor, filament_type, family, taken):
-    """Mint the product's id, salting past any id in `taken` (existing + retired)."""
+    """Mint the product's id, salting past any id in `taken`."""
     for salt in range(10000):
         candidate = generate_filament_id(filament_vendor, filament_type, family, salt)
         if candidate not in taken:
@@ -193,7 +168,7 @@ def list_vendor_names(profiles_dir):
     """Vendor bundles = subdirectories with a matching <name>.json index file.
 
     (Ignores stray non-bundle entries such as the tracked "user" directory,
-    which has no user.json index, and the retired_filament_ids.json ledger.)
+    which has no user.json index.)
     """
     profiles_dir = str(profiles_dir)
     return sorted(
@@ -250,7 +225,7 @@ def resolve_filament_id(name, filaments, ofl_filaments, seen=None, in_ofl=False,
     vendor is re-tried against the OFL map keyed by its direct parent name.
 
     skip_own ignores the first preset's own filament_id key (used to compute the
-    id its inherits chain would resolve WITHOUT the declaration — check 7b drift).
+    id its inherits chain would resolve WITHOUT the declaration — check 6b drift).
 
     Returns (filament_id or None, source, ofl_entry) where source is one of
     "own"/"inherited"/"missing"/"dangling"/"cycle" and ofl_entry is the name of
@@ -379,7 +354,6 @@ def analyze_tree(profiles_dir):
     triples = {}                # fid -> set of triples of its non-island declarers
     declarer_triples = []       # (vendor, rec, fid, triple) per non-island declarer
     family_triples = {}         # (vendor, family) -> {triple: [declarer names]}
-    renamed_claims = {}         # "Vendor/OldFamily" -> set of ids the rename now carries
 
     for vendor, filaments in vendors.items():
         occurring = vendor_ids.setdefault(vendor, set())
@@ -413,19 +387,12 @@ def analyze_tree(profiles_dir):
                 continue
             occurring.add(eff)
             ids.setdefault(eff, set()).add(f"{vendor}/{base_name(rec['name'])}")
-            # A renamed preset keeps voting under the names it used to have, so
-            # the id its old family carried retires to the id the rename minted.
-            renamed = rec.get("renamed_from")
-            for old in (renamed if isinstance(renamed, str) else "").split(";"):
-                if old.strip():
-                    renamed_claims.setdefault(
-                        f"{vendor}/{base_name(old.strip())}", set()).add(eff)
             if rec.get("filament_id"):
                 instantiated_with_id.append(f"{vendor}/{rec['name']}")
             if vendor != OFL and rec["ofl_entry"] and eff in ofl_declared:
                 alias_candidates.append((vendor, rec, rec["ofl_entry"], False))
 
-    # Alias hygiene (check 5): a vendor preset that rides an OFL family (its id
+    # Alias hygiene (check 4): a vendor preset that rides an OFL family (its id
     # resolves through OFL) is matched to the OFL preset by ALIAS (base name);
     # renaming it re-exposes the OFL preset and creates a live duplicate, empty
     # compatible_printers cannot claim any printer, and declaring its own
@@ -452,7 +419,7 @@ def analyze_tree(profiles_dir):
                 "empty compatible_printers cannot shadow the OFL preset anywhere",
                 rec["file"]))
 
-    # Cross-bundle triple divergence (check 8, warning only): the same family
+    # Cross-bundle triple divergence (check 7, warning only): the same family
     # name declared in several bundles with different triples cannot converge
     # on one id until the divergence is fixed.
     name_bundles = {}
@@ -468,7 +435,6 @@ def analyze_tree(profiles_dir):
         "vendors": vendors,
         "read_errors": read_errors,
         "ids": {fid: sorted(claims) for fid, claims in ids.items()},
-        "renamed_claims": {claim: sorted(fids) for claim, fids in renamed_claims.items()},
         "vendor_ids": vendor_ids,
         "declared_ids": declared_ids,
         "instantiated_with_id": sorted(instantiated_with_id),
@@ -488,7 +454,7 @@ def analyze_tree(profiles_dir):
 
 
 # ---------------------------------------------------------------------------
-# Snapshot / succession-ledger IO
+# Snapshot IO
 # ---------------------------------------------------------------------------
 
 def snapshot_from_analysis(analysis):
@@ -515,100 +481,11 @@ def load_snapshot(path):
     return data
 
 
-def load_ledger(path):
-    """The shipped succession ledger:
-    {"retired": {id: {"claims": [...], "successor": id|None}}, "hints": {id: id}}.
-    Empty maps when the file is absent.
-    """
-    if not os.path.exists(path):
-        return {"retired": {}, "hints": {}}
-    data = load_json(path)
-    return {"retired": data.get("retired", {}), "hints": data.get("hints", {})}
-
-
-def load_retired(path):
-    """The ledger's retired map (see load_ledger); {} when the file is absent."""
-    return load_ledger(path)["retired"]
-
-
-def write_ledger(path, obj):
+def write_snapshot(path, obj):
     """Deterministic serialization: sorted keys, indent 1, LF, trailing newline."""
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(obj, f, indent=1, ensure_ascii=False, sort_keys=True)
         f.write("\n")
-
-
-def claim_effective_ids(analysis):
-    """Reverse of analysis["ids"]: claim "Vendor/Family" -> set of effective ids.
-
-    A preset's "renamed_from" names count as claims of that preset too, so an id
-    whose family was renamed still finds a successor in the claim vote.
-    """
-    claim_ids = {}
-    for fid, claims in analysis["ids"].items():
-        for claim in claims:
-            claim_ids.setdefault(claim, set()).add(fid)
-    for claim, fids in analysis.get("renamed_claims", {}).items():
-        if claim not in claim_ids:
-            claim_ids[claim] = set(fids)
-    return claim_ids
-
-
-def successor_by_mode(claims, claim_ids):
-    """Mode rule for a retiring id's successor: every old claim whose family
-    still exists votes for the family's current effective id(s); most votes
-    wins, ties break to the lexicographically smallest id, no votes -> None.
-    Returns (successor_or_None, vote_counts).
-    """
-    counts = {}
-    for claim in claims:
-        for fid in claim_ids.get(claim, ()):
-            counts[fid] = counts.get(fid, 0) + 1
-    if not counts:
-        return None, counts
-    best = max(counts.values())
-    return min(f for f, n in counts.items() if n == best), counts
-
-
-def migrate_retired_entries(old_retired, claim_ids):
-    """One-shot v3 schema migration: list-valued entries {id: [claims]} become
-    {id: {"claims": [...], "successor": <mode-rule id|None>}}; object entries
-    pass through untouched.
-    """
-    migrated = {}
-    for fid, entry in old_retired.items():
-        if isinstance(entry, dict):
-            migrated[fid] = entry
-            continue
-        successor, _counts = successor_by_mode(entry, claim_ids)
-        migrated[fid] = {"claims": sorted(entry), "successor": successor}
-    return migrated
-
-
-def follow_succession(fid, seen, retired, hints, live):
-    """Follow retired->successor / hints->target forwarding starting at `fid`.
-
-    Returns (status, node): "null" (chain ended on an heirless retirement),
-    "live" (reached a live tree id), "cycle", or "dead-end" (an id that is
-    neither live nor forwarded anywhere). `seen` pre-seeds the cycle guard.
-    """
-    seen = set(seen)
-    cur = fid
-    while True:
-        if cur is None:
-            return "null", None
-        if cur in seen:
-            return "cycle", cur
-        seen.add(cur)
-        if cur in live:
-            return "live", cur
-        entry = retired.get(cur)
-        if entry is not None:
-            cur = entry.get("successor") if isinstance(entry, dict) else None
-        elif cur in hints:
-            cur = hints[cur]
-        else:
-            return "dead-end", cur
 
 
 # ---------------------------------------------------------------------------
@@ -631,7 +508,7 @@ def reserved_space_desc(fid, owner):
     if owner:
         return f"owned by {owner}"
     if fid.startswith("QD_"):
-        return "Qidi device protocol; dissolved island — ids are retired, never declarable"
+        return "Qidi device protocol; composed by the device, never a preset id"
     return "reserved for user-custom presets"
 
 
@@ -639,8 +516,7 @@ def reserved_space_desc(fid, owner):
 # Checks (imported and called tree-wide by orca_extra_profile_check.py)
 # ---------------------------------------------------------------------------
 
-def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                       retired_path=RETIRED_PATH):
+def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
     """Validate filament_id state across every vendor. Returns the error count.
 
     1. Format: every id occurring in the tree (declared or effective) must be in
@@ -651,23 +527,19 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     3. Mint conformance: a non-island OF-format declaration must equal the mint
        of the declarer's triple or a salted iteration, unless that exact
        (id, triple) pair is grandfathered in the snapshot.
-    4. Retired ids may never occur again.
-    5. Alias hygiene: a vendor preset riding an OFL family must keep the OFL
+    4. Alias hygiene: a vendor preset riding an OFL family must keep the OFL
        base name, claim printers via non-empty compatible_printers, and declare
        no filament_id key of its own.
-    6. Reserved namespaces (GF* for BBL; QD_*/P-hex/"null" for nobody) must not
+    5. Reserved namespaces (GF* for BBL; QD_*/P-hex/"null" for nobody) must not
        be claimed by other vendors, except claims grandfathered in the snapshot.
-    7. Structure ratchet: (a) no NEW instantiated preset carries its own
+    6. Structure ratchet: (a) no NEW instantiated preset carries its own
        filament_id key; (b) no NEW declared-vs-inherited id drift; (c) every
        instantiated filament resolves an effective id (a hard load error in C++).
-    8. Triple integrity: (a) every non-island declarer resolves non-empty
+    7. Triple integrity: (a) every non-island declarer resolves non-empty
        filament_vendor and filament_type (hard error, no grandfathering);
        (b) declarers of one (bundle, family) resolve identical triples, unless
        grandfathered in snapshot triple_exceptions; cross-bundle divergence on
        the same family name is a warning only.
-    9. Succession integrity: retired successor chains terminate at a live id or
-       null without cycles; hint keys are live island-declared ids and hint
-       chains terminate live.
     """
     _utf8_console()
     errors = 0
@@ -676,10 +548,6 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     if snapshot is None:
         print_error(f"filament_id snapshot not found at {snapshot_path}; {UPDATE_HINT}")
         return 1
-    ledger = load_ledger(retired_path)
-    retired = ledger["retired"]
-    hints = ledger["hints"]
-
     for msg in analysis["read_errors"]:
         print_error(msg)
         errors += 1
@@ -717,8 +585,8 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     for fid in sorted(snap_ids):
         if fid not in tree_ids:
             print_error(
-                f'filament_id stability: snapshot id "{fid}" vanished from the tree '
-                f"(shipped ids retire through the succession ledger); {UPDATE_HINT}")
+                f'filament_id stability: snapshot id "{fid}" vanished from the tree; '
+                f"{UPDATE_HINT}")
             errors += 1
             continue
         for claim in snap_ids[fid]:
@@ -761,16 +629,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f"family root (or, for an intentionally kept id, {UPDATE_HINT})")
             errors += 1
 
-    # -- 4. retired ids may never come back ---------------------------------
-    for vendor in sorted(analysis["vendor_ids"]):
-        for fid in sorted(analysis["vendor_ids"][vendor]):
-            if fid in retired:
-                print_error(
-                    f'filament_id "{fid}" ({vendor}) is retired '
-                    f"({RETIRED_REL}) and may never be reused")
-                errors += 1
-
-    # -- 5. alias hygiene for presets riding OFL families --------------------
+    # -- 4. alias hygiene for presets riding OFL families --------------------
     exceptions = set(snapshot["alias_exceptions"])
     for vendor, name, entry, reason, file in analysis["alias_violations"]:
         if f"{vendor}/{name}" in exceptions:
@@ -782,7 +641,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"gets its own minted id")
         errors += 1
 
-    # -- 6. reserved namespaces ----------------------------------------------
+    # -- 5. reserved namespaces ----------------------------------------------
     for fid in sorted(tree_ids):
         is_reserved, owner = reserved_space_owner(fid)
         if not is_reserved:
@@ -799,7 +658,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f"({space}) and must not be claimed by system presets of other vendors")
             errors += 1
 
-    # -- 7. structure ratchet -------------------------------------------------
+    # -- 6. structure ratchet -------------------------------------------------
     grandfathered = set(snapshot["instantiated_with_id"])
     for key in analysis["instantiated_with_id"]:
         if key not in grandfathered:
@@ -827,7 +686,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f'"{vendor}/{base_name(name)}": "{expected}", salted if taken)')
         errors += 1
 
-    # -- 8. triple integrity ---------------------------------------------------
+    # -- 7. triple integrity ---------------------------------------------------
     for vendor, rec, fid, triple in sorted(
             analysis["declarer_triples"], key=lambda x: (x[0], x[1]["file"])):
         if triple[0] and triple[1]:
@@ -860,62 +719,6 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"({detail}); bundles of one product converge on one id only once "
             f"their triples agree")
 
-    # -- 9. succession integrity (ledger-internal) -----------------------------
-    live = set(tree_ids)
-    for fid in sorted(retired):
-        entry = retired[fid]
-        if (not isinstance(entry, dict)
-                or not isinstance(entry.get("claims", []), list)
-                or not (entry.get("successor") is None
-                        or isinstance(entry.get("successor"), str))):
-            print_error(
-                f'retired entry "{fid}" ({RETIRED_REL}) is not of the form '
-                f'{{"claims": [...], "successor": <id|null>}}')
-            errors += 1
-            continue
-        status, node = follow_succession(entry.get("successor"), {fid}, retired, hints, live)
-        if status == "cycle":
-            print_error(
-                f'succession chain of retired id "{fid}" cycles at "{node}" ({RETIRED_REL})')
-            errors += 1
-        elif status == "dead-end":
-            print_error(
-                f'succession chain of retired id "{fid}" dead-ends at "{node}", which is '
-                f"neither a live tree id nor retired/hinted ({RETIRED_REL})")
-            errors += 1
-    for key in sorted(hints):
-        target = hints[key]
-        _is_reserved, island = reserved_space_owner(key)
-        if island is None:
-            print_error(
-                f'hint key "{key}" ({RETIRED_REL}) is not in an island id space '
-                f"(GF*); non-island ids are retired with a successor instead")
-            errors += 1
-            continue
-        if key in retired:
-            print_error(
-                f'hint key "{key}" ({RETIRED_REL}) is also retired; an id is either '
-                f"retired (Orca-owned) or hinted (island-owned), never both")
-            errors += 1
-            continue
-        # A hint key may be absent from the tree (released to its island); when
-        # live, only island vendors may declare it.
-        outsiders = sorted(
-            v for v in analysis["declared_ids"]
-            if key in analysis["declared_ids"][v] and not is_island_declaration(v, key))
-        if outsiders:
-            print_error(
-                f'hint key "{key}" ({RETIRED_REL}) is declared by non-island vendor(s) '
-                f"{outsiders}; hints apply only once no non-island vendor declares the "
-                f"id — re-mint those declarers first")
-            errors += 1
-        status, node = follow_succession(target, {key}, retired, hints, live)
-        if status != "live":
-            print_error(
-                f'hint "{key}" -> "{target}" ({RETIRED_REL}) must chain-terminate at a '
-                f"live tree id (got {status} at \"{node}\")")
-            errors += 1
-
     return errors
 
 
@@ -924,18 +727,8 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
 # ---------------------------------------------------------------------------
 
 def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                    retired_path=RETIRED_PATH, allow_shared_catalog=False,
-                    forget_path=None):
-    """Regenerate the snapshot from the tree; retire ids that fully vanished.
-
-    Vanished ids gain a succession-ledger entry whose successor is picked by
-    the mode rule over their old claims (None when the family died heirless);
-    vanished ids in a foreign island's space (GF*) are released with a
-    hint instead — the island catalog owns them, so they must stay mintable
-    there and must never be blocked by check 4.
-    --forget-never-shipped lists ids to drop from lineage instead of retiring
-    (never shipped => nothing outside the tree references them); succession
-    chains through them are spliced to their mode-rule successor.
+                    allow_shared_catalog=False):
+    """Regenerate the snapshot from the tree.
 
     Refuses to sanction NEW reserved-namespace ids (or new claims on them) for
     non-owner vendors unless --allow-shared-catalog is passed. Idempotent: a
@@ -947,21 +740,6 @@ def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     new_snap = snapshot_from_analysis(analysis)
     old_snap = load_snapshot(snapshot_path)
     old_ids = old_snap["ids"] if old_snap else {}
-
-    forget = set()
-    if forget_path:
-        data = load_json(forget_path)
-        if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
-            print_error(f"--forget-never-shipped expects a JSON list of ids: {forget_path}")
-            return 1
-        forget = set(data)
-        still_live = sorted(forget & set(new_snap["ids"]))
-        if still_live:
-            for fid in still_live:
-                print_error(
-                    f'--forget-never-shipped: id "{fid}" is still in the tree and can '
-                    f"neither be forgotten nor retired")
-            return 1
 
     # Gate: new reserved-namespace ids / claims for non-owner vendors.
     refusals = []
@@ -990,72 +768,6 @@ def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f"maintainer-approved shared-catalog families")
         return 1
 
-    # Retirement is permanent: refuse to sanction a tree that resurrects a
-    # retired id (check 4 would reject the resulting snapshot forever anyway).
-    ledger = load_ledger(retired_path)
-    retired = ledger["retired"]
-    reused = sorted(set(new_snap["ids"]) & set(retired))
-    if reused:
-        for fid in reused:
-            print_error(
-                f'refusing to sanction retired filament_id "{fid}" '
-                f"({RETIRED_REL} is append-only; retired ids may "
-                f"never be reused — mint a fresh id for the family instead)")
-        return 1
-
-    # Retire ids that fully vanished from the tree (append-only ledger), with a
-    # mode-rule successor so devices and user presets keep resolving. Vanished
-    # ids in a FOREIGN island's reserved space (GF*) are never retired —
-    # the island's catalog still owns them and may legitimately (re)ship them —
-    # they are RELEASED, with a succession hint so they keep resolving on miss.
-    claim_ids = claim_effective_ids(analysis)
-    newly_retired = []
-    forgotten = []
-    released = []
-    for fid in sorted(old_ids):
-        if fid in new_snap["ids"]:
-            continue
-        if fid in forget:
-            forgotten.append(fid)
-            print_info(f'forgotten (never shipped): "{fid}" — no retirement entry')
-            continue
-        _is_reserved, island = reserved_space_owner(fid)
-        if island is not None:
-            successor, _counts = successor_by_mode(old_ids[fid], claim_ids)
-            if successor and fid not in ledger["hints"]:
-                ledger["hints"][fid] = successor
-            released.append(fid)
-            print_info(
-                f'released to the {island} island space: "{fid}"'
-                + (f' — hint -> "{ledger["hints"][fid]}"' if fid in ledger["hints"]
-                   else " (no successor computable; --add-hint if one is needed)"))
-            continue
-        entry = retired.get(fid)
-        if not isinstance(entry, dict):
-            successor, counts = successor_by_mode(old_ids[fid], claim_ids)
-            if len(counts) > 1:
-                losers = sorted(set(counts) - {successor})
-                print_warning(
-                    f'retiring "{fid}": successor "{successor}" won the claim vote '
-                    f"({counts[successor]}); losing candidate(s): {', '.join(losers)}")
-            entry = {"claims": list(entry) if entry else [], "successor": successor}
-        entry["claims"] = sorted(set(entry["claims"]) | set(old_ids[fid]))
-        retired[fid] = entry
-        newly_retired.append(fid)
-
-    # Splice succession chains through forgotten ids so they stay live.
-    spliced = []
-    for fid in sorted(retired):
-        entry = retired[fid]
-        successor = entry.get("successor") if isinstance(entry, dict) else None
-        if successor in forget:
-            new_successor, _counts = successor_by_mode(old_ids.get(successor, []), claim_ids)
-            entry["successor"] = new_successor
-            spliced.append(fid)
-            print_info(
-                f'spliced succession: "{fid}" -> {json.dumps(new_successor)} '
-                f'(through forgotten "{successor}")')
-
     # Diff summary.
     added_ids = sorted(set(new_snap["ids"]) - set(old_ids))
     removed_ids = sorted(set(old_ids) - set(new_snap["ids"]))
@@ -1071,22 +783,12 @@ def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     changed = new_snap != old_snap
 
     if changed:
-        write_ledger(snapshot_path, new_snap)
-    if newly_retired or spliced or released or not os.path.exists(retired_path):
-        write_ledger(retired_path, {"retired": retired, "hints": ledger["hints"]})
+        write_snapshot(snapshot_path, new_snap)
 
     print_info(f"snapshot ids      : {len(new_snap['ids'])} (+{len(added_ids)} / -{len(removed_ids)})")
     print_info(f"claims added      : {added_claims}")
     print_info(f"claims removed    : {removed_claims}")
     print_info(f"declared triples  : {len(new_snap['triples'])}")
-    print_info(f"ids retired now   : {len(newly_retired)}" +
-               (f" ({', '.join(newly_retired)})" if newly_retired else ""))
-    if forgotten:
-        print_info(f"ids forgotten     : {len(forgotten)} ({', '.join(forgotten)})")
-    if released:
-        print_info(f"ids released      : {len(released)} ({', '.join(released)})")
-    if spliced:
-        print_info(f"chains spliced    : {len(spliced)} ({', '.join(spliced)})")
     for section in ("instantiated_with_id", "id_overrides", "alias_exceptions",
                     "triple_exceptions"):
         before, after = len(old_snap.get(section, [])), len(new_snap[section])
@@ -1095,125 +797,6 @@ def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
         print_success(f"snapshot written to {snapshot_path}")
     else:
         print_success("snapshot already up to date; nothing changed")
-    return 0
-
-
-def add_hints(pairs, profiles_dir=PROFILES_DIR, retired_path=RETIRED_PATH):
-    """--add-hint "OLD=NEW": forward an island-space id to a live id.
-
-    OLD must sit in an island id space (GF*), must not be retired, and —
-    when live in the tree — may be declared only by island vendors (Orca cannot
-    retire it). An absent OLD is fine: island catalogs own ids Orca never
-    shipped or has released. NEW must be live in the tree. All pairs validate
-    before anything is written. Returns 0 on success.
-    """
-    _utf8_console()
-    analysis = analyze_tree(profiles_dir)
-    errors = 0
-    for msg in analysis["read_errors"]:
-        print_error(msg)
-        errors += 1
-    ledger = load_ledger(retired_path)
-    live = set(analysis["ids"])
-    parsed = []
-    for pair in pairs:
-        if "=" not in pair:
-            print_error(f'--add-hint expects "OLD=NEW", got "{pair}"')
-            errors += 1
-            continue
-        old, new = pair.split("=", 1)
-        _is_reserved, island = reserved_space_owner(old)
-        outsiders = sorted(
-            v for v in analysis["declared_ids"]
-            if old in analysis["declared_ids"][v] and not is_island_declaration(v, old))
-        if old in ledger["retired"]:
-            print_error(f'--add-hint: "{old}" is retired; its succession entry already forwards it')
-            errors += 1
-        elif island is None:
-            print_error(
-                f'--add-hint: "{old}" is not in an island id space (GF*); '
-                f"non-island ids are retired with a successor by --update-snapshot")
-            errors += 1
-        elif outsiders:
-            print_error(
-                f'--add-hint: "{old}" is declared by non-island vendor(s) {outsiders}; '
-                f"hints apply only once no non-island vendor declares the id — re-mint "
-                f"those declarers first")
-            errors += 1
-        elif new not in live:
-            print_error(f'--add-hint: target "{new}" is not a live tree id')
-            errors += 1
-        else:
-            parsed.append((old, new))
-    if errors:
-        return 1
-    for old, new in parsed:
-        ledger["hints"][old] = new
-        print_info(f'hint added: "{old}" -> "{new}"')
-    write_ledger(retired_path, {"retired": ledger["retired"], "hints": ledger["hints"]})
-    return 0
-
-
-def retire_ids(pairs, profiles_dir=PROFILES_DIR, retired_path=RETIRED_PATH):
-    """--retire "OLD=NEW": retire a vanished non-island id with an explicit successor.
-
-    For shipped ids whose lineage the claim vote can no longer see: the id
-    vanished from the tree in an earlier phase's shadow — another declarer kept
-    it alive while its claims migrated — so no --update-snapshot run ever saw
-    the id vanish while its claims could still vote. OLD must be absent from
-    the tree (declared or effective) and outside every reserved id space
-    (island ids forward via --add-hint; user-custom ids are never system ids),
-    and must not already be retired or hinted. NEW must be a live tree id.
-    Appends {"claims": [], "successor": NEW}. All pairs validate before
-    anything is written. Returns 0 on success.
-    """
-    _utf8_console()
-    analysis = analyze_tree(profiles_dir)
-    errors = 0
-    for msg in analysis["read_errors"]:
-        print_error(msg)
-        errors += 1
-    ledger = load_ledger(retired_path)
-    live = set(analysis["ids"])
-    declared_anywhere = set()
-    for vids in analysis["declared_ids"].values():
-        declared_anywhere |= set(vids)
-    parsed = []
-    for pair in pairs:
-        if "=" not in pair:
-            print_error(f'--retire expects "OLD=NEW", got "{pair}"')
-            errors += 1
-            continue
-        old, new = pair.split("=", 1)
-        is_reserved, _island = reserved_space_owner(old)
-        if old in ledger["retired"]:
-            print_error(f'--retire: "{old}" is already retired')
-            errors += 1
-        elif old in ledger["hints"]:
-            print_error(f'--retire: "{old}" is a hint key; it already forwards')
-            errors += 1
-        elif is_reserved:
-            print_error(
-                f'--retire: "{old}" sits in a reserved id space; island ids '
-                f"forward via --add-hint, user-custom ids are never retired")
-            errors += 1
-        elif old in live or old in declared_anywhere:
-            print_error(
-                f'--retire: "{old}" still lives in the tree; re-mint or delete '
-                f"its declarers first (an id that vanishes normally gets its "
-                f"successor voted by --update-snapshot)")
-            errors += 1
-        elif new not in live:
-            print_error(f'--retire: successor "{new}" is not a live tree id')
-            errors += 1
-        else:
-            parsed.append((old, new))
-    if errors:
-        return 1
-    for old, new in parsed:
-        ledger["retired"][old] = {"claims": [], "successor": new}
-        print_info(f'retired: "{old}" -> "{new}"')
-    write_ledger(retired_path, {"retired": ledger["retired"], "hints": ledger["hints"]})
     return 0
 
 
@@ -1313,8 +896,7 @@ def remove_filament_id(path, old_id):
 # Default run: mint + insert ids for id-less families
 # ---------------------------------------------------------------------------
 
-def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                       retired_path=RETIRED_PATH):
+def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
     """Mint + insert ids for id-less families. Never rewrites a valid existing id.
 
     A family = (vendor, base name) group over instantiated filaments with no
@@ -1346,9 +928,9 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                       "nothing to do (0 files changed)")
         return 0, errors
 
-    # Ids already spoken for: whole tree (declared or effective) + ledgers.
+    # Ids already spoken for: the whole tree (declared or effective) + snapshot.
     snapshot = load_snapshot(snapshot_path) or {"ids": {}}
-    taken = set(snapshot["ids"]) | set(load_retired(retired_path))
+    taken = set(snapshot["ids"])
     for occurring in analysis["vendor_ids"].values():
         taken |= occurring
 
@@ -1427,7 +1009,7 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
 # --remint / --drop-redundant-ids (v3.1/v3.2 migration modes)
 # ---------------------------------------------------------------------------
 
-def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR, retired_path=RETIRED_PATH):
+def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
     """Re-derive every non-island declared id in the given vendors from its
     triple; rewrite mismatching declarations in place (byte-preserving). Never
     touches the snapshot — run --update-snapshot afterwards and review the diff.
@@ -1435,8 +1017,8 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR, retired_path=RETIRED_
     A declaration already equal to ANY salt iteration of its own triple is
     mint-conformant (check 3) and left alone — deliberate salt splits (distinct
     presets of one product kept apart for per-printer AMS matching) survive.
-    A candidate id is blocked when it is a retired key, a hints key, or occurs
-    in the tree with any triple set other than exactly {T}. Equal-triple reuse
+    A candidate id is blocked when it occurs in the tree with any triple set
+    other than exactly {T}. Equal-triple reuse
     is convergence: the same product must end up under the same id everywhere.
     Returns (rewritten, errors).
     """
@@ -1455,8 +1037,6 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR, retired_path=RETIRED_
             print_error(f"--remint: unknown vendor {v!r}")
         return 0, errors + len(unknown)
 
-    ledger = load_ledger(retired_path)
-    blocked_keys = set(ledger["retired"]) | set(ledger["hints"])
     occurring = set()
     for vids in analysis["vendor_ids"].values():
         occurring |= vids
@@ -1470,8 +1050,6 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR, retired_path=RETIRED_
             return assigned[triple]
         for salt in range(10000):
             cand = generate_filament_id(*triple, salt=salt)
-            if cand in blocked_keys:
-                continue
             if cand in occurring and triple_sets.get(cand, set()) != {triple}:
                 continue
             if run_taken.get(cand, triple) != triple:
@@ -1570,27 +1148,13 @@ def main(argv=None):
                         help="print the id the (filament_vendor, filament_type, "
                              "family name) triple would mint; touches nothing")
     parser.add_argument("--update-snapshot", action="store_true",
-                        help="regenerate scripts/filament_id_snapshot.json from the "
-                             "tree; ids that fully vanished are retired with a "
-                             "mode-rule successor")
+                        help="regenerate scripts/filament_id_snapshot.json from "
+                             "the tree")
     parser.add_argument("--check", action="store_true",
                         help="run the filament_id checks; exit nonzero on errors")
     parser.add_argument("--allow-shared-catalog", action="store_true",
                         help="with --update-snapshot: allow sanctioning new claims "
                              "on reserved-namespace ids for non-owner vendors")
-    parser.add_argument("--forget-never-shipped", metavar="JSON_FILE",
-                        help="with --update-snapshot: vanished ids listed in the file "
-                             "(JSON list) are dropped without a retirement entry and "
-                             "succession chains are spliced through them; refused if "
-                             "a listed id is still in the tree")
-    parser.add_argument("--add-hint", metavar='"OLD=NEW"', action="append",
-                        help="record a cross-island succession hint (island-owned "
-                             "live id -> live id) in the shipped ledger; standalone, "
-                             "repeatable")
-    parser.add_argument("--retire", metavar='"OLD=NEW"', action="append",
-                        help="retire a vanished non-island shipped id with an "
-                             "explicit successor (for lineage the claim vote can "
-                             "no longer see); standalone, repeatable")
     parser.add_argument("--remint", metavar="VENDOR", action="append",
                         help="re-derive VENDOR's declared filament_ids from their "
                              "triples and rewrite mismatches in place; repeatable")
@@ -1602,35 +1166,22 @@ def main(argv=None):
                         help="profiles directory (default: resources/profiles)")
     args = parser.parse_args(argv)
 
-    if args.forget_never_shipped and not args.update_snapshot:
-        parser.error("--forget-never-shipped requires --update-snapshot")
 
     if args.mint:
         parts = args.mint.split("/", 2)
         if len(parts) != 3 or not all(parts):
             parser.error('--mint expects "filament_vendor/filament_type/family_name" '
-                         "with all three components non-empty (check 8 rejects empty "
+                         "with all three components non-empty (check 7 rejects empty "
                          "vendor/type in the tree)")
         snapshot = load_snapshot(SNAPSHOT_PATH) or {"ids": {}}
-        taken = set(snapshot["ids"]) | set(load_retired(RETIRED_PATH))
+        taken = set(snapshot["ids"])
         print(mint_filament_id(parts[0], parts[1], parts[2], taken))
         return 0
-
-    if args.add_hint:
-        if (args.update_snapshot or args.check or args.remint
-                or args.drop_redundant_ids or args.retire):
-            parser.error("--add-hint runs standalone")
-        return add_hints(args.add_hint, args.profiles, RETIRED_PATH)
-
-    if args.retire:
-        if args.update_snapshot or args.check or args.remint or args.drop_redundant_ids:
-            parser.error("--retire runs standalone")
-        return retire_ids(args.retire, args.profiles, RETIRED_PATH)
 
     if args.remint:
         if args.update_snapshot or args.check or args.drop_redundant_ids:
             parser.error("--remint cannot be combined with other modes")
-        _changed, errors = remint_vendors(args.remint, args.profiles, RETIRED_PATH)
+        _changed, errors = remint_vendors(args.remint, args.profiles)
         return 1 if errors else 0
 
     if args.drop_redundant_ids:
@@ -1640,19 +1191,18 @@ def main(argv=None):
         return 1 if errors else 0
 
     if args.update_snapshot:
-        return update_snapshot(args.profiles, SNAPSHOT_PATH, RETIRED_PATH,
-                               allow_shared_catalog=args.allow_shared_catalog,
-                               forget_path=args.forget_never_shipped)
+        return update_snapshot(args.profiles, SNAPSHOT_PATH,
+                               allow_shared_catalog=args.allow_shared_catalog)
 
     if args.check:
-        errors = check_filament_ids(args.profiles, SNAPSHOT_PATH, RETIRED_PATH)
+        errors = check_filament_ids(args.profiles, SNAPSHOT_PATH)
         if errors:
             print_error(f"filament_id check: {errors} error(s)")
             return 1
         print_success("filament_id check: no errors")
         return 0
 
-    _changed, errors = assign_missing_ids(args.profiles, SNAPSHOT_PATH, RETIRED_PATH)
+    _changed, errors = assign_missing_ids(args.profiles, SNAPSHOT_PATH)
     return 1 if errors else 0
 
 
