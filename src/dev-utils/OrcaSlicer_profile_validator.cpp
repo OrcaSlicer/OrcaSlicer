@@ -392,7 +392,7 @@ int main(int argc, char* argv[])
     ("generate_presets,g", po::value<bool>()->default_value(false), "Generate user presets for mock test")
     ("slice,s", po::bool_switch()->default_value(false), "Slice a two-colour cube through every printer to expand all custom g-code (catches placeholder/flow errors that static checks miss). Off unless this flag is present.")
     ("outdir,o", po::value<std::string>()->default_value(""), "With -s, also save each printer's g-code to this folder (as <vendor>__<printer>.gcode) for manual inspection. Optional.")
-    ("check_filament_subtypes,f", po::bool_switch()->default_value(false), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
+    ("check_filament_subtypes,f", po::bool_switch()->default_value(true), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
     ("log_level,l", po::value<int>()->default_value(2), "Log level. Optional, default is 2 (warning). Higher values produce more detailed logs.");
     // clang-format on
 

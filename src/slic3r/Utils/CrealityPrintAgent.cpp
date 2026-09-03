@@ -8,13 +8,21 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <map>
+#include <set>
 
 namespace Slic3r {
 
 namespace {
 
 constexpr const char* CrealityPrintAgent_VERSION = "0.1.0";
+
+std::string to_lower(std::string s)
+{
+    for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+}
 
 bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
 {
@@ -27,19 +35,47 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+// Lower-case words of a preset name with the "@scope" suffix dropped:
+// "Generic PLA Matte @Creality K2-all" -> {"generic", "pla", "matte"}.
+std::vector<std::string> name_words(const std::string& name)
+{
+    std::vector<std::string> words;
+    std::string              word;
+    for (char c : name.substr(0, name.find('@'))) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            word += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        } else if (!word.empty()) {
+            words.push_back(word);
+            word.clear();
+        }
+    }
+    if (!word.empty())
+        words.push_back(word);
+    return words;
+}
+
 } // namespace
 
 // Score visible compatible filament presets against the CFS spool metadata and
 // return the best-matching filament_id. Scoring:
 //   +20  preset name contains brand_name as a substring
 //        (e.g. "Hyper PLA" in "Hyper PLA @Creality K2 0.4 nozzle")
-//   +10  preset name contains the vendor substring (e.g. "Creality")
-//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies. Brand-
-//   specific system presets carry their own filament_id; user copies of
-//   generic presets inherit a generic filament_id from their parent, so
-//   preferring the user copy can collapse a brand-specific match back to
-//   "Generic PLA" via the inherited id. Plus: this code targets upstream
-//   OrcaSlicer where shipping the user's local tuning would be wrong.
+//   +10  the preset belongs to the spool's vendor - by its owning VendorProfile OR by
+//        its name. The profile test is what finds the vendor's own generics, which are
+//        named "Generic <material> @<scope>" and do not repeat the vendor; the name test
+//        still finds a third party filament shipped inside that vendor's bundle, which
+//        carries the bundle owner's profile but names its real brand.
+//    -5  per word of the preset name the spool never mentioned ("generic" excepted -
+//        it marks the unbranded base product rather than a qualifier), so the least
+//        specific preset that still explains the spool wins. Without it a spool
+//        reporting only "PLA" scores "Generic PLA High Speed" and "Generic PLA Matte"
+//        exactly as high as "Generic PLA"; those are three products with three
+//        filament_ids, so whichever sorted first won and the printer got the wrong
+//        one. Applied after the score gate, so it only reorders genuine matches.
+//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies, then by name so the
+//   winner never depends on how std::sort leaves equal elements. User copies of generic
+//   presets inherit a generic filament_id from their parent, so preferring the user copy
+//   can collapse a brand-specific match back to "Generic PLA" via the inherited id.
 // Requires the preset's declared filament_type to equal the spool's base type
 // (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
 // Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
@@ -48,14 +84,16 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
                                                       const std::string&      brand_name,
                                                       const std::string&      base_type)
 {
-    auto to_lower = [](std::string s) {
-        for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        return s;
-    };
-
     const std::string vendor_lower = to_lower(vendor);
     const std::string brand_lower  = to_lower(brand_name);
     const std::string type_lower   = to_lower(base_type);
+
+    // Everything the spool told us about itself, as words. A word in a preset's name
+    // that is not in here is a qualifier the spool never claimed.
+    std::set<std::string> spool_words{"generic"};
+    for (const std::string& src : {brand_lower, vendor_lower, type_lower})
+        for (auto& w : name_words(src))
+            spool_words.insert(std::move(w));
 
     struct Match {
         const Preset* preset;
@@ -83,11 +121,20 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
         int score = 0;
         if (!brand_lower.empty() && name_lower.find(brand_lower) != std::string::npos)
             score += 20;
-        if (!vendor_lower.empty() && name_lower.find(vendor_lower) != std::string::npos)
+        // Profile OR name - neither alone covers both the vendor's own generics and the
+        // third party filaments shipped inside its bundle. See the header comment.
+        if (!vendor_lower.empty()
+            && ((p.vendor != nullptr && to_lower(p.vendor->name) == vendor_lower)
+                || name_lower.find(vendor_lower) != std::string::npos))
             score += 10;
 
-        if (score > 0)
-            matches.push_back({&p, score, !p.is_system && !p.is_default});
+        if (score == 0) continue;
+
+        for (const auto& w : name_words(p.name))
+            if (spool_words.count(w) == 0)
+                score -= 5;
+
+        matches.push_back({&p, score, !p.is_system && !p.is_default});
     }
 
     if (matches.empty()) {
@@ -105,7 +152,7 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
               [](const Match& a, const Match& b) {
                   if (a.score   != b.score)   return a.score > b.score;
                   if (a.is_user != b.is_user) return !a.is_user; // prefer system over user
-                  return false;
+                  return a.preset->name < b.preset->name;        // keep the winner deterministic
               });
 
     BOOST_LOG_TRIVIAL(info)
