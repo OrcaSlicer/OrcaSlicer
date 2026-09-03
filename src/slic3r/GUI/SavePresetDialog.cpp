@@ -153,7 +153,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
 
             detach_label->SetForegroundColour(wxColour("#363636"));
 
-            auto on_toggle = [this, detach_checkbox]() {
+            auto on_toggle = [detach_checkbox]() {
                 detach_checkbox->SetValue(!detach_checkbox->GetValue());
                 wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
                 ev.SetEventObject(detach_checkbox);
