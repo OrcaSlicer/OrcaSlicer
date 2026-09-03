@@ -3,6 +3,7 @@
 #include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 using namespace Slic3r;
 
@@ -233,4 +234,28 @@ TEST_CASE("Compaction renumbers a mix's components", "[FilamentCompaction]")
 
     CHECK(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>{0, 0, 1});
     CHECK(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>{"", "", "1,2"});
+}
+
+TEST_CASE("A painted mix is renumbered in the copy's painted-filament list", "[FilamentCompaction]")
+{
+    // The field case: a filament-1 cube painted with slot 8, a mix of loaded filaments 4 and 5.
+    Model         model  = model_using({1});
+    ModelVolume*  volume = model.objects[0]->volumes[0];
+    TriangleSelector selector(volume->mesh());
+    selector.set_facet(0, EnforcerBlockerType::Extruder8);
+    volume->mmu_segmentation_facets.set_data(selector.serialize());
+    // get_extruders caches the painted list keyed on the painting's timestamp; prime it so the
+    // copy below inherits a cache that names the project slots.
+    REQUIRE(volume->get_extruders() == std::vector<int>{8, 1});
+
+    const DynamicPrintConfig config = mixed_config(8, 8, "4,5");
+    CHECK(used_filament_slots(model, config) == std::vector<int>{0, 3, 4});
+
+    const FilamentCompaction compaction = build_filament_compaction(model, config);
+    REQUIRE(compaction.slot_of_tool == std::vector<int>{0, 3, 4, 7});
+
+    Model copy = model;
+    apply_filament_compaction(copy, model, compaction);
+    // The copy keeps the source's timestamp by design, so a stale cache would still say 8 here.
+    CHECK(copy.objects[0]->volumes[0]->get_extruders() == std::vector<int>{4, 1});
 }
