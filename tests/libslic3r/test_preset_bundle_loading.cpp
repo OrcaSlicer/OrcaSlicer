@@ -612,6 +612,76 @@ TEST_CASE("Filament preset selections round-trip for a mapped multi-tool printer
     CHECK(bundle2.project_config.option<ConfigOptionStrings>("filament_colour_type")->values.size() == 5);
 }
 
+// Switching printers rebuilds the filament list from the new printer's per-printer snapshot (the
+// "Remember printer configuration" preference). A printer never used before remembers one
+// filament grown to its nozzle count, so a six-filament project switched to a four-nozzle
+// toolchanger was cut to four; one that remembered eight replaced the project's presets,
+// colours and mixes with its own. Where the printer's filament count isn't bound to its nozzles
+// the project's list travels whole; anywhere else upstream's behaviour is unchanged.
+TEST_CASE("Switching to a printer that can take them keeps the project's filaments", "[Preset][Bundle][FilamentMapping]")
+{
+    struct Case { const char* name; bool semm; bool mapped; size_t remembered; size_t expected; };
+    const Case c = GENERATE(
+        Case{ "a mapped toolchanger remembering four keeps all six",      false, true,  4, 6 },
+        Case{ "an AMS/MMU printer remembering one keeps all six",         true,  false, 1, 6 },
+        Case{ "a plain single-nozzle printer still restores its snapshot", false, false, 1, 1 },
+        Case{ "a toolchanger remembering eight does not override the six", false, true,  8, 6 });
+
+    DYNAMIC_SECTION(c.name) {
+        AppConfig    config;
+        PresetBundle bundle;
+
+        std::vector<std::string> filament_names;
+        for (int i = 0; i < 8; ++i) {
+            filament_names.push_back("Test Filament " + std::to_string(i));
+            Preset &f  = add_inmemory_preset(bundle.filaments, filament_names.back());
+            f.is_system = true;
+        }
+
+        Preset &printer   = add_inmemory_preset(bundle.printers, "Target Printer");
+        printer.is_system = true;
+        // Four heads for the toolchanger, one nozzle otherwise.
+        printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.assign(c.mapped ? 4 : 1, 0.4);
+        printer.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = c.semm;
+        printer.config.option<ConfigOptionEnum<FilamentMappingProtocol>>("filament_mapping_protocol", true)->value =
+            c.mapped ? FilamentMappingProtocol::fmpSnapmaker : FilamentMappingProtocol::fmpNone;
+        // What the target printer remembers from its last use.
+        config.set_printer_setting("Target Printer", PRESET_FILAMENT_NAME, filament_names[0]);
+        for (size_t i = 1; i < c.remembered; ++i)
+            config.set_printer_setting("Target Printer", "filament_" + std::string(i < 10 ? "0" : "") + std::to_string(i), filament_names[i]);
+
+        // The project as it stands before the switch: six filaments with their own colours.
+        bundle.filament_presets.assign(filament_names.begin(), filament_names.begin() + 6);
+        std::vector<std::string> project_colours;
+        for (int i = 0; i < 6; ++i)
+            project_colours.push_back("#00000" + std::to_string(i));
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour", true)->values = project_colours;
+        // The app keeps every per-filament project array at the list's length; mirror that.
+        bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour", true)->values = project_colours;
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour_type", true)->values.assign(6, "1");
+        bundle.project_config.option<ConfigOptionBools>("filament_is_mixed", true)->values = { 0, 0, 0, 0, 0, 1 };
+        bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components", true)->values = { "", "", "", "", "", "1,2" };
+
+        bundle.printers.select_preset_by_name("Target Printer", true);
+        bundle.update_selections(config);
+
+        REQUIRE(bundle.filament_presets.size() == c.expected);
+        const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+        REQUIRE(colours.size() == c.expected);
+        if (c.expected == 6) {
+            CHECK(std::vector<std::string>(bundle.filament_presets.begin(), bundle.filament_presets.end()) ==
+                  std::vector<std::string>(filament_names.begin(), filament_names.begin() + 6));
+            CHECK(colours == project_colours);
+            // The mix and its components travel with the list they index.
+            CHECK(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values[5] == true);
+            CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[5] == "1,2");
+        }
+        // Every per-filament surface is sized to the list, whichever list won.
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values.size() == c.expected);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour_type")->values.size() == c.expected);
+    }
+}
+
 TEST_CASE("export_selections preserves the loaded_filaments inventory key across its clear+rewrite", "[Preset][Bundle][FilamentMapping]")
 {
     // export_selections() calls config.clear_printer_settings(printer_name) then rewrites the

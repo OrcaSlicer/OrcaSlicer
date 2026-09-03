@@ -200,6 +200,12 @@ bool physical_filament_features_enabled(const ConfigBase& printer_config)
     return device_resolves_filament_mapping(printer_config);
 }
 
+bool filament_count_decoupled_from_nozzles(const ConfigBase& printer_config)
+{
+    const ConfigOption* semm = printer_config.option("single_extruder_multi_material");
+    return (semm != nullptr && semm->getBool()) || physical_filament_features_enabled(printer_config);
+}
+
 std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based)
 {
     // Clamp here, once, so every caller is safe even from a malformed master_extruder_id (e.g. 0
