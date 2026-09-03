@@ -733,12 +733,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
                 ConfigOptionVectorBase* opt_vec_inherit = static_cast<ConfigOptionVectorBase*>(parent_config->option(option));
                 if (opt_vec_src->size() == 1)
                     opt_dst->set(opt_src);
-                else if (opt_vec_src->size() != opt_vec_inherit->size()) {
-                    // Size mismatch (e.g. new multi-extruder profile inheriting from a
-                    // single-extruder base): nil-delta encoding requires matching sizes,
-                    // so fall back to storing the full vector.
-                    opt_dst->set(opt_src);
-                }
                 else if (key_set1->find(option) != key_set1->end()) {
                     opt_vec_dst->set_with_nil(opt_vec_src, opt_vec_inherit, 1);
                 }
@@ -1905,12 +1899,6 @@ Preset* PresetCollection::get_preset_differed_for_save(Preset& preset)
                 ConfigOptionVectorBase* opt_vec_inherit = static_cast<ConfigOptionVectorBase*>(parent_preset->config.option(option));
                 if (opt_vec_src->size() == 1)
                     opt_dst->set(opt_src);
-                else if (opt_vec_src->size() != opt_vec_inherit->size()) {
-                    // Size mismatch (e.g. new multi-extruder profile inheriting from a
-                    // single-extruder base): nil-delta encoding requires matching sizes,
-                    // so fall back to storing the full vector.
-                    opt_dst->set(opt_src);
-                }
                 else if (key_set1->find(option) != key_set1->end()) {
                     opt_vec_dst->set_with_nil(opt_vec_src, opt_vec_inherit, 1);
                 }
