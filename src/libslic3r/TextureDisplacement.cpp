@@ -15,11 +15,14 @@
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_sort.h>
 
 #include "MeshBoolean.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
 #include "TriangleSelector.hpp"
+#include "TextureBake/TextureBakeMesh.hpp"
+#include "TextureBake/TextureBakePipeline.hpp"
 
 namespace Slic3r {
 
@@ -1361,6 +1364,83 @@ void despeckle_triangle_colors(const indexed_triangle_set &mesh, std::vector<int
 }
 } // namespace
 
+namespace {
+
+// Wired to the same layer stack via make_combined_displacement_sampler(), so layers, blend modes and
+// projections behave identically in both paths and the comparison is between the meshing strategies.
+indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set                  &mesh,
+                                                   const std::vector<TextureDisplacementLayer> &layers,
+                                                   const TextureDisplacementFacetsData         &facets_data,
+                                                   const TextureDisplacementOptions            &options,
+                                                   const DisplacementProgressFn                &progress)
+{
+    HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data);
+    if (!combined)
+        return mesh; // nothing decodable to displace with
+
+    // Unpainted triangles are excluded, keeping them out of refinement and pinned thereafter.
+    std::vector<uint8_t> excluded(mesh.indices.size(), 1);
+    {
+        const TriangleMesh selector_mesh(mesh);
+        TriangleSelector   selector(selector_mesh);
+        bool               dirty = false;
+        for (const TriangleSelector::TriangleSplittingData &data : facets_data) {
+            if (data.triangles_to_split.empty())
+                continue;
+            selector.deserialize(data, dirty);
+            dirty = true;
+            std::vector<int> piece_src;
+            const indexed_triangle_set patch =
+                selector.get_facets_strict(EnforcerBlockerType::ENFORCER, &piece_src);
+            for (const int src : piece_src)
+                if (src >= 0 && size_t(src) < excluded.size())
+                    excluded[size_t(src)] = 0;
+        }
+    }
+    if (std::all_of(excluded.begin(), excluded.end(), [](uint8_t e) { return e != 0; }))
+        return mesh; // nothing painted
+
+    TextureBake::PipelineSettings settings;
+    settings.refine_length = std::max(0.01f, options.v2_refine_mm);
+    settings.regularize    = options.v2_regularize;
+    settings.max_triangles = size_t(std::max(0, options.v2_max_triangles_k)) * 1000;
+    settings.preserve_untextured = true;
+    // The sampler already returns millimetres, so the displacement stage must not scale it again.
+    settings.displace.amplitude = 1.f;
+    settings.displace.symmetric = false;
+    // The paint decides what moves here, so the angle limits stay off.
+    settings.displace.bottom_angle_limit = 0.f;
+    settings.displace.top_angle_limit    = 0.f;
+
+    TextureBake::DisplaceBounds bounds;
+    bounds.min = bounds.max = mesh.vertices.empty() ? Vec3f::Zero() : mesh.vertices.front();
+    for (const Vec3f &v : mesh.vertices) {
+        bounds.min = bounds.min.cwiseMin(v);
+        bounds.max = bounds.max.cwiseMax(v);
+    }
+
+    const auto sample = [&combined](const Vec3f &pos, const Vec3f &smooth_normal, const Vec3f &) {
+        // The smooth normal: the direction the vertex actually moves along.
+        return combined(pos, smooth_normal);
+    };
+
+    // 0 means no simplification, i.e. Bake mode.
+    const TextureBake::PipelineMode mode = settings.max_triangles > 0 ? TextureBake::PipelineMode::Export
+                                                                      : TextureBake::PipelineMode::Bake;
+    TextureBake::PipelineResult result = TextureBake::run_pipeline(
+        TextureBake::to_soup(mesh, excluded), sample, settings, bounds, mode, excluded,
+        [&progress](const char *, double f) {
+            return !progress || progress(std::clamp(int(f * 100.0), 0, 99));
+        });
+    if (result.canceled || result.geometry.empty())
+        return {};
+
+    indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry);
+    return out.indices.empty() ? mesh : out;
+}
+
+} // namespace
+
 indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
                                                  const std::vector<TextureDisplacementLayer> &layers,
                                                  const TextureDisplacementFacetsData         &facets_data,
@@ -1383,6 +1463,9 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     its_compactify_vertices(mesh);
     if (mesh.vertices.empty() || mesh.indices.empty())
         return mesh;
+
+    if (options.pipeline_v2)
+        return build_texture_displacement_v2(mesh, layers, facets_data, options, progress);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -2073,26 +2156,38 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
     // instead of with the refined region, and what forced the tiny pass budget that stopped
     // refinement short.
     {
-        struct EdgeRec { int he[2]; int count; }; // he = encoded half-edge (triangle * 3 + local edge)
-        std::unordered_map<uint64_t, EdgeRec> edges;
-        edges.reserve(tris.size() * 2);
-        for (int ti = 0; ti < int(tris.size()); ++ti)
-            for (int e = 0; e < 3; ++e) {
-                EdgeRec &r = edges.try_emplace(edge_key(tris[ti].v[e], tris[ti].v[(e + 1) % 3]),
-                                               EdgeRec{ { -1, -1 }, 0 })
-                                 .first->second;
-                if (r.count < 2)
-                    r.he[r.count] = ti * 3 + e;
-                ++r.count;
+        // Sort the half-edges by their edge key and walk the equal runs, rather than hashing every one
+        // of them twice into an unordered_map. Same result, but the two expensive parts - forming the
+        // keys and ordering them - both parallelise, where a shared hash map cannot. The map also cost
+        // a second full pass of lookups purely to read back what the first pass had just inserted.
+        std::vector<std::pair<uint64_t, int>> he(tris.size() * 3); // (edge key, triangle * 3 + local edge)
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, tris.size()),
+                          [&](const tbb::blocked_range<size_t> &range) {
+                              for (size_t ti = range.begin(); ti < range.end(); ++ti)
+                                  for (int e = 0; e < 3; ++e)
+                                      he[ti * 3 + size_t(e)] = {
+                                          edge_key(tris[ti].v[e], tris[ti].v[(e + 1) % 3]), int(ti) * 3 + e
+                                      };
+                          });
+        tbb::parallel_sort(he.begin(), he.end());
+        // Runs of equal key are the half-edges of one edge: one is a boundary, two are neighbours,
+        // more is non-manifold. Serial, but it is a single linear pass over an already ordered array.
+        for (size_t i = 0; i < he.size();) {
+            size_t j = i + 1;
+            while (j < he.size() && he[j].first == he[i].first)
+                ++j;
+            const size_t count = j - i;
+            if (count == 2) {
+                const int a = he[i].second, b = he[i + 1].second;
+                tris[size_t(a / 3)].nb[a % 3] = b / 3;
+                tris[size_t(b / 3)].nb[b % 3] = a / 3;
+            } else if (count > 2) {
+                for (size_t k = i; k < j; ++k)
+                    tris[size_t(he[k].second / 3)].nb[he[k].second % 3] = NB_NONMANIFOLD;
             }
-        for (int ti = 0; ti < int(tris.size()); ++ti)
-            for (int e = 0; e < 3; ++e) {
-                const EdgeRec &r = edges.at(edge_key(tris[ti].v[e], tris[ti].v[(e + 1) % 3]));
-                if (r.count > 2)
-                    tris[ti].nb[e] = NB_NONMANIFOLD;
-                else if (r.count == 2)
-                    tris[ti].nb[e] = (r.he[0] == ti * 3 + e ? r.he[1] : r.he[0]) / 3;
-            }
+            // count == 1 keeps the NB_BOUNDARY it was initialised with.
+            i = j;
+        }
     }
 
     // Feature mode: per-vertex surface normal, and the sampled displacement height at each vertex.
@@ -2151,6 +2246,40 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
         }
         return vcolor[v];
     };
+
+    // Sample the input mesh's own vertices up front, in parallel, for the region that is going to be
+    // refined. A sampler call is a texture fetch plus the projection's trigonometry per layer, and it
+    // is by far the most expensive thing here - but taken one at a time from inside the refinement
+    // loop it is also strictly serial. Every one of these vertices is read by the very first scoring
+    // pass anyway, so doing them together costs nothing extra and hands the work to every core.
+    //
+    // Only the region, and only the *initial* vertices: the laziness this replaces exists so that a
+    // small painted patch on a big model does not pay for the whole model (see height_of()), and that
+    // still holds. Midpoints created later stay lazy, because they do not exist yet.
+    if (feature_mode || color_mode) {
+        std::vector<uint8_t> wanted(verts.size(), 0);
+        for (const Tri &t : tris)
+            if (refine_region[t.src] != 0)
+                for (int i = 0; i < 3; ++i)
+                    wanted[size_t(t.v[i])] = 1;
+        // Each index is touched by exactly one iteration, so the lazy caches can be filled without
+        // synchronisation - and every value is the one height_of()/color_of() would have produced.
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, verts.size()),
+                          [&](const tbb::blocked_range<size_t> &range) {
+                              for (size_t v = range.begin(); v < range.end(); ++v) {
+                                  if (!wanted[v])
+                                      continue;
+                                  if (feature_mode) {
+                                      vheight[v]       = sampler(verts[v], vnormal[v]);
+                                      vheight_valid[v] = 1;
+                                  }
+                                  if (color_mode) {
+                                      vcolor[v]       = color(verts[v], vnormal[v]);
+                                      vcolor_valid[v] = 1;
+                                  }
+                              }
+                          });
+    }
 
     auto elen_sq = [&](int a, int b) -> float { return (verts[a] - verts[b]).squaredNorm(); };
 
@@ -2388,9 +2517,22 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
     // re-scored on pop and dropped or re-pushed. The ordering is a budget-allocation heuristic only:
     // neither correctness nor conformality depends on it.
     std::priority_queue<std::pair<float, int>> queue;
-    for (int ti = 0; ti < int(tris.size()); ++ti)
-        if (const float p = priority(ti); p > 1.f)
-            queue.emplace(p, ti);
+    {
+        // Scoring the starting mesh means a detail_error() per triangle - four more sampler calls each
+        // - so it is worth spreading, even though the refinement that follows cannot be. Each entry is
+        // written by one iteration only, and the caches those calls fill (tri_err, tri_color_split) are
+        // likewise per triangle, so there is nothing shared to guard. The heap is then built from the
+        // finished array in index order, which is exactly the order the serial loop pushed in.
+        std::vector<float> initial(tris.size(), 0.f);
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, tris.size()),
+                          [&](const tbb::blocked_range<size_t> &range) {
+                              for (size_t ti = range.begin(); ti < range.end(); ++ti)
+                                  initial[ti] = priority(int(ti));
+                          });
+        for (int ti = 0; ti < int(tris.size()); ++ti)
+            if (initial[size_t(ti)] > 1.f)
+                queue.emplace(initial[size_t(ti)], ti);
+    }
 
     // Every iteration either drops one satisfied triangle from the queue or performs exactly one
     // bisection, and bisections are capped by the triangle budget, so this always terminates.

@@ -3317,7 +3317,9 @@ bool GLGizmoTextureDisplacement::collect_paint_region(
                     ++vstart[size_t(its.indices[i][k]) + 1];
         for (size_t v = 0; v < nvert; ++v)
             vstart[v + 1] += vstart[v];
-        std::vector<int> vtri(size_t(vstart[nvert]), 0);
+        // static_cast, not size_t(...): the latter parses as a parameter declaration (see the note
+        // above the identical prefix sum on `part`).
+        std::vector<int> vtri(static_cast<size_t>(vstart[nvert]), 0);
         {
             std::vector<int> fill(vstart.begin(), vstart.begin() + nvert);
             for (size_t i = 0; i < ntri; ++i)
@@ -4094,6 +4096,13 @@ void GLGizmoTextureDisplacement::bake_standard()
         return;
     }
     apply_standard_mode_presets(mv); // belt and braces: never bake with values the panel is not showing
+
+    // It refines as part of the bake, so preparing first would refine a second time at another
+    // target.
+    if (mv->texture_displacement_options.pipeline_v2) {
+        bake();
+        return;
+    }
 
     // The whole recipe in one go. Either stage having nothing to do is normal, not a failure - a mesh
     // that is already even needs no remesh, one that is already fine enough for the texture needs no
@@ -5363,6 +5372,48 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         m_parent.set_as_dirty();
     }
     m_imgui->disabled_end();
+
+    // Next to Bake and shown in both modes: the two pipelines have to be switchable on their own.
+    if (mv != nullptr) {
+        TextureDisplacementOptions &opts = mv->texture_displacement_options;
+        ImGui::Separator();
+    m_preview_params_dirty |= ImGui::Checkbox(_u8L("Experimental bake pipeline").c_str(), &opts.pipeline_v2);
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Bake with the alternative pipeline: it refines, cleans up sliver triangles, "
+                              "displaces and simplifies in one run, instead of moving the vertices the mesh "
+                              "already has. Nothing needs preparing first - Subdivide and Remesh are ignored. "
+                              "It does not produce colours yet, because it rebuilds the topology."),
+                          m_imgui->scaled(20.f));
+    if (opts.pipeline_v2) {
+        ImGui::PushItemWidth(m_imgui->scaled(8.4f));
+        if (m_imgui->slider_float(std::string(_u8L("Edge length (mm)")) + "##v2edge", &opts.v2_refine_mm,
+                                  0.02f, 2.f, "%.1f", ImGuiLogSlider)) {
+            opts.v2_refine_mm      = std::clamp(opts.v2_refine_mm, 0.02f, 2.f);
+            m_preview_params_dirty = true;
+        }
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(_u8L("Triangle size the painted area is refined to before displacement. This is "
+                                  "what decides how much of the texture the mesh can carry."),
+                              m_imgui->scaled(20.f));
+        if (ImGui::SliderInt((_u8L("Triangle budget (k)") + "##v2budget").c_str(), &opts.v2_max_triangles_k,
+                             0, 4000)) {
+            opts.v2_max_triangles_k = std::clamp(opts.v2_max_triangles_k, 0, 4000);
+            m_preview_params_dirty  = true;
+        }
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(_u8L("Triangles to simplify down to after displacement, in thousands. 0 turns "
+                                  "simplification off, which is worth comparing on its own."),
+                              m_imgui->scaled(20.f));
+        ImGui::PopItemWidth();
+        m_preview_params_dirty |= ImGui::Checkbox(_u8L("Clean up slivers").c_str(), &opts.v2_regularize);
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(_u8L("Collapse the thin triangles refinement inherits from the model's own "
+                                  "tessellation, before displacement samples them. A sliver's three corners "
+                                  "land on three unrelated parts of the texture, which is what makes the "
+                                  "relief look jagged."),
+                              m_imgui->scaled(20.f));
+    }
+    }
 
     ImGui::SameLine();
     m_imgui->disabled_begin(m_bake_in_progress || m_prepare_in_progress || mv == nullptr ||

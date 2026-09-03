@@ -169,7 +169,7 @@ struct TextureDisplacementLayer
     std::shared_ptr<std::vector<unsigned char>> image_data;
 
     float depth_mm     = 0.4f; // maximum displacement along the surface normal, in mm
-    float tiling_scale = 10.f; // size of one texture tile, in mm
+    float tiling_scale = 12.5f; // size of one texture tile, in mm
     float rotation_deg = 0.f;
     Vec2f offset       = Vec2f::Zero();
     bool  invert       = false;
@@ -365,6 +365,15 @@ struct TextureDisplacementOptions
     // deliberately (which is a blunter version of the per-layer edge-smoothing falloff).
     bool  smooth_skip_border = true;
 
+    // Alternative bake pipeline, for side-by-side comparison. The path above is topology-preserving
+    // and needs the mesh prepared first; this one refines, removes slivers, displaces and optionally
+    // simplifies in one run. Off by default, and it produces no colour - it rebuilds the topology, so
+    // the per-facet assignment has nothing stable to attach to.
+    bool  pipeline_v2        = false;
+    float v2_refine_mm       = 0.3f;
+    bool  v2_regularize      = false;
+    int   v2_max_triangles_k = 750; // 0 skips simplification, which is worth comparing on its own
+
     // Colour, all of which belongs to the stack rather than to any one layer: it is about how the
     // printer will realise the colours, not about which image they came from.
 
@@ -381,7 +390,8 @@ struct TextureDisplacementOptions
     {
         int mix_mode = int(color_mix_mode);
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
-           color_mix_enabled, mix_mode, color_despeckle);
+           pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k, color_mix_enabled, mix_mode,
+           color_despeckle);
         color_mix_mode = ColorMixMode(mix_mode);
     }
 };

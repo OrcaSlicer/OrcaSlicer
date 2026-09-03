@@ -511,9 +511,9 @@ private:
     // The default used to be 1500 (i.e. +1.5 M triangles), which is what made Standard mode's Bake
     // take minutes: every stage after the subdivision - the displacement itself, the convex hull, the
     // GLModel upload, and the re-slice changed_object() triggers - then runs on a mesh two orders of
-    // magnitude denser than the input. 300k is still far finer than any FDM nozzle resolves at the
+    // magnitude denser than the input. 750k is still far finer than any FDM nozzle resolves at the
     // 0.02 mm detail tolerance Standard uses, and the slider goes to 2000 for anyone who wants more.
-    int   m_subdivide_budget_k    = 300;
+    int   m_subdivide_budget_k    = 750;
     void  subdivide_model_adaptive();
     // Fills `region` (per current-mesh triangle, a REFINE_* bitmask) from the union of every layer's
     // painted area plus the band straddling its edge. If `paint` is non-null, also fills the per-layer
@@ -572,7 +572,6 @@ private:
     GLModel m_paint_overlay_glmodel;
     // Set on every paint event, cleared when the overlay is rebuilt in render_painter_gizmo(). Kept
     // separate from m_bump_preview_dirty so a stroke refreshes only the small painted patch per frame,
-    // not the bump mesh (which also carries every *unpainted* triangle of the volume).
     bool    m_paint_overlay_dirty = false;
     void    rebuild_paint_overlay();
     void    render_paint_overlay();
