@@ -1149,3 +1149,42 @@ TEST_CASE("A plate may not use more filaments than the printer can route", "[Mul
             CHECK(err.find("filaments on one plate") != std::string::npos);
     }
 }
+
+// A mixed (virtual) filament is numbered after every physical one but never reaches the printer:
+// only its components are commanded as tools. The plate bound has to see through it, or a
+// four-filament plate that blends two of them is rejected on a four-tool printer.
+TEST_CASE("A mixed filament counts as its components against the plate bound", "[MultiFilament]") {
+    struct Case { const char* name; const char* components; bool valid; };
+    const Case c = GENERATE(
+        Case{ "a mix of tools 1 and 2 fits four tools",      "1,2", true  },
+        Case{ "a mix that pulls in filament 6 does not fit", "1,6", false });
+
+    DYNAMIC_SECTION(c.name) {
+        // Six project filaments on four heads: 1-4 physical, 5 a mix, 6 physical but unused.
+        DynamicPrintConfig config = multifilament_config(6, {
+            { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+            { "single_extruder_multi_material", "0" },
+            { "enable_filament_mapping",        "1" },
+            { "filament_is_mixed",              "0,0,0,0,1,0" },
+            { "filament_mixed_components",      std::string(";;;;") + c.components + ";" },
+            { "filament_mixed_sublayer_ratios", ";;;;0.5,0.5;" },
+            { "filament_mixed_gradient",        "0,0,0,0,0,0" },
+            { "filament_mixed_gradient_range",  ";;;;;" },
+            { "filament_mixed_gradient_curve",  ";;;;;" },
+            { "filament_mixed_gradient_per_part","0,0,0,0,0,0" },
+            { "wall_filament",                  "1" },
+            { "sparse_infill_filament",         "5" },
+            { "solid_infill_filament",          "5" },
+            { "layer_change_gcode",             "G92 E0" },
+        });
+
+        Model model;
+        Print print;
+        Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+        const std::string err = print.validate().string;
+        INFO("validate() said: " << err);
+        CHECK(err.empty() == c.valid);
+        if (!c.valid)
+            CHECK(err.find("filaments on one plate") != std::string::npos);
+    }
+}
