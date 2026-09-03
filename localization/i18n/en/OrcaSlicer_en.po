@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 11:46+0800\n"
+"POT-Creation-Date: 2026-09-03 10:27+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -5959,10 +5959,10 @@ msgstr ""
 msgid "Load a model"
 msgstr ""
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr ""
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr ""
 
 msgid "Import Configs"
@@ -7704,7 +7704,7 @@ msgstr ""
 msgid "Some filament slots were changed:"
 msgstr ""
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr ""
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7726,7 +7726,7 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 
 msgid "Object too small"
@@ -9189,7 +9189,13 @@ msgstr ""
 msgid "Publish 3MF..."
 msgstr ""
 
-msgid "Select which settings to embed in the 3MF file"
+msgid "Select which settings to be published in the 3MF file"
+msgstr ""
+
+msgid "Publish 3MF Wiki"
+msgstr ""
+
+msgid "Publish 3MF Video Guide"
 msgstr ""
 
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -9205,12 +9211,6 @@ msgid "Full Publish"
 msgstr ""
 
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
-
-msgid "Material Ratio"
-msgstr ""
-
-msgid "Model Height"
 msgstr ""
 
 msgid "Filter non-selected"
@@ -10457,11 +10457,11 @@ msgstr ""
 msgid "No modifications need to be copied."
 msgstr ""
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr ""
 
 #, c-format, boost-format
@@ -11987,7 +11987,7 @@ msgstr ""
 msgid "Other layers"
 msgstr ""
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr ""
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -13071,6 +13071,7 @@ msgstr ""
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr ""
 
+msgctxt "second"
 msgid "s"
 msgstr ""
 
@@ -14553,6 +14554,7 @@ msgstr ""
 msgid "The allowed maximum output force of Y axis"
 msgstr ""
 
+msgctxt "Newton"
 msgid "N"
 msgstr ""
 
@@ -14562,6 +14564,7 @@ msgstr ""
 msgid "The machine bed mass load of Y axis"
 msgstr ""
 
+msgctxt "gram"
 msgid "g"
 msgstr ""
 
@@ -14830,7 +14833,7 @@ msgstr ""
 msgid "Reduce infill retraction"
 msgstr ""
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -14986,7 +14989,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 
@@ -15029,7 +15032,7 @@ msgstr ""
 msgid "Z-hop height"
 msgstr ""
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr ""
 
 msgid "Z-hop lower boundary"
@@ -18355,17 +18358,17 @@ msgstr ""
 msgid "Only display the filament names with changes to filament presets."
 msgstr ""
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr ""
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 
 msgid "Please select at least one printer or filament."
@@ -18580,7 +18583,7 @@ msgstr ""
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr ""
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr ""
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -18622,7 +18625,7 @@ msgstr ""
 msgid "Stored logs"
 msgstr ""
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr ""
 
 msgid "Profiles"
@@ -18687,7 +18690,7 @@ msgstr ""
 msgid "Authorizing..."
 msgstr ""
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr ""
 
 msgid "Could not parse server response."
@@ -19125,7 +19128,7 @@ msgstr ""
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr ""
 
-msgid "Fila Saving"
+msgid "File Saving"
 msgstr ""
 
 msgid "Don't remind me again"
@@ -19408,6 +19411,15 @@ msgstr ""
 msgid "Skipping objects."
 msgstr ""
 
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
+msgstr ""
+
+msgid "Ratio"
+msgstr ""
+
 msgid "Select Filament"
 msgstr ""
 
@@ -19483,6 +19495,9 @@ msgid "Restart Now"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "s"
 msgstr ""
 
 msgid "Volumetric speed"

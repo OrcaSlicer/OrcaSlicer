@@ -80,7 +80,7 @@ bool Moonraker::test(wxString &msg) const
         res = false;
         msg = format_error(body, error, status);
     })
-    .on_complete([&, this](std::string body, unsigned) {
+    .on_complete([&](std::string body, unsigned) {
         BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: /server/info body: %2%") % name % body;
         try {
             std::stringstream ss(body);
@@ -141,7 +141,7 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
                 % name % error % status % body;
         }
     })
-    .on_complete([&, this](std::string body, unsigned) {
+    .on_complete([&](std::string body, unsigned) {
         BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: /server/files/roots body: %2%") % name % body;
         try {
             std::stringstream ss(body);

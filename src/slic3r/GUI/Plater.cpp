@@ -1325,8 +1325,8 @@ ExtruderGroup::ExtruderGroup(wxWindow* parent, int index, wxString const& title)
         label_flow->SetMinSize({FromDIP(80), -1});
     auto combo_flow = new ComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     combo_flow->GetDropDown().SetUseContentWidth(true);
-    combo_flow->Bind(wxEVT_COMBOBOX, [this, index, combo_flow](wxCommandEvent& evt) {
-        auto printer_tab             = dynamic_cast<TabPrinter*>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
+    combo_flow->Bind(wxEVT_COMBOBOX, [index, combo_flow](wxCommandEvent &evt) {
+        auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
         NozzleVolumeType volume_type = NozzleVolumeType(intptr_t(combo_flow->GetClientData(evt.GetInt())));
         printer_tab->set_extruder_volume_type(index, volume_type);
         auto plater = GUI::wxGetApp().plater();
@@ -1395,7 +1395,7 @@ ExtruderGroup::ExtruderGroup(wxWindow* parent, int index, wxString const& title)
     btn_up = new ScalableButton(this, wxID_ANY, "page_up", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER,
                                 false, 14);
     btn_up->SetBackgroundColour(*wxWHITE);
-    btn_up->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto& evt) {
+    btn_up->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur > 0)
             --page_cur;
         update_ams();
@@ -1404,7 +1404,7 @@ ExtruderGroup::ExtruderGroup(wxWindow* parent, int index, wxString const& title)
     btn_down = new ScalableButton(this, wxID_ANY, "page_down", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition,
                                   wxBU_EXACTFIT | wxNO_BORDER, false, 14);
     btn_down->SetBackgroundColour(*wxWHITE);
-    btn_down->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto& evt) {
+    btn_down->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur + 1 < page_num)
             ++page_cur;
         update_ams();
@@ -2043,8 +2043,8 @@ bool Sidebar::priv::sync_extruder_list(bool& only_external_material, bool is_man
         if (!this->plater)
             return false;
 
-        this->plater->update_objects_position_when_select_preset([&obj, machine_preset]() {
-            Tab* printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
+        this->plater->update_objects_position_when_select_preset([machine_preset]() {
+            Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
             printer_tab->select_preset(machine_preset->name);
         });
     }
@@ -2197,7 +2197,7 @@ bool Sidebar::priv::sync_extruder_list(bool& only_external_material, bool is_man
 void Sidebar::priv::update_sync_status(const MachineObject* obj)
 {
     StateColor not_synced_colour(std::pair<wxColour, int>(wxColour("#009688"), StateColor::Normal));
-    auto clear_all_sync_status = [this, &not_synced_colour]() {
+    auto clear_all_sync_status = [this]() {
         panel_printer_preset->ShowBadge(false);
         panel_printer_bed->ShowBadge(false);
         panel_nozzle_dia->ShowBadge(false); // ORCA add support for nozzle sync
@@ -2491,10 +2491,10 @@ Sidebar::Sidebar(Plater* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, 
         p->m_printer_icon          = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "printer");
         p->m_text_printer_settings = new Label(p->m_panel_printer_title, _L("Printer"), LB_PROPAGATE_MOUSE_EVENT | wxST_ELLIPSIZE_END);
 
-        p->m_printer_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
-            // auto wizard_t = new ConfigWizard(wxGetApp().mainframe);
-            // wizard_t->run(ConfigWizard::RR_USER, ConfigWizard::SP_CUSTOM);
-        });
+        p->m_printer_icon->Bind(wxEVT_BUTTON, [](wxCommandEvent& e) {
+            //auto wizard_t = new ConfigWizard(wxGetApp().mainframe);
+            //wizard_t->run(ConfigWizard::RR_USER, ConfigWizard::SP_CUSTOM);
+            });
 
         // ORCA use connect button on titlebar
         p->m_printer_connect = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "monitor_signal_strong");
@@ -2510,7 +2510,7 @@ Sidebar::Sidebar(Plater* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, 
         p->m_printer_bbl_sync->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { deal_btn_sync(); });
 
         p->m_printer_setting = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "settings");
-        p->m_printer_setting->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
+        p->m_printer_setting->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
             // p->editing_filament = -1;
             // wxGetApp().params_dialog()->Popup();
             // wxGetApp().get_tab(Preset::TYPE_FILAMENT)->restore_last_select_item();
@@ -2629,14 +2629,8 @@ Sidebar::Sidebar(Plater* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, 
             p->image_printer->SetBackgroundColour(bg_color);
             p->combo_printer->SetBackgroundColour(bg_color); // paints margins instead combo background
         };
-        p->combo_printer->Bind(wxEVT_SET_FOCUS, [this, printer_focus_bg](auto& e) {
-            printer_focus_bg(true);
-            e.Skip();
-        });
-        p->combo_printer->Bind(wxEVT_KILL_FOCUS, [this, printer_focus_bg](auto& e) {
-            printer_focus_bg(false);
-            e.Skip();
-        });
+        p->combo_printer->Bind(wxEVT_SET_FOCUS,  [printer_focus_bg](auto& e) {printer_focus_bg(true ); e.Skip();});
+        p->combo_printer->Bind(wxEVT_KILL_FOCUS, [printer_focus_bg](auto& e) {printer_focus_bg(false); e.Skip();});
 
         /* ORCA This part moved to titlebar
         p->btn_connect_printer = new ScalableButton(p->panel_printer_preset, wxID_ANY, "monitor_signal_strong");
@@ -2713,14 +2707,8 @@ Sidebar::Sidebar(Plater* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, 
             p->label_nozzle_type->SetBackgroundColour(bg_color);
             p->combo_nozzle_dia->SetBackgroundColour(bg_color); // paints margins instead combo background
         };
-        p->combo_nozzle_dia->Bind(wxEVT_SET_FOCUS, [this, nozzle_focus_bg](auto& e) {
-            nozzle_focus_bg(true);
-            e.Skip();
-        });
-        p->combo_nozzle_dia->Bind(wxEVT_KILL_FOCUS, [this, nozzle_focus_bg](auto& e) {
-            nozzle_focus_bg(false);
-            e.Skip();
-        });
+        p->combo_nozzle_dia->Bind(wxEVT_SET_FOCUS,  [nozzle_focus_bg](auto& e) {nozzle_focus_bg(true ); e.Skip();});
+        p->combo_nozzle_dia->Bind(wxEVT_KILL_FOCUS, [nozzle_focus_bg](auto& e) {nozzle_focus_bg(false); e.Skip();});
 
         p->label_nozzle_type = new Label(p->panel_nozzle_dia, "Brass",
                                          LB_PROPAGATE_MOUSE_EVENT | wxST_ELLIPSIZE_END | wxALIGN_CENTRE_HORIZONTAL);
@@ -2797,14 +2785,8 @@ Sidebar::Sidebar(Plater* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, 
             p->image_printer_bed->SetBackgroundColour(bg_color);
             p->combo_printer_bed->SetBackgroundColour(bg_color); // paints margins instead combo background
         };
-        p->combo_printer_bed->Bind(wxEVT_SET_FOCUS, [this, bed_focus_bg](auto& e) {
-            bed_focus_bg(true);
-            e.Skip();
-        });
-        p->combo_printer_bed->Bind(wxEVT_KILL_FOCUS, [this, bed_focus_bg](auto& e) {
-            bed_focus_bg(false);
-            e.Skip();
-        });
+        p->combo_printer_bed->Bind(wxEVT_SET_FOCUS,  [bed_focus_bg](auto& e) {bed_focus_bg(true ); e.Skip();});
+        p->combo_printer_bed->Bind(wxEVT_KILL_FOCUS, [bed_focus_bg](auto& e) {bed_focus_bg(false); e.Skip();});
 
         // highlight border on hover
         auto printer_bed_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
@@ -3739,7 +3721,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
             extruder.combo_flow->SetSelection(select);
         };
 
-        auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index, ExtruderGroup& extruder) {
+        auto update_extruder_diameter = [&diameters, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
             extruder.combo_diameter->Clear();
             int select = -1;
             // ORCA get the actual nozzle diameter from printer config
@@ -7568,7 +7550,7 @@ Plater::priv::priv(Plater* q, MainFrame* main_frame)
 
         // Keep tracking the current sidebar size, by storing it using `best_size`, which will be stored
         // in the config and re-applied when the app is opened again.
-        this->sidebar->Bind(wxEVT_IDLE, [&sidebar, this](wxIdleEvent& e) {
+        this->sidebar->Bind(wxEVT_IDLE, [&sidebar](wxIdleEvent& e) {
             if (sidebar.IsShown() && sidebar.IsDocked() && sidebar.rect.GetWidth() > 0) {
                 sidebar.BestSize(sidebar.rect.GetWidth(), sidebar.best_size.GetHeight());
             }
@@ -7876,9 +7858,9 @@ Plater::priv::priv(Plater* q, MainFrame* main_frame)
         // Start the background thread and register this window as a target for update events.
         wxGetApp().removable_drive_manager()->init(this->q);
 #ifdef _WIN32
-        // Trigger enumeration of removable media on Win32 notification.
-        this->q->Bind(EVT_VOLUME_ATTACHED, [this](VolumeAttachedEvent& evt) { wxGetApp().removable_drive_manager()->volumes_changed(); });
-        this->q->Bind(EVT_VOLUME_DETACHED, [this](VolumeDetachedEvent& evt) { wxGetApp().removable_drive_manager()->volumes_changed(); });
+        //Trigger enumeration of removable media on Win32 notification.
+        this->q->Bind(EVT_VOLUME_ATTACHED, [](VolumeAttachedEvent &evt) { wxGetApp().removable_drive_manager()->volumes_changed(); });
+        this->q->Bind(EVT_VOLUME_DETACHED, [](VolumeDetachedEvent &evt) { wxGetApp().removable_drive_manager()->volumes_changed(); });
 #endif /* _WIN32 */
     }
 
@@ -8410,7 +8392,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     const float LOAD_MODEL_RATIO           = 0.9;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
-        int file_percent = 0;
 
 #ifdef _WIN32
         auto path = input_files[i];
@@ -8465,29 +8446,17 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     std::vector<Preset*> project_presets;
                     // BBS: backup & restore
                     q->skip_thumbnail_invalid = true;
-                    model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type,
-                                                             strategy, &plate_data, &project_presets, &file_version,
-                                                             [this, &dlg, real_filename, &progress_percent, &file_percent, stage_percent,
-                                                              INPUT_FILES_RATIO, total_files, i,
-                                                              &is_user_cancel](int import_stage, int current, int total, bool& cancel) {
-                                                                 bool cont           = true;
-                                                                 float percent_float = (100.0f * (float) i / (float) total_files) +
-                                                                                       INPUT_FILES_RATIO *
-                                                                                           ((float) stage_percent[import_stage] +
-                                                                                            (float) current *
-                                                                                                (float) (stage_percent[import_stage + 1] -
-                                                                                                         stage_percent[import_stage]) /
-                                                                                                (float) total) /
-                                                                                           (float) total_files;
-                                                                 BOOST_LOG_TRIVIAL(trace)
-                                                                     << "load_3mf_file: percent(float)=" << percent_float
-                                                                     << ", stage = " << import_stage << ", curr = " << current
-                                                                     << ", total = " << total;
-                                                                 progress_percent = (int) percent_float;
-                                                                 wxString msg     = wxString::Format(_L("Loading file: %s"),
-                                                                                                     from_path(real_filename));
-                                                                 cont             = dlg.Update(progress_percent, msg);
-                                                                 cancel           = !cont;
+                    model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type, strategy, &plate_data, &project_presets,
+                                                             &file_version,
+                                                             [&dlg, real_filename, &progress_percent, stage_percent, INPUT_FILES_RATIO, total_files, i,
+                                                              &is_user_cancel](int import_stage, int current, int total, bool &cancel) {
+                                                                 bool     cont = true;
+                                                                 float percent_float = (100.0f * (float)i / (float)total_files) + INPUT_FILES_RATIO * ((float)stage_percent[import_stage] + (float)current * (float)(stage_percent[import_stage + 1] - stage_percent[import_stage]) /(float) total) / (float)total_files;
+                                                                 BOOST_LOG_TRIVIAL(trace) << "load_3mf_file: percent(float)=" << percent_float << ", stage = " << import_stage << ", curr = " << current << ", total = " << total;
+                                                                 progress_percent = (int)percent_float;
+                                                                 wxString msg  = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
+                                                                 cont          = dlg.Update(progress_percent, msg);
+                                                                 cancel        = !cont;
                                                                  if (cancel)
                                                                      is_user_cancel = cancel;
                                                              });
@@ -9275,50 +9244,39 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 bool is_xxx;
                 Semver file_version;
 
-                // ObjImportColorFn obj_color_fun=nullptr;
-                auto obj_color_fun = [this, &path](ObjDialogInOut& in_out) {
-                    if (!boost::iends_with(path.string(), ".obj")) {
-                        return;
-                    }
+                //ObjImportColorFn obj_color_fun=nullptr;
+                auto obj_color_fun = [&path](ObjDialogInOut &in_out) {
+
+                    if (!boost::iends_with(path.string(), ".obj")) { return; }
                     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
                     ObjColorDialog color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
                     if (color_dlg.ShowModal() != wxID_OK) {
                         in_out.filament_ids.clear();
                     }
                 };
-                if (boost::iends_with(path.string(), ".stp") || boost::iends_with(path.string(), ".step")) {
-                    double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
-                    if (linear <= 0)
-                        linear = 0.003;
-                    double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
-                    if (angle <= 0)
-                        angle = 0.5;
-                    bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
-                    model               = Slic3r::Model::read_from_step(
-                        path.string(), strategy,
-                        [this, &dlg, real_filename, &progress_percent, &file_percent, step_percent, INPUT_FILES_RATIO, total_files,
-                         i](int load_stage, int current, int total, bool& cancel) {
-                            bool cont           = true;
-                            float percent_float = (100.0f * (float) i / (float) total_files) +
-                                                  INPUT_FILES_RATIO *
-                                                      ((float) step_percent[load_stage] +
-                                                       (float) current * (float) (step_percent[load_stage + 1] - step_percent[load_stage]) /
-                                                           (float) total) /
-                                                      (float) total_files;
-                            BOOST_LOG_TRIVIAL(trace) << "load_step_file: percent(float)=" << percent_float << ", stage = " << load_stage
-                                                     << ", curr = " << current << ", total = " << total;
-                            progress_percent = (int) percent_float;
-                            wxString msg     = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
-                            cont             = dlg.Update(progress_percent, msg);
-                            cancel           = !cont;
+                if (boost::iends_with(path.string(), ".stp") ||
+                    boost::iends_with(path.string(), ".step")) {
+                        double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
+                        if (linear <= 0) linear = 0.003;
+                        double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
+                        if (angle <= 0) angle = 0.5;
+                        bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
+                        model = Slic3r::Model:: read_from_step(path.string(), strategy,
+                        [&dlg, real_filename, &progress_percent, step_percent, INPUT_FILES_RATIO, total_files, i](int load_stage, int current, int total, bool &cancel)
+                        {
+                                bool     cont = true;
+                                float percent_float = (100.0f * (float)i / (float)total_files) + INPUT_FILES_RATIO * ((float)step_percent[load_stage] + (float)current * (float)(step_percent[load_stage + 1] - step_percent[load_stage]) / (float)total) / (float)total_files;
+                                BOOST_LOG_TRIVIAL(trace) << "load_step_file: percent(float)=" << percent_float << ", stage = " << load_stage << ", curr = " << current << ", total = " << total;
+                                progress_percent = (int)percent_float;
+                                wxString msg  = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
+                                cont          = dlg.Update(progress_percent, msg);
+                                cancel        = !cont;
                         },
                         [](int isUtf8StepFile) {
                             if (!isUtf8StepFile) {
                                 const auto no_warn = wxGetApp().app_config->get_bool("step_not_utf8_no_warn");
                                 if (!no_warn) {
-                                    MessageDialog dlg(nullptr,
-                                                      _L("Component name(s) inside step file not in UTF8 format!") + "\n\n" +
-                                                          _L("Because of unsupported text encoding, garbage characters may appear!"),
+                                    MessageDialog dlg(nullptr, _L("Component name(s) inside step file not in UTF-8 format!") + "\n\n" + _L("Because of unsupported text encoding, garbage characters may appear!"),
                                                       wxString(SLIC3R_APP_FULL_NAME " - ") + _L("Attention!"), wxOK | wxICON_INFORMATION);
                                     dlg.show_dsa_button(_L("Remember my choice."));
                                     dlg.ShowModal();
@@ -9328,8 +9286,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
                         },
-                        [this, &path, &is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
-                                                                                         double& angle_value, bool& is_split) -> int {
+                        [&is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value, double& angle_value, bool& is_split)-> int {
                             if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                                 StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                                 if (mesh_dlg.ShowModal() == wxID_OK) {
@@ -9346,14 +9303,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                             is_user_cancel = true;
                             return -1;
-                        },
-                        linear, angle, split_compound);
-                } else {
-                    model = Slic3r::Model::read_from_file(
-                        path.string(), nullptr, nullptr, strategy, &plate_data, &project_presets, &is_xxx, &file_version, nullptr,
-                        [this, &dlg, real_filename, &progress_percent, &file_percent, INPUT_FILES_RATIO, total_files, i, &designer_model_id,
-                         &designer_country_code](int current, int total, bool& cancel, std::string& mode_id, std::string& code) {
-                            designer_model_id     = mode_id;
+                        }, linear, angle, split_compound);
+                }else {
+                    model = Slic3r::Model:: read_from_file(
+                    path.string(), nullptr, nullptr, strategy, &plate_data, &project_presets, &is_xxx, &file_version, nullptr,
+                    [&dlg, real_filename, &progress_percent, INPUT_FILES_RATIO, total_files, i, &designer_model_id, &designer_country_code](int current, int total, bool &cancel, std::string &mode_id, std::string &code)
+                    {
+                            designer_model_id = mode_id;
                             designer_country_code = code;
 
                             bool cont           = true;
@@ -9445,8 +9401,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 else if (model.looks_like_saved_in_meters()) {
                     // BBS do not handle look like in meters
                     MessageDialog dlg(q,
-                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\n Do you want "
-                                                      "to scale to millimeters\?"),
+                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\nDo you want to scale to millimeters\?"),
                                                    from_path(filename)),
                                       _L("Object too small"), wxICON_QUESTION | wxYES_NO);
                     int answer = dlg.ShowModal();
@@ -9455,8 +9410,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 } else if (model.looks_like_imperial_units()) {
                     // BBS do not handle look like in meters
                     MessageDialog dlg(q,
-                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\n Do you want "
-                                                      "to scale to millimeters\?"),
+                                      format_wxstr(_L("The object from file %s is too small, and may be in meters or inches.\nDo you want to scale to millimeters\?"),
                                                    from_path(filename)),
                                       _L("Object too small"), wxICON_QUESTION | wxYES_NO);
                     int answer = dlg.ShowModal();
@@ -11593,11 +11547,9 @@ void Plater::priv::reload_from_disk()
 
     // load one file at a time
     for (size_t i = 0; i < input_paths.size(); ++i) {
-        const auto& path   = input_paths[i].string();
-        auto obj_color_fun = [this, &path](ObjDialogInOut& in_out) {
-            if (!boost::iends_with(path, ".obj")) {
-                return;
-            }
+        const auto& path = input_paths[i].string();
+        auto        obj_color_fun = [&path](ObjDialogInOut &in_out) {
+            if (!boost::iends_with(path, ".obj")) { return; }
             const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
             ObjColorDialog color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
             if (color_dlg.ShowModal() != wxID_OK) {
@@ -15533,11 +15485,7 @@ void Plater::import_model_id(wxString download_info)
     p->project.reset();
 
     /* prepare project and profile */
-    boost::thread import_thread = Slic3r::create_thread(
-        [&percent, &cont, &cancel, &retry_count, max_retries, &msg, &target_path, &download_ok, download_url, &filename] {
-            // Orca: NetworkAgent is not needed and only prevents this from running
-            //        NetworkAgent* m_agent = Slic3r::GUI::wxGetApp().getAgent();
-            //        if (!m_agent) return;
+    boost::thread import_thread = Slic3r::create_thread([&percent, &cont, &retry_count, &msg, &target_path, &download_ok, download_url, &filename] {
 
             int res = 0;
             std::string http_body;
@@ -15625,15 +15573,19 @@ void Plater::import_model_id(wxString download_info)
                             percent = progress.dlnow * 100 / progress.dltotal;
                         }
 
-                        if (size_limit) {
-                            msg = _L("Download failed; File size exception.");
-                        } else {
-                            msg = wxString::Format(_L("Project downloaded %d%%"), percent);
-                        }
-                    })
-                    .on_error([&msg, &cont, &retry_count, max_retries](std::string body, std::string error, unsigned http_status) {
-                        (void) body;
-                        BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", body, http_status, error);
+                    if (size_limit) {
+                        msg = _L("Download failed; File size exception.");
+                    }
+                    else {
+                        msg = wxString::Format(_L("Project downloaded %d%%"), percent);
+                    }
+                })
+                .on_error([&msg, &cont, &retry_count](std::string body, std::string error, unsigned http_status) {
+                    (void)body;
+                    BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%",
+                        body,
+                        http_status,
+                        error);
 
                         if (retry_count == max_retries) {
                             msg  = _L("Importing to Orca Slicer failed. Please download the file and manually import it.");
