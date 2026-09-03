@@ -31,7 +31,6 @@ private:
     wxStaticText   *m_remaining_time_label;
     wxStaticText   *m_explanation_label;
     wxButton       *m_ok_button;
-    wxStaticBitmap *m_title_bitmap;
 
     DECLARE_EVENT_TABLE()
 };
