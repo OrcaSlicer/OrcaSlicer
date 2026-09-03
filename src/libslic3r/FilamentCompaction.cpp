@@ -216,6 +216,13 @@ static void compact_mm_painting(ModelVolume& volume, const ModelVolume& source_v
     // Painting is compared by TIMESTAMP during Print::apply; identical re-derived data with a
     // fresh stamp invalidates the finished slice on the next apply.
     volume.mmu_segmentation_facets.mirror_timestamp_of(source_volume.mmu_segmentation_facets);
+    // ModelVolume::get_extruders caches the painted filament list keyed on that same timestamp,
+    // and the cache came across with the copy: with the stamp mirrored it would keep answering
+    // with the PROJECT slots, and Print::extruders would count a painted slot the compacted
+    // config no longer has (a painted mix of two loaded filaments read as an eighth tool). Real
+    // timestamps start at 1, so 0 can never match.
+    volume.mmuseg_extruders.clear();
+    volume.mmuseg_ts = 0;
 }
 
 void apply_filament_compaction(Model& model, const Model& source, const FilamentCompaction& compaction)
