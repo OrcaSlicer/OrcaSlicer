@@ -200,7 +200,7 @@ Please refer to the wiki to ensure you're following the latest and most accurate
 For local development builds:
 
 **Windows:**
-- install deps if missing, build: ``build_win.bat`
+- install deps if missing, build: `build_win.bat`
 - install deps if missing, build, kill running instance and launch: `build_win_and_launch.bat`
 
 **Linux:**

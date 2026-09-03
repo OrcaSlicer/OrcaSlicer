@@ -147,16 +147,6 @@ if "%debugscript%" == "ON" (
     )
 )
 
-if "%~1" == "" (
-	set print_help=ON
-	goto :before_print_help
-)
-
-set "all_args=%*"
-if "%all_args:"=%" == "" (
-	set print_help=ON
-)
-
 :before_print_help
 
 if "%print_help%" == "ON" (
@@ -183,12 +173,11 @@ if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
     if "%run_tests%" == "ON" set "build_slicer=ON"
 )
 
-REM Options like --config or -j only shape a build. Without one of the actions
-REM there is nothing for them to shape, so say so rather than resolving a whole
-REM build and reporting it took no time. The block above may have added one.
-if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
-    echo Nothing to do. Pick an action: -d, -s, -p or -u. Run -h for the full list.
-    exit /b 1
+REM No action at all means build the slicer (deps first if the default tree is
+REM missing). Options like --config or -j then shape that build. Help is only
+REM shown for an explicit -h/--help.
+if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%%build_tests%%run_tests%" == "" (
+    set "build_slicer=ON"
 )
 
 REM ===========================================================================
@@ -418,24 +407,30 @@ if "%deps_target%" == "" (
 REM Only the builds need CMake. -p zips an existing tree with 7z.
 if "%build_deps%%build_slicer%" == "" goto :cmake_ready
 
-cmake --version >nul 2>nul
-if not !errorlevel! == 0 (
-    echo CMake was not found. Have you installed the system dependencies?
-    exit /b 1
-)
-
 REM Strawberry Perl ships a c/bin full of GNU tools, and the top-level
-REM CMakeLists refuses to configure when it precedes CMake on PATH. Put a
-REM real CMake first, skipping any hit from Strawberry's own cmake.exe, or
-REM this pins exactly the order it is meant to undo. The findstr needle
-REM must not end in a backslash, which escapes the quote and matches nothing.
+REM CMakeLists refuses to configure when it precedes CMake on PATH. Put a real
+REM CMake first, skipping any hit from Strawberry's own cmake.exe. When none is
+REM on PATH, fall back to the dev-tool layout under %USERPROFILE%\tools, where
+REM a pinned CMake is installed for local development. The findstr needle must
+REM not end in a backslash, which escapes the quote and matches nothing.
 set "cmake_bin="
 for /f "delims=" %%i in ('where cmake 2^>nul') do (
     if not defined cmake_bin (
         echo %%~dpi| findstr /i /c:"\Strawberry\c\bin" >nul || set "cmake_bin=%%~dpi"
     )
 )
+if not defined cmake_bin if defined USERPROFILE (
+    for /d %%d in ("%USERPROFILE%\tools\cmake-*") do (
+        if not defined cmake_bin if exist "%%~d\bin\cmake.exe" set "cmake_bin=%%~d\bin\"
+    )
+)
 if defined cmake_bin set "PATH=%cmake_bin%;%PATH%"
+
+cmake --version >nul 2>nul
+if not !errorlevel! == 0 (
+    echo CMake was not found. Have you installed the system dependencies?
+    exit /b 1
+)
 :cmake_ready
 
 if "%config%" == "" set "config=%cfg_default%"
