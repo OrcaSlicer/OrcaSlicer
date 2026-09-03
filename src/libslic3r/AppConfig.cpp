@@ -638,6 +638,11 @@ void AppConfig::set_defaults()
         set_bool("use_printer_agents", false);
     }
 
+    if (get("enable_ota").empty())
+    {
+        set_bool("enable_ota", false);
+    }
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");

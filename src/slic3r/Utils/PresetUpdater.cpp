@@ -1090,9 +1090,6 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
 
     AppConfig *app_config = GUI::wxGetApp().app_config;
 
-    if (!app_config->get_bool("enable_ota"))
-        return;
-
     const auto enabled_vendors = app_config->vendors();
 
     std::set<std::string> bundles;
