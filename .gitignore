@@ -52,3 +52,4 @@ internal_docs/
 __pycache__/
 *.pyc
 *.opc
+/.test/

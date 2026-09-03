@@ -370,13 +370,13 @@ if "%use_ninja%" == "ON" (
     set "using_ninja=ON"
 )
 
+call :resolve_clang_cl
+%repeat_error%
+
 if "%using_ninja%" == "ON" (
 	if "%use_clang_cl%" == "ON" (
-		REM Bare, so it resolves from the PATH the dev shell just set up, which
-		REM is the clang shipped with Visual Studio. --clang-path names another.
-		set "clang_exe=clang-cl.exe"
-		if not "%clang_path%" == "" set "clang_exe="%clang_path%""
-		set "gen_args=-DCMAKE_C_COMPILER=!clang_exe! -DCMAKE_CXX_COMPILER=!clang_exe!"
+		REM Quoted, because the resolved path has spaces in it.
+		set "gen_args=-DCMAKE_C_COMPILER="!clang_exe!" -DCMAKE_CXX_COMPILER="!clang_exe!""
 	)
 ) else (
 	set "gen_args=-A !arch!"
@@ -473,6 +473,7 @@ REM forward slashes, and anything that prints the directory has to show a
 REM real path rather than one glued onto the repository root.
 for %%p in ("!build_dir!") do set "build_full=%%~fp"
 echo Configuration: %build_type%, %arch%
+if not "%clang_exe%" == "" echo Compiler: %clang_exe%
 
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
@@ -734,6 +735,14 @@ REM worked out the same way in either run.
     set "slicer_exe=%build_dir%\src\%build_type%\orca-slicer.exe"
     if "%install_slicer%" == "ON" set "slicer_exe=%build_dir%\OrcaSlicer\orca-slicer.exe"
     for %%p in ("!slicer_exe!") do set "slicer_full=%%~fp"
+    REM The 2026 generator writes OrcaSlicer.slnx, the releases before it
+    REM OrcaSlicer.sln. A file already there wins, in case an older CMake
+    REM configured the build.
+    set "solution=OrcaSlicer.sln"
+    if "%vs_version%" == "2026" set "solution=OrcaSlicer.slnx"
+    if exist "!build_full!\OrcaSlicer.sln" set "solution=OrcaSlicer.sln"
+    if exist "!build_full!\OrcaSlicer.slnx" set "solution=OrcaSlicer.slnx"
+
     REM Naming a target builds it and its dependencies, not its dependents,
     REM so only a full build or the executable's own target relinks.
     set "linked=ON"
@@ -751,14 +760,14 @@ REM worked out the same way in either run.
     if "%build_deps%" == "ON" echo   Dependencies  !dep_full!
     if "%build_slicer%" == "ON" if "%linked%" == "ON" echo   OrcaSlicer    !slicer_full!
     if "%build_slicer%" == "ON" if not "%linked%" == "ON" echo   Target        %slicer_target%
-    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\OrcaSlicer.sln
+    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\!solution!
     if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
 
     echo.
     echo Next
     if "%build_slicer%" == "ON" (
         if "%linked%" == "ON" echo     Run it                !slicer_exe!
-        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\OrcaSlicer.sln
+        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\!solution!
         if "%linked%" == "ON" echo     Rebuild after edits   build_win.bat -s!recall! --no-configure
         if not "%linked%" == "ON" echo     Relink the binary     build_win.bat -s!recall! --no-configure
         if "%linked%" == "ON" if "%using_ninja%" == "ON" echo     Rebuild one target    build_win.bat -s!recall! --no-configure --slicer-target libslic3r
@@ -1077,6 +1086,62 @@ REM echo_var <variable>
 	:vs_path_found
 	call "%VS_PATH%\Common7\Tools\VsDevCmd.bat" -arch=!dev_arch! >nul 2>nul
 	set "VS_PATH="
+
+	exit /b 0
+
+REM resolve_clang_cl - set clang_exe to the clang-cl a Ninja build uses.
+REM VsDevCmd appends the Visual Studio LLVM directory to the end of PATH,
+REM so a standalone LLVM already there shadows it. Name a full path.
+:resolve_clang_cl
+	set "clang_exe="
+	if not "%using_ninja%" == "ON" exit /b 0
+	if not "%use_clang_cl%" == "ON" exit /b 0
+	REM Only a configure uses it, so -p and --no-configure need none.
+	if "%no_configure%" == "ON" exit /b 0
+	if "%build_deps%%build_slicer%" == "" exit /b 0
+
+	REM --clang-path wins. Forward slashes either way, so CMake does not
+	REM read a backslash as an escape.
+	if not "%clang_path%" == "" (
+		set "clang_exe=%clang_path:\=/%"
+		exit /b 0
+	)
+
+	setlocal
+
+	REM Keyed on the host, not %arch%, because the x64 compiler
+	REM cross-compiles to ARM64.
+	set "llvm_host=x64"
+	if /I "%PROCESSOR_ARCHITECTURE%" == "ARM64" set "llvm_host=ARM64"
+
+	set "found="
+	%VSWHERE% -nologo >nul 2>nul
+	if !errorlevel! == 0 (
+		for /f "tokens=*" %%i in ('%VSWHERE% -nologo -products * -latest -property resolvedInstallationPath') do (
+			if exist "%%i\VC\Tools\Llvm\!llvm_host!\bin\clang-cl.exe" (
+				set "found=%%i\VC\Tools\Llvm\!llvm_host!\bin\clang-cl.exe"
+			)
+		)
+	)
+
+	REM No clang toolset in Visual Studio. where lists every match, and the
+	REM first is the one PATH would resolve.
+	if "!found!" == "" (
+		for /f "tokens=*" %%i in ('where clang-cl.exe 2^>nul') do (
+			if "!found!" == "" set "found=%%i"
+		)
+		if not "!found!" == "" echo Visual Studio has no clang-cl; using !found! from PATH.
+	)
+
+	if "!found!" == "" (
+		echo No clang-cl found. Add the C++ Clang Compiler component with
+		echo     %script_name% --install-vs ide -l
+		echo or name a standalone one with --clang-path.
+		endlocal
+		exit /b 1
+	)
+
+	endlocal & set "clang_exe=%found:\=/%"
 
 	exit /b 0
 

@@ -132,7 +132,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
             return nullptr;
         };
         tbb::parallel_for(tbb::blocked_range<int>(0, int(intermediate_layers.size())),
-            [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer, &support_params,
+            [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer,
              num_top_interface_layers, num_bottom_interface_layers, num_top_base_interface_layers, num_bottom_base_interface_layers,
              num_top_interface_layers_only, num_bottom_interface_layers_only,
              snug_supports, &interface_layers, &base_interface_layers](const tbb::blocked_range<int>& range) {

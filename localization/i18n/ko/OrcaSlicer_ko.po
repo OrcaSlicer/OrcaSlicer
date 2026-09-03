@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2970,6 +2970,10 @@ msgstr "편집"
 msgid "Merge with"
 msgstr "병합"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "색상 분해"
+
 msgid "Delete this filament"
 msgstr "이 필라멘트 삭제"
 
@@ -3265,6 +3269,10 @@ msgstr "조립"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "부품을 하나의 객체로 병합"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "가변 레이어 높이를 혼색 서브레이어와 함께 사용하면 색상 혼합 품질이 떨어질 수 있습니다."
 
 # AI Translated
 msgid "Add layers"
@@ -6348,10 +6356,10 @@ msgstr "3MF/STL/STEP/SVG/OBJ/AMF 가져오기"
 msgid "Load a model"
 msgstr "모델 불러오기"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "ZIP 압축파일 가져오기"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "ZIP 압축파일에 포함된 모델 로드"
 
 msgid "Import Configs"
@@ -7871,6 +7879,10 @@ msgstr "사용자 정의 플레이트"
 msgid "The %s nozzle can not print %s."
 msgstr "%s 노즐은 %s 을 인쇄할 수 없습니다."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "단일 압출기 프린터에서 혼색 필라멘트를 출력하면 필라멘트 교체와 플러시가 자주 발생하여 낭비되는 재료와 노즐 / 폐기물 슈트 막힘 위험이 크게 늘어날 수 있습니다."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "%1%와 %2% 혼합 출력을 권장하지 않습니다.\n"
@@ -7997,11 +8009,43 @@ msgstr "AMS에서 필라멘트 목록 동기화"
 msgid "Set filaments to use"
 msgstr "사용할 필라멘트 설정"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "혼합 필라멘트 추가"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "혼합 필라멘트"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "마지막 혼합 필라멘트 제거"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "혼합 필라멘트 추가"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "혼합 필라멘트의 구성 요소가 잘못되었거나 일치하지 않습니다. 해당 항목을 다시 편집하세요."
+
 msgid "Search plate, object and part."
 msgstr "플레이트, 객체 및 부품을 검색합니다."
 
 msgid "Pellets"
 msgstr "펠릿"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "혼합 필라멘트의 구성 요소 참조가 손상되었습니다"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "편집 / 삭제 / 병합"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "대상 혼합 필라멘트가 이 물리 필라멘트를 구성 요소로 사용합니다. 병합하면 이 물리 필라멘트가 제거되어 혼합 필라멘트가 무효가 될 수 있습니다. 계속할까요?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8152,8 +8196,8 @@ msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "STEP 파일 내부의 구성 요소 이름이 UTF8 형식이 아닙니다!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "STEP 파일 내부의 구성 요소 이름이 UTF-8 형식이 아닙니다!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8175,7 +8219,7 @@ msgstr "물체의 부피는 0입니다"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s 파일의 객체가 너무 작습니다. 단위가 미터나 인치일 수 있습니다.\n"
 " mm 단위로 확장하시겠습니까?"
@@ -8194,6 +8238,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "여러 부품으로 구성된 객체 감지됨"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "텍스처를 필라멘트에 매칭하는 중"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "텍스처 가져오기 경고"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "이 파일을 여러 부품이 있는 단일 객체로 로드하시겠습니까?\n"
@@ -8422,6 +8474,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "지금 동기화"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "텍스처 가져오기에 실패했습니다. 모델에 텍스처 데이터가 포함된 것으로 보이지만 텍스처 가져오기 과정을 완료하지 못했습니다. 모델은 형상만 가져옵니다."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "텍스처 색상 적용 중..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "3D 뷰 업데이트 중..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "텍스처 색상이 적용되었습니다."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "수정된 사전 설정을 새 프로젝트에 유지하거나 삭제할 수 있습니다"
@@ -9765,6 +9833,10 @@ msgstr "나선형 꽃병 모드"
 
 msgid "First layer filament sequence"
 msgstr "첫 번째 레이어 필라멘트 순서"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "필라멘트 목록에 혼합 필라멘트가 있습니다. 사용자 지정 필라멘트 순서는 적용되지 않습니다."
 
 msgid "By Layer"
 msgstr "레이어별"
@@ -11188,12 +11260,12 @@ msgid "No modifications need to be copied."
 msgstr "복사할 변경 사항이 없습니다."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "매개변수 복사"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%s의 매개변수 수정"
 
 # AI Translated
@@ -11722,30 +11794,6 @@ msgstr "필라멘트 교체를 위한 버리기 볼륨"
 
 msgid "Please choose the filament colour"
 msgstr "필라멘트 색상을 선택하세요"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "네이티브 Wayland 실시간 보기에는 GStreamer GTK 비디오 싱크가 필요합니다. GStreamer용 gtksink 플러그인을 설치한 후 OrcaSlicer를 다시 시작하십시오."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "네이티브 Wayland GStreamer 비디오 싱크를 초기화하지 못했습니다. GStreamer GTK 플러그인 설치 상태를 확인하십시오."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "이 작업에는 Windows Media Player가 필요합니다! 운영 체제에서 Windows Media Player를 활성화하시겠습니까?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "뱀부소스가 미디어 재생에 올바르게 등록되지 않았습니다! 다시 등록하려면 예를 누르세요. 두 번 승격됩니다"
-
-# AI Translated
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "미디어 재생용으로 등록된 BambuSource 구성 요소가 없습니다! OrcaSlicer를 다시 설치하거나 커뮤니티에 도움을 요청하십시오."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "다른 설치 버전의 뱀부소스를 사용하면 동영상 재생이 제대로 작동하지 않을 수 있습니다! 예를 눌러 문제를 해결하세요."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "시스템에 동영상 재생을 위해 필요한 GStreamer용 H.264 코덱이 존재하지 않습니다. (gstreamer1.0-plugins-bad 또는 gstreamer1.0-libav 패키지를 설치한 다음 Orca Slicer를 다시 실행하십시오.)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12475,6 +12523,10 @@ msgstr "그래도 출력하려면 기본 설정 / 제어 / 슬라이싱 / 혼합
 msgid "No extrusions under current settings."
 msgstr "현재 설정에 압출기가 없습니다."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "그라데이션 혼합 필라멘트가 사용 중이지만 '혼색 서브레이어'가 비활성화되어 있습니다. 그라데이션은 출력되지 않습니다."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "타임랩스의 유연 모드는 \"객체별\" 출력순서가 활성화된 경우 지원되지 않습니다."
 
@@ -12512,6 +12564,10 @@ msgstr "모델 크기를 줄이거나 현재 출력 설정을 변경하고 다�
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "유기체 서포트에서는 가변 레이어 높이가 지원되지 않습니다."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "프라임 타워 필라멘트는 혼합 필라멘트일 수 없습니다."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "프라임 타워를 활성화하면 노즐 직경과 필라멘트 직경이 다르면 제대로 작동하지 않을 수 있습니다. 매우 실험적인 기능이므로 주의해서 사용하시기 바랍니다."
@@ -12889,8 +12945,7 @@ msgstr "mm 또는 %"
 msgid "Other layers"
 msgstr "다른 레이어"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도입니다. 값이 0이면 해당 필라멘트가 쿨 플레이트 슈퍼택에서의 출력을 지원하지 않음을 의미합니다."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -14307,6 +14362,8 @@ msgstr "레이어 시간"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "예상 시간이 이 값보다 짧은 레이어에 대해 출력물 냉각 팬이 활성화됩니다. 팬 속도는 레이어 출력 시간에 따라 최소 및 최대 팬 속도 사이에서 보간됩니다"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -14619,6 +14676,62 @@ msgstr "서포트 재료"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "서포트 재료는 일반적으로 서포트 및 서포트 접점을 출력하는 데 사용됩니다"
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "혼합 필라멘트 여부"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "이 필라멘트 슬롯이 여러 물리 필라멘트로 구성된 혼합 필라멘트인지 여부"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "혼합 필라멘트 구성 요소"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "구성 필라멘트의 1부터 시작하는 인덱스를 쉼표로 구분하여 입력합니다. 예: \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "혼합 필라멘트 서브레이어 비율"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "합이 1.0이 되는 비율 값을 쉼표로 구분하여 입력합니다. 예: \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "혼합 필라멘트 그라데이션"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "혼합 필라멘트 서브레이어에 대해 Z 방향 그라데이션 모드를 활성화합니다. 활성화하면 서브레이어 비율이 레이어에 따라 선형으로 변합니다."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "혼합 필라멘트 그라데이션 범위"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "그라데이션 모드에서 첫 번째 구성 요소의 시작 및 종료 비율입니다. 쉼표로 구분된 한 쌍이며, 예를 들어 \"0.10,0.90\"은 10%에서 90%를 의미합니다."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "혼합 필라멘트 그라데이션 곡선"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Z 진행도를 첫 번째 구성 요소의 비율에 매핑하는 선택적 Photoshop 스타일 사용자 지정 곡선입니다. 제어점을 세로줄로 구분하여 \"x,y\"(레거시) 또는 접선을 재정의해야 할 때는 \"x,y,m_in,m_out\" 형식으로 인코딩합니다(빈 값 또는 \"nan\"은 PCHIP 기본값을 사용). x는 [0,1] 범위이며, y는 설정된 비율 범위로 제한됩니다. 예: \"0,0.15|0.5,0.50|1,0.85\". 비워 두면 대신 선형 gradient_range가 사용됩니다."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "혼합 필라멘트 부품별 그라데이션"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "그라데이션 모드가 활성화되면 조립 전체를 하나의 Z 범위로 처리하지 않고 조립의 각 부품에 그라데이션을 개별적으로 적용합니다."
 
 msgid "Filament printable"
 msgstr "필라멘트 출력 가능"
@@ -15938,6 +16051,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Y축의 허용 최대 출력 힘"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15948,6 +16062,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Y축 장비 베드 질량 하중"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -16276,7 +16391,7 @@ msgid "Reduce infill retraction"
 msgstr "채우기 후퇴 감소"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "이동 경로가 완전히 채우기 영역 안에 있으면 후퇴하지 않습니다. 흘러내림이 보이지 않기 때문입니다. 복잡한 모델에서 후퇴 횟수를 줄여 출력 시간을 절약할 수 있지만 슬라이싱과 G-code 생성 속도는 느려집니다. 후퇴를 건너뛴 영역에서는 Z 올리기도 수행되지 않습니다."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16453,7 +16568,7 @@ msgstr "노즐 청소 후 후퇴량"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "노즐 청소 후 빠른 후퇴의 길이로, 후퇴 길이를 기준으로 합니다.\n"
@@ -16500,7 +16615,7 @@ msgstr "툴 체인지 전에 후퇴가 실행되면 지정한 양만큼 필라�
 msgid "Z-hop height"
 msgstr "Z올리기 높이"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "후퇴가 완료될 때마다 노즐이 약간 올라가서 노즐과 출력물 사이에 간격이 생깁니다. 이동 시 노즐이 출력물에 닿는 것을 방지합니다. 나선형 선을 사용하여 z를 들어 올리면 스트링 현상을 방지할 수 있습니다"
 
 msgid "Z-hop lower boundary"
@@ -17578,6 +17693,14 @@ msgstr ""
 "와이프 작업의 지속 시간, 압출기/필라멘트 후퇴 설정의 속도와 길이에 따라 남은 필라멘트를 후퇴시키기 위해 후퇴 동작이 필요할 수 있습니다.\n"
 "\n"
 "아래의 와이프 전 후퇴량 설정에서 값을 설정하면 와이프 전에 초과 후퇴가 수행되고, 그렇지 않으면 와이프 후에 수행됩니다."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "혼색 서브레이어"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "혼색 서브레이어 분할을 활성화합니다. 활성화하면 혼색 필라멘트가 포함된 레이어가 서브레이어로 분할되어 색상 혼합 효과를 얻습니다."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "프라임 타워는 객체를 출력할 때 외관 결함을 방지하기 위해 노즐의 잔류물을 청소하고 노즐 내부의 압력을 안정화하는 데 사용할 수 있습니다."
@@ -18681,6 +18804,10 @@ msgstr "모델 파일의 메싱이 실패했거나 유효한 형태가 없습니
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "제공된 파일이 비어 있어 읽을 수 없습니다"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "파일 형식이 호환되지 않아 해석할 수 없습니다."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "알 수 없는 파일 형식: 입력 파일의 확장자는 .stl, .obj 또는 .amf(.xml)여야 합니다."
@@ -20213,19 +20340,19 @@ msgstr "프린터, 필라멘트 및 프로세스 사전 설정이 변경된 경�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "필라멘트 사전 설정이 변경된 경우에만 필라멘트 이름을 표시합니다."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "사용자 프린터 사전 설정이 있는 프린터 이름만 표시되며, 선택한 각 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "사용자 필라멘트 사전 설정이 있는 필라멘트 이름만 표시됩니다.\n"
 "선택한 각 필라멘트 이름의 모든 사용자 필라멘트 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "프로세스 사전 설정이 변경된 프린터 이름만 표시됩니다.\n"
 "선택한 각 프린터 이름의 모든 사용자 프로세스 사전 설정은 zip으로 내보내집니다."
@@ -20469,7 +20596,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "문제의 원인을 진단하려면 정보가 필요합니다. 자세한 안내는 위키 페이지를 확인하십시오."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "패키지 버튼은 현재 세션의 프로젝트 파일과 로그를 zip 파일로 모읍니다."
 
 # AI Translated
@@ -20525,7 +20652,7 @@ msgid "Stored logs"
 msgstr "저장된 로그"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "저장된 모든 로그를 zip 파일로 묶습니다."
 
 # AI Translated
@@ -20613,7 +20740,7 @@ msgid "Authorizing..."
 msgstr "인증 중..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "오류. 인증용 API 토큰을 가져올 수 없습니다"
 
 # AI Translated
@@ -21075,8 +21202,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "스마트 필라멘트 할당 활성화: 하나의 필라멘트를 여러 노즐에 할당하여 절약을 극대화합니다"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "필라멘트 절약"
+msgid "File Saving"
+msgstr "파일 저장"
 
 msgid "Don't remind me again"
 msgstr "다시 알리지 마세요"
@@ -21505,6 +21632,9 @@ msgstr "지금 다시 시작"
 # AI Translated
 msgid "NO RAMMING AT ALL"
 msgstr "채워넣기 전혀 없음"
+
+msgid "s"
+msgstr "s"
 
 # AI Translated
 msgid "Volumetric speed"
@@ -22158,6 +22288,42 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "네이티브 Wayland 실시간 보기에는 GStreamer GTK 비디오 싱크가 필요합니다. GStreamer용 gtksink 플러그인을 설치한 후 OrcaSlicer를 다시 시작하십시오."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "네이티브 Wayland GStreamer 비디오 싱크를 초기화하지 못했습니다. GStreamer GTK 플러그인 설치 상태를 확인하십시오."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "이 작업에는 Windows Media Player가 필요합니다! 운영 체제에서 Windows Media Player를 활성화하시겠습니까?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "뱀부소스가 미디어 재생에 올바르게 등록되지 않았습니다! 다시 등록하려면 예를 누르세요. 두 번 승격됩니다"
+
+# AI Translated
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "미디어 재생용으로 등록된 BambuSource 구성 요소가 없습니다! OrcaSlicer를 다시 설치하거나 커뮤니티에 도움을 요청하십시오."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "다른 설치 버전의 뱀부소스를 사용하면 동영상 재생이 제대로 작동하지 않을 수 있습니다! 예를 눌러 문제를 해결하세요."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "시스템에 동영상 재생을 위해 필요한 GStreamer용 H.264 코덱이 존재하지 않습니다. (gstreamer1.0-plugins-bad 또는 gstreamer1.0-libav 패키지를 설치한 다음 Orca Slicer를 다시 실행하십시오.)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "필라멘트 절약"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

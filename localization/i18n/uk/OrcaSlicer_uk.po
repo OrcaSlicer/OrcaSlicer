@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -2906,6 +2906,10 @@ msgstr "Змінити"
 msgid "Merge with"
 msgstr "Обʼєднати з"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Розкласти колір"
+
 msgid "Delete this filament"
 msgstr "Видалити цей філамент"
 
@@ -3196,6 +3200,10 @@ msgstr "Збірка"
 
 msgid "Merge parts to an object"
 msgstr "Обʼєднати частини в обʼєкт"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Використання змінної висоти шару разом із підшаром змішаного кольору може погіршити якість змішування кольорів."
 
 msgid "Add layers"
 msgstr "Додати шари"
@@ -6339,10 +6347,10 @@ msgstr "Імпорт 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Завантажте модель"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Імпорт Zip-архіву"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Завантажити моделі, що містяться в zip-архіві"
 
 msgid "Import Configs"
@@ -7891,6 +7899,10 @@ msgstr "Пристосувати поточну пластину"
 msgid "The %s nozzle can not print %s."
 msgstr "Сопло %s не може друкувати %s."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Друк філаменту змішаного кольору на принтері з одним екструдером потребує частої зміни філаменту та промивок, що може суттєво збільшити кількість відходів і ризик засмічення сопла або жолоба для відходів."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Змішування %1% з %2% в друці не рекомендується.\n"
@@ -8019,11 +8031,43 @@ msgstr "Синхронізувати список ниток з AMS"
 msgid "Set filaments to use"
 msgstr "Встановити філаменти для використання"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Додати змішаний філамент"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Змішаний філамент"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Вилучити останній змішаний філамент"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Додати змішаний філамент"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "У змішаного філаменту недійсні або невідповідні компоненти. Будь ласка, відредагуйте відповідні записи ще раз."
+
 msgid "Search plate, object and part."
 msgstr "Пошук пластини, об’єкта і деталі."
 
 msgid "Pellets"
 msgstr "Гранули"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "У змішаного філаменту пошкоджені посилання на компоненти"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Редагувати / Видалити / Обʼєднати"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Цільовий змішаний філамент використовує цей фізичний філамент як компонент. Обʼєднання вилучить цей фізичний філамент і може зробити змішаний філамент недійсним. Продовжити?"
 
 # AI Translated
 #, c-format, boost-format
@@ -8180,8 +8224,8 @@ msgid "Customized Preset"
 msgstr "Пристосований пресет"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Назви компонентів усередині файлу STEP не у форматі UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Назви компонентів усередині файлу STEP не у форматі UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Через непідтримуване кодування тексту можуть зʼявлятися непотрібні символи!"
@@ -8202,7 +8246,7 @@ msgstr "Обʼєм обʼєкта дорівнює нулю"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Обʼєкт із файлу %s занадто малий, можливо, в метрах або дюймах.\n"
 "Ви хочете масштабувати до міліметрів?"
@@ -8222,6 +8266,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Виявлено обʼєкт, що складається з кількох частин"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Зіставлення текстур із філаментами"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Попередження під час імпорту текстури"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Завантажити ці файли як єдиний обʼєкт з кількома частинами?\n"
@@ -8432,6 +8484,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Синхронізувати зараз"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Не вдалося імпортувати текстуру. Схоже, модель містить дані текстури, але завершити процес імпорту не вдалося. Модель буде імпортовано лише як геометрію."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Застосування кольорів текстури..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "Оновлення 3D-вигляду..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Кольори текстури застосовано."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Ви можете зберегти змінені пресети у новому проекті або відмовитися від них"
@@ -9713,6 +9781,10 @@ msgstr "Спіральна ваза"
 
 msgid "First layer filament sequence"
 msgstr "Послідовність філаменту першого шару"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "Список філаментів містить змішані філаменти. Власна послідовність філаментів не діятиме."
 
 msgid "By Layer"
 msgstr "По шарах"
@@ -11173,12 +11245,12 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Немає змін для копіювання."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Параметри копіювання"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Змінити параметри %s"
 
 # AI Translated
@@ -11716,30 +11788,6 @@ msgstr "Обʼєми промивки для зміни філаменту"
 
 msgid "Please choose the filament colour"
 msgstr "Будь ласка, виберіть колір філаменту"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Нативний перегляд у Wayland потребує відеоприймача GStreamer GTK. Встановіть плагін gtksink для GStreamer, а потім перезапустіть OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Не вдалося ініціалізувати нативний відеоприймач GStreamer для Wayland. Перевірте встановлення плагіна GStreamer GTK."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Для виконання цього завдання потрібен Windows Media Player! Бажаєте увімкнути 'Windows Media Player' для вашої операційної системи?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource не було правильно зареєстровано для відтворення медіафайлів! Натисніть \"Так\", щоб зареєструвати його повторно. Вас буде сповіщено двічі"
-
-# AI Translated
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Відсутній компонент BambuSource, зареєстрований для відтворення медіа! Перевстановіть OrcaSlicer або зверніться по допомогу до спільноти."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Використовується BambuSource з іншої інсталяції, відтворення відео може працювати неправильно! Натисніть \"Так\", щоб виправити це."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Вашій системі бракує кодеків H.264 для GStreamer, які необхідні для відтворення відео. (Спробуйте встановити пакети gstreamer1.0-plugins-bad або gstreamer1.0-libav, а потім перезапустіть Orca Slicer?)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12462,6 +12510,10 @@ msgstr "Якщо ви все одно хочете друкувати, може�
 msgid "No extrusions under current settings."
 msgstr "Немає екструзій під час поточних налаштувань."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Використовується змішаний філамент із градієнтом, але параметр «Підшар змішаного кольору» вимкнено. Градієнт не буде надруковано."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Плавний режим таймлапсу не підтримується, коли послідовність \"по обʼєкт\" увімкнено."
 
@@ -12501,6 +12553,10 @@ msgstr "Можливо, ви захочете зменшити розмір мо
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Змінна висота шару не підтримується з Органічними підтримками."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Філамент вежі протирання не може бути змішаним філаментом."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Різні діаметри сопел та різні діаметри філаменту можуть працювати некоректно коли ввімкнена підготовча вежа. Це експериментальна функція, тому використовуйте її з обережністю."
@@ -12881,8 +12937,7 @@ msgstr "мм або %"
 msgid "Other layers"
 msgstr "Інші шари"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -14296,8 +14351,10 @@ msgstr "Час шару"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Вентилятор охолодження деталей вмикається для шарів, розрахунковий час яких менший за це значення. Швидкість вентилятора інтерполюється між мінімальною та максимальною швидкістю вентилятора відповідно до часу друку шару"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
-msgstr "c"
+msgstr "с"
 
 msgid "Default color"
 msgstr "Типовий колір"
@@ -14626,6 +14683,62 @@ msgstr "Матеріал підтримки"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Допоміжний матеріал зазвичай використовується для друку підтримки"
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Є змішаним філаментом"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Визначає, чи є цей слот філаменту змішаним філаментом, складеним з кількох фізичних філаментів"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Компоненти змішаного філаменту"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Розділені комами індекси філаментів-компонентів, починаючи з 1, наприклад \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Частки підшарів змішаного філаменту"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Розділені комами значення часток, сума яких дорівнює 1.0, наприклад \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Градієнт змішаного філаменту"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Вмикає режим градієнта за віссю Z для підшарів змішаного філаменту. Коли увімкнено, частки підшарів змінюються лінійно від шару до шару."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Діапазон градієнта змішаного філаменту"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Початкова та кінцева частки першого компонента в режимі градієнта. Пара значень через кому, наприклад \"0.10,0.90\" означає від 10% до 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Крива градієнта змішаного філаменту"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Необовʼязкова власна крива у стилі Photoshop, що зіставляє поступ за віссю Z із часткою першого компонента. Записується як контрольні точки, розділені вертикальними рисками, у вигляді \"x,y\" (застарілий формат) або \"x,y,m_in,m_out\", коли потрібно перевизначити дотичну (порожнє значення або \"nan\" означає типове значення PCHIP). x належить до [0,1]; y обмежується налаштованим діапазоном часток, наприклад \"0,0.15|0.5,0.50|1,0.85\". Якщо поле порожнє, замість цього використовується лінійний gradient_range."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Градієнт змішаного філаменту для кожної частини"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Коли режим градієнта увімкнено, градієнт застосовується до кожної частини збірки окремо, а не до всієї збірки як до єдиного діапазону Z."
 
 msgid "Filament printable"
 msgstr "Філамент придатний для друку"
@@ -15973,8 +16086,9 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Максимальна дозволена вихідна сила осі Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr "Н"
 
 msgid "Bed mass of the Y axis"
 msgstr "Маса столу осі Y"
@@ -15982,6 +16096,8 @@ msgstr "Маса столу осі Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "Маса навантаження столу машини на вісь Y"
 
+# AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "г"
 
@@ -16313,8 +16429,8 @@ msgid "Reduce infill retraction"
 msgstr "Зменшити втягування заповнення"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що z-hop також не виконується в зонах, де втягування пропускається."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що Z-hop також не виконується в зонах, де втягування пропускається."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Цей параметр знижує температуру неактивних екструдерів, щоб запобігти підтіканням."
@@ -16489,7 +16605,7 @@ msgstr "Величина втягування після протирання"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Довжина швидкого втягування після протирання, відносно довжини втягування.\n"
@@ -16538,7 +16654,7 @@ msgstr "Коли втягування спрацьовує перед зміно
 msgid "Z-hop height"
 msgstr "Висота Z-підйому"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Під час кожного втягування сопло трохи піднімається, щоб створити зазор між соплом та об’єктом друку. Це запобігає зіткненню сопла з об’єктом друку під час переміщення. Використання спіральної лінії підняття по осі Z може запобігти появі ниток"
 
 msgid "Z-hop lower boundary"
@@ -17621,6 +17737,14 @@ msgstr ""
 "Залежно від тривалості операції витирання, швидкості та тривалості втягування екструдера/нитки, може знадобитися рух накату для нитки.\n"
 "\n"
 "Якщо встановити значення у параметрі \"Кількість втягування перед витиранням\" нижче, надлишкове втягування буде виконано перед витиранням, інакше воно буде виконано після нього."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Підшар змішаного кольору"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Вмикає розбиття на підшари змішаного кольору. Коли увімкнено, шари, що містять філаменти змішаного кольору, розбиваються на підшари для отримання ефекту змішування кольорів."
 
 # AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
@@ -18727,6 +18851,10 @@ msgstr "Не вдалося побудувати сітку файлу моде�
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Наданий файл не вдалося прочитати, оскільки він порожній"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "Формат файлу несумісний, і його не вдається прочитати."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .stl, .obj або .amf (.xml)."
@@ -20244,12 +20372,12 @@ msgstr "Показувати лише назви принтерів зі змі�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Показувати лише назви філаментів зі змінами у пресетах філаменту."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Будуть відображатися лише назви принтерів з пресетами принтера користувача, і кожен обраний пресет буде експортовано у форматі ZIP."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви філаментів з налаштуваннями філаменту користувача, \n"
 "і всі налаштування філаменту користувача для кожної вибраної назви філаменту \n"
@@ -20257,7 +20385,7 @@ msgstr ""
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви принтерів зі зміненими налаштуваннями процесу, \n"
 "і всі налаштування процесу користувача для кожної вибраної назви принтера будуть \n"
@@ -20499,7 +20627,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Нам потрібна інформація для встановлення джерела проблеми. Докладний посібник дивіться на сторінці wiki."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Кнопка «Пакувати» збирає файл проєкту та журнали поточного сеансу в один zip-файл."
 
 # AI Translated
@@ -20543,7 +20671,7 @@ msgstr "Рівень журналу"
 msgid "Stored logs"
 msgstr "Збережені логи"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Запаковує всі збережені логи у файл zip."
 
 msgid "Profiles"
@@ -20610,7 +20738,7 @@ msgstr "Тип принтера не знайдено, будь ласка ви�
 msgid "Authorizing..."
 msgstr "Авторизування..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Помилка. Не вдалося отримати api-токен для авторизування"
 
 msgid "Could not parse server response."
@@ -21074,8 +21202,9 @@ msgstr "Вилучено"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "Дозволити розумне призначення філаменту: Призначте одну нитку до кількох сопел, щоб максимально заощадити"
 
-msgid "Fila Saving"
-msgstr "Збереження філаменту"
+# AI Translated
+msgid "File Saving"
+msgstr "Збереження файлу"
 
 msgid "Don't remind me again"
 msgstr "Не нагадувати мені більше"
@@ -21444,6 +21573,9 @@ msgstr "Перезапустити зараз"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ВЗАГАЛІ БЕЗ УТРАМБУВАННЯ"
+
+msgid "s"
+msgstr "c"
 
 msgid "Volumetric speed"
 msgstr "Обʼємна швидкість"
@@ -22080,6 +22212,40 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Нативний перегляд у Wayland потребує відеоприймача GStreamer GTK. Встановіть плагін gtksink для GStreamer, а потім перезапустіть OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Не вдалося ініціалізувати нативний відеоприймач GStreamer для Wayland. Перевірте встановлення плагіна GStreamer GTK."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Для виконання цього завдання потрібен Windows Media Player! Бажаєте увімкнути 'Windows Media Player' для вашої операційної системи?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource не було правильно зареєстровано для відтворення медіафайлів! Натисніть \"Так\", щоб зареєструвати його повторно. Вас буде сповіщено двічі"
+
+# AI Translated
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Відсутній компонент BambuSource, зареєстрований для відтворення медіа! Перевстановіть OrcaSlicer або зверніться по допомогу до спільноти."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Використовується BambuSource з іншої інсталяції, відтворення відео може працювати неправильно! Натисніть \"Так\", щоб виправити це."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Вашій системі бракує кодеків H.264 для GStreamer, які необхідні для відтворення відео. (Спробуйте встановити пакети gstreamer1.0-plugins-bad або gstreamer1.0-libav, а потім перезапустіть Orca Slicer?)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+#~ msgid "g"
+#~ msgstr "г"
+
+#~ msgid "Fila Saving"
+#~ msgstr "Збереження філаменту"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"
