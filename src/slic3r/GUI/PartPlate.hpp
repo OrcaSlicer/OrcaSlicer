@@ -563,10 +563,6 @@ public:
     // Returns the primary-zone bounding box in mm when an IDEX/IQEX parallel mode is active.
     // Empty (nullopt) when IDEX/IQEX is off or the mode is "primary" (full-bed).
     std::optional<BoundingBoxf> imex_primary_zone() { ensure_imex_zones(); return m_imex_primary_zone_box; }
-    // Compute the IMEX firmware-managed slice offset and push it to m_print. Safe to call
-    // every slice. Sets Vec2d::Zero() when the printer flag is off, the mode is primary, or
-    // the preset bundle isn't ready yet. Must be called from the GUI thread.
-    void refresh_imex_slice_offset();
     // Returns carriage collision strips (mm) for the current IDEX/IQEX mode.
     // Always call imex_primary_zone() first to ensure the cache is warm.
     const std::vector<BoundingBoxf3>& imex_collision_zones() const { return m_imex_collision_zones; }
