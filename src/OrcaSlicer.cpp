@@ -4754,7 +4754,10 @@ int CLI::run(int argc, char **argv)
                     int plate_count = partplate_list.get_plate_count();
 
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
-                    const float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true)->value;
+                    // This margin only pre-adjusts the default away from the near edges;
+                    // estimate_wipe_tower_polygon below computes the real clamped position.
+                    float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true)->value;
+                    if (tower_brim_width < 0.f) tower_brim_width = 8.f; // auto: object heights unknown here, 8 mm is the auto cap
                     const float tower_margin = WIPE_TOWER_MARGIN + tower_brim_width;
 
                     // set the default position, the same with print config(left top)
@@ -5051,7 +5054,10 @@ int CLI::run(int argc, char **argv)
                         int extruder_size = used_filament_set.size();
 
                         auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
-                        const float tower_brim_width      = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true)->value;
+                        // This margin only pre-adjusts the default away from the near edges;
+                        // estimate_wipe_tower_polygon below computes the real clamped position.
+                        float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true)->value;
+                        if (tower_brim_width < 0.f) tower_brim_width = 8.f; // auto: object heights unknown here, 8 mm is the auto cap
                         const float tower_margin          = WIPE_TOWER_MARGIN + tower_brim_width;
                         // set the default position, the same with print config(left top)
                         float x = WIPE_TOWER_DEFAULT_X_POS;
@@ -5713,6 +5719,34 @@ int CLI::run(int argc, char **argv)
                 std::string outfile;
                 //Print       fff_print;
                 std::vector<size_t> plate_triangle_counts(partplate_list.get_plate_count(), 0);
+
+                // The stored (or default) tower position may not fit the tower these plates
+                // need, and no CLI placement site runs on a plain slice - mirror the GUI's
+                // reload clamp and fit every plate's tower into the printable area first.
+                if (m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
+                    for (int index = 0; index < partplate_list.get_plate_count(); index++) {
+                        if ((plate_to_slice != 0) && (plate_to_slice != (index + 1)))
+                            continue;
+                        Slic3r::GUI::PartPlate *plate = partplate_list.get_plate(index);
+                        // Printing by object disables the tower only with more than one instance.
+                        bool is_seq_print = false;
+                        get_print_sequence(plate, m_print_config, is_seq_print);
+                        if (is_seq_print && plate->printable_instance_size() > 1)
+                            continue;
+                        // An empty estimate is a plate that prints no tower (one filament and
+                        // neither smooth timelapse, wrapping detection nor a raft).
+                        Vec3d wt_pos, wt_size;
+                        plate->estimate_wipe_tower_polygon(m_print_config, index, wt_pos, wt_size);
+                        if (wt_size(0) < EPSILON || wt_size(1) < EPSILON)
+                            continue;
+                        ConfigOptionFloat wt_x_opt((float) wt_pos(0));
+                        ConfigOptionFloat wt_y_opt((float) wt_pos(1));
+                        m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true)->set_at(&wt_x_opt, index, 0);
+                        m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true)->set_at(&wt_y_opt, index, 0);
+                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%: wipe tower clamped to {%2%, %3%}, size {%4%, %5%}")
+                            % (index + 1) % wt_pos(0) % wt_pos(1) % wt_size(0) % wt_size(1);
+                    }
+                }
 
                 while(!finished)
                 {
