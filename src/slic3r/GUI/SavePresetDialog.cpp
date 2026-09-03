@@ -149,7 +149,10 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
             // Set initial state (unchecked by default)
             detach_checkbox->SetValue(m_detach);
             // Bind the checkbox event to update the detach state for this item
-            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
+            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent& event) {
+                m_detach = detach_checkbox->GetValue();
+                event.Skip(); // Let CheckBox update its bitmap for the new state.
+            });
 
             detach_label->SetForegroundColour(wxColour("#363636"));
 
