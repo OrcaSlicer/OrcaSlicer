@@ -175,6 +175,17 @@ void select_printer_default_presets(PresetBundle &bundle)
     if (const auto *def_fil = printer_preset.config.option<ConfigOptionStrings>("default_filament_profile");
         def_fil != nullptr && !def_fil->values.empty())
         bundle.filaments.select_preset_by_name(def_fil->values.front(), /*force=*/true);
+    // Re-seed the per-slot filament list from that selection, or the sweep's result depends on the
+    // printer sliced before it. Once there are 2+ slots, full_config() builds the filament config from
+    // filament_presets and ignores the selected preset (PresetBundle::full_fff_config), while
+    // update_compatible() only replaces a slot that has gone *incompatible* - and when it does, it ranks
+    // the outgoing preset's alias, then its filament type, above the printer's own default. The sweep
+    // grows every printer to 2 slots and update_multi_material_filament_presets() never shrinks them, so
+    // a material picked up on the first printer rides the whole run. With all vendors loaded the first
+    // printer inherits a TPU (the load-time pick is whichever filament sorts first), the type match
+    // re-resolves it to "Generic TPU @System", and its alias then pins every later printer to that
+    // vendor's own "Generic TPU @..." - which the BBL dual-nozzle profiles rightly refuse to group.
+    bundle.filament_presets.assign(1, bundle.filaments.get_selected_preset_name());
 }
 
 // The vendor/printer currently being sliced, stamped onto every engine log record by the sink below so
