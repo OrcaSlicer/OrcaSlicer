@@ -2326,7 +2326,7 @@ static bool is_type1_wipe_tower(const DynamicPrintConfig &config, const Print *p
     return bbl || (tower_type_opt != nullptr && tower_type_opt->value == WipeTowerType::Type1);
 }
 
-Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count, int plate_extruder_size, bool use_global_objects, bool enable_wrapping_detection) const
+Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count, int plate_extruder_size, bool use_global_objects, bool enable_wrapping_detection, const std::vector<int>* plate_filament_ids) const
 {
     Vec3d wipe_tower_size;
     double layer_height = 0.08f; // hard code layer height
@@ -2339,7 +2339,11 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
 
     // empty plate; plate_extruders stays empty when the caller forced a generic filament count
     std::vector<int> plate_extruders;
-    if (plate_extruder_size == 0)
+    if (plate_filament_ids != nullptr) {
+        plate_extruders = *plate_filament_ids;
+        if (plate_extruder_size == 0)
+            plate_extruder_size = plate_extruders.size();
+    } else if (plate_extruder_size == 0)
     {
         plate_extruders = get_extruders(true);
         plate_extruder_size = plate_extruders.size();
@@ -2460,7 +2464,7 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     return wipe_tower_size;
 }
 
-arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count, int plate_extruder_size, bool use_global_objects) const
+arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count, int plate_extruder_size, bool use_global_objects, const std::vector<int>* plate_filament_ids) const
 {
 	float x = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_x"))->get_at(plate_index);
 	float y = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_y"))->get_at(plate_index);
@@ -2469,7 +2473,7 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	float v = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_volume"))->value;
     const ConfigOptionBool * wrapping_opt = dynamic_cast<const ConfigOptionBool *>(config.option("enable_wrapping_detection"));
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
-	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
+	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping, plate_filament_ids);
 	int plate_width=m_width, plate_depth=m_depth;
 	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
