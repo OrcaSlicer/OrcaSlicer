@@ -6999,16 +6999,24 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // as From_Other and import the geometry silently.
                 if (m_minimal_published) {
                     // metadata_item_map is seeded from the input file's metadata_items above, so a
-                    // project opened from a regular Orca/BBS 3MF still carries the Application /
-                    // OrcaSlicer tags it came with. Erase them: skipping the overwrite is not enough,
-                    // and an empty value would still emit a "present-looking" tag to old receivers.
+                    // project opened from a regular Orca/BBS 3MF still carries the slicer-identifying
+                    // tags it came with. Erase every one of them - not just the two most common -
+                    // so a published 3MF is fully tag-less: old receivers classify it as From_Other
+                    // and import the geometry silently instead of showing a baked-in "old version"
+                    // popup, and no version marker survives to seed a later re-save.
                     metadata_item_map.erase(BBL_APPLICATION_TAG);
                     metadata_item_map.erase(ORCASLICER_TAG);
+                    metadata_item_map.erase(BBS_3MF_VERSION);
+                    metadata_item_map.erase(BBS_3MF_VERSION1);
                 } else {
                     metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
                 }
             }
-            metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
+            // The Bambu 3MF version marker is part of the slicer identity: omit it for a minimal
+            // published file along with the tags erased above (skipping the overwrite alone would
+            // leave the value the source file seeded into metadata_item_map).
+            if (!m_minimal_published)
+                metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
             if (!model.mk_name.empty()) {
                 metadata_item_map[BBL_MAKERLAB_TAG] = xml_escape(model.mk_name);
@@ -7031,10 +7039,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 BOOST_LOG_TRIVIAL(info) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
-                if (item.first == BBL_APPLICATION_TAG) {
+                if (item.first == BBL_APPLICATION_TAG && !m_minimal_published) {
                     // The OrcaSlicer tag is only written for files that carry the Application
                     // tag, which a minimal published 3MF erases (see the map assignment above):
-                    // the branch below is unreachable in minimal mode.
+                    // the explicit !m_minimal_published guard keeps the tag-less guarantee from
+                    // depending on that erase happening to run first.
                     stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
                            << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
                 }
@@ -9213,6 +9222,68 @@ std::string bbs_3mf_get_thumbnail(const char *path)
     return data;
 }
 
+namespace {
+
+// Parses just the model-file <metadata> elements, mirroring the importer's
+// _handle_start_metadata/_handle_end_metadata (attribute-order independent, entity-unescaped,
+// whitespace tolerant). Stops the parser as soon as the published flag node is read so the
+// geometry/resources that follow are skipped, which keeps the per-file cost small.
+struct PublishedXmlProbe
+{
+    XML_Parser parser{nullptr};
+    bool       in_metadata{false};
+    bool       found{false};
+    bool       published{false};
+    std::string curr_name;
+    std::string curr_value;
+
+    static std::string attribute(const char** attrs, const char* key)
+    {
+        if (attrs == nullptr)
+            return std::string();
+        // expat hands the attrs as a NULL-terminated {name, value, ...} array.
+        for (unsigned int a = 0; attrs[a] != nullptr; a += 2)
+            if (::strcmp(attrs[a], key) == 0 && attrs[a + 1] != nullptr)
+                return attrs[a + 1];
+        return std::string();
+    }
+
+    static void XMLCALL start(void* user_data, const char* name, const char** attrs)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (::strcmp(name, METADATA_TAG) == 0) {
+            self->in_metadata = true;
+            self->curr_name   = attribute(attrs, NAME_ATTR);
+            self->curr_value.clear();
+        } else {
+            self->in_metadata = false;
+        }
+    }
+
+    static void XMLCALL characters(void* user_data, const XML_Char* s, int len)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (self->in_metadata)
+            self->curr_value.append(s, len);
+    }
+
+    static void XMLCALL end(void* user_data, const char* name)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (!self->in_metadata || ::strcmp(name, METADATA_TAG) != 0)
+            return;
+        self->in_metadata = false;
+        if (self->curr_name == ORCA_PUBLISHED_TAG) {
+            self->published = is_published_3mf_flag(xml_unescape(self->curr_value));
+            self->found     = true;
+            if (self->parser != nullptr)
+                XML_StopParser(self->parser, false);
+        }
+    }
+};
+
+} // namespace
+
 bool bbs_3mf_is_published(const std::string &path)
 {
     mz_zip_archive archive;
@@ -9234,7 +9305,8 @@ bool bbs_3mf_is_published(const std::string &path)
     if (!open_zip_reader(&archive, path))
         return false;
 
-    // Read just the model XML and locate the published metadata node; no geometry parsing.
+    // Read just the model XML (the metadata node sits before the resources, so the probe below
+    // stops early) rather than by a raw substring match; no geometry parsing.
     int index = mz_zip_reader_locate_file(&archive, MODEL_FILE.c_str(), nullptr, 0);
     if (index < 0)
         return false;
@@ -9245,22 +9317,29 @@ bool bbs_3mf_is_published(const std::string &path)
     if (!mz_zip_reader_extract_to_mem(&archive, index, xml.data(), xml.size(), 0))
         return false;
 
-    const std::string needle = std::string("<metadata name=\"") + ORCA_PUBLISHED_TAG + "\">";
-    size_t pos = xml.find(needle);
-    if (pos == std::string::npos)
-        return false;
-    pos += needle.size();
-    size_t end = xml.find("</metadata>", pos);
-    if (end == std::string::npos)
+    XML_Parser parser = XML_ParserCreate(nullptr);
+    if (parser == nullptr)
         return false;
 
-    size_t value_begin = pos, value_end = end;
-    while (value_begin < value_end && (xml[value_begin] == ' ' || xml[value_begin] == '\t' || xml[value_begin] == '\n' || xml[value_begin] == '\r'))
-        ++value_begin;
-    while (value_end > value_begin && (xml[value_end - 1] == ' ' || xml[value_end - 1] == '\t' || xml[value_end - 1] == '\n' || xml[value_end - 1] == '\r'))
-        --value_end;
+    PublishedXmlProbe probe;
+    probe.parser = parser;
+    XML_SetUserData(parser, &probe);
+    XML_SetElementHandler(parser, PublishedXmlProbe::start, PublishedXmlProbe::end);
+    XML_SetCharacterDataHandler(parser, PublishedXmlProbe::characters);
+    // Never resolve external entities from a file we are only probing.
+    XML_SetExternalEntityRefHandler(parser, nullptr);
+    XML_SetEntityDeclHandler(parser, nullptr);
 
-    return is_published_3mf_flag(xml.substr(value_begin, value_end - value_begin));
+    const XML_Status status = XML_Parse(parser, xml.data(), static_cast<int>(xml.size()), 1);
+    // XML_StopParser(parser, false) from the end handler makes XML_Parse return
+    // XML_STATUS_ERROR with XML_ERROR_ABORTED - treat that as success (we stopped on the flag).
+    const bool parse_ok = (status == XML_STATUS_OK) ||
+                          (XML_GetErrorCode(parser) == XML_ERROR_ABORTED && probe.found);
+    XML_ParserFree(parser);
+
+    if (!parse_ok)
+        return false;
+    return probe.published;
 }
 
 bool load_gcode_3mf_from_stream(std::istream &data, DynamicPrintConfig *config, Model *model, PlateDataPtrs *plate_data_list, Semver *file_version)
