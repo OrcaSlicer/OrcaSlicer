@@ -1319,7 +1319,7 @@ TEST_CASE("Overhang reference spacing follows variable layer heights", "[Extrusi
 // immediate model layer and prove that metadata remains enabled after the raft boundary.
 TEST_CASE("Object layers directly over a raft exclude overhang estimates", "[ExtrusionProcessor][Overhang][Regression]")
 {
-    DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, true);
+    DynamicPrintConfig config = shallow_overhang_config("classic", false, true);
     config.set_deserialize_strict({{"enable_support", "1"}, {"raft_layers", "1"},
         {"enable_overhang_bridge_fan", "0"}});
     // Orca: Supply the complete nozzle definition required while exporting the processed print.
