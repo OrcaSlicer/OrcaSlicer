@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -856,6 +857,63 @@ TEST_CASE("Primary-mode IMEX prints still transition to the second-layer tempera
     CHECK(gcode.find("M104 S240") != std::string::npos);
 }
 
+// A plate carries its IMEX mode as a name, matched against the printer's imex_mode_names at
+// slice time, so a mode renamed or deleted underneath the plate -- or a project opened against a
+// preset that names its modes differently -- leaves the plate pointing at nothing. That used to
+// take every "not Primary" branch in the exporter while every name-keyed lookup came back empty,
+// which is worse than either interpretation on its own:
+//   * the 1st->2nd layer temperature branch is mutually exclusive with the standard one, so an
+//     empty active-tool roster meant NO head was transitioned and every one of them held
+//     nozzle_temperature_initial_layer for the whole print; and
+//   * the initial T<n> was suppressed on the assumption that the mode's setup script would
+//     select the tool, while that script -- resolved by the same name -- did not exist.
+// Print::validate() does not catch it either: the unresolved name yields an empty tools string,
+// so there is no declared primary and its IMEX routing guard is skipped.
+//
+// Falling back to Primary is what makes the file coherent again. Asserted on the two emissions
+// that were actually broken rather than on the mode string, which the placeholder test in
+// test_imex_mode_gcode.cpp covers.
+TEST_CASE("An IMEX plate set to a mode the printer no longer defines slices as Primary",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1); // filament 1 => logical slot 0 => physical head 0
+    config.set_deserialize_strict({
+        // imex_mode_names is "primary;copy" -- this is `copy` after a rename.
+        { "imex_parallel_mode",                "copy-renamed" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // The head the toolpaths run on steps 200 -> 240 at the second layer, via the standard
+    // per-extruder path a Primary-mode print uses.
+    CHECK(gcode.find("M104 S240") != std::string::npos);
+    // ...and only that head, addressed the way a single-head print addresses it: nothing drives
+    // a copy carriage here, so the fallback goes through the standard per-extruder path, where
+    // only filament slot 0 prints. GCodeWriter::set_temperature therefore sees
+    // multiple_extruders == false and emits no tool qualifier at all. Excluding the whole
+    // " T" suffix rather than " T1" is what makes that the assertion: a regression that routed
+    // the transition to T2 or T3 instead would satisfy an exclusion of T1, and the unqualified
+    // find above is itself prefix-satisfied by any "M104 S240 T<n>".
+    CHECK(gcode.find("M104 S240 T") == std::string::npos);
+
+    // The initial tool selection is emitted. Matched as a line-leading token rather than a whole
+    // line so the assertion does not depend on the trailing "; change extruder" comment, which
+    // is switched off by a global unrelated to IMEX.
+    bool               selects_initial_tool = false;
+    std::istringstream tool_lines(gcode);
+    std::string        line;
+    while (std::getline(tool_lines, line))
+        if (line.rfind("T0", 0) == 0) {
+            selects_initial_tool = true;
+            break;
+        }
+    CHECK(selects_initial_tool);
+}
+
 // IQEX: when the second gantry is active the mode drives all four carriages, so every one of
 // them needs its own filament resolved -- for the first layer via is_extruder_used (consumed by
 // machine_start_gcode) and for the second via the per-tool transition. pem routes filament 1 to
@@ -945,6 +1003,108 @@ TEST_CASE("IMEX heater commands name the physical head, not the logical filament
     INFO("heater commands naming a non-existent head: " << offenders.size()
          << (offenders.empty() ? "" : " e.g. " + offenders.front()));
     CHECK(offenders.empty());
+}
+
+// The other half of that translation, and the half nothing else covers: GCodeWriter::set_temperature
+// passes `this->config.is_imex.value` as the guard, NOT a constant, so a printer that is not an
+// IMEX printer keeps addressing heaters by logical filament id exactly as upstream does.
+//
+// physical_extruder_map is not an IMEX-only key. Shipping dual-nozzle BBL profiles author it --
+// fdm_bbl_3dp_002_common ships {1, 0} -- for the inherited BBL reading of the key, and PrintApply
+// deliberately leaves a non-IMEX printer's map exactly as it arrives (IMEXHelpers.hpp spells out
+// the two readings). Hardcode `true` at that call site and this whole suite still passes, because
+// every other case here runs either on an IMEX printer or on one with no authored map -- while
+// those profiles start sending filament 0's M104/M109 to heater 1 and filament 1's to heater 0.
+//
+// The two filaments carry DIFFERENT idle temperatures, so the S value and the T index cross-check
+// each other: a remap moves both onto the other tool and fails both halves, and no assertion can
+// be satisfied by a prefix.
+//
+// Idle temperature rather than nozzle_temperature, for a reason specific to THIS HARNESS. Keys in
+// filament_options_with_variant are rewritten at apply time by
+// update_values_to_printer_extruders_for_multiple_filaments, which sets each filament's value to
+// `opt->get_at(variant_index[f])` -- it RE-INDEXES per filament by that filament's extruder
+// variant, it does not flatten. Per-filament nozzle temperature is a real, working feature and
+// survives that pass on a printer whose filaments resolve to different variant slots.
+// multifilament_config pins nozzle_diameter to a single 0.4, so every filament here resolves to
+// the SAME variant slot and therefore ends up with the same value -- which is why the IMEX cases
+// above tell heads apart by tool qualifier rather than by temperature. idle_temperature is not in
+// that key set, so "151,173" reaches the emitter intact and the two filaments stay distinguishable.
+// Ooze prevention is what puts the idle temperatures into the file at all.
+TEST_CASE("Heater commands keep the logical filament id on a non-IMEX printer",
+          "[MultiFilament][IMEX][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "nozzle_diameter",                  "0.4,0.4" },
+        { "printer_extruder_id",              "1,2" },
+        { "printer_extruder_variant",         "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",        "0,0" },
+        // The shipping two-nozzle profile: not an IMEX printer, but it authors the swap map.
+        { "is_imex",                          "0" },
+        { "physical_extruder_map",            "1,0" },
+        { "single_extruder_multi_material",   "0" },
+        // Ooze prevention drops the outgoing filament to its idle temperature on every tool
+        // change, through the instance set_temperature overload that carries the guard.
+        { "ooze_prevention",                  "1" },
+        { "standby_temperature_delta",        "-50" },  // unused while idle_temperature is set
+        // Per filament and distinct: these are the values the assertions pair with a heater.
+        { "idle_temperature",                 "151,173" },
+        { "nozzle_temperature_initial_layer", "215,215" },
+        { "nozzle_temperature",               "240,240" },
+        // GCodeProcessor's preheat pass rewrites the tool-change temperature commands and drops
+        // the ";cooldown" M104s outright, applying physical_extruder_map itself as it does. That
+        // pass is not the code under test, so switch it off and let the writer's emissions stand.
+        { "preheat_time",                     "0" },
+        { "enable_prime_tower",               "0" },
+        // The assertions spell "M104 S<t> T<n>"; RepRapFirmware emits "G10 S<t> P<n>" from the
+        // same code, so the flavor is pinned rather than defaulted.
+        { "gcode_flavor",                     "klipper" },
+    });
+
+    // One filament per object, so both heaters are addressed and a tool change happens in both
+    // directions. Assigned at the object level: a region-level filament id would not raise the
+    // used-filament count the tool ordering works from.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "1" } },
+        { { "extruder", "2" } },
+    };
+    const std::string gcode = slice_with_object_overrides({ cube(20), cube(20) }, config, overrides);
+
+    // Every heater command that names a tool, collected as temperature -> the tools it was
+    // addressed to. Scanning beats fixed-string finds: "M104 S151" on its own is prefix-satisfied
+    // by "M104 S151 T1", and excluding just " T1" would let a command routed to some third tool
+    // through. Mirrors the offender scan in the IMEX case above.
+    std::map<int, std::set<int>> tools_by_temp;
+    std::istringstream           ss(gcode);
+    for (std::string line; std::getline(ss, line);) {
+        if (line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0)
+            continue;
+        const size_t s = line.find('S');
+        const size_t t = line.find(" T");
+        if (s == std::string::npos || t == std::string::npos)
+            continue;
+        if (s + 1 >= line.size() || !std::isdigit((unsigned char) line[s + 1]))
+            continue;
+        if (t + 2 >= line.size() || !std::isdigit((unsigned char) line[t + 2]))
+            continue;
+        tools_by_temp[std::stoi(line.substr(s + 1))].insert(std::stoi(line.substr(t + 2)));
+    }
+
+    std::string seen;
+    for (const auto& [temperature, tools] : tools_by_temp) {
+        seen += " S" + std::to_string(temperature) + "->";
+        for (int tool : tools)
+            seen += "T" + std::to_string(tool);
+    }
+    INFO("heater commands naming a tool:" << seen);
+
+    // Both idle temperatures have to be in the file, or the pairing below would prove nothing.
+    REQUIRE(tools_by_temp.count(151) == 1);
+    REQUIRE(tools_by_temp.count(173) == 1);
+    // Filament 0's idle temperature goes to heater 0 and nowhere else, filament 1's to heater 1.
+    // Applying physical_extruder_map {1, 0} here would swap both.
+    CHECK(tools_by_temp[151] == std::set<int>{ 0 });
+    CHECK(tools_by_temp[173] == std::set<int>{ 1 });
 }
 
 // The IMEX Primary tool prints the sliced paths directly, so it can only use a filament the
