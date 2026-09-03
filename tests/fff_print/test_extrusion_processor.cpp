@@ -781,6 +781,49 @@ TEST_CASE("Overhang metadata detects unsupported interiors without changing the 
     CHECK(path.polyline.points == original_points);
 }
 
+// Orca: Arachne may place an outer-wall center closer than half its width to the sliced contour.
+// Compare layers relative to that actual inset so identical contours remain supported while a real
+// outward shift retains its geometric percentage in both fixed- and variable-speed metadata paths.
+TEST_CASE("Overhang metadata uses the current contour as its wall placement baseline",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    const double outward_shift = GENERATE(0.0, 0.1);
+    const float expected_percentage = float(100.0 * outward_shift / width);
+    CAPTURE(outward_shift);
+
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, -outward_shift), Point::new_scale(40, -outward_shift),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erExternalPerimeter, 0.08, width, 0.2f);
+    const double path_y = -outward_shift + 0.1;
+    path.polyline.points = {Point3::new_scale(1, path_y, 0), Point3::new_scale(39, path_y, 0)};
+
+    const auto fixed_speed_percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(fixed_speed_percentages.size() == 1);
+    CHECK_THAT(fixed_speed_percentages.front(), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+
+    const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
+        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
+        100.0f, 100.0f, false, true);
+    REQUIRE_FALSE(variable_speed_points.empty());
+    for (const ProcessedPoint &point : variable_speed_points)
+        CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+}
+
 // Orca: A curled edge may require slower motion and extra cooling even on a supported vertical wall.
 // Its artificial slowdown distance must not be exported as geometric overhang metadata.
 TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[ExtrusionProcessor][Overhang][Regression]")
@@ -805,7 +848,7 @@ TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[Extrusio
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, curled_slowdown);
+        100.0f, 100.0f, curled_slowdown, true);
     REQUIRE(points.size() >= 2);
     CHECK((points.front().speed < 99.0f) == curled_slowdown);
     CHECK((points.front().overlap < 0.99f) == curled_slowdown);
@@ -851,7 +894,7 @@ TEST_CASE("Overhang estimation restores the immediate support layer after skippe
         CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(0.0, 1e-3));
         const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
             ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-            100.0f, 100.0f, true);
+            100.0f, 100.0f, true, true);
         REQUIRE(points.size() >= 2);
         CHECK(points.front().speed < 99.0f);
         CHECK(points.front().overlap < 0.99f);
@@ -1475,4 +1518,50 @@ TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!b
     {
         return caged_overhang_gcode(wall_generator);
     };
+}
+
+
+// Orca: An expanding neighboring wall makes the shared endpoints of this unchanged wall overhang.
+// The endpoints have zero length on this span and must not color its supported interior.
+TEST_CASE("Overhang metadata does not spread a corner overhang along a supported wall",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    constexpr double outward_shift = 0.1;
+
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(-outward_shift, 0), Point::new_scale(40 + outward_shift, 0),
+        Point::new_scale(40 + outward_shift, 10), Point::new_scale(-outward_shift, 10)})};
+
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erExternalPerimeter, 0.08, width, 0.2f);
+    path.polyline.points = {Point3::new_scale(-outward_shift, 0.2, 0),
+                            Point3::new_scale(40 + outward_shift, 0.2, 0)};
+
+    const auto fixed_speed_percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(fixed_speed_percentages.size() == 1);
+    CHECK_THAT(fixed_speed_percentages.front(), Catch::Matchers::WithinAbs(0.0, 1e-3));
+
+    const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
+        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
+        100.0f, 100.0f, false, true);
+    REQUIRE_FALSE(variable_speed_points.empty());
+    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i) {
+        const double midpoint_x = 0.5 * unscale<double>(variable_speed_points[i].p.x() + variable_speed_points[i + 1].p.x());
+        // Orca: Variable-speed output may already split short corner spans into their own G1 moves.
+        // Only the supported interior must remain zero; local corner moves may keep their readings.
+        if (midpoint_x > width && midpoint_x < 40.0 - width)
+            CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+    }
 }

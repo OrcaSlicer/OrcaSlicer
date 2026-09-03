@@ -8230,8 +8230,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
-        	}else{
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              emit_overhangs);
+            }else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
                      (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
@@ -8249,7 +8250,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                      FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              emit_overhangs);
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)

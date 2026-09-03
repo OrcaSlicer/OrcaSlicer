@@ -410,18 +410,24 @@ class ExtrusionQualityEstimator
     std::unordered_map<const PrintObject *, const Layer *> last_prepared_layers;
     const PrintObject                                                            *current_object;
 
-    // Orca: Share the signed-distance formula between original line segments and fitted arc samples.
-    // Arc sampling may compensate an outward approximation error before clamping the unsupported width.
-    float overhang_percentage_at(const Vec3d &position, float width, double approximation_error = 0.0)
+    // Orca: Measure displacement from the current contour instead of assuming every path center is
+    // exactly half a width inside it. Arachne width and placement changes otherwise make identical
+    // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
+    float overhang_percentage_at(const Vec3d &position, float width)
     {
-        const double distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
-        return float(100.0 * std::clamp((distance + 0.5 * width - approximation_error) / width, 0.0, 1.0));
+        const double previous_distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
+        const double current_distance  = next_layer_boundaries[current_object].distance_from_lines<true>(position);
+        // Orca: Correct only a path center closer than half a width to its own contour. Deeper inner
+        // walls need no correction, and a missing current contour retains the conservative estimate.
+        const double current_inset_error = std::isfinite(current_distance) ?
+            std::max(0.0, current_distance + 0.5 * width) : 0.0;
+        return float(100.0 * std::clamp((previous_distance + 0.5 * width - current_inset_error) / width, 0.0, 1.0));
     }
 
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
-    void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
+    void prepare_for_new_layer(const PrintObject *obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
@@ -458,21 +464,21 @@ public:
         const auto percentage_at = [this, &path](const Vec3d &position) {
             return overhang_percentage_at(position, path.width);
         };
-        // Orca: Width-scale probes detect narrow unsupported pockets while reusing endpoint readings.
-        // Query the existing distance tree directly; preview-only sampling needs no curvature calculation.
+        // Orca: Sample cell centres rather than segment endpoints. A shared corner belongs to both
+        // adjacent walls, and an overhang on one wall must not color the full length of the other.
+        // On a long segment, discard its first and last width-scale cells as the corner influence
+        // zone; interior probes still detect narrow unsupported pockets without splitting moves.
         const double probe_spacing = std::max(0.1, double(path.width));
-        Vec3d start = unscaled(path.polyline.points.front());
-        float start_percentage = percentage_at(start);
         for (size_t i = 0; i < percentages.size(); ++i) {
+            const Vec3d start = unscaled(path.polyline.points[i]);
             const Vec3d end = unscaled(path.polyline.points[i + 1]);
-            const float end_percentage = percentage_at(end);
-            float maximum = std::max(start_percentage, end_percentage);
-            const size_t intervals = size_t(std::ceil((end - start).norm() / probe_spacing));
-            for (size_t sample = 1; sample < intervals && maximum < 100.0f; ++sample)
-                maximum = std::max(maximum, percentage_at(start + (end - start) * (double(sample) / intervals)));
+            const size_t intervals = std::max<size_t>(1, size_t(std::ceil((end - start).norm() / probe_spacing)));
+            float maximum = 0.0f;
+            const size_t first_sample = intervals >= 3 ? 1 : 0;
+            const size_t last_sample  = intervals >= 3 ? intervals - 1 : intervals;
+            for (size_t sample = first_sample; sample < last_sample && maximum < 100.0f; ++sample)
+                maximum = std::max(maximum, percentage_at(start + (end - start) * ((double(sample) + 0.5) / intervals)));
             percentages[i] = maximum;
-            start = end;
-            start_percentage = end_percentage;
         }
         return percentages;
     }
@@ -487,19 +493,12 @@ public:
         std::vector<float> percentages(intervals + 1);
         const Vec2d center = unscaled(arc.center);
         const double radius = arc.radius * SCALING_FACTOR;
-        // Orca: This cache contains the current layer's original polygonal contour, whereas the previous
-        // cache contains the support contour. Compare both at the same arc point to cancel the apparent
-        // protrusion caused by replacing chords with a curve. Identical layers must remain at zero.
-        const auto &current_boundary = next_layer_boundaries[current_object];
+        // Orca: The shared current-contour baseline also cancels the apparent protrusion caused by
+        // replacing the current layer's polygonal chords with the fitted curve.
         for (size_t i = 0; i <= intervals; ++i) {
             const double angle = arc.polar_start_theta + arc.angle_radians * (double(i) / intervals);
             const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
-            const double current_distance = current_boundary.distance_from_lines<true>(position);
-            // Orca: Remove only excess beyond the nominal half-width inset, not an arbitrary resolution
-            // threshold. This preserves small real contour shifts and leaves deeper inner walls unchanged.
-            // A missing current contour retains the uncorrected estimate, including fully unsupported arcs.
-            const double approximation_error = std::isfinite(current_distance) ? std::max(0.0, current_distance + 0.5 * width) : 0.0;
-            percentages[i] = overhang_percentage_at(position, width, approximation_error);
+            percentages[i] = overhang_percentage_at(position, width);
         }
         return percentages;
     }
@@ -509,7 +508,8 @@ public:
                                                            const ConfigOptionFloatsOrPercents &speeds,
                                                            float                               ext_perimeter_speed,
                                                            float                               original_speed,
-                                                           bool								   slowdown_for_curled_edges)
+                                                           bool                                slowdown_for_curled_edges,
+                                                           bool                                estimate_overhang_metadata = false)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
         std::vector<std::pair<float, float>> speed_sections;
@@ -646,9 +646,12 @@ public:
             
             float overlap = std::min(1 - (curr.distance+artificial_distance_to_curled_lines) * width_inv, 1 - (next.distance+artificial_distance_to_curled_lines) * width_inv);
 
-            // Orca: Keep the existing speed/fan overlap untouched, but publish the purely geometric
-            // unsupported width separately so curled-edge slowdown cannot change the displayed angle.
-            const float overhang_percentage = 100.0f * std::clamp(std::max(curr.distance, next.distance) * width_inv, 0.0f, 1.0f);
+            // Orca: Keep the existing speed/fan overlap untouched. Only pay for current-contour queries
+            // when opt-in preview metadata is requested, then normalize away Arachne placement and curls.
+            // Attribute the emitted span from its interior: endpoints are shared with neighboring spans
+            // and may describe a different wall at a growing or recessed corner.
+            const float overhang_percentage = estimate_overhang_metadata ?
+                overhang_percentage_at(0.5 * (curr.position + next.position), path.width) : 0.0f;
             processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap, overhang_percentage});
         }
         return processed_points;
