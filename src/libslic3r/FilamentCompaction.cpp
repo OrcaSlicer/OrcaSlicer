@@ -1,5 +1,6 @@
 #include "FilamentCompaction.hpp"
 
+#include "FilamentMixer.hpp"
 #include "Model.hpp"
 #include "Preset.hpp"
 #include "PrintConfig.hpp"
@@ -53,7 +54,8 @@ static bool object_or_global_bool(const ModelObject& object, const DynamicPrintC
     return opt != nullptr && opt->getBool();
 }
 
-std::vector<int> used_filament_slots(const Model& model, const DynamicPrintConfig& config)
+// Every 0-based slot the plate references, mixed slots included, sorted and deduplicated.
+static std::vector<int> referenced_filament_slots(const Model& model, const DynamicPrintConfig& config)
 {
     std::set<int> slots;
     // Every id handled here is 1-based (0 means "inherit"), so store slot-1.
@@ -111,10 +113,38 @@ std::vector<int> used_filament_slots(const Model& model, const DynamicPrintConfi
     return std::vector<int>(slots.begin(), slots.end());
 }
 
+static bool is_mixed_slot(const DynamicPrintConfig& config, int slot_0based)
+{
+    const auto* is_mixed = config.option<ConfigOptionBools>("filament_is_mixed");
+    return is_mixed != nullptr && size_t(slot_0based) < is_mixed->size() && is_mixed->values[slot_0based];
+}
+
+// `slots` with every mixed slot replaced by its component filaments.
+static std::vector<int> physical_slots_of(const std::vector<int>& slots, const DynamicPrintConfig& config)
+{
+    const auto* is_mixed  = config.option<ConfigOptionBools>("filament_is_mixed");
+    const auto* comp_strs = config.option<ConfigOptionStrings>("filament_mixed_components");
+    if (is_mixed == nullptr || comp_strs == nullptr || !has_any_mixed_filament(is_mixed->values))
+        return slots;
+    const std::vector<unsigned int> expanded = expand_mixed_filaments(std::vector<unsigned int>(slots.begin(), slots.end()),
+                                                                      is_mixed->values, comp_strs->values);
+    return std::vector<int>(expanded.begin(), expanded.end());
+}
+
+std::vector<int> used_filament_slots(const Model& model, const DynamicPrintConfig& config)
+{
+    return physical_slots_of(referenced_filament_slots(model, config), config);
+}
+
 FilamentCompaction build_filament_compaction(const Model& model, const DynamicPrintConfig& config)
 {
     FilamentCompaction compaction;
-    compaction.slot_of_tool = used_filament_slots(model, config);
+    const std::vector<int> referenced = referenced_filament_slots(model, config);
+    compaction.slot_of_tool           = physical_slots_of(referenced, config);
+    // The mixes come after every physical tool so T0..T(n-1) are exactly what the printer loads.
+    for (int slot : referenced)
+        if (is_mixed_slot(config, slot))
+            compaction.slot_of_tool.push_back(slot);
     // A plate that already uses a dense prefix needs no renumbering; leaving the compaction
     // identity keeps the model copy and the config gather from running at all.
     if (compaction.is_identity())
@@ -234,7 +264,12 @@ static const std::vector<std::string>& filament_indexed_keys()
         std::vector<std::string> out = Preset::filament_options();
         for (const char* extra : { "filament_colour", "filament_multi_colour", "filament_settings_id",
                                    "filament_ids", "filament_map", "filament_volume_map",
-                                   "filament_nozzle_map", "filament_physical_map", "filament_self_index" })
+                                   "filament_nozzle_map", "filament_physical_map", "filament_self_index",
+                                   // Project-level mixed-colour arrays, indexed like filament_colour.
+                                   "filament_is_mixed", "filament_mixed_components",
+                                   "filament_mixed_sublayer_ratios", "filament_mixed_gradient",
+                                   "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+                                   "filament_mixed_gradient_per_part" })
             out.emplace_back(extra);
         out.erase(std::remove_if(out.begin(), out.end(),
                                  [](const std::string& key) {
@@ -274,6 +309,19 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
             vec->set_at(source.get(), tool, size_t(compaction.slot_of_tool[tool]));
         vec->resize(new_count);
     }
+
+    // A mix's component list names physical filaments by their 1-based project number; those
+    // just moved with the gather above. A component the plate does not print cannot occur here
+    // (a used mix makes each of its components used), so every one has a tool.
+    if (auto* comps = config.option<ConfigOptionStrings>("filament_mixed_components"); comps != nullptr && comps->size() == new_count)
+        for (std::string& list : comps->values) {
+            if (list.empty())
+                continue;
+            std::string renumbered;
+            for (unsigned int component : parse_mixed_components(list))
+                renumbered += (renumbered.empty() ? "" : ",") + std::to_string(compacted_1based(compaction, int(component)));
+            list = renumbered;
+        }
 
     // flush_volumes_matrix is one filament x filament block (row = source, column = target) PER
     // HEAD on a multi-head printer -- g-code export validates size == heads * f^2, with heads =
