@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -2942,6 +2942,10 @@ msgstr "แก้ไข"
 msgid "Merge with"
 msgstr "รวมกับ"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "แยกสี"
+
 msgid "Delete this filament"
 msgstr "ลบเส้นพลาสติกนี้"
 
@@ -3236,6 +3240,10 @@ msgstr "การประกอบ"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "รวมชิ้นส่วนเป็นวัตถุเดียว"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "การใช้ความสูงเลเยอร์แบบแปรผันร่วมกับซับเลเยอร์สีผสมอาจทำให้คุณภาพการผสมสีไม่ดี"
 
 # AI Translated
 msgid "Add layers"
@@ -6302,10 +6310,10 @@ msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "โหลดโมเดล"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "นำเข้าไฟล์ Zip"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "โหลดโมเดลที่มีอยู่ในไฟล์ zip"
 
 msgid "Import Configs"
@@ -7807,6 +7815,10 @@ msgstr "ปรับแต่งแผ่นปัจจุบัน"
 msgid "The %s nozzle can not print %s."
 msgstr "หัวฉีด %s ไม่สามารถพิมพ์ %s ได้"
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "การพิมพ์เส้นพลาสติกสีผสมบนเครื่องพิมพ์ที่มีชุดดันเส้นเดียวต้องเปลี่ยนเส้นพลาสติกและไล่เส้นบ่อยครั้ง ซึ่งอาจเพิ่มเศษวัสดุและความเสี่ยงที่หัวฉีดหรือช่องทิ้งเศษวัสดุจะอุดตันอย่างมาก"
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "ไม่แนะนำให้ผสม %1% กับ %2% ในการพิมพ์\n"
@@ -7932,11 +7944,43 @@ msgstr "ประสานรายการเส้นพลาสติกจ
 msgid "Set filaments to use"
 msgstr "ตั้งค่าเส้นพลาสติกที่จะใช้"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "เพิ่มเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "เส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "ลบเส้นพลาสติกผสมล่าสุด"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "เพิ่มเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "เส้นพลาสติกผสมมีส่วนประกอบที่ไม่ถูกต้องหรือไม่ตรงกัน กรุณาแก้ไขรายการที่ได้รับผลกระทบอีกครั้ง"
+
 msgid "Search plate, object and part."
 msgstr "ค้นหาจาน วัตถุ และชิ้นส่วน"
 
 msgid "Pellets"
 msgstr "เม็ด"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "เส้นพลาสติกผสมมีการอ้างอิงส่วนประกอบที่เสียหาย"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "แก้ไข / ลบ / รวม"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "เส้นพลาสติกผสมปลายทางใช้เส้นพลาสติกจริงนี้เป็นส่วนประกอบ การรวมจะลบเส้นพลาสติกจริงนี้และอาจทำให้เส้นพลาสติกผสมใช้ไม่ได้ ดำเนินการต่อหรือไม่?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8074,8 +8118,8 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "ชื่ออาจแสดงตัวอักษรขยะ!"
@@ -8096,7 +8140,7 @@ msgstr "ปริมาตรของวัตถุเป็นศูนย์
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "วัตถุจากไฟล์ %s มีขนาดเล็กเกินไป และอาจมีหน่วยเป็นเมตรหรือนิ้ว\n"
 " คุณต้องการขยายขนาดเป็นมิลลิเมตรหรือไม่?"
@@ -8115,6 +8159,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "ตรวจพบวัตถุที่มีหลายส่วน"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "กำลังจับคู่พื้นผิวกับเส้นพลาสติก"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "คำเตือนการนำเข้าพื้นผิว"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "โหลดไฟล์เหล่านี้เป็นออบเจ็กต์เดียวที่มีหลายส่วนใช่ไหม\n"
@@ -8325,6 +8377,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "ซิงค์เลย"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "การนำเข้าพื้นผิวล้มเหลว โมเดลดูเหมือนจะมีข้อมูลพื้นผิว แต่ไม่สามารถดำเนินการนำเข้าพื้นผิวจนเสร็จสิ้นได้ โมเดลจะถูกนำเข้าเป็นเรขาคณิตเท่านั้น"
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "กำลังใช้สีพื้นผิว..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "กำลังอัปเดตมุมมอง 3D..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "ใช้สีพื้นผิวแล้ว"
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "คุณสามารถเก็บค่าที่ตั้งไว้ล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่หรือทิ้งก็ได้"
@@ -9567,6 +9635,10 @@ msgstr "แจกันเกลียว"
 
 msgid "First layer filament sequence"
 msgstr "ลำดับเส้นพลาสติกชั้นแรก"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "รายการเส้นพลาสติกมีเส้นพลาสติกผสมอยู่ ลำดับเส้นพลาสติกที่กำหนดเองจะไม่มีผล"
 
 msgid "By Layer"
 msgstr "โดยเลเยอร์"
@@ -10948,12 +11020,12 @@ msgid "No modifications need to be copied."
 msgstr "ไม่มีการแก้ไขที่ต้องคัดลอก"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "คัดลอกพารามิเตอร์"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "แก้ไขพารามิเตอร์ของ %s"
 
 # AI Translated
@@ -11468,27 +11540,6 @@ msgstr "ปริมาณการไล่เส้นชิ่งสำหร
 
 msgid "Please choose the filament colour"
 msgstr "กรุณาเลือกสีเส้นพลาสติก"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "ตัวแทนระบบคลาวด์ไม่พร้อมใช้งาน โปรดรีสตาร์ท OrcaSlicer แล้วลองอีกครั้ง"
@@ -12193,6 +12244,10 @@ msgstr "หากคุณยังต้องการพิมพ์ คุ�
 msgid "No extrusions under current settings."
 msgstr "ไม่มีการอัดขึ้นรูปภายใต้การตั้งค่าปัจจุบัน"
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "มีการใช้เส้นพลาสติกผสมแบบเกรเดียนต์ แต่ 'ซับเลเยอร์สีผสม' ถูกปิดใช้งาน เกรเดียนต์จะไม่ถูกพิมพ์"
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "ไม่รองรับโหมดไทม์แลปส์แบบราบรื่นเมื่อเปิดใช้งานลำดับ \"ตามวัตถุ\""
 
@@ -12228,6 +12283,10 @@ msgstr "คุณอาจต้องการลดขนาดแบบจำ
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "ไม่รองรับความสูงของเลเยอร์ที่แปรผันได้ด้วยการรองรับแบบออร์แกนิก"
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "เส้นพลาสติกของ Wipe Tower ไม่สามารถเป็นเส้นพลาสติกผสมได้"
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "เส้นผ่านศูนย์กลางของหัวฉีดที่แตกต่างกันและเส้นผ่านศูนย์กลางของเส้นพลาสติกที่แตกต่างกันอาจทำงานได้ไม่ดีนักเมื่อเปิดใช้งาน Prime Tower ยังเป็นการทดลองอยู่มาก ดังนั้นโปรดดำเนินการด้วยความระมัดระวัง"
@@ -12578,7 +12637,7 @@ msgstr "มม. หรือ %"
 msgid "Other layers"
 msgstr "ชั้นอื่นๆ"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate SuperTack"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -13941,6 +14000,8 @@ msgstr "เวลาเลเยอร์"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "พัดลมระบายความร้อนบางส่วนจะถูกเปิดใช้งานสำหรับเลเยอร์ที่เวลาโดยประมาณสั้นกว่าค่านี้ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมขั้นต่ำและสูงสุดตามเวลาการพิมพ์เลเยอร์"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "วินาที"
 
@@ -14247,6 +14308,62 @@ msgstr "วัสดุส่วนรองรับ"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "วัสดุรองรับมักใช้ในการพิมพ์ส่วนรองรับและอินเทอร์เฟซรองรับ"
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "เป็นเส้นพลาสติกผสมหรือไม่"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "กำหนดว่าช่องเส้นพลาสติกนี้เป็นเส้นพลาสติกผสมที่ประกอบด้วยเส้นพลาสติกจริงหลายเส้นหรือไม่"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "ส่วนประกอบของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "ลำดับของเส้นพลาสติกส่วนประกอบโดยเริ่มจาก 1 คั่นด้วยเครื่องหมายจุลภาค เช่น \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "สัดส่วนซับเลเยอร์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "ค่าสัดส่วนที่คั่นด้วยเครื่องหมายจุลภาคและรวมกันได้ 1.0 เช่น \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "เกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "เปิดใช้โหมดเกรเดียนต์ในแนวแกน Z สำหรับซับเลเยอร์ของเส้นพลาสติกผสม เมื่อเปิดใช้ สัดส่วนของซับเลเยอร์จะเปลี่ยนแปลงเชิงเส้นตามเลเยอร์"
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "ช่วงเกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "สัดส่วนเริ่มต้นและสิ้นสุดของส่วนประกอบแรกในโหมดเกรเดียนต์ เป็นคู่ค่าที่คั่นด้วยเครื่องหมายจุลภาค เช่น \"0.10,0.90\" หมายถึง 10% ถึง 90%"
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "เส้นโค้งเกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "เส้นโค้งกำหนดเองสไตล์ Photoshop (ไม่บังคับ) ที่แมปความคืบหน้าในแกน Z กับสัดส่วนของส่วนประกอบแรก เข้ารหัสเป็นจุดควบคุมที่คั่นด้วยเครื่องหมายขีดตั้ง ในรูปแบบ \"x,y\" (รูปแบบเดิม) หรือ \"x,y,m_in,m_out\" เมื่อจำเป็นต้องกำหนดค่าแทนเจนต์เอง (ค่าว่างหรือ \"nan\" หมายถึงใช้ค่าเริ่มต้นของ PCHIP) x อยู่ในช่วง [0,1] ส่วน y จะถูกจำกัดให้อยู่ในช่วงสัดส่วนที่ตั้งค่าไว้ เช่น \"0,0.15|0.5,0.50|1,0.85\" หากเว้นว่างไว้ จะใช้ gradient_range แบบเชิงเส้นแทน"
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "เกรเดียนต์แยกตามชิ้นส่วนของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "เมื่อเปิดใช้โหมดเกรเดียนต์ จะใช้เกรเดียนต์กับแต่ละชิ้นส่วนของการประกอบแยกกัน แทนที่จะถือว่าการประกอบทั้งหมดเป็นช่วง Z เดียว"
 
 msgid "Filament printable"
 msgstr "พิมพ์เส้นพลาสติกได้"
@@ -15502,8 +15619,9 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "แรงขับออกสูงสุดที่อนุญาตของแกน Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr "นิวตัน"
 
 # AI Translated
 msgid "Bed mass of the Y axis"
@@ -15514,8 +15632,9 @@ msgid "The machine bed mass load of Y axis"
 msgstr "ภาระมวลฐานของเครื่องบนแกน Y"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
-msgstr "g"
+msgstr "กรัม"
 
 # AI Translated
 msgid "The allowed max printed mass"
@@ -15827,8 +15946,8 @@ msgstr "จุดเริ่มต้นและจุดสิ้นสุด
 msgid "Reduce infill retraction"
 msgstr "ลดการดึงกลับในไส้ใน"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า Z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "ตัวเลือกนี้จะทำให้อุณหภูมิของชุดดันเส้นที่ไม่ใช้งานลดลงเพื่อป้องกันการไหลซึม"
@@ -15997,7 +16116,7 @@ msgstr "ปริมาณการดึงกลับหลังเช็ด
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "ความยาวของการดึงกลับอย่างเร็วหลังเช็ดหัว สัมพันธ์กับความยาวการดึงกลับ\n"
@@ -16044,7 +16163,7 @@ msgstr "เมื่อการดึงกลับทำงานก่อน
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "เมื่อใดก็ตามที่การดึงกลับเสร็จสิ้น หัวฉีดจะถูกยกขึ้นเล็กน้อยเพื่อสร้างระยะห่างระหว่างหัวฉีดและงานพิมพ์ ป้องกันไม่ให้หัวฉีดชนกับงานพิมพ์ขณะเคลื่อนตัว การใช้เส้นเกลียวเพื่อยก Z สามารถป้องกันการร้อยสายได้"
 
 msgid "Z-hop lower boundary"
@@ -17087,6 +17206,14 @@ msgstr ""
 "ขึ้นอยู่กับระยะเวลาของการเช็ด การตั้งค่าการดึงกลับของเส้นพลาสติก/เส้นพลาสติกจะเร็วและนานเพียงใด อาจจำเป็นต้องดึงเส้นพลาสติกกลับเพื่อดึงเส้นพลาสติกที่เหลืออยู่\n"
 "\n"
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "ซับเลเยอร์สีผสม"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "เปิดใช้การแบ่งซับเลเยอร์สีผสม เมื่อเปิดใช้ เลเยอร์ที่มีเส้นพลาสติกสีผสมจะถูกแบ่งเป็นซับเลเยอร์เพื่อให้เกิดเอฟเฟกต์การผสมสี"
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wipe Tower สามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
@@ -18170,6 +18297,10 @@ msgstr "การประสานไฟล์โมเดลล้มเหล
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "รูปแบบไฟล์ไม่รองรับ จึงไม่สามารถอ่านข้อมูลได้"
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .stl, .obj, .amf(.xml)"
@@ -19632,19 +19763,19 @@ msgstr "แสดงเฉพาะชื่อเครื่องพิมพ
 msgid "Only display the filament names with changes to filament presets."
 msgstr "แสดงเฉพาะชื่อเส้นพลาสติกที่มีการเปลี่ยนแปลงการตั้งค่าล่วงหน้าของเส้นพลาสติก"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าเครื่องพิมพ์ล่วงหน้าของผู้ใช้เท่านั้นที่จะแสดง และการตั้งค่าล่วงหน้าแต่ละรายการที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเส้นพลาสติกที่มีการตั้งค่าล่วงหน้าของเส้นพลาสติกผู้ใช้เท่านั้นที่จะถูกแสดง \n"
 "และค่าฟิลาเมนต์ของผู้ใช้ทั้งหมดที่กำหนดไว้ล่วงหน้าในแต่ละชื่อฟิลาเมนต์ที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าล่วงหน้าของกระบวนการที่เปลี่ยนแปลงเท่านั้นที่จะปรากฏขึ้น \n"
 "และกระบวนการของผู้ใช้ที่ตั้งไว้ล่วงหน้าในชื่อเครื่องพิมพ์แต่ละเครื่องที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
@@ -19885,7 +20016,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "เราต้องการข้อมูลเพื่อวินิจฉัยแหล่งที่มาของปัญหา ตรวจสอบหน้า wiki สำหรับคำแนะนำโดยละเอียด"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "ปุ่ม Pack จะรวบรวมไฟล์โปรเจกต์และบันทึกของเซสชันปัจจุบันลงในไฟล์ zip"
 
 # AI Translated
@@ -19941,7 +20072,7 @@ msgid "Stored logs"
 msgstr "บันทึกที่จัดเก็บ"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "รวมบันทึกที่จัดเก็บทั้งหมดลงในไฟล์ zip"
 
 # AI Translated
@@ -20021,7 +20152,7 @@ msgstr "ไม่พบประเภทเครื่องพิมพ์ �
 msgid "Authorizing..."
 msgstr "กำลังอนุญาต..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "ข้อผิดพลาด ไม่สามารถรับโทเคน API สำหรับการอนุญาตได้"
 
 msgid "Could not parse server response."
@@ -20473,8 +20604,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "เปิดใช้การกำหนดเส้นพลาสติกอัจฉริยะ: กำหนดเส้นพลาสติกหนึ่งชนิดให้กับหัวฉีดหลายตัวเพื่อประหยัดสูงสุด"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "การประหยัดเส้นพลาสติก"
+msgid "File Saving"
+msgstr "การบันทึกไฟล์"
 
 msgid "Don't remind me again"
 msgstr "ไม่ต้องเตือนฉันอีก"
@@ -20838,6 +20969,9 @@ msgstr "เริ่มใหม่ตอนนี้"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ไม่มีการกระแทกเลย"
+
+msgid "s"
+msgstr "วินาที"
 
 msgid "Volumetric speed"
 msgstr "ความเร็วปริมาตร"
@@ -21462,6 +21596,39 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "การประหยัดเส้นพลาสติก"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

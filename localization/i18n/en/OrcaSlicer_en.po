@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -2758,6 +2758,9 @@ msgstr ""
 msgid "Merge with"
 msgstr ""
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr ""
 
@@ -3033,6 +3036,9 @@ msgid "Assembly"
 msgstr ""
 
 msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
 msgstr ""
 
 msgid "Add layers"
@@ -5947,10 +5953,10 @@ msgstr ""
 msgid "Load a model"
 msgstr ""
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr ""
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr ""
 
 msgid "Import Configs"
@@ -7399,6 +7405,9 @@ msgstr ""
 msgid "The %s nozzle can not print %s."
 msgstr ""
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr ""
@@ -7519,10 +7528,34 @@ msgstr ""
 msgid "Set filaments to use"
 msgstr ""
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr ""
 
 msgid "Pellets"
+msgstr ""
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
 msgstr ""
 
 #, c-format, boost-format
@@ -7659,7 +7692,7 @@ msgstr ""
 msgid "Customized Preset"
 msgstr ""
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr ""
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7681,7 +7714,7 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 
 msgid "Object too small"
@@ -7694,6 +7727,12 @@ msgid ""
 msgstr ""
 
 msgid "Multi-part object detected"
+msgstr ""
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
 msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
@@ -7888,6 +7927,18 @@ msgid ""
 msgstr ""
 
 msgid "Sync now"
+msgstr ""
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
 msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
@@ -9037,6 +9088,9 @@ msgid "Spiral vase"
 msgstr ""
 
 msgid "First layer filament sequence"
+msgstr ""
+
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
 msgstr ""
 
 msgid "By Layer"
@@ -10325,11 +10379,11 @@ msgstr ""
 msgid "No modifications need to be copied."
 msgstr ""
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr ""
 
 #, c-format, boost-format
@@ -10801,27 +10855,6 @@ msgid "Flushing volumes for filament change"
 msgstr ""
 
 msgid "Please choose the filament colour"
-msgstr ""
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr ""
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr ""
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr ""
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr ""
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr ""
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr ""
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
 msgstr ""
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -11506,6 +11539,9 @@ msgstr ""
 msgid "No extrusions under current settings."
 msgstr ""
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr ""
 
@@ -11540,6 +11576,9 @@ msgid "You might want to reduce the size of your model or change current print s
 msgstr ""
 
 msgid "Variable layer height is not supported with Organic supports."
+msgstr ""
+
+msgid "The wipe tower filament cannot be a mixed filament."
 msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
@@ -11870,7 +11909,7 @@ msgstr ""
 msgid "Other layers"
 msgstr ""
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr ""
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -12954,6 +12993,7 @@ msgstr ""
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr ""
 
+msgctxt "second"
 msgid "s"
 msgstr ""
 
@@ -13245,6 +13285,48 @@ msgid "Support material"
 msgstr ""
 
 msgid "Support material is commonly used to print supports and support interfaces."
+msgstr ""
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
 msgstr ""
 
 msgid "Filament printable"
@@ -14394,6 +14476,7 @@ msgstr ""
 msgid "The allowed maximum output force of Y axis"
 msgstr ""
 
+msgctxt "Newton"
 msgid "N"
 msgstr ""
 
@@ -14403,6 +14486,7 @@ msgstr ""
 msgid "The machine bed mass load of Y axis"
 msgstr ""
 
+msgctxt "gram"
 msgid "g"
 msgstr ""
 
@@ -14671,7 +14755,7 @@ msgstr ""
 msgid "Reduce infill retraction"
 msgstr ""
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -14827,7 +14911,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 
@@ -14870,7 +14954,7 @@ msgstr ""
 msgid "Z-hop height"
 msgstr ""
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr ""
 
 msgid "Z-hop lower boundary"
@@ -15828,6 +15912,12 @@ msgid ""
 "Depending on how long the wipe operation lasts, how fast and long the extruder/filament retraction settings are, a retraction move may be needed to retract the remaining filament.\n"
 "\n"
 "Setting a value in the retract amount before wipe setting below will perform any excess retraction before the wipe, else it will be performed after."
+msgstr ""
+
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
 msgstr ""
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
@@ -16855,6 +16945,9 @@ msgid "Meshing of a model file failed or no valid shape."
 msgstr ""
 
 msgid "The supplied file couldn't be read because it's empty."
+msgstr ""
+
+msgid "The file format is incompatible and cannot be parsed."
 msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
@@ -18187,17 +18280,17 @@ msgstr ""
 msgid "Only display the filament names with changes to filament presets."
 msgstr ""
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr ""
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 
 msgid "Please select at least one printer or filament."
@@ -18412,7 +18505,7 @@ msgstr ""
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr ""
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr ""
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -18454,7 +18547,7 @@ msgstr ""
 msgid "Stored logs"
 msgstr ""
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr ""
 
 msgid "Profiles"
@@ -18519,7 +18612,7 @@ msgstr ""
 msgid "Authorizing..."
 msgstr ""
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr ""
 
 msgid "Could not parse server response."
@@ -18957,7 +19050,7 @@ msgstr ""
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr ""
 
-msgid "Fila Saving"
+msgid "File Saving"
 msgstr ""
 
 msgid "Don't remind me again"
@@ -19315,6 +19408,9 @@ msgid "Restart Now"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "s"
 msgstr ""
 
 msgid "Volumetric speed"

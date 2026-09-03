@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3290,6 +3290,10 @@ msgid "Merge with"
 msgstr "Slå ihop med"
 
 # AI Translated
+msgid "Decompose Color"
+msgstr "Dela upp färg"
+
+# AI Translated
 msgid "Delete this filament"
 msgstr "Radera detta filament"
 
@@ -3609,6 +3613,10 @@ msgstr "Montering"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Slå ihop delar till ett objekt"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Att använda variabel lagerhöjd tillsammans med underlager med blandad färg kan ge sämre färgblandningskvalitet."
 
 # AI Translated
 msgid "Add layers"
@@ -6971,11 +6979,11 @@ msgid "Load a model"
 msgstr "Ladda modell"
 
 # AI Translated
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importera ZIP-arkiv"
 
 # AI Translated
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Läs in modeller som finns i ett ZIP-arkiv"
 
 msgid "Import Configs"
@@ -8645,6 +8653,10 @@ msgid "The %s nozzle can not print %s."
 msgstr "Nozzeln %s kan inte skriva ut %s."
 
 # AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Att skriva ut filament med blandad färg på en skrivare med en enda extruder kräver täta filamentbyten och rensningar, vilket kan öka spillet och risken för stopp i nozzeln eller avfallsrännan avsevärt."
+
+# AI Translated
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Det rekommenderas inte att blanda %1% med %2% vid utskrift.\n"
@@ -8787,12 +8799,44 @@ msgstr "Synkronisera filament listan från AMS"
 msgid "Set filaments to use"
 msgstr "Ställ in filament som ska användas"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Lägg till blandat filament"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Blandat filament"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Ta bort det senaste blandade filamentet"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Lägg till blandat filament"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "Det blandade filamentet har ogiltiga eller inkompatibla komponenter. Redigera de berörda posterna igen."
+
 msgid "Search plate, object and part."
 msgstr "Sök platta, objekt och del."
 
 # AI Translated
 msgid "Pellets"
 msgstr "Pellets"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "Det blandade filamentet har trasiga komponentreferenser"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Redigera / Radera / Slå ihop"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Det blandade målfilamentet använder detta fysiska filament som komponent. Sammanslagningen tar bort det fysiska filamentet och kan göra det blandade filamentet ogiltigt. Fortsätt?"
 
 # AI Translated
 #, c-format, boost-format
@@ -8952,8 +8996,8 @@ msgstr "Bekräfta att G-koderna i dessa inställningar är säkra för att förh
 msgid "Customized Preset"
 msgstr "Anpassad inställning"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Komponent namnet i STEP filen är inte UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Komponent namnet i STEP filen är inte UTF-8 format!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "På grund av textkodning som inte stöds så kan skräptecken visas!"
@@ -8974,7 +9018,7 @@ msgstr "Objektet är utan volym"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Objektets fil %s är för litet, det är kanske i meter eller inches.\n"
 "Skala om till millimeter?"
@@ -8993,6 +9037,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Objekt i flera delar har upptäckts"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Matchar texturer mot filament"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Varning vid texturimport"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Ladda dessa filer som ett enkelt objekt med multipla delar?\n"
@@ -9222,6 +9274,22 @@ msgstr ""
 # AI Translated
 msgid "Sync now"
 msgstr "Synkronisera nu"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Texturimporten misslyckades. Modellen verkar innehålla texturdata, men importprocessen kunde inte slutföras. Modellen importeras endast som geometri."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Tillämpar texturfärger..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "Uppdaterar 3D-vyn..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Texturfärger tillämpade."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Fortsätt med redigerings inställningarna till nytt projekt eller avfärda dem"
@@ -10640,6 +10708,10 @@ msgstr "Spiral vas"
 
 msgid "First layer filament sequence"
 msgstr "Första lagrets filament sekvens"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "Filamentlistan innehåller blandade filament. Den anpassade filamentordningen får ingen effekt."
 
 msgid "By Layer"
 msgstr "Per lager"
@@ -12190,12 +12262,12 @@ msgid "No modifications need to be copied."
 msgstr "Inga ändringar behöver kopieras."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Kopiera parametrar"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Ändra parametrar för %s"
 
 # AI Translated
@@ -12782,33 +12854,6 @@ msgstr "Rensnings volym för filament byte"
 # AI Translated
 msgid "Please choose the filament colour"
 msgstr "Välj filamentfärg"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Liveview i Wayland kräver GStreamers GTK-videosink. Installera insticksmodulen gtksink för GStreamer och starta sedan om OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Det gick inte att initiera Waylands GStreamer-videosink. Kontrollera installationen av din GStreamer GTK-insticksmodul."
-
-# AI Translated
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Windows Media Player krävs för den här uppgiften! Vill du aktivera 'Windows Media Player' i ditt operativsystem?"
-
-# AI Translated
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource har inte registrerats korrekt för mediauppspelning! Tryck på Ja för att registrera om den. Du får två frågor"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Saknad BambuSource-komponent registrerad för mediauppspelning! Installera om OrcaSlicer eller sök hjälp i gemenskapen."
-
-# AI Translated
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Du använder en BambuSource från en annan installation, videouppspelningen kanske inte fungerar korrekt! Tryck på Ja för att åtgärda det."
-
-# AI Translated
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Ditt system saknar H.264-kodekar för GStreamer, som krävs för att spela upp video. (Prova att installera paketen gstreamer1.0-plugins-bad eller gstreamer1.0-libav och starta sedan om Orca Slicer.)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -13572,6 +13617,10 @@ msgstr "Om du ändå vill skriva ut kan du aktivera alternativet i Inställninga
 msgid "No extrusions under current settings."
 msgstr "Nuvarande inställning har ingen extrudering."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Ett blandat filament med gradient används, men 'Underlager med blandad färg' är inaktiverat. Gradienten kommer inte att skrivas ut."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Smooth läge för timelapse stöds inte när ”per objekt” -sekvens är aktiverad."
 
@@ -13613,6 +13662,10 @@ msgstr "Du kan behöva minska modellens storlek eller ändra de aktuella utskrif
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Variabel lagerhöjd stöds inte med organiska support."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Filamentet för prime tornet kan inte vara ett blandat filament."
 
 # AI Translated
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
@@ -14012,14 +14065,12 @@ msgstr "mm eller %"
 msgid "Other layers"
 msgstr "Andra lager"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Byggplattans temperatur för alla lager utom det första. Värdet 0 innebär att filamentet inte stöder utskrift på Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Cool Plate."
 
-# AI Translated
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Textured Cool Plate."
 
@@ -15534,6 +15585,8 @@ msgstr "Lager tid"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Del kylfläkten kommer att aktiveras för lager vars beräknade tid är kortare än detta värde. Fläkthastigheten interpoleras mellan den lägsta och högsta fläkthastigheten enligt utskriftstiden för lager"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -15911,6 +15964,62 @@ msgstr "Supportmaterial"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Support material används ofta för att skriva ut support och stödja gränssnittet"
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Är blandat filament"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Anger om denna filamentplats är ett blandat filament som består av flera fysiska filament"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Komponenter i blandat filament"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Kommaseparerade index för komponentfilamenten, med start på 1, t.ex. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Underlagerandelar för blandat filament"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Kommaseparerade andelsvärden vars summa är 1.0, t.ex. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Gradient för blandat filament"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Aktiverar gradientläge i Z-riktningen för det blandade filamentets underlager. När det är aktiverat varierar underlagrens andelar linjärt över lagren."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Gradientintervall för blandat filament"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Start- och slutandel för den första komponenten i gradientläge. Kommaseparerat par, t.ex. \"0.10,0.90\" betyder 10% till 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Gradientkurva för blandat filament"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Valfri anpassad kurva i Photoshop-stil som mappar Z-förloppet till den första komponentens andel. Kodas som kontrollpunkter separerade med lodstreck, antingen \"x,y\" (äldre format) eller \"x,y,m_in,m_out\" när tangenten behöver åsidosättas (ett tomt värde eller \"nan\" använder PCHIP-standarden). x ligger i [0,1]; y begränsas till det konfigurerade andelsintervallet, t.ex. \"0,0.15|0.5,0.50|1,0.85\". Om fältet är tomt används det linjära gradient_range i stället."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Gradient per del för blandat filament"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "När gradientläget är aktiverat tillämpas gradienten på varje del i en montering separat i stället för att behandla hela monteringen som ett enda Z-intervall."
 
 # AI Translated
 msgid "Filament printable"
@@ -17359,6 +17468,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Den maximalt tillåtna utgående kraften för Y-axeln"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -17369,6 +17479,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Maskinbäddens massbelastning på Y-axeln"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -17720,8 +17831,8 @@ msgid "Reduce infill retraction"
 msgstr "Minska ifyllnads retraktionen"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-kod långsammare. Observera att z-hop inte heller utförs i områden där retraktionen hoppas över."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-kod långsammare. Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -17913,7 +18024,7 @@ msgstr "Reduktionsmängd efter avtorkning"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Längden på den snabba reduktionen efter avtorkning, i förhållande till reduktionslängden.\n"
@@ -17968,7 +18079,7 @@ msgstr "När reduktionen utlöses före ett verktygsbyte dras filamentet tillbak
 msgid "Z-hop height"
 msgstr "Z-hop-höjd"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "När det är en retraktion lyfts nozzel en aning för att skapa ett spel mellan nozzel och utskriften. Detta förhindrar att nozzel träffar utskriften när den förflyttas. Att använda spirallinjer för att lyfta z kan förhindra strängning"
 
 msgid "Z-hop lower boundary"
@@ -19167,6 +19278,14 @@ msgstr ""
 "Beroende på hur länge avtorkningen pågår och hur snabba och långa inställningarna för extruder-/filamentreduktion är, kan en reduktionsrörelse behövas för att dra tillbaka det återstående filamentet.\n"
 "\n"
 "Om du anger ett värde i inställningen reduktionsmängd före avtorkning nedan utförs eventuell överskjutande reduktion före avtorkningen, annars utförs den efteråt."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Underlager med blandad färg"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Aktiverar uppdelning i underlager med blandad färg. När det är aktiverat delas lager som innehåller filament med blandad färg upp i underlager för att skapa färgblandningseffekter."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Avstryknings tornet kan användas för att avlägsna rester på munstycket och stabilisera kammartrycket inuti munstycket för att undvika utseendefel vid utskrift av objekt."
@@ -20440,6 +20559,10 @@ msgstr "Det gick inte att skapa mesh från modellfilen, eller så saknas en gilt
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Den medföljande filen kunde inte läsas eftersom den är tom."
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "Filformatet är inkompatibelt och kan inte tolkas."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Okänt filformat: indata filen måste ha tillägget .stl, .obj eller .amf(.xml)."
@@ -22041,19 +22164,19 @@ msgstr "Endast printer med ändringar av inställningar för printer, filament o
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Visa endast filament namnen vid ändringar av filament inställningar."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Endast printer namn med inställningar för printer visas, och varje inställning du väljer exporteras som zip-fil."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Endast filament namn med inställningar för användar filament visas, \n"
 "och alla inställningar för användar filament i varje filament namn du väljer exporteras som en zip-fil."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Endast printer namn med ändrade process inställningar visas, \n"
 "och alla användarprocess inställningar i varje printer namn som du väljer exporteras som zip-fil."
@@ -22312,7 +22435,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Vi behöver information för att diagnostisera orsaken till problemet. Se wiki-sidan för en detaljerad guide."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Paketera-knappen samlar projektfilen och loggarna från den aktuella sessionen i en zip-fil."
 
 # AI Translated
@@ -22368,7 +22491,7 @@ msgid "Stored logs"
 msgstr "Sparade loggar"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Paketerar alla sparade loggar i en zip-fil."
 
 # AI Translated
@@ -22456,7 +22579,7 @@ msgid "Authorizing..."
 msgstr "Auktoriserar..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Fel. Det går inte att hämta api-token för auktorisering"
 
 # AI Translated
@@ -23017,8 +23140,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Aktivera smart filamenttilldelning: Tilldela ett filament till flera nozzlar för att maximera besparingen"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Filamentbesparing"
+msgid "File Saving"
+msgstr "Filsparande"
 
 # AI Translated
 msgid "Don't remind me again"
@@ -23490,6 +23613,9 @@ msgstr "Starta om nu"
 # AI Translated
 msgid "NO RAMMING AT ALL"
 msgstr "INGEN RAMMING ALLS"
+
+msgid "s"
+msgstr "s"
 
 # AI Translated
 msgid "Volumetric speed"
@@ -24170,6 +24296,45 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Liveview i Wayland kräver GStreamers GTK-videosink. Installera insticksmodulen gtksink för GStreamer och starta sedan om OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Det gick inte att initiera Waylands GStreamer-videosink. Kontrollera installationen av din GStreamer GTK-insticksmodul."
+
+# AI Translated
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Windows Media Player krävs för den här uppgiften! Vill du aktivera 'Windows Media Player' i ditt operativsystem?"
+
+# AI Translated
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource har inte registrerats korrekt för mediauppspelning! Tryck på Ja för att registrera om den. Du får två frågor"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Saknad BambuSource-komponent registrerad för mediauppspelning! Installera om OrcaSlicer eller sök hjälp i gemenskapen."
+
+# AI Translated
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Du använder en BambuSource från en annan installation, videouppspelningen kanske inte fungerar korrekt! Tryck på Ja för att åtgärda det."
+
+# AI Translated
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Ditt system saknar H.264-kodekar för GStreamer, som krävs för att spela upp video. (Prova att installera paketen gstreamer1.0-plugins-bad eller gstreamer1.0-libav och starta sedan om Orca Slicer.)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Filamentbesparing"
 
 # AI Translated
 #~ msgid ""

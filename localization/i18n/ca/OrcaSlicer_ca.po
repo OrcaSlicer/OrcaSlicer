@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3015,6 +3015,10 @@ msgstr "Editar"
 msgid "Merge with"
 msgstr "Fusiona amb"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Descompondre el color"
+
 msgid "Delete this filament"
 msgstr "Elimina aquest filament"
 
@@ -3315,6 +3319,10 @@ msgstr "Muntatge"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Fusionar les peces en un objecte"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Utilitzar una alçada de capa variable juntament amb la subcapa de color mixt pot reduir la qualitat de la barreja de colors."
 
 # AI Translated
 msgid "Add layers"
@@ -6419,10 +6427,10 @@ msgstr "Importar 3MF STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Carregar un model"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importar fitxer ZIP"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Carregar models continguts dins d'un arxiu zip"
 
 msgid "Import Configs"
@@ -7956,6 +7964,10 @@ msgstr "Personalitzar la placa actual"
 msgid "The %s nozzle can not print %s."
 msgstr "El broquet %s no pot imprimir %s."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Imprimir filament de color mixt en una impressora d'un sol extrusor requereix canvis de filament i purgues freqüents, cosa que pot augmentar considerablement el malbaratament i el risc d'obstrucció del broquet o del conducte de residus."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "No es recomana barrejar %1% amb %2% en la impressió.\n"
@@ -8081,12 +8093,44 @@ msgstr "Sincronitzar la llista de filaments des d'AMS"
 msgid "Set filaments to use"
 msgstr "Configurar els filaments a utilitzar"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Afegir filament mixt"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Filament mixt"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Eliminar l'últim filament mixt"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Afegir filament mixt"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "El filament mixt té components no vàlids o incoherents. Torneu a editar les entrades afectades."
+
 msgid "Search plate, object and part."
 msgstr "Cercar placa, objecte i peça."
 
 # AI Translated
 msgid "Pellets"
 msgstr "Pèl·lets"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "El filament mixt té referències de components trencades"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Editar / Esborrar / Fusionar"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "El filament mixt de destinació utilitza aquest filament físic com a component. En fusionar-los s'eliminarà aquest filament físic i el filament mixt pot quedar no vàlid. Voleu continuar?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8232,8 +8276,8 @@ msgid "Customized Preset"
 msgstr "Perfil personalitzat"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Els noms dels components dins del fitxer STEP no tenen format UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Els noms dels components dins del fitxer STEP no tenen format UTF-8!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8255,10 +8299,10 @@ msgstr "El volum de l'objecte és zero"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "L'objecte del fitxer %s és massa petit, i potser en metres o polzades.\n"
-" Vols escalar a mil·límetres?"
+"Vols escalar a mil·límetres?"
 
 msgid "Object too small"
 msgstr "Objecte massa petit"
@@ -8274,6 +8318,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Objecte de múltiples peces detectat"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Associant les textures als filaments"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Avís d'importació de textures"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Carregar aquests fitxers com un sol objecte amb diverses peces?\n"
@@ -8487,6 +8539,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Sincronitza ara"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "No s'ha pogut importar la textura. El model sembla contenir dades de textura, però el procés d'importació no s'ha pogut completar. El model s'importarà només com a geometria."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Aplicant els colors de textura..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "Actualitzant la vista 3D..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Colors de textura aplicats."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Podeu mantenir els perfils modificats al projecte nou o descartar-los"
@@ -9779,6 +9847,10 @@ msgstr "Gerro en Espiral"
 
 msgid "First layer filament sequence"
 msgstr "Seqüència d'impressió de la primera capa"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "La llista de filaments conté filaments mixtos. La seqüència de filaments personalitzada no tindrà efecte."
 
 msgid "By Layer"
 msgstr "Per Capa"
@@ -11189,12 +11261,12 @@ msgid "No modifications need to be copied."
 msgstr "No cal copiar cap modificació."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Copiar els paràmetres"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Modificar els paràmetres de %s"
 
 # AI Translated
@@ -11714,29 +11786,6 @@ msgstr "Volums de purga per al canvi de filament"
 
 msgid "Please choose the filament colour"
 msgstr "Trieu el color del filament"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "La visualització en directe nativa de Wayland requereix el sink de vídeo GTK de GStreamer. Instal·leu el connector gtksink per a GStreamer i reinicieu l'OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "No s'ha pogut inicialitzar el sink de vídeo natiu de GStreamer per a Wayland. Comproveu la instal·lació del connector GTK de GStreamer."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "El Windows Media Player és necessari per a aquesta tasca. Voleu habilitar el \"Windows Media Player\" per al vostre sistema operatiu?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource no s'ha registrat correctament per a la reproducció multimèdia! Premeu Sí per tornar-lo a registrar. Seràs promocionat dues vegades"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Falta el component BambuSource registrat per a la reproducció multimèdia! Reinstal·leu OrcaSlicer o cerqueu ajuda a la comunitat."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Utilitzar un BambuSource des d'una instal·lació diferent, la reproducció de vídeo pot no funcionar correctament! Premeu Sí per solucionar-ho."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Al vostre sistema li falten còdecs H.264 per al GStreamer, necessaris per reproduir vídeo. (Proveu d'instal·lar els paquets gstreamer1.0-plugins-bad o gstreamer1.0-libav i, a continuació, reinicieu Orca Slicer?)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12465,6 +12514,10 @@ msgstr "Si tot i així voleu imprimir, podeu activar l'opció a Preferències / 
 msgid "No extrusions under current settings."
 msgstr "No hi ha extrusions a la configuració actual."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "S'està utilitzant un filament mixt amb degradat, però 'Subcapa de color mixt' està desactivat. El degradat no s'imprimirà."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "El mode suau de timelapse no està permès quan la seqüència \"Per objecte\" està habilitada."
 
@@ -12500,6 +12553,10 @@ msgstr "Potser voleu reduir la mida del model o canviar la configuració d'impre
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Alçada de Capa Variable no és compatible amb suports Orgànics."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "El filament de la torre de purga no pot ser un filament mixt."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "És possible que els diferents diàmetres de broquet i els diferents diàmetres de filament no funcionin bé quan la torre principal està activada. És molt experimental, així que si us plau, procediu amb precaució."
@@ -12868,8 +12925,8 @@ msgstr "mm o %"
 msgid "Other layers"
 msgstr "Altres capes"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-msgstr "Temperatura del llit per a les capes excepte la primera. Un valor de 0 significa que el filament no admet la impressió sobre el Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgstr "Temperatura del llit de les capes excepte la inicial. Un valor de 0 significa que el filament no admet la impressió sobre el Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura del llit de les capes excepte la inicial. El valor 0 significa que el filament no admet imprimir a una Base Freda."
@@ -14263,6 +14320,8 @@ msgstr "Temps de capa"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "S'habilitarà el ventilador de refrigeració de peces per a capes el temps estimat de les quals sigui inferior a aquest valor. La velocitat del ventilador s'interpola entre les velocitats mínima i màxima del ventilador segons el temps d'impressió per capes"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -14571,6 +14630,62 @@ msgstr "Material de suport"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "El material de suport s'utilitza habitualment per imprimir interfície de suport i suport"
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "És filament mixt"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Indica si aquesta ranura de filament és un filament mixt compost per diversos filaments físics"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Components del filament mixt"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Índexs (començant per 1) dels filaments components, separats per comes; p. ex. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Proporcions de subcapa del filament mixt"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Valors de proporció separats per comes que sumin 1.0; p. ex. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Degradat del filament mixt"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Activa el mode de degradat en direcció Z per a les subcapes del filament mixt. En activar-lo, les proporcions de les subcapes varien linealment entre capes."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Rang del degradat del filament mixt"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Proporcions inicial i final del primer component en el mode de degradat. Parell separat per comes; p. ex. \"0.10,0.90\" significa del 10% al 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Corba del degradat del filament mixt"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Corba personalitzada opcional, a l'estil de Photoshop, que assigna el progrés en Z a la proporció del primer component. Es codifica com a punts de control separats per barres verticals, amb el format \"x,y\" (heretat) o \"x,y,m_in,m_out\" quan cal anul·lar la tangent (un valor buit o \"nan\" fa servir el valor PCHIP predeterminat). x està dins de [0,1]; y es limita al rang de proporcions configurat; p. ex. \"0,0.15|0.5,0.50|1,0.85\". Si es deixa buit, s'utilitza el gradient_range lineal."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Degradat per peça del filament mixt"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Quan el mode de degradat està activat, aplica el degradat a cada peça d'un muntatge de manera independent en lloc de tractar tot el muntatge com un únic rang Z."
 
 msgid "Filament printable"
 msgstr "Filament imprimible"
@@ -15860,6 +15975,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Força de sortida màxima permesa de l'eix Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15872,6 +15988,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Càrrega de massa del llit de la màquina a l'eix Y"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -16197,7 +16314,7 @@ msgid "Reduce infill retraction"
 msgstr "Reduir la retracció de farciment"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "No retrau quan el desplaçament està totalment a la zona de farciment. Això vol dir que l'oozing( goteig ) queda amagat. Això pot reduir els temps de retracció per a models complexos i estalviar temps d'impressió, però fer que el laminat i la generació de Codi-G siguin més lents. Tingueu en compte que el salt en Z tampoc es realitza a les zones on s'omet la retracció."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16373,7 +16490,7 @@ msgstr "Quantitat de retracció després de netejar"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Longitud de la retracció ràpida després de netejar, relativa a la longitud de retracció.\n"
@@ -16420,7 +16537,7 @@ msgstr "Quan s'activa la retracció abans d'un canvi d'eina, el filament es reti
 msgid "Z-hop height"
 msgstr "Alçada Z-hop"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Cade vegada que es fa una retracció, s'aixeca una mica el broquet per crear espai lliure entre el broquet i la impressió. Evita que el broquet colpegi la impressió en els desplaçaments. L'ús de la línia espiral per aixecar z pot evitar l'aparició de fils"
 
 msgid "Z-hop lower boundary"
@@ -17481,6 +17598,14 @@ msgstr ""
 "Depenent de quant duri l'operació de neteja, de la rapidesa i de la durada de la configuració de retracció de l'extrusora/filament, pot ser que calgui un moviment de retracció per retraure el filament restant.\n"
 "\n"
 "L'establiment d'un valor en la quantitat de retractació abans de l'esborrat es realitzarà qualsevol retracció en excés abans de la neteja, sinó es realitzarà després."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Subcapa de color mixt"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Activa la divisió en subcapes de color mixt. En activar-la, les capes que contenen filaments de color mixt es divideixen en subcapes per aconseguir efectes de barreja de colors."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La Torre de Purga es pot utilitzar per netejar els residus al broquet i estabilitzar la pressió de la cambra dins del broquet, per tal d'evitar defectes d'aparença en imprimir objectes."
@@ -18572,6 +18697,10 @@ msgstr "La generació de malla del fitxer del model ha fallat o la forma no és 
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "El fitxer subministrat no s'ha pogut llegir perquè està buit"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "El format del fitxer és incompatible i no es pot analitzar."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Format de fitxer desconegut. El fitxer d'entrada ha de tenir extensió .stl, .obj, .amf( .xml )."
@@ -20071,19 +20200,19 @@ msgstr "Mostrar només els noms de les impressores amb canvis als perfils d'impr
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Mostrar només els noms dels filaments amb canvis en els perfils de filament."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Només es mostraran els noms de les impressores amb perfils d'impressora d'usuari i cada perfil que trieu s'exportarà com a fitxer zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Només es mostraran els noms dels filaments amb perfils de filament d'usuari, \n"
 "i tots els perfils de filament d'usuari de cada nom de filament que seleccioneu s'exportaran com a zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Només es mostraran els noms de les impressores amb perfils de processament modificats, \n"
 "I tots els valors perfils del procés d'usuari de cada nom d'impressora que seleccioneu s'exportaran com a ZIP."
@@ -20328,7 +20457,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Necessitem informació per diagnosticar l'origen del problema. Consulteu la pàgina wiki per a una guia detallada."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "El botó Empaquetar recull el fitxer del projecte i els registres de la sessió actual en un fitxer zip."
 
 # AI Translated
@@ -20384,7 +20513,7 @@ msgid "Stored logs"
 msgstr "Registres emmagatzemats"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Empaqueta tots els registres emmagatzemats en un fitxer zip."
 
 # AI Translated
@@ -20472,7 +20601,7 @@ msgid "Authorizing..."
 msgstr "Autoritzant..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Error. No es pot obtenir el testimoni d'api per a l'autorització"
 
 # AI Translated
@@ -20928,8 +21057,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Activar l'assignació intel·ligent de filament: assigna un filament a diversos broquets per maximitzar l'estalvi"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Estalvi de filament"
+msgid "File Saving"
+msgstr "Desament de fitxers"
 
 msgid "Don't remind me again"
 msgstr "No m'ho recordis més"
@@ -21337,6 +21466,9 @@ msgstr "Reinicia ara"
 
 msgid "NO RAMMING AT ALL"
 msgstr "SENSE EMPENTA"
+
+msgid "s"
+msgstr "s"
 
 msgid "Volumetric speed"
 msgstr "Velocitat volumètrica"
@@ -21988,6 +22120,41 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "La visualització en directe nativa de Wayland requereix el sink de vídeo GTK de GStreamer. Instal·leu el connector gtksink per a GStreamer i reinicieu l'OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "No s'ha pogut inicialitzar el sink de vídeo natiu de GStreamer per a Wayland. Comproveu la instal·lació del connector GTK de GStreamer."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "El Windows Media Player és necessari per a aquesta tasca. Voleu habilitar el \"Windows Media Player\" per al vostre sistema operatiu?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource no s'ha registrat correctament per a la reproducció multimèdia! Premeu Sí per tornar-lo a registrar. Seràs promocionat dues vegades"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Falta el component BambuSource registrat per a la reproducció multimèdia! Reinstal·leu OrcaSlicer o cerqueu ajuda a la comunitat."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Utilitzar un BambuSource des d'una instal·lació diferent, la reproducció de vídeo pot no funcionar correctament! Premeu Sí per solucionar-ho."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Al vostre sistema li falten còdecs H.264 per al GStreamer, necessaris per reproduir vídeo. (Proveu d'instal·lar els paquets gstreamer1.0-plugins-bad o gstreamer1.0-libav i, a continuació, reinicieu Orca Slicer?)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Estalvi de filament"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2948,6 +2948,10 @@ msgstr "Szerkesztés"
 msgid "Merge with"
 msgstr "Egyesítés ezzel"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Szín szétbontása"
+
 msgid "Delete this filament"
 msgstr "Filament törlése"
 
@@ -3246,6 +3250,10 @@ msgstr "Összeállítás"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Tárgyak egyesítése egy objektummá"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "A változó rétegmagasság és a kevert színű alréteg együttes használata ronthatja a színkeverés minőségét."
 
 # AI Translated
 msgid "Add layers"
@@ -6323,10 +6331,10 @@ msgstr "Importálás 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Modell betöltése"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Zip archívum importálása"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Zip archívumban található modellek betöltése"
 
 msgid "Import Configs"
@@ -7847,6 +7855,10 @@ msgstr "Aktuális tálca testreszabása"
 msgid "The %s nozzle can not print %s."
 msgstr "A(z) %s fúvóka nem tudja nyomtatni ezt: %s."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "A kevert színű filament nyomtatása egyextruderes nyomtatón gyakori filamentcserét és öblítést igényel, ami jelentősen növelheti a hulladék mennyiségét, valamint a fúvóka vagy a hulladékcsúszda eltömődésének kockázatát."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "A(z) %1% és %2% keverése nyomtatás közben nem ajánlott.\n"
@@ -7972,11 +7984,43 @@ msgstr "Filamentlista szinkronizálása az AMS-ből"
 msgid "Set filaments to use"
 msgstr "Használni kívánt filament beállítása"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Kevert filament hozzáadása"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Kevert filament"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Utolsó kevert filament eltávolítása"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Kevert filament hozzáadása"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "A kevert filament érvénytelen vagy nem egyező összetevőket tartalmaz. Szerkessze újra az érintett bejegyzéseket."
+
 msgid "Search plate, object and part."
 msgstr "Tálca, objektum és tárgy keresése."
 
 msgid "Pellets"
 msgstr "Pelletek"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "A kevert filament hibás összetevő-hivatkozásokat tartalmaz"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Szerkesztés / Törlés / Egyesítés"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "A cél kevert filament ezt a fizikai filamentet használja összetevőként. Az egyesítés eltávolítja ezt a fizikai filamentet, és a kevert filament érvénytelenné válhat. Folytatja?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8115,7 +8159,7 @@ msgstr "Kérlek, győződj meg arról, hogy a beállításokban található G-k�
 msgid "Customized Preset"
 msgstr "Egyedi beállítás"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "A STEP fájlon belüli komponens neve nem UTF-8 formátumban van!"
 
 # AI Translated
@@ -8139,10 +8183,10 @@ msgstr "Az objektum térfogata nulla"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "A(z) %s fájlból származó objektum túl kicsi, lehet, hogy méterben vagy hüvelykben lett létrehozva.\n"
-" Szeretnéd milliméterre méretezni?"
+"Szeretnéd milliméterre méretezni?"
 
 msgid "Object too small"
 msgstr "Objektum túl kicsi"
@@ -8159,6 +8203,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Több részből álló objektum észlelve"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Textúrák hozzárendelése a filamentekhez"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Textúraimportálási figyelmeztetés"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Betöltöd ezeket a fájlokat több részből álló egyetlen objektumként?\n"
@@ -8370,6 +8422,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Szinkronizálás most"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "A textúra importálása sikertelen. Úgy tűnik, hogy a modell textúraadatokat tartalmaz, de az importálási folyamatot nem sikerült befejezni. A modell csak geometriaként lesz importálva."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Textúraszínek alkalmazása..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "3D nézet frissítése..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "A textúraszínek alkalmazva."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Megtarthatod az új projekt módosított beállításait, vagy elvetheted őket"
@@ -9632,6 +9700,10 @@ msgstr "Spirál (váza)"
 
 msgid "First layer filament sequence"
 msgstr "Kezdőréteg filament sorrendje"
+
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "A filamentlista kevert filamenteket tartalmaz. Az egyéni filamentsorrend nem lép érvénybe."
 
 # AI Translated
 msgid "By Layer"
@@ -11030,12 +11102,12 @@ msgid "No modifications need to be copied."
 msgstr "Nincs másolandó módosítás."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Paraméterek másolása"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "A(z) %s paramétereinek módosítása"
 
 # AI Translated
@@ -11551,27 +11623,6 @@ msgstr "Filamentcsere öblítési mennyisége"
 
 msgid "Please choose the filament colour"
 msgstr "Kérlek, válaszd ki a filament színét"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Nem sikerült inicializálni a natív Wayland GStreamer videonyelőt. Ellenőrizd a GStreamer GTK bővítmény telepítését."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Ehhez a művelethez Windows Media Player szükséges. Szeretnéd engedélyezni a \"Windows Media Player\"-t az operációs rendszerben?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "A BambuSource nincs megfelelően regisztrálva médialejátszáshoz. Kattints az Igen gombra az újbóli regisztráláshoz. Kétszer kapsz majd megerősítési kérést."
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "A médialejátszáshoz szükséges BambuSource-összetevő hiányzik. Kérlek, telepítsd újra az OrcaSlicert, vagy kérj segítséget a közösségtől."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Ha egy másik telepítésből származó BambuSource van használatban, előfordulhat, hogy a videólejátszás nem működik megfelelően. Kattints az Igen gombra a javításhoz."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "A rendszerből hiányoznak a GStreamer H.264 kodekjei, amelyek szükségesek a videolejátszáshoz. (Próbáld telepíteni a gstreamer1.0-plugins-bad vagy a gstreamer1.0-libav csomagokat, majd indítsd újra az Orca Slicert.)"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "A felhőszolgáltatás nem érhető el. Indítsd újra az OrcaSlicert, majd próbáld újra."
@@ -12282,6 +12333,10 @@ msgstr "Ha továbbra is szeretnél nyomtatni, engedélyezheted az opciót itt: B
 msgid "No extrusions under current settings."
 msgstr "A jelenlegi beállításokkal nincsenek extrudálások."
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Színátmenetes kevert filament van használatban, de a 'Kevert színű alréteg' ki van kapcsolva. A színátmenet nem lesz kinyomtatva."
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "A sima Timelapse nem használható, ha a nyomtatási sorrend \"Tárgyanként\"."
 
@@ -12317,6 +12372,10 @@ msgstr "Próbáld meg csökkenteni a modell méretét vagy módosítani a jelenl
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "A változó rétegmagasság nem működik az organikus támaszokkal."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "A törlőtorony filamentje nem lehet kevert filament."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Eltérő fúvókaátmérők és eltérő filamentátmérők mellett a törlőtorony nem biztos, hogy megfelelően működik. Ez nagyon kísérleti funkció, ezért körültekintően használd."
@@ -12685,7 +12744,7 @@ msgstr "mm vagy %"
 msgid "Other layers"
 msgstr "Többi réteg"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "A kezdőréteg utáni asztalhőmérséklet. A 0 azt jelenti, hogy a filament nem nyomtatható a SuperTack hűvös tálcára."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -14063,6 +14122,8 @@ msgstr "Rétegidő"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "A tárgyhűtő ventilátor azon rétegek esetében lesz engedélyezve, amelyek becsült ideje rövidebb ennél az értéknél. A ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "mp"
 
@@ -14369,6 +14430,62 @@ msgstr "Támaszanyag"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "A támaszanyagot általában a támaszok és azok érintkező felületeinek nyomtatására használják."
+
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Kevert filament-e"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Megadja, hogy ez a filamenthely több fizikai filamentből álló kevert filament-e"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Kevert filament összetevői"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Az összetevő filamentek vesszővel elválasztott, 1-től induló indexei, pl. \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Kevert filament alréteg-arányai"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Vesszővel elválasztott arányértékek, amelyek összege 1.0, pl. \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Kevert filament színátmenete"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Bekapcsolja a Z irányú színátmenet módot a kevert filament alrétegeihez. Bekapcsolva az alrétegek arányai lineárisan változnak a rétegek mentén."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Kevert filament színátmenetének tartománya"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Az első összetevő kezdő és záró aránya színátmenet módban. Vesszővel elválasztott számpár, pl. a \"0.10,0.90\" 10%-tól 90%-ig tartót jelent."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Kevert filament színátmenet-görbéje"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Opcionális, Photoshop stílusú egyéni görbe, amely a Z irányú haladást az első összetevő arányához rendeli. Függőleges vonallal elválasztott vezérlőpontokként van kódolva, \"x,y\" (régi) vagy \"x,y,m_in,m_out\" formában, ha az érintő felülbírálására van szükség (üres érték vagy \"nan\" esetén a PCHIP alapértelmezés érvényes). x a [0,1] tartományban van; y a beállított aránytartományra van korlátozva, pl. \"0,0.15|0.5,0.50|1,0.85\". Ha üresen marad, helyette a lineáris gradient_range kerül felhasználásra."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Kevert filament színátmenete tárgyanként"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Ha a színátmenet mód be van kapcsolva, a színátmenet az összeállítás minden tárgyára külön-külön érvényesül, ahelyett hogy az egész összeállítást egyetlen Z tartományként kezelné."
 
 msgid "Filament printable"
 msgstr "Filament nyomtatható"
@@ -15633,6 +15750,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Az Y tengely megengedett maximális kimeneti ereje"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15643,6 +15761,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Az Y tengely gépasztaltömeg-terhelése"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -15957,7 +16076,7 @@ msgid "Reduce infill retraction"
 msgstr "Csökkentett visszahúzás kitöltésnél"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható. Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-kód generálást. Vedd figyelembe, hogy a Z-emelés sem történik meg azokon a területeken, ahol a visszahúzás ki van hagyva."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16131,7 +16250,7 @@ msgstr "Visszahúzás mértéke törlés után"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "A törlés utáni gyors visszahúzás hossza a visszahúzási hosszhoz viszonyítva.\n"
@@ -16178,7 +16297,7 @@ msgstr "Amikor a visszahúzás eszközváltás előtt aktiválódik, a filament 
 msgid "Z-hop height"
 msgstr "Z-emelés magassága"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Visszahúzáskor a fúvóka egy kicsit megemelkedik, hogy a fúvóka és a nyomtatott tárgy között rés keletkezzen. Ez megakadályozza, hogy a fúvóka nagyobb mozgás közben a tárgynak ütközzön. A Z tengely emelésekor használt körkörös mozgás megelőzheti a szálazást."
 
 msgid "Z-hop lower boundary"
@@ -17232,6 +17351,14 @@ msgstr ""
 "Attól függően, hogy mennyi ideig tart a törlési művelet, illetve milyen gyorsak és hosszúak az extruder/filament visszahúzási beállításai, szükség lehet egy további visszahúzási mozdulatra a megmaradt filament visszahúzásához.\n"
 "\n"
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "Kevert színű alréteg"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Bekapcsolja a kevert színű alrétegekre bontást. Bekapcsolva a kevert színű filamentet tartalmazó rétegek alrétegekre lesznek bontva a színkeverési hatás eléréséhez."
 
 # AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
@@ -18305,6 +18432,10 @@ msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alak
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "A fájlformátum nem kompatibilis, ezért nem értelmezhető."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .stl, .obj vagy .amf(.xml) kiterjesztésűnek kell lennie."
@@ -19796,19 +19927,19 @@ msgstr "Csak azok a nyomtatók jelennek meg, amelyeknél változtak a nyomtató-
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Csak azok a filamentnevek jelennek meg, ahol változtak a filamentbeállítások."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Csak azok a nyomtatónevek jelennek meg, amelyekhez tartoznak felhasználói beállítások. A kiválasztott beállítások ZIP fájlként kerülnek exportálásra."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a filamentnevek jelennek meg, amelyekhez tartoznak felhasználói filamentbeállítások,\n"
 "és a kiválasztott filamentnevekhez tartozó összes felhasználói filamentbeállítás ZIP-fájlként lesz exportálva."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a nyomtatónevek jelennek meg, amelyekhez módosított folyamatbeállítások tartoznak,\n"
 "és a kiválasztott nyomtatónevekhez tartozó összes felhasználói folyamatbeállítás ZIP-fájlként lesz exportálva."
@@ -20054,7 +20185,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Információra van szükségünk a probléma forrásának feltárásához. A részletes útmutatót a wiki oldalon találod."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "A Csomagolás gomb egy zip fájlba gyűjti a projektfájlt és az aktuális munkamenet naplóit."
 
 # AI Translated
@@ -20110,7 +20241,7 @@ msgid "Stored logs"
 msgstr "Tárolt naplók"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Az összes tárolt naplót egy zip fájlba csomagolja."
 
 # AI Translated
@@ -20198,7 +20329,7 @@ msgid "Authorizing..."
 msgstr "Engedélyezés..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Hiba. Nem sikerült API-tokent szerezni az engedélyezéshez"
 
 # AI Translated
@@ -20654,8 +20785,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "Intelligens filament-hozzárendelés bekapcsolása: egy filament több fúvókához rendelése a megtakarítás maximalizálásához"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "Filamentmegtakarítás"
+msgid "File Saving"
+msgstr "Fájl mentése"
 
 msgid "Don't remind me again"
 msgstr "Ne emlékeztessen újra"
@@ -21057,6 +21188,9 @@ msgstr "Újraindítás most"
 
 msgid "NO RAMMING AT ALL"
 msgstr "EGYÁLTALÁN NINCS TÖMÖRÍTÉS"
+
+msgid "s"
+msgstr "mp"
 
 msgid "Volumetric speed"
 msgstr "Volumetrikus sebesség"
@@ -21708,6 +21842,39 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Nem sikerült inicializálni a natív Wayland GStreamer videonyelőt. Ellenőrizd a GStreamer GTK bővítmény telepítését."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Ehhez a művelethez Windows Media Player szükséges. Szeretnéd engedélyezni a \"Windows Media Player\"-t az operációs rendszerben?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "A BambuSource nincs megfelelően regisztrálva médialejátszáshoz. Kattints az Igen gombra az újbóli regisztráláshoz. Kétszer kapsz majd megerősítési kérést."
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "A médialejátszáshoz szükséges BambuSource-összetevő hiányzik. Kérlek, telepítsd újra az OrcaSlicert, vagy kérj segítséget a közösségtől."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Ha egy másik telepítésből származó BambuSource van használatban, előfordulhat, hogy a videólejátszás nem működik megfelelően. Kattints az Igen gombra a javításhoz."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "A rendszerből hiányoznak a GStreamer H.264 kodekjei, amelyek szükségesek a videolejátszáshoz. (Próbáld telepíteni a gstreamer1.0-plugins-bad vagy a gstreamer1.0-libav csomagokat, majd indítsd újra az Orca Slicert.)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Filamentmegtakarítás"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

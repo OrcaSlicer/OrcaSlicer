@@ -1130,8 +1130,7 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def = this->add("supertack_plate_temp", coInts);
     def->label = L("Other layers");
-    def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
+    def->tooltip = L("This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
@@ -2770,7 +2769,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fan_cooling_layer_time", coFloats);
     def->label = L("Layer time");
     def->tooltip = L("The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -2923,7 +2922,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament load time");
     def->tooltip = L("Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2932,7 +2931,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament unload time");
     def->tooltip = L("Time to unload old filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2941,7 +2940,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tool change time");
     def->tooltip = L("Time taken to switch tools. It's usually applicable for tool changers or multi-tool machines. "
                      "For single-extruder multi-material machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
@@ -3087,7 +3086,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Time to wait after the filament is unloaded. "
                    "May help to get reliable tool changes with flexible materials "
                    "that may need more time to shrink to original dimensions.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -4206,7 +4205,7 @@ void PrintConfigDef::init_fff_params()
         "\nIt won't move fan commands from custom G-code (they act as a sort of 'barrier')."
         "\nIt won't move fan commands into the start G-code if the 'only custom start G-code' is activated."
         "\nUse 0 to deactivate.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -4222,7 +4221,7 @@ void PrintConfigDef::init_fff_params()
                     "\nThis is useful for fans where a low PWM/power may be insufficient to get the fan started spinning from a stop, or to "
                     "get the fan up to speed faster."
                     "\nSet to 0 to deactivate.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -4866,7 +4865,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Ironing expansion");
     def->category = L("Quality");
     def->tooltip  = L("Expand or contract the ironing area.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = -100;
     def->max      = 100;
     def->mode     = comExpert;
@@ -4903,7 +4902,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip  = L("Minimum Z-layer height.\n"
                       "Also controls the slicing plane.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
     def->mode     = comExpert;
@@ -5102,7 +5101,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The allowed maximum output force of Y axis");
-    def->sidetext   = L("N");
+    def->sidetext   = L_CONTEXT("N", "Newton");	// Newtons, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5112,7 +5111,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The machine bed mass load of Y axis");
-    def->sidetext   = L("g");
+    def->sidetext   = L_CONTEXT("g", "gram");	// grams, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5122,7 +5121,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The allowed max printed mass on a plate");
-    def->sidetext   = L("g");
+    def->sidetext   = L_CONTEXT("g", "gram");	// grams, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5481,7 +5480,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped.");
+    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5736,7 +5735,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retract_after_wipe", coPercents);
     def->label = L("Retract amount after wipe");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("The length of fast retraction after wipe, relative to retraction length.\n"
+    def->tooltip = L("This is the length of fast retraction after wipe, relative to retraction length.\n"
                      "The value will be clamped by 100% minus the retract amount before the wipe value.");
     def->sidetext = "%";
     def->mode = comExpert;
@@ -5802,7 +5801,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("z_hop", coFloats);
     def->label = L("Z-hop height");
-    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing.");
+    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comSimple;
     def->min = 0;
@@ -6380,7 +6379,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Layer time");
     def->tooltip = L("The printing speed in exported G-code will be slowed down when the estimated layer time is "
                      "shorter than this value in order to get better cooling for these layers.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -6533,7 +6532,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Preheat time");
     def->tooltip = L("To reduce the waiting time after tool change, Orca can preheat the next tool while the current tool is still in use. "
                      "This setting specifies the time in seconds to preheat the next tool. Orca will insert a M104 command to preheat the tool in advance.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->mode = comAdvanced;
@@ -8025,7 +8024,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("machine_hotend_change_time", coFloat);
     def->label    = L("Hotend change time");
     def->tooltip  = L("Time to change hotend.");
-    def->sidetext = L("s");
+    def->sidetext = L_CONTEXT("s", "second");
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
