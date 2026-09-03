@@ -104,7 +104,7 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     auto* hdr_name  = new wxStaticText(m_hdr_panel, wxID_ANY, _L("Name"));
     auto* hdr_tools = new wxStaticText(m_hdr_panel, wxID_ANY, _L("Tools"));
     auto* hdr_gcode = new wxStaticText(m_hdr_panel, wxID_ANY, _L("G-code"));
-    hdr_name->SetToolTip(_L("How the mode is labelled in the plate's IMEX mode selector. "
+    hdr_name->SetToolTip(_L("How the mode is labelled in the plate's IDEX/IQEX mode selector. "
                             "Required — a mode with no name cannot be selected."));
     hdr_tools->SetToolTip(_L("Which tool heads take part in the mode and what role each one plays. "
                              "Click a tile to cycle its role."));
@@ -368,7 +368,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
         r.orig_name = nm;
         r.name = new wxTextCtrl(r.panel, wxID_ANY, from_u8(nm), wxDefaultPosition, FromDIP(wxSize(130, -1)));
         r.name->SetHint(_L("Mode name (required)"));
-        r.name->SetToolTip(_L("Name of this parallel mode, as it appears in the plate's IMEX mode "
+        r.name->SetToolTip(_L("Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode "
                               "selector. Stored in the project by name, so renaming a mode that "
                               "plates already use makes them fall back to Primary. Cannot be empty "
                               "— a blank name is replaced with a generated one."));

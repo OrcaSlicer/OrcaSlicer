@@ -3731,13 +3731,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             print.active_step_add_warning(
                 PrintStateBase::WarningLevel::NON_CRITICAL,
                 imex_mode_resolved
-                    ? Slic3r::format(_(L("The IMEX mode \"%1%\" has no tools assigned on the selected printer. "
+                    ? Slic3r::format(_(L("The IDEX/IQEX mode \"%1%\" has no tools assigned on the selected printer. "
                                          "Printing in Primary mode instead. Assign the mode's tools in Printer "
-                                         "Settings, or pick another mode from the plate's IMEX button.")),
+                                         "Settings, or pick another mode from the plate's IDEX/IQEX button.")),
                                      imex_active_mode)
-                    : Slic3r::format(_(L("This plate is set to the IMEX mode \"%1%\", which the selected printer "
+                    : Slic3r::format(_(L("This plate is set to the IDEX/IQEX mode \"%1%\", which the selected printer "
                                          "does not define. Printing in Primary mode instead. Pick a mode from the "
-                                         "plate's IMEX button, or restore the mode in Printer Settings.")),
+                                         "plate's IDEX/IQEX button, or restore the mode in Printer Settings.")),
                                      imex_active_mode));
             imex_active_mode       = kImexPrimaryMode;
             imex_active_mode_index = 0;

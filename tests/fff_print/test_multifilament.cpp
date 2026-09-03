@@ -1246,7 +1246,7 @@ TEST_CASE("A mixed filament outranks the multi-color rule on the same plate",
         Slic3r::Print print;
         const StringObjectException err = validate_plate(build(true), print, model);
         REQUIRE_FALSE(err.string.empty());
-        CHECK(err.string.find("not supported in IMEX parallel modes") != std::string::npos);
+        CHECK(err.string.find("not supported in IDEX/IQEX parallel modes") != std::string::npos);
         CHECK(err.string.find("Multi-color") == std::string::npos);
         // The two rules differ in more than wording: the mixed path attaches an object (for the
         // notification's "Jump to" link), the multi-color path returns none. Pins which fired

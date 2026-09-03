@@ -1377,7 +1377,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     StringObjectException err;
                     // "Mixed filament" is the term the rest of the UI uses -- the button that
                     // creates one, and the sibling refusal for the wipe tower filament.
-                    err.string = L("Mixed filaments are not supported in IMEX parallel modes. "
+                    err.string = L("Mixed filaments are not supported in IDEX/IQEX parallel modes. "
                                    "Switch this plate to Primary mode.");
                     err.object = m_objects.front();
                     return err;
@@ -1442,7 +1442,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
                 StringObjectException err;
                 err.string = Slic3r::format(
-                    L("IMEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
+                    L("IDEX/IQEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
                       "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
                     parallel_mode, routing.primary_phys, routed_list);
                 // Gives the notification a "Jump to <object>" link, which selects the object

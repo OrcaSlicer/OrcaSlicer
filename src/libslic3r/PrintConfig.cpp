@@ -6611,8 +6611,8 @@ void PrintConfigDef::init_fff_params()
     // g-code. They all carry non-nil defaults, so emitting them would add a line to every
     // printer's dump. Kept out of the g-code config block (banned_keys).
     def = this->add("is_imex", coBool);
-    def->label = L("IMEX Printer");
-    def->tooltip = L("Enable IMEX parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
+    def->label = L("IDEX/IQEX Printer");
+    def->tooltip = L("Enable parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6693,7 +6693,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("imex_viz_theme", coEnum);
     def->label = L("Visualization Theme");
-    def->tooltip = L("Color theme for IMEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
+    def->tooltip = L("Color theme for IDEX/IQEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<ImexVizTheme>::get_enum_values();
     def->enum_values.push_back("standard");
@@ -6707,32 +6707,32 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<ImexVizTheme>(ImexVizTheme::Standard));
 
     def = this->add("imex_parallel_mode", coString);
-    def->label = L("IMEX Print Mode");
-    def->tooltip = L("Name of the active IMEX parallel print mode, or \"primary\" for single-carriage printing. Requires IMEX Printer enabled in the Printer preset (Printer \u2192 Multimaterial \u2192 IMEX Configuration).");
+    def->label = L("IDEX/IQEX Print Mode");
+    def->tooltip = L("Name of the active IDEX/IQEX parallel print mode, or \"primary\" for single-carriage printing. Requires IDEX/IQEX Printer enabled in the Printer preset (Printer \u2192 Multimaterial \u2192 IDEX/IQEX Configuration).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("primary"));
 
     def = this->add("imex_head_filament_map", coString);
-    def->label = L("IMEX head filament map");
+    def->label = L("IDEX/IQEX head filament map");
     def->tooltip = L("Per-plate override mapping physical heads to filament slots "
                      "(1-based). Empty means use pem-inversion defaults.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("imex_mode_names", coStrings);
-    def->label = L("IMEX Mode Names");
-    def->tooltip = L("Display names for each user-defined IMEX parallel print mode.");
+    def->label = L("IDEX/IQEX Mode Names");
+    def->tooltip = L("Display names for each user-defined IDEX/IQEX parallel print mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_active_tools", coStrings);
-    def->label = L("IMEX Mode Active Tools");
-    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IMEX Modes editor in the Printer preset.");
+    def->label = L("IDEX/IQEX Mode Active Tools");
+    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IDEX/IQEX Modes editor in the Printer preset.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_gcodes", coStrings);
-    def->label = L("IMEX Mode G-codes");
+    def->label = L("IDEX/IQEX Mode G-codes");
     def->tooltip = L("G-code or macro call to inject at print start for each mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
@@ -12629,16 +12629,16 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
     new_def("in_head_wrap_detect_zone", coBool, "In head wrap detect zone", "Indicates if the first layer overlaps with the head wrap zone.");
 
     def = this->add("imex_mode", coString);
-    def->label   = L("IMEX active mode");
-    def->tooltip = L("Name of the active IMEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IMEX is not enabled.");
+    def->label   = L("IDEX/IQEX active mode");
+    def->tooltip = L("Name of the active IDEX/IQEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IDEX/IQEX is not enabled.");
 
     def = this->add("imex_mode_index", coInt);
-    def->label   = L("IMEX active mode index");
-    def->tooltip = L("Zero-based index of the active IMEX parallel print mode within imex_mode_names.");
+    def->label   = L("IDEX/IQEX active mode index");
+    def->tooltip = L("Zero-based index of the active IDEX/IQEX parallel print mode within imex_mode_names.");
 
     def = this->add("imex_mode_gcode", coString);
-    def->label   = L("IMEX active mode G-code");
-    def->tooltip = L("The raw mode G-code template for the active IMEX parallel print mode, after placeholder evaluation. Globals defined here flow into machine_start_gcode.");
+    def->label   = L("IDEX/IQEX active mode G-code");
+    def->tooltip = L("The raw mode G-code template for the active IDEX/IQEX parallel print mode, after placeholder evaluation. Globals defined here flow into machine_start_gcode.");
 }
 
 PrintStatisticsConfigDef::PrintStatisticsConfigDef()
