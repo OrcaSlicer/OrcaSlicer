@@ -2519,6 +2519,12 @@ size_t protocol_max_plate_filaments(FilamentMappingProtocol protocol, size_t too
 // More project filaments than tools is the point.
 bool physical_filament_features_enabled(const ConfigBase& printer_config);
 
+// True when the printer's filament count is not tied to its nozzle count: a single-extruder
+// multi-material machine (AMS / MMU, any number of spools through one nozzle) or a printer
+// whose device resolves the filament->tool mapping. On these a project may legitimately carry
+// more filaments than the machine has nozzles.
+bool filament_count_decoupled_from_nozzles(const ConfigBase& printer_config);
+
 // The identity/master-extruder-fallback filament->extruder assignment used by non-BBL
 // multi-extruder printers that don't support filament grouping: filament id == extruder id
 // up to the physical extruder count, every filament beyond that falls back to

@@ -2997,9 +2997,33 @@ static void load_mixed_filament_settings(DynamicPrintConfig &project_config, App
     }
 }
 
+// The per-filament project state update_selections() rebuilds from the per-printer snapshot,
+// and therefore what has to travel with the project's filament list when that list is kept.
+static const char* s_per_filament_project_keys[] = {
+    "filament_colour", "filament_multi_colour", "filament_colour_type",
+    "filament_map", "filament_nozzle_map", "filament_volume_map",
+    "flush_volumes_matrix", "flush_volumes_vector",
+    "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient", "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+    "filament_mixed_gradient_per_part",
+};
+
 void PresetBundle::update_selections(AppConfig &config)
 {
     std::string initial_printer_profile_name    = printers.get_selected_preset_name();
+
+    // Orca: the list being replaced below is the PROJECT's. The per-printer snapshot it is
+    // replaced with is the last list used on the new printer -- one filament grown to the nozzle
+    // count for a printer never used before -- so switching a six-filament project to a
+    // toolchanger silently cut it to four and clamped every object past that, and a printer
+    // that remembered more replaced the project's presets, colours and mixes with its own.
+    // Remember the project's list so it can win where the printer doesn't bind its filament
+    // count to its nozzles (see filament_count_decoupled_from_nozzles).
+    const std::vector<std::string> project_filament_presets = this->filament_presets;
+    DynamicPrintConfig             project_filament_state;
+    for (const char* key : s_per_filament_project_keys)
+        if (const ConfigOption* opt = project_config.option(key))
+            project_filament_state.set_key_value(key, opt->clone());
     // Orca: load from orca_presets
     std::string initial_print_profile_name        = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
     std::string initial_filament_profile_name     = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
@@ -3091,6 +3115,21 @@ void PresetBundle::update_selections(AppConfig &config)
     // No global fallback here: on a printer change the legacy shared keys describe another
     // printer's filament list, so absent per-printer keys must clear the mixes, not revive them.
     load_mixed_filament_settings(project_config, config, initial_printer_profile_name, filament_presets.size(), false);
+
+    // Orca: on a printer that can take any number of filaments the project's list is the one
+    // being worked on, so it travels across the switch whole -- presets, colours and mixes --
+    // whatever the printer remembered. The per-printer memory still seeds the list at start-up
+    // (load_selections) and still governs every printer whose count is bound to its nozzles.
+    // Restored before the compatibility pass below, so a preset the new printer cannot use is
+    // swapped for its nearest compatible match, and before
+    // update_multi_material_filament_presets(), which re-sizes the flush matrix for the new
+    // printer's head count.
+    if (filament_count_decoupled_from_nozzles(printers.get_edited_preset().config)) {
+        this->filament_presets = project_filament_presets;
+        for (const char* key : s_per_filament_project_keys)
+            if (const ConfigOption* opt = project_filament_state.option(key))
+                project_config.set_key_value(key, opt->clone());
+    }
 
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
