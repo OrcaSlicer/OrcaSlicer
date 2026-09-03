@@ -8105,14 +8105,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SPIRAL_VASE_MODE << "\" " << VALUE_ATTR << "=\"" << spiral_mode_opt->getBool() << "\"/>\n";
 
                 {
+                    // Mode names are user supplied free text, so the value has to be escaped for an
+                    // attribute. xml_escape_double_quotes_attribute_value() is used rather than
+                    // xml_escape() because it also emits tab/CR/LF as numeric character references:
+                    // XML normalizes literal whitespace in attribute values on read, which would
+                    // silently rename the mode. The reader takes the value straight from expat,
+                    // which resolves both entities and character references, so this round-trips.
                     auto* imex_mode_opt = plate_data->config.option<ConfigOptionString>("imex_parallel_mode");
                     if (imex_mode_opt && !imex_mode_opt->value.empty() && imex_mode_opt->value != kImexPrimaryMode)
-                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_PARALLEL_MODE_ATTR << "\" " << VALUE_ATTR << "=\"" << imex_mode_opt->value << "\"/>\n";
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_PARALLEL_MODE_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_mode_opt->value) << "\"/>\n";
                 }
                 {
                     auto* imex_hfm_opt = plate_data->config.option<ConfigOptionString>("imex_head_filament_map");
                     if (imex_hfm_opt && !imex_hfm_opt->value.empty())
-                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_HEAD_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << imex_hfm_opt->value << "\"/>\n";
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_HEAD_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_hfm_opt->value) << "\"/>\n";
                 }
 
                 //filament map related
