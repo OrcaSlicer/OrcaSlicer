@@ -1180,6 +1180,51 @@ TEST_CASE("Overhang reference spacing follows variable layer heights", "[Extrusi
     REQUIRE(saw_decrease);
 }
 
+// Orca: A raft is support material rather than the preceding model contour, so the first object
+// layer above it must not receive a geometric overhang estimate. Later sloped layers still use their
+// immediate model layer and prove that metadata remains enabled after the raft boundary.
+TEST_CASE("Object layers directly over a raft exclude overhang estimates", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, true);
+    config.set_deserialize_strict({{"enable_support", "1"}, {"raft_layers", "1"},
+        {"enable_overhang_bridge_fan", "0"}});
+    // Orca: Supply the complete nozzle definition required while exporting the processed print.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh()}, print, model, config, nullptr, false);
+    print.set_status_silent();
+    print.process();
+
+    const PrintObject *object = print.objects().front();
+    REQUIRE(object->slicing_parameters().raft_layers() == 1);
+    REQUIRE_FALSE(object->layers().empty());
+    const Layer *layer_over_raft = object->layers().front();
+    REQUIRE(layer_over_raft->id() == object->slicing_parameters().raft_layers());
+
+    ScopedTemporaryFile file(".gcode");
+    GCodeProcessorResult result;
+    print.export_gcode(file.string(), &result);
+    REQUIRE(result.has_overhang_metadata);
+
+    size_t over_raft_moves = 0;
+    bool saw_later_overhang = false;
+    for (const auto &move : result.moves) {
+        if (move.type != EMoveType::Extrude || !is_perimeter(move.extrusion_role))
+            continue;
+        if (std::abs(move.position.z() - layer_over_raft->print_z) < 1e-4) {
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-5));
+            CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(0.0, 1e-5));
+            ++over_raft_moves;
+        } else if (move.position.z() > layer_over_raft->print_z + EPSILON && move.overhang_percentage > 0.1f) {
+            saw_later_overhang = true;
+        }
+    }
+    REQUIRE(over_raft_moves > 0);
+    REQUIRE(saw_later_overhang);
+}
+
 // Classic reproduces the endpoint-sampling bug: it emits the span as one long move whose endpoints
 // both read as supported, so endpoint-only sampling never slows it. Arachne's endpoints already read
 // as overhanging, but their placement near the cage makes the inferred support vary by layer. Arachne
