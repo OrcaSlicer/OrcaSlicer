@@ -1013,6 +1013,96 @@ TEST_CASE("Fitted arc overhang profiles round trip without changing printer comm
     }
 }
 
+// Orca: Spiral-vase and scarf-joint walls deliberately bypass fitted G2/G3 output because their Z
+// changes along the extrusion. Exercise both forced-linear paths with locally varying support, and
+// verify that optional comments neither alter printer commands nor lose their line association.
+TEST_CASE("Overhang metadata follows spiral and scarf linear extrusions", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const bool spiral_mode = GENERATE(false, true);
+    CAPTURE(spiral_mode);
+
+    // Orca: Shearing a cylinder makes support vary around every wall while retaining geometry that
+    // arc fitting would normally convert to G2/G3, so each mode must be the reason G1 is retained.
+    TriangleMesh mesh = make_cylinder(4.0, 1.2);
+    for (auto &vertex : mesh.its.vertices)
+        vertex.x() += 0.5f * vertex.z();
+
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict({
+        {"enable_arc_fitting", "1"},
+        {"enable_overhang_speed", "0"},
+        {"enable_overhang_bridge_fan", "0"},
+        {"wall_loops", "1"},
+        {"sparse_infill_density", "0%"},
+        {"top_shell_layers", "0"},
+        {"bottom_shell_layers", "1"},
+        {"gcode_comments", "0"},
+        {"spiral_mode", spiral_mode ? "1" : "0"},
+        {"seam_slope_type", spiral_mode ? "none" : "external"},
+        {"seam_slope_conditional", "0"},
+        {"seam_slope_entire_loop", spiral_mode ? "0" : "1"},
+        {"seam_slope_start_height", "50%"},
+        {"seam_gap", "0"},
+    });
+    // Orca: Export validates nozzle hardness, so provide the complete nullable nozzle enum.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+
+    // Orca: Establish the executable output without metadata before exporting the instrumented case.
+    config.set_deserialize_strict("gcode_overhangs", "0");
+    Print baseline_print;
+    Model baseline_model;
+    init_print({mesh}, baseline_print, baseline_model, config, nullptr, false);
+    const std::string baseline = gcode(baseline_print);
+
+    config.set_deserialize_strict("gcode_overhangs", "1");
+    Print print;
+    Model model;
+    init_print({mesh}, print, model, config, nullptr, false);
+    print.set_status_silent();
+    print.process();
+    ScopedTemporaryFile file(".gcode");
+    GCodeProcessorResult generated;
+    print.export_gcode(file.string(), &generated);
+    std::ifstream stream(file.string());
+    const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+
+    REQUIRE(generated.has_overhang_metadata);
+    CHECK(printer_commands(exported) == printer_commands(baseline));
+    if (!spiral_mode)
+        REQUIRE(generated.print_statistics.total_seam_scarf_distance > 0.0f);
+
+    // Orca: A relevant extrusion must carry both an explicit Z coordinate and a nonzero percentage.
+    // Spiral mode uses this throughout each vase turn; scarf mode uses it along the sloped seam.
+    float current_percentage = 0.0f;
+    size_t linear_z_extrusions = 0;
+    size_t profiled_linear_z_extrusions = 0;
+    size_t arc_extrusions = 0;
+    GCodeReader reader;
+    reader.parse_buffer(exported, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        const size_t overhang = comment.find("OVERHANG:");
+        if (overhang != std::string_view::npos) {
+            const std::string value(comment.substr(overhang + sizeof("OVERHANG:") - 1));
+            char *end = nullptr;
+            const float parsed = std::strtof(value.c_str(), &end);
+            if (end != value.c_str())
+                current_percentage = parsed;
+        }
+        if ((line.cmd_is("G2") || line.cmd_is("G3")) && line.extruding(self))
+            ++arc_extrusions;
+        if (line.cmd_is("G1") && line.has_z() && line.extruding(self)) {
+            ++linear_z_extrusions;
+            if (current_percentage > 0.0f)
+                ++profiled_linear_z_extrusions;
+        }
+    });
+    REQUIRE(linear_z_extrusions > 0);
+    REQUIRE(profiled_linear_z_extrusions > 0);
+    if (spiral_mode)
+        CHECK(arc_extrusions == 0);
+}
+
 // Orca: Identical cylindrical layers have no geometric overhang, including with fitted arcs.
 // Thin layers expose tiny arc-versus-polygon errors as visible angles at the reported resolution.
 TEST_CASE("Fitted cylindrical walls keep zero overhang on identical layers", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
