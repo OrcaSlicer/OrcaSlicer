@@ -8716,7 +8716,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             if (can_estimate_overhang) {
                                 const size_t intervals = size_t(std::clamp(std::ceil(arc_length / std::max(0.1, double(path.width))),
                                     1.0, double(GCodeProcessor::MAX_OVERHANG_ARC_SAMPLES - 1)));
-                                profile = m_extrusion_quality_estimator.estimate_overhang_arc_percentages(arc, path.width, intervals);
+                                profile = m_extrusion_quality_estimator.estimate_overhang_arc_percentages(
+                                    arc, path.width, intervals, is_perimeter(path.role()));
                                 for (float &percentage : profile)
                                     percentage = std::round(percentage * 10.0f) * 0.1f;
                             }

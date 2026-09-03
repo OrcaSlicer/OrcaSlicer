@@ -410,18 +410,82 @@ class ExtrusionQualityEstimator
     std::unordered_map<const PrintObject *, const Layer *> last_prepared_layers;
     const PrintObject                                                            *current_object;
 
+    struct BoundaryProjection
+    {
+        double signed_distance;
+        size_t line_id;
+        Vec3d position;
+    };
+
+    // Orca: Resolve corner ties in favor of a contour segment parallel to the extrusion. Pure nearest
+    // distance may associate a horizontal move with an adjacent vertical edge and report that edge's
+    // layer-to-layer displacement instead of the displacement of the wall being printed.
+    BoundaryProjection boundary_projection_at(AABBTreeLines::LinesDistancer<Linef3> &boundaries,
+                                               const Vec3d &position, float width,
+                                               const Vec2d &path_direction)
+    {
+        auto [signed_distance, line_id, boundary_position] =
+            boundaries.distance_from_lines_extra<true>(position);
+        constexpr size_t no_line = size_t(-1);
+        const double direction_length = path_direction.norm();
+        if (line_id == no_line || direction_length <= EPSILON)
+            return {signed_distance, line_id, boundary_position};
+
+        const Vec2d unit_direction = path_direction / direction_length;
+        double best_score = std::numeric_limits<double>::infinity();
+        const int side = boundaries.outside(position);
+        for (const size_t candidate_id : boundaries.all_lines_in_radius(position, 1.1 * width)) {
+            const Linef3 &line = boundaries.get_line(candidate_id);
+            const Vec2d line_direction = (line.b - line.a).head<2>();
+            const double line_length = line_direction.norm();
+            if (line_length <= EPSILON)
+                continue;
+            const double alignment = std::abs(unit_direction.dot(line_direction / line_length));
+            Vec3d candidate_position;
+            const double candidate_distance =
+                std::sqrt(line_alg::distance_to_squared(line, position, &candidate_position));
+            const double score = candidate_distance + width * (1.0 - alignment);
+            if (score < best_score) {
+                best_score = score;
+                signed_distance = candidate_distance * side;
+                line_id = candidate_id;
+                boundary_position = candidate_position;
+            }
+        }
+        return {signed_distance, line_id, boundary_position};
+    }
+
     // Orca: Measure displacement from the current contour instead of assuming every path center is
     // exactly half a width inside it. Arachne width and placement changes otherwise make identical
     // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
-    float overhang_percentage_at(const Vec3d &position, float width)
+    float overhang_percentage_at(const Vec3d &position, float width, const Vec2d &path_direction,
+                                 bool associate_current_contour)
     {
         const double previous_distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
-        const double current_distance  = next_layer_boundaries[current_object].distance_from_lines<true>(position);
+        // Orca: Bridges may run through a current-layer solid region whose outer contour says nothing
+        // about support below the bridge. Keep their original area-based unsupported-width formula.
+        if (!associate_current_contour)
+            return float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
+        const BoundaryProjection current = boundary_projection_at(
+            next_layer_boundaries[current_object], position, width, path_direction);
+        constexpr size_t no_line = size_t(-1);
         // Orca: Correct only a path center closer than half a width to its own contour. Deeper inner
         // walls need no correction, and a missing current contour retains the conservative estimate.
-        const double current_inset_error = std::isfinite(current_distance) ?
-            std::max(0.0, current_distance + 0.5 * width) : 0.0;
-        return float(100.0 * std::clamp((previous_distance + 0.5 * width - current_inset_error) / width, 0.0, 1.0));
+        const double current_inset_error = std::isfinite(current.signed_distance) ?
+            std::max(0.0, current.signed_distance + 0.5 * width) : 0.0;
+        double unsupported_width = previous_distance + 0.5 * width - current_inset_error;
+        // Orca: Near an outer contour, cap the unsupported width by the displacement of the associated
+        // current boundary point. This rejects a perpendicular neighboring edge as the lower layer's
+        // nearest support at a corner. Deeper paths, including bridge interiors, keep the area-based
+        // distance because their support cannot be inferred from the outer contour displacement.
+        if (current.line_id != no_line && std::isfinite(current.signed_distance) &&
+            current.signed_distance >= -0.55 * width) {
+            const BoundaryProjection previous = boundary_projection_at(
+                prev_layer_boundaries[current_object], current.position, width, path_direction);
+            if (std::isfinite(previous.signed_distance))
+                unsupported_width = std::min(unsupported_width, std::max(0.0, previous.signed_distance));
+        }
+        return float(100.0 * std::clamp(unsupported_width / width, 0.0, 1.0));
     }
 
 public:
@@ -461,23 +525,20 @@ public:
         if (segments_count == 0 || path.width <= EPSILON)
             return percentages;
 
-        const auto percentage_at = [this, &path](const Vec3d &position) {
-            return overhang_percentage_at(position, path.width);
-        };
-        // Orca: Sample cell centres rather than segment endpoints. A shared corner belongs to both
-        // adjacent walls, and an overhang on one wall must not color the full length of the other.
-        // On a long segment, discard its first and last width-scale cells as the corner influence
-        // zone; interior probes still detect narrow unsupported pockets without splitting moves.
+        // Orca: Sample cell centres rather than segment endpoints. The current-contour association in
+        // overhang_percentage_at() rejects support belonging to a perpendicular neighboring wall, so
+        // every cell remains eligible and real overhangs at either end are retained.
         const double probe_spacing = std::max(0.1, double(path.width));
         for (size_t i = 0; i < percentages.size(); ++i) {
             const Vec3d start = unscaled(path.polyline.points[i]);
             const Vec3d end = unscaled(path.polyline.points[i + 1]);
+            const Vec2d direction = (end - start).head<2>();
             const size_t intervals = std::max<size_t>(1, size_t(std::ceil((end - start).norm() / probe_spacing)));
             float maximum = 0.0f;
-            const size_t first_sample = intervals >= 3 ? 1 : 0;
-            const size_t last_sample  = intervals >= 3 ? intervals - 1 : intervals;
-            for (size_t sample = first_sample; sample < last_sample && maximum < 100.0f; ++sample)
-                maximum = std::max(maximum, percentage_at(start + (end - start) * ((double(sample) + 0.5) / intervals)));
+            for (size_t sample = 0; sample < intervals && maximum < 100.0f; ++sample)
+                maximum = std::max(maximum, overhang_percentage_at(
+                    start + (end - start) * ((double(sample) + 0.5) / intervals), path.width, direction,
+                    is_perimeter(path.role())));
             percentages[i] = maximum;
         }
         return percentages;
@@ -486,7 +547,8 @@ public:
     // Orca: Sample the fitted circle itself, not its source chords. Samples include both endpoints
     // and are uniformly spaced in arc progress, so they can be mapped onto any preview tessellation.
     // The caller bounds the interval count; sampling must never modify the fitted printer move.
-    std::vector<float> estimate_overhang_arc_percentages(const ArcSegment &arc, float width, size_t intervals)
+    std::vector<float> estimate_overhang_arc_percentages(const ArcSegment &arc, float width, size_t intervals,
+                                                         bool associate_current_contour = true)
     {
         if (!arc.is_valid() || width <= EPSILON || intervals == 0)
             return {};
@@ -498,7 +560,8 @@ public:
         for (size_t i = 0; i <= intervals; ++i) {
             const double angle = arc.polar_start_theta + arc.angle_radians * (double(i) / intervals);
             const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
-            percentages[i] = overhang_percentage_at(position, width);
+            const Vec2d tangent(-std::sin(angle), std::cos(angle));
+            percentages[i] = overhang_percentage_at(position, width, tangent, associate_current_contour);
         }
         return percentages;
     }
@@ -651,7 +714,8 @@ public:
             // Attribute the emitted span from its interior: endpoints are shared with neighboring spans
             // and may describe a different wall at a growing or recessed corner.
             const float overhang_percentage = estimate_overhang_metadata ?
-                overhang_percentage_at(0.5 * (curr.position + next.position), path.width) : 0.0f;
+                overhang_percentage_at(0.5 * (curr.position + next.position), path.width,
+                                       (next.position - curr.position).head<2>(), is_perimeter(path.role())) : 0.0f;
             processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap, overhang_percentage});
         }
         return processed_points;

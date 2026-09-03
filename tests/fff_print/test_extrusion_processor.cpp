@@ -788,7 +788,8 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
           "[ExtrusionProcessor][Overhang][Regression]")
 {
     constexpr float width = 0.4f;
-    const double outward_shift = GENERATE(0.0, 0.1);
+    const double outward_shift = GENERATE(0.0, 0.001, 0.1);
+    // Orca: A uniform sub-quantization shift is still a real shallow slope and must be retained.
     const float expected_percentage = float(100.0 * outward_shift / width);
     CAPTURE(outward_shift);
 
@@ -1521,8 +1522,9 @@ TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!b
 }
 
 
-// Orca: An expanding neighboring wall makes the shared endpoints of this unchanged wall overhang.
-// The endpoints have zero length on this span and must not color its supported interior.
+// Orca: An expanding neighboring wall is closer to points near the corner of this unchanged wall.
+// Associate each reading with the current wall first so the perpendicular edge cannot create a false
+// overhang anywhere on the supported span, including its first and last width-scale cells.
 TEST_CASE("Overhang metadata does not spread a corner overhang along a supported wall",
           "[ExtrusionProcessor][Overhang][Regression]")
 {
@@ -1557,11 +1559,47 @@ TEST_CASE("Overhang metadata does not spread a corner overhang along a supported
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
         100.0f, 100.0f, false, true);
     REQUIRE_FALSE(variable_speed_points.empty());
-    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i) {
-        const double midpoint_x = 0.5 * unscale<double>(variable_speed_points[i].p.x() + variable_speed_points[i + 1].p.x());
-        // Orca: Variable-speed output may already split short corner spans into their own G1 moves.
-        // Only the supported interior must remain zero; local corner moves may keep their readings.
-        if (midpoint_x > width && midpoint_x < 40.0 - width)
-            CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
-    }
+    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
+        CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+}
+
+// Orca: A bridge may be close to an unchanged outer contour while spanning a hole in the lower layer.
+// Its support must come from the lower-layer area, never from perimeter-oriented contour association.
+TEST_CASE("Overhang metadata keeps area-based support for bridges near an outer contour",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    ExPolygon lower_slice(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 20), Point::new_scale(0, 20)});
+    lower_slice.holes.emplace_back(Polygon{Point::new_scale(1, 0.001), Point::new_scale(1, 10),
+        Point::new_scale(39, 10), Point::new_scale(39, 0.001)});
+    lower_slice.holes.back().make_clockwise();
+    lower->lslices = {std::move(lower_slice)};
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 20), Point::new_scale(0, 20)})};
+
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erBridgeInfill, 0.08, width, 0.2f);
+    path.polyline.points = {Point3::new_scale(2, 0.201, 0), Point3::new_scale(38, 0.201, 0)};
+
+    const auto percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(percentages.size() == 1);
+    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(100.0, 1e-3));
+
+    const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
+        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
+        100.0f, 100.0f, false, true);
+    REQUIRE_FALSE(variable_speed_points.empty());
+    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
+        CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-3));
 }
