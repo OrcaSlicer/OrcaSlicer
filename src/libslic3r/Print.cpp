@@ -1,6 +1,7 @@
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "IMEXHelpers.hpp"
+#include "IMEXZones.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
@@ -1332,27 +1333,31 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     // IDEX/IQEX: block multi-color in non-primary parallel modes when the active
     // configuration can't physically support it (no within-gantry toolchange path
     // or MMU lane sharing). See imex_multicolor_block_reason() for the full rule.
-    // Both IMEX checks below need the active mode's tools string, so the parallel table is
-    // walked once here. Note this block is NOT gated on extruders.size() > 1: the primary
+    // Both IMEX checks below need the active mode's tools string and its declared primary,
+    // so imex_resolve_routing() derives them once for the whole block -- and is the same call
+    // the plater's pre-slice warning makes, so the two cannot describe the plate differently.
+    // Note this block is NOT gated on extruders.size() > 1: the primary
     // routing check applies to a single-filament plate too, which is its most common case.
     if (m_config.is_imex.value && !m_objects.empty()) {
         const std::string& parallel_mode = m_objects.front()->config().imex_parallel_mode.value;
         if (!parallel_mode.empty() && parallel_mode != kImexPrimaryMode) {
-            // Look up the active mode's tools string in the printer config's parallel
-            // table. Fall back to empty (the helpers below handle it gracefully).
-            std::string active_tools_str;
-            const auto& mode_names = m_config.imex_mode_names.values;
-            const auto& mode_tools = m_config.imex_mode_active_tools.values;
-            for (size_t i = 0; i < mode_names.size(); ++i) {
-                if (mode_names[i] == parallel_mode && i < mode_tools.size()) {
-                    active_tools_str = mode_tools[i];
-                    break;
-                }
-            }
             std::vector<int> used_filaments_0b;
+            std::vector<int> used_slots_1b;
             used_filaments_0b.reserve(extruders.size());
-            for (unsigned int e : extruders)
+            used_slots_1b.reserve(extruders.size());
+            for (unsigned int e : extruders) {
                 used_filaments_0b.push_back((int)e);
+                used_slots_1b.push_back((int)e + 1);
+            }
+
+            // The active mode's tools string, its declared primary, and whether this plate's
+            // filaments reach that primary are all derived ONCE, here. The plater's pre-slice
+            // warning (collect_imex_warnings) makes the identical call, so the sentence it
+            // shows before slicing and the refusal below cannot describe the plate
+            // differently. An unresolved mode, and a mode the tools array is too short to
+            // cover, both yield an empty roster and no primary.
+            const ImexRouting routing = imex_resolve_routing(m_config, parallel_mode, used_slots_1b,
+                                                             m_config.physical_extruder_map);
 
             // A mixed filament is blended at the nozzle by its component toolheads, and a
             // parallel mode is already using those toolheads to print copies or mirrors, so
@@ -1386,7 +1391,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (used_filaments_0b.size() > 1) {
                 const std::string reason = imex_multicolor_block_reason(
                     parallel_mode,
-                    active_tools_str,
+                    routing.active_tools,
                     m_config.imex_tools_per_gantry.value,
                     used_filaments_0b,
                     m_config.physical_extruder_map);
@@ -1398,8 +1403,9 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             // filament the printer's physical_extruder_map routes to it. The ghost filament
             // picker already enforces this for the secondary tools; the primary's filament
             // comes from the ordinary object filament selector, which has no IMEX awareness,
-            // so nothing detected the mismatch. collect_imex_warnings() computes the same
-            // condition and discards it into a display fallback.
+            // so nothing detected the mismatch. collect_imex_warnings() reads the SAME
+            // routing.primary_logical off the same derivation, and discards it into a display
+            // fallback so its warning still has a filament to name.
             //
             // Blocks rather than warns, matching the multi-color rule above -- but on intent,
             // not on physics, and the distinction matters to anyone tempted to relax it. The
@@ -1416,48 +1422,33 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             // that head holds nozzle_temperature_initial_layer for the whole job. First-layer
             // temperatures are unaffected -- _print_first_layer_extruder_temperatures is not
             // IMEX-branched -- so this is a stuck-hot nozzle, not a cold one.
-            const ConfigOptionInts& pem = m_config.physical_extruder_map;
-            const int declared_primary = imex_primary_tool_for_mode(active_tools_str);
-            if (declared_primary >= 0 && !pem.values.empty()) {
-                std::vector<int> used_slots_1b;
-                used_slots_1b.reserve(used_filaments_0b.size());
-                for (int slot_0b : used_filaments_0b)
-                    used_slots_1b.push_back(slot_0b + 1);
-                if (imex_primary_logical_from_objects(used_slots_1b, pem, declared_primary) < 0) {
-                    // Bounds-check exactly as imex_primary_logical_from_objects does. get_at()
-                    // CLAMPS out-of-range slots to values.front(), which would let the message
-                    // name the very tool it just said nothing routes to. Blended slots are
-                    // out of range by construction, but they never reach here -- the rule
-                    // above returns first.
-                    std::vector<int> routed_heads;
-                    routed_heads.reserve(used_filaments_0b.size());
-                    for (int slot_0b : used_filaments_0b)
-                        if (slot_0b >= 0 && slot_0b < (int) pem.values.size())
-                            routed_heads.push_back(pem.values[slot_0b]);
-                    std::sort(routed_heads.begin(), routed_heads.end());
-                    routed_heads.erase(std::unique(routed_heads.begin(), routed_heads.end()), routed_heads.end());
-                    std::string routed_list;
-                    for (int head : routed_heads)
-                        routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
-                    // Print::apply() normalises physical_extruder_map through
-                    // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
-                    // an unauthored map arrives here as the identity and every slot is in range.
-                    // What is left is a printer with more filaments than logical extruders, where
-                    // the tail slots fall outside the map. Narrow, but without this the sentence
-                    // ends in a dangling "on .".
-                    if (routed_list.empty())
-                        routed_list = L("no configured tool");
+            //
+            // `primary_unrouted` is the whole condition: a declared primary, a populated
+            // routing map, and nothing used reaching it. Blended slots would also read as
+            // unrouted -- they sit past the map by construction -- but they never get here,
+            // the mixed-filament rule above returns first.
+            if (routing.primary_unrouted) {
+                std::string routed_list;
+                for (int head : routing.routed_heads)
+                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                // Print::apply() normalises physical_extruder_map through
+                // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
+                // an unauthored map arrives here as the identity and every slot is in range.
+                // What is left is a printer with more filaments than logical extruders, where
+                // the tail slots fall outside the map. Narrow, but without this the sentence
+                // ends in a dangling "on .".
+                if (routed_list.empty())
+                    routed_list = L("no configured tool");
 
-                    StringObjectException err;
-                    err.string = Slic3r::format(
-                        L("IMEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
-                          "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, declared_primary, routed_list);
-                    // Gives the notification a "Jump to <object>" link, which selects the object
-                    // and switches to Prepare -- directly enabling the first suggested remedy.
-                    err.object = m_objects.front();
-                    return err;
-                }
+                StringObjectException err;
+                err.string = Slic3r::format(
+                    L("IMEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
+                      "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
+                    parallel_mode, routing.primary_phys, routed_list);
+                // Gives the notification a "Jump to <object>" link, which selects the object
+                // and switches to Prepare -- directly enabling the first suggested remedy.
+                err.object = m_objects.front();
+                return err;
             }
         }
     }
@@ -2413,6 +2404,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     name_tbb_thread_pool_threads_set_locale();
 
+    // IMEX firmware-managed zones: settle the emission-frame shift from the applied config
+    // before anything runs. Zero for every printer that is not IMEX + firmware-managed.
+    this->update_imex_slice_offset();
+
     //compute the PrintObject with the same geometries
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, enter, use_cache=%2%, object size=%3%")%this%use_cache%m_objects.size();
     if (m_objects.empty())
@@ -3059,6 +3054,10 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     // centered at bed origin; processor offset stays at plate_origin so the gcode-preview
     // visualizer renders the centered slice at the bed center rather than the prepare-view
     // zone placement. Both arms reduce to set_gcode_offset() semantics when shift is zero.
+    // Derived here rather than read as pushed-in state, so an exporter reached without a
+    // preceding process() (or after a config change that only invalidated psGCodeExport)
+    // still emits in the frame the current config asks for.
+    this->update_imex_slice_offset();
     const Vec2d imex_off = this->get_imex_slice_offset();
     gcode.set_gcode_offset_with_imex_shift(origin(0), origin(1), imex_off.x(), imex_off.y());
     gcode.do_export(this, path.c_str(), result, thumbnail_cb);
@@ -3482,6 +3481,47 @@ Points Print::first_layer_wipe_tower_corners(bool check_wipe_tower_existance) co
         }
     }
     return corners;
+}
+
+// IMEX firmware-managed zones: derive the slice-time XY shift from the config that has
+// already been applied to this Print, so the engine never has to be told what it can work
+// out. Deriving it here rather than taking a push from PartPlate is what makes a headless
+// slice correct: the CLI builds a PartPlateList but drives no plater, so nothing ever ran
+// the GUI-side handoff and the shift silently stayed at zero while the mode G-code told the
+// firmware to fan copies out — parts in the wrong place, no diagnostic.
+//
+// Inputs, all reachable without a GUI:
+//   * m_full_print_config — the printer preset's IMEX keys. It is the full config rather
+//     than m_config because `imex_tool_layout` and `imex_carriage_margin` are printer-preset
+//     options with no home in the static PrintConfig, so m_config does not carry them.
+//   * the plate's `imex_parallel_mode`, read off the object config. That is the same source
+//     GCode.cpp and validate() resolve the active mode from (the plate's own config is
+//     merged into the full config before apply() by BackgroundSlicingProcess in the GUI and
+//     by CLI_Main in the CLI), so the shift can never disagree with the mode actually
+//     emitted. compute_imex_zone_layout() yields no zones for a mode the printer does not
+//     define, matching GCode.cpp's fallback to Primary for an unresolved mode name.
+//   * printable_area — the bed in PLATE-LOCAL mm. This must not be the plate's world-frame
+//     outline: translate_to_print_space() and the writer offset already subtract m_origin,
+//     so an offset carrying the plate origin would subtract it twice and put every plate
+//     but the first one a full plate stride out.
+//
+// A non-IMEX printer, or one with firmware-managed zones off, costs two bool reads and
+// keeps m_imex_slice_offset at exactly Vec2d::Zero() — which is what keeps its G-code
+// byte-identical.
+void Print::update_imex_slice_offset()
+{
+    m_imex_slice_offset = Vec2d::Zero();
+    if (!m_config.is_imex.value || !m_config.imex_firmware_managed_zones.value || m_objects.empty())
+        return;
+
+    // Already the resolved plate-or-process mode: the plate config overrides the process
+    // preset's key on the way in, exactly as PartPlate::get_imex_mode() prefers the plate.
+    const std::string& active_mode = m_objects.front()->config().imex_parallel_mode.value;
+    const ImexZoneLayout layout    = compute_imex_zone_layout(m_full_print_config, active_mode,
+                                                              std::string(),
+                                                              get_extents(m_config.printable_area.values));
+    // Empty / Primary mode and an empty layout both come back as Vec2d::Zero() here.
+    m_imex_slice_offset = compute_imex_slice_offset(true, active_mode, layout.primary_zone_box);
 }
 
 //SoftFever
