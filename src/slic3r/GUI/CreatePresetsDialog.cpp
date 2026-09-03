@@ -599,7 +599,9 @@ static char* read_json_file(const std::string &preset_path)
         return NULL;
     }
 
-    fread(json_contents, 1, file_size, json_file);
+    const size_t read_bytes = fread(json_contents, 1, file_size, json_file);
+    if (read_bytes != static_cast<size_t>(file_size))
+        BOOST_LOG_TRIVIAL(error) << "Read " << read_bytes << " of " << file_size << " bytes from the JSON file";
     fclose(json_file);
 
     return json_contents;
