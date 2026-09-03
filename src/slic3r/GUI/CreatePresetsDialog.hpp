@@ -74,12 +74,10 @@ private:
     std::unordered_set<std::string>                                  m_system_filament_types_set;
     std::set<std::string>                                            m_visible_printers;
     CreateType                                                       m_create_type;
-    Button *                                                         m_button_create                = nullptr;
     Button *                                                         m_button_cancel                = nullptr;
     ComboBox *                                                       m_filament_vendor_combobox     = nullptr;
     ::CheckBox *                                                     m_can_not_find_vendor_checkbox = nullptr;
     ComboBox *                                                       m_filament_type_combobox       = nullptr;
-    ComboBox *                                                       m_exist_vendor_combobox        = nullptr;
     ComboBox *                                                       m_filament_preset_combobox     = nullptr;
     TextInput *                                                      m_filament_custom_vendor_input = nullptr;
     wxGridSizer *                                                    m_filament_presets_sizer       = nullptr;

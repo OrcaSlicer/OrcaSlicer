@@ -204,7 +204,6 @@ private:
     Label* m_caution;
 
     wxTimer* m_refresh_timer {nullptr};
-    size_t m_rack_event_token;
     Button* m_cancel_btn;
     Button* m_confirm_btn;
 };
