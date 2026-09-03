@@ -875,7 +875,7 @@ REM get_str_len <string> -> length in %ret%
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure
     echo    ORCA_SLICER_CMAKE_ARGS    Extra arguments for the slicer configure
     echo    ORCA_UPDATER_SIG_KEY      Update signing key baked into the slicer
-    echo    git_commit_hash           Revision to stamp, so a commit does not rebuild everything
+    echo    git_commit_hash           Revision to stamp into the build, as CI does
     echo    NINJA_STATUS              Ninja progress format, if you want your own
     echo    debugscript               Set to ON to trace this script
     echo.
