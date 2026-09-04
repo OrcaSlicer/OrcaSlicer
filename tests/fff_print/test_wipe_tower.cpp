@@ -182,3 +182,86 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
     }
 }
+
+// What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
+// they call the estimator directly.
+static DynamicPrintConfig tower_estimate_config(const char *wall_type)
+{
+    // 100 mm3 per purge on a 50 mm wide tower: one purge is 100/(layer_height * 50) of depth.
+    return multifilament_config(2, {
+        { "enable_prime_tower",             "1"       },
+        { "wipe_tower_wall_type",           wall_type },
+        { "prime_tower_width",              "50"      },
+        { "prime_volume",                   "100"     },
+        { "prime_tower_infill_gap",         "100%"    },
+        { "prime_tower_brim_width",         "3"       },
+        { "purge_in_prime_tower",           "0"       },
+        { "single_extruder_multi_material", "0"       },
+        { "timelapse_type",                 "0"       },
+        { "layer_height",                   "0.2"     },
+        { "raft_layers",                    "0"       } });
+}
+
+TEST_CASE("The tower is sized for the thinnest layer any object on the plate is sliced at", "[WipeTower]")
+{
+    // The tower has to survive its thinnest layer, so an override finer than the preset drives
+    // the estimate even on the second object. Two 20 mm cubes, the second at 0.1 mm.
+    const DynamicPrintConfig config = tower_estimate_config("rectangle");
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = {
+        {}, { { "layer_height", "0.1" } } };
+
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+
+    // One purge at 0.1 mm: 100 / (0.1 * 50) = 20 mm, above the 20 mm-tall tower's stability
+    // floor. At the preset's 0.2 mm it would be half that, so the two are easy to tell apart.
+    const float floor_20mm = WipeTower::get_limit_depth_by_height(20.f);
+    REQUIRE(floor_20mm < 10.f);
+    CHECK_THAT(print.wipe_tower_data(2).depth, Catch::Matchers::WithinAbs(20., 1e-4));
+}
+
+TEST_CASE("Validation is given the tower's effective width, not the configured one", "[WipeTower]")
+{
+    // A rib wall squares the tower, so its width is its depth. Validation reads this rather
+    // than re-deriving the rule from the wall type.
+    Print print;
+    Model model;
+
+    SECTION("a rectangle wall keeps the configured width") {
+        const DynamicPrintConfig config = tower_estimate_config("rectangle");
+        init_print({ cube(20) }, print, model, config);
+        const WipeTowerData &data = print.wipe_tower_data(2);
+        CHECK_THAT(data.width, Catch::Matchers::WithinAbs(50., 1e-4));
+        CHECK(data.depth < data.width);
+    }
+
+    SECTION("a rib wall reports the squared footprint") {
+        const DynamicPrintConfig config = tower_estimate_config("rib");
+        init_print({ cube(20) }, print, model, config);
+        const WipeTowerData &data = print.wipe_tower_data(2);
+        CHECK_THAT(data.width, Catch::Matchers::WithinAbs(data.depth, 1e-4));
+        CHECK(data.width > 0.f);
+    }
+}
+
+TEST_CASE("A single-filament plate reserves a tower only when one is actually printed", "[WipeTower]")
+{
+    // Reporting no tower for one that is built collapses the validation hull to a point, so
+    // the config-visible reasons for a single-filament tower have to be honoured.
+    Print print;
+    Model model;
+
+    SECTION("no tool change and nothing else that prints one") {
+        const DynamicPrintConfig config = tower_estimate_config("rib");
+        init_print({ cube(20) }, print, model, config);
+        CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    SECTION("a raft puts the tower on every layer below the object") {
+        DynamicPrintConfig config = tower_estimate_config("rib");
+        config.set_deserialize_strict({ { "raft_layers", "3" } });
+        init_print({ cube(20) }, print, model, config);
+        CHECK(print.wipe_tower_data(1).depth > 0.f);
+    }
+}
