@@ -290,18 +290,37 @@ def check_name_consistency(profiles_dir, vendor_name):
     
     return error_count, 0
 
-def check_filament_id(vendor_folder):
+def check_filament_id(profiles_dir, vendor_name):
     """
     Make sure filament_id is not longer than 8 characters, otherwise AMS won't work properly.
 
-    Runs tree-wide, every vendor alike: check_filament_ids (assign_filament_ids.py)
-    already requires every id in the tree to match the fixed-length "OF" format,
-    so this is a redundant belt-and-suspenders check, not a substitute for it.
+    Runs tree-wide, every vendor alike (BBL included: the id format is what
+    matters, not the vendor). Every .json file under the vendor's filament
+    directory is still parsed through the duplicate-key hook below, so that
+    coverage is unchanged; only the length rule itself is scoped to presets
+    the vendor's index (<vendor>.json filament_list) actually references. A
+    file the index does not reference never loads, so its filament_id length
+    cannot break AMS -- and some vendors (e.g. SeeMeCNC) ship such orphaned
+    files pre-dating this check, with no bearing on what ships.
     """
     error = 0
-    vendor_path = Path(vendor_folder)
+    vendor_path = profiles_dir / vendor_name / "filament"
     if not vendor_path.exists():
         return 0
+
+    referenced = set()
+    vendor_file = profiles_dir / (vendor_name + ".json")
+    if vendor_file.exists():
+        try:
+            with open(vendor_file, 'r', encoding='UTF-8') as fp:
+                index = json.load(fp)
+            for entry in index.get('filament_list', []):
+                sub_path = entry.get('sub_path')
+                if sub_path:
+                    referenced.add((profiles_dir / vendor_name / sub_path).resolve())
+        except Exception as e:
+            print_error(f"Error loading vendor profile {vendor_file}: {e}")
+            error += 1
 
     # Use rglob to recursively find .json files.
     for file_path in vendor_path.rglob("*.json"):
@@ -320,13 +339,13 @@ def check_filament_id(vendor_folder):
 
         if 'filament_id' not in data:
             continue
-            
+
         filament_id = data['filament_id']
 
-        if len(filament_id) > 8:
+        if len(filament_id) > 8 and file_path.resolve() in referenced:
             error += 1
             print_error(f"Filament id too long \"{filament_id}\": {file_path}")
-    
+
     return error
 
 def check_obsolete_keys(profiles_dir, vendor_name):
@@ -597,7 +616,7 @@ def main():
 
         errors_found += check_vector_type_keys(profiles_dir, vendor_name)
 
-        errors_found += check_filament_id(vendor_path / "filament")
+        errors_found += check_filament_id(profiles_dir, vendor_name)
         checked_vendor_count += 1
 
     if args.vendor:

@@ -55,6 +55,7 @@ import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from assign_filament_ids import (  # noqa: E402
+    BAMBU_MAP_PATH,
     OFL,
     OF_ID_RE,
     PROFILES_DIR,
@@ -68,10 +69,6 @@ from assign_filament_ids import (  # noqa: E402
     resolve_filament_id,
     resolve_triple,
 )
-
-SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-BAMBU_MAP_PATH = os.path.normpath(
-    os.path.join(SCRIPTS_DIR, "..", "resources", "printers", "bambu_filament_ids.json"))
 
 BAMBUSTUDIO_REPO = "https://github.com/bambulab/BambuStudio"
 

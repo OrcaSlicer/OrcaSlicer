@@ -79,8 +79,8 @@ FILAMENT_ID_LENGTH = 6  # base62 digits after the "OF" prefix -> 8 chars total
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "resources", "profiles"))
 SNAPSHOT_PATH = os.path.join(SCRIPTS_DIR, "filament_id_snapshot.json")
-# Same path update_bambu_filament_ids.BAMBU_MAP_PATH computes; kept as a sibling
-# constant (not imported) because that module imports FROM this one already.
+# The single source of truth for the map path; update_bambu_filament_ids.py
+# imports this rather than recomputing it.
 BAMBU_MAP_PATH = os.path.normpath(
     os.path.join(SCRIPTS_DIR, "..", "resources", "printers", "bambu_filament_ids.json"))
 
