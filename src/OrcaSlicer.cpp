@@ -5564,23 +5564,6 @@ int CLI::run(int argc, char **argv)
                 }
                 finished_arrange = true;
             }
-            // CLI-created overflow plates get no wipe_tower_x/y backfill (that is GUI-only) -
-            // keep the arrays sized to the plate count so per-plate get_at() stays in range.
-            {
-                int final_plate_count = partplate_list.get_plate_count();
-                ConfigOptionFloats* wipe_x_opt = m_print_config.option<ConfigOptionFloats>("wipe_tower_x");
-                ConfigOptionFloats* wipe_y_opt = m_print_config.option<ConfigOptionFloats>("wipe_tower_y");
-                if (wipe_x_opt && !wipe_x_opt->values.empty() && wipe_x_opt->values.size() < static_cast<size_t>(final_plate_count)) {
-                    BOOST_LOG_TRIVIAL(info) << boost::format("wipe_tower_x had %1% entries for %2% plates, backfilling with entry 0")
-                        % wipe_x_opt->values.size() % final_plate_count;
-                    wipe_x_opt->values.resize(final_plate_count, wipe_x_opt->values.front());
-                }
-                if (wipe_y_opt && !wipe_y_opt->values.empty() && wipe_y_opt->values.size() < static_cast<size_t>(final_plate_count)) {
-                    BOOST_LOG_TRIVIAL(info) << boost::format("wipe_tower_y had %1% entries for %2% plates, backfilling with entry 0")
-                        % wipe_y_opt->values.size() % final_plate_count;
-                    wipe_y_opt->values.resize(final_plate_count, wipe_y_opt->values.front());
-                }
-            }
             original_model.clear_objects();
             original_model.clear_materials();
         }
