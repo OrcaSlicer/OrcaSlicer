@@ -129,6 +129,7 @@
 #include "NotificationManager.hpp"
 #include "PresetComboBoxes.hpp"
 #include "MsgDialog.hpp"
+#include "MixedFilamentDialog.hpp"
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
@@ -539,6 +540,14 @@ struct Sidebar::priv
     int m_menu_filament_id = -1;
     wxScrolledWindow* m_panel_filament_content;
     wxScrolledWindow* m_scrolledWindow_filament_content;
+    StaticBox*        m_panel_color_mixing_title{nullptr};
+    ScalableButton*   m_color_mixing_icon{nullptr};
+    ScalableButton*   m_bpButton_add_mix{nullptr};
+    ScalableButton*   m_bpButton_del_mix{nullptr};
+    ScalableButton*   m_bpButton_edit_mix{nullptr};
+    wxScrolledWindow* m_panel_color_mixing_content{nullptr};
+    wxBoxSizer*       m_sizer_color_mixing_rows{nullptr};
+    int               m_color_mixing_selected{-1};
     wxStaticLine* m_staticline2;
     wxPanel* m_panel_project_title;
     ScalableButton* m_filament_icon = nullptr;
@@ -2209,6 +2218,64 @@ Sidebar::Sidebar(Plater *parent)
     }
 
     {
+    // Color Mixing list — virtual Mix N rows, not extra PlaterPresetComboBox / AMS slots.
+    p->m_panel_color_mixing_title = new StaticBox(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                                  wxTAB_TRAVERSAL | wxBORDER_NONE);
+    p->m_panel_color_mixing_title->SetBackgroundColor(title_bg);
+    p->m_panel_color_mixing_title->SetBackgroundColor2(0xF1F1F1);
+
+    auto *mix_title_sizer = new wxBoxSizer(wxHORIZONTAL);
+    p->m_color_mixing_icon = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "filament");
+    auto *mix_title = new Label(p->m_panel_color_mixing_title, _L("Color Mixing"), LB_PROPAGATE_MOUSE_EVENT);
+    mix_title_sizer->Add(p->m_color_mixing_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+    mix_title_sizer->Add(mix_title, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
+    mix_title_sizer->SetMinSize(-1, FromDIP(30));
+    mix_title_sizer->AddStretchSpacer(1);
+
+    ScalableButton *mix_del = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "delete_filament");
+    mix_del->SetToolTip(_L("Remove selected mix"));
+    mix_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { remove_selected_color_mix(); });
+    p->m_bpButton_del_mix = mix_del;
+
+    ScalableButton *mix_add = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "add_filament");
+    mix_add->SetToolTip(_L("Add mix"));
+    mix_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { open_color_mixing_dialog(-1); });
+    p->m_bpButton_add_mix = mix_add;
+
+    ScalableButton *mix_edit = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "menu_filament");
+    mix_edit->SetToolTip(_L("Edit mix"));
+    mix_edit->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { open_color_mixing_dialog(p->m_color_mixing_selected); });
+    p->m_bpButton_edit_mix = mix_edit;
+
+    mix_title_sizer->Add(mix_del, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+    mix_title_sizer->Add(mix_add, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+    mix_title_sizer->Add(mix_edit, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+    mix_title_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+
+    p->m_panel_color_mixing_title->SetSizer(mix_title_sizer);
+    p->m_panel_color_mixing_title->Layout();
+
+    auto *mix_spliter_1 = new ::StaticLine(p->scrolled);
+    mix_spliter_1->SetLineColour("#A6A9AA");
+    scrolled_sizer->Add(mix_spliter_1, 0, wxEXPAND);
+    scrolled_sizer->Add(p->m_panel_color_mixing_title, 0, wxEXPAND | wxALL, 0);
+    auto *mix_spliter_2 = new ::StaticLine(p->scrolled);
+    mix_spliter_2->SetLineColour("#CECECE");
+    scrolled_sizer->Add(mix_spliter_2, 0, wxEXPAND);
+
+    p->m_panel_color_mixing_content = new wxScrolledWindow(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                                           wxTAB_TRAVERSAL);
+    p->m_panel_color_mixing_content->SetScrollbars(0, 100, 1, 2);
+    p->m_panel_color_mixing_content->SetScrollRate(0, 5);
+    p->m_panel_color_mixing_content->SetBackgroundColour(wxColour(255, 255, 255));
+    p->m_sizer_color_mixing_rows = new wxBoxSizer(wxVERTICAL);
+    p->m_panel_color_mixing_content->SetSizer(p->m_sizer_color_mixing_rows);
+
+    scrolled_sizer->Add(p->m_panel_color_mixing_content, 0,
+                        wxEXPAND | wxTOP | wxBOTTOM, FromDIP(SidebarProps::ContentMarginV()));
+    }
+
+    {
     //add project title
     auto params_panel = ((MainFrame*)parent->GetParent())->m_param_panel;
     if (params_panel) {
@@ -2938,6 +3005,16 @@ void Sidebar::msw_rescale()
     p->m_bpButton_del_filament->msw_rescale();
     p->m_bpButton_ams_filament->msw_rescale();
     p->m_bpButton_set_filament->msw_rescale();
+    if (p->m_color_mixing_icon)
+        p->m_color_mixing_icon->msw_rescale();
+    if (p->m_bpButton_add_mix)
+        p->m_bpButton_add_mix->msw_rescale();
+    if (p->m_bpButton_del_mix)
+        p->m_bpButton_del_mix->msw_rescale();
+    if (p->m_bpButton_edit_mix)
+        p->m_bpButton_edit_mix->msw_rescale();
+    if (p->m_panel_color_mixing_title && p->m_panel_color_mixing_title->GetSizer())
+        p->m_panel_color_mixing_title->GetSizer()->SetMinSize(-1, 3 * wxGetApp().em_unit());
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
@@ -3023,6 +3100,14 @@ void Sidebar::sys_color_changed()
     p->m_bpButton_del_filament->msw_rescale();
     p->m_bpButton_ams_filament->msw_rescale();
     p->m_bpButton_set_filament->msw_rescale();
+    if (p->m_color_mixing_icon)
+        p->m_color_mixing_icon->msw_rescale();
+    if (p->m_bpButton_add_mix)
+        p->m_bpButton_add_mix->msw_rescale();
+    if (p->m_bpButton_del_mix)
+        p->m_bpButton_del_mix->msw_rescale();
+    if (p->m_bpButton_edit_mix)
+        p->m_bpButton_edit_mix->msw_rescale();
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
@@ -3142,6 +3227,219 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
     update_dynamic_filament_list();
+    refresh_color_mixing_list();
+}
+
+namespace {
+
+std::string sidebar_resolved_mix_defs()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return {};
+    std::string mixed_defs;
+    if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        mixed_defs = opt->value;
+    if (mixed_defs.empty()) {
+        if (const ConfigOptionString *opt =
+                bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+    }
+    return mixed_defs;
+}
+
+std::vector<ColorRGB> sidebar_live_physical_colors()
+{
+    std::vector<ColorRGB> out;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        if (const ConfigOptionStrings *opt = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+            out.reserve(opt->values.size());
+            for (const std::string &hex : opt->values) {
+                ColorRGB          c;
+                const std::string norm = normalize_mix_match_hex(hex);
+                if ((!norm.empty() && decode_color(norm, c)) || decode_color(hex, c))
+                    out.push_back(c);
+                else
+                    out.push_back(ColorRGB::WHITE());
+            }
+        }
+    }
+    if (out.empty()) {
+        if (Plater *plater = wxGetApp().plater()) {
+            for (const ColorRGBA &c : plater->get_extruders_colors())
+                out.push_back(to_rgb(c));
+        }
+    }
+    return out;
+}
+
+SpectrumMixDialogUndoKeys sidebar_capture_mix_dialog_keys()
+{
+    SpectrumMixDialogUndoKeys keys;
+    keys.mixed_filament_definitions = sidebar_resolved_mix_defs();
+    PresetBundle *bundle            = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return keys;
+    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+    if (const ConfigOptionBool *ept = print_cfg.option<ConfigOptionBool>("enable_prime_tower"))
+        keys.enable_prime_tower = ept->value;
+    if (const ConfigOptionBool *lz = print_cfg.option<ConfigOptionBool>("dithering_local_z_mode"))
+        keys.dithering_local_z_mode = lz->value;
+    if (const ConfigOptionBool *fd = print_cfg.option<ConfigOptionBool>("dithering_local_z_whole_objects"))
+        keys.dithering_local_z_whole_objects = fd->value;
+    if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
+        keys.mixed_filament_gradient_mode = gr->value;
+    return keys;
+}
+
+std::string sidebar_drop_mix_at(const std::string &defs, int index)
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions(defs);
+    const std::string full = mgr.serialize_definitions();
+    if (full.empty() || index < 0)
+        return full;
+    std::vector<std::string> parts;
+    size_t                   start = 0;
+    while (true) {
+        const size_t pos = full.find(';', start);
+        if (pos == std::string::npos) {
+            parts.push_back(full.substr(start));
+            break;
+        }
+        parts.push_back(full.substr(start, pos - start));
+        start = pos + 1;
+    }
+    if (size_t(index) >= parts.size())
+        return full;
+    parts.erase(parts.begin() + size_t(index));
+    std::string joined;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (i)
+            joined += ';';
+        joined += parts[i];
+    }
+    MixedFilamentManager out;
+    out.load_definitions(joined);
+    return out.serialize_definitions();
+}
+
+} // namespace
+
+void Sidebar::refresh_color_mixing_list()
+{
+    if (p->m_sizer_color_mixing_rows == nullptr || p->m_panel_color_mixing_content == nullptr)
+        return;
+
+    p->m_sizer_color_mixing_rows->Clear(true);
+
+    PresetBundle *bundle     = wxGetApp().preset_bundle;
+    const size_t  physical_n = (bundle != nullptr) ? bundle->filament_presets.size() : 0;
+    const std::string defs   = sidebar_resolved_mix_defs();
+    const auto        rows   = spectrum_mix_list_rows(defs, physical_n);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(defs);
+    const std::vector<ColorRGB> physicals = sidebar_live_physical_colors();
+    const wxColour              sel_bg(232, 240, 254);
+    const wxColour              uns_bg(255, 255, 255);
+    const int                   row_h = FromDIP(28);
+
+    if (p->m_color_mixing_selected >= int(rows.size()))
+        p->m_color_mixing_selected = rows.empty() ? -1 : int(rows.size()) - 1;
+
+    for (size_t i = 0; i < rows.size(); ++i) {
+        auto *row = new wxPanel(p->m_panel_color_mixing_content, wxID_ANY);
+        row->SetBackgroundColour(int(i) == p->m_color_mixing_selected ? sel_bg : uns_bg);
+        auto *hs = new wxBoxSizer(wxHORIZONTAL);
+
+        ColorRGB swatch = ColorRGB::WHITE();
+        if (i < mgr.mixed_filaments().size())
+            swatch = predicted_swatch_for_mix(mgr.mixed_filaments()[i], physicals);
+        auto *color = new wxPanel(row, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+        color->SetBackgroundColour(wxColour(swatch.r_uchar(), swatch.g_uchar(), swatch.b_uchar()));
+        auto *label = new Label(row, wxString::FromUTF8(rows[i].surface_label.c_str()));
+        hs->Add(color, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(8));
+        hs->Add(label, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+        row->SetSizer(hs);
+        row->SetMinSize(wxSize(-1, row_h));
+
+        auto bind_row = [this, i](wxWindow *w) {
+            w->Bind(wxEVT_LEFT_DOWN, [this, i](wxMouseEvent &evt) {
+                p->m_color_mixing_selected = int(i);
+                const wxColour sel_bg(232, 240, 254);
+                const wxColour uns_bg(255, 255, 255);
+                const size_t   n = p->m_sizer_color_mixing_rows->GetItemCount();
+                for (size_t j = 0; j < n; ++j) {
+                    wxSizerItem *item = p->m_sizer_color_mixing_rows->GetItem(j);
+                    if (item == nullptr)
+                        continue;
+                    if (wxWindow *row_w = item->GetWindow()) {
+                        row_w->SetBackgroundColour(int(j) == p->m_color_mixing_selected ? sel_bg : uns_bg);
+                        row_w->Refresh();
+                    }
+                }
+                evt.Skip();
+            });
+            w->Bind(wxEVT_LEFT_DCLICK, [this, i](wxMouseEvent &evt) {
+                p->m_color_mixing_selected = int(i);
+                open_color_mixing_dialog(int(i));
+                evt.Skip();
+            });
+        };
+        bind_row(row);
+        bind_row(color);
+        bind_row(label);
+        p->m_sizer_color_mixing_rows->Add(row, 0, wxEXPAND);
+    }
+
+    const int visible = 5;
+    const int n       = int(rows.size());
+    const int h       = std::max(1, std::min(n == 0 ? 1 : n, visible)) * row_h;
+    p->m_panel_color_mixing_content->SetMaxSize(wxSize{-1, visible * row_h});
+    p->m_panel_color_mixing_content->SetMinSize(wxSize{-1, h});
+    p->m_panel_color_mixing_content->Layout();
+    p->m_panel_color_mixing_content->FitInside();
+    if (m_scrolled_sizer)
+        m_scrolled_sizer->Layout();
+}
+
+void Sidebar::open_color_mixing_dialog(int initial_row)
+{
+    MixedFilamentDialog dlg(p->plater, initial_row);
+    if (dlg.ShowModal() == wxID_OK)
+        refresh_color_mixing_list();
+}
+
+void Sidebar::remove_selected_color_mix()
+{
+    const int sel = p->m_color_mixing_selected;
+    if (sel < 0)
+        return;
+    Plater *plater = p->plater;
+    if (plater == nullptr)
+        return;
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    const std::string defs = sidebar_resolved_mix_defs();
+    MixedFilamentManager mgr;
+    mgr.load_definitions(defs);
+    if (size_t(sel) >= mgr.mixed_filaments().size())
+        return;
+
+    const SpectrumMixDialogUndoKeys pre  = sidebar_capture_mix_dialog_keys();
+    SpectrumMixDialogUndoKeys       post = pre;
+    post.mixed_filament_definitions      = sidebar_drop_mix_at(defs, sel);
+    if (pre.mixed_filament_definitions == post.mixed_filament_definitions)
+        return;
+
+    const int remaining            = int(mgr.mixed_filaments().size()) - 1;
+    p->m_color_mixing_selected     = (sel >= remaining) ? remaining - 1 : sel;
+    plater->apply_mixed_filament_dialog_keys(pre, post);
+    plater->on_config_change(bundle->full_config());
+    plater->schedule_background_process();
 }
 
 void Sidebar::on_filaments_delete(size_t filament_id)
@@ -3193,6 +3491,7 @@ void Sidebar::on_filaments_delete(size_t filament_id)
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
     dynamic_filament_list.update();
+    refresh_color_mixing_list();
 }
 
 void Sidebar::add_filament() {
@@ -7647,6 +7946,9 @@ void Plater::priv::reset(bool apply_presets_change)
     m_spectrum_map_undo = SpectrumMapUndoRecord{};
     m_spectrum_mix_dialog_undos.clear();
 
+    // Mix list follows resolved defs after project reset (New Project / load_project prefix).
+    sidebar->refresh_color_mixing_list();
+
     // Save window layout
     if (sidebar_layout.is_enabled) {
         // Reset show state
@@ -11977,8 +12279,10 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                             changed = true;
                     }
                 }
-                if (changed)
+                if (changed) {
                     q->on_config_change(bundle->full_config());
+                    q->sidebar().refresh_color_mixing_list();
+                }
             }
         }
         // set selection mode for ObjectList on sidebar
@@ -12340,6 +12644,8 @@ void Plater::load_project(wxString const& filename2,
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " load project done";
     m_loading_project = false;
+    if (!res.empty())
+        sidebar().refresh_color_mixing_list();
 }
 
 // BBS: save logic
@@ -12884,6 +13190,7 @@ void Plater::apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &p
         rec.post               = post;
         p->m_spectrum_mix_dialog_undos.push_back(std::move(rec));
     }
+    sidebar().refresh_color_mixing_list();
 }
 
 //BBS import model by model id

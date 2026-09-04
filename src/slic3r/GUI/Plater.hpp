@@ -183,6 +183,7 @@ public:
     // BBS. Add filament_added() method.
     void on_filament_count_change(size_t num_filaments);
     void on_filaments_delete(size_t filament_id);
+    void refresh_color_mixing_list();
 
     void add_filament();
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
@@ -265,6 +266,8 @@ public:
 
 private:
     void  auto_calc_flushing_volumes_internal(const int filament_id, const int extruder_id);
+    void  open_color_mixing_dialog(int initial_row);
+    void  remove_selected_color_mix();
 
 private:
     struct priv;

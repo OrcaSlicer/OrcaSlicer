@@ -1073,6 +1073,30 @@ TEST_CASE("mix_surface_label named and unnamed", "[MixedFilamentMatch]")
     REQUIRE(mix_surface_label(5, pair, nullptr) == "Mix 5  1+2 1:1");
 }
 
+TEST_CASE("spectrum_mix_list_rows empty, pair, disabled omitted", "[spectrum_mix_list][MixedFilamentMatch]")
+{
+    SECTION("empty defs and four physicals") {
+        const auto rows = spectrum_mix_list_rows("", 4);
+        REQUIRE(rows.empty());
+    }
+
+    SECTION("pair mix is Mix 5") {
+        const auto rows = spectrum_mix_list_rows("1,2,1,1,1", 4);
+        REQUIRE(rows.size() == 1);
+        REQUIRE(rows[0].mix_id_1based == 5);
+        REQUIRE(rows[0].surface_label == "Mix 5  1+2 1:1");
+        REQUIRE(rows[0].enabled);
+    }
+
+    SECTION("disabled row omitted leaving 1+3") {
+        const auto rows = spectrum_mix_list_rows("1,2,0,1,1;1,3,1,1,1", 4);
+        REQUIRE(rows.size() == 1);
+        REQUIRE(rows[0].mix_id_1based == 5);
+        REQUIRE(rows[0].surface_label.find("1+3") != std::string::npos);
+        REQUIRE(rows[0].enabled);
+    }
+}
+
 namespace {
 
 bool same_match_result(const MixMatchResult &a, const MixMatchResult &b)

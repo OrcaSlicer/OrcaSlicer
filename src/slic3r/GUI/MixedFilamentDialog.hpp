@@ -8,6 +8,7 @@
 #include <wx/checkbox.h>
 #include <wx/clrpicker.h>
 #include <wx/dialog.h>
+#include <wx/notebook.h>
 #include <wx/slider.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
@@ -26,8 +27,10 @@ namespace GUI {
 class MixedFilamentDialog : public DPIDialog
 {
 public:
-    explicit MixedFilamentDialog(wxWindow *parent = nullptr);
+    explicit MixedFilamentDialog(wxWindow *parent = nullptr, int initial_row = -1);
     ~MixedFilamentDialog() override = default;
+
+    void select_row(int idx);
 
 protected:
     void on_dpi_changed(const wxRect &suggested_rect) override {}
@@ -69,6 +72,7 @@ private:
     int                         m_selected_row{-1};
     bool                        m_suppress_events{false};
 
+    wxNotebook *m_notebook{nullptr};
     wxListBox  *m_list{nullptr};
     wxButton   *m_btn_add{nullptr};
     wxButton   *m_btn_remove{nullptr};

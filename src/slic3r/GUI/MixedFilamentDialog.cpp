@@ -23,6 +23,8 @@
 #include <wx/stattext.h>
 #include <wx/button.h>
 #include <wx/listbox.h>
+#include <wx/notebook.h>
+#include <wx/panel.h>
 
 #include <algorithm>
 #include <cctype>
@@ -83,7 +85,7 @@ void assign_extruder(ModelConfig &config, int virtual_id)
 
 } // namespace
 
-MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
+MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent, int initial_row)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 _L("Mixed Filaments"),
@@ -97,7 +99,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     auto *root = new wxBoxSizer(wxVERTICAL);
 
     auto *list_row = new wxBoxSizer(wxHORIZONTAL);
-    m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(220)));
+    m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(180)));
     auto *list_btns = new wxBoxSizer(wxVERTICAL);
     m_btn_add          = new wxButton(this, wxID_ANY, _L("Add"));
     m_btn_remove       = new wxButton(this, wxID_ANY, _L("Remove"));
@@ -114,81 +116,118 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     list_row->Add(list_btns, 0, wxLEFT, FromDIP(8));
     root->Add(list_row, 0, wxEXPAND | wxALL, FromDIP(12));
 
+    // Stock wxNotebook is acceptable (Orca DarkMode prefers a custom notebook; do not block on it).
+    m_notebook = new wxNotebook(this, wxID_ANY);
+    auto *page_ratio = new wxPanel(m_notebook);
+    auto *page_cycle = new wxPanel(m_notebook);
+    auto *page_match = new wxPanel(m_notebook);
+    auto *page_grad  = new wxPanel(m_notebook);
+    page_ratio->SetBackgroundColour(*wxWHITE);
+    page_cycle->SetBackgroundColour(*wxWHITE);
+    page_match->SetBackgroundColour(*wxWHITE);
+    page_grad->SetBackgroundColour(*wxWHITE);
+
+    auto *grid = new wxFlexGridSizer(2, FromDIP(6), FromDIP(12));
+    grid->AddGrowableCol(1, 1);
+    auto add_row = [&](wxWindow *parent, wxSizer *sizer, const wxString &label, wxWindow *ctrl) {
+        auto *lbl = new wxStaticText(parent, wxID_ANY, label);
+        sizer->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(ctrl, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    };
+
+    m_spin_a = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                              wxSP_ARROW_KEYS, 1, 16, 1);
+    m_spin_b = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                              wxSP_ARROW_KEYS, 1, 16, 2);
+    m_spin_c = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                              wxSP_ARROW_KEYS, 0, 16, 0);
+    m_spin_ratio_a = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                                    wxSP_ARROW_KEYS, 0, 99, 1);
+    m_spin_ratio_b = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                                    wxSP_ARROW_KEYS, 0, 99, 1);
+    m_spin_ratio_c = new wxSpinCtrl(page_ratio, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                                    wxSP_ARROW_KEYS, 0, 99, 1);
+    m_spin_c->SetToolTip(_L("Third physical (1-based). 0 = pair mix. Period ratio A+B+C must be at most 4."));
+    m_spin_ratio_c->SetToolTip(_L("Layer count for C in the A then B then C cadence. Ignored when C is 0."));
+    m_offset_a = new wxTextCtrl(page_ratio, wxID_ANY, "0", wxDefaultPosition, wxSize(FromDIP(100), -1));
+    m_offset_b = new wxTextCtrl(page_ratio, wxID_ANY, "0", wxDefaultPosition, wxSize(FromDIP(100), -1));
+    m_offset_a->SetToolTip(_L("Component A surface offset (mm). Positive contracts. Applied only when Subdivide Mix Layer is off."));
+    m_offset_b->SetToolTip(_L("Component B surface offset (mm). Positive contracts. Applied only when Subdivide Mix Layer is off."));
+    add_row(page_ratio, grid, _L("Component A (1-based)"), m_spin_a);
+    add_row(page_ratio, grid, _L("Component B (1-based)"), m_spin_b);
+    add_row(page_ratio, grid, _L("Component C (0 = pair)"), m_spin_c);
+    add_row(page_ratio, grid, _L("Ratio A"), m_spin_ratio_a);
+    add_row(page_ratio, grid, _L("Ratio B"), m_spin_ratio_b);
+    add_row(page_ratio, grid, _L("Ratio C"), m_spin_ratio_c);
+    add_row(page_ratio, grid, _L("Bias A (mm)"), m_offset_a);
+    add_row(page_ratio, grid, _L("Bias B (mm)"), m_offset_b);
+    auto *ratio_sizer = new wxBoxSizer(wxVERTICAL);
+    ratio_sizer->Add(grid, 0, wxEXPAND | wxALL, FromDIP(12));
+    page_ratio->SetSizer(ratio_sizer);
+
+    m_pattern = new wxTextCtrl(page_cycle, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(160), -1));
+    m_pattern->SetToolTip(_L("Optional cycle pattern (1-based tools). Empty = ratio cadence. "
+                             "Example: 112 → A,A,B when A=1,B=2 → T0,T0,T1."));
+    auto *cycle_sizer = new wxBoxSizer(wxVERTICAL);
+    cycle_sizer->Add(new wxStaticText(page_cycle, wxID_ANY, _L("Pattern (optional)")), 0, wxBOTTOM, FromDIP(6));
+    cycle_sizer->Add(m_pattern, 0, wxEXPAND);
+    auto *cycle_pad = new wxBoxSizer(wxVERTICAL);
+    cycle_pad->Add(cycle_sizer, 0, wxEXPAND | wxALL, FromDIP(12));
+    page_cycle->SetSizer(cycle_pad);
+
     auto *match_row = new wxBoxSizer(wxHORIZONTAL);
-    match_row->Add(new wxStaticText(this, wxID_ANY, _L("Target color")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
+    match_row->Add(new wxStaticText(page_match, wxID_ANY, _L("Target color")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
                    FromDIP(8));
-    m_clr_target = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
-    m_hex_target = new wxTextCtrl(this, wxID_ANY, "#FFFFFF", wxDefaultPosition, wxSize(FromDIP(100), -1),
+    m_clr_target = new wxColourPickerCtrl(page_match, wxID_ANY, wxColour(255, 255, 255));
+    m_hex_target = new wxTextCtrl(page_match, wxID_ANY, "#FFFFFF", wxDefaultPosition, wxSize(FromDIP(100), -1),
                                   wxTE_PROCESS_ENTER);
-    m_btn_create_mix = new wxButton(this, wxID_ANY, _L("Create mix from color"));
+    m_btn_create_mix = new wxButton(page_match, wxID_ANY, _L("Create mix from color"));
     match_row->Add(m_clr_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
     match_row->Add(m_hex_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
     match_row->Add(m_btn_create_mix, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
-    match_row->Add(new wxStaticText(this, wxID_ANY, _L("Predicted mix")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
+    match_row->Add(new wxStaticText(page_match, wxID_ANY, _L("Predicted mix")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
                    FromDIP(8));
-    m_clr_predicted = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
+    m_clr_predicted = new wxColourPickerCtrl(page_match, wxID_ANY, wxColour(255, 255, 255));
     m_clr_predicted->Enable(false);
     m_clr_predicted->SetToolTip(_L("Predicted printable mix colour."));
     match_row->Add(m_clr_predicted, 0, wxALIGN_CENTER_VERTICAL);
-    root->Add(match_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
-
-    m_candidate_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(360), FromDIP(110)));
-    root->Add(m_candidate_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
-
+    m_candidate_list = new wxListBox(page_match, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(360), FromDIP(110)));
     auto *min_row = new wxBoxSizer(wxHORIZONTAL);
-    m_min_mix_slider = new wxSlider(this, wxID_ANY, 25, 25, 50, wxDefaultPosition, wxSize(FromDIP(180), -1));
-    m_min_mix_label  = new wxStaticText(this, wxID_ANY, _L("Min mix: 25%"));
+    m_min_mix_slider = new wxSlider(page_match, wxID_ANY, 25, 25, 50, wxDefaultPosition, wxSize(FromDIP(180), -1));
+    m_min_mix_label  = new wxStaticText(page_match, wxID_ANY, _L("Min mix: 25%"));
     m_min_mix_slider->SetToolTip(
         _L("Period-4 floor is 25%; Snapmaker 15% not available; useful stops 25 / 33 / 34+."));
     min_row->Add(m_min_mix_slider, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
     min_row->Add(m_min_mix_label, 0, wxALIGN_CENTER_VERTICAL);
-    root->Add(min_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    auto *match_sizer = new wxBoxSizer(wxVERTICAL);
+    match_sizer->Add(match_row, 0, wxEXPAND | wxALL, FromDIP(12));
+    match_sizer->Add(m_candidate_list, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    match_sizer->Add(min_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    page_match->SetSizer(match_sizer);
 
-    auto *grid = new wxFlexGridSizer(2, FromDIP(6), FromDIP(12));
-    grid->AddGrowableCol(1, 1);
+    m_gradient = new wxCheckBox(page_grad, wxID_ANY, _L("Height gradient (A bottom → B top)"));
+    m_gradient->SetToolTip(
+        _L("Requires Subdivide Mix Layer and Full domain. Applies to this mix only; siblings stay ratio/pattern. "
+           "Prefer layer height 0.24 mm (0.16–0.28 mm band)."));
+    auto *grad_sizer = new wxBoxSizer(wxVERTICAL);
+    grad_sizer->Add(m_gradient, 0, wxALL, FromDIP(12));
+    page_grad->SetSizer(grad_sizer);
 
-    auto add_row = [&](const wxString &label, wxWindow *ctrl) {
-        auto *lbl = new wxStaticText(this, wxID_ANY, label);
-        grid->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
-        grid->Add(ctrl, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
-    };
-
-    m_spin_a = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                              wxSP_ARROW_KEYS, 1, 16, 1);
-    m_spin_b = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                              wxSP_ARROW_KEYS, 1, 16, 2);
-    m_spin_c = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                              wxSP_ARROW_KEYS, 0, 16, 0);
-    m_spin_ratio_a = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                                    wxSP_ARROW_KEYS, 0, 99, 1);
-    m_spin_ratio_b = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                                    wxSP_ARROW_KEYS, 0, 99, 1);
-    m_spin_ratio_c = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
-                                    wxSP_ARROW_KEYS, 0, 99, 1);
-    m_spin_c->SetToolTip(_L("Third physical (1-based). 0 = pair mix. Period ratio A+B+C must be at most 4."));
-    m_spin_ratio_c->SetToolTip(_L("Layer count for C in the A then B then C cadence. Ignored when C is 0."));
-    m_pattern = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(160), -1));
-    m_pattern->SetToolTip(_L("Optional cycle pattern (1-based tools). Empty = ratio cadence. "
-                             "Example: 112 → A,A,B when A=1,B=2 → T0,T0,T1."));
-
-    m_offset_a = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(FromDIP(100), -1));
-    m_offset_b = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(FromDIP(100), -1));
-    m_offset_a->SetToolTip(_L("Component A surface offset (mm). Positive contracts. Applied only when Subdivide Mix Layer is off."));
-    m_offset_b->SetToolTip(_L("Component B surface offset (mm). Positive contracts. Applied only when Subdivide Mix Layer is off."));
+    m_notebook->AddPage(page_ratio, _L("Ratio"));
+    m_notebook->AddPage(page_cycle, _L("Cycle"));
+    m_notebook->AddPage(page_match, _L("Match"));
+    m_notebook->AddPage(page_grad, _L("Gradient"));
+    root->Add(m_notebook, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     m_enabled      = new wxCheckBox(this, wxID_ANY, _L("Enabled"));
     m_apply_object = new wxCheckBox(this, wxID_ANY, _L("Apply to selected volume"));
     m_enable_tower = new wxCheckBox(this, wxID_ANY, _L("Enable prime tower"));
     m_local_z      = new wxCheckBox(this, wxID_ANY, _L("Subdivide Mix Layer"));
     m_full_domain  = new wxCheckBox(this, wxID_ANY, _L("Full domain"));
-    m_gradient     = new wxCheckBox(this, wxID_ANY, _L("Height gradient (A bottom → B top)"));
     m_perimeter    = new wxCheckBox(this, wxID_ANY, _L("Outer-wall dither"));
 
     m_local_z->SetToolTip(_L("Split mixed layers into ratio-proportional sub-layers (e.g. 0.24 mm at 2:1 → 0.16 + 0.08)."));
     m_full_domain->SetToolTip(_L("Apply Subdivide Mix Layer to the whole object when its extruder is a virtual mix (no paint required)."));
-    m_gradient->SetToolTip(
-        _L("Requires Subdivide Mix Layer and Full domain. Applies to this mix only; siblings stay ratio/pattern. "
-           "Prefer layer height 0.24 mm (0.16–0.28 mm band)."));
     m_perimeter->SetToolTip(
         _L("Expands A / recesses B by ~0.4×nozzle (max 0.35 mm). Not line-width. "
            "Ignored when Subdivide Mix Layer is on. Typed Bias A/B mm override."));
@@ -197,23 +236,11 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_apply_object->SetValue(true);
     m_enable_tower->SetValue(true);
 
-    add_row(_L("Component A (1-based)"), m_spin_a);
-    add_row(_L("Component B (1-based)"), m_spin_b);
-    add_row(_L("Component C (0 = pair)"), m_spin_c);
-    add_row(_L("Ratio A"), m_spin_ratio_a);
-    add_row(_L("Ratio B"), m_spin_ratio_b);
-    add_row(_L("Ratio C"), m_spin_ratio_c);
-    add_row(_L("Pattern (optional)"), m_pattern);
-    add_row(_L("Bias A (mm)"), m_offset_a);
-    add_row(_L("Bias B (mm)"), m_offset_b);
-
-    root->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_enabled, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_apply_object, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_enable_tower, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_local_z, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_full_domain, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
-    root->Add(m_gradient, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_perimeter, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     auto *hint = new wxStaticText(this, wxID_ANY,
@@ -297,7 +324,16 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     });
 
     load_from_config();
+    if (initial_row >= 0)
+        select_row(initial_row);
     refresh_candidates();
+
+    m_notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent &) {
+        if (m_suppress_events)
+            return;
+        store_editors_into_selected_row();
+        // Ratio store already cleared leftover Cycle pattern; skip load (would bounce Gradient mixes).
+    });
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent &evt) {
         if (evt.GetId() == wxID_OK) {
@@ -663,6 +699,21 @@ void MixedFilamentDialog::refresh_list_labels()
         m_list->SetString(i, row_label(i, num_physical));
 }
 
+void MixedFilamentDialog::select_row(int idx)
+{
+    if (idx < 0 || m_rows.empty() || size_t(idx) >= m_rows.size())
+        return;
+    if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size() && idx != m_selected_row)
+        store_editors_into_selected_row();
+    m_selected_row = idx;
+    if (m_list != nullptr) {
+        m_suppress_events = true;
+        m_list->SetSelection(idx);
+        m_suppress_events = false;
+    }
+    load_selected_row_into_editors();
+}
+
 void MixedFilamentDialog::load_selected_row_into_editors()
 {
     MixedFilament mf;
@@ -682,6 +733,19 @@ void MixedFilamentDialog::load_selected_row_into_editors()
     m_gradient->SetValue(mf.gradient_enabled);
     m_perimeter->SetValue(mf.perimeter_modulation);
     refresh_predicted_swatch();
+
+    if (m_notebook != nullptr) {
+        const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+        const bool        prev    = m_suppress_events;
+        m_suppress_events         = true;
+        if (!pattern.empty())
+            m_notebook->SetSelection(1); // Cycle
+        else if (mf.gradient_enabled)
+            m_notebook->SetSelection(3); // Gradient
+        else
+            m_notebook->SetSelection(0); // Ratio
+        m_suppress_events = prev;
+    }
 }
 
 void MixedFilamentDialog::store_editors_into_selected_row()
@@ -698,16 +762,21 @@ void MixedFilamentDialog::store_editors_into_selected_row()
     mf.ratio_c        = std::max(0, m_spin_ratio_c->GetValue());
     if (mf.component_c != 0 && mf.ratio_c == 0)
         mf.ratio_c = 1;
-    mf.enabled        = m_enabled->GetValue();
-    mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(into_u8(m_pattern->GetValue()));
-    double offset_a   = 0.0;
-    double offset_b   = 0.0;
+    mf.enabled = m_enabled->GetValue();
+    if (m_notebook != nullptr && m_notebook->GetSelection() == 0) {
+        mf.manual_pattern.clear();
+        m_pattern->SetValue(wxEmptyString);
+    } else {
+        mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(into_u8(m_pattern->GetValue()));
+    }
+    double offset_a = 0.0;
+    double offset_b = 0.0;
     m_offset_a->GetValue().ToDouble(&offset_a);
     m_offset_b->GetValue().ToDouble(&offset_b);
     mf.component_a_surface_offset = float(offset_a);
     mf.component_b_surface_offset = float(offset_b);
-    mf.gradient_enabled = m_gradient->GetValue();
-    mf.perimeter_modulation = m_perimeter->GetValue();
+    mf.gradient_enabled           = m_gradient->GetValue();
+    mf.perimeter_modulation       = m_perimeter->GetValue();
     if (mf.gradient_enabled) {
         mf.component_c = 0;
         mf.manual_pattern.clear();

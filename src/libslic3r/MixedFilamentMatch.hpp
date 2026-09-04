@@ -78,6 +78,16 @@ std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::str
 std::string mix_surface_label(int id_1based, const MixedFilament &mf,
                               const std::vector<std::string> *slot_names = nullptr);
 
+// Sidebar Color Mixing rows. Mix N = physical_n+1+i in manager order.
+struct SpectrumMixListRow {
+    int         mix_id_1based = 0;
+    std::string surface_label;
+    bool        enabled = true;
+};
+
+// Enabled mixes only (MixedFilamentManager stores enabled rows). Empty defs → empty.
+std::vector<SpectrumMixListRow> spectrum_mix_list_rows(const std::string &defs, size_t physical_n);
+
 // Trim, optional '#', 6 or 8 hex digits → "#RRGGBB" / "#RRGGBBFF". Empty if invalid.
 std::string normalize_mix_match_hex(const std::string &text);
 

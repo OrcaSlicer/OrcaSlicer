@@ -425,6 +425,23 @@ std::string mix_surface_label(int id_1based, const MixedFilament &mf, const std:
     return "Mix " + std::to_string(id_1based) + "  " + mix_recipe_label(mf, slot_names);
 }
 
+std::vector<SpectrumMixListRow> spectrum_mix_list_rows(const std::string &defs, size_t physical_n)
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions(defs);
+    const std::vector<MixedFilament> &mixed = mgr.mixed_filaments();
+    std::vector<SpectrumMixListRow>   out;
+    out.reserve(mixed.size());
+    for (size_t i = 0; i < mixed.size(); ++i) {
+        SpectrumMixListRow row;
+        row.mix_id_1based = int(physical_n) + 1 + int(i);
+        row.surface_label = mix_surface_label(row.mix_id_1based, mixed[i], nullptr);
+        row.enabled       = true;
+        out.push_back(std::move(row));
+    }
+    return out;
+}
+
 namespace {
 
 int mix_min_component_share_percent(const MixedFilament &mf)
