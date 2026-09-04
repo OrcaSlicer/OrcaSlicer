@@ -30,6 +30,17 @@ jobs:
   overrides:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # The effect stage re-slices every landed option one at a time and cannot
+        # batch, so it is the whole cost of this job. Un-sharded it is ~6 h on a
+        # 4-vCPU runner once the option is routed to a fixture that can actually
+        # show its effect. parity/effect_routing.json groups options by cheapest
+        # capable fixture and balances the groups by measured slice cost; 8 shards
+        # puts the longest at ~53 min. Shards are disjoint and cover every landed
+        # option exactly once.
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - name: Find the latest successful Linux build
         id: build
@@ -95,6 +106,7 @@ jobs:
         working-directory: orca-test-repo
         run: |
           python -m pytest test_cli_overrides.py -c pytest.ini -v --effect-full \
+            --effect-shard ${{ matrix.shard }}/8 \
             --orca-bin "$ORCA_BIN" --orca-source "$ORCA_SOURCE" \
             2>&1 | tee ../sweep.log
 
@@ -102,7 +114,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## CLI override sweep"
+            echo "## CLI override sweep - shard ${{ matrix.shard }}/8"
             grep -E "\[override sweep" sweep.log || echo "no stage summaries (see log)"
             echo
             grep -E "^(=+ )?[0-9]+ (passed|failed)" sweep.log | tail -1 || true
@@ -112,7 +124,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: override-report-${{ github.run_id }}
+          name: override-report-${{ github.run_id }}-shard${{ matrix.shard }}
           path: |
             orca-test-repo/.pytest_cache/override_report.json
             sweep.log
