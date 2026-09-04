@@ -370,6 +370,8 @@ set(lisbslic3r_sources
     prusa_fdm_mixer.hpp
     MixedFilamentPaintBake.cpp
     MixedFilamentPaintBake.hpp
+    MixedFilamentPicPrint.cpp
+    MixedFilamentPicPrint.hpp
     LocalZPlanner.hpp
     LocalZOrderOptimizer.hpp
     PrintObject.cpp

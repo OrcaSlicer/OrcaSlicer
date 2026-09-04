@@ -3,6 +3,8 @@
 #include "libslic3r_version.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <algorithm>
 #include <numeric>
 #include <limits>
@@ -31,6 +33,7 @@
 #include <wx/statbox.h>
 #include <wx/statbmp.h>
 #include <wx/filedlg.h>
+#include <wx/image.h>
 #include <wx/dnd.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -69,6 +72,7 @@
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/SpectrumAutoGraft.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
+#include "libslic3r/MixedFilamentPicPrint.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -13264,6 +13268,161 @@ void Plater::map_painted_colors_to_cmyk_mixes()
                             << " mix_count=" << plan.mix_count
                             << " physical_mapped=" << plan.physical_mapped_count
                             << " dest_ids=" << dest_log;
+
+    on_config_change(bundle->full_config());
+    schedule_background_process();
+    sidebar().refresh_color_mixing_list();
+}
+
+void Plater::picprint()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    if (model().objects.empty())
+        return;
+
+    const int obj_idx = get_selected_object_idx();
+    if (obj_idx < 0 || obj_idx >= int(model().objects.size())) {
+        MessageDialog(this,
+            _L("Select an object for PicPrint."),
+            _L("PicPrint"), wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
+
+    MessageDialog confirm(this,
+        _L("PicPrint approximates the picture with FS mixes on this model. Not a lithophane / HueForge export. Uses original-facet resolution (dense mesh). Replaces Color Painting on the selected object."),
+        _L("PicPrint"), wxYES_NO | wxICON_QUESTION);
+    if (confirm.ShowModal() != wxID_YES)
+        return;
+
+    wxFileDialog file_dlg(this, _L("Choose a PNG or JPEG for PicPrint"), "", "",
+        "PNG/JPEG files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (file_dlg.ShowModal() != wxID_OK)
+        return;
+
+    wxImage img;
+    if (!img.LoadFile(file_dlg.GetPath()) || !img.IsOk() || img.GetData() == nullptr) {
+        MessageDialog(this,
+            _L("Could not load the picture."),
+            _L("PicPrint"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    const int img_w = img.GetWidth();
+    const int img_h = img.GetHeight();
+    if (img_w <= 0 || img_h <= 0) {
+        MessageDialog(this,
+            _L("Could not load the picture."),
+            _L("PicPrint"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    std::vector<std::uint8_t> rgb(size_t(img_w) * size_t(img_h) * 3);
+    const unsigned char *src = img.GetData();
+    std::memcpy(rgb.data(), src, rgb.size());
+
+    size_t mix_base = 0;
+    std::vector<ColorRGB> physicals;
+    if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        mix_base = fc->values.size();
+        for (const std::string &hex : fc->values) {
+            if (physicals.size() >= 4)
+                break;
+            const std::string normalized = normalize_mix_match_hex(hex);
+            ColorRGB          c;
+            if (!normalized.empty() && decode_color(normalized, c))
+                physicals.push_back(c);
+        }
+    }
+    if (mix_base == 0)
+        mix_base = size_t(std::max(0, wxGetApp().filaments_cnt()));
+    if (mix_base == 0)
+        mix_base = 1;
+
+    if (physicals.size() < 2) {
+        MessageDialog(this,
+            _L("Need at least two physical filament colours (prefer C/M/Y/K on slots 1–4)."),
+            _L("PicPrint"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    std::string existing_mix;
+    if (const ConfigOptionString *mix_opt =
+            bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        existing_mix = mix_opt->value;
+
+    const SpectrumPicPrintPlan plan = plan_spectrum_picprint(rgb.data(), img_w, img_h, physicals, mix_base,
+                                                              SPECTRUM_PAINT_ID_PERSIST_CAP, existing_mix);
+    if (!plan.valid) {
+        const wxString err = plan.error.empty()
+            ? _L("PicPrint failed.")
+            : wxString::FromUTF8(plan.error.c_str());
+        MessageDialog(this, err, _L("PicPrint"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    ModelObject *obj = model().objects[size_t(obj_idx)];
+    if (obj == nullptr || obj->instances.empty()) {
+        MessageDialog(this,
+            _L("Select an object for PicPrint."),
+            _L("PicPrint"), wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
+
+    int inst_idx = get_selection().get_instance_idx();
+    if (inst_idx < 0 || inst_idx >= int(obj->instances.size()))
+        inst_idx = 0;
+    ModelInstance *inst = obj->instances[size_t(inst_idx)];
+    const BoundingBoxf3 xy_bbox = obj->instance_bounding_box(*inst);
+    if ((xy_bbox.max.x() - xy_bbox.min.x()) < 1e-6 || (xy_bbox.max.y() - xy_bbox.min.y()) < 1e-6) {
+        MessageDialog(this,
+            _L("Object XY bounding box is too thin for PicPrint."),
+            _L("PicPrint"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    SpectrumMapUndoKeys pre_keys;
+    if (const ConfigOptionBool *mapped = bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped"))
+        pre_keys.mapped = mapped->value;
+    if (const ConfigOptionString *mix_opt =
+            bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        pre_keys.mixed_filament_definitions = mix_opt->value;
+
+    const size_t ts_before = p->undo_redo_stack().active_snapshot_time();
+    take_snapshot("PicPrint");
+    const size_t ts_after = p->undo_redo_stack().active_snapshot_time();
+
+    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+    print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(plan.mixed_filament_definitions));
+    bundle->project_config.set_key_value("mixed_filament_definitions",
+                                         new ConfigOptionString(plan.mixed_filament_definitions));
+
+    if (ts_after != ts_before) {
+        SpectrumMapUndoRecord rec;
+        rec.active                 = true;
+        rec.map_snapshot_timestamp = spectrum_map_undo_named_time(ts_before, ts_after);
+        rec.pre                    = std::move(pre_keys);
+        rec.post.mapped            = rec.pre.mapped;
+        rec.post.mixed_filament_definitions = plan.mixed_filament_definitions;
+        p->m_spectrum_map_undo     = std::move(rec);
+    } else {
+        p->m_spectrum_map_undo = SpectrumMapUndoRecord{};
+    }
+
+    for (ModelVolume *vol : obj->volumes) {
+        if (vol == nullptr || vol->mesh().empty())
+            continue;
+        const Transform3d world = inst->get_matrix() * vol->get_matrix();
+        spectrum_picprint_apply_to_volume(*vol, world, xy_bbox, plan);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "PicPrint: mix_base=" << mix_base
+                            << " mix_count=" << plan.mix_count
+                            << " cluster_count=" << plan.cluster_count
+                            << " size=" << plan.width << "x" << plan.height;
 
     on_config_change(bundle->full_config());
     schedule_background_process();

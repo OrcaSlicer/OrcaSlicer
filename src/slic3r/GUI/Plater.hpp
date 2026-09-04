@@ -317,6 +317,7 @@ public:
     void adopt_to_zr_ultra_s_cmyk(bool show_map_hint = true);
     void apply_rgbw_filament_colours();
     void map_painted_colors_to_cmyk_mixes();
+    void picprint();
     void apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &pre,
                                           const SpectrumMixDialogUndoKeys &post);
     //BBS download project by project id

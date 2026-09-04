@@ -2756,6 +2756,11 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->map_painted_colors_to_cmyk_mixes(); }, "", nullptr,
             [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
+        append_menu_item(fileMenu, wxID_ANY, _L("PicPrint") + dots,
+            _L("Approximate a PNG/JPEG with FS mixes on the selected object (not a lithophane)"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->picprint(); }, "", nullptr,
+            [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
+
         fileMenu->AppendSeparator();
 
         // BBS
