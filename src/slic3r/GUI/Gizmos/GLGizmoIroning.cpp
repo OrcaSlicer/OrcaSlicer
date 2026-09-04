@@ -79,8 +79,18 @@ bool GLGizmoIroning::on_init()
 }
 
 GLGizmoIroning::GLGizmoIroning(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id)
-    : GLGizmoPainterBase(parent, icon_filename, sprite_id), m_current_tool(ImGui::CircleButtonIcon)
+    : GLGizmoPainterBase(parent, icon_filename, sprite_id), m_current_tool(ImGui::FillButtonIcon)
 {
+    // Ironing is painted onto whole flat faces, so smart fill is the tool that fits the job.
+    // Keep the tool state consistent with m_current_tool from the start, rather than waiting
+    // for the first on_render_input_window() to derive it.
+    m_cursor_type = TriangleSelector::CursorType::POINTER;
+    m_tool_type   = ToolType::SMART_FILL;
+}
+
+bool GLGizmoIroning::on_is_selectable() const
+{
+    return GLGizmoPainterBase::on_is_selectable() && wxGetApp().get_mode() != comSimple;
 }
 
 void GLGizmoIroning::render_painter_gizmo()
