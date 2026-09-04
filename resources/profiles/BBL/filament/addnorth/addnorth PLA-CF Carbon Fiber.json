@@ -4,7 +4,7 @@
 	"inherits": "Generic PLA-CF @base",
 	"from": "system",
 	"setting_id": "GF_ANPCF_00",
-	"filament_id": "GF_ANPCF",
+	"filament_id": "OFcpa50Z",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

@@ -3,7 +3,7 @@
 	"name": "BETA PETG Glitter @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "BPGB03",
+	"filament_id": "OFjogeYN",
 	"instantiation": "false",
 	"description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
 	"cool_plate_temp": [

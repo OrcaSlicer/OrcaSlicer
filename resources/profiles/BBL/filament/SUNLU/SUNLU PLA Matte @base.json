@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFSNL02",
+	"filament_id": "OFpW4gdi",
 	"instantiation": "false",
 	"filament_cost": [
 		"25.99"

@@ -135,7 +135,6 @@
   "Artillery/Artillery PVA @Artillery M1 Pro 0.4 nozzle",
   "Artillery/Artillery TPU",
   "Artillery/Artillery TPU @Artillery M1 Pro 0.4 nozzle",
-  "BBL/Generic SBS",
   "BBL/addnorth ABS rABS",
   "BBL/addnorth PA Adura",
   "BBL/addnorth PA Adura FDA",
@@ -877,636 +876,17 @@
   "Z-Bolt/Generic ABS HT @Z-Bolt Base"
  ],
  "ids": {
-  "BABB00": [
-   "BBL/BETA ABS"
-  ],
-  "BASB00": [
-   "BBL/BETA ASA"
-  ],
-  "BFLSBS99": [
-   "BBL/Generic SBS"
-  ],
-  "BHIB00": [
-   "BBL/BETA HIPS"
-  ],
-  "BPAB00": [
-   "BBL/BETA PAHT-CF"
-  ],
-  "BPBB00": [
-   "BBL/BETA PEBA 90A"
-  ],
-  "BPGB00": [
-   "BBL/BETA PETG"
-  ],
-  "BPGB01": [
-   "BBL/BETA PETG Heat Color Change"
-  ],
-  "BPGB02": [
-   "BBL/BETA PETG Fluorescence"
-  ],
-  "BPGB03": [
-   "BBL/BETA PETG Glitter"
-  ],
-  "BPGB04": [
-   "BBL/BETA PETG Glow"
-  ],
-  "BPGB05": [
-   "BBL/BETA PETG Gradient"
-  ],
-  "BPGB06": [
-   "BBL/BETA PETG HF"
-  ],
-  "BPGB07": [
-   "BBL/BETA PETG Marble"
-  ],
-  "BPGB08": [
-   "BBL/BETA PETG Matte"
-  ],
-  "BPGB09": [
-   "BBL/BETA PETG Metallic"
-  ],
-  "BPGB10": [
-   "BBL/BETA PETG Transparent"
-  ],
-  "BPGB11": [
-   "BBL/BETA PETG UV Color Change"
-  ],
-  "BPGB12": [
-   "BBL/BETA PETG-CF"
-  ],
-  "BPGB13": [
-   "BBL/BETA PETG-GF"
-  ],
-  "BPLB00": [
-   "BBL/BETA PLA Basic"
-  ],
-  "BPLB01": [
-   "BBL/BETA PLA Silk+"
-  ],
-  "BPLB02": [
-   "BBL/BETA PLA Chameleon"
-  ],
-  "BPLB03": [
-   "BBL/BETA PLA Heat Color Change"
-  ],
-  "BPLB04": [
-   "BBL/BETA PLA Fluorescence"
-  ],
-  "BPLB05": [
-   "BBL/BETA PLA Glitter"
-  ],
-  "BPLB06": [
-   "BBL/BETA PLA Glow"
-  ],
-  "BPLB07": [
-   "BBL/BETA PLA Gradient"
-  ],
-  "BPLB08": [
-   "BBL/BETA PLA Marble"
-  ],
-  "BPLB09": [
-   "BBL/BETA PLA Matte"
-  ],
-  "BPLB10": [
-   "BBL/BETA PLA Metal"
-  ],
-  "BPLB11": [
-   "BBL/BETA PLA Metallic"
-  ],
-  "BPLB12": [
-   "BBL/BETA PLA PRO"
-  ],
-  "BPLB13": [
-   "BBL/BETA PLA Silk"
-  ],
-  "BPLB14": [
-   "BBL/BETA PLA Transparent"
-  ],
-  "BPLB15": [
-   "BBL/BETA PLA UV Color Change"
-  ],
-  "BPLB16": [
-   "BBL/BETA PLA Youth"
-  ],
-  "BPLB17": [
-   "BBL/BETA PLA-CF"
-  ],
-  "BPLB18": [
-   "BBL/BETA PLA High Temp"
-  ],
-  "BPLB19": [
-   "BBL/BETA PLA Wood"
-  ],
-  "BPLB20": [
-   "BBL/BETA PLA High Speed"
-  ],
-  "BTUB00": [
-   "BBL/BETA TPU 90A"
-  ],
-  "BTUB01": [
-   "BBL/BETA TPU Matte"
-  ],
-  "BTUB02": [
-   "BBL/BETA TPU 95A"
-  ],
-  "BTUB03": [
-   "BBL/BETA TPU 98A"
-  ],
-  "GFA00": [
-   "BBL/Bambu PLA Basic"
-  ],
-  "GFA01": [
-   "BBL/Bambu PLA Matte"
-  ],
-  "GFA02": [
-   "BBL/Bambu PLA Metal"
-  ],
-  "GFA05": [
-   "BBL/Bambu PLA Silk"
-  ],
-  "GFA06": [
-   "BBL/Bambu PLA Silk+"
-  ],
-  "GFA07": [
-   "BBL/Bambu PLA Marble"
-  ],
-  "GFA08": [
-   "BBL/Bambu PLA Sparkle"
-  ],
-  "GFA09": [
-   "BBL/Bambu PLA Tough"
-  ],
-  "GFA10": [
-   "BBL/Bambu PLA Tough+"
-  ],
-  "GFA11": [
-   "BBL/Bambu PLA Aero"
-  ],
-  "GFA12": [
-   "BBL/Bambu PLA Glow"
-  ],
-  "GFA13": [
-   "BBL/Bambu PLA Dynamic"
-  ],
-  "GFA15": [
-   "BBL/Bambu PLA Galaxy"
-  ],
-  "GFA16": [
-   "BBL/Bambu PLA Wood"
-  ],
-  "GFA17": [
-   "BBL/Bambu PLA Translucent"
-  ],
-  "GFA18": [
-   "BBL/Bambu PLA Lite"
-  ],
-  "GFA19": [
-   "BBL/Bambu PLA Pure"
-  ],
-  "GFA50": [
-   "BBL/Bambu PLA-CF"
-  ],
-  "GFB00": [
-   "BBL/Bambu ABS"
-  ],
-  "GFB01": [
-   "BBL/Bambu ASA"
-  ],
-  "GFB02": [
-   "BBL/Bambu ASA-Aero"
-  ],
-  "GFB50": [
-   "BBL/Bambu ABS-GF"
-  ],
-  "GFB51": [
-   "BBL/Bambu ASA-CF"
-  ],
-  "GFB60": [
-   "BBL/PolyLite ABS"
-  ],
-  "GFB61": [
-   "BBL/PolyLite ASA"
-  ],
-  "GFB98": [
-   "BBL/Generic ASA"
-  ],
-  "GFB99": [
-   "BBL/Generic ABS"
-  ],
-  "GFC00": [
-   "BBL/Bambu PC"
-  ],
-  "GFC01": [
-   "BBL/Bambu PC FR"
-  ],
-  "GFC99": [
-   "BBL/Generic PC"
-  ],
-  "GFG00": [
-   "BBL/Bambu PETG Basic"
-  ],
-  "GFG01": [
-   "BBL/Bambu PETG Translucent"
-  ],
-  "GFG02": [
-   "BBL/Bambu PETG HF"
-  ],
-  "GFG50": [
-   "BBL/Bambu PETG-CF"
-  ],
-  "GFG60": [
-   "BBL/PolyLite PETG"
-  ],
-  "GFG96": [
-   "BBL/Generic PETG HF"
-  ],
-  "GFG97": [
-   "BBL/Generic PCTG"
-  ],
-  "GFG98": [
-   "BBL/Generic PETG-CF"
-  ],
-  "GFG99": [
-   "BBL/Generic PETG"
-  ],
-  "GFL00": [
-   "BBL/PolyLite PLA"
-  ],
-  "GFL01": [
-   "BBL/PolyTerra PLA"
-  ],
-  "GFL03": [
-   "BBL/eSUN PLA+"
-  ],
-  "GFL04": [
-   "BBL/Overture PLA"
-  ],
-  "GFL05": [
-   "BBL/Overture Matte PLA"
-  ],
-  "GFL06": [
-   "BBL/Fiberon PETG-ESD"
-  ],
-  "GFL50": [
-   "BBL/Fiberon PA6-CF"
-  ],
-  "GFL51": [
-   "BBL/Fiberon PA6-GF"
-  ],
-  "GFL52": [
-   "BBL/Fiberon PA12-CF"
-  ],
-  "GFL53": [
-   "BBL/Fiberon PA612-CF"
-  ],
-  "GFL54": [
-   "BBL/Fiberon PET-CF"
-  ],
-  "GFL55": [
-   "BBL/Fiberon PETG-rCF"
-  ],
-  "GFL56": [
-   "BBL/Fiberon PA12-CF10"
-  ],
-  "GFL57": [
-   "BBL/Fiberon PA6-CF20"
-  ],
-  "GFL58": [
-   "BBL/Fiberon PA6-GF25"
-  ],
-  "GFL59": [
-   "BBL/Fiberon PA612-CF15"
-  ],
-  "GFL60": [
-   "BBL/Fiberon PET-CF17"
-  ],
-  "GFL61": [
-   "BBL/Fiberon PETG-rCF08"
-  ],
-  "GFL62": [
-   "BBL/PolyLite CosPLA"
-  ],
-  "GFL63": [
-   "BBL/PolyLite PLA Galaxy"
-  ],
-  "GFL64": [
-   "BBL/PolyLite PLA Glow"
-  ],
-  "GFL65": [
-   "BBL/PolyLite PLA Luminous"
-  ],
-  "GFL66": [
-   "BBL/PolyLite PLA Neon"
-  ],
-  "GFL67": [
-   "BBL/PolyLite PLA Starlight"
-  ],
-  "GFL68": [
-   "BBL/PolyLite PLA Translucent"
-  ],
-  "GFL69": [
-   "BBL/PolyTerra PLA Marble"
-  ],
-  "GFL70": [
-   "BBL/PolyTerra PLA+"
-  ],
-  "GFL95": [
-   "BBL/Generic PLA High Speed"
-  ],
-  "GFL96": [
-   "BBL/Generic PLA Silk"
-  ],
-  "GFL98": [
-   "BBL/Generic PLA-CF"
-  ],
-  "GFL99": [
-   "BBL/Generic PLA"
-  ],
-  "GFLSBS99": [],
-  "GFN03": [
-   "BBL/Bambu PA-CF"
-  ],
-  "GFN04": [
-   "BBL/Bambu PAHT-CF"
-  ],
-  "GFN05": [
-   "BBL/Bambu PA6-CF"
-  ],
-  "GFN06": [
-   "BBL/Bambu PPA-CF"
-  ],
-  "GFN08": [
-   "BBL/Bambu PA6-GF"
-  ],
-  "GFN96": [
-   "BBL/Generic PPA-GF"
-  ],
-  "GFN97": [
-   "BBL/Generic PPA-CF"
-  ],
-  "GFN98": [
-   "BBL/Generic PA-CF"
-  ],
-  "GFN99": [
-   "BBL/Generic PA"
-  ],
-  "GFNMK00": [
-   "BBL/Numakers PLA+"
-  ],
-  "GFOT001": [
-   "BBL/Overture PLA Pro"
-  ],
-  "GFP95": [
-   "BBL/Generic PP-GF"
-  ],
-  "GFP96": [
-   "BBL/Generic PP-CF"
-  ],
-  "GFP97": [
-   "BBL/Generic PP"
-  ],
-  "GFP98": [
-   "BBL/Generic PE-CF"
-  ],
-  "GFP99": [
-   "BBL/Generic PE"
-  ],
-  "GFPM001": [
-   "BBL/Panchroma PLA"
-  ],
-  "GFPM002": [
-   "BBL/Panchroma PLA Matte"
-  ],
-  "GFPM003": [
-   "BBL/Panchroma PLA Marble"
-  ],
-  "GFPM004": [
-   "BBL/Panchroma PLA Silk"
-  ],
-  "GFPM005": [
-   "BBL/Panchroma PLA Satin"
-  ],
-  "GFPM006": [
-   "BBL/Panchroma PLA Translucent"
-  ],
-  "GFPM007": [
-   "BBL/Panchroma PLA Galaxy"
-  ],
-  "GFPM008": [
-   "BBL/Panchroma PLA Celestial"
-  ],
-  "GFPM009": [
-   "BBL/Panchroma PLA Starlight"
-  ],
-  "GFPM010": [
-   "BBL/Panchroma PLA Glow"
-  ],
-  "GFPM011": [
-   "BBL/Panchroma PLA Luminous"
-  ],
-  "GFPM012": [
-   "BBL/Panchroma PLA Metallic"
-  ],
-  "GFPM013": [
-   "BBL/Panchroma PLA Neon"
-  ],
-  "GFPM014": [
-   "BBL/Panchroma PLA UV Shift"
-  ],
-  "GFPM015": [
-   "BBL/Panchroma PLA Temp Shift"
-  ],
-  "GFPM016": [
-   "BBL/Panchroma CoPE"
-  ],
-  "GFPM017": [
-   "BBL/Polymaker HT-PLA"
-  ],
-  "GFPM018": [
-   "BBL/Polymaker HT-PLA-GF"
-  ],
-  "GFPM019": [
-   "BBL/PolyLite PLA Pro"
-  ],
-  "GFR00": [
-   "BBL/FusRock ABS-GF"
-  ],
-  "GFR98": [
-   "BBL/Generic PHA"
-  ],
-  "GFR99": [
-   "BBL/Generic EVA"
-  ],
-  "GFS00": [
-   "BBL/Bambu Support W"
-  ],
-  "GFS01": [
-   "BBL/Bambu Support G"
-  ],
-  "GFS02": [
-   "BBL/Bambu Support For PLA"
-  ],
-  "GFS03": [
-   "BBL/Bambu Support For PA/PET"
-  ],
-  "GFS04": [
-   "BBL/Bambu PVA"
-  ],
-  "GFS05": [
-   "BBL/Bambu Support For PLA/PETG"
-  ],
-  "GFS06": [
-   "BBL/Bambu Support for ABS"
-  ],
-  "GFS97": [
-   "BBL/Generic BVOH"
-  ],
-  "GFS98": [
-   "BBL/Generic HIPS"
-  ],
-  "GFS99": [
-   "BBL/Generic PVA"
-  ],
-  "GFSNL02": [
-   "BBL/SUNLU PLA Matte"
-  ],
-  "GFSNL03": [
-   "BBL/SUNLU PLA+"
-  ],
-  "GFSNL04": [
-   "BBL/SUNLU PLA+ 2.0"
-  ],
-  "GFSNL05": [
-   "BBL/SUNLU Silk PLA+"
-  ],
-  "GFSNL06": [
-   "BBL/SUNLU PLA Marble"
-  ],
-  "GFSNL07": [
-   "BBL/SUNLU Wood PLA"
-  ],
-  "GFSNL08": [
-   "BBL/SUNLU PETG"
-  ],
-  "GFT01": [
-   "BBL/Bambu PET-CF"
-  ],
-  "GFT02": [
-   "BBL/Bambu PPS-CF"
-  ],
-  "GFT97": [
-   "BBL/Generic PPS"
-  ],
-  "GFT98": [
-   "BBL/Generic PPS-CF"
-  ],
-  "GFU00": [
-   "BBL/Bambu TPU 95A HF"
-  ],
-  "GFU01": [
-   "BBL/Bambu TPU 95A"
-  ],
-  "GFU02": [
-   "BBL/Bambu TPU for AMS"
-  ],
-  "GFU03": [
-   "BBL/Bambu TPU 90A"
-  ],
-  "GFU04": [
-   "BBL/Bambu TPU 85A"
-  ],
-  "GFU98": [
-   "BBL/Generic TPU for AMS"
-  ],
-  "GFU99": [
-   "BBL/Generic TPU"
-  ],
-  "GF_ANAD": [
-   "BBL/addnorth PA Adura"
-  ],
-  "GF_ANAF": [
-   "BBL/addnorth PA Adura FDA"
-  ],
-  "GF_ANAX": [
-   "BBL/addnorth PA-CF Adura X"
-  ],
-  "GF_ANEF": [
-   "BBL/addnorth TPU EasyFlex"
-  ],
-  "GF_ANEG": [
-   "BBL/addnorth PETG ESD"
-  ],
-  "GF_ANEP": [
-   "BBL/addnorth PLA E-PLA"
-  ],
-  "GF_ANGE": [
-   "BBL/addnorth PETG Economy"
-  ],
-  "GF_ANHTP": [
-   "BBL/addnorth PLA HT-PLA PRO Matte"
-  ],
-  "GF_ANLA": [
-   "BBL/addnorth PA6 Addlantis"
-  ],
-  "GF_ANPBX": [
-   "BBL/addnorth PC BLend HT LCF"
-  ],
-  "GF_ANPCF": [
-   "BBL/addnorth PLA-CF Carbon Fiber"
-  ],
-  "GF_ANPE": [
-   "BBL/addnorth PETG Base"
-  ],
-  "GF_ANPF": [
-   "BBL/addnorth PETG Flame v0"
-  ],
-  "GF_ANPL": [
-   "BBL/addnorth PLA Economy"
-  ],
-  "GF_ANPLW": [
-   "BBL/addnorth PLA Wood"
-  ],
-  "GF_ANPM": [
-   "BBL/addnorth PETG PRO Matte"
-  ],
-  "GF_ANPS": [
-   "BBL/addnorth PLA Premium Silk"
-  ],
-  "GF_ANPV": [
-   "BBL/addnorth PVDF Adamant S1"
-  ],
-  "GF_ANRA": [
-   "BBL/addnorth ABS rABS"
-  ],
-  "GF_ANRM": [
-   "BBL/addnorth PETG rPETG Matte"
-  ],
-  "GF_ANRPL": [
-   "BBL/addnorth PLA rPLA RE-ADD"
-  ],
-  "GF_ANRX": [
-   "BBL/addnorth PETG-CF Rigid X"
-  ],
-  "GF_ANTA": [
-   "BBL/addnorth TPU Pro Matte 85A"
-  ],
-  "GF_ANTE": [
-   "BBL/addnorth PLA Textura"
-  ],
-  "GF_ANTM": [
-   "BBL/addnorth TPU Pro Matte 95A"
-  ],
-  "GF_ANXP": [
-   "BBL/addnorth PLA X-PLA"
-  ],
-  "GF_ANXPH": [
-   "BBL/addnorth PLA X-PLA High Speed"
-  ],
   "OF02UAVh": [
    "Creality/Soleyin Ultra PLA"
   ],
+  "OF03RK6r": [
+   "BBL/BETA PLA Metal"
+  ],
   "OF0AquDh": [
    "Flashforge/FusRock S-Multi"
+  ],
+  "OF0EYBWQ": [
+   "BBL/addnorth PETG Flame v0"
   ],
   "OF0FfcAG": [
    "Anycubic/Anycubic TPU for ACE"
@@ -1519,6 +899,7 @@
    "Artillery/Artillery PLA Tough"
   ],
   "OF0UJcb6": [
+   "BBL/PolyLite PETG",
    "OrcaFilamentLibrary/PolyLite PETG",
    "Snapmaker/PolyLite PETG"
   ],
@@ -1535,6 +916,7 @@
    "InfiMech/InfiMech ABS"
   ],
   "OF0gGRWk": [
+   "BBL/Panchroma PLA Glow",
    "OrcaFilamentLibrary/Panchroma PLA Glow",
    "Snapmaker/Panchroma PLA Glow"
   ],
@@ -1543,6 +925,7 @@
    "OrcaFilamentLibrary/Elegoo PAHT-CF"
   ],
   "OF0kCNDK": [
+   "BBL/Panchroma PLA Luminous",
    "OrcaFilamentLibrary/Panchroma PLA Luminous",
    "Snapmaker/Panchroma PLA Luminous"
   ],
@@ -1557,6 +940,7 @@
    "Qidi/QIDI ABS Rapido 0.8 nozzle"
   ],
   "OF0wBGNx": [
+   "BBL/Bambu ASA-CF",
    "OrcaFilamentLibrary/Bambu ASA-CF"
   ],
   "OF0wz84w": [
@@ -1568,7 +952,11 @@
   "OF112FvY": [
    "Anycubic/Generic PETG Basic"
   ],
+  "OF1ID4N1": [
+   "BBL/addnorth PA6 Addlantis"
+  ],
   "OF1N1qMK": [
+   "BBL/Panchroma PLA UV Shift",
    "OrcaFilamentLibrary/Panchroma PLA UV Shift",
    "Snapmaker/Panchroma PLA UV Shift"
   ],
@@ -1577,6 +965,7 @@
    "OrcaFilamentLibrary/Overture Easy PLA"
   ],
   "OF1UNk9P": [
+   "BBL/Generic PP",
    "Creality/Generic PP",
    "OrcaFilamentLibrary/Generic PP",
    "Tiertime/Generic PP"
@@ -1604,6 +993,7 @@
    "OrcaFilamentLibrary/FilAr PLA-mate Violeta"
   ],
   "OF2GCW1l": [
+   "BBL/SUNLU PETG",
    "Flashforge/SUNLU PETG",
    "OrcaFilamentLibrary/SUNLU PETG",
    "Sovol/SUNLU PETG"
@@ -1612,6 +1002,7 @@
    "Qidi/QIDI PLA Silk"
   ],
   "OF2VFe4J": [
+   "BBL/Bambu PAHT-CF",
    "OrcaFilamentLibrary/Bambu PAHT-CF"
   ],
   "OF2Z1nT5": [
@@ -1629,6 +1020,9 @@
    "Elegoo/Elegoo Rapid TPU 95A",
    "OrcaFilamentLibrary/Elegoo Rapid TPU 95A"
   ],
+  "OF342jVN": [
+   "BBL/Bambu PLA Tough+"
+  ],
   "OF3F63OE": [
    "re3D/re3D PETG"
   ],
@@ -1637,6 +1031,9 @@
   ],
   "OF3OMgrI": [
    "Creality/CR-Silk"
+  ],
+  "OF3PDEw3": [
+   "BBL/BETA PLA High Speed"
   ],
   "OF3WQaKK": [
    "Creality/CR-PETG"
@@ -1676,12 +1073,23 @@
   "OF4Nhggz": [
    "Artillery/Artillery PLA Basic+"
   ],
-  "OF4RvVuU": [],
+  "OF4PKvem": [
+   "BBL/BETA PLA Fluorescence"
+  ],
+  "OF4QZANi": [
+   "BBL/BETA TPU Matte"
+  ],
+  "OF4RvVuU": [
+   "BBL/Bambu PPS-CF"
+  ],
   "OF4S3To3": [
    "Qidi/QIDI PETG Rapido"
   ],
   "OF4WB37S": [
    "Snapmaker/Snapmaker PETG"
+  ],
+  "OF4XTfoI": [
+   "BBL/BETA PETG Marble"
   ],
   "OF4f8vVp": [
    "WonderMaker/WonderMaker PET-CF"
@@ -1701,6 +1109,7 @@
    "Elegoo/Generic ASA-CF"
   ],
   "OF54B0S0": [
+   "BBL/Bambu PPA-CF",
    "OrcaFilamentLibrary/Bambu PPA-CF"
   ],
   "OF54SvEe": [
@@ -1709,14 +1118,24 @@
   "OF55jHAJ": [
    "Prusa/Generic ABS HF"
   ],
+  "OF5B9sUc": [
+   "BBL/Fiberon PA6-GF25"
+  ],
   "OF5BN24W": [
    "Flashforge/Flashforge PPA-GF"
   ],
+  "OF5BXhHF": [
+   "BBL/BETA PLA High Temp"
+  ],
   "OF5CgdDq": [
+   "BBL/PolyLite PLA",
    "OrcaArena/PolyLite PLA",
    "OrcaFilamentLibrary/PolyLite PLA",
    "Qidi/PolyLite PLA",
    "Snapmaker/PolyLite PLA"
+  ],
+  "OF5LAnla": [
+   "BBL/BETA PLA Gradient"
   ],
   "OF5NqBfC": [
    "Wanhao France/YUMI PETG"
@@ -1754,6 +1173,7 @@
    "Ratrig/Generic TPU BigNozzle"
   ],
   "OF5umxxT": [
+   "BBL/PolyLite PLA Glow",
    "Snapmaker/PolyLite PLA Glow"
   ],
   "OF5vgi2G": [
@@ -1785,23 +1205,34 @@
    "Snapmaker/Snapmaker Breakaway Support For PLA",
    "Snapmaker/Snapmaker J1 PVA"
   ],
+  "OF6Yn69v": [
+   "BBL/BETA TPU 90A"
+  ],
   "OF6kj4jI": [
    "iQ/Fiberthree PACF Pro P2"
   ],
   "OF6qAuyi": [
    "Flashforge/Flashforge PLA Matte"
   ],
+  "OF6qw3Wb": [
+   "BBL/BETA PAHT-CF"
+  ],
   "OF6rdQ6M": [
+   "BBL/Generic PPS-CF",
    "Creality/Generic PPS-CF",
    "Tiertime/Generic PPS-CF"
   ],
   "OF70zbGS": [
    "Creality/Hyper L-W PLA"
   ],
+  "OF71b7qO": [
+   "BBL/addnorth PLA E-PLA"
+  ],
   "OF72YYTd": [
    "Snapmaker/Snapmaker ABS"
   ],
   "OF74KeQR": [
+   "BBL/Generic PHA",
    "OrcaFilamentLibrary/Generic PHA",
    "Tiertime/Generic PHA"
   ],
@@ -1821,6 +1252,7 @@
    "Anycubic/Anycubic PLA Translucent"
   ],
   "OF7lOgYF": [
+   "BBL/Generic PETG HF",
    "OrcaFilamentLibrary/Generic PETG HF",
    "Prusa/Generic PETG HF"
   ],
@@ -1851,7 +1283,11 @@
   "OF8O09RG": [
    "Flashforge/Flashforge HS PLA Burnt Ti"
   ],
+  "OF8QdQwS": [
+   "BBL/BETA PLA Silk+"
+  ],
   "OF8Tlg47": [
+   "BBL/Generic PPA-GF",
    "OrcaFilamentLibrary/Generic PPA-GF",
    "Tiertime/Generic PPA-GF"
   ],
@@ -1871,6 +1307,7 @@
    "Eryone/Eryone PETG"
   ],
   "OF8tPByX": [
+   "BBL/Generic PPA-CF",
    "OrcaFilamentLibrary/Generic PPA-CF",
    "Tiertime/Generic PPA-CF"
   ],
@@ -1889,6 +1326,7 @@
    "Afinia/Afinia PLA"
   ],
   "OF9OlTWH": [
+   "BBL/Bambu PLA Marble",
    "OrcaFilamentLibrary/Bambu PLA Marble"
   ],
   "OF9PELEb": [
@@ -1924,10 +1362,17 @@
   "OFAZllAN": [
    "Artillery/Artillery PLA-CF"
   ],
+  "OFAc0Pr3": [
+   "BBL/Fiberon PET-CF17"
+  ],
+  "OFAcJkl1": [
+   "BBL/addnorth PETG-CF Rigid X"
+  ],
   "OFAebKg8": [
    "Flashforge/Flashforge PLA Metal"
   ],
   "OFAnyRUI": [
+   "BBL/Bambu Support For PLA",
    "OrcaFilamentLibrary/Bambu Support For PLA"
   ],
   "OFAt6ec0": [
@@ -1946,6 +1391,7 @@
    "Creality/Soleyin Basic PETG"
   ],
   "OFBSW57R": [
+   "BBL/Bambu PLA Aero",
    "OrcaFilamentLibrary/Bambu PLA Aero"
   ],
   "OFBUIlZ7": [
@@ -1956,9 +1402,14 @@
    "Snapmaker/Snapmaker Dual PETG"
   ],
   "OFBoSWxb": [
+   "BBL/PolyLite PLA Luminous",
    "Snapmaker/PolyLite PLA Luminous"
   ],
+  "OFBsbMMF": [
+   "BBL/addnorth PA-CF Adura X"
+  ],
   "OFBw6eEG": [
+   "BBL/Overture Matte PLA",
    "OrcaFilamentLibrary/Overture Matte PLA"
   ],
   "OFC1PzXz": [
@@ -1968,14 +1419,17 @@
    "RH3D/Generic PCCF"
   ],
   "OFC78WGQ": [
+   "BBL/Panchroma PLA Starlight",
    "OrcaFilamentLibrary/Panchroma PLA Starlight",
    "Snapmaker/Panchroma PLA Starlight"
   ],
   "OFCD8qiU": [
+   "BBL/Generic EVA",
    "OrcaFilamentLibrary/Generic EVA",
    "Tiertime/Generic EVA"
   ],
   "OFCIUsWh": [
+   "BBL/Panchroma PLA Translucent",
    "OrcaFilamentLibrary/Panchroma PLA Translucent",
    "Snapmaker/Panchroma PLA Translucent"
   ],
@@ -2024,6 +1478,7 @@
    "OrcaFilamentLibrary/eSUN PLA-Matte"
   ],
   "OFDGigEI": [
+   "BBL/Bambu PLA Dynamic",
    "OrcaFilamentLibrary/Bambu PLA Dynamic"
   ],
   "OFDIrhbu": [
@@ -2046,6 +1501,7 @@
    "Anker/Generic PLA",
    "Anycubic/Generic PLA",
    "Artillery/Generic PLA",
+   "BBL/Generic PLA",
    "Blocks/Generic PLA",
    "CONSTRUCT3D/Generic PLA",
    "Chuanying/Generic PLA",
@@ -2099,6 +1555,7 @@
   "OFDvXujf": [
    "Anker/Generic PVA",
    "Anycubic/Generic PVA",
+   "BBL/Generic PVA",
    "Blocks/Generic PVA",
    "Chuanying/Generic PVA",
    "Creality/Generic PVA",
@@ -2121,6 +1578,7 @@
    "Prusa/Generic PVA HF"
   ],
   "OFDxfPgH": [
+   "BBL/Bambu PLA Sparkle",
    "OrcaFilamentLibrary/Bambu PLA Sparkle"
   ],
   "OFDxxTpW": [
@@ -2131,6 +1589,7 @@
    "OrcaFilamentLibrary/COEX TPU 60A"
   ],
   "OFEGNJD4": [
+   "BBL/Bambu PLA Silk",
    "OrcaFilamentLibrary/Bambu PLA Silk"
   ],
   "OFEOnBj6": [
@@ -2148,6 +1607,7 @@
   ],
   "OFEabreg": [
    "Anycubic/Fiberon PA6-CF20",
+   "BBL/Fiberon PA6-CF20",
    "Snapmaker/Fiberon PA6-CF20"
   ],
   "OFEbIx49": [
@@ -2158,9 +1618,11 @@
    "Cubicon/Cubicon PC"
   ],
   "OFEjbwqG": [
+   "BBL/PolyTerra PLA+",
    "Snapmaker/PolyTerra PLA+"
   ],
   "OFEkPBwx": [
+   "BBL/Bambu PLA Glow",
    "OrcaFilamentLibrary/Bambu PLA Glow"
   ],
   "OFEmsric": [
@@ -2170,6 +1632,7 @@
    "Peopoly/Peopoly Lancer PLA-C"
   ],
   "OFEswT5W": [
+   "BBL/Bambu PLA-CF",
    "OrcaFilamentLibrary/Bambu PLA-CF"
   ],
   "OFEvEfw5": [
@@ -2181,7 +1644,11 @@
   "OFF3cuzT": [
    "Creality/Generic TPU 64D"
   ],
+  "OFF5o7b2": [
+   "BBL/BETA PLA Youth"
+  ],
   "OFF9OKoY": [
+   "BBL/PolyLite PLA Pro",
    "OrcaFilamentLibrary/PolyLite PLA Pro",
    "Snapmaker/PolyLite PLA Pro"
   ],
@@ -2195,6 +1662,7 @@
    "Flashforge/Flashforge ASA Basic"
   ],
   "OFFNYwWR": [
+   "BBL/Bambu PA-CF",
    "OrcaFilamentLibrary/Bambu PA-CF"
   ],
   "OFFP4ORR": [
@@ -2209,11 +1677,19 @@
   "OFFbQscs": [
    "Creality/eSUN PETG-Basic"
   ],
+  "OFFbSnCD": [
+   "BBL/Bambu PLA Translucent"
+  ],
+  "OFFfJ09N": [
+   "BBL/BETA PETG Glow"
+  ],
   "OFFkCLBl": [
+   "BBL/Panchroma PLA Galaxy",
    "OrcaFilamentLibrary/Panchroma PLA Galaxy",
    "Snapmaker/Panchroma PLA Galaxy"
   ],
   "OFFvzqcd": [
+   "BBL/Bambu PETG Basic",
    "OrcaFilamentLibrary/Bambu PETG Basic"
   ],
   "OFFwJWea": [
@@ -2234,6 +1710,12 @@
   ],
   "OFGVwfK0": [
    "OrcaFilamentLibrary/FilAr PLA-mate Gris"
+  ],
+  "OFGVxj2A": [
+   "BBL/BETA PLA Wood"
+  ],
+  "OFGc9l16": [
+   "BBL/BETA PLA Glow"
   ],
   "OFGcLA5R": [
    "OrcaFilamentLibrary/FilAr PLA-mate Beige"
@@ -2272,10 +1754,15 @@
   "OFHAccHz": [
    "OrcaFilamentLibrary/FilAr PLA Blanco Antartida"
   ],
+  "OFHHwrd1": [
+   "BBL/addnorth PETG Base"
+  ],
   "OFHWSM21": [
+   "BBL/Fiberon PET-CF",
    "OrcaFilamentLibrary/Fiberon PET-CF"
   ],
   "OFHa48An": [
+   "BBL/Bambu PET-CF",
    "OrcaFilamentLibrary/Bambu PET-CF"
   ],
   "OFHaYaB1": [
@@ -2292,14 +1779,21 @@
    "Snapmaker/Polymaker PLA Pro Metallic"
   ],
   "OFHmPYRy": [
+   "BBL/SUNLU PLA+ 2.0",
    "Flashforge/SUNLU PLA+ 2.0",
    "OrcaFilamentLibrary/SUNLU PLA+ 2.0"
+  ],
+  "OFI2MKy7": [
+   "BBL/BETA PEBA 90A"
   ],
   "OFI6WZpn": [
    "OrcaArena/Arena Support W"
   ],
   "OFIBXa0k": [
    "OrcaFilamentLibrary/FilAr PLA-mate Rojo"
+  ],
+  "OFIBbYO5": [
+   "BBL/Bambu TPU for AMS"
   ],
   "OFIE3vOf": [
    "Anycubic/Anycubic PLA Matte"
@@ -2332,12 +1826,14 @@
    "OrcaFilamentLibrary/Eolas Prints TPU Flex D53"
   ],
   "OFIfnzxC": [
+   "BBL/Bambu Support For PLA/PETG",
    "OrcaFilamentLibrary/Bambu Support For PLA/PETG"
   ],
   "OFIgbDHq": [
    "Anycubic/Anycubic PLA Luminous"
   ],
   "OFIxOuOu": [
+   "BBL/PolyLite PLA Starlight",
    "Snapmaker/PolyLite PLA Starlight"
   ],
   "OFJ3F2jm": [
@@ -2368,10 +1864,14 @@
    "Flashforge/Generic TPU-90A"
   ],
   "OFJgijky": [
+   "BBL/PolyLite CosPLA",
    "Snapmaker/PolyLite CosPLA"
   ],
   "OFJhT2fd": [
    "Snapmaker/Snapmaker Dual ABS"
+  ],
+  "OFJnEaCp": [
+   "BBL/BETA PLA Transparent"
   ],
   "OFJrvXth": [
    "Snapmaker/Snapmaker ABS Benchy"
@@ -2384,6 +1884,9 @@
   ],
   "OFJxSqO4": [
    "Wanhao France/YUMI PLA Direct Drive"
+  ],
+  "OFK7830e": [
+   "BBL/BETA TPU 95A"
   ],
   "OFK8XHPn": [
    "Qidi/Overture ABS"
@@ -2409,6 +1912,9 @@
   "OFKWWgyp": [
    "OrcaFilamentLibrary/FilAr PLA Carpincho"
   ],
+  "OFKYBAWe": [
+   "BBL/BETA PLA Marble"
+  ],
   "OFKZ9skj": [
    "OrcaFilamentLibrary/FilAr PLA Naranja Tigre"
   ],
@@ -2422,11 +1928,16 @@
    "Qidi/QIDI PAHT-CF"
   ],
   "OFKhMPeX": [
+   "BBL/Bambu PC",
    "OrcaFilamentLibrary/Bambu PC"
   ],
   "OFKiSMWR": [
+   "BBL/Panchroma PLA Marble",
    "OrcaFilamentLibrary/Panchroma PLA Marble",
    "Snapmaker/Panchroma PLA Marble"
+  ],
+  "OFKyNkQz": [
+   "BBL/BETA PETG UV Color Change"
   ],
   "OFL9aRjN": [
    "Snapmaker/Snapmaker PETG HF"
@@ -2438,6 +1949,7 @@
    "Flashforge/Flashforge PPA-CF"
   ],
   "OFLJ8S6I": [
+   "BBL/SUNLU Wood PLA",
    "Flashforge/SUNLU Wood PLA",
    "OrcaFilamentLibrary/SUNLU Wood PLA"
   ],
@@ -2449,6 +1961,7 @@
    "Anker/Generic ASA",
    "Anycubic/Generic ASA",
    "Artillery/Generic ASA",
+   "BBL/Generic ASA",
    "Blocks/Generic ASA",
    "Chuanying/Generic ASA",
    "Creality/Generic ASA",
@@ -2479,6 +1992,7 @@
   "OFLakOUI": [
    "Anker/Generic PC",
    "Anycubic/Generic PC",
+   "BBL/Generic PC",
    "Blocks/Generic PC",
    "Creality/Generic PC",
    "Custom/Generic PC",
@@ -2512,6 +2026,12 @@
   "OFLgwqp2": [
    "Creality/Hyper PETG-GF"
   ],
+  "OFLjDYxH": [
+   "BBL/addnorth PLA X-PLA High Speed"
+  ],
+  "OFLqgSuX": [
+   "BBL/BETA PLA-CF"
+  ],
   "OFLzx3J4": [
    "Creality/Hyper Marble"
   ],
@@ -2538,9 +2058,11 @@
    "Artillery/Artillery PA"
   ],
   "OFMTK0UC": [
+   "BBL/Bambu Support For PA/PET",
    "OrcaFilamentLibrary/Bambu Support For PA/PET"
   ],
   "OFMUWNkp": [
+   "BBL/SUNLU PLA+",
    "Flashforge/SUNLU PLA+",
    "OrcaFilamentLibrary/SUNLU PLA+"
   ],
@@ -2549,6 +2071,7 @@
    "OrcaFilamentLibrary/Overture Rock PLA"
   ],
   "OFMjtqTC": [
+   "BBL/Bambu PLA Wood",
    "OrcaFilamentLibrary/Bambu PLA Wood"
   ],
   "OFMkAW6r": [
@@ -2562,6 +2085,12 @@
   ],
   "OFMuXBmO": [
    "OrcaFilamentLibrary/Elas PLA Basic"
+  ],
+  "OFMzRg65": [
+   "BBL/BETA PLA PRO"
+  ],
+  "OFN8QBhu": [
+   "BBL/addnorth PLA Wood"
   ],
   "OFN9fefN": [
    "Cubicon/Cubicon ABS-A100"
@@ -2587,7 +2116,11 @@
   "OFNjku08": [
    "CONSTRUCT3D/Generic High Flow PETG"
   ],
+  "OFNk8AvA": [
+   "BBL/BETA PETG Gradient"
+  ],
   "OFNk8bxk": [
+   "BBL/Bambu PA6-GF",
    "OrcaFilamentLibrary/Bambu PA6-GF"
   ],
   "OFNstOna": [
@@ -2597,12 +2130,16 @@
    "Creality/Hyper PPA-CF"
   ],
   "OFO1GEq6": [
+   "BBL/Panchroma PLA Neon",
    "OrcaFilamentLibrary/Panchroma PLA Neon",
    "Snapmaker/Panchroma PLA Neon"
   ],
   "OFO5djrM": [
    "Chuanying/Generic PETG-CF10",
    "Flashforge/Generic PETG-CF10"
+  ],
+  "OFO6GMJ3": [
+   "BBL/addnorth TPU EasyFlex"
   ],
   "OFOABq7t": [
    "BBL/AliZ PETG-Metal",
@@ -2619,6 +2156,9 @@
   ],
   "OFOPU1xv": [
    "Snapmaker/Snapmaker PLA Full Spectrum"
+  ],
+  "OFOQCfVa": [
+   "BBL/addnorth PLA Premium Silk"
   ],
   "OFObG16Q": [
    "InfiMech/InfiMech PLA Basic"
@@ -2640,6 +2180,7 @@
    "Qidi/QIDI ABS Rapido 0.2 nozzle"
   ],
   "OFOvv91M": [
+   "BBL/PolyLite ABS",
    "OrcaFilamentLibrary/PolyLite ABS",
    "Qidi/PolyLite ABS"
   ],
@@ -2668,15 +2209,18 @@
    "OrcaFilamentLibrary/Eolas Prints PLA INGEO 870"
   ],
   "OFPkCJKE": [
+   "BBL/Panchroma PLA Satin",
    "Creality/Panchroma PLA Satin",
    "OrcaFilamentLibrary/Panchroma PLA Satin",
    "Snapmaker/Panchroma PLA Satin"
   ],
   "OFPklMI1": [
+   "BBL/Generic PE",
    "OrcaFilamentLibrary/Generic PE",
    "Tiertime/Generic PE"
   ],
   "OFPoyiFs": [
+   "BBL/Polymaker HT-PLA",
    "OrcaFilamentLibrary/Polymaker HT-PLA",
    "Snapmaker/Polymaker HT-PLA"
   ],
@@ -2690,10 +2234,14 @@
    "Eryone/Eryone ABS-CF"
   ],
   "OFQ3e56w": [
+   "BBL/Bambu PLA Galaxy",
    "OrcaFilamentLibrary/Bambu PLA Galaxy"
   ],
   "OFQ40XeN": [
    "Qidi/QIDI PETG Tough"
+  ],
+  "OFQ5TxZ2": [
+   "BBL/addnorth PVDF Adamant S1"
   ],
   "OFQEGL7z": [
    "FlyingBear/FlyingBear PA-CF"
@@ -2702,11 +2250,13 @@
    "OrcaArena/Arena TPU 95A"
   ],
   "OFQHiNJs": [
+   "BBL/Bambu Support G",
    "OrcaFilamentLibrary/Bambu Support G"
   ],
   "OFQLcbps": [
    "Anker/Generic PA-CF",
    "Anycubic/Generic PA-CF",
+   "BBL/Generic PA-CF",
    "Blocks/Generic PA-CF",
    "Creality/Generic PA-CF",
    "Custom/Generic PA-CF",
@@ -2753,6 +2303,9 @@
   "OFR1XLMN": [
    "Qidi/QIDI TPU 95A-HF"
   ],
+  "OFRFhdqy": [
+   "BBL/addnorth PLA Textura"
+  ],
   "OFRJ325z": [
    "LH/LHS PETG"
   ],
@@ -2766,6 +2319,7 @@
    "OrcaFilamentLibrary/Eolas Prints PETG Transition"
   ],
   "OFRiYgMK": [
+   "BBL/Panchroma PLA Celestial",
    "OrcaFilamentLibrary/Panchroma PLA Celestial",
    "Snapmaker/Panchroma PLA Celestial"
   ],
@@ -2788,12 +2342,14 @@
    "OrcaFilamentLibrary/eSUN ePLA-LW"
   ],
   "OFS2tn6G": [
+   "BBL/Fiberon PA612-CF",
    "OrcaFilamentLibrary/Fiberon PA612-CF"
   ],
   "OFS4jbj3": [
    "Eryone/Eryone PA"
   ],
   "OFS8lTQt": [
+   "BBL/Panchroma PLA Silk",
    "OrcaFilamentLibrary/Panchroma PLA Silk",
    "Snapmaker/Panchroma PLA Silk"
   ],
@@ -2806,8 +2362,17 @@
   "OFSbGfsz": [
    "OrcaArena/Arena PLA Basic"
   ],
+  "OFSfm8iP": [
+   "BBL/BETA PLA Heat Color Change"
+  ],
+  "OFSiCZP3": [
+   "BBL/BETA PETG-GF"
+  ],
   "OFSqIcJC": [
    "Flashforge/Flashforge TPU 95A"
+  ],
+  "OFSw6Mor": [
+   "BBL/addnorth PA Adura FDA"
   ],
   "OFSwbBWS": [],
   "OFT2jon4": [
@@ -2816,10 +2381,14 @@
   "OFTGHyNC": [
    "OrcaFilamentLibrary/Bambu PLA Impact"
   ],
+  "OFTHDCqA": [
+   "BBL/Bambu PLA Pure"
+  ],
   "OFTOPcx0": [
    "OrcaFilamentLibrary/Eolas Prints TPU Transition"
   ],
   "OFTRZ8Y4": [
+   "BBL/Bambu PETG-CF",
    "OrcaFilamentLibrary/Bambu PETG-CF"
   ],
   "OFTSXxzE": [
@@ -2856,6 +2425,9 @@
   "OFU3QXL7": [
    "re3D/re3D PC"
   ],
+  "OFU5JPDy": [
+   "BBL/addnorth PETG PRO Matte"
+  ],
   "OFU7CKZt": [
    "Volumic/Volumic ASA Ultra (Performance)"
   ],
@@ -2875,10 +2447,14 @@
    "Anycubic/Anycubic PEBA 95A"
   ],
   "OFUanySo": [
+   "BBL/Bambu PLA Silk+",
    "OrcaFilamentLibrary/Bambu PLA Silk+"
   ],
   "OFUmS5z5": [
    "Creality/eSUN ASA+"
+  ],
+  "OFUtiVRn": [
+   "BBL/addnorth PETG ESD"
   ],
   "OFUyDDNv": [
    "Elegoo/Elegoo PC",
@@ -2900,7 +2476,11 @@
   "OFV8Mxqx": [],
   "OFVBlUFH": [],
   "OFVCkX5w": [
+   "BBL/Bambu TPU 95A",
    "OrcaFilamentLibrary/Bambu TPU 95A"
+  ],
+  "OFVDWuxl": [
+   "BBL/addnorth PLA HT-PLA PRO Matte"
   ],
   "OFVHMFJX": [
    "Qidi/QIDI PETG Tough 0.2 nozzle"
@@ -2913,6 +2493,7 @@
    "Eryone/Eryone ASA"
   ],
   "OFW29a9R": [
+   "BBL/PolyTerra PLA",
    "OrcaArena/PolyTerra PLA",
    "OrcaFilamentLibrary/PolyTerra PLA",
    "Snapmaker/PolyTerra PLA"
@@ -2920,11 +2501,17 @@
   "OFW5FqkL": [
    "Qidi/QIDI PLA Rapido Silk"
   ],
+  "OFW8M3CY": [
+   "BBL/BETA PLA Chameleon"
+  ],
   "OFW8lqnb": [
    "Snapmaker/Snapmaker PETG Translucent"
   ],
   "OFWDe7YH": [
    "Qidi/QIDI UltraPA"
+  ],
+  "OFWK0Y9A": [
+   "BBL/addnorth PA Adura"
   ],
   "OFWRITFw": [
    "Prusa/Prusament rPLA"
@@ -2952,6 +2539,7 @@
    "Anker/Generic PLA-CF",
    "Anycubic/Generic PLA-CF",
    "Artillery/Generic PLA-CF",
+   "BBL/Generic PLA-CF",
    "Blocks/Generic PLA-CF",
    "Creality/Generic PLA-CF",
    "Custom/Generic PLA-CF",
@@ -2976,6 +2564,7 @@
    "re3D/re3D PETG"
   ],
   "OFX0ycRQ": [
+   "BBL/Fiberon PA12-CF",
    "OrcaFilamentLibrary/Fiberon PA12-CF"
   ],
   "OFX2zcrM": [
@@ -2986,6 +2575,7 @@
    "OrcaFilamentLibrary/Eolas Prints ABS"
   ],
   "OFXIbw5D": [
+   "BBL/Bambu PLA Matte",
    "OrcaFilamentLibrary/Bambu PLA Matte"
   ],
   "OFXJ9iom": [
@@ -3010,6 +2600,7 @@
    "Artillery/Artillery PLA Basic"
   ],
   "OFXkm8q1": [
+   "BBL/Generic PP-CF",
    "Creality/Generic PP-CF",
    "OrcaFilamentLibrary/Generic PP-CF",
    "Tiertime/Generic PP-CF"
@@ -3031,6 +2622,7 @@
    "OrcaFilamentLibrary/Elegoo PLA Silk"
   ],
   "OFXzQ4yL": [
+   "BBL/Bambu ASA-Aero",
    "OrcaFilamentLibrary/Bambu ASA-Aero"
   ],
   "OFY0F5qA": [
@@ -3046,6 +2638,7 @@
    "Anker/Generic ABS",
    "Anycubic/Generic ABS",
    "Artillery/Generic ABS",
+   "BBL/Generic ABS",
    "Blocks/Generic ABS",
    "Chuanying/Generic ABS",
    "Co Print/Generic ABS",
@@ -3082,10 +2675,14 @@
    "OrcaFilamentLibrary/PolyLite Dual PLA",
    "Snapmaker/PolyLite Dual PLA"
   ],
+  "OFYGrfHY": [
+   "BBL/BETA PETG Fluorescence"
+  ],
   "OFYPdQJh": [
    "Anker/Generic PETG",
    "Anycubic/Generic PETG",
    "Artillery/Generic PETG",
+   "BBL/Generic PETG",
    "Blocks/Generic PETG",
    "CONSTRUCT3D/Generic PETG",
    "Chuanying/Generic PETG",
@@ -3142,6 +2739,12 @@
   "OFZ4QbfK": [
    "OrcaFilamentLibrary/FilAr PLA Rosa Flamenco"
   ],
+  "OFZGrQTU": [
+   "BBL/addnorth PETG Economy"
+  ],
+  "OFZJft47": [
+   "BBL/addnorth PLA Economy"
+  ],
   "OFZLtWYs": [
    "Qidi/QIDI ABS-GF25"
   ],
@@ -3150,6 +2753,9 @@
   ],
   "OFZivHGL": [
    "Snapmaker/Snapmaker Dual PLA"
+  ],
+  "OFZqZMuv": [
+   "BBL/BETA ASA"
   ],
   "OFZr862X": [
    "Creality/Generic PLA HF",
@@ -3180,6 +2786,7 @@
    "LH/LHS ASA"
   ],
   "OFaQMgRH": [
+   "BBL/Bambu PLA Tough",
    "OrcaFilamentLibrary/Bambu PLA Tough"
   ],
   "OFaRjiIm": [
@@ -3222,6 +2829,7 @@
    "Eryone/Eryone PP-CF"
   ],
   "OFc3xdm9": [
+   "BBL/Overture PLA",
    "OrcaFilamentLibrary/Overture PLA",
    "Qidi/Overture PLA"
   ],
@@ -3230,6 +2838,9 @@
   ],
   "OFcBJQcC": [
    "Snapmaker/Snapmaker Dual TPU High-Flow"
+  ],
+  "OFcBl0nJ": [
+   "BBL/Fiberon PA612-CF15"
   ],
   "OFcJDtTx": [
    "Artillery/Artillery TPU"
@@ -3244,8 +2855,14 @@
    "BBL/Overture Air PLA",
    "OrcaFilamentLibrary/Overture Air PLA"
   ],
+  "OFcnWTJB": [
+   "BBL/BETA PLA Glitter"
+  ],
   "OFcogyWl": [
    "WonderMaker/WonderMaker PLA Metal"
+  ],
+  "OFcpa50Z": [
+   "BBL/addnorth PLA-CF Carbon Fiber"
   ],
   "OFctg8r1": [
    "CoLiDo/CoLiDo PLA+"
@@ -3255,10 +2872,12 @@
    "OrcaFilamentLibrary/Overture TPU"
   ],
   "OFcytyoA": [
+   "BBL/Fiberon PETG-ESD",
    "OrcaFilamentLibrary/Fiberon PETG-ESD",
    "Snapmaker/Fiberon PETG-ESD"
   ],
   "OFd0Fv0k": [
+   "BBL/Generic PE-CF",
    "OrcaFilamentLibrary/Generic PE-CF",
    "Tiertime/Generic PE-CF"
   ],
@@ -3313,6 +2932,9 @@
   "OFeCJqxx": [
    "Qidi/QIDI ABS Rapido Metal"
   ],
+  "OFeF4UNh": [
+   "BBL/BETA PLA Silk"
+  ],
   "OFeIyhUx": [
    "Anycubic/Anycubic PC-CF"
   ],
@@ -3333,6 +2955,7 @@
   ],
   "OFesA6rF": [
    "Anker/Generic PLA Silk",
+   "BBL/Generic PLA Silk",
    "Creality/Generic PLA Silk",
    "FLSun/Generic PLA Silk",
    "Flashforge/Generic PLA Silk",
@@ -3359,12 +2982,14 @@
    "InfiMech/InfiMech PC"
   ],
   "OFf6mfQO": [
+   "BBL/Bambu Support for ABS",
    "OrcaFilamentLibrary/Bambu Support for ABS"
   ],
   "OFf6ynfH": [
    "FlyingBear/FlyingBear PETG Basic"
   ],
   "OFfBpSRI": [
+   "BBL/Bambu ASA",
    "OrcaFilamentLibrary/Bambu ASA"
   ],
   "OFfD87Gy": [
@@ -3419,6 +3044,7 @@
    "Snapmaker/Snapmaker Dual PLA Metal"
   ],
   "OFg57Nmc": [
+   "BBL/Bambu PC FR",
    "OrcaFilamentLibrary/Bambu PC FR"
   ],
   "OFg8hMzT": [
@@ -3427,6 +3053,7 @@
   "OFg8ndtj": [
    "Anker/Generic PA",
    "Anycubic/Generic PA",
+   "BBL/Generic PA",
    "Blocks/Generic PA",
    "Creality/Generic PA",
    "Custom/Generic PA",
@@ -3461,6 +3088,7 @@
    "Anker/Generic TPU",
    "Anycubic/Generic TPU",
    "Artillery/Generic TPU",
+   "BBL/Generic TPU",
    "Blocks/Generic TPU",
    "Chuanying/Generic TPU",
    "Co Print/Generic TPU",
@@ -3514,11 +3142,15 @@
    "Creality/Generic PA6-GF"
   ],
   "OFhASRWj": [
+   "BBL/Panchroma PLA Temp Shift",
    "OrcaFilamentLibrary/Panchroma PLA Temp Shift",
    "Snapmaker/Panchroma PLA Temp Shift"
   ],
   "OFhMO9Kh": [
    "OrcaFilamentLibrary/GreenGate3D PETG"
+  ],
+  "OFhN09f0": [
+   "BBL/addnorth PC BLend HT LCF"
   ],
   "OFhO5aEJ": [
    "Ratrig/RatRig PunkFil ABS"
@@ -3527,6 +3159,7 @@
    "Snapmaker/Snapmaker PLA-CF"
   ],
   "OFhQfUQY": [
+   "BBL/Generic SBS",
    "OrcaFilamentLibrary/Generic SBS",
    "Tiertime/Generic SBS"
   ],
@@ -3570,6 +3203,7 @@
    "Snapmaker/Snapmaker PLA Basic"
   ],
   "OFhuaUQB": [
+   "BBL/Bambu ABS",
    "OrcaFilamentLibrary/Bambu ABS",
    "Qidi/Bambu ABS"
   ],
@@ -3615,6 +3249,7 @@
    "Creality/Generic Support for PLA"
   ],
   "OFitS8al": [
+   "BBL/PolyLite PLA Neon",
    "Snapmaker/PolyLite PLA Neon"
   ],
   "OFiwEbze": [
@@ -3645,6 +3280,9 @@
   "OFjUGUIK": [
    "iQ/Fiberthree PACF Pro P1"
   ],
+  "OFjUXn67": [
+   "BBL/BETA ABS"
+  ],
   "OFjVOWfJ": [
    "Anycubic/Anycubic PLA High Speed"
   ],
@@ -3652,6 +3290,7 @@
    "OrcaArena/Arena PLA Impact"
   ],
   "OFjb0wos": [
+   "BBL/Panchroma PLA Metallic",
    "OrcaFilamentLibrary/Panchroma PLA Metallic",
    "Snapmaker/Panchroma PLA Metallic"
   ],
@@ -3668,6 +3307,9 @@
   "OFjoAe0R": [
    "Qidi/Qidi PLA-CF"
   ],
+  "OFjogeYN": [
+   "BBL/BETA PETG Glitter"
+  ],
   "OFjorDcx": [
    "OrcaFilamentLibrary/FDplast ABS"
   ],
@@ -3681,6 +3323,7 @@
    "Prusa/Prusament PC-CF"
   ],
   "OFk8t9mz": [
+   "BBL/Fiberon PETG-rCF",
    "OrcaFilamentLibrary/Fiberon PETG-rCF"
   ],
   "OFkAltI8": [
@@ -3693,7 +3336,11 @@
   "OFkGvN4d": [
    "OrcaFilamentLibrary/FilAr PLA Verde Pixel"
   ],
+  "OFkHbjUv": [
+   "BBL/BETA PLA Metallic"
+  ],
   "OFkOviHk": [
+   "BBL/Fiberon PA6-CF",
    "OrcaFilamentLibrary/Fiberon PA6-CF"
   ],
   "OFkR8E2c": [
@@ -3711,6 +3358,7 @@
    "InfiMech/Other PLA Hyper"
   ],
   "OFknl9Iz": [
+   "BBL/Bambu ABS-GF",
    "OrcaFilamentLibrary/Bambu ABS-GF"
   ],
   "OFkoLUtR": [
@@ -3744,11 +3392,17 @@
   "OFlSNkhc": [
    "OrcaFilamentLibrary/Eolas Prints ASA"
   ],
+  "OFlfuj2k": [
+   "BBL/Bambu TPU 85A"
+  ],
   "OFlgMgNM": [
    "Flashforge/Flashforge PPS"
   ],
   "OFllmFhT": [
    "Elegoo/Generic PETG PRO"
+  ],
+  "OFlmxlDG": [
+   "BBL/BETA HIPS"
   ],
   "OFln72PT": [
    "Elegoo/Elegoo PLA-CF",
@@ -3762,6 +3416,7 @@
    "Snapmaker/Snapmaker PLA"
   ],
   "OFlwmqrC": [
+   "BBL/Polymaker HT-PLA-GF",
    "OrcaFilamentLibrary/Polymaker HT-PLA-GF",
    "Snapmaker/Polymaker HT-PLA-GF"
   ],
@@ -3793,6 +3448,9 @@
   "OFmKU2Ha": [
    "Eryone/Eryone PLA"
   ],
+  "OFmN2lvw": [
+   "BBL/Generic TPU for AMS"
+  ],
   "OFmY0l6t": [
    "Creality/Generic PLA Matte",
    "Elegoo/Generic PLA Matte",
@@ -3815,15 +3473,20 @@
    "Anycubic/Anycubic PLA"
   ],
   "OFmn9NZL": [
+   "BBL/FusRock ABS-GF",
    "OrcaFilamentLibrary/FusRock ABS-GF"
   ],
   "OFmpMwxS": [
+   "BBL/Generic PLA High Speed",
    "Creality/Generic PLA High Speed",
    "FLSun/Generic PLA High Speed",
    "Flashforge/Generic PLA High Speed",
    "OrcaFilamentLibrary/Generic PLA High Speed",
    "Qidi/Generic PLA High Speed",
    "Tiertime/Generic PLA High Speed"
+  ],
+  "OFmt513L": [
+   "BBL/BETA PETG Transparent"
   ],
   "OFmveLWz": [
    "Elegoo/Elegoo PETG-GF",
@@ -3838,6 +3501,9 @@
   ],
   "OFn6WpN7": [
    "Qidi/QIDI PA12-CF"
+  ],
+  "OFnBvPhb": [
+   "BBL/addnorth PLA rPLA RE-ADD"
   ],
   "OFnHc3D6": [
    "Creality/eSUN PLA-CF"
@@ -3869,14 +3535,21 @@
   "OFnejEt4": [
    "OrcaFilamentLibrary/FilAr PETG Cian"
   ],
+  "OFnfxTvi": [
+   "BBL/Bambu PLA Lite"
+  ],
   "OFngcE81": [
    "LH/LHS TPU Foamy 78A"
   ],
   "OFniMuTN": [
+   "BBL/Bambu PA6-CF",
    "OrcaFilamentLibrary/Bambu PA6-CF"
   ],
   "OFnmp6rt": [
    "Anycubic/Anycubic PLA+"
+  ],
+  "OFnpX8uh": [
+   "BBL/BETA PETG Matte"
   ],
   "OFnyHfcv": [
    "Ratrig/Generic ABS BigNozzle"
@@ -3885,6 +3558,7 @@
    "Qidi/QIDI PAHT-GF"
   ],
   "OFo2UF2C": [
+   "BBL/Generic BVOH",
    "Creality/Generic BVOH",
    "Flashforge/Generic BVOH",
    "OrcaFilamentLibrary/Generic BVOH",
@@ -3901,6 +3575,7 @@
   ],
   "OFoYSJKi": [
    "Anker/Generic PETG-CF",
+   "BBL/Generic PETG-CF",
    "Creality/Generic PETG-CF",
    "Elegoo/Generic PETG-CF",
    "Flashforge/Generic PETG-CF",
@@ -3918,6 +3593,7 @@
    "OrcaFilamentLibrary/AliZ PETG"
   ],
   "OFoiVqVM": [
+   "BBL/Bambu PLA Basic",
    "OrcaFilamentLibrary/Bambu PLA Basic"
   ],
   "OFojbdhR": [
@@ -3927,6 +3603,7 @@
    "Cubicon/Cubicon ABSk"
   ],
   "OFovEIbw": [
+   "BBL/Bambu PETG HF",
    "OrcaFilamentLibrary/Bambu PETG HF"
   ],
   "OFp4ETDP": [
@@ -3945,6 +3622,7 @@
    "Cubicon/Cubicon ABS"
   ],
   "OFpPGSKG": [
+   "BBL/SUNLU Silk PLA+",
    "Flashforge/SUNLU Silk PLA+",
    "OrcaFilamentLibrary/SUNLU Silk PLA+"
   ],
@@ -3952,8 +3630,12 @@
    "Peopoly/Peopoly Lancer PETG-C"
   ],
   "OFpW4gdi": [
+   "BBL/SUNLU PLA Matte",
    "Flashforge/SUNLU PLA Matte",
    "OrcaFilamentLibrary/SUNLU PLA Matte"
+  ],
+  "OFpdjFI3": [
+   "BBL/BETA PLA UV Color Change"
   ],
   "OFpu74Qe": [
    "Snapmaker/Snapmaker PLA Eco"
@@ -3968,6 +3650,7 @@
    "OrcaFilamentLibrary/FilAr PETG Negro Azabache"
   ],
   "OFq9svOz": [
+   "BBL/Generic PPS",
    "Creality/Generic PPS",
    "Tiertime/Generic PPS"
   ],
@@ -3975,11 +3658,16 @@
    "Ratrig/Generic PLA BigNozzle"
   ],
   "OFqGRZyH": [
+   "BBL/Numakers PLA+",
    "OrcaFilamentLibrary/Numakers PLA+"
   ],
   "OFqINlYj": [
+   "BBL/eSUN PLA+",
    "Creality/eSUN PLA+",
    "OrcaFilamentLibrary/eSUN PLA+"
+  ],
+  "OFqTwtXM": [
+   "BBL/addnorth PETG rPETG Matte"
   ],
   "OFqcL5UF": [
    "Qidi/QIDI Support For PET/PA"
@@ -3988,6 +3676,7 @@
    "OrcaFilamentLibrary/FilAr PLA-mate Celeste Cielo"
   ],
   "OFqw2PQA": [
+   "BBL/Panchroma CoPE",
    "OrcaFilamentLibrary/Panchroma CoPE",
    "Snapmaker/Panchroma CoPE"
   ],
@@ -3998,6 +3687,7 @@
    "Anycubic/Anycubic PLA Slik"
   ],
   "OFrKLeE3": [
+   "BBL/Bambu PLA Metal",
    "OrcaFilamentLibrary/Bambu PLA Metal"
   ],
   "OFrLiqiM": [
@@ -4007,6 +3697,7 @@
    "Creality/CR-PLA Carbon"
   ],
   "OFrOh600": [
+   "BBL/Panchroma PLA Matte",
    "Creality/Panchroma PLA Matte",
    "OrcaFilamentLibrary/Panchroma PLA Matte",
    "Snapmaker/Panchroma PLA Matte"
@@ -4019,6 +3710,9 @@
   ],
   "OFrjacXf": [
    "Flashforge/Flashforge PET-CF"
+  ],
+  "OFrqMlGt": [
+   "BBL/BETA PETG"
   ],
   "OFrr67nG": [
    "OrcaArena/Arena PC"
@@ -4041,6 +3735,7 @@
    "Volumic/Volumic PP Ultra"
   ],
   "OFsFon5l": [
+   "BBL/Generic HIPS",
    "Chuanying/Generic HIPS",
    "Creality/Generic HIPS",
    "Flashforge/Generic HIPS",
@@ -4048,6 +3743,7 @@
    "Tiertime/Generic HIPS"
   ],
   "OFsHSVZc": [
+   "BBL/Bambu Support W",
    "OrcaFilamentLibrary/Bambu Support W"
   ],
   "OFsP8PKH": [
@@ -4055,6 +3751,7 @@
   ],
   "OFsRDvTM": [
    "Anycubic/Panchroma PLA",
+   "BBL/Panchroma PLA",
    "OrcaFilamentLibrary/Panchroma PLA",
    "Snapmaker/Panchroma PLA"
   ],
@@ -4062,6 +3759,7 @@
    "OrcaFilamentLibrary/FilAr PETG Blanco Antartida"
   ],
   "OFsijjtH": [
+   "BBL/Generic PP-GF",
    "OrcaFilamentLibrary/Generic PP-GF",
    "Tiertime/Generic PP-GF"
   ],
@@ -4096,8 +3794,17 @@
   "OFtRn8X8": [
    "OrcaFilamentLibrary/FDplast SBS"
   ],
+  "OFtdVZpV": [
+   "BBL/addnorth PLA X-PLA"
+  ],
   "OFtefokm": [
    "OrcaFilamentLibrary/FilAr PLA-mate Blanco"
+  ],
+  "OFtkLO6q": [
+   "BBL/Bambu TPU 90A"
+  ],
+  "OFtndTHe": [
+   "BBL/BETA PETG-CF"
   ],
   "OFtpXCCv": [
    "BBL/COEX ASA PRIME",
@@ -4122,6 +3829,7 @@
    "Qidi/QIDI ASA-Aero"
   ],
   "OFu1evlr": [
+   "BBL/Generic PCTG",
    "Creality/Generic PCTG",
    "OrcaFilamentLibrary/Generic PCTG",
    "Ratrig/Generic PCTG",
@@ -4168,6 +3876,9 @@
   "OFusbWjj": [
    "Creality/Hyper PETG-CF"
   ],
+  "OFuvOt0r": [
+   "BBL/BETA PLA Basic"
+  ],
   "OFuxH0Uz": [
    "Volumic/Volumic FLEX93 Ultra"
   ],
@@ -4178,6 +3889,7 @@
    "Prusa/Prusament PC Blend"
   ],
   "OFvKUnLh": [
+   "BBL/Bambu TPU 95A HF",
    "OrcaFilamentLibrary/Bambu TPU 95A HF"
   ],
   "OFvLppPU": [
@@ -4196,6 +3908,9 @@
   "OFvaLVML": [
    "Flashforge/Flashforge HIPS"
   ],
+  "OFvcIGee": [
+   "BBL/addnorth TPU Pro Matte 85A"
+  ],
   "OFvdZ2bx": [
    "Qidi/QIDI WOOD Rapido"
   ],
@@ -4207,9 +3922,11 @@
    "Snapmaker/Snapmaker TPU 95A"
   ],
   "OFvrXuV7": [
+   "BBL/PolyLite ASA",
    "OrcaFilamentLibrary/PolyLite ASA"
   ],
   "OFvxIS9g": [
+   "BBL/Fiberon PA12-CF10",
    "Snapmaker/Fiberon PA12-CF10"
   ],
   "OFvxghTE": [
@@ -4218,16 +3935,21 @@
    "TwoTrees/Generic HS PLA"
   ],
   "OFvyB0Bz": [
+   "BBL/PolyLite PLA Galaxy",
    "Snapmaker/PolyLite PLA Galaxy"
   ],
   "OFvzvwCu": [
    "OrcaFilamentLibrary/Eolas Prints PLA High Speed"
+  ],
+  "OFw4WD4T": [
+   "BBL/Fiberon PETG-rCF08"
   ],
   "OFwJ0qu2": [],
   "OFwLBAGf": [
    "Qidi/HATCHBOX ABS"
   ],
   "OFwPrlCM": [
+   "BBL/Bambu PETG Translucent",
    "OrcaFilamentLibrary/Bambu PETG Translucent"
   ],
   "OFwRJ4g0": [
@@ -4238,10 +3960,14 @@
    "InfiMech/Other TPU"
   ],
   "OFwaYjL6": [
+   "BBL/Fiberon PA6-GF",
    "OrcaFilamentLibrary/Fiberon PA6-GF"
   ],
   "OFwbsgWj": [
    "re3D/re3D PC"
+  ],
+  "OFwc74ck": [
+   "BBL/BETA PLA Matte"
   ],
   "OFwhLMs4": [
    "Snapmaker/Snapmaker PLA SnapSpeed"
@@ -4269,6 +3995,7 @@
    "OrcaFilamentLibrary/Eolas Prints PETG UV Resistant"
   ],
   "OFxA1p01": [
+   "BBL/Overture PLA Pro",
    "OrcaFilamentLibrary/Overture PLA Pro"
   ],
   "OFxDHUX8": [
@@ -4282,6 +4009,7 @@
    "OrcaFilamentLibrary/Elegoo ABS"
   ],
   "OFxUwUeW": [
+   "BBL/SUNLU PLA Marble",
    "Flashforge/SUNLU PLA Marble",
    "OrcaFilamentLibrary/SUNLU PLA Marble"
   ],
@@ -4289,9 +4017,14 @@
    "Snapmaker/Snapmaker J1 PETG-CF"
   ],
   "OFxe4rXr": [
+   "BBL/PolyTerra PLA Marble",
    "Snapmaker/PolyTerra PLA Marble"
   ],
+  "OFxqf79Q": [
+   "BBL/BETA PETG HF"
+  ],
   "OFy02QHU": [
+   "BBL/PolyLite PLA Translucent",
    "Snapmaker/PolyLite PLA Translucent"
   ],
   "OFy14TRA": [
@@ -4312,11 +4045,17 @@
   "OFyHgT60": [
    "OrcaArena/Arena PLA Sparkle"
   ],
+  "OFyJjkek": [
+   "BBL/addnorth TPU Pro Matte 95A"
+  ],
   "OFyLWVF3": [
    "Creality/Generic PETG-GF"
   ],
   "OFyPG8v2": [
    "Snapmaker/Snapmaker Dual PLA Eco"
+  ],
+  "OFyPTnSk": [
+   "BBL/BETA PETG Heat Color Change"
   ],
   "OFyQwdaM": [
    "Volumic/Volumic ABS Ultra (Performance)"
@@ -4356,6 +4095,9 @@
    "BBL/AliZ PLA",
    "OrcaFilamentLibrary/AliZ PLA"
   ],
+  "OFz1a1fy": [
+   "BBL/BETA PETG Metallic"
+  ],
   "OFz5oHgf": [
    "MagicMaker/Generic PEEK"
   ],
@@ -4374,6 +4116,12 @@
   "OFzY7N3Z": [
    "Artillery/Artillery PLA"
   ],
+  "OFzaq7Yg": [
+   "BBL/BETA TPU 98A"
+  ],
+  "OFzk5oAo": [
+   "BBL/addnorth ABS rABS"
+  ],
   "OFzrUUxc": [],
   "OFztQ7rO": [
    "LH/LHS ABS"
@@ -4382,6 +4130,7 @@
    "Flashforge/FusRock PET-GF"
   ],
   "OFzyIxba": [
+   "BBL/Bambu PVA",
    "OrcaFilamentLibrary/Bambu PVA"
   ]
  },
@@ -6977,11 +6726,25 @@
     "Soleyin Ultra PLA"
    ]
   ],
+  "OF03RK6r": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Metal"
+   ]
+  ],
   "OF0AquDh": [
    [
     "FusRock",
     "PA",
     "FusRock S-Multi"
+   ]
+  ],
+  "OF0EYBWQ": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG Flame v0"
    ]
   ],
   "OF0FfcAG": [
@@ -7110,6 +6873,13 @@
     "Generic PETG Basic"
    ]
   ],
+  "OF1ID4N1": [
+   [
+    "addnorth",
+    "PA6",
+    "addnorth PA6 Addlantis"
+   ]
+  ],
   "OF1N1qMK": [
    [
     "Polymaker",
@@ -7236,6 +7006,13 @@
     "Elegoo Rapid TPU 95A"
    ]
   ],
+  "OF342jVN": [
+   [
+    "Bambu Lab",
+    "PLA",
+    "Bambu PLA Tough+"
+   ]
+  ],
   "OF3F63OE": [
    [
     "re3D",
@@ -7255,6 +7032,13 @@
     "Creality",
     "PLA",
     "CR-Silk"
+   ]
+  ],
+  "OF3PDEw3": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA High Speed"
    ]
   ],
   "OF3WQaKK": [
@@ -7348,6 +7132,20 @@
     "Artillery PLA Basic+"
    ]
   ],
+  "OF4PKvem": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Fluorescence"
+   ]
+  ],
+  "OF4QZANi": [
+   [
+    "BETA",
+    "TPU",
+    "BETA TPU Matte"
+   ]
+  ],
   "OF4RvVuU": [
    [
     "Bambu Lab",
@@ -7367,6 +7165,13 @@
     "Snapmaker",
     "PETG",
     "Snapmaker PETG"
+   ]
+  ],
+  "OF4XTfoI": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Marble"
    ]
   ],
   "OF4f8vVp": [
@@ -7425,6 +7230,13 @@
     "Generic ABS HF"
    ]
   ],
+  "OF5B9sUc": [
+   [
+    "Polymaker",
+    "PA-GF",
+    "Fiberon PA6-GF25"
+   ]
+  ],
   "OF5BN24W": [
    [
     "Flashforge",
@@ -7432,11 +7244,25 @@
     "Flashforge PPA-GF"
    ]
   ],
+  "OF5BXhHF": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA High Temp"
+   ]
+  ],
   "OF5CgdDq": [
    [
     "Polymaker",
     "PLA",
     "PolyLite PLA"
+   ]
+  ],
+  "OF5LAnla": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Gradient"
    ]
   ],
   "OF5NqBfC": [
@@ -7586,6 +7412,13 @@
     "Snapmaker J1 PVA"
    ]
   ],
+  "OF6Yn69v": [
+   [
+    "BETA",
+    "TPU",
+    "BETA TPU 90A"
+   ]
+  ],
   "OF6kj4jI": [
    [
     "iQ Materials",
@@ -7600,6 +7433,13 @@
     "Flashforge PLA Matte"
    ]
   ],
+  "OF6qw3Wb": [
+   [
+    "BETA",
+    "PA-CF",
+    "BETA PAHT-CF"
+   ]
+  ],
   "OF6rdQ6M": [
    [
     "Generic",
@@ -7612,6 +7452,13 @@
     "Creality",
     "PLA",
     "Hyper L-W PLA"
+   ]
+  ],
+  "OF71b7qO": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA E-PLA"
    ]
   ],
   "OF72YYTd": [
@@ -7731,6 +7578,13 @@
     "Flashforge",
     "PLA",
     "Flashforge HS PLA Burnt Ti"
+   ]
+  ],
+  "OF8QdQwS": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Silk+"
    ]
   ],
   "OF8Tlg47": [
@@ -7901,6 +7755,20 @@
     "Artillery PLA-CF"
    ]
   ],
+  "OFAc0Pr3": [
+   [
+    "Polymaker",
+    "PET-CF",
+    "Fiberon PET-CF17"
+   ]
+  ],
+  "OFAcJkl1": [
+   [
+    "addnorth",
+    "PETG-CF",
+    "addnorth PETG-CF Rigid X"
+   ]
+  ],
   "OFAebKg8": [
    [
     "Flashforge",
@@ -7976,6 +7844,13 @@
     "Polymaker",
     "PLA",
     "PolyLite PLA Luminous"
+   ]
+  ],
+  "OFBsbMMF": [
+   [
+    "addnorth",
+    "PA-CF",
+    "addnorth PA-CF Adura X"
    ]
   ],
   "OFBw6eEG": [
@@ -8370,6 +8245,13 @@
     "Generic TPU 64D"
    ]
   ],
+  "OFF5o7b2": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Youth"
+   ]
+  ],
   "OFF9OKoY": [
    [
     "Polymaker",
@@ -8433,6 +8315,20 @@
     "eSUN PETG-Basic"
    ]
   ],
+  "OFFbSnCD": [
+   [
+    "Bambu Lab",
+    "PLA",
+    "Bambu PLA Translucent"
+   ]
+  ],
+  "OFFfJ09N": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Glow"
+   ]
+  ],
   "OFFkCLBl": [
    [
     "Polymaker",
@@ -8487,6 +8383,20 @@
     "FilAr",
     "PLA",
     "FilAr PLA-mate Gris"
+   ]
+  ],
+  "OFGVxj2A": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Wood"
+   ]
+  ],
+  "OFGc9l16": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Glow"
    ]
   ],
   "OFGcLA5R": [
@@ -8573,6 +8483,13 @@
     "FilAr PLA Blanco Antartida"
    ]
   ],
+  "OFHHwrd1": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG Base"
+   ]
+  ],
   "OFHWSM21": [
    [
     "Polymaker",
@@ -8622,6 +8539,13 @@
     "SUNLU PLA+ 2.0"
    ]
   ],
+  "OFI2MKy7": [
+   [
+    "BETA",
+    "TPU",
+    "BETA PEBA 90A"
+   ]
+  ],
   "OFI6WZpn": [
    [
     "Orca Arena",
@@ -8634,6 +8558,13 @@
     "FilAr",
     "PLA",
     "FilAr PLA-mate Rojo"
+   ]
+  ],
+  "OFIBbYO5": [
+   [
+    "Bambu Lab",
+    "TPU-AMS",
+    "Bambu TPU for AMS"
    ]
   ],
   "OFIE3vOf": [
@@ -8811,6 +8742,13 @@
     "Snapmaker Dual ABS"
    ]
   ],
+  "OFJnEaCp": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Transparent"
+   ]
+  ],
   "OFJrvXth": [
    [
     "Snapmaker",
@@ -8837,6 +8775,13 @@
     "Yumi",
     "PLA",
     "YUMI PLA Direct Drive"
+   ]
+  ],
+  "OFK7830e": [
+   [
+    "BETA",
+    "TPU",
+    "BETA TPU 95A"
    ]
   ],
   "OFK8XHPn": [
@@ -8895,6 +8840,13 @@
     "FilAr PLA Carpincho"
    ]
   ],
+  "OFKYBAWe": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Marble"
+   ]
+  ],
   "OFKZ9skj": [
    [
     "FilAr",
@@ -8935,6 +8887,13 @@
     "Polymaker",
     "PLA",
     "Panchroma PLA Marble"
+   ]
+  ],
+  "OFKyNkQz": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG UV Color Change"
    ]
   ],
   "OFL9aRjN": [
@@ -9049,6 +9008,20 @@
     "Hyper PETG-GF"
    ]
   ],
+  "OFLjDYxH": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA X-PLA High Speed"
+   ]
+  ],
+  "OFLqgSuX": [
+   [
+    "BETA",
+    "PLA-CF",
+    "BETA PLA-CF"
+   ]
+  ],
   "OFLzx3J4": [
    [
     "Creality",
@@ -9161,6 +9134,20 @@
     "Elas PLA Basic"
    ]
   ],
+  "OFMzRg65": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA PRO"
+   ]
+  ],
+  "OFN8QBhu": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA Wood"
+   ]
+  ],
   "OFN9fefN": [
    [
     "Cubicon",
@@ -9217,6 +9204,13 @@
     "Generic High Flow PETG"
    ]
   ],
+  "OFNk8AvA": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Gradient"
+   ]
+  ],
   "OFNk8bxk": [
    [
     "Bambu Lab",
@@ -9252,6 +9246,13 @@
     "Generic PETG-CF10"
    ]
   ],
+  "OFO6GMJ3": [
+   [
+    "addnorth",
+    "TPU",
+    "addnorth TPU EasyFlex"
+   ]
+  ],
   "OFOABq7t": [
    [
     "Aliz",
@@ -9285,6 +9286,13 @@
     "Snapmaker",
     "PLA",
     "Snapmaker PLA Full Spectrum"
+   ]
+  ],
+  "OFOQCfVa": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA Premium Silk"
    ]
   ],
   "OFObG16Q": [
@@ -9448,6 +9456,13 @@
     "QIDI PETG Tough"
    ]
   ],
+  "OFQ5TxZ2": [
+   [
+    "addnorth",
+    "PA",
+    "addnorth PVDF Adamant S1"
+   ]
+  ],
   "OFQEGL7z": [
    [
     "FlyingBear",
@@ -9544,6 +9559,13 @@
     "QIDI",
     "TPU",
     "QIDI TPU 95A-HF"
+   ]
+  ],
+  "OFRFhdqy": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA Textura"
    ]
   ],
   "OFRJ325z": [
@@ -9665,11 +9687,32 @@
     "Arena PLA Basic"
    ]
   ],
+  "OFSfm8iP": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Heat Color Change"
+   ]
+  ],
+  "OFSiCZP3": [
+   [
+    "BETA",
+    "PETG-CF",
+    "BETA PETG-GF"
+   ]
+  ],
   "OFSqIcJC": [
    [
     "Flashforge",
     "TPU",
     "Flashforge TPU 95A"
+   ]
+  ],
+  "OFSw6Mor": [
+   [
+    "addnorth",
+    "PA",
+    "addnorth PA Adura FDA"
    ]
   ],
   "OFSwbBWS": [
@@ -9691,6 +9734,13 @@
     "Bambu Lab",
     "PLA",
     "Bambu PLA Impact"
+   ]
+  ],
+  "OFTHDCqA": [
+   [
+    "Bambu Lab",
+    "PLA",
+    "Bambu PLA Pure"
    ]
   ],
   "OFTOPcx0": [
@@ -9784,6 +9834,13 @@
     "re3D PC"
    ]
   ],
+  "OFU5JPDy": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG PRO Matte"
+   ]
+  ],
   "OFU7CKZt": [
    [
     "Volumic",
@@ -9838,6 +9895,13 @@
     "eSUN",
     "ASA",
     "eSUN ASA+"
+   ]
+  ],
+  "OFUtiVRn": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG ESD"
    ]
   ],
   "OFUyDDNv": [
@@ -9896,6 +9960,13 @@
     "Bambu TPU 95A"
    ]
   ],
+  "OFVDWuxl": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA HT-PLA PRO Matte"
+   ]
+  ],
   "OFVHMFJX": [
    [
     "QIDI",
@@ -9931,6 +10002,13 @@
     "QIDI PLA Rapido Silk"
    ]
   ],
+  "OFW8M3CY": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Chameleon"
+   ]
+  ],
   "OFW8lqnb": [
    [
     "Snapmaker",
@@ -9943,6 +10021,13 @@
     "QIDI",
     "UltraPA",
     "QIDI UltraPA"
+   ]
+  ],
+  "OFWK0Y9A": [
+   [
+    "addnorth",
+    "PA",
+    "addnorth PA Adura"
    ]
   ],
   "OFWRITFw": [
@@ -10197,6 +10282,13 @@
     "PolyLite Dual PLA"
    ]
   ],
+  "OFYGrfHY": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Fluorescence"
+   ]
+  ],
   "OFYPdQJh": [
    [
     "Generic",
@@ -10267,6 +10359,20 @@
     "FilAr PLA Rosa Flamenco"
    ]
   ],
+  "OFZGrQTU": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG Economy"
+   ]
+  ],
+  "OFZJft47": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA Economy"
+   ]
+  ],
   "OFZLtWYs": [
    [
     "QIDI",
@@ -10286,6 +10392,13 @@
     "Snapmaker",
     "PLA",
     "Snapmaker Dual PLA"
+   ]
+  ],
+  "OFZqZMuv": [
+   [
+    "BETA",
+    "ASA",
+    "BETA ASA"
    ]
   ],
   "OFZr862X": [
@@ -10470,6 +10583,13 @@
     "Snapmaker Dual TPU High-Flow"
    ]
   ],
+  "OFcBl0nJ": [
+   [
+    "Polymaker",
+    "PA-CF",
+    "Fiberon PA612-CF15"
+   ]
+  ],
   "OFcJDtTx": [
    [
     "Artillery",
@@ -10498,11 +10618,25 @@
     "Overture Air PLA"
    ]
   ],
+  "OFcnWTJB": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Glitter"
+   ]
+  ],
   "OFcogyWl": [
    [
     "WonderMaker",
     "PLA",
     "WonderMaker PLA Metal"
+   ]
+  ],
+  "OFcpa50Z": [
+   [
+    "addnorth",
+    "PLA-CF",
+    "addnorth PLA-CF Carbon Fiber"
    ]
   ],
   "OFctg8r1": [
@@ -10650,6 +10784,13 @@
     "QIDI",
     "ABS",
     "QIDI ABS Rapido Metal"
+   ]
+  ],
+  "OFeF4UNh": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Silk"
    ]
   ],
   "OFeIyhUx": [
@@ -11016,6 +11157,13 @@
     "GreenGate3D PETG"
    ]
   ],
+  "OFhN09f0": [
+   [
+    "addnorth",
+    "PC",
+    "addnorth PC BLend HT LCF"
+   ]
+  ],
   "OFhO5aEJ": [
    [
     "RatRig",
@@ -11289,6 +11437,13 @@
     "Fiberthree PACF Pro P1"
    ]
   ],
+  "OFjUXn67": [
+   [
+    "BETA",
+    "ABS",
+    "BETA ABS"
+   ]
+  ],
   "OFjVOWfJ": [
    [
     "Anycubic",
@@ -11336,6 +11491,13 @@
     "QIDI",
     "PLA-CF",
     "Qidi PLA-CF"
+   ]
+  ],
+  "OFjogeYN": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Glitter"
    ]
   ],
   "OFjorDcx": [
@@ -11392,6 +11554,13 @@
     "FilAr",
     "PLA",
     "FilAr PLA Verde Pixel"
+   ]
+  ],
+  "OFkHbjUv": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Metallic"
    ]
   ],
   "OFkOviHk": [
@@ -11506,6 +11675,13 @@
     "Eolas Prints ASA"
    ]
   ],
+  "OFlfuj2k": [
+   [
+    "Bambu Lab",
+    "TPU",
+    "Bambu TPU 85A"
+   ]
+  ],
   "OFlgMgNM": [
    [
     "Flashforge",
@@ -11518,6 +11694,13 @@
     "Generic",
     "PETG",
     "Generic PETG PRO"
+   ]
+  ],
+  "OFlmxlDG": [
+   [
+    "BETA",
+    "HIPS",
+    "BETA HIPS"
    ]
   ],
   "OFln72PT": [
@@ -11611,6 +11794,13 @@
     "Eryone PLA"
    ]
   ],
+  "OFmN2lvw": [
+   [
+    "Generic",
+    "TPU-AMS",
+    "Generic TPU for AMS"
+   ]
+  ],
   "OFmY0l6t": [
    [
     "Generic",
@@ -11667,6 +11857,13 @@
     "Generic PLA High Speed"
    ]
   ],
+  "OFmt513L": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Transparent"
+   ]
+  ],
   "OFmveLWz": [
    [
     "Elegoo",
@@ -11693,6 +11890,13 @@
     "QIDI",
     "PA12-CF",
     "QIDI PA12-CF"
+   ]
+  ],
+  "OFnBvPhb": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA rPLA RE-ADD"
    ]
   ],
   "OFnHc3D6": [
@@ -11765,6 +11969,13 @@
     "FilAr PETG Cian"
    ]
   ],
+  "OFnfxTvi": [
+   [
+    "Bambu Lab",
+    "PLA",
+    "Bambu PLA Lite"
+   ]
+  ],
   "OFngcE81": [
    [
     "LH Stinger",
@@ -11784,6 +11995,13 @@
     "Anycubic",
     "PLA",
     "Anycubic PLA+"
+   ]
+  ],
+  "OFnpX8uh": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Matte"
    ]
   ],
   "OFnyHfcv": [
@@ -11933,6 +12151,13 @@
     "SUNLU PLA Matte"
    ]
   ],
+  "OFpdjFI3": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA UV Color Change"
+   ]
+  ],
   "OFpu74Qe": [
    [
     "Snapmaker",
@@ -11987,6 +12212,13 @@
     "eSUN",
     "PLA",
     "eSUN PLA+"
+   ]
+  ],
+  "OFqTwtXM": [
+   [
+    "addnorth",
+    "PETG",
+    "addnorth PETG rPETG Matte"
    ]
   ],
   "OFqcL5UF": [
@@ -12071,6 +12303,13 @@
     "Flashforge",
     "PET-CF",
     "Flashforge PET-CF"
+   ]
+  ],
+  "OFrqMlGt": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG"
    ]
   ],
   "OFrr67nG": [
@@ -12234,11 +12473,32 @@
     "FDplast SBS"
    ]
   ],
+  "OFtdVZpV": [
+   [
+    "addnorth",
+    "PLA",
+    "addnorth PLA X-PLA"
+   ]
+  ],
   "OFtefokm": [
    [
     "FilAr",
     "PLA",
     "FilAr PLA-mate Blanco"
+   ]
+  ],
+  "OFtkLO6q": [
+   [
+    "Bambu Lab",
+    "TPU",
+    "Bambu TPU 90A"
+   ]
+  ],
+  "OFtndTHe": [
+   [
+    "BETA",
+    "PETG-CF",
+    "BETA PETG-CF"
    ]
   ],
   "OFtpXCCv": [
@@ -12388,6 +12648,13 @@
     "Hyper PETG-CF"
    ]
   ],
+  "OFuvOt0r": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Basic"
+   ]
+  ],
   "OFuxH0Uz": [
    [
     "Volumic",
@@ -12451,6 +12718,13 @@
     "Flashforge HIPS"
    ]
   ],
+  "OFvcIGee": [
+   [
+    "addnorth",
+    "TPU",
+    "addnorth TPU Pro Matte 85A"
+   ]
+  ],
   "OFvdZ2bx": [
    [
     "QIDI",
@@ -12507,6 +12781,13 @@
     "Eolas Prints PLA High Speed"
    ]
   ],
+  "OFw4WD4T": [
+   [
+    "Polymaker",
+    "PETG-CF",
+    "Fiberon PETG-rCF08"
+   ]
+  ],
   "OFwJ0qu2": [
    [
     "DREMC",
@@ -12554,6 +12835,13 @@
     "re3D",
     "PC",
     "re3D PC"
+   ]
+  ],
+  "OFwc74ck": [
+   [
+    "BETA",
+    "PLA",
+    "BETA PLA Matte"
    ]
   ],
   "OFwhLMs4": [
@@ -12661,6 +12949,13 @@
     "PolyTerra PLA Marble"
    ]
   ],
+  "OFxqf79Q": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG HF"
+   ]
+  ],
   "OFy02QHU": [
    [
     "Polymaker",
@@ -12710,6 +13005,13 @@
     "Arena PLA Sparkle"
    ]
   ],
+  "OFyJjkek": [
+   [
+    "addnorth",
+    "TPU",
+    "addnorth TPU Pro Matte 95A"
+   ]
+  ],
   "OFyLWVF3": [
    [
     "Generic",
@@ -12722,6 +13024,13 @@
     "Snapmaker",
     "PLA",
     "Snapmaker Dual PLA Eco"
+   ]
+  ],
+  "OFyPTnSk": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Heat Color Change"
    ]
   ],
   "OFyQwdaM": [
@@ -12808,6 +13117,13 @@
     "AliZ PLA"
    ]
   ],
+  "OFz1a1fy": [
+   [
+    "BETA",
+    "PETG",
+    "BETA PETG Metallic"
+   ]
+  ],
   "OFz5oHgf": [
    [
     "Generic",
@@ -12848,6 +13164,20 @@
     "Artillery",
     "PLA",
     "Artillery PLA"
+   ]
+  ],
+  "OFzaq7Yg": [
+   [
+    "BETA",
+    "TPU",
+    "BETA TPU 98A"
+   ]
+  ],
+  "OFzk5oAo": [
+   [
+    "addnorth",
+    "ABS",
+    "addnorth ABS rABS"
    ]
   ],
   "OFzrUUxc": [

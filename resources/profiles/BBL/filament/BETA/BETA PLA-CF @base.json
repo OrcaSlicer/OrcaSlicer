@@ -3,7 +3,7 @@
 	"name": "BETA PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB17",
+	"filament_id": "OFLqgSuX",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

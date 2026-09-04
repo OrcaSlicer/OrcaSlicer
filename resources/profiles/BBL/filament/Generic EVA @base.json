@@ -3,7 +3,7 @@
 	"name": "Generic EVA @base",
 	"inherits": "fdm_filament_eva",
 	"from": "system",
-	"filament_id": "GFR99",
+	"filament_id": "OFCD8qiU",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"70"

@@ -3,7 +3,7 @@
 	"name": "SUNLU Silk PLA+ @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFSNL05",
+	"filament_id": "OFpPGSKG",
 	"instantiation": "false",
 	"description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",
 	"filament_cost": [
