@@ -21,6 +21,11 @@
 #include "FillCornerSmoothing.hpp"
 #include "FillRectilinear.hpp"
 
+
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+
 // #define SLIC3R_DEBUG
 // #define INFILL_DEBUG_OUTPUT
 
@@ -3406,6 +3411,119 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
     return true;
 }
+
+static float randomFloatFromSeed(uint32_t x)
+{
+    boost::random::mt19937 rng(x);
+    boost::random::uniform_real_distribution<> dist;
+
+    return (float) dist(rng);
+}
+
+// Orca: Introduced FillScatteredRectilinear from Superslicer
+float FillScatteredRectilinear::_layer_angle(size_t idx) const
+{
+    // Angle chosen at random using the layer index as a key
+    return randomFloatFromSeed((uint32_t) idx) * (float) M_PI;
+}
+
+coord_t FillScatteredRectilinear::_line_spacing_for_density(float density) const
+{
+    /* The density argument is ignored, we first generate lines at 100% density, then prune some generated lines
+     * later to achieve the target density
+     */
+    (void) density;
+
+    return coord_t(scale_(this->spacing) / 1.0);
+}
+
+Polylines FillScatteredRectilinear::fill_surface(const Surface *surface, const FillParams &params)
+{
+    Polylines polylines_out;
+    float angleBase = 0.f;
+    float pattern_shift = randomFloatFromSeed((uint32_t) layer_id) * 0.5f * (float) this->spacing;
+
+    // Implementation based on FillRectilinear::fill_surface_by_lines but with scattering logic inserted.
+
+    // Shrink the input polygon a bit first to not push the infill lines out of the perimeters.
+    const float INFILL_OVERLAP_OVER_SPACING = 0.45f;
+    assert(INFILL_OVERLAP_OVER_SPACING > 0 && INFILL_OVERLAP_OVER_SPACING < 0.5f);
+
+    // Rotate polygons so that we can work with vertical lines here
+    std::pair<float, Point> rotate_vector = this->_infill_direction(surface);
+    rotate_vector.first += angleBase;
+
+    // Use self calculated line spacing (should be 100% density equivalent)
+    coord_t line_spacing = _line_spacing_for_density(params.density);
+
+    // On the polygons of poly_with_offset, the infill lines will be connected.
+    ExPolygonWithOffset poly_with_offset(
+        surface->expolygon, 
+        - rotate_vector.first, 
+        float(scale_(this->overlap - (0.5 - INFILL_OVERLAP_OVER_SPACING) * this->spacing)),
+        float(scale_(this->overlap - 0.5f * this->spacing)));
+    if (poly_with_offset.n_contours_inner == 0) {
+        return polylines_out;
+    }
+
+    BoundingBox bounding_box_src = poly_with_offset.bounding_box_src();
+    BoundingBox bounding_box     = bounding_box_src; // Scattered is not consistent pattern
+
+    // define flow spacing according to requested density
+    if (params.full_infill() && !params.dont_adjust) {
+        line_spacing = this->_adjust_solid_spacing(bounding_box_src.size().x(), line_spacing);
+        this->spacing = unscale<double>(line_spacing);
+    } else {
+        // extend bounding box so that our pattern will be aligned with other layers
+        Point refpt = rotate_vector.second.rotated(- rotate_vector.first);
+        coord_t pattern_shift_scaled = coord_t(scale_(pattern_shift)) % line_spacing;
+        refpt.x() -= (pattern_shift_scaled >= 0) ? pattern_shift_scaled : (line_spacing + pattern_shift_scaled);
+        bounding_box.merge(align_to_grid(
+            bounding_box.min, 
+            Point(line_spacing, line_spacing), 
+            refpt));
+    }
+
+    size_t  n_vlines = (bounding_box.max(0) - bounding_box.min(0) + line_spacing - 1) / line_spacing;
+	coord_t x0 = bounding_box.min(0);
+	if (params.full_infill())
+		x0 += (line_spacing + coord_t(SCALED_EPSILON)) / 2;
+
+    // Generate vertical lines (at 100% density)
+    std::vector<SegmentedIntersectionLine> segs = slice_region_by_vertical_lines(poly_with_offset, n_vlines, x0, line_spacing);
+
+    // --- SCATTERING LOGIC ---
+    if (!params.full_infill()) {
+        boost::random::mt19937 rng((uint32_t) layer_id);
+        boost::random::uniform_real_distribution<> dist;
+
+        // Remove generated lines with a probability that'll achieve the required density on average
+        for (auto iter = segs.begin(); iter != segs.end(); ) {
+            if (dist(rng) >= params.density) {
+                iter = segs.erase(iter);
+            } else {
+                ++iter;
+            }
+        }
+    }
+    // ------------------------
+
+    // Connect by horizontal / vertical links
+	connect_segment_intersections_by_contours(poly_with_offset, segs, params, this->link_max_length);
+
+    // Generate polylines (using Graph traversal, always non-monotonic for Scattered)
+	traverse_graph_generate_polylines(poly_with_offset, params, segs, false, polylines_out);
+
+    // paths must be rotated back
+    for (Polylines::iterator it = polylines_out.begin(); it != polylines_out.end(); ++ it) {
+        assert(! it->has_duplicate_points());
+        it->rotate(rotate_vector.first);
+        it->remove_duplicate_points();
+    }
+
+    return polylines_out;
+}
+
 
 Polylines FillRectilinear::fill_surface(const Surface *surface, const FillParams &params)
 {

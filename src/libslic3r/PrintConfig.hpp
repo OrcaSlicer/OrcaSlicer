@@ -114,7 +114,7 @@ enum InfillPattern : int {
     ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb, ipLateralLattice,
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
-    ipSupportBase, ipConcentricInternal,
+    ipSupportBase, ipConcentricInternal, ipScatteredRectilinear,
     ipCount,
 };
 

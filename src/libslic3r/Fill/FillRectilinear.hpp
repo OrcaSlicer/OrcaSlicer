@@ -227,6 +227,18 @@ Points sample_grid_pattern(const ExPolygon &expolygon, coord_t spacing, const Bo
 Points sample_grid_pattern(const ExPolygons &expolygons, coord_t spacing, const BoundingBox &global_bounding_box);
 Points sample_grid_pattern(const Polygons &polygons, coord_t spacing, const BoundingBox &global_bounding_box);
 
+class FillScatteredRectilinear : public FillRectilinear
+{
+public:
+    Fill* clone() const override { return new FillScatteredRectilinear(*this); }
+    ~FillScatteredRectilinear() override = default;
+    Polylines fill_surface(const Surface *surface, const FillParams &params) override;
+
+protected:
+    float _layer_angle(size_t idx) const override;
+    coord_t _line_spacing_for_density(float density) const;
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillRectilinear_hpp_
