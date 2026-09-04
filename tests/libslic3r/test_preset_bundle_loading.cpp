@@ -2980,6 +2980,215 @@ TEST_CASE("Published 3MF relocates a mixed filament instead of overwriting a phy
     }
 }
 
+// A receiver that already owns a MIXED filament must keep the physical-first invariant after a
+// published-3MF import: when incoming physical filaments would land on (or ahead of) the
+// receiver's mixed slot, that mix is displaced to a fresh tail slot instead of being left
+// interleaved with them (the R,M,R bug).
+TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incoming physical slots", "[Preset][Bundle][Published]")
+{
+    // Build the receiver's tool-changer with three slots, the third being the receiver's own
+    // mixed filament. A SEMM (single_extruder_multi_material) receiver sizes its slot list by
+    // hand, so a lower slot count than the printer's nozzle count is preserved on load - a
+    // non-SEMM tool-changer would top the preset list up to the nozzle count and shift the
+    // expected sizes (the rebalance logic under test is the same either way).
+    auto make_receiver = [](PresetBundle &bundle, const std::string &components, const std::string &ratios) {
+        Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+        pla.config.opt_string("filament_type", 0u) = "PLA";
+        bundle.filament_presets = { "My PLA", "My PLA", "My PLA" };
+        bundle.set_num_filaments(3, "#123456");
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionBool>("single_extruder_multi_material", true)->value = true;
+        bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values[2]          = 1;
+        bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[2] = components;
+        bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[2] = ratios;
+        bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[2]        = "#800080";
+        bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values[2] = "#800080";
+    };
+    auto make_real_entry = [](int slot, const char *color) {
+        PublishedMaterialEntry entry;
+        entry.slot            = slot;
+        entry.filament_type   = "PLA";
+        entry.filament_vendor = "Generic";
+        entry.publish_color   = true;
+        entry.color           = color;
+        return entry;
+    };
+    // A four-physical author project with no mixed slots (colour publish only), as in the
+    // reported Ferrari reference file.
+    auto make_config_4_real = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75, 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 2, 3, 4 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = {
+            "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"
+        };
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#000000", "#FFFFFF", "#FFFF00" };
+        config.opt<ConfigOptionStrings>("filament_type")->values   = { "PLA", "PLA", "PLA", "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic", "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values    = { "GFL99", "GFL99", "GFL99", "GFL99" };
+        return config;
+    };
+
+    // [R, R, M] + four colour-only physical slots at authored 0..3 -> [R, R, R, R, M].
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, "1,2", "0.5,0.5");
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_real_entry(0, "#FF0000"), make_real_entry(1, "#000000"),
+                              make_real_entry(2, "#FFFFFF"), make_real_entry(3, "#FFFF00") };
+        DynamicPrintConfig config = make_config_4_real();
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        // The receiver grows by one extra virtual slot; the mix lands at the tail.
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        for (size_t i = 0; i < 4; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        CHECK(is_mixed[4]);
+        // The definition travelled with its swatch colour; the vacated slot 2 became physical.
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 5);
+        CHECK(components[4] == "1,2");
+        CHECK(components[2].empty());
+        const auto &colour = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+        REQUIRE(colour.size() == 5);
+        CHECK(colour[4] == "#800080");
+        CHECK(colour[2] == "#FFFFFF");
+        CHECK(pub.mixed_slot_relocations.at(2) == 4);
+        bool relocated_reported = false;
+        for (const std::string &message : pub.material_replacements)
+            if (message.find("slot 2 -> slot 4") != std::string::npos &&
+                message.find("mixed filament") != std::string::npos)
+                relocated_reported = true;
+        CHECK(relocated_reported);
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // [R, R, M] plus a payload mix authored at slot 3: the receiver mix (displaced to slot 3) sits
+    // ahead of the appended payload mix (slot 4), preserving physical-first tail ordering.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, "1,2", "0.5,0.5");
+
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionFloats>("filament_diameter")->values         = { 1.75, 1.75, 1.75, 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values         = { 1, 2, 3, 4 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = {
+            "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"
+        };
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#000000", "#0000FF", "#800080" };
+        config.opt<ConfigOptionStrings>("filament_type")->values   = { "PLA", "PLA", "PLA", "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic", "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values    = { "GFL99", "GFL99", "GFL99", "GFL99" };
+        // Authored slot 3 is a payload mixed definition blending slots 1 and 3.
+        config.opt<ConfigOptionBools>("filament_is_mixed")->values                     = { 0, 0, 0, 1 };
+        config.opt<ConfigOptionStrings>("filament_mixed_components")->values           = { "", "", "", "1,3" };
+        config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values      = { "", "", "", "0.6,0.4" };
+        config.opt<ConfigOptionBools>("filament_mixed_gradient")->values               = { 0, 0, 0, 1 };
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values       = { "", "", "", "0.9,0.1" };
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values       = { "", "", "", "0,0.1|1,0.9" };
+        config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values      = { 0, 0, 0, 1 };
+
+        PublishedMaterialEntry mix;
+        mix.slot          = 3;
+        mix.filament_type = "PLA";
+        mix.publish_color = true;
+        mix.color         = "#800080";
+        mix.keys          = { "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios",
+                              "filament_mixed_gradient", "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+                              "filament_mixed_gradient_per_part" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_real_entry(0, "#FF0000"), make_real_entry(1, "#000000"),
+                              make_real_entry(2, "#0000FF"), mix };
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        CHECK_FALSE(is_mixed[0]);
+        CHECK_FALSE(is_mixed[1]);
+        CHECK_FALSE(is_mixed[2]);
+        CHECK(is_mixed[3]); // receiver's mix, displaced to slot 3 first
+        CHECK(is_mixed[4]); // payload's mix, appended after
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 5);
+        CHECK(components[3] == "1,2");
+        CHECK(components[4] == "1,3");
+        REQUIRE(pub.mixed_slot_relocations.size() == 2);
+        CHECK(pub.mixed_slot_relocations.at(2) == 3);
+        CHECK(pub.mixed_slot_relocations.at(3) == 4);
+        CHECK(pub.skipped_keys.empty());
+    }
+}
+
+// Multiple receiver mixed slots interleaved with multiple incoming physical slots all rebalance
+// onto consecutive tail slots in index order (no cascade/overlap).
+TEST_CASE("Published 3MF rebalances several receiver mixed slots past the physical region", "[Preset][Bundle][Published]")
+{
+    PresetBundle bundle;
+    Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.opt_string("filament_type", 0u) = "PLA";
+    bundle.filament_presets = { "My PLA", "My PLA", "My PLA" };
+    bundle.set_num_filaments(3, "#123456");
+    bundle.printers.get_edited_preset().config.opt<ConfigOptionBool>("single_extruder_multi_material", true)->value = true;
+    // Receiver: slot 1 and slot 2 are mixed.
+    bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values[1]             = 1;
+    bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values[2]             = 1;
+    bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[1]   = "1,2";
+    bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[2]   = "1,3";
+    bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[1] = "0.5,0.5";
+    bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[2] = "0.4,0.6";
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionFloats>("filament_diameter")->values         = { 1.75, 1.75, 1.75 };
+    config.opt<ConfigOptionInts>("filament_self_index")->values         = { 1, 2, 3 };
+    config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = {
+        "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"
+    };
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00AA00", "#0000FF" };
+    config.opt<ConfigOptionStrings>("filament_type")->values   = { "PLA", "PLA", "PLA" };
+    config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic" };
+    config.opt<ConfigOptionStrings>("filament_ids")->values    = { "GFL99", "GFL99", "GFL99" };
+
+    auto make_real_entry = [](int slot, const char *color) {
+        PublishedMaterialEntry entry;
+        entry.slot            = slot;
+        entry.filament_type   = "PLA";
+        entry.filament_vendor = "Generic";
+        entry.publish_color   = true;
+        entry.color           = color;
+        return entry;
+    };
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { make_real_entry(0, "#FF0000"), make_real_entry(1, "#00AA00"), make_real_entry(2, "#0000FF") };
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    REQUIRE(bundle.filament_presets.size() == 5);
+    const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+    REQUIRE(is_mixed.size() == 5);
+    for (size_t i = 0; i < 3; ++i)
+        CHECK_FALSE(is_mixed[i]);
+    CHECK(is_mixed[3]);
+    CHECK(is_mixed[4]);
+    const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+    REQUIRE(components.size() == 5);
+    CHECK(components[3] == "1,2");
+    CHECK(components[4] == "1,3");
+    REQUIRE(pub.mixed_slot_relocations.size() == 2);
+    CHECK(pub.mixed_slot_relocations.at(1) == 3);
+    CHECK(pub.mixed_slot_relocations.at(2) == 4);
+    CHECK(pub.skipped_keys.empty());
+}
+
 // The receiver's printer gates how many PHYSICAL filament slots a published 3MF may add: a
 // non-SEMM tool-changer feeds filament N from nozzle N, so a published slot past the nozzle
 // count cannot become a physical filament. It becomes an empty mixed-filament placeholder

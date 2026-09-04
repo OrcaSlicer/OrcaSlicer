@@ -4759,6 +4759,98 @@ static void apply_mixed_config_relocations(DynamicPrintConfig&                  
     }
 }
 
+// Relocate the per-slot cells of the receiver's OWN mixed-filament definitions (the ones that
+// pre-existed in project_config) onto fresh tail slots, clearing each vacated source cell so an
+// incoming published real filament can claim it. Unlike apply_mixed_config_relocations - which
+// moves the incoming file's config and leaves sources alone - a displaced receiver mix must not
+// keep its mixed flag in the physical region: the source slot becomes a physical slot, so its
+// mixed flag and definition are reset, while its swatch colour and mapping travel with the
+// definition to the tail slot. Reads come from a frozen snapshot so an earlier move's
+// destination never overwrites a later move's still-unread source (sources sit in the physical
+// region and destinations past it, so they cannot overlap, but the snapshot keeps the helper
+// safe for any future reordering).
+static void apply_receiver_mix_relocations(DynamicPrintConfig&                            config,
+                                           std::vector<std::vector<std::string>>&          ams_multi_color_filment,
+                                           const std::vector<std::pair<size_t, size_t>>&  moves)
+{
+    if (moves.empty())
+        return;
+
+    auto move_bools  = [&](const char* key, bool clear_source) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionBools*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionBools*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const bool cell = from < frozen->values.size() ? frozen->values[from] : false;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, false);
+            live->values[to] = cell;
+            if (clear_source && from < live->values.size())
+                live->values[from] = false;
+        }
+    };
+    auto move_strings = [&](const char* key, bool clear_source) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionStrings*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionStrings*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, std::string{});
+            live->values[to] = cell;
+            if (clear_source && from < live->values.size())
+                live->values[from] = std::string{};
+        }
+    };
+    auto move_ints = [&](const char* key) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionInts*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionInts*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const int cell = from < frozen->values.size() ? frozen->values[from] : 0;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, 0);
+            live->values[to] = cell;
+        }
+    };
+
+    // Mixed-definition cells: move to the tail and clear the source - the vacated physical slot
+    // no longer holds a mix.
+    move_bools("filament_is_mixed", true);
+    move_strings("filament_mixed_components", true);
+    move_strings("filament_mixed_sublayer_ratios", true);
+    move_bools("filament_mixed_gradient", true);
+    move_strings("filament_mixed_gradient_range", true);
+    move_strings("filament_mixed_gradient_curve", true);
+    move_bools("filament_mixed_gradient_per_part", true);
+    // Swatch colour and mapping travel with the definition; the source colour is left for the
+    // incoming real's publish_color (or the slot's resolved preset) to fill in.
+    move_strings("filament_colour", false);
+    move_strings("filament_multi_colour", false);
+    move_strings("filament_colour_type", false);
+    move_ints("filament_map");
+    move_ints("filament_nozzle_map");
+    move_ints("filament_volume_map");
+    {
+        const std::vector<std::vector<std::string>> frozen = ams_multi_color_filment;
+        for (const auto [from, to] : moves) {
+            const std::vector<std::string> cell = from < frozen.size() ? frozen[from] : std::vector<std::string>();
+            if (ams_multi_color_filment.size() <= to)
+                ams_multi_color_filment.resize(to + 1, std::vector<std::string>{});
+            ams_multi_color_filment[to] = cell;
+        }
+    }
+}
+
 
 //convert the old filament preset to new one after split
 static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
@@ -5287,7 +5379,24 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // counter preserving author order (dest = max(authored, next_free)). Appends past
             // the extruder limit are dropped and reported. Physical entries past capacity join
             // the same counter as mixed_placeholder empties the GUI flags for assignment.
-            size_t next_free_slot      = this->filament_presets.size();
+            //
+            // The finished project keeps the physical-first invariant (see the sidebar's
+            // add_custom_filament: mixed slots always sit at the tail, physical slots packed
+            // first). That invariant must survive an import, so every receiver mixed slot that
+            // would end up inside (or ahead of) the incoming physical region is displaced to a
+            // fresh tail slot, and the tail allocator starts at the physical boundary rather
+            // than the receiver's slot count - otherwise a relocated mix can collide with a
+            // keep-placed new real slot.
+            size_t physical_boundary = this->num_physical_filaments();
+            for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                // Mirror the payload-real keep-place decision below: a real keeps its authored
+                // slot when that slot already exists on the receiver, or lies within the
+                // printer's physical capacity. Both end up as physical slots at index
+                // entry.slot, so they bound the physical region even past the capacity.
+                if (entry.slot >= 0 && !is_mixed_definition(entry) &&
+                    (size_t(entry.slot) < this->filament_presets.size() || size_t(entry.slot) < physical_capacity))
+                    physical_boundary = std::max(physical_boundary, size_t(entry.slot) + 1);
+            size_t next_free_slot      = std::max(physical_boundary, this->filament_presets.size());
             bool   any_mixed_relocated = false;
             // All authored-slot -> destination moves decided by this pass, applied to the
             // incoming config in one batched snapshot step below (an earlier move's
@@ -5295,6 +5404,33 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // onto consecutive slots, so incremental in-place shifts would overwrite a
             // definition that has not been moved yet).
             std::vector<std::pair<size_t, size_t>> mixed_moves;
+            // Receiver-mix relocations land in project_config, not the incoming config, so they
+            // get their own move list, applied below after the arrays grow. The swept set lets
+            // the payload loop below treat a displaced receiver mix as the physical slot it will
+            // become (a payload mix like-for-like overriding such a slot must itself relocate).
+            std::vector<std::pair<size_t, size_t>> receiver_mix_moves;
+            std::set<size_t>                        swept_mix_slots;
+            for (size_t slot = 0; slot < this->filament_presets.size(); ++slot) {
+                if (!this->is_mixed_filament(slot))
+                    continue;
+                // Slot 0 is the receiver's base filament and is never a virtual mix; the
+                // sidebar's physical-first layout guarantees it, so never displace it.
+                if (slot == 0)
+                    continue;
+                if (slot >= physical_boundary)
+                    continue; // already lives in the tail region
+                const size_t dest = next_free_slot++;
+                swept_mix_slots.insert(slot);
+                receiver_mix_moves.emplace_back(slot, dest);
+                any_mixed_relocated = true;
+                // A payload mix authored at the same slot (a mix inside the physical region) is
+                // processed after this sweep and overrides its own destination below.
+                published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
+                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + " -> slot " +
+                                                                      std::to_string(dest) + ": mixed filament");
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated receiver mixed filament slot " << slot
+                                        << " -> " << dest << " (physical-first rebalance)";
+            }
             for (auto entry_it = published_config->material_keys.begin(); entry_it != published_config->material_keys.end();) {
                 PublishedMaterialEntry& entry = *entry_it;
                 if (entry.slot < 0) {
@@ -5310,7 +5446,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // above the printer's capacity (pre-existing state is never shrunk).
                 bool keep_place = false;
                 if (is_payload_mix)
-                    keep_place = this->is_mixed_filament(size_t(entry.slot));
+                    keep_place = this->is_mixed_filament(size_t(entry.slot)) && swept_mix_slots.count(size_t(entry.slot)) == 0;
                 else
                     keep_place = size_t(entry.slot) < this->filament_presets.size() ||
                                  size_t(entry.slot) < physical_capacity;
@@ -5357,7 +5493,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         entry.slot              = dest_slot;
                         any_mixed_relocated     = true;
                         mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
-                        published_config->mixed_slot_relocations.emplace(authored_slot, entry.slot);
+                        published_config->mixed_slot_relocations.insert_or_assign(authored_slot, entry.slot);
                         published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
                                                                              std::to_string(entry.slot) + ": mixed filament");
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
@@ -5374,7 +5510,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     if (dest_slot != authored_slot) {
                         entry.slot = dest_slot;
                         mixed_moves.emplace_back(size_t(authored_slot), size_t(dest_slot));
-                        published_config->mixed_slot_relocations.emplace(authored_slot, dest_slot);
+                        published_config->mixed_slot_relocations.insert_or_assign(authored_slot, dest_slot);
                     }
                     published_config->material_replacements.emplace_back(
                         (dest_slot != authored_slot ?
@@ -5725,6 +5861,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // slots wrote to it; that compound case is not chased.)
                 const bool edited_survives_load = this->filament_presets.empty() ||
                                                   this->filament_presets.front() == this->filaments.get_edited_preset().name;
+                // Displaced receiver mixes (see the physical-first rebalance above): move their
+                // per-slot cells onto the grown tail slots and reset the vacated physical slots,
+                // so the incoming real filaments can claim them. Runs before mixed_final_slots is
+                // built, so the rebalanced layout is what the mix validation sees.
+                apply_receiver_mix_relocations(this->project_config, this->ams_multi_color_filment, receiver_mix_moves);
                 // Final layout for mix-definition validation: every slot that will hold a
                 // mixed definition once this load completes - the receiver's own virtual
                 // slots, each published mixed entry's final (possibly relocated) slot, and
