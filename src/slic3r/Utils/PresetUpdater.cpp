@@ -780,11 +780,15 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
 
     const fs::path cached_vendor_json = cache_profile_path / (vendor_id + ".json");
     const fs::path cached_vendor_folder = cache_profile_path / vendor_id;
-    if (!fs::is_regular_file(cached_vendor_json) || !fs::is_directory(cached_vendor_folder) ||
-        fs::is_empty(cached_vendor_folder)) {
+
+    const fs::path cached_vendor_opc = cache_profile_path / (vendor_id + ".opc");
+
+    bool is_json_update = fs::is_regular_file(cached_vendor_json) && fs::is_directory(cached_vendor_folder) && !fs::is_empty(cached_vendor_folder);
+    bool is_opc_update = fs::is_regular_file(cached_vendor_opc);
+    if (!is_json_update && !is_opc_update) {
         BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] rejected update for " << vendor_id
                                    << ": expected " << vendor_id << ".json and a non-empty "
-                                   << vendor_id << " directory";
+                                   << vendor_id << " directory, or OPC update format.";
         fs::remove_all(cached_vendor_folder, ec);
         fs::remove(cached_vendor_json, ec);
         return;
