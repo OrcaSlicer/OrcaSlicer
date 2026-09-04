@@ -588,7 +588,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         else if (strCmd == "user_guide_create_printer") {
             this->EndModal(wxID_CANCEL);
             this->Close();
-            GUI::wxGetApp().CallAfter([this] {GUI::wxGetApp().sidebar().create_printer_preset();});
+            GUI::wxGetApp().CallAfter([] {GUI::wxGetApp().sidebar().create_printer_preset();});
         }
         else if (strCmd == "user_guide_cancel") {
             this->EndModal(wxID_CANCEL);
@@ -871,7 +871,7 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     std::string preferred_model;
     std::string preferred_variant;
     PrinterTechnology preferred_pt = ptFFF;
-    auto get_preferred_printer_model = [preset_bundle, enabled_vendors, old_enabled_vendors, preferred_pt](const std::string& bundle_name, std::string& variant) {
+    auto get_preferred_printer_model = [preset_bundle, enabled_vendors, old_enabled_vendors](const std::string& bundle_name, std::string& variant) {
         const auto config = enabled_vendors.find(bundle_name);
         if (config == enabled_vendors.end())
             return std::string();
