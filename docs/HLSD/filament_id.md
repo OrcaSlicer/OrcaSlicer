@@ -64,14 +64,15 @@ failing that, any compatible system preset, else the slot is skipped — every f
 selection surfaces a user-visible notice.
 
 Today only the Bambu AMS integration follows this pattern end to end — the device itself
-reports the id, and the pipeline does all the matching. The other device integrations still
-synthesize a preset id client-side in their agents (by type, brand, or color lookups against
-the loaded presets) before the pipeline runs; they are intended to converge on the same
-pattern, with the device-reported tray material id flowing through the shared matcher.
+reports the id, `BBLPrinterAgent` translates it out of Bambu's catalog into ours, and the
+pipeline does all the matching. The other device integrations still synthesize a preset id
+client-side in their agents (by type, brand, or color lookups against the loaded presets)
+before the pipeline runs; they are intended to converge on the same pattern, with the
+device-reported tray material id flowing through the shared matcher.
 
 | Ecosystem | Where the tray id comes from today |
 | --- | --- |
-| Bambu AMS | the device itself (RFID / user tray setting) — the `GF*` catalog |
+| Bambu AMS | the device itself (RFID / user tray setting), in Bambu's own `GF*` catalog; `BBLPrinterAgent` rewrites it into our id before the matcher sees it (see [The Bambu catalog map](#the-bambu-catalog-map)) |
 | Qidi box | composed at runtime as `QD_<series>_<vendor>_<typeidx>` — vendor and type indices from the device's per-slot saved variables, the series digit inferred client-side from the printer model/name. No preset carries a `QD_*` value, so the slot currently resolves by filament type; mapping the composed id onto the family's minted id belongs in the agent |
 | Creality CFS | runtime brand/type scoring returns the winning preset's id |
 | Klipper (AFC / Happy Hare) | runtime lookup by filament type |
@@ -205,20 +206,23 @@ python scripts/assign_filament_ids.py --check            # 4. verify — the sam
 # 5. Commit the profile edits together with scripts/filament_id_snapshot.json.
 ```
 
-The default run is idempotent and never rewrites a valid existing id; it edits profile files
-byte-preservingly (indentation, BOM, and line endings intact) and re-parses them to fail
-loudly. `--mint "filament_vendor/filament_type/family_name"` prints the id a **new** mint of
-that triple would get, without touching anything — note that for a triple whose id already
-exists it prints the next *free* salt iteration, not the live id (asking for
+The default run mints ids for id-less families and replaces any declaration that is not in
+`OF` format; it never rewrites a valid `OF` id, so it is idempotent and a no-op once every
+family has one. It edits profile files byte-preservingly (indentation, BOM, and line endings
+intact) and re-parses them to fail loudly.
+`--mint "filament_vendor/filament_type/family_name"` prints the id a **new** mint of that
+triple would get, without touching anything — note that for a triple whose id already exists
+it prints the next *free* salt iteration, not the live id (asking for
 `Polymaker/PLA/PolyLite PLA` today prints the salt-1 id, because `OF5CgdDq` is taken).
 
 Maintenance modes (`--remint` is also the step for identity fixes — see the FAQ; the rest are
 normally only used by id migrations):
 
-- `--remint VENDOR` re-derives a vendor's declared ids from their triples. A declaration
-  already equal to a salt iteration of its own triple is conformant and left alone, so
-  deliberate salt splits survive; convergence onto an id another bundle already uses for the
-  *same* triple is legal by design — that is the point.
+- `--remint VENDOR` re-derives a vendor's declared ids from their triples — any vendor, BBL
+  included, since no bundle is exempt from the mint rule. A declaration already equal to a
+  salt iteration of its own triple is conformant and left alone, so deliberate salt splits
+  survive; convergence onto an id another bundle already uses for the *same* triple is legal
+  by design — that is the point.
 - `--drop-redundant-ids VENDOR` deletes declarations that merely re-declare an inherited
   OrcaFilamentLibrary id.
 - `--profiles DIR` points the tooling at a different profile tree (default
@@ -231,22 +235,26 @@ diff.
 
 ## Reserved namespaces — never mint or hand-write into
 
-An **island** is a frozen id namespace exempt from the mint rule because an external catalog
-or device contract owns it.
+A **reserved namespace** is an id space no system profile may declare, because an external
+catalog or a device protocol owns the values. None of them has an owning vendor: there is no
+bundle — not even the one whose printers use the catalog — that may write one into a profile.
 
 | Space | Status | Rule |
 | --- | --- | --- |
-| `GF*` | Bambu AMS/RFID catalog — the one remaining *island* | BBL vendor only; a claim by anyone else is refused unless the snapshot sanctions that exact claim (via `--allow-shared-catalog` — see the CI section) |
+| `GF*` | Bambu AMS/RFID catalog | declarable by **nobody**, BBL included: Bambu's own ids live in the generated catalog map, never in a profile |
 | `QD_*` | Qidi device protocol | declarable by **nobody**, Qidi included: the box composes these ids at runtime and they are not preset ids |
 | `P` + 7 hex chars (case-insensitive), `"null"` | user-created custom filaments (`CreatePresetsDialog.cpp`) | never appears in system profiles |
 | every already-shipped id | frozen in the snapshot (grandfathered) | frozen as-is; new claims need maintainer sign-off |
 
 The two device namespaces, in detail:
 
-- **BBL (`GF*`).** Bambu's device/RFID/cloud catalog is external and opaque, so BBL
-  declarations are frozen as-is and never re-minted. BBL also carries several dozen
-  grandfathered legacy codes that are neither `GF*` nor `OF*` (the `BETA` family's `B*` ids,
-  plus `Generic SBS`'s legacy `BFLSBS99`) — frozen the same way, via the snapshot.
+- **Bambu (`GF*`).** Bambu's device/RFID/cloud catalog is external and opaque, which is a
+  reason to keep it out of the profiles rather than to let one bundle own it. Every BBL family
+  mints an `OF` id from its triple like every other vendor's, and the correspondence to Bambu's
+  catalog ids lives in one generated file the app applies at the printer boundary — the next
+  section. Nothing under `resources/profiles/**` carries a `GF*` id today and the snapshot
+  grandfathers none, so a `GF*` id appearing anywhere in the tree is a mistake, whoever wrote
+  it.
 - **Qidi (`QD_*`).** `QD_*` is a device-*protocol* namespace, not a preset id space: the
   Qidi box path composes `QD_<series>_<vendor>_<typeidx>` ids at runtime (slot vendor and
   type indices reported by the device, the series digit inferred client-side from the printer
@@ -255,6 +263,142 @@ The two device namespaces, in detail:
   the family's id belongs in `QidiPrinterAgent`. The alternative — treating per-series
   protocol ids as preset ids — would put one product under five ids (`QIDI PLA Rapido` would
   be `QD_0_1_1` through `QD_4_1_1`), exactly the fragmentation the mint rule removes.
+
+## The Bambu catalog map
+
+Bambu's printers, its AMS and its cloud know only Bambu's own catalog ids. Our profiles carry
+minted `OF` ids like every other vendor's, so one generated file records the correspondence and
+the app applies it **only where an id crosses to or from a Bambu printer**.
+
+**The file** is `resources/printers/bambu_filament_ids.json` — a header plus one row per
+catalogued product, keyed by our id:
+
+```json
+{
+  "source": "https://github.com/bambulab/BambuStudio",
+  "bambustudio_commit": "66e405477",
+  "generated": "2026-09-04",
+  "filaments": {
+    "OFhuaUQB": { "bambu_id": "GFB00", "vendor": "Bambu Lab", "type": "ABS", "name": "Bambu ABS" }
+  }
+}
+```
+
+It ships in `resources/printers/`, next to `filaments_blacklist.json` — deliberately not in
+`resources/profiles/`, where the loader reads every top-level `.json` as a vendor index. It
+holds 100 rows today, one per product BambuStudio ships, and the correspondence is
+one-to-one in both directions.
+
+**It is generated, never hand-edited.** `python scripts/update_bambu_filament_ids.py` rebuilds
+it from **BambuStudio's own shipped BBL bundle** — a sparse shallow clone of upstream `master`,
+or `--bambustudio-dir <a BambuStudio resources/profiles checkout>`. Our BBL bundle is a fork of
+Bambu's, tuned and extended independently, so it is not the source of truth for Bambu's ids.
+A row's key is whatever id our tree already mints for that same
+`(filament_vendor, filament_type, family)` triple; a product we do not ship gets a freshly
+generated key and the row sits inert until some bundle claims that triple — `OFdyfQvU` /
+`GFG03`, "Bambu PETG Matte", is such a row today.
+
+**Regenerate it in the same commit as every BBL profile sync**, and read the drift report it
+prints. Two lines, both informational, neither blocking the write:
+
+```text
+upstream ships 'Bambu PETG Matte' (Bambu Lab/PETG), we ship nothing with that identity
+Orca BBL families with no row: 135 Orca-only product(s)
+```
+
+The first names each upstream product our BBL bundle has no same-identity family for —
+sometimes a genuinely missing product, sometimes a name drift a follow-up rename would
+converge. The second counts our own BBL families that matched no row: 135 of 234 today, of
+which 109 send an `OF` id on the wire and 26 already rode `OF` ids inherited from the
+OrcaFilamentLibrary. **135 is the number to expect at every regeneration** — 109 was the
+one-off size of the transition and stopped being computable from the tree once the BBL bundle
+was re-minted, so do not "fix" the report to print it.
+
+**Check 8** lives in `check_filament_ids`, so profile CI runs it alongside the other seven. It
+holds the file to its contract: it parses, carries `source` / `bambustudio_commit` /
+`generated`, keys only `OF`-format ids, maps each Bambu id at most once, and — for every row
+whose key the tree actually claims — agrees with the tree on that id's `(vendor, type, name)`
+triple. A row for a product we do not ship is skipped, not an error. The remedy it prints is
+always the same: regenerate the map and commit the diff for review.
+
+### The runtime rule: swap on hit
+
+Outbound, our id with a row becomes Bambu's; inbound, Bambu's id with a row becomes ours.
+Everything else is forwarded untouched — an `OF` id with no row, a Bambu id for a product we do
+not ship, a `P`-hex user id, `"null"`, an empty string. Translation is confined to the
+boundary: nothing between the boundaries ever holds a Bambu id.
+
+Translating one value is a capability of the printer agent: `IPrinterAgent` declares
+`to_orca_filament_id` and `from_orca_filament_id` returning their argument, and `BBLPrinterAgent`
+overrides them with Bambu's map, so an agent whose printers already speak our ids inherits the
+identity default and translates nothing. `NetworkAgent` forwards both to the live agent, so the
+comparison sites below reach them through `wxGetApp().getAgent()` and leave an id untranslated
+while no agent is live. Whole documents are Bambu's business alone:
+`BBLPrinterAgent::to_orca_payload` and `from_orca_payload` rewrite every string under
+`tray_info_idx`, `filament_id` or `filamentId` at any depth; text that does not parse, or carries
+none of those keys, comes back unchanged. The map is loaded once, lazily; a missing or malformed
+file degrades to identity with a log line rather than failing.
+
+| Boundary | Where it translates |
+| --- | --- |
+| Everything the agent sends | `BBLPrinterAgent::send_message` and `send_message_to_printer`, plus `PrintParams::ams_mapping_info` in `dispatch_start` — the funnel all five `start_*` calls share |
+| Everything the agent receives | `set_on_message_fn` and `set_on_local_message_fn` wrap their callback, so `MachineObject::parse_json` and everything downstream see our ids only |
+| 3mf export | `Plater::export_3mf` writes Bambu's ids into `slice_info.config`, gated on `preset_bundle.is_bbl_vendor()` — the printer reads that file and knows only its own catalog, and no other vendor's export is affected. The CLI has its own writer in `OrcaSlicer.cpp`; it does the same, gated on the `printer_model` prefix that already decides `Print::is_BBL_printer()` for that run |
+| Project ingest | `Plater::priv::load_files` reverse-maps the project's `filament_ids` before the bundle ingests them, so a project saved by an older Orca or by BambuStudio still resolves the same presets |
+| Prints from the printer's SD card | `SelectMachineDialog::update_print_required_data` reverse-maps each plate's slice-info ids as it adopts the plates, so the AMS mapping dialog pairs them with trays |
+| Bambu-specific comparisons | `CalibUtils.cpp`, `DeviceManager.cpp`, `DeviceCore/DevFilaSystem.cpp`, `DeviceCore/DevFilaBlackList.cpp`, `SelectMachine.cpp`, `AMSDryControl.cpp`, `AMSMaterialsSetting.cpp`, `PresetComboBoxes.cpp`, `ColorDecomposeSupport.cpp` |
+
+That last row is the rule to follow when a new Bambu-specific behaviour is added: **translate
+the value you are about to compare, never the table you compare it against.** The shipped data
+those sites read is Bambu's and stays verbatim — `white_fila_ids` in
+`resources/printers/filaments_blacklist.json`, the calibration id lists in
+`resources/printers/<model>.json`, `fila_id` in
+`resources/profiles/BBL/filament/filaments_color_codes.json`.
+
+`tests/slic3rutils/test_bambu_filament_ids.cpp` covers the lookups, the payload rewrite and the
+Bambu-specific rules. `orcaslicer_discover_tests` registers a Catch2 tag as a CTest **label**,
+not as part of the test name, so `-R` matches nothing here and the filter is `-L`:
+
+```bash
+ctest --test-dir <build dir>/tests/slic3rutils -L BambuFilamentIds
+```
+
+### Three places the map deliberately does not reach
+
+The map and its lookups live in the GUI library, which libslic3r cannot link against and which a
+GUI-less build does not link at all. Three consequences are known and documented; none is worth
+pulling the map down into libslic3r for.
+
+- **The support display type in `PrintConfig.cpp`.** `DynamicPrintConfig::get_filament_type`
+  picks `PLA-S` / `Sup.PLA` and `PA-S` / `Sup.PA` for a support filament by testing
+  `filament_id` against `GFS00` and `GFS01`, and otherwise falls back on `filament_type` — a
+  fallback that returns those same two pairs for `"PLA"` and `"PA"`. Bambu Support W inherits
+  `fdm_filament_pla` and Bambu Support G inherits `fdm_filament_pa`, so with their `OF` ids the
+  fallback produces exactly what the id branches produced. (The only config that ever carries a
+  singular `filament_id` key is the AMS tray config built in `Plater.cpp`, and that one never
+  reaches this function.) These two lines are the only mention of a Bambu id anywhere in
+  libslic3r, and they need no change.
+- **Config imports.** `PresetBundle::import_presets` (File ▸ Import ▸ Import Configs, for
+  `.json` / `.zip` / `.orca_filament` / `.orca_printer` / `.orca_bundle`) and
+  `PresetBundle::load_config_file` (the CLI's `--load-settings` of a G-code file with an
+  embedded config) both parse inside libslic3r, out of the GUI's reach, so a Bambu id carried
+  in such a file lands on the imported preset untranslated. The effect is bounded: that preset
+  does not auto-match an AMS tray while the stale id is live, and the id does not survive
+  being saved — `Preset::save` writes a `filament_id` key only for a preset whose `inherits` is
+  empty, and on the next load an inheriting preset takes its parent's id. A known gap, and not
+  a regression: nothing forwarded a stale id before either.
+- **A build configured without the GUI.** `target_link_libraries(OrcaSlicer libslic3r_gui)` sits
+  inside `if (SLIC3R_GUI)` in `src/CMakeLists.txt`, so the lookups are not linkable when the GUI
+  is off. The CLI's 3mf writer in `src/OrcaSlicer.cpp` therefore guards its translation with
+  `#ifdef SLIC3R_GUI`, and a 3mf that such a build slices for a Bambu printer carries our `OF`
+  ids in `slice_info.config` rather than Bambu's. Every shipped build enables the GUI, so this
+  reaches only a purpose-built GUI-less binary.
+
+One more thing worth recording before it is rediscovered:
+`SyncAmsInfoDialog::update_print_required_data` is a structural twin of the SD-card function
+above and carries no translation. It has no callers today and its plate list is only ever read
+for `printer_model_id`, so it is not a live gap — but wiring it up without adding the reverse
+map would silently reproduce the bug.
 
 ## How CI enforces this
 
@@ -271,7 +415,8 @@ checks ratchet all new profiles to the clean rules.
 
 The checks, in brief:
 
-- **Format** — every id is either in the snapshot, `OF` + 6 base62 chars, or BBL's.
+- **Format** — every id occurring in the tree is `OF` + 6 base62 chars. No exceptions: not a
+  grandfathered snapshot entry, not BBL.
 - **Snapshot equality** — tree claims == snapshot claims **and** tree triples == snapshot
   triples, both directions: any `filament_vendor`/`filament_type`/family-name change surfaces
   as a snapshot diff.
@@ -282,22 +427,34 @@ The checks, in brief:
   base name (a rename re-exposes the library preset, since alias shadowing is name-based),
   a non-empty `compatible_printers` (an empty one shadows nothing), and no own id key
   (structure rule 4).
-- **Triple integrity** — every declarer outside the BBL island must resolve a non-empty
-  `filament_vendor` and `filament_type` (generics use `"Generic"`), and all declarers of one
-  family within a bundle must agree on the triple.
-- **Reserved namespaces** — `GF*` outside BBL, `P<7-hex>` or `"null"` anywhere, unless that
-  exact claim is grandfathered in the snapshot; `QD_*` anywhere, with no exception.
+- **Triple integrity** — every declarer must resolve a non-empty `filament_vendor` and
+  `filament_type` (generics use `"Generic"`), and all declarers of one family within a
+  bundle must agree on the triple.
+- **Reserved namespaces** — `GF*`, `QD_*`, `P<7-hex>` or `"null"` claimed by any vendor,
+  BBL and Qidi included, unless that exact claim is grandfathered in the snapshot (none is
+  today).
 - **Structure** — no `filament_id` key on newly instantiated presets; no new
   declared-vs-inherited id drift; every instantiated system filament must resolve an
   effective id through its `inherits` chain (recall: an id-less one is a hard load error in
   C++ that discards the whole vendor bundle).
+- **Bambu catalog map** — `resources/printers/bambu_filament_ids.json` parses, carries its
+  `source` / `bambustudio_commit` / `generated` header, keys only `OF`-format ids, maps each
+  Bambu id at most once, and agrees with the tree on the triple of every row whose key the
+  tree claims. See [The Bambu catalog map](#the-bambu-catalog-map); the remedy is always to
+  regenerate, never to hand-edit.
 
-Sharing a **reserved-catalog** id with a new family or vendor (e.g. shipping a Bambu-cataloged
-product under another vendor with its authentic `GF*` id) is refused by `--update-snapshot`
-unless you pass `--allow-shared-catalog` — and it still lands in the snapshot diff for
-maintainer review. Any other new sharing via a *declared* id is caught by the mint-conformance
-check; sharing through inheritance carries no declaration to check and surfaces only as a new
-claim in the snapshot diff — which is exactly why that diff is the gate.
+Any new claim on a **reserved namespace** — a profile that declares a `GF*`, `QD_*` or
+`P<7-hex>` id, whatever its vendor — is refused by `--update-snapshot` unless you pass
+`--allow-shared-catalog`, and even then it lands in the snapshot diff for maintainer review.
+There is no such claim in the tree today and adding one should be a last resort: for a
+Bambu-cataloged product, the catalog map is where the correspondence belongs. Any other new
+sharing via a *declared* id is caught by the mint-conformance check; sharing through
+inheritance carries no declaration to check and surfaces only as a new claim in the snapshot
+diff — which is exactly why that diff is the gate.
+
+`orca_extra_profile_check.py` separately holds every declared id to the AMS 8-character limit,
+tree-wide and for every vendor alike, scoped to the presets a vendor's index actually
+references (a file the index never loads cannot break AMS matching).
 
 Complementing the Python checks, CI also runs the C++ profile validator with `-f`
 (`check_filament_subtypes`): it loads the bundle exactly as the app does and flags any printer

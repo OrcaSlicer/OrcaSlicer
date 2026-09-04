@@ -1511,6 +1511,10 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
                       m_temperature_input->GetValue().ToLong(&input_temp);
     bool can_start = true;
 
+    // "GFA00" is Bambu's PLA id; GetFilamentDryingPreset is keyed by our OF ids.
+    auto* agent = wxGetApp().getAgent();
+    const std::string pla_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");
+
     int slot_count = 0, empty_count = 0;
     for (auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second) {
@@ -1526,13 +1530,15 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
         wxString filament_type = tray_pair.second->get_display_filament_type();
         DevFilamentDryingPreset preset;
         if (filament_type.IsEmpty()) {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;                 // no PLA preset (e.g. the id map is missing): skip, don't throw
             preset = fallback_preset.value();
             filament_type = "?";
         } else if (preset_opt.has_value()) {
             preset = preset_opt.value();
         } else {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;
             preset = fallback_preset.value();
         }
         std::string icon_path = "dev_ams_dry_ctr_enable";
@@ -1683,9 +1689,10 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
 
     // Select recommended drying temperature and default filament
     float min_dry_temp = std::numeric_limits<float>::max();
-    std::string default_filament_id = "GFA00";
+    auto* agent = wxGetApp().getAgent();
+    std::string default_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");   // compared against m_tray_ids[i].filament_id (our OF ids) below
     bool has_ready = false;
-    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(default_filament_id);
     for (const auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second || !tray_pair.second->is_tray_info_ready()) continue;
         has_ready = true;

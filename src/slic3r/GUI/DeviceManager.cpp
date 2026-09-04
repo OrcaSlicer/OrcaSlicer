@@ -110,7 +110,9 @@ bool Slic3r::is_stringing_prone_filament(const std::string& filament_id, float n
     if (filament_id.empty()) return false;
     const auto* set = pick_stringing_set(nozzle_diameter);
     if (!set) return false;
-    return set->count(filament_id) > 0;
+    // filament_id is one of our content-addressed OF ids; the table above is keyed by the printer's own.
+    auto* agent = Slic3r::GUI::wxGetApp().getAgent();
+    return set->count(agent ? agent->from_orca_filament_id(filament_id) : filament_id) > 0;
 }
 
 wxString Slic3r::get_stage_string(int stage)
@@ -5048,10 +5050,13 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             vt_tray.setting_id = vtray["tray_info_idx"].get<std::string>();
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
-            if (vt_tray.setting_id == "GFS00") {
+            // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
+            auto* agent = GUI::wxGetApp().getAgent();
+            const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
+            if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
             }
-            else if (vt_tray.setting_id == "GFS01") {
+            else if (printer_filament_id == "GFS01") {
                 vt_tray.m_fila_type = "PA-S";
             }
             else {

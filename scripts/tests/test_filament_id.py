@@ -682,6 +682,13 @@ class TestCheck8(OfCleanTreeCase):
         ubfi.write_map(path, rows, "testcommit", "2026-09-04")
         return path
 
+    def _write_raw_map(self, payload):
+        """Write a map write_map() would never produce (hand-edited or mis-generated)."""
+        path = os.path.join(self.t.dir, "bambu_filament_ids.json")
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False, sort_keys=True)
+        return path
+
     def test_row_triple_must_match_tree(self):
         fid = afi.generate_filament_id("V", "PLA", "Foo")
         self.t.write_preset("VendorA", preset("Foo @base", filament_id=fid,
@@ -711,6 +718,54 @@ class TestCheck8(OfCleanTreeCase):
         })
         errors, out = self.t.check(map_path)
         self.assertEqual(errors, 0, out)
+
+    def test_non_object_top_level_is_a_clean_error(self):
+        # A hand-edited map that is a list (or any non-object) must report the map,
+        # not raise AttributeError out of the check.
+        map_path = self._write_raw_map([{"bambu_id": "GFZ00"}])
+        errors, out = self.t.check(map_path)
+        self.assertGreater(errors, 0)
+        self.assertIn("does not parse", out)
+        self.assertIn("regenerate the map", out)
+
+    def test_empty_filaments_section_is_an_error(self):
+        # What a regeneration against the wrong --bambustudio-dir writes: a well-formed
+        # header with zero rows. At runtime every translation silently becomes identity.
+        map_path = self._write_map({})
+        errors, out = self.t.check(map_path)
+        self.assertGreater(errors, 0)
+        self.assertIn('no "filaments" rows', out)
+
+    def test_absent_filaments_section_is_an_error(self):
+        map_path = self._write_raw_map({
+            "source": "https://github.com/bambulab/BambuStudio",
+            "bambustudio_commit": "testcommit",
+            "generated": "2026-09-04",
+        })
+        errors, out = self.t.check(map_path)
+        self.assertGreater(errors, 0)
+        self.assertIn('no "filaments" rows', out)
+
+    def test_row_without_bambu_id_is_an_error(self):
+        # Two such rows used to collide on None and be reported as a duplicate id.
+        map_path = self._write_map({
+            "OFaaaaaa": {"vendor": "V", "type": "PLA", "name": "Foo"},
+            "OFbbbbbb": {"vendor": "V", "type": "PETG", "name": "Bar"},
+        })
+        errors, out = self.t.check(map_path)
+        self.assertGreater(errors, 0)
+        self.assertIn('"OFaaaaaa" declares no "bambu_id"', out)
+        self.assertIn('"OFbbbbbb" declares no "bambu_id"', out)
+        self.assertNotIn("mapped by both", out)
+
+    def test_empty_bambu_id_is_an_error(self):
+        # "" would land in the runtime map and translate an empty tray id into a filament.
+        map_path = self._write_map({
+            "OFaaaaaa": {"bambu_id": "", "vendor": "V", "type": "PLA", "name": "Foo"},
+        })
+        errors, out = self.t.check(map_path)
+        self.assertGreater(errors, 0)
+        self.assertIn('declares no "bambu_id"', out)
 
 
 # ---------------------------------------------------------------------------

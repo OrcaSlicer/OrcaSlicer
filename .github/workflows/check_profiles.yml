@@ -9,6 +9,10 @@ on:
     - release/*
     paths:
     - 'resources/profiles/**'
+    # The extra JSON check also validates resources/printers/bambu_filament_ids.json,
+    # and lives in scripts/, so a PR touching only those must still run this workflow.
+    - 'resources/printers/**'
+    - 'scripts/**'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:

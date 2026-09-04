@@ -729,6 +729,8 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     # -- 8. Bambu catalog map --------------------------------------------------
     try:
         bambu_map = load_json(map_path)
+        if not isinstance(bambu_map, dict):
+            raise ValueError("top level is not a JSON object")
     except (OSError, ValueError) as e:
         print_error(f"Bambu catalog map {map_path} does not parse ({e}); {BAMBU_MAP_HINT}")
         errors += 1
@@ -737,7 +739,15 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             if not bambu_map.get(key):
                 print_error(f'Bambu catalog map {map_path} is missing "{key}"; {BAMBU_MAP_HINT}')
                 errors += 1
-        rows = bambu_map.get("filaments", {})
+        rows = bambu_map.get("filaments")
+        # An empty or absent section is not a well-formed map: it makes every runtime
+        # translation silently degrade to identity (BBLPrinterAgent logs nothing for it),
+        # and it is what a regeneration against the wrong --bambustudio-dir writes.
+        if not isinstance(rows, dict) or not rows:
+            print_error(f'Bambu catalog map {map_path} declares no "filaments" rows; '
+                        f"{BAMBU_MAP_HINT}")
+            errors += 1
+            rows = {}
         bambu_id_owners = {}
         for fid, row in sorted(rows.items()):
             if not OF_ID_RE.match(fid):
@@ -745,7 +755,12 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                            f"{BAMBU_MAP_HINT}")
                 errors += 1
             bambu_id = row.get("bambu_id")
-            if bambu_id in bambu_id_owners:
+            if not bambu_id:
+                # An empty id would map the empty string to a real filament at runtime.
+                print_error(f'Bambu catalog map row "{fid}" declares no "bambu_id"; '
+                            f"{BAMBU_MAP_HINT}")
+                errors += 1
+            elif bambu_id in bambu_id_owners:
                 print_error(
                     f'Bambu catalog map: Bambu id "{bambu_id}" is mapped by both '
                     f'"{bambu_id_owners[bambu_id]}" and "{fid}"; {BAMBU_MAP_HINT}')

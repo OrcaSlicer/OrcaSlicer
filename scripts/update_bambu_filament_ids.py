@@ -8,9 +8,9 @@ products Bambu ships.
 The map is generated from BambuStudio's OWN shipped BBL bundle, never from
 Orca's: Orca's BBL bundle is a fork of Bambu's, tuned and extended
 independently, so it is not the source of truth for Bambu's catalog ids.
-Nothing in OrcaSlicer consumes this map yet; it exists so a later change can
-translate an id only where it crosses to or from a Bambu printer, without
-hand-maintaining the correspondence.
+src/slic3r/Utils/BBLPrinterAgent.cpp loads it at runtime and translates an id
+only where it crosses to or from a Bambu printer, so the correspondence never
+has to be hand-maintained. See docs/HLSD/filament_id.md.
 
 One row per BambuStudio filament PRODUCT: one commercial line = one
 "@base"-declared filament_id, shared by every per-printer/per-nozzle

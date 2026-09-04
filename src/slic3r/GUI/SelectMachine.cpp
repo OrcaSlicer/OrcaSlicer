@@ -3845,8 +3845,12 @@ int SelectMachineDialog::update_print_required_data(Slic3r::DynamicPrintConfig c
     m_required_data_config = config;
     m_required_data_model = model;
     //m_required_data_plate_data_list = plate_data_list;
+    auto* agent = wxGetApp().getAgent();
     for (auto i = 0; i < plate_data_list.size(); i++) {
         if (!plate_data_list[i]->gcode_file.empty()) {
+            if (agent)
+                for (auto& info : plate_data_list[i]->slice_filaments_info)
+                    info.filament_id = agent->to_orca_filament_id(info.filament_id);
             m_required_data_plate_data_list.push_back(plate_data_list[i]);
         }
     }
@@ -5051,8 +5055,11 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         const auto& warning_tpu_filaments =
             DevPrinterConfigUtil::get_value_from_config<std::vector<std::string>>(obj_->printer_type, "auto_on_cali_warning_tpu_filaments");
         if (!warning_tpu_filaments.empty()) {
+            auto* agent = wxGetApp().getAgent();
             for (const auto& fila : m_ams_mapping_result) {
-                if (std::find(warning_tpu_filaments.begin(), warning_tpu_filaments.end(), fila.filament_id) != warning_tpu_filaments.end()) {
+                // fila.filament_id is our OF id; the printer config list holds the printer's own.
+                const std::string printer_filament_id = agent ? agent->from_orca_filament_id(fila.filament_id) : fila.filament_id;
+                if (std::find(warning_tpu_filaments.begin(), warning_tpu_filaments.end(), printer_filament_id) != warning_tpu_filaments.end()) {
                     show_status(PrintDialogStatus::PrintStatusTPUUnsuggestCali,
                                 { _L("If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page.") });
                     break;
@@ -5208,9 +5215,12 @@ bool SelectMachineDialog::can_support_pa_auto_cali()
 
     std::vector<std::string> unsupport_auto_cali_filaments = DevPrinterConfigUtil::get_unsupport_auto_cali_filaments(obj->printer_type);
     if (!unsupport_auto_cali_filaments.empty()) {
+        auto* agent = wxGetApp().getAgent();
         auto iter = std::find_if(m_filaments.begin(), m_filaments.end(),
-            [&unsupport_auto_cali_filaments](const FilamentInfo &item) {
-            auto iter = std::find(unsupport_auto_cali_filaments.begin(), unsupport_auto_cali_filaments.end(), item.filament_id);
+            [&unsupport_auto_cali_filaments, agent](const FilamentInfo &item) {
+            // item.filament_id is our OF id; the printer config list holds the printer's own.
+            const std::string printer_filament_id = agent ? agent->from_orca_filament_id(item.filament_id) : item.filament_id;
+            auto iter = std::find(unsupport_auto_cali_filaments.begin(), unsupport_auto_cali_filaments.end(), printer_filament_id);
             return iter != unsupport_auto_cali_filaments.end();
         });
 

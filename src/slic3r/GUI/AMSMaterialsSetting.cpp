@@ -815,7 +815,10 @@ void AMSMaterialsSetting::set_color(wxColour color)
     fila_color.m_colors.insert(color);
     fila_color.EndSet(m_clr_picker->ctype);
     auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-    m_clr_name->SetLabelText(clr_query->GetFilaColorName(ams_filament_id, fila_color));
+    // ams_filament_id is our OF id; GetFilaColorName looks up filaments_color_codes.json,
+    // downloaded from Bambu and keyed by the printer's own ids, so translate for this lookup only.
+    auto* agent = GUI::wxGetApp().getAgent();
+    m_clr_name->SetLabelText(clr_query->GetFilaColorName(agent ? agent->from_orca_filament_id(ams_filament_id) : ams_filament_id, fila_color));
 }
 
 void AMSMaterialsSetting::set_empty_color(wxColour color)
@@ -836,7 +839,10 @@ void AMSMaterialsSetting::set_colors(std::vector<wxColour> colors)
         for (const auto& clr : colors) { fila_color.m_colors.insert(clr); }
         fila_color.EndSet(m_clr_picker->ctype);
         auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-        m_clr_name->SetLabelText(clr_query->GetFilaColorName(ams_filament_id, fila_color));
+        // ams_filament_id is our OF id; GetFilaColorName looks up filaments_color_codes.json,
+        // downloaded from Bambu and keyed by the printer's own ids, so translate for this lookup only.
+        auto* agent = GUI::wxGetApp().getAgent();
+        m_clr_name->SetLabelText(clr_query->GetFilaColorName(agent ? agent->from_orca_filament_id(ams_filament_id) : ams_filament_id, fila_color));
     }
 }
 
