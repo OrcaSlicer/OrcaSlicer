@@ -24,7 +24,10 @@ Policy (companion to assign_vendor_setting_ids.py; see docs/HLSD/filament_id.md)
     Identity changes (a family rename, a filament_vendor/filament_type fix)
     change the id BY DESIGN.
   * Reserved id spaces that are never minted into or altered:
-      - GF*                    Bambu AMS/RFID catalog (vendor BBL untouchable)
+      - GF*                    Bambu AMS/RFID catalog: frozen, no preset of any
+                               vendor (including BBL) may declare one; the
+                               generated resources/printers/bambu_filament_ids.json
+                               carries the correspondence instead
       - QD_*                   Qidi device protocol: the box composes these ids
                                at runtime, they are not preset ids, and no
                                preset may declare one
@@ -43,8 +46,9 @@ OFL it stays in OFL; a vendor chain that dead-ends id-less retries its direct
 parent in the OFL map. filament_vendor / filament_type resolve the same way.
 
 Run from anywhere:  python3 scripts/assign_filament_ids.py
-  (default)          mint + insert ids for id-less families; idempotent, never
-                     rewrites a valid existing id; a no-op on a fully-idded tree
+  (default)          mint + insert ids for id-less families, mint + replace
+                     non-OF-format declarations; idempotent, never rewrites a
+                     valid OF-format id; a no-op once every family has one
   --mint "Vendor/Type/Family"
                      print the id that triple would mint; touches nothing
   --update-snapshot  regenerate the snapshot from the tree
@@ -75,6 +79,10 @@ FILAMENT_ID_LENGTH = 6  # base62 digits after the "OF" prefix -> 8 chars total
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "resources", "profiles"))
 SNAPSHOT_PATH = os.path.join(SCRIPTS_DIR, "filament_id_snapshot.json")
+# Same path update_bambu_filament_ids.BAMBU_MAP_PATH computes; kept as a sibling
+# constant (not imported) because that module imports FROM this one already.
+BAMBU_MAP_PATH = os.path.normpath(
+    os.path.join(SCRIPTS_DIR, "..", "resources", "printers", "bambu_filament_ids.json"))
 
 OFL = "OrcaFilamentLibrary"
 
@@ -89,6 +97,7 @@ BASE_NAME_RE = re.compile(r"\s?@.*$")
 MAX_CHECK_SALT = 8
 
 UPDATE_HINT = 'run "python scripts/assign_filament_ids.py --update-snapshot" and commit the diff for maintainer review'
+BAMBU_MAP_HINT = 'regenerate the map with "python scripts/update_bambu_filament_ids.py" and commit the diff for maintainer review'
 
 
 # Same output helpers/format as orca_extra_profile_check.py (not imported from
@@ -304,12 +313,6 @@ def resolve_triple(name, filaments, ofl_filaments):
             base_name(name))
 
 
-def is_island_declaration(vendor, fid):
-    """Declarations frozen outside the OF mint domain: all of BBL (the QD_*
-    island was dissolved by plan v4 — Qidi declarations mint like any other)."""
-    return vendor == "BBL"
-
-
 def analyze_tree(profiles_dir):
     """Load every vendor bundle and derive the full filament_id state.
 
@@ -351,8 +354,8 @@ def analyze_tree(profiles_dir):
     overrides = []              # (vendor, name, declared, inherited, file)
     missing_effective = []      # (vendor, name, file) instantiated presets resolving no id
     alias_candidates = []       # (vendor, rec, ofl_entry, own_key) presets riding an OFL family
-    triples = {}                # fid -> set of triples of its non-island declarers
-    declarer_triples = []       # (vendor, rec, fid, triple) per non-island declarer
+    triples = {}                # fid -> set of triples of its declarers
+    declarer_triples = []       # (vendor, rec, fid, triple) per declarer
     family_triples = {}         # (vendor, family) -> {triple: [declarer names]}
 
     for vendor, filaments in vendors.items():
@@ -363,14 +366,13 @@ def analyze_tree(profiles_dir):
                 occurring.add(fid)
                 declared_ids.setdefault(vendor, set()).add(fid)
                 ids.setdefault(fid, set())
-                if not is_island_declaration(vendor, fid):
-                    triple = resolve_triple(rec["name"], filaments, ofl_filaments)
-                    rec["triple"] = triple
-                    declarer_triples.append((vendor, rec, fid, triple))
-                    triples.setdefault(fid, set()).add(triple)
-                    family_triples.setdefault(
-                        (vendor, base_name(rec["name"])), {}).setdefault(
-                        triple, []).append(rec["name"])
+                triple = resolve_triple(rec["name"], filaments, ofl_filaments)
+                rec["triple"] = triple
+                declarer_triples.append((vendor, rec, fid, triple))
+                triples.setdefault(fid, set()).add(triple)
+                family_triples.setdefault(
+                    (vendor, base_name(rec["name"])), {}).setdefault(
+                    triple, []).append(rec["name"])
                 if rec.get("inherits"):
                     inherited, _src, skip_entry = resolve_filament_id(
                         rec["name"], filaments, ofl_filaments, skip_own=True)
@@ -495,7 +497,7 @@ def write_snapshot(path, obj):
 def reserved_space_owner(fid):
     """(is_reserved, owner_vendor or None) for the frozen id spaces."""
     if fid.startswith("GF"):
-        return True, "BBL"
+        return True, None  # Bambu AMS/RFID catalog: frozen, no vendor (not even BBL) may declare it
     if fid.startswith("QD_"):
         return True, None  # dissolved Qidi device-protocol space: NO vendor may declare it
     if USER_CUSTOM_ID_RE.match(fid) or fid == "null":
@@ -507,6 +509,8 @@ def reserved_space_desc(fid, owner):
     """Human description of a reserved space for error messages."""
     if owner:
         return f"owned by {owner}"
+    if fid.startswith("GF"):
+        return "Bambu AMS/RFID catalog; frozen, no preset may declare it"
     if fid.startswith("QD_"):
         return "Qidi device protocol; composed by the device, never a preset id"
     return "reserved for user-custom presets"
@@ -516,30 +520,35 @@ def reserved_space_desc(fid, owner):
 # Checks (imported and called tree-wide by orca_extra_profile_check.py)
 # ---------------------------------------------------------------------------
 
-def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
+def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
+                       map_path=BAMBU_MAP_PATH):
     """Validate filament_id state across every vendor. Returns the error count.
 
-    1. Format: every id occurring in the tree (declared or effective) must be in
-       the snapshot, or match ^OF[0-9A-Za-z]{6}$, or belong to vendor BBL.
+    1. Format: every id occurring in the tree (declared or effective) must
+       match ^OF[0-9A-Za-z]{6}$. No exceptions: not the snapshot, not BBL.
     2. Snapshot equality, both directions: the tree-derived id->families multimap
        AND the id->triples map of the declarers must equal the snapshot exactly
        (the snapshot diff is the maintainer gate).
-    3. Mint conformance: a non-island OF-format declaration must equal the mint
-       of the declarer's triple or a salted iteration, unless that exact
-       (id, triple) pair is grandfathered in the snapshot.
+    3. Mint conformance: an OF-format declaration must equal the mint of the
+       declarer's triple or a salted iteration, unless that exact (id, triple)
+       pair is grandfathered in the snapshot.
     4. Alias hygiene: a vendor preset riding an OFL family must keep the OFL
        base name, claim printers via non-empty compatible_printers, and declare
        no filament_id key of its own.
-    5. Reserved namespaces (GF* for BBL; QD_*/P-hex/"null" for nobody) must not
-       be claimed by other vendors, except claims grandfathered in the snapshot.
+    5. Reserved namespaces (GF*/QD_*/P-hex/"null", all ownerless) must not be
+       claimed by any vendor, except claims grandfathered in the snapshot.
     6. Structure ratchet: (a) no NEW instantiated preset carries its own
        filament_id key; (b) no NEW declared-vs-inherited id drift; (c) every
        instantiated filament resolves an effective id (a hard load error in C++).
-    7. Triple integrity: (a) every non-island declarer resolves non-empty
-       filament_vendor and filament_type (hard error, no grandfathering);
-       (b) declarers of one (bundle, family) resolve identical triples, unless
-       grandfathered in snapshot triple_exceptions; cross-bundle divergence on
-       the same family name is a warning only.
+    7. Triple integrity: (a) every declarer resolves non-empty filament_vendor
+       and filament_type (hard error, no grandfathering); (b) declarers of one
+       (bundle, family) resolve identical triples, unless grandfathered in
+       snapshot triple_exceptions; cross-bundle divergence on the same family
+       name is a warning only.
+    8. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
+       carry source/bambustudio_commit/generated, key only OF-format ids, map
+       each Bambu id at most once, and for every row whose key the tree claims,
+       the tree's triple for that id must equal the row's (vendor, type, name).
     """
     _utf8_console()
     errors = 0
@@ -558,14 +567,12 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
     # -- 1. format ----------------------------------------------------------
     for vendor in sorted(analysis["vendor_ids"]):
         for fid in sorted(analysis["vendor_ids"][vendor]):
-            if fid in snap_ids or OF_ID_RE.match(fid):
-                continue
-            if vendor == "BBL":
+            if OF_ID_RE.match(fid):
                 continue
             print_error(
-                f'filament_id "{fid}" ({vendor}) is neither grandfathered in the '
-                f'snapshot nor a minted "OF" id; new family ids must come from '
-                f'"python scripts/assign_filament_ids.py" (see --mint)')
+                f'filament_id "{fid}" ({vendor}) is not a minted "OF" id; new '
+                f'family ids must come from "python scripts/assign_filament_ids.py" '
+                f'(see --mint)')
             errors += 1
 
     # -- 2. snapshot equality (both directions) -----------------------------
@@ -718,6 +725,43 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
             f'family name "{family}" resolves different triples across bundles '
             f"({detail}); bundles of one product converge on one id only once "
             f"their triples agree")
+
+    # -- 8. Bambu catalog map --------------------------------------------------
+    try:
+        bambu_map = load_json(map_path)
+    except (OSError, ValueError) as e:
+        print_error(f"Bambu catalog map {map_path} does not parse ({e}); {BAMBU_MAP_HINT}")
+        errors += 1
+    else:
+        for key in ("source", "bambustudio_commit", "generated"):
+            if not bambu_map.get(key):
+                print_error(f'Bambu catalog map {map_path} is missing "{key}"; {BAMBU_MAP_HINT}')
+                errors += 1
+        rows = bambu_map.get("filaments", {})
+        bambu_id_owners = {}
+        for fid, row in sorted(rows.items()):
+            if not OF_ID_RE.match(fid):
+                print_error(f'Bambu catalog map key "{fid}" is not a minted "OF" id; '
+                           f"{BAMBU_MAP_HINT}")
+                errors += 1
+            bambu_id = row.get("bambu_id")
+            if bambu_id in bambu_id_owners:
+                print_error(
+                    f'Bambu catalog map: Bambu id "{bambu_id}" is mapped by both '
+                    f'"{bambu_id_owners[bambu_id]}" and "{fid}"; {BAMBU_MAP_HINT}')
+                errors += 1
+            else:
+                bambu_id_owners[bambu_id] = fid
+            claimed = tree_triples.get(fid)
+            if not claimed:
+                continue  # a product BambuStudio ships that the tree does not (yet)
+            row_triple = [row.get("vendor", ""), row.get("type", ""), row.get("name", "")]
+            if row_triple not in claimed:
+                print_error(
+                    f'Bambu catalog map row "{fid}" claims triple "{"/".join(row_triple)}" '
+                    f'but the tree declares "{"; ".join("/".join(t) for t in claimed)}" for '
+                    f"that id; {BAMBU_MAP_HINT}")
+                errors += 1
 
     return errors
 
@@ -897,13 +941,25 @@ def remove_filament_id(path, old_id):
 # ---------------------------------------------------------------------------
 
 def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
-    """Mint + insert ids for id-less families. Never rewrites a valid existing id.
+    """Mint + insert ids for id-less families; mint + replace non-OF-format
+    declarations. Never rewrites a valid (OF-format) existing id.
 
     A family = (vendor, base name) group over instantiated filaments with no
     effective id. The minted id is a pure function of the family's triple —
     (filament_vendor, filament_type) resolved on the root(s), family name — and
     is inserted into the family's root(s): the presets its members inherit that
     carry no id, or the member itself when it has no vendor-side parent.
+
+    A declaration whose value is not OF-format (e.g. a vendor bundle synced
+    from an upstream source that ships its own catalog ids, such as BBL's GF*)
+    is treated the same as a missing family: a fresh id is minted for the
+    declarer's triple and the value is replaced in place (declarers that share
+    one triple across several per-printer roots converge on the same id, same
+    as the multi-root families above). This is what makes a future BBL sync
+    self-healing: upstream files arrive with GF ids, this pass replaces them,
+    and the generated Bambu catalog map (keyed by the ids this mints) already
+    knows the resulting rows.
+
     Returns (files_changed, errors).
     """
     analysis = analyze_tree(profiles_dir)
@@ -923,9 +979,17 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
             continue
         families.setdefault((vendor, base_name(name)), []).append(rec)
 
-    if not families:
-        print_success("every instantiated filament already resolves a filament_id; "
-                      "nothing to do (0 files changed)")
+    # Declarations whose value is not OF-format: treated as missing too (see
+    # docstring). Grouped by triple, not by (vendor, family), so declarers
+    # that legitimately share one triple across several files converge on one
+    # freshly minted id instead of each getting their own.
+    non_of_declarers = [
+        (vendor, rec, fid, triple) for vendor, rec, fid, triple in analysis["declarer_triples"]
+        if not OF_ID_RE.match(fid)]
+
+    if not families and not non_of_declarers:
+        print_success("every instantiated filament already resolves an OF-format "
+                      "filament_id; nothing to do (0 files changed)")
         return 0, errors
 
     # Ids already spoken for: the whole tree (declared or effective) + snapshot.
@@ -998,7 +1062,34 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
             files_changed += 1
             print_info(f'family "{vendor}/{family}": filament_id "{new_id}" -> {root["file"]}')
 
+    # Non-OF-format declarations: mint once per triple, rewrite every declarer
+    # that shares it (see docstring).
+    declarations_reminted = 0
+    assigned = {}  # triple -> id chosen this run
+    for vendor, rec, fid, triple in sorted(non_of_declarers, key=lambda x: (x[0], x[1]["file"])):
+        fvendor, ftype, family = triple
+        if not fvendor or not ftype:
+            missing = " and ".join(
+                k for k, v in (("filament_vendor", fvendor),
+                               ("filament_type", ftype)) if not v)
+            print_error(
+                f'cannot re-mint "{rec["file"]}" (non-OF filament_id "{fid}"): resolves '
+                f'empty {missing}; the mint key needs both (generic materials use '
+                f'filament_vendor "Generic")')
+            errors += 1
+            continue
+        if triple not in assigned:
+            assigned[triple] = mint_filament_id(fvendor, ftype, family, taken)
+            taken.add(assigned[triple])
+        new_id = assigned[triple]
+        rewrite_filament_id(rec["path"], fid, new_id)
+        files_changed += 1
+        declarations_reminted += 1
+        print_info(f'family "{vendor}/{family}": non-OF filament_id "{fid}" -> "{new_id}" '
+                   f'({rec["file"]})')
+
     print_info(f"families minted  : {families_minted}")
+    print_info(f"non-OF reminted  : {declarations_reminted}")
     print_info(f"files changed    : {files_changed}")
     if files_changed:
         print_warning(f"now {UPDATE_HINT}")
@@ -1010,9 +1101,12 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
 # ---------------------------------------------------------------------------
 
 def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
-    """Re-derive every non-island declared id in the given vendors from its
-    triple; rewrite mismatching declarations in place (byte-preserving). Never
-    touches the snapshot — run --update-snapshot afterwards and review the diff.
+    """Re-derive every declared id in the given vendors from its triple;
+    rewrite mismatching declarations in place (byte-preserving). Never touches
+    the snapshot — run --update-snapshot afterwards and review the diff.
+    Accepts BBL like any other vendor: the GF* catalog is reserved and
+    ownerless, so BBL's own declarations mint OF ids the same as everyone
+    else's.
 
     A declaration already equal to ANY salt iteration of its own triple is
     mint-conformant (check 3) and left alone — deliberate salt splits (distinct
@@ -1028,9 +1122,6 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
     for msg in analysis["read_errors"]:
         print_error(msg)
         errors += 1
-    if "BBL" in vendor_list:
-        print_error("--remint BBL is forbidden (the GF* catalog is frozen)")
-        return 0, errors + 1
     unknown = sorted(set(vendor_list) - set(analysis["vendors"]))
     if unknown:
         for v in unknown:
@@ -1067,8 +1158,6 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
             key=lambda r: r["file"])
         for rec in recs:
             fid = rec["filament_id"]
-            if is_island_declaration(vendor, fid):
-                continue
             scanned += 1
             # Any salt iteration of the declarer's own triple is already
             # mint-conformant (check 3) — leave it. This keeps deliberate salt
@@ -1117,7 +1206,7 @@ def drop_redundant_ids(vendor, profiles_dir=PROFILES_DIR):
     dropped = 0
     for rec in sorted(vendor_map.values(), key=lambda r: r["file"]):
         fid = rec.get("filament_id")
-        if not fid or is_island_declaration(vendor, fid) or not rec.get("inherits"):
+        if not fid or not rec.get("inherits"):
             continue
         resolved, _src, entry = resolve_filament_id(
             rec["name"], vendor_map, ofl_map, skip_own=True)

@@ -290,19 +290,14 @@ def check_name_consistency(profiles_dir, vendor_name):
     
     return error_count, 0
 
-def check_filament_id(vendor, vendor_folder):
+def check_filament_id(vendor_folder):
     """
-    Make sure filament_id is not longer than 8 characters, otherwise AMS won't work properly
+    Make sure filament_id is not longer than 8 characters, otherwise AMS won't work properly.
 
-    NOTE: superseded by check_filament_ids (assign_filament_ids.py) for non-BBL/OFL
-    vendors, which validates format/uniqueness/structure tree-wide against the
-    grandfather snapshot. This length check stays scoped to BBL/OFL because other
-    vendors ship grandfathered >8-char ids (e.g. Prusa's 36-char name-ids), so it
-    cannot simply go tree-wide.
+    Runs tree-wide, every vendor alike: check_filament_ids (assign_filament_ids.py)
+    already requires every id in the tree to match the fixed-length "OF" format,
+    so this is a redundant belt-and-suspenders check, not a substitute for it.
     """
-    if vendor not in ('BBL', 'OrcaFilamentLibrary'):
-        return 0
-    
     error = 0
     vendor_path = Path(vendor_folder)
     if not vendor_path.exists():
@@ -602,7 +597,7 @@ def main():
 
         errors_found += check_vector_type_keys(profiles_dir, vendor_name)
 
-        errors_found += check_filament_id(vendor_name, vendor_path / "filament")
+        errors_found += check_filament_id(vendor_path / "filament")
         checked_vendor_count += 1
 
     if args.vendor:
