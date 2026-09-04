@@ -782,6 +782,9 @@ struct WipeTowerData
 
     // Depth of the wipe tower to pass to GLCanvas3D for exact bounding box:
     float                                                 depth;
+    // Effective width (a rib wall squares the tower). Pre-generation estimate only; once the
+    // tower exists its mesh is exact.
+    float                                                 width;
     std::vector<std::pair<float, float>>                  z_and_depth_pairs;
     float                                                 brim_width;
     float                                                 height;
@@ -795,6 +798,7 @@ struct WipeTowerData
         used_filament.clear();
         number_of_toolchanges = -1;
         depth = 0.f;
+        width = 0.f;
         brim_width = 0.f;
         height = 0.f;
         rib_offset = Vec2f::Zero();
