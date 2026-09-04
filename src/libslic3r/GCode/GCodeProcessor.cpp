@@ -5757,7 +5757,9 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         overhang_profile.swap(m_overhang_arc_percentages);
     else
         m_overhang_arc_percentages.clear();
-    if (!apply_overhang_profile || overhang_profile.size() != m_overhang_arc_samples)
+    // Orca: An inline marker alone is not metadata: two empty containers also have matching sizes.
+    // Require the minimum valid profile length before advertising the Overhang view.
+    if (!apply_overhang_profile || m_overhang_arc_samples < 2 || overhang_profile.size() != m_overhang_arc_samples)
         overhang_profile.clear();
     else
         m_result.has_overhang_metadata = true;

@@ -461,14 +461,31 @@ class ExtrusionQualityEstimator
     float overhang_percentage_at(const Vec3d &position, float width, const Vec2d &path_direction,
                                  bool associate_current_contour)
     {
-        const double previous_distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
+        const auto [previous_distance, previous_line_id, previous_position] =
+            prev_layer_boundaries[current_object].distance_from_lines_extra<true>(position);
+        const float area_percentage = float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
         // Orca: Bridges may run through a current-layer solid region whose outer contour says nothing
         // about support below the bridge. Keep their original area-based unsupported-width formula.
         if (!associate_current_contour)
-            return float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
+            return area_percentage;
         const BoundaryProjection current = boundary_projection_at(
             next_layer_boundaries[current_object], position, width, path_direction);
         constexpr size_t no_line = size_t(-1);
+        // Orca: An opposite-facing lower boundary belongs to the other side of a thin wall or a
+        // nearby hole, not the current wall's support contour. Its unsupported area must survive
+        // even if the current outer boundary itself is unchanged between layers.
+        if (current.line_id != no_line && previous_line_id != no_line) {
+            const Linef3 &current_line = next_layer_boundaries[current_object].get_line(current.line_id);
+            const Linef3 &previous_line = prev_layer_boundaries[current_object].get_line(previous_line_id);
+            if ((current_line.b - current_line.a).dot(previous_line.b - previous_line.a) < 0.0) {
+                // Orca: Retain placement correction against the nearest current boundary so an
+                // identical thin contour still reads zero, but do not cap by outer-wall displacement.
+                const double current_distance = next_layer_boundaries[current_object].distance_from_lines<true>(position);
+                const double inset_error = std::isfinite(current_distance) ?
+                    std::max(0.0, current_distance + 0.5 * width) : 0.0;
+                return float(100.0 * std::clamp((previous_distance + 0.5 * width - inset_error) / width, 0.0, 1.0));
+            }
+        }
         // Orca: Correct only a path center closer than half a width to its own contour. Deeper inner
         // walls need no correction, and a missing current contour retains the conservative estimate.
         const double current_inset_error = std::isfinite(current.signed_distance) ?

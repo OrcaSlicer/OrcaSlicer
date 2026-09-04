@@ -634,6 +634,29 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
     CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
 }
 
+// Orca: Post-processing may retain an arc's marker after removing or damaging its chunks. Such an
+// arc must keep the preview unavailable unless a complete, valid profile was actually supplied.
+TEST_CASE("Overhang arc markers require complete profiles to enable the preview", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const bool bbl_printer = GENERATE(false, true);
+    const std::string profile = GENERATE("", "3,0,0,50", "3,0,0,,100", "3,0,0,50,100");
+    CAPTURE(bbl_printer, profile);
+    const ScopedBblPrinterFlag scoped_printer_flag(bbl_printer);
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n");
+    if (!profile.empty())
+        processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + profile + "\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    const bool complete = profile == "3,0,0,50,100";
+    CHECK(processor.get_result().has_overhang_metadata == complete);
+    REQUIRE_FALSE(processor.get_result().moves.empty());
+    REQUIRE(processor.get_result().moves.back().type == EMoveType::Extrude);
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage,
+        Catch::Matchers::WithinAbs(complete ? 100.0 : 0.0, 1e-5));
+}
+
 TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
 {
     const bool bbl_printer = GENERATE(false, true);
@@ -1561,6 +1584,47 @@ TEST_CASE("Overhang metadata does not spread a corner overhang along a supported
     REQUIRE_FALSE(variable_speed_points.empty());
     for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
         CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+}
+
+// Orca: Closing a hole can put a perimeter over air despite an unchanged outer contour. Test both
+// sides of the support edge: the centerline may be inside or outside the lower layer's material.
+TEST_CASE("Perimeter overhang metadata preserves unsupported width above a nearby hole",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    const double supported_width = GENERATE(0.1, 0.3);
+    const ExtrusionRole role = GENERATE(erExternalPerimeter, erOverhangPerimeter);
+    CAPTURE(supported_width, role);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    ExPolygon lower_slice(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 20), Point::new_scale(0, 20)});
+    upper->lslices = {lower_slice};
+    lower_slice.holes.emplace_back(Polygon{Point::new_scale(1, supported_width), Point::new_scale(1, 10),
+        Point::new_scale(39, 10), Point::new_scale(39, supported_width)});
+    lower_slice.holes.back().make_clockwise();
+    lower->lslices = {std::move(lower_slice)};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(role, 0.08, width, 0.2f);
+    path.polyline.points = {Point3::new_scale(2, 0.5 * width, 0), Point3::new_scale(38, 0.5 * width, 0)};
+    const double expected_percentage = 100.0 * (width - supported_width) / width;
+    const auto percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(percentages.size() == 1);
+    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+    // Orca: Variable-speed output uses the same geometric estimate for each emitted span.
+    const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
+        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
+        100.0f, 100.0f, false, true);
+    REQUIRE(points.size() >= 2);
+    for (size_t i = 0; i + 1 < points.size(); ++i)
+        CHECK_THAT(points[i].overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
 }
 
 // Orca: A bridge may be close to an unchanged outer contour while spanning a hole in the lower layer.
