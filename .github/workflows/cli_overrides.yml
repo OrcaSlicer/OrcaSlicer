@@ -33,14 +33,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The effect stage re-slices every landed option one at a time and cannot
-        # batch, so it is the whole cost of this job. Un-sharded it is ~6 h on a
-        # 4-vCPU runner once the option is routed to a fixture that can actually
-        # show its effect. parity/effect_routing.json groups options by cheapest
-        # capable fixture and balances the groups by measured slice cost; 8 shards
-        # puts the longest at ~53 min. Shards are disjoint and cover every landed
-        # option exactly once.
-        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+        # The effect stage re-slices every landed option one at a time and
+        # cannot batch, so it is the whole cost of this job.
+        # parity/effect_routing.json groups options by the cheapest fixture that
+        # can show their effect and splits them into balanced, disjoint shards
+        # covering every landed option exactly once. Measured at ~12.5 min a
+        # shard; un-sharded the sweep is ~24 min, so this is about feedback time
+        # rather than fitting the timeout.
+        shard: [0, 1]
     steps:
       - name: Find the latest successful Linux build
         id: build
@@ -109,7 +109,7 @@ jobs:
           # passing tests, so without it every "grep override sweep" below
           # finds nothing and the job summary says "no stage summaries"
           python -m pytest test_cli_overrides.py -c pytest.ini -v -rA --effect-full \
-            --effect-shard ${{ matrix.shard }}/8 \
+            --effect-shard ${{ matrix.shard }}/2 \
             --orca-bin "$ORCA_BIN" --orca-source "$ORCA_SOURCE" \
             2>&1 | tee ../sweep.log
 
@@ -117,7 +117,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## CLI override sweep - shard ${{ matrix.shard }}/8"
+            echo "## CLI override sweep - shard ${{ matrix.shard }}/2"
             grep -E "\[override sweep" sweep.log || echo "no stage summaries (see log)"
             echo
             grep -E "^(=+ )?[0-9]+ (passed|failed)" sweep.log | tail -1 || true
@@ -133,3 +133,13 @@ jobs:
             sweep.log
           if-no-files-found: warn
           retention-days: 30
+
+      # The sweep step is continue-on-error so the summary and artifact steps
+      # above still run on a failure - without this the job would then report
+      # success, and a shard that measured nothing would look identical to a
+      # healthy one.
+      - name: Fail the job if the sweep failed
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "the override sweep failed - see the job summary and the uploaded report" >&2
+          exit 1
