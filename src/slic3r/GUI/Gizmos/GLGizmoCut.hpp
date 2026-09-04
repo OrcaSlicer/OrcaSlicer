@@ -69,6 +69,10 @@ class GLGizmoCut3D : public GLGizmoBase
     // dragging angel in hovered axes
     double m_angle{ 0.0 };
 
+    // Numeric cut-plane rotation (radians, XYZ order matching Geometry::rotation_transform).
+    // Shown in degrees in the input window; synced from m_rotation_m after drag/flip/reset/load.
+    Vec3d m_cut_rotation{ Vec3d::Zero() };
+
     TriangleMesh    m_connector_mesh;
     // workaround for using of the clipping plane normal
     Vec3d           m_clp_normal{ Vec3d::Ones() };
@@ -349,6 +353,10 @@ private:
     bool render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);
     bool render_slider_input(const std::string& label, float& value_in, float min_val = -0.1f, float max_val = 100.f);
     void render_move_center_input(int axis);
+    void render_cut_rotation_input();
+    void render_cut_rotation_axis_input(int axis);
+    void sync_cut_rotation_from_matrix();
+    void apply_cut_rotation(const Vec3d& euler_rad);
     void render_connect_mode_radio_button(CutConnectorMode mode);
     bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
     bool render_connect_type_radio_button(CutConnectorType type);

@@ -419,6 +419,23 @@ void GLGizmoCut3D::rotate_vec3d_around_plane_center(Vec3d&vec)
     vec = Transformation(translation_transform(m_plane_center) * m_rotation_m * translation_transform(-m_plane_center)).get_matrix() * vec;
 }
 
+void GLGizmoCut3D::sync_cut_rotation_from_matrix()
+{
+    m_cut_rotation = extract_euler_angles(m_rotation_m);
+}
+
+void GLGizmoCut3D::apply_cut_rotation(const Vec3d& euler_rad)
+{
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
+    m_rotation_m = rotation_transform(euler_rad);
+    m_start_dragging_m = m_rotation_m;
+    m_cut_rotation = euler_rad;
+    m_transformed_bounding_box = transformed_bounding_box(m_plane_center, m_rotation_m);
+    update_clipper();
+    check_and_update_connectors_state();
+    reset_cut_by_contours();
+}
+
 void GLGizmoCut3D::put_connectors_on_cut_plane(const Vec3d& cp_normal, double cp_offset)
 {
     ModelObject* mo = m_c->selection_info()->model_object();
@@ -688,6 +705,40 @@ void GLGizmoCut3D::render_move_center_input(int axis)
         m_ar_plane_center = m_plane_center;
 
         reset_cut_by_contours();
+    }
+}
+
+void GLGizmoCut3D::render_cut_rotation_input()
+{
+    render_cut_rotation_axis_input(X);
+    render_cut_rotation_axis_input(Y);
+    // In-plane spin is only meaningful for the dovetail groove orientation.
+    if (CutMode(m_mode) == CutMode::cutTongueAndGroove)
+        render_cut_rotation_axis_input(Z);
+}
+
+void GLGizmoCut3D::render_cut_rotation_axis_input(int axis)
+{
+    const std::string label = std::string("Rotation ") + m_axis_names[axis];
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L(label));
+    ImGui::SameLine(m_label_width);
+    ImGui::PushItemWidth(0.3f * m_control_width);
+
+    double value = rad2deg(m_cut_rotation[axis]);
+    while (value > 180.) value -= 360.;
+    while (value <= -180.) value += 360.;
+    double new_value = value;
+    ImGui::InputDouble(("##cut_rotation_" + m_axis_names[axis]).c_str(), &new_value, 0.0, 0.0, "%.2f", ImGuiInputTextFlags_CharsDecimal);
+    ImGui::SameLine();
+    m_imgui->text("°");
+
+    if (new_value != value) {
+        while (new_value > 180.) new_value -= 360.;
+        while (new_value <= -180.) new_value += 360.;
+        Vec3d euler_rad = m_cut_rotation;
+        euler_rad[axis] = deg2rad(new_value);
+        apply_cut_rotation(euler_rad);
     }
 }
 
@@ -1349,6 +1400,7 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
         groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance);
 
     m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
 
     m_transformed_bounding_box = transformed_bounding_box(m_ar_plane_center, m_rotation_m);
     set_center_pos(m_ar_plane_center);
@@ -1409,6 +1461,7 @@ void GLGizmoCut3D::on_set_state()
         // initiate archived values
         m_ar_plane_center   = m_plane_center;
         m_start_dragging_m  = m_rotation_m;
+        sync_cut_rotation_from_matrix();
         reset_cut_by_contours();
 
         m_parent.request_extra_frame();
@@ -1756,6 +1809,7 @@ void GLGizmoCut3D::dragging_grabber_rotation(const GLGizmoBase::UpdateData &data
     if (m_angle < 0.0)
         m_angle += two_pi;
 
+    sync_cut_rotation_from_matrix();
     update_clipper();
 }
 
@@ -2487,6 +2541,7 @@ void GLGizmoCut3D::reset_cut_plane()
     m_transformed_bounding_box = transformed_bounding_box(m_bb_center);
     set_center(m_bb_center);
     m_start_dragging_m = m_rotation_m = Transform3d::Identity();
+    m_cut_rotation = Vec3d::Zero();
     m_ar_plane_center  = m_plane_center;
 
     reset_cut_by_contours();
@@ -2496,6 +2551,7 @@ void GLGizmoCut3D::reset_cut_plane()
 void GLGizmoCut3D::invalidate_cut_plane()
 {
     m_rotation_m    = Transform3d::Identity();
+    m_cut_rotation  = Vec3d::Zero();
     m_plane_center  = Vec3d::Zero();
     m_min_pos       = Vec3d::Zero();
     m_max_pos       = Vec3d::Zero();
@@ -2523,6 +2579,7 @@ void GLGizmoCut3D::flip_cut_plane()
 
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Flip cut plane"), UndoRedo::SnapshotType::GizmoAction);
     m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
 
     update_clipper();
     m_part_selection.turn_over_selection();
@@ -2875,6 +2932,8 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
                 reset_cut_plane();
             }
         m_imgui->disabled_end();
+
+        render_cut_rotation_input();
 
         if (mode == CutMode::cutPlanar) {
             ImGui::Separator();
