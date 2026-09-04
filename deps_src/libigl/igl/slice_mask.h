@@ -13,18 +13,37 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Act like the matlab X(row_mask,col_mask) operator, where
-  // row_mask, col_mask are non-negative integer indices.
-  // 
-  // Inputs:
-  //   X  m by n matrix
-  //   R  m list of row bools
-  //   C  n list of column bools
-  // Output:
-  //   Y  #trues-in-R by #trues-in-C matrix
-  //
-  // See also: slice_mask
-  
+  /// Act like the matlab X(row_mask,col_mask) operator, where
+  /// row_mask, col_mask are non-negative integer indices.
+  /// 
+  /// @param[in] X  m by n matrix
+  /// @param[in] R  m list of row bools
+  /// @param[in] C  n list of column bools
+  /// @param[out] Y  #trues-in-R by #trues-in-C matrix
+  ///
+  /// \see slice
+  template <typename XType, typename YType>
+  IGL_INLINE void slice_mask(
+    const Eigen::SparseMatrix<XType> & X,
+    const Eigen::Array<bool,Eigen::Dynamic,1> & R,
+    const Eigen::Array<bool,Eigen::Dynamic,1> & C,
+    Eigen::SparseMatrix<YType> & Y);
+  /// \overload
+  ///
+  /// \brief Wrapper to only slice in one direction
+  ///
+  /// @param[int] dim  dimension to slice in 1 or 2, dim=1 --> X(R,:), dim=2 --> X(:,R)
+  template <typename XType, typename YType>
+  IGL_INLINE void slice_mask(
+    const Eigen::SparseMatrix<XType> & X,
+    const Eigen::Array<bool,Eigen::Dynamic,1> & R,
+    const int dim,
+    Eigen::SparseMatrix<YType> & Y);
+  /// \overload
+  ///
+  /// \deprecated
+  /// 
+  /// See slice.h for more details
   template <typename DerivedX,typename DerivedY>
   IGL_INLINE void slice_mask(
     const Eigen::DenseBase<DerivedX> & X,
@@ -37,33 +56,22 @@ namespace igl
     const Eigen::Array<bool,Eigen::Dynamic,1> & R,
     const int dim,
     Eigen::PlainObjectBase<DerivedY> & Y);
-  //
-  // This templating is bad because the return type might not have the same
-  // size as `DerivedX`. This will probably only work if DerivedX has Dynamic
-  // as it's non-trivial sizes or if the number of rows in R happens to equal
-  // the number of rows in `DerivedX`.
+  /// \overload
+  /// \note This templating is bad because the return type might not have the same
+  /// size as `DerivedX`. This will probably only work if DerivedX has Dynamic
+  /// as it's non-trivial sizes or if the number of rows in R happens to equal
+  /// the number of rows in `DerivedX`.
   template <typename DerivedX>
   IGL_INLINE DerivedX slice_mask(
     const Eigen::DenseBase<DerivedX> & X,
     const Eigen::Array<bool,Eigen::Dynamic,1> & R,
     const Eigen::Array<bool,Eigen::Dynamic,1> & C);
+  /// \overload
   template <typename DerivedX>
   IGL_INLINE DerivedX slice_mask(
     const Eigen::DenseBase<DerivedX> & X,
     const Eigen::Array<bool,Eigen::Dynamic,1> & R,
     const int dim);
-  template <typename XType, typename YType>
-  IGL_INLINE void slice_mask(
-    const Eigen::SparseMatrix<XType> & X,
-    const Eigen::Array<bool,Eigen::Dynamic,1> & R,
-    const int dim,
-    Eigen::SparseMatrix<YType> & Y);
-  template <typename XType, typename YType>
-  IGL_INLINE void slice_mask(
-    const Eigen::SparseMatrix<XType> & X,
-    const Eigen::Array<bool,Eigen::Dynamic,1> & R,
-    const Eigen::Array<bool,Eigen::Dynamic,1> & C,
-    Eigen::SparseMatrix<YType> & Y);
 }
 
 

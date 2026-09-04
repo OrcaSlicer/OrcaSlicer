@@ -16,6 +16,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -34,21 +38,38 @@ jobs:
 
       # Setup the environment
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: 'false'
 
       - name: load cached deps
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
 
       - uses: lukka/get-cmake@latest
+        # The windows-11-arm runner needs CMake <= 3.31 (handled in the next step).
+        if: ${{ !(runner.os == 'Windows' && inputs.arch == 'arm64') }}
         with:
           cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
           useLocalCache: true         # <--= Use the local cache (default is 'false').
           useCloudCache: true
+
+      - name: Install CMake 3.31.x (Windows ARM64)
+        # windows-11-arm ships CMake 4.x, which removed pre-3.5 policy
+        # compatibility AND has incomplete ASM_ARMASM linker modules
+        # (breaks Boost.Context on ARM64). Pin to the last 3.x release.
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ver = "3.31.6"
+          $url = "https://github.com/Kitware/CMake/releases/download/v$ver/cmake-$ver-windows-arm64.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\cmake.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\cmake.zip" -DestinationPath "$env:RUNNER_TEMP\cmake" -Force
+          $cmakeBin = "$env:RUNNER_TEMP\cmake\cmake-$ver-windows-arm64\bin"
+          if (-not (Test-Path "$cmakeBin\cmake.exe")) { throw "cmake.exe not found at $cmakeBin" }
+          Add-Content -Path $env:GITHUB_PATH -Value $cmakeBin
 
       - name: setup dev on Windows
         if: runner.os == 'Windows'
@@ -65,6 +86,50 @@ jobs:
         shell: pwsh
 
 
+      - name: Install MSYS2 (clangarm64) with GMP/MPFR and LLVM tools
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            mingw-w64-clang-aarch64-gmp
+            mingw-w64-clang-aarch64-mpfr
+            mingw-w64-clang-aarch64-llvm
+
+      - name: Stage ARM64 GMP/MPFR (no prebuilt blobs exist for win-arm64)
+        # GMP/MPFR ship prebuilt x64/x86 blobs in-tree but none for ARM64.
+        # Pull them from MSYS2 clangarm64 and generate MSVC import libs via
+        # llvm-dlltool, then stage into deps/{GMP,MPFR}/.../win-arm64 where the
+        # MSVC branch of GMP.cmake/MPFR.cmake copies them into the dep prefix.
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          BIN=/clangarm64/bin
+          REPO=$(cygpath -u "$GITHUB_WORKSPACE")
+
+          make_import_lib() {
+            local dll="$1"; local lib="$2"; local def="/tmp/${dll%.dll}.def"
+            echo "EXPORTS" > "$def"
+            llvm-readobj --coff-exports "$BIN/$dll" | awk '/Name: /{print $2}' >> "$def"
+            llvm-dlltool -m arm64 -D "$dll" -d "$def" -l "$BIN/$lib"
+          }
+
+          make_import_lib libgmp-10.dll libgmp-10.lib
+
+          # MPFR 4.x ships as libmpfr-6.dll; rename to libmpfr-4 BEFORE generating
+          # the import lib so the baked-in runtime DLL name is correct.
+          MPFR_DLL=$(ls $BIN/libmpfr-*.dll | head -1 | xargs basename)
+          if [ "$MPFR_DLL" != "libmpfr-4.dll" ]; then cp "$BIN/$MPFR_DLL" "$BIN/libmpfr-4.dll"; fi
+          make_import_lib libmpfr-4.dll libmpfr-4.lib
+
+          mkdir -p $REPO/deps/GMP/gmp/lib/win-arm64 $REPO/deps/MPFR/mpfr/lib/win-arm64
+          cp $BIN/libgmp-10.dll $BIN/libgmp-10.lib $REPO/deps/GMP/gmp/lib/win-arm64/
+          cp $BIN/libmpfr-4.dll $BIN/libmpfr-4.lib $REPO/deps/MPFR/mpfr/lib/win-arm64/
+          cp /clangarm64/include/gmp.h  $REPO/deps/GMP/gmp/include/
+          cp /clangarm64/include/mpfr.h $REPO/deps/MPFR/mpfr/include/ || true
+
       # Build Dependencies
       - name: Build on Windows
         if: runner.os == 'Windows'
@@ -73,8 +138,25 @@ jobs:
             if (-not "${{ vars.SELF_HOSTED }}") {
               choco install strawberryperl
             }
-            .\build_release_vs.bat deps
-            .\build_release_vs.bat pack
+            $arch = "${{ inputs.arch }}"
+            # -l selects clang-cl and -x Ninja; together they build the deps with clang.
+            $clang = "${{ inputs.compiler }}" -eq "clang"
+            $flags = if ($clang) { "-l", "-x" } else { @() }
+            if ($clang) {
+              # OpenSSL builds with nmake, which needs a VC environment.
+              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+              $vs = & $vswhere -latest -property installationPath
+              $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
+              Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+              Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
+            }
+            if ($arch -eq "arm64") {
+              .\build_release_vs.bat deps arm64 @flags
+              .\build_release_vs.bat pack arm64
+            } else {
+              .\build_release_vs.bat deps @flags
+              .\build_release_vs.bat pack
+            }
         shell: pwsh
 
       - name: Build on Mac ${{ inputs.arch }}
@@ -82,9 +164,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
-              brew install automake texinfo libtool
+              brew install automake texinfo libtool pkgconf yasm nasm
             fi
-            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a ${{ inputs.arch }} -t 10.15
             (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
             find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 
@@ -137,4 +219,5 @@ jobs:
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
     secrets: inherit

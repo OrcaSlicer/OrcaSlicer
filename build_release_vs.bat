@@ -3,10 +3,39 @@
 set WP=%CD%
 set _START_TIME=%TIME%
 
+@REM Default target architecture to the host CPU arch; override by passing
+@REM "x64" or "arm64" as an argument. PROCESSOR_ARCHITEW6432 covers a 32-bit
+@REM shell running on a 64-bit OS, where PROCESSOR_ARCHITECTURE reads "x86".
+set arch=x64
+if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" set arch=ARM64
+if /I "%PROCESSOR_ARCHITEW6432%"=="ARM64" set arch=ARM64
+if /I "%1"=="arm64" set arch=ARM64
+if /I "%2"=="arm64" set arch=ARM64
+if /I "%1"=="x64" set arch=x64
+if /I "%2"=="x64" set arch=x64
+
 @REM Check for Ninja Multi-Config option (-x)
 set USE_NINJA=0
 for %%a in (%*) do (
     if "%%a"=="-x" set USE_NINJA=1
+)
+
+@REM Check for clang-cl option (-l). Combined with -x it also builds the deps with
+@REM clang-cl; on the Visual Studio generator it applies to the slicer only, because
+@REM the dependency sub-builds have no toolset to inherit and stay on MSVC.
+set CLANG_ARG=
+set TOOLSET_ARG=
+for %%a in (%*) do (
+    if "%%a"=="-l" (
+        set CLANG_ARG=-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+        set TOOLSET_ARG=-T ClangCL
+    )
+)
+
+@REM Check for unit-tests option ("tests")
+set BUILD_TESTS=OFF
+for %%a in (%*) do (
+    if /I "%%a"=="tests" set BUILD_TESTS=ON
 )
 
 if "%USE_NINJA%"=="1" (
@@ -57,7 +86,7 @@ if "%VS_MAJOR%"=="16" (
     set CMAKE_GENERATOR="Visual Studio 18 2026"
 ) else (
     echo Error: Unsupported Visual Studio version: %VS_MAJOR%
-    echo Supported versions: VS2019 (16.x^), VS2022 (17.x^), VS2026 (18.x^)
+    echo Supported versions: VS2019 (16.8+^), VS2022 (17.x^), VS2026 (18.x^)
     exit /b 1
 )
 
@@ -68,12 +97,13 @@ echo Using CMake generator: %CMAKE_GENERATOR%
 
 @REM Pack deps
 if "%1"=="pack" (
-    setlocal ENABLEDELAYEDEXPANSION 
+    setlocal ENABLEDELAYEDEXPANSION
     cd %WP%/deps/build
+    if "%arch%"=="ARM64" cd %WP%/deps/build-arm64
     for /f "tokens=2-4 delims=/ " %%a in ('date /t') do set build_date=%%c%%b%%a
-    echo packing deps: OrcaSlicer_dep_win64_!build_date!_vs!VS_VERSION!.zip
+    echo packing deps: OrcaSlicer_dep_win-!arch!_!build_date!_vs!VS_VERSION!.zip
 
-    %WP%/tools/7z.exe a OrcaSlicer_dep_win64_!build_date!_vs!VS_VERSION!.zip OrcaSlicer_dep
+    %WP%/tools/7z.exe a OrcaSlicer_dep_win-!arch!_!build_date!_vs!VS_VERSION!.zip OrcaSlicer_dep
     goto :done
 )
 
@@ -95,9 +125,10 @@ if "%debug%"=="ON" (
         set build_dir=build
     )
 )
-echo build type set to %build_type%
+if "%arch%"=="ARM64" set build_dir=%build_dir%-arm64
+echo build type set to %build_type%, arch=%arch%
 
-setlocal DISABLEDELAYEDEXPANSION 
+setlocal DISABLEDELAYEDEXPANSION
 cd deps
 mkdir %build_dir%
 cd %build_dir%
@@ -108,15 +139,16 @@ if "%1"=="slicer" (
     GOTO :slicer
 )
 echo "building deps.."
+if defined CLANG_ARG if "%USE_NINJA%"=="0" echo Note: -l needs -x for the dependencies; building them with MSVC.
 
 echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake ../ -G %CMAKE_GENERATOR% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake ../ -G %CMAKE_GENERATOR% %CLANG_ARG% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps
 ) else (
-    cmake ../ -G %CMAKE_GENERATOR% -A x64 -DCMAKE_BUILD_TYPE=%build_type%
+    cmake ../ -G %CMAKE_GENERATOR% -A %arch% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps -- -m
 )
 @echo off
@@ -132,10 +164,10 @@ cd %build_dir%
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
-    cmake --build . --config %build_type% --target ALL_BUILD
+    cmake .. -G %CMAKE_GENERATOR% %CLANG_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target all
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A %arch% %TOOLSET_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off

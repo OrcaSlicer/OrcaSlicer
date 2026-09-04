@@ -199,21 +199,27 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + L("Tab"), L("Switch table page")},
             //DEL
             #ifdef __APPLE__
-                {"fn+⌫", L("Delete selected")},
+                {"fn+⌫", L("Delete Selected")},
             #else
-                {L("Del"), L("Delete selected")},
+                {L_CONTEXT("Del", "Keyboard Shortcut"), L("Delete Selected")},
             #endif
             // Help
             { "?", L("Show keyboard shortcuts list") }
         };
         m_full_shortcuts.push_back({{_L("Global shortcuts"), ""}, global_shortcuts});
+
         
-        bool swap_mouse_buttons = wxGetApp().app_config->get_bool("swap_mouse_buttons");
+        // Retrieve mouse actions from config and map to MouseAction
+        std::map<std::string, std::string> mouse_actions;
+        mouse_actions["0"] = L("None");
+        mouse_actions["1"] = L("Pan View");
+        mouse_actions["2"] = L("Rotate View");
 
         Shortcuts plater_shortcuts = {
-            { L("Left mouse button"), swap_mouse_buttons ? L("Pan view") : L("Rotate view") },
-            { L("Right mouse button"), swap_mouse_buttons ? L("Rotate view") : L("Pan view") },
-            { L("Mouse wheel"), L("Zoom view") },
+            { L("Left mouse button"), mouse_actions[wxGetApp().app_config->get("left_mouse_drag_action").c_str()]},
+            { L("Middle mouse button"), mouse_actions[wxGetApp().app_config->get("middle_mouse_drag_action").c_str()]},
+            { L("Right mouse button"), mouse_actions[wxGetApp().app_config->get("right_mouse_drag_action").c_str()]},
+            { L("Mouse wheel"), L("Zoom View") },
             { "A", L("Arrange all objects") },
             { shift + "A", L("Arrange objects on selected plates") },
 
@@ -225,12 +231,12 @@ void KBShortcutsDialog::fill_shortcuts()
             {alt + L("Left mouse button"), L("Select a part")},
             {ctrl + L("Left mouse button"), L("Select multiple objects")},
             {shift + L("Left mouse button"), L("Select objects by rectangle")},
-            {L("Arrow Up"), L("Move selection 10 mm in positive Y direction")},
-            {L("Arrow Down"), L("Move selection 10 mm in negative Y direction")},
-            {L("Arrow Left"), L("Move selection 10 mm in negative X direction")},
-            {L("Arrow Right"), L("Move selection 10 mm in positive X direction")},
-            {shift + L("Any arrow"), L("Movement step set to 1 mm")},
-            {L("Esc"), L("Deselect all")},
+            {L_CONTEXT("Arrow Up", "Keyboard Shortcut"), L("Move selection 10mm in positive Y direction")},
+            {L_CONTEXT("Arrow Down", "Keyboard Shortcut"), L("Move selection 10mm in negative Y direction")},
+            {L_CONTEXT("Arrow Left", "Keyboard Shortcut"), L("Move selection 10mm in negative X direction")},
+            {L_CONTEXT("Arrow Right", "Keyboard Shortcut"), L("Move selection 10mm in positive X direction")},
+            {shift + L("Any arrow"), L("Movement step set to 1mm")},
+            {L_CONTEXT("Esc", "Keyboard Shortcut"), L("Deselect All")},
             {"1-9", L("Keyboard 1-9: set filament for object/part")},
             {ctrl + "0", L("Camera view - Default")},
             {ctrl + "1", L("Camera view - Top")},
@@ -241,7 +247,7 @@ void KBShortcutsDialog::fill_shortcuts()
             {ctrl + "6", L("Camera Angle - Right side")},
 
             {ctrl + "A", L("Select all objects")},
-            {ctrl + "D", L("Delete all")},
+            {ctrl + "D", L("Delete All")},
             {ctrl + "Z", L("Undo")},
             {ctrl + "Y", L("Redo")},
             { "M", L("Gizmo move") },
@@ -259,13 +265,15 @@ void KBShortcutsDialog::fill_shortcuts()
             { "E", L("Gizmo brim ears") },
             { "I", L("Zoom in") },
             { "O", L("Zoom out") },
-            { L("Tab"), L("Switch between Prepare/Preview") },
+            { "V", L("Toggle printable for object/part") },
+            { L_CONTEXT("Tab", "Keyboard Shortcut"), L("Switch between Prepare/Preview") },
+            { L_CONTEXT("Space", "Keyboard Shortcut"), L("Open actions speed dial") },
 
         };
         m_full_shortcuts.push_back({ { _L("Plater"), "" }, plater_shortcuts });
 
         Shortcuts gizmos_shortcuts = {
-            {L("Esc"), L("Deselect all")},
+            {L_CONTEXT("Esc", "Keyboard Shortcut"), L("Deselect All")},
             {shift, L("Move: press to snap by 1mm")},
             {ctrl + L("Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
             {alt + L("Mouse wheel"), L("Support/Color Painting: adjust section position")},
@@ -274,35 +282,35 @@ void KBShortcutsDialog::fill_shortcuts()
 
         Shortcuts object_list_shortcuts = {
             {"1-9", L("Set extruder number for the objects and parts") },
-            {L("Del"), L("Delete objects, parts, modifiers")},
-            {L("Esc"), L("Deselect all")},
+            {L_CONTEXT("Del", "Keyboard Shortcut"), L("Delete objects, parts, modifiers")},
+            {L_CONTEXT("Esc", "Keyboard Shortcut"), L("Deselect All")},
             {ctrl + "C", L("Copy to clipboard")},
             {ctrl + "V", L("Paste from clipboard")},
             {ctrl + "X", L("Cut")},
             {ctrl + "A", L("Select all objects")},
-            {ctrl + "K", L("Clone selected")},
+            {ctrl + "K", L("Clone Selected")},
             {ctrl + "Z", L("Undo")},
             {ctrl + "Y", L("Redo")},
-            {L("Space"), L("Select the object/part and press space to change the name")},
+            {L_CONTEXT("Space", "Keyboard Shortcut"), L("Select the object/part and press space to change the name")},
             {L("Mouse click"), L("Select the object/part and mouse click to change the name")},
         };
         m_full_shortcuts.push_back({ { _L("Objects List"), "" }, object_list_shortcuts });
     }
 
     Shortcuts preview_shortcuts = {
-        { L("Arrow Up"),    L("Vertical slider - Move active thumb Up")},
-        { L("Arrow Down"),  L("Vertical slider - Move active thumb Down")},
-        { L("Arrow Left"),  L("Horizontal slider - Move active thumb Left")},
-        { L("Arrow Right"), L("Horizontal slider - Move active thumb Right")},
+        { L_CONTEXT("Arrow Up", "Keyboard Shortcut"),    L("Vertical slider - Move active thumb Up")},
+        { L_CONTEXT("Arrow Down", "Keyboard Shortcut"),  L("Vertical slider - Move active thumb Down")},
+        { L_CONTEXT("Arrow Left", "Keyboard Shortcut"),  L("Horizontal slider - Move active thumb Left")},
+        { L_CONTEXT("Arrow Right", "Keyboard Shortcut"), L("Horizontal slider - Move active thumb Right")},
         { "L", L("On/Off one layer mode of the vertical slider")},
         { "C", L("On/Off G-code window")},
-        { L("Tab"), L("Switch between Prepare/Preview")},
+        { L_CONTEXT("Tab", "Keyboard Shortcut"), L("Switch between Prepare/Preview")},
         {shift + L("Any arrow"), L("Move slider 5x faster")},
         {shift + L("Mouse wheel"), L("Move slider 5x faster")},
         {ctrl + L("Any arrow"), L("Move slider 5x faster")},
         {ctrl + L("Mouse wheel"), L("Move slider 5x faster")},
-        { L("Home"),        L("Horizontal slider - Move to start position")},
-        { L("End"),         L("Horizontal slider - Move to last position")},
+        { L_CONTEXT("Home", "Keyboard Shortcut"),        L("Horizontal slider - Move to start position")},
+        { L_CONTEXT("End", "Keyboard Shortcut"),         L("Horizontal slider - Move to last position")},
     };
     m_full_shortcuts.push_back({ { _L("Preview"), "" }, preview_shortcuts });
 }
@@ -333,7 +341,10 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const ShortcutsItem& s
 
     for (int i = 0; i < items_count; ++i) {
         const auto &[shortcut, description] = shortcuts.second[i];
-        auto key                            = new wxStaticText(scrollable_panel, wxID_ANY, _(shortcut));
+        // Keyboard keys carry a "Keyboard Shortcut" context so translators keep them in English;
+        // mouse-input labels are ordinary phrases and use the plain lookup.
+        const bool is_mouse = shortcut.find("Mouse") != std::string::npos || shortcut.find("mouse") != std::string::npos;
+        auto key = new wxStaticText(scrollable_panel, wxID_ANY, is_mouse ? _(shortcut) : _L_CONTEXT(shortcut, "Keyboard Shortcut"));
         key->SetForegroundColour(wxColour(50, 58, 61));
         key->SetFont(bold_font);
         grid_sizer->Add(key, 0, wxALIGN_CENTRE_VERTICAL);

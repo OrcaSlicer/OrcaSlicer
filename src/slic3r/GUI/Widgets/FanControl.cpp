@@ -1014,8 +1014,12 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     if (obj) {
         const std::string& special_cooling_text = DevPrinterConfigUtil::get_fan_text(obj->printer_type, "special_cooling_text");
         if (!special_cooling_text.empty()) {
-            L("Cooling mode is suitable for printing PLA/PETG/TPU materials."); //some potential text, add i18n flags
-            L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air.");
+            // Possible runtime values of special_cooling_text, marked for extraction.
+            static const char *const markers[] = {
+                L("Cooling mode is suitable for printing PLA/PETG/TPU materials."),
+                L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."),
+            };
+            (void) markers;
             label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = _L(special_cooling_text);
         }
     }
@@ -1028,16 +1032,20 @@ wxString FanControlPopupNew::get_fan_func_name(int mode, int submode, AIR_FUN fu
         const std::string& func_text = DevPrinterConfigUtil::get_fan_text(m_obj->printer_type, mode, (int)func, submode);
         if (!func_text.empty())
         {
-            L_CONTEXT("Right(Aux)", "air_duct");
-            L_CONTEXT("Right(Filter)", "air_duct");
-            L_CONTEXT("Left(Aux)", "air_duct");
-            return _CTX(func_text, "air_duct");
+            // Possible runtime values of func_text, marked for extraction.
+            static const char *const markers[] = {
+                L_CONTEXT("Right(Aux)", "air_duct"),
+                L_CONTEXT("Right(Filter)", "air_duct"),
+                L_CONTEXT("Left(Aux)", "air_duct"),
+            };
+            (void) markers;
+            return _L_CONTEXT(func_text, "air_duct");
         }
     }
 
     static std::map<AIR_FUN, wxString> s_fan_func_name
     {
-        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L("Hotend") },
+        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L_CONTEXT("Hotend", "Hotend Heat Breaker Fan") },
         { AIR_FUN::FAN_COOLING_0_AIRDOOR,     _L("Parts") },
         { AIR_FUN::FAN_REMOTE_COOLING_0_IDX,  _L("Aux") },
         { AIR_FUN::FAN_CHAMBER_0_IDX,         _L("Exhaust") },

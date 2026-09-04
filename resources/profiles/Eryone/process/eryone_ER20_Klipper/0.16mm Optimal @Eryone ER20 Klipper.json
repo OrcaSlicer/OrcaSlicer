@@ -4,6 +4,7 @@
 	],
 	"from": "system",
 	"inherits": "fdm_process_ER20_Klipper_0.16",
+	"setting_id": "T6D9ljLTeYJNh7LY",
 	"instantiation": "true",
 	"name": "0.16mm Optimal @Eryone ER20 Klipper",
 	"sparse_infill_pattern": "gyroid",

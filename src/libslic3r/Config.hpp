@@ -2,6 +2,7 @@
 #define slic3r_Config_hpp_
 
 #include <assert.h>
+#include <algorithm>
 #include <map>
 #include <climits>
 #include <cfloat>
@@ -9,6 +10,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -26,12 +28,21 @@
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
+// The serialize() members below archive ConfigOption hierarchies through
+// cereal::base_class, whose registration machinery lives in polymorphic.hpp.
+#include <cereal/types/polymorphic.hpp>
 
 namespace Slic3r {
     struct FloatOrPercent
     {
-        double  value;
-        bool    percent;
+        double  value = 0;
+        bool    percent = false;
+
+        FloatOrPercent() {}
+        FloatOrPercent(double value_, bool percent_) : value(value_), percent(percent_) { }
+
+        double get_abs_value(double ratio_over) const { return this->percent ? (ratio_over * this->value / 100) : this->value; }
+
     private:
         friend class cereal::access;
         template<class Archive> void serialize(Archive& ar) { ar(this->value); ar(this->percent); }
@@ -199,6 +210,7 @@ enum ConfigOptionType {
 enum ConfigOptionMode {
     comSimple = 0,
     comAdvanced,
+    comExpert,
     comDevelop,
 };
 
@@ -329,6 +341,8 @@ public:
 
     size_t hash() const throw() override { return std::hash<T>{}(this->value); }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOption::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
@@ -354,6 +368,7 @@ public:
     virtual void set_with_restore(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int stride)           = 0;
     virtual void set_with_restore_2(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int start, int len, bool skip_error = false) = 0;
     virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride)                 = 0;
+    virtual void set_to_index(const ConfigOptionVectorBase* rhs, std::vector<int>& dest_index, int stride) = 0;
     virtual void set_with_nil(const ConfigOptionVectorBase* rhs, const ConfigOptionVectorBase* inherits, int stride)        = 0;
     // Resize the vector of values, copy the newly added values from opt_default if provided.
     virtual void resize(size_t n, const ConfigOption *opt_default = nullptr) = 0;
@@ -577,6 +592,32 @@ public:
             throw ConfigurationError("ConfigOptionVector::set_only_diff(): Assigning an incompatible type");
     }
 
+    //set a item related with extruder variants when apply static config with dynamic config
+    //rhs: item from dynamic config
+    //dest_index: which index in this vector need to be used
+    virtual void set_to_index(const ConfigOptionVectorBase* rhs, std::vector<int>& dest_index, int stride) override
+    {
+        if (rhs->type() == this->type()) {
+            // Assign the first value of the rhs vector.
+            auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
+            T v = other->values.front();
+            this->values.resize(dest_index.size() * stride, v);
+
+            for (size_t i = 0; i < dest_index.size(); i++) {
+                if (dest_index[i] < 0)
+                    continue;
+                for (size_t j = 0; j < size_t(stride); j++)
+                {
+                    const size_t src_idx = size_t(dest_index[i]) * size_t(stride) + j;
+                    if (src_idx < other->values.size() && !other->is_nil(size_t(dest_index[i]) * size_t(stride)))
+                        this->values[i * size_t(stride) + j] = other->values[src_idx];
+                }
+            }
+        }
+        else
+            throw ConfigurationError("ConfigOptionVector::set_to_index(): Assigning an incompatible type");
+    }
+
     //set a item related with extruder variants when saving user config, set the non-diff value of some extruder to nill
     //this item has different value with inherit config
     //rhs: item from userconfig
@@ -707,6 +748,7 @@ public:
     	return false;
     }
     // Apply an override option, possibly a nullable one.
+    //default_index are 0 based
     bool apply_override(const ConfigOption *rhs, std::vector<int>& default_index) override {
         if (this->nullable())
         	throw ConfigurationError("Cannot override a nullable ConfigOption.");
@@ -742,15 +784,21 @@ public:
                 this->values[i] = rhs_vec->values[i];
                 modified        = true;
             } else {
-                if ((i < default_index.size()) && (default_index[i] - 1 < default_value.size()))
-                    this->values[i] = default_value[default_index[i] - 1];
+                // Orca: a negative slot (failed variant lookup) must not silently collapse the
+                // whole array to the first slot's value — the int-vs-size_t comparison used to
+                // promote -1 past the bounds check. Keep the slot's own value (get_at-style
+                // clamp) when no valid index is available.
+                if ((i < default_index.size()) && (default_index[i] >= 0) && (size_t(default_index[i]) < default_value.size()))
+                    this->values[i] = default_value[default_index[i]];
                 else
-                    this->values[i] = default_value[0];
+                    this->values[i] = default_value[std::min(i, default_value.size() - 1)];
             }
         }
         return modified;
     }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOptionVectorBase::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->values); }
@@ -2066,6 +2114,11 @@ public:
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumGeneric or ConfigOptionEnum<T>
         this->value = rhs->getInt();
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() can emit names.
+        if (this->keys_map == nullptr)
+            if (auto rhs_generic = dynamic_cast<const ConfigOptionEnumGeneric *>(rhs))
+                this->keys_map = rhs_generic->keys_map;
     }
 
     std::string serialize() const override
@@ -2122,7 +2175,12 @@ public:
         if (rhs->type() != this->type())
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumsGeneric
-        this->values = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs)->values;
+        auto rhs_enums = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs);
+        this->values = rhs_enums->values;
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() emits names instead of empty tokens.
+        if (this->keys_map == nullptr)
+            this->keys_map = rhs_enums->keys_map;
     }
 
     std::string serialize() const override
@@ -2181,7 +2239,7 @@ private:
             else
                 throw ConfigurationError("Serializing NaN");
         }
-        else {
+        else if (this->keys_map != nullptr) {
             for (const auto& kvp : *this->keys_map)
                 if (kvp.second == v)
                     ss << kvp.first;
@@ -2215,6 +2273,11 @@ public:
         legend,
         // Vector value, but edited as a single string.
         one_string,
+        plugin_picker,
+        // Raw JSON string value, edited through a dialog behind a button rather than in the row.
+        plugin_config,
+        // PrinterAgentChoice
+        printer_agent_select,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.
@@ -2431,6 +2494,13 @@ public:
     // "serialized" - vector valued option is entered in a single edit field. Values are separated by a semicolon.
     // "show_value" - even if enum_values / enum_labels are set, still display the value, not the enum label.
     std::string                         gui_flags;
+    // Capability type of a plugin-backed option, e.g. "slicing-pipeline" / "printer-connection"
+    // (empty for ordinary options). GUIType::plugin_picker filters the plugin list by it, and it
+    // resolves the option's "plugins" manifest reference; see is_plugin_backed().
+    std::string                         plugin_type;
+    // Whether this option holds plugin capability name(s) that feed the "plugins" manifest -- true
+    // iff it declares a plugin_type. Setting plugin_type is the only step needed to add one.
+    bool is_plugin_backed() const { return !plugin_type.empty(); }
     // Label of the GUI input field.
     // In case the GUI input fields are grouped in some views, the label defines a short label of a grouped value,
     // while full_label contains a label of a stand-alone field.
@@ -2721,6 +2791,7 @@ public:
     void set_deserialize_strict(std::initializer_list<SetDeserializeItem> items)
         { ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable }; this->set_deserialize(items, ctxt); }
 
+    double get_abs_value_at(const t_config_option_key &opt_key, size_t index) const;
     double get_abs_value(const t_config_option_key &opt_key) const;
     double get_abs_value(const t_config_option_key &opt_key, double ratio_over) const;
     void setenv_() const;
@@ -2743,14 +2814,29 @@ public:
     //BBS: add json support
     void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
 
+    // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
+    // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
+    // derives the same manifest, but only when a preset is written to disk; a config assembled in
+    // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
+    // picked-but-unsaved plugin never resolves at slice/export time. No-op without a resolver.
+    void update_plugin_manifest();
+
 	// Set all the nullable values to nils.
     void null_nullables();
 
     static size_t load_from_gcode_string_legacy(ConfigBase& config, const char* str, ConfigSubstitutionContext& substitutions);
-
+    static void set_resolve_capability_fn(std::function<std::string(std::string, std::string)> fn) { resolve_capability_fn = fn; }
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
+    void save_plugin_collection(const std::string& opt_key, const ConfigOption* opt, std::vector<std::string>& plugin_refs) const;
+    // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
+    // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
+    // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
+    // preserved and empties are dropped; returns empty without a resolver (CLI/headless).
+    std::vector<std::string> collect_plugin_manifest() const;
+
+    static std::function<std::string(std::string, std::string)> resolve_capability_fn;
 };
 
 // Configuration store with dynamic number of configuration values.
@@ -2895,13 +2981,19 @@ public:
 
     double&             opt_float(const t_config_option_key &opt_key)                           { return this->option<ConfigOptionFloat>(opt_key)->value; }
     const double&       opt_float(const t_config_option_key &opt_key) const                     { return dynamic_cast<const ConfigOptionFloat*>(this->option(opt_key))->value; }
-    double&             opt_float(const t_config_option_key &opt_key, unsigned int idx)         { return this->option<ConfigOptionFloats>(opt_key)->get_at(idx); }
-    const double&       opt_float(const t_config_option_key &opt_key, unsigned int idx) const   { return dynamic_cast<const ConfigOptionFloats*>(this->option(opt_key))->get_at(idx); }
+    double &            opt_float(const t_config_option_key &opt_key, unsigned int idx);
+    const double &      opt_float(const t_config_option_key &opt_key, unsigned int idx) const;
+    double &            opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx); }
+    const double &      opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))->get_at(idx); }
+    FloatOrPercent &    opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx); }
+    const FloatOrPercent & opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(this->option(opt_key))->get_at(idx); }
 
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }
     int&                opt_int(const t_config_option_key &opt_key, unsigned int idx)           { return this->option<ConfigOptionInts>(opt_key)->get_at(idx); }
     int                 opt_int(const t_config_option_key &opt_key, unsigned int idx) const     { return dynamic_cast<const ConfigOptionInts*>(this->option(opt_key))->get_at(idx); }
+    int&                opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx)  { return this->option<ConfigOptionIntsNullable>(opt_key)->get_at(idx);}
+    const int &         opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionIntsNullable*>(this->option(opt_key))->get_at(idx);}
 
     // In ConfigManipulation::toggle_print_fff_options, it is called on option with type ConfigOptionEnumGeneric* and also ConfigOptionEnum*.
     // Thus the virtual method getInt() is used to retrieve the enum value.
@@ -2909,9 +3001,13 @@ public:
     ENUM                opt_enum(const t_config_option_key &opt_key) const                      { return static_cast<ENUM>(this->option(opt_key)->getInt()); }
     // BBS
     int                 opt_enum(const t_config_option_key &opt_key, unsigned int idx) const    { return dynamic_cast<const ConfigOptionEnumsGeneric*>(this->option(opt_key))->get_at(idx); }
+    int                 opt_enum_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionEnumsGenericNullable*>(this->option(opt_key))->get_at(idx); }
+
 
     bool                opt_bool(const t_config_option_key &opt_key) const                      { return this->option<ConfigOptionBool>(opt_key)->value != 0; }
-    bool                opt_bool(const t_config_option_key &opt_key, unsigned int idx) const    { return this->option<ConfigOptionBools>(opt_key)->get_at(idx) != 0; }
+    bool                opt_bool(const t_config_option_key &opt_key, unsigned int idx) const;
+    bool                opt_bool_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionBoolsNullable*>(this->option(opt_key))->get_at(idx);}
+
 
     // Command line processing
     bool                read_cli(int argc, const char* const argv[], t_config_option_keys* extra, t_config_option_keys* keys = nullptr);
@@ -2978,6 +3074,15 @@ protected:
     /// Set all statically defined config options to their defaults defined by this->def().
     void set_defaults();
 };
+
+struct PluginCapabilityRef
+{
+    std::string name;
+    std::string capability_name;
+    std::string uuid;
+};
+
+std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value);
 
 }
 

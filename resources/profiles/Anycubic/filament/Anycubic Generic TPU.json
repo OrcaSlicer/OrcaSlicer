@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "xrbLc7y1AInpumtv",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
@@ -19,6 +19,7 @@
 		"Anycubic 4Max Pro 0.4 nozzle",
 		"Anycubic 4Max Pro 2 0.4 nozzle",
 		"Anycubic Kobra 2 0.4 nozzle",
-		"Anycubic Kobra 3 0.4 nozzle"
+		"Anycubic Kobra 3 0.4 nozzle",
+		"Anycubic Kobra 3 Max 0.4 nozzle"
 	]
 }

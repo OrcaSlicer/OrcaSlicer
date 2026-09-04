@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PETG @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "Qidi Generic PETG",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "ZFkH9oLkRWDVovLu",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
@@ -44,9 +44,6 @@
 	],
 	"filament_max_volumetric_speed": [
 		"12"
-	],
-	"hot_plate_temp_initial_layer": [
-		"80"
 	],
 	"compatible_printers": [
 		"Qidi X-Plus 4 0.8 nozzle"

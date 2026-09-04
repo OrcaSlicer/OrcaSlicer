@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S800 Dual 0.4 nozzle",
 	"inherits": "fdm_zbolt_common",
 	"from": "system",
-	"setting_id": "GM027",
+	"setting_id": "D7vDL0C4LzflAtPs",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"printer_structure": "corexy",
@@ -23,7 +23,7 @@
 		"0x802"
 	],
 	"default_filament_profile": [
-		"Generic PLA @Z-Bolt"
+		"Generic PLA @Z-Bolt 0.4 nozzle"
 	],
 	"default_print_profile": "0.20mm Standard @Z-Bolt S800",
 	"extruder_colour": [

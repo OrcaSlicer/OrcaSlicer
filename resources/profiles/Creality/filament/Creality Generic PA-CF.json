@@ -3,7 +3,7 @@
 	"name": "Creality Generic PA-CF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "hBNsuwMzm7ZZn15D",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

@@ -3,7 +3,7 @@
 	"name": "Snapmaker ABS @0.2 nozzle",
 	"inherits": "Snapmaker ABS @base",
 	"from": "system",
-	"setting_id": "363717724",
+	"setting_id": "88w5Iio3zGVLylQg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.2 nozzle)",

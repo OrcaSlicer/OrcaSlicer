@@ -13,6 +13,7 @@ REQUIRED_DEV_PACKAGES=(
     gettext
     git
     gstreamer-devel
+    gstreamer-plugins-good-gtk
     gtk3-devel
     libmspack-devel
     libquadmath-devel
@@ -29,6 +30,9 @@ REQUIRED_DEV_PACKAGES=(
     webkit2gtk4-devel
     wget
     libcurl-devel
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

@@ -3,6 +3,7 @@
 	"name": "0.20mm SPEED @MK4S 0.6",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "Ybga6DH2mlyF5MtU",
 	"instantiation": "true",
 	"bottom_shell_thickness": "0.6",
 	"bridge_speed": "40",

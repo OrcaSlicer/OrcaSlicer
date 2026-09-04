@@ -14,7 +14,9 @@ body:
   - type: checkboxes
     attributes:
       label: Is this issue reproducible in the latest nightly build?
-      description: Please verify this issue still happens in the latest nightly build first. It may already be fixed there: [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
+      description: >
+        Please verify this issue still happens in the latest nightly build first. It may already be fixed there:
+        [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
       options:
         - label: I have checked the latest nightly build and the issue is still reproducible
           required: true
@@ -30,9 +32,17 @@ body:
     attributes:
       label: OrcaSlicer Version
       description: Which version of Orca Slicer are you running? You can see the full version in `Help` -> `About Orca Slicer`.
-      placeholder: e.g. 1.9.0
+      placeholder: e.g. 2.5.0
     validations:
       required: true
+  - type: input
+    id: working_version
+    attributes:
+      label: Regression compared to a previous version
+      description: Did it work in a previous version?
+      placeholder: e.g. 2.3.2
+    validations:
+      required: false
   - type: dropdown
     id: os_type
     attributes:

@@ -33,7 +33,11 @@ const std::string& FanMover::process_gcode(const std::string& gcode, bool flush)
 
     if (flush) {
         while (!m_buffer.empty()) {
-            m_process_output += m_buffer.front().raw + "\n";
+            BufferData &front = m_buffer.front();
+            m_process_output += front.raw + "\n";
+            // Orca: Keep the emitted fan state in sync when flushing buffered fan commands.
+            if (front.fan_speed >= 0)
+                m_front_buffer_fan_speed = front.fan_speed;
             remove_from_buffer(m_buffer.begin());
         }
     }
@@ -166,14 +170,13 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
 
 void FanMover::_print_in_middle_G1(BufferData& line_to_split, float nb_sec, const std::string &line_to_write) {
     if (nb_sec < line_to_split.time * 0.1) {
-        // doesn't really need to be split, print it after
-        m_process_output += line_to_split.raw + "\n";
+        // Doesn't need to be split: the insertion point is at the start.
         m_process_output += line_to_write + (line_to_write.back() == '\n'?"":"\n");
-    } else if (nb_sec > line_to_split.time * 0.9) {
-        // doesn't really need to be split, print it before
-        //will also print before if line_to_split.time == 0
-        m_process_output += line_to_write + (line_to_write.back() == '\n' ? "" : "\n");
         m_process_output += line_to_split.raw + "\n";
+    } else if (nb_sec > line_to_split.time * 0.9) {
+        // Doesn't need to be split: the insertion point is at the end.
+        m_process_output += line_to_split.raw + "\n";
+        m_process_output += line_to_write + (line_to_write.back() == '\n' ? "" : "\n");
     }else if(line_to_split.raw.size() > 2
         && line_to_split.raw[0] == 'G' && line_to_split.raw[1] == '1' && line_to_split.raw[2] == ' ') {
         float percent = nb_sec / line_to_split.time;
@@ -226,7 +229,10 @@ void FanMover::_remove_slow_fan(int16_t min_speed, float past_sec) {
 
 std::string FanMover::_set_fan(int16_t speed) {
     //const Tool* tool = m_writer.get_tool(m_currrent_extruder < 20 ? m_currrent_extruder : 0);
-    return GCodeWriter::set_fan(m_writer.config.gcode_flavor.value, speed);
+    // ORCA: apply the per-printer non-zero fan PWM floor so reposted fan commands respect the clamp too.
+    const int floor_pct = m_writer.config.part_cooling_fan_min_pwm.value;
+    const unsigned int part_cooling_fan_min_pwm = floor_pct > 0 ? static_cast<unsigned int>(floor_pct) : 0u;
+    return GCodeWriter::set_fan(m_writer.config.gcode_flavor.value, speed, part_cooling_fan_min_pwm);
 }
 
 

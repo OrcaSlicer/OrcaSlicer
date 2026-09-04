@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Anycubic Vyper",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "ln2Zw2E5e3Azq3nc",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

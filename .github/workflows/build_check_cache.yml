@@ -9,6 +9,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -26,16 +30,19 @@ jobs:
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: 'false'
         
       - name: set outputs
         id: set_outputs
         env:
-          # Keep macOS cache keys and paths architecture-specific.
-          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || 'linux-clang') }}
-          dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || '/OrcaSlicer_dep' }}
+          # Anything that changes how the tree is built belongs in the key, or a job
+          # restores one it cannot use. Linux amd64 passes no arch deliberately, so
+          # 'linux-clang' keeps the cache it already has.
+          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
+          # ARM64 builds use the build-arm64 tree (see build_release_vs.bat); x64/other use build.
+          dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
@@ -43,7 +50,7 @@ jobs:
             
       - name: load cache
         id: cache_deps
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.set_outputs.outputs.cache-path }}
           key: ${{ steps.set_outputs.outputs.cache-key }}
@@ -59,6 +66,7 @@ jobs:
       valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
     secrets: inherit

@@ -60,14 +60,15 @@ coordf_t Slicing::max_layer_height_from_nozzle(const DynamicPrintConfig &print_c
 }
 
 SlicingParameters SlicingParameters::create_from_config(
-     const PrintConfig                 &print_config,
-     const PrintObjectConfig         &object_config,
-     coordf_t                         object_height,
-     const std::vector<unsigned int> &object_extruders,
-     const Vec3d                     &object_shrinkage_compensation)
+    const PrintConfig               &print_config,
+    const PrintObjectConfig         &object_config,
+    coordf_t                         object_height,
+    const std::vector<unsigned int> &object_extruders,
+    const Vec3d                     &object_shrinkage_compensation)
 {
     coordf_t initial_layer_print_height                      = (print_config.initial_layer_print_height.value <= 0) ? 
         object_config.layer_height.value : print_config.initial_layer_print_height.value;
+
     // If object_config.support_filament == 0 resp. object_config.support_interface_filament == 0,
     // print_config.nozzle_diameter.get_at(size_t(-1)) returns the 0th nozzle diameter,
     // which is consistent with the requirement that if support_filament == 0 resp. support_interface_filament == 0,
@@ -75,19 +76,47 @@ SlicingParameters SlicingParameters::create_from_config(
     // In that case all the nozzles have to be of the same diameter.
     coordf_t support_material_extruder_dmr           = print_config.nozzle_diameter.get_at(object_config.support_filament.value - 1);
     coordf_t support_material_interface_extruder_dmr = print_config.nozzle_diameter.get_at(object_config.support_interface_filament.value - 1);
-    bool     soluble_interface                       = object_config.support_top_z_distance.value == 0.;
+
+    // ORCA: store Z distance
+    const coordf_t support_top_z_gap    = object_config.support_top_z_distance.value;
+    const coordf_t support_bottom_z_gap = object_config.support_bottom_z_distance.value;
+    const coordf_t raft_z_gap           = object_config.raft_contact_distance.value;
+    
+
+    /* -------------------------------------------------- */
+    /*  ORCA: Zero-gap interface detection (asymmetric)   */
+    /* -------------------------------------------------- */
+
+    const bool zero_topZ_contact =
+        support_top_z_gap == 0.0;
+
+    const bool zero_gap_interface_top =
+        object_config.support_interface_top_layers.value > 0 &&  // Has some top interface layers
+        zero_topZ_contact;
+
+    const bool zero_gap_interface_bottom =
+        (object_config.support_interface_bottom_layers.value < 0  // Negative value means "use same as top"
+            ? object_config.support_interface_top_layers.value
+            : object_config.support_interface_bottom_layers.value) > 0 &&  // Has some bottom interface layers
+        (support_bottom_z_gap == 0.0 || zero_topZ_contact);
+
+    const bool zero_gap_interface_raft =
+        raft_z_gap == 0.0 || zero_topZ_contact;
 
     SlicingParameters params;
-    params.layer_height = object_config.layer_height.value;
-    params.first_print_layer_height = initial_layer_print_height;
-    params.first_object_layer_height = initial_layer_print_height;
-    params.object_print_z_min = 0.;
+
+    params.layer_height               = object_config.layer_height.value;
+    params.first_print_layer_height   = initial_layer_print_height;
+    params.first_object_layer_height  = initial_layer_print_height;
+    params.object_print_z_min         = 0.0;
     // Orca: XYZ filament compensation
-    params.object_print_z_max = object_height * object_shrinkage_compensation.z();
+    params.object_print_z_max               = object_height * object_shrinkage_compensation.z();
     params.object_print_z_uncompensated_max = object_height;
-    params.object_shrinkage_compensation_z = object_shrinkage_compensation.z();
-    params.base_raft_layers = object_config.raft_layers.value;
-    params.soluble_interface = soluble_interface;
+    params.object_shrinkage_compensation_z  = object_shrinkage_compensation.z();
+    params.base_raft_layers                 = object_config.raft_layers.value;
+    params.zero_gap_interface_top           = zero_gap_interface_top;
+    params.zero_gap_interface_bottom        = zero_gap_interface_bottom;
+    params.zero_gap_interface_raft          = zero_gap_interface_raft;
 
     // Miniumum/maximum of the minimum layer height over all extruders.
     params.min_layer_height = MIN_LAYER_HEIGHT;
@@ -102,6 +131,7 @@ SlicingParameters SlicingParameters::create_from_config(
             max_layer_height_from_nozzle(print_config, object_config.support_interface_filament));
         params.max_suport_layer_height = params.max_layer_height;
     }
+
     if (object_extruders.empty()) {
         params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, 0));
         params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, 0));
@@ -111,24 +141,58 @@ SlicingParameters SlicingParameters::create_from_config(
             params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id));
         }
     }
+
     params.min_layer_height = std::min(params.min_layer_height, params.layer_height);
     params.max_layer_height = std::max(params.max_layer_height, params.layer_height);
 
-    if (! soluble_interface) {
-        params.gap_raft_object    = object_config.raft_contact_distance.value;
-        //BBS
-        params.gap_object_support = object_config.support_bottom_z_distance.value; 
-        params.gap_support_object = object_config.support_top_z_distance.value;
+    /* -------------------------------------------------- */
+    /*                ORCA: Gap assignment                */
+    /* -------------------------------------------------- */
 
+    // ORCA: Raft contact (raft -> object)
+    if (zero_gap_interface_raft) {
+        params.gap_raft_object = 0.0;
+    } else {
+        params.gap_raft_object = raft_z_gap;
         if (!print_config.independent_support_layer_height) {
-            params.gap_raft_object = std::round(params.gap_raft_object / object_config.layer_height + EPSILON) * object_config.layer_height;
-            params.gap_object_support = std::round(params.gap_object_support / object_config.layer_height + EPSILON) * object_config.layer_height;
-            params.gap_support_object = std::round(params.gap_support_object / object_config.layer_height + EPSILON) * object_config.layer_height;
+            params.gap_raft_object =
+                std::round(params.gap_raft_object / object_config.layer_height + EPSILON)
+                * object_config.layer_height;
         }
     }
 
+    // ORCA: BOTTOM contact (object -> support)
+    if (zero_gap_interface_bottom) {
+        params.gap_object_support = 0.0;
+    } else {
+        params.gap_object_support = support_bottom_z_gap;
+
+        if (!print_config.independent_support_layer_height) {
+            params.gap_object_support =
+                std::round(params.gap_object_support / object_config.layer_height + EPSILON)
+                * object_config.layer_height;
+        }
+    }
+
+    // ORCA: TOP contact (support -> object)
+    if (zero_gap_interface_top) {
+        params.gap_support_object = 0.0;
+    } else {
+        params.gap_support_object = support_top_z_gap;
+
+        if (!print_config.independent_support_layer_height) {
+            params.gap_support_object =
+                std::round(params.gap_support_object / object_config.layer_height + EPSILON)
+                * object_config.layer_height;
+        }
+    }
+
+    /* -------------------------------------------------- */
+    /*                     Raft logic                     */
+    /* -------------------------------------------------- */
+
     if (params.base_raft_layers > 0) {
-		params.interface_raft_layers = (params.base_raft_layers + 1) / 2;
+        params.interface_raft_layers = (params.base_raft_layers + 1) / 2;
         params.base_raft_layers -= params.interface_raft_layers;
         // Use as large as possible layer height for the intermediate raft layers.
         params.base_raft_layer_height       = std::max(params.layer_height, 0.75 * support_material_extruder_dmr);
@@ -141,11 +205,11 @@ SlicingParameters SlicingParameters::create_from_config(
     if (params.has_raft()) {
         // Raise first object layer Z by the thickness of the raft itself plus the extra distance required by the support material logic.
         //FIXME The last raft layer is the contact layer, which shall be printed with a bridging flow for ease of separation. Currently it is not the case.
-		if (params.raft_layers() == 1) {
+        if (params.raft_layers() == 1) {
             // There is only the contact layer.
             params.contact_raft_layer_height = initial_layer_print_height;
             params.raft_contact_top_z        = initial_layer_print_height;
-		} else {
+        } else {
             assert(params.base_raft_layers > 0);
             assert(params.interface_raft_layers > 0);
             // Number of the base raft layers is decreased by the first layer.
@@ -153,7 +217,8 @@ SlicingParameters SlicingParameters::create_from_config(
             // Number of the interface raft layers is decreased by the contact layer.
             params.raft_interface_top_z  = params.raft_base_top_z + coordf_t(params.interface_raft_layers - 1) * params.interface_raft_layer_height;
 			params.raft_contact_top_z    = params.raft_interface_top_z + params.contact_raft_layer_height;
-		}
+        }
+
         coordf_t print_z = params.raft_contact_top_z + params.gap_raft_object;
         params.object_print_z_min  = print_z;
         params.object_print_z_max += print_z;

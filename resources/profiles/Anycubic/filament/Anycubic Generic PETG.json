@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CEd987NP90bPdkW7",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
@@ -52,6 +52,7 @@
 		"Anycubic 4Max Pro 0.4 nozzle",
 		"Anycubic 4Max Pro 2 0.4 nozzle",
 		"Anycubic Kobra 2 0.4 nozzle",
-		"Anycubic Kobra 3 0.4 nozzle"
+		"Anycubic Kobra 3 0.4 nozzle",
+		"Anycubic Kobra 3 Max 0.4 nozzle"
 	]
 }

@@ -5,13 +5,22 @@
 #include <locale>
 #include <ctime>
 #include <cstdarg>
+#include <iostream>
 #include <stdio.h>
 #include <filesystem>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
 
 #include "format.hpp"
 #include "Platform.hpp"
 #include "Time.hpp"
 #include "libslic3r.h"
+// For the vendor-installation helpers: the vendor profile version
+// (get_version_from_json) and the preset cache stamp (VendorCacheFile).
+#include "Preset.hpp"
+#include "PresetCacheFormat.hpp"
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
@@ -46,14 +55,19 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/support/date_time.hpp>
 
+#include <boost/core/null_deleter.hpp>
 #include <boost/locale.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -114,10 +128,24 @@ void set_logging_level(unsigned int level)
 {
     logSeverity = level_to_boost(level);
 
+    // Orca: force at info or lower level logging for pre-release builds.
+    // Note: not setting to debug or trace as they might affect long time usage especially with BBL printers.
+    const std::string version = SoftFever_VERSION;
+    if (level < (unsigned int) boost::log::trivial::info &&
+        (boost::algorithm::icontains(version, "dev") || boost::algorithm::icontains(version, "alpha") ||
+         boost::algorithm::icontains(version, "beta"))) {
+        logSeverity = boost::log::trivial::info;
+    }
+
     boost::log::core::get()->set_filter
     (
         boost::log::trivial::severity >= logSeverity
     );
+}
+
+void set_logging_file(const std::string &file)
+{
+	boost::log::add_file_log(file);
 }
 
 unsigned int level_string_to_boost(std::string level)
@@ -160,6 +188,7 @@ unsigned get_logging_level()
 }
 
 boost::shared_ptr<boost::log::sinks::synchronous_sink<boost::log::sinks::text_file_backend>> g_log_sink;
+boost::shared_ptr<boost::log::sinks::asynchronous_sink<boost::log::sinks::text_ostream_backend>> g_console_log_sink;
 
 // Force set_logging_level(<=error) after loading of the DLL.
 // This is currently only needed if libslic3r is loaded as a shared library into Perl interpreter
@@ -281,7 +310,11 @@ void set_data_dir(const std::string &dir)
 {
     g_data_dir = dir;
     if (!g_data_dir.empty() && !boost::filesystem::exists(g_data_dir)) {
-       boost::filesystem::create_directory(g_data_dir);
+        try {
+            boost::filesystem::create_directories(g_data_dir);
+        } catch (const boost::filesystem::filesystem_error &ex) {
+            BOOST_LOG_TRIVIAL(error) << "set_data_dir: failed to create data directory " << g_data_dir << ": " << ex.what();
+        }
     }
 }
 
@@ -332,6 +365,19 @@ namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
+namespace sinks = boost::log::sinks;
+
+void shutdown_console_logging()
+{
+	if (!g_console_log_sink)
+		return;
+
+	auto console_sink = g_console_log_sink;
+	boost::log::core::get()->remove_sink(console_sink);
+	console_sink->stop();
+	g_console_log_sink.reset();
+}
+
 void set_log_path_and_level(const std::string& file, unsigned int level)
 {
 #ifdef __APPLE__
@@ -363,6 +409,24 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 		keywords::auto_flush = true
 	);
 
+	shutdown_console_logging();
+
+#ifdef SLIC3R_CONSOLE_LOG
+	auto console_backend = boost::make_shared<sinks::text_ostream_backend>();
+	console_backend->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+	console_backend->auto_flush(true);
+
+	g_console_log_sink = boost::make_shared<sinks::asynchronous_sink<sinks::text_ostream_backend>>(console_backend);
+	g_console_log_sink->set_formatter(
+		expr::stream
+		<< "[" << expr::attr< logging::trivial::severity_level >("Severity") << "]\t"
+		<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << " "
+		<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
+		<< ": " << expr::smessage
+	);
+	boost::log::core::get()->add_sink(g_console_log_sink);
+#endif
+
 	logging::add_common_attributes();
 
 	set_logging_level(level);
@@ -376,6 +440,14 @@ void flush_logs()
 		g_log_sink->flush();
 
 	return;
+}
+
+// ORCA
+boost::filesystem::path get_log_file_name()
+{
+    if (g_log_sink)
+        return g_log_sink->locked_backend()->get_current_file_name();
+    return {};
 }
 
 #ifdef _WIN32
@@ -1225,6 +1297,24 @@ unsigned get_current_pid()
 #endif
 }
 
+std::string per_user_temp_id()
+{
+#ifdef WIN32
+    return {};
+#else
+    return std::to_string(static_cast<unsigned long>(::getuid()));
+#endif
+}
+
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id)
+{
+    if (user_id.empty())
+        return base;
+    // Keep the id at the top level so each user's dir sits directly in the world-writable temp
+    // root; a shared parent dir would be owned by whichever user created it first.
+    return base + "/orcaslicer_" + user_id;
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {
@@ -1419,6 +1509,15 @@ std::string format_memsize(size_t bytes, unsigned int decimals)
 		}
 }
 
+std::string format_diameter_to_str(double diameter, int precision)
+{
+    double candidates[] = {0.2, 0.4, 0.6, 0.8};
+    double best = *std::min_element(std::begin(candidates), std::end(candidates), [diameter](double a, double b) { return std::abs(a - diameter) < std::abs(b - diameter); });
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(precision) << best;
+    return oss.str();
+}
+
 // Returns platform-specific string to be used as log output or parsed in SysInfoDialog.
 // The latter parses the string with (semi)colons as separators, it should look about as
 // "desc1: value1; desc2: value2" or similar (spaces should not matter).
@@ -1597,12 +1696,15 @@ bool bbl_calc_md5(std::string &filename, std::string &md5_out)
 }
 
 // SoftFever: copy directory recursively
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter)
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter,
+                                bool merge_mode)
 {
     BOOST_LOG_TRIVIAL(info) << Slic3r::format("copy_directory_recursively %1% -> %2%", source, target);
     std::string error_message;
 
-    if (boost::filesystem::exists(target))
+    if (!merge_mode && boost::filesystem::exists(target))
         boost::filesystem::remove_all(target);
     boost::filesystem::create_directories(target);
     for (auto &dir_entry : boost::filesystem::directory_iterator(source))
@@ -1613,7 +1715,7 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
 
         if (boost::filesystem::is_directory(dir_entry)) {
             const auto target_path = target / name;
-            copy_directory_recursively(dir_entry, target_path);
+            copy_directory_recursively(dir_entry, target_path, filter, merge_mode);
         }
         else {
 			if(filter && filter(name))
@@ -1628,6 +1730,200 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
         }
     }
     return;
+}
+
+// ---- Vendor installation on disk ------------------------------------------
+
+// Whether a cache stamped `cache_ver` still speaks for a vendor whose profile on
+// disk claims `profile_ver`: it does unless the profile has moved ahead of it. A
+// profile that is missing or carries no judgeable version cannot be ahead of
+// anything. The one rule behind both "which form gets installed" and "which form
+// is installed"; they must not drift apart. Deliberately NOT the serve rule
+// (VendorCacheFile::load), which refuses an unjudgeable profile instead.
+static bool cache_covers(const Semver& cache_ver, const Semver& profile_ver)
+{
+    return cache_ver.valid() && (! profile_ver.valid() || cache_ver >= profile_ver);
+}
+
+bool is_vendor_installed(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    // A cache is the whole of a cache-only installation, so a file this build
+    // cannot serve the vendor from is not an installation. Left counted as one,
+    // the updater would never lay a working copy down.
+    return boost::filesystem::exists(dir / (vendor + ".json"))
+        || VendorCacheFile::usable_version((dir / (vendor + ".opc")).string(), vendor).valid();
+}
+
+Semver installed_vendor_version(const std::string& vendor)
+{
+    const boost::filesystem::path dir  = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    // Guarded: get_version_from_json logs an error and throws-and-catches its way
+    // to an invalid version on a file that is not there, and a cache-only vendor
+    // never has one.
+    const Semver from_json  = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
+    const Semver from_cache = VendorCacheFile::usable_version((dir / (vendor + ".opc")).string(), vendor);
+    // Whichever form a load would serve.
+    return cache_covers(from_cache, from_json) ? from_cache : from_json;
+}
+
+void remove_installed_vendor(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    boost::filesystem::remove(dir / (vendor + ".json"));
+    boost::filesystem::remove(dir / (vendor + ".opc"));
+    if (boost::filesystem::exists(dir / vendor))
+        boost::filesystem::remove_all(dir / vendor);
+}
+
+std::set<std::string> vendor_names_in(const boost::filesystem::path& dir)
+{
+    std::set<std::string> names;
+    for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
+        const auto& path = dir_entry.path();
+        if (Slic3r::is_json_file(path.string()) || path.extension() == ".opc")
+            names.insert(path.stem().string());
+    }
+    return names;
+}
+
+// A vendor's preset cache is the whole of its installation: it carries the presets,
+// the vendor profile and the version they were built at, so where one ships nothing
+// else needs copying. Unless the profile beside it claims a newer version — a cache
+// generated before that profile was bumped is out of date, and a cache that cannot
+// be read is no installation at all — and the vendor is installed the way it was
+// before caches existed, as its profile and the preset JSONs it points at. Returns
+// the version the cache is stamped with, invalid when it is not the form to install.
+static Semver installable_cache_version(const boost::filesystem::path& dir, const std::string& vendor)
+{
+    const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
+    if (! cache_ver)
+        return Semver::invalid();
+    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
+}
+
+Semver resource_vendor_version(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(resources_dir()) / "profiles";
+    const Semver ver = installable_cache_version(dir, vendor);
+    return ver.valid() ? ver : get_version_from_json((dir / (vendor + ".json")).string());
+}
+
+bool install_vendor_bundles_from_resources(
+    const std::vector<std::string>& bundle_names,
+    const std::string& resource_subdir,
+    const std::string& data_subdir)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path rsrc_path = fs::path(Slic3r::resources_dir()) / resource_subdir;
+    fs::path vendor_path = fs::path(Slic3r::data_dir()) / data_subdir;
+
+    BOOST_LOG_TRIVIAL(info) << "Installing " << bundle_names.size() << " bundles from resources...";
+
+    // One vendor that cannot be installed is one vendor missing, not a reason to
+    // leave the rest uninstalled. The caller is told, and every bundle that can
+    // be laid down is.
+    bool all_installed = true;
+
+    for (const auto &bundle : bundle_names) {
+        try {
+            if (bundle.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Refusing to install a bundle with no name";
+                all_installed = false;
+                continue;
+            }
+
+            // Install the JSON file
+            auto path_in_rsrc = (rsrc_path / bundle).replace_extension(".json");
+            auto path_in_vendors = (vendor_path / bundle).replace_extension(".json");
+            auto cache_in_rsrc = (rsrc_path / bundle).replace_extension(".opc");
+            auto cache_in_vendors = (vendor_path / bundle).replace_extension(".opc");
+
+            // Either form of the vendor will do: a build may ship it as a cache alone.
+            if (!fs::exists(path_in_rsrc) && !fs::exists(cache_in_rsrc)) {
+                BOOST_LOG_TRIVIAL(warning) << "Bundle not found in resources: " << bundle;
+                all_installed = false;
+                continue;
+            }
+
+            // Create target directory if needed
+            if (!fs::exists(vendor_path))
+                fs::create_directories(vendor_path);
+
+            std::string error_message;
+            bool installed_cache = false;
+            if (installable_cache_version(rsrc_path, bundle).valid()) {
+                installed_cache = copy_file(cache_in_rsrc.string(), cache_in_vendors.string(), error_message, false) == CopyFileResult::SUCCESS;
+                if (! installed_cache) {
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to copy " << bundle << ".opc: " << error_message;
+                } else if (! VendorCacheFile::usable_version(cache_in_vendors.string(), bundle).valid()) {
+                    // The copy is what will be loaded, so it — not the kilobyte
+                    // peek that chose this form — decides whether the profile
+                    // beside it can go.
+                    BOOST_LOG_TRIVIAL(warning) << "Installed cache for " << bundle << " cannot be read; installing its profile instead";
+                    boost::system::error_code ec;
+                    fs::remove(cache_in_vendors, ec);
+                    installed_cache = false;
+                }
+            }
+
+            if (! installed_cache) {
+                CopyFileResult cfr = copy_file(path_in_rsrc.string(), path_in_vendors.string(), error_message, false);
+                if (cfr != CopyFileResult::SUCCESS) {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to copy " << bundle << ".json: " << error_message;
+                    all_installed = false;
+                    continue;
+                }
+                // Only now: an earlier install's cache would shadow this profile,
+                // but removing it before the profile lands would leave neither.
+                boost::system::error_code ec;
+                fs::remove(cache_in_vendors, ec);
+            } else {
+                // Left in place, an earlier install's profile would shadow the cache.
+                boost::system::error_code ec;
+                fs::remove(path_in_vendors, ec);
+                if (ec)
+                    BOOST_LOG_TRIVIAL(warning) << "Could not remove the superseded profile " << path_in_vendors.string() << ": " << ec.message();
+            }
+
+            // Copy the vendor directory (if it exists)
+            auto dir_in_rsrc = rsrc_path / bundle;
+            auto dir_in_vendors = vendor_path / bundle;
+
+            // Whatever is installed came from an earlier version of this vendor and
+            // would be parsed in place of the one being installed now.
+            if (fs::exists(dir_in_vendors))
+                fs::remove_all(dir_in_vendors);
+
+            if (! installed_cache && fs::exists(dir_in_rsrc) && fs::is_directory(dir_in_rsrc)) {
+                fs::create_directories(dir_in_vendors);
+
+                // Copy with file filter (same as PresetUpdater::install_bundles_rsrc)
+                // Filter out certain file types: .stl, .png, .svg, .jpeg, .jpg, .3mf
+                auto file_filter = [](const std::string name) -> bool {
+                    return boost::iends_with(name, ".stl") ||
+                           boost::iends_with(name, ".png") ||
+                           boost::iends_with(name, ".svg") ||
+                           boost::iends_with(name, ".jpeg") ||
+                           boost::iends_with(name, ".jpg") ||
+                           boost::iends_with(name, ".3mf");
+                };
+
+                copy_directory_recursively(dir_in_rsrc, dir_in_vendors, file_filter);
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "Successfully installed bundle: " << bundle;
+
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "Exception installing bundle " << bundle << ": " << e.what();
+            all_installed = false;
+        }
+    }
+
+    return all_installed;
 }
 
 void save_string_file(const boost::filesystem::path& p, const std::string& str)

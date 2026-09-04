@@ -3,7 +3,7 @@
 	"name": "Chuanying Generic PLA-CF10",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "EZA59VPwew1cpyUJ",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

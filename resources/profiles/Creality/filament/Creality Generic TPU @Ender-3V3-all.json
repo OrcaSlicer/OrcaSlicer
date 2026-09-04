@@ -3,7 +3,7 @@
 	"name": "Creality Generic TPU @Ender-3V3-all",
 	"inherits": "Creality Generic TPU",
 	"from": "system",
-	"setting_id": "GFU99_CREALITY_00",
+	"setting_id": "0fDkYNB91MiqbAS0",
 	"instantiation": "true",
 	"hot_plate_temp": [
 		"30"

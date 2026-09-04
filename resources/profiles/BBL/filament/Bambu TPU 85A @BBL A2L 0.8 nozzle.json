@@ -1,0 +1,80 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 85A @BBL A2L 0.8 nozzle",
+	"inherits": "Bambu TPU 85A @base",
+	"from": "system",
+	"setting_id": "GFSU04_19",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"100"
+	],
+	"eng_plate_temp": [
+		"35"
+	],
+	"eng_plate_temp_initial_layer": [
+		"35"
+	],
+	"filament_cooling_before_tower": [
+		"10"
+	],
+	"filament_cost": [
+		"41.99"
+	],
+	"filament_density": [
+		"1.22"
+	],
+	"filament_max_volumetric_speed": [
+		"3"
+	],
+	"filament_pre_cooling_temperature": [
+		"195"
+	],
+	"filament_printable": [
+		"1"
+	],
+	"filament_ramming_travel_time": [
+		"20"
+	],
+	"filament_ramming_volumetric_speed": [
+		"0.55"
+	],
+	"filament_retraction_length": [
+		"1"
+	],
+	"filament_support_printable": [
+		"2"
+	],
+	"impact_strength_z": [
+		"88.7"
+	],
+	"long_retractions_when_ec": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"215"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"pre_start_fan_time": [
+		"0"
+	],
+	"retraction_distances_when_ec": [
+		"10"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.8 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	]
+}

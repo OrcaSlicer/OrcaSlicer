@@ -1,0 +1,35 @@
+#FullArea
+{
+	height:100%;
+}
+
+
+#LoadProgress
+{
+	position:fixed;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 3mm;
+	display: none;
+}
+
+#PercentTip
+{
+	width:70%;
+	height: 100%;
+	background-color: #335DFC;
+}
+
+
+#PageArea
+{
+	width:100%;
+	height: 100%;
+}
+
+#IEPage
+{
+	height:100%;
+	width: 100%;
+}

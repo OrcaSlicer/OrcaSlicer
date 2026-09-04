@@ -99,6 +99,7 @@ public:
     void OpenModelDetail(std::string id, NetworkAgent *agent);
     void SendLoginInfo();
     void ShowNetpluginTip();
+    void SendCloudProvidersInfo();
 
     void get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback);
     int  get_model_mall_detail_url(std::string *url, std::string id);
@@ -124,10 +125,6 @@ private:
     wxMenuItem* m_edit_undo;
     wxMenuItem* m_edit_redo;
     wxMenuItem* m_edit_mode;
-    wxMenuItem* m_scroll_line_up;
-    wxMenuItem* m_scroll_line_down;
-    wxMenuItem* m_scroll_page_up;
-    wxMenuItem* m_scroll_page_down;
     wxMenuItem* m_script_string;
     wxMenuItem* m_script_integer;
     wxMenuItem* m_script_double;

@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Blocks",
 	"bed_model": "PRO S100 HotBed model.stl",
-	"bed_texture": "PRO S100 HotBed texture.png",
+	"bed_texture": "PRO S100 HotBed texture.svg",
 	"hotend_model": "BLOCKS PrintCore.stl",
 	"default_materials": "Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
 }

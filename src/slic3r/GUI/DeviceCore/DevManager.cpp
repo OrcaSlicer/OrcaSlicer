@@ -1,4 +1,7 @@
 #include <nlohmann/json.hpp>
+
+#include <exception>
+
 #include "DevManager.h"
 #include "DevUtil.h"
 
@@ -7,10 +10,38 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include "libslic3r/Time.hpp"
 
 using namespace nlohmann;
+
+namespace {
+    // Orca: access_code lives on BBLocalMachine::access_code (keyed by dev_id via
+    // get_local_machines(), scoped by the record's own printer_agent_id field) - so binding a
+    // printer under one agent doesn't silently appear as already-bound under a different,
+    // independent agent. This only covers LAN devices (BBLocalMachine's own scope); access_code
+    // and user_access_code used to be the only, flat dev_id-only AppConfig keys before
+    // BBLocalMachine::access_code existed, and codes saved back then are still stored flat (no
+    // agent association at all). Since BBL was the only agent that existed at the time, honor
+    // those flat legacy keys as implicitly BBL's - but only for the BBL agent, so they aren't
+    // leaked to other agents that never bound the device themselves.
+    std::string get_access_code_with_legacy_fallback(Slic3r::AppConfig* config, const std::string& dev_id, const std::string& agent_id)
+    {
+        const auto& machines = config->get_local_machines();
+        auto        it       = machines.find(dev_id);
+        if (it != machines.end() && it->second.printer_agent_id == agent_id && !it->second.access_code.empty())
+            return it->second.access_code;
+
+        if (agent_id == Slic3r::BBL_PRINTER_AGENT_ID || agent_id.empty()) {
+            std::string code = config->get("access_code", dev_id);
+            if (code.empty())
+                code = config->get("user_access_code", dev_id);
+            return code;
+        }
+        return "";
+    }
+}
 
 namespace Slic3r
 {
@@ -21,27 +52,37 @@ namespace Slic3r
 
         DevPrinterConfigUtil::InitFilePath(resources_dir());
 
-        // Load saved local machines
+        // Load saved local machines (needs an agent; when built without one the load is
+        // deferred to set_agent()).
         if (agent) {
-            AppConfig*  config         = GUI::wxGetApp().app_config;
-            const auto local_machines = config->get_local_machines();
-            for (auto& it : local_machines) {
-                const auto&    m         = it.second;
-                MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
-                obj->printer_type        = m.printer_type;
-                obj->dev_connection_type = "lan";
-                obj->bind_state          = "free";
-                obj->bind_sec_link       = "secure";
-                obj->m_is_online         = true;
-                obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-                obj->set_access_code(config->get("access_code", m.dev_id), false);
-                obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
-                if (obj->has_access_right()) {
-                    localMachineList.insert(std::make_pair(m.dev_id, obj));
-                } else {
-                    config->erase_local_machine(m.dev_id);
-                    delete obj;
-                }
+            load_local_machines_from_config();
+        }
+    }
+
+    void DeviceManager::load_local_machines_from_config()
+    {
+        AppConfig* config = GUI::wxGetApp().app_config;
+        if (!config)
+            return;
+        const auto local_machines = config->get_local_machines();
+        for (auto& it : local_machines) {
+            const auto& m = it.second;
+            if (localMachineList.count(m.dev_id))
+                continue;
+            MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
+            obj->printer_type        = m.printer_type;
+            obj->printer_agent_id    = m.printer_agent_id;
+            obj->dev_connection_type = "lan";
+            obj->bind_state          = "free";
+            obj->bind_sec_link       = "secure";
+            obj->m_is_online         = true;
+            obj->last_alive          = Slic3r::Utils::get_current_time_utc();
+            obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id, obj->printer_agent_id), false);
+            if (obj->has_access_right()) {
+                localMachineList.insert(std::make_pair(m.dev_id, obj));
+            } else {
+                config->erase_local_machine(m.dev_id);
+                delete obj;
             }
         }
     }
@@ -53,10 +94,12 @@ namespace Slic3r
             if (m.is_lan_mode_printer()) {
                 if (m.has_access_right()) {
                     BBLocalMachine local_machine;
-                    local_machine.dev_id       = m.get_dev_id();
-                    local_machine.dev_name     = m.get_dev_name();
-                    local_machine.dev_ip       = m.get_dev_ip();
-                    local_machine.printer_type = m.printer_type;
+                    local_machine.dev_id           = m.get_dev_id();
+                    local_machine.dev_name         = m.get_dev_name();
+                    local_machine.dev_ip           = m.get_dev_ip();
+                    local_machine.printer_type     = m.printer_type;
+                    local_machine.printer_agent_id = m.printer_agent_id;
+                    local_machine.access_code      = m.get_access_code();
                     config->update_local_machine(local_machine);
                 }
             } else {
@@ -95,6 +138,11 @@ namespace Slic3r
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
                                 << localMachineList.size() << " local and "
                                 << userMachineList.size() << " user machines";
+
+        // First real agent after an agent-less construction (network plugin wasn't ready at
+        // startup): run the persisted-LAN-printer load the constructor had to skip. See
+        // load_local_machines_from_config().
+        const bool first_real_agent = (m_agent == nullptr && agent != nullptr);
         m_agent = agent;
 
         std::lock_guard<std::mutex> lock(listMutex);
@@ -108,6 +156,18 @@ namespace Slic3r
                 it.second->set_agent(agent);
             }
         }
+
+        if (first_real_agent) {
+            load_local_machines_from_config();
+        }
+    }
+
+    std::string DeviceManager::get_current_printer_agent_id() const
+    {
+        if (!m_agent)
+            return "";
+        auto printer_agent = m_agent->get_printer_agent();
+        return printer_agent ? printer_agent->get_agent_info().id : "";
     }
 
     void DeviceManager::EnableMultiMachine(bool enable)
@@ -151,11 +211,15 @@ namespace Slic3r
     {
         keep_alive();
         MachineObject* obj = this->get_selected_machine();
+        if (!obj) {
+            BOOST_LOG_TRIVIAL(warning) << "DeviceManager::check_pushing selected machine not found";
+            return;
+        }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         auto internal = std::chrono::duration_cast<std::chrono::milliseconds>(start - obj->last_update_time);
 
-        if (obj && !obj->is_support_mqtt_alive)
+        if (!obj->is_support_mqtt_alive)
         {
             if (internal.count() > TIMEOUT_FOR_STRAT && internal.count() < 1000 * 60 * 60 * 300)
             {
@@ -302,6 +366,7 @@ namespace Slic3r
                 /* insert a new machine */
                 obj = new MachineObject(this, m_agent, dev_name, dev_id, dev_ip);
                 obj->printer_type = _parse_printer_type(printer_type_str);
+                obj->printer_agent_id = get_current_printer_agent_id();
                 obj->wifi_signal = printer_signal;
                 obj->dev_connection_type = connect_type;
                 obj->bind_state     = bind_state;
@@ -313,8 +378,7 @@ namespace Slic3r
                 //load access code
                 AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
                 if (config) {
-                    obj->set_access_code(Slic3r::GUI::wxGetApp().app_config->get("access_code", dev_id), false);
-                    obj->set_user_access_code(Slic3r::GUI::wxGetApp().app_config->get("user_access_code", dev_id), false);
+                    obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id, obj->printer_agent_id), false);
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -343,6 +407,7 @@ namespace Slic3r
             obj = it->second;
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
+            obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
         if (machine.printer_type.empty())
@@ -356,14 +421,13 @@ namespace Slic3r
         obj->m_is_online = true;
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
-        obj->set_user_access_code(access_code, false);
 
         update_local_machine(*obj);
 
         return obj;
     }
 
-    int DeviceManager::query_bind_status(std::string& msg)
+    int DeviceManager::query_bind_status(std::string& msg, const std::string& provider)
     {
         if (!m_agent)
         {
@@ -381,7 +445,7 @@ namespace Slic3r
 
         unsigned int http_code;
         std::string http_body;
-        int result = m_agent->query_bind_status(query_list, &http_code, &http_body);
+        int result = m_agent->query_bind_status(query_list, &http_code, &http_body, provider);
 
         if (result < 0)
         {
@@ -419,9 +483,9 @@ namespace Slic3r
         return result;
     }
 
-    MachineObject* DeviceManager::get_user_machine(std::string dev_id)
+    MachineObject* DeviceManager::get_user_machine(std::string dev_id, const std::string& provider)
     {
-        if (!m_agent || !m_agent->is_user_login())
+        if (!m_agent || !m_agent->is_user_login(provider))
         {
             return nullptr;
         }
@@ -442,14 +506,13 @@ namespace Slic3r
         return nullptr;
     }
 
-    void DeviceManager::clean_user_info()
+    void DeviceManager::clean_user_info(bool keep_local_selection)
     {
         BOOST_LOG_TRIVIAL(trace) << "DeviceManager::clean_user_info";
-        // reset selected_machine
-        selected_machine = "";
-        local_selected_machine = "";
-
-        OnSelectedMachineChanged(selected_machine, "");
+        const std::string previous_selected_machine = selected_machine;
+        const bool keep_selected_machine = keep_local_selection &&
+            !selected_machine.empty() &&
+            localMachineList.find(selected_machine) != localMachineList.end();
 
         // clean user list
         for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
@@ -462,6 +525,43 @@ namespace Slic3r
             }
         }
         userMachineList.clear();
+
+        if (!keep_selected_machine) {
+            selected_machine = "";
+            local_selected_machine = "";
+        }
+
+        OnSelectedMachineChanged(previous_selected_machine, selected_machine);
+    }
+
+    void DeviceManager::clear_other_devices(const std::string& target_agent_id)
+    {
+        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
+        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
+        //
+        // Also drop "My Devices" stamped by a different agent than the one we're swapping to
+        // (target_agent_id, passed by the caller since the live agent hasn't been repointed yet
+        // at this point): otherwise a device first discovered under agent A survives every swap
+        // with a stale printer_agent_id, stays hidden from every agent's filtered list, and only
+        // gets re-tagged if something happens to delete and re-create it (e.g. account logout).
+        // Dropping it here instead lets the new agent's start_discovery re-insert and re-stamp it
+        // like any other fresh device.
+        const auto my = get_my_machine_list();
+        for (auto it = localMachineList.begin(); it != localMachineList.end();)
+        {
+            const bool is_my_device = my.find(it->first) != my.end();
+            const bool agent_mismatch = !target_agent_id.empty() && it->second &&
+                                         it->second->printer_agent_id != target_agent_id;
+            if (!is_my_device || agent_mismatch)
+            {
+                delete it->second;
+                it = localMachineList.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
     }
 
     bool DeviceManager::set_selected_machine(std::string dev_id)
@@ -559,6 +659,7 @@ namespace Slic3r
         }
 
         selected_machine = dev_id;
+        record_user_last_machine(selected_machine);
         return true;
     }
 
@@ -566,7 +667,7 @@ namespace Slic3r
     {
         if (selected_machine.empty()) return nullptr;
 
-        MachineObject* obj = get_user_machine(selected_machine);
+        MachineObject* obj = get_user_machine(selected_machine, GUI::wxGetApp().get_printer_cloud_provider());
         if (obj)
             return obj;
 
@@ -635,13 +736,16 @@ namespace Slic3r
             m_agent->add_subscribe(subscribe_list_cache);
     }
 
-    std::map<std::string, MachineObject*> DeviceManager::get_my_machine_list()
+    std::map<std::string, MachineObject*> DeviceManager::get_my_machine_list(const std::string& agent_id)
     {
         std::map<std::string, MachineObject*> result;
 
         for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
         {
-            if (it->second && !it->second->is_lan_mode_printer())
+            if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
+                continue;
+
+            if (!it->second->is_lan_mode_printer())
             {
                 result.insert(std::make_pair(it->first, it->second));
             }
@@ -649,7 +753,10 @@ namespace Slic3r
 
         for (auto it = localMachineList.begin(); it != localMachineList.end(); it++)
         {
-            if (it->second && it->second->has_access_right() && it->second->is_avaliable() && it->second->is_lan_mode_printer())
+            if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
+                continue;
+
+            if (it->second->has_access_right() && it->second->is_avaliable() && it->second->is_lan_mode_printer())
             {
                 // remove redundant in userMachineList
                 if (result.find(it->first) == result.end())
@@ -661,12 +768,15 @@ namespace Slic3r
         return result;
     }
 
-    std::map<std::string, MachineObject*> DeviceManager::get_my_cloud_machine_list()
+    std::map<std::string, MachineObject*> DeviceManager::get_my_cloud_machine_list(const std::string& agent_id)
     {
         std::map<std::string, MachineObject*> result;
         for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
         {
-            if (it->second && !it->second->is_lan_mode_printer()) { result.emplace(*it); }
+            if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
+                continue;
+
+            if (!it->second->is_lan_mode_printer()) { result.emplace(*it); }
         }
         return result;
     }
@@ -683,15 +793,15 @@ namespace Slic3r
         return "";
     }
 
-    void DeviceManager::modify_device_name(std::string dev_id, std::string dev_name)
+    void DeviceManager::modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider)
     {
         BOOST_LOG_TRIVIAL(trace) << "modify_device_name";
         if (m_agent)
         {
-            int result = m_agent->modify_printer_name(dev_id, dev_name);
+            int result = m_agent->modify_printer_name(dev_id, dev_name, provider);
             if (result == 0)
             {
-                update_user_machine_list_info();
+                update_user_machine_list_info(provider);
             }
         }
     }
@@ -712,6 +822,7 @@ namespace Slic3r
         try
         {
             json j = json::parse(body);
+            const std::string provider = GUI::wxGetApp().get_printer_cloud_provider();
 
 #if !BBL_RELEASE_TO_PUBLIC
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << j;
@@ -738,9 +849,10 @@ namespace Slic3r
                     else
                     {
                         obj = new MachineObject(this, m_agent, "", "", "");
+                        obj->printer_agent_id = get_current_printer_agent_id();
                         if (m_agent)
                         {
-                            obj->set_bind_status(m_agent->get_user_name());
+                            obj->set_bind_status(m_agent->get_user_name(provider));
                         }
 
                         if (obj->get_dev_ip().empty())
@@ -806,36 +918,54 @@ namespace Slic3r
         }
     }
 
-    void DeviceManager::update_user_machine_list_info()
+    void DeviceManager::update_user_machine_list_info(const std::string& provider)
     {
         if (!m_agent) return;
 
         BOOST_LOG_TRIVIAL(debug) << "update_user_machine_list_info";
         unsigned int http_code;
         std::string body;
-        int result = m_agent->get_user_print_info(&http_code, &body);
+        int result = m_agent->get_user_print_info(&http_code, &body, provider);
         if (result == 0)
         {
-            parse_user_print_info(body);
+            // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
+            // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
+            Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
         }
+    }
+
+    void DeviceManager::record_user_last_machine(const std::string& dev_id)
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            Slic3r::GUI::wxGetApp().app_config->set("user_last_selected_machine", dev_id);
+        }
+    }
+
+    std::string DeviceManager::get_user_last_machine() const
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            const auto& user_last_machine = Slic3r::GUI::wxGetApp().app_config->get("user_last_selected_machine");
+            if (!user_last_machine.empty()) {
+                return user_last_machine;
+            } else if (m_agent) {
+                return m_agent->get_user_selected_machine();
+            }
+        }
+
+        return "";
     }
 
     void DeviceManager::load_last_machine()
     {
-        // Get all available machines, include cloud machines and lan machines that have access right
-        auto all_machines = get_my_machine_list();
-        if (all_machines.empty())
+        // Only reconnect the remembered cloud machine. Do not select an arbitrary
+        // first machine: agent swaps intentionally leave the selection empty until
+        // the new agent explicitly selects its configured printer.
+        if (userMachineList.empty())
             return;
-        
-        // Then connect to the machine we last selected if available
-        const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
-        const auto        last_machine         = all_machines.find(last_monitor_machine);
-        if (last_machine != all_machines.end()) {
-            this->set_selected_machine(last_machine->second->get_dev_id());
-        } else {
-            // If not, then select the first available one
-            this->set_selected_machine(all_machines.begin()->second->get_dev_id());
-        }
+
+        const auto& last_monitor_machine = get_user_last_machine();
+        if (userMachineList.find(last_monitor_machine) != userMachineList.end())
+            set_selected_machine(last_monitor_machine);
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)
@@ -906,20 +1036,36 @@ namespace Slic3r
         }
 
         // do some refresh
-        if (Slic3r::GUI::wxGetApp().is_user_login())
+        const auto cloud_provider = Slic3r::GUI::wxGetApp().get_printer_cloud_provider();
+        if (Slic3r::GUI::wxGetApp().is_user_login(cloud_provider))
         {
-            m_manager->check_pushing();
-            try
-            {
-                agent->refresh_connection();
+            try {
+                m_manager->check_pushing();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing exception="
+                                         << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing unknown exception";
             }
-            catch (...)
-            {
-                ;
+
+            try {
+                agent->refresh_connection(cloud_provider);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer refresh_connection exception="
+                                         << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer refresh_connection unknown exception";
             }
         }
 
         // certificate
-        agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+        try {
+            agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert exception="
+                                     << e.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert unknown exception";
+        }
     }
 }

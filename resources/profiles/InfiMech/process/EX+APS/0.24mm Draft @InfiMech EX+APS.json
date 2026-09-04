@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @InfiMech EX+APS",
 	"inherits": "fdm_process_common_EX+APS",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "DVI9tXz54QGawSh0",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"overhang_1_4_speed": "50",

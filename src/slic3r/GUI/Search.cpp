@@ -109,7 +109,7 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER) && opt_key != "printable_area")
+        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
             switch (config->option(opt_key)->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;
@@ -121,6 +121,9 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
             case coEnums: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             default: break;
             }
+
+        if (type == Preset::TYPE_FILAMENT && filament_options_with_variant.find(opt_key) != filament_options_with_variant.end())
+            opt_key += "#0";
 
         wxString label = opt.full_label.empty() ? opt.label : opt.full_label;
 
@@ -329,12 +332,32 @@ const Option &OptionsSearcher::get_option(size_t pos_in_filter) const
     return options[found[pos_in_filter].option_idx];
 }
 
-const Option &OptionsSearcher::get_option(const std::string &opt_key, Preset::Type type) const
+const Option &OptionsSearcher::get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const
 {
-    auto it = std::lower_bound(options.begin(), options.end(), Option({boost::nowide::widen(get_key(opt_key, type))}));
+    std::string opt_key2 = opt_key;
+    if (auto n = opt_key.find('#'); n != std::string::npos) {
+        variant_index = std::atoi(opt_key.c_str() + n + 1);
+        opt_key2 = opt_key.substr(0, n);
+    }
+    auto it = std::lower_bound(options.begin(), options.end(), Option({boost::nowide::widen(get_key(opt_key2, type))}));
     // BBS: return the 0th option when not found in searcher caused by mode difference
     // assert(it != options.end());
-    if (it == options.end()) return options[0];
+    if (it == options.end()) { variant_index = -2 ; return options[0]; }
+    if (it->opt_key() == opt_key2) {
+        variant_index = -1;
+    } else {
+        const std::string opt_key3 = opt_key2 + "#";
+        it = std::lower_bound(it, options.end(), Option({boost::nowide::widen(get_key(opt_key3, type))}));
+        if (it == options.end() || it->opt_key().compare(0, opt_key3.length(), opt_key3) != 0) {
+            variant_index = -2; // Not found
+            return options[0];
+        }
+        auto it2 = it;
+        ++it2;
+        if (it2 != options.end() && it2->opt_key().compare(0, opt_key3.length(), opt_key3) == 0
+                && printer_options_with_variant_1.find(opt_key2) == printer_options_with_variant_1.end())
+            variant_index = -2;
+    }
 
     return options[it - options.begin()];
 }
@@ -658,7 +681,7 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
 
 SearchDialog::~SearchDialog() {}
 
-void SearchDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
+void SearchDialog::Popup(wxWindow *focus /*= nullptr*/)
 {
     /* const std::string& line = searcher->search_string();
      search_line->SetValue(line.empty() ? default_string : from_u8(line));
@@ -673,17 +696,19 @@ void SearchDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     search_line2->SetValue(wxString(""));
     //const std::string &line = searcher->search_string();
     //searcher->search(into_u8(line), true);
-    PopupWindow::Popup();
+    PopupWindow::Popup(focus);
     search_line2->SetFocus();
     update_list();
 }
 
 
+#ifdef __WXMSW__
 void SearchDialog::MSWDismissUnfocusedPopup()
 {
     Dismiss();
     OnDismiss();
 }
+#endif // __WXMSW__
 
 void SearchDialog::OnDismiss() { }
 
@@ -903,7 +928,7 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
 
 SearchObjectDialog::~SearchObjectDialog() {}
 
-void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
+void SearchObjectDialog::Popup(wxWindow *focus /*= nullptr*/)
 {
     if (m_is_dismissing || this->IsShown()) {
         return;
@@ -914,7 +939,7 @@ void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     // dropdown list, otherwise the text input won't be usable
     m_object_list->SetFocus();
 #endif
-    PopupWindow::Popup();
+    PopupWindow::Popup(focus);
     search_line2->SetFocus();
 
     m_object_list->assembly_plate_object_name();
@@ -922,11 +947,13 @@ void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     update_list();
 }
 
+#ifdef __WXMSW__
 void SearchObjectDialog::MSWDismissUnfocusedPopup()
 {
     Dismiss();
     OnDismiss();
 }
+#endif // __WXMSW__
 
 void SearchObjectDialog::OnDismiss() {}
 

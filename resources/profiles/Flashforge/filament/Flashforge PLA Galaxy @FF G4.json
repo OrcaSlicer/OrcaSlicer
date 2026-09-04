@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Galaxy @FF G4",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "Tzvo3oILQJc4SQko",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

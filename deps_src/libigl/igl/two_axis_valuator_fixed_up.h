@@ -14,22 +14,21 @@
 
 namespace igl
 {
-  // Applies a two-axis valuator drag rotation (as seen in Maya/Studio max) to a given rotation.
-  // Inputs:
-  //   w  width of the trackball context
-  //   h  height of the trackball context
-  //   speed  controls how fast the trackball feels, 1 is normal
-  //   down_quat  rotation at mouse down, i.e. the rotation we're applying the
-  //     trackball motion to (as quaternion). **Note:** Up-vector that is fixed
-  //     is with respect to this rotation.
-  //   down_x position of mouse down
-  //   down_y position of mouse down
-  //   mouse_x  current x position of mouse
-  //   mouse_y  current y position of mouse
-  // Outputs:
-  //   quat  the resulting rotation (as quaternion)
-  //
-  // See also: snap_to_fixed_up
+  /// Applies a two-axis valuator drag rotation (as seen in Maya/Studio max) to a given rotation.
+  ///
+  /// @param[in] w  width of the trackball context
+  /// @param[in] h  height of the trackball context
+  /// @param[in] speed  controls how fast the trackball feels, 1 is normal
+  /// @param[in] down_quat  rotation at mouse down, i.e. the rotation we're applying the
+  ///     trackball motion to (as quaternion). **Note:** Up-vector that is fixed
+  ///     is with respect to this rotation.
+  /// @param[in] down_x position of mouse down
+  /// @param[in] down_y position of mouse down
+  /// @param[in] mouse_x  current x position of mouse
+  /// @param[in] mouse_y  current y position of mouse
+  /// @param[out] quat  the resulting rotation (as quaternion)
+  ///
+  /// \see snap_to_fixed_up
   template <typename Scalardown_quat, typename Scalarquat>
   IGL_INLINE void two_axis_valuator_fixed_up(
     const int w,

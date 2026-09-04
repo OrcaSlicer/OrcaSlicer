@@ -3,7 +3,7 @@
 	"name": "FLSun Generic PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IohayLPyRIsZJ0GY",
 	"filament_id": "GFS99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

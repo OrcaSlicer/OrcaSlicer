@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "InfiMechDesign",
 	"bed_model": "InfiMech TX-bed.stl",
-	"bed_texture": "InfiMech TX-texture.png",
+	"bed_texture": "InfiMech TX-texture.svg",
 	"hotend_model": "",
 	"default_materials": "InfiMech Generic ABS;InfiMech Generic PA-CF;InfiMech Generic PC;InfiMech Generic PETG;InfiMech Generic PLA;InfiMech Generic TPU"
 }

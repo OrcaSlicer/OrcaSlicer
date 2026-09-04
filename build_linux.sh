@@ -504,6 +504,26 @@ if [[ -n "${USE_LLD}" ]] ; then
     fi
 fi
 
+export CMAKE_CCACHE_ARGS=()
+CMAKE_CCACHE=${CMAKE_CCACHE:-}
+if [ -n "$CMAKE_CCACHE" ]; then
+        echo "Checking ${CMAKE_CCACHE} environment variable for compiler cache program..."
+        CMAKE_CCACHE=$(command -v "${CMAKE_CCACHE}") || {
+            echo "CMAKE_CCACHE environment variable is set to '${CMAKE_CCACHE}' but it was not found in PATH."
+            CMAKE_CCACHE=""
+        }
+elif command -v sccache >/dev/null 2>&1 ; then
+        CMAKE_CCACHE=$(command -v sccache)
+elif command -v ccache >/dev/null 2>&1 ; then
+        CMAKE_CCACHE=$(command -v ccache)
+fi
+if [ -n "${CMAKE_CCACHE}" ] ; then
+    echo "${CMAKE_CCACHE} found, enabling compiler caching..."
+    export CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER="${CMAKE_CCACHE}" -DCMAKE_CXX_COMPILER_LAUNCHER="${CMAKE_CCACHE}")
+else
+    echo "Note: ccache or sccache are not found. Install either of them for faster rebuilds."
+fi
+
 if [[ -n "${BUILD_DEPS}" ]] ; then
     echo "Configuring dependencies..."
     read -r -a BUILD_ARGS <<< "${DEPS_EXTRA_BUILD_ARGS}"
@@ -516,7 +536,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
         BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
 
-    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
+    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
     print_and_run cmake --build deps/$BUILD_DIR -j1
 fi
 
@@ -536,7 +556,7 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
     fi
 
-    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G "Ninja Multi-Config" \
+    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \
 -DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} \
 -DORCA_TOOLS=ON \
 "${COLORED_OUTPUT}" \
@@ -547,6 +567,8 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
 	print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer
 	echo "Building OrcaSlicer_profile_validator .."
 	print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
+	echo "Building generate_system_cache ..."
+	print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target generate_system_cache
 	./scripts/run_gettext.sh
     fi
     if [[ -n "${BUILD_TESTS}" ]] ; then

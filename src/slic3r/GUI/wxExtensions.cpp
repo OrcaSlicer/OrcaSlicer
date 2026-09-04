@@ -413,15 +413,6 @@ int em_unit(wxWindow* win)
     return Slic3r::GUI::wxGetApp().em_unit();
 }
 
-int mode_icon_px_size()
-{
-#ifdef __APPLE__
-    return 10;
-#else
-    return 12;
-#endif
-}
-
 wxBitmap create_menu_bitmap(const std::string& bmp_name)
 {
     return create_scaled_bitmap(bmp_name, nullptr, 16, false, "", true);
@@ -445,7 +436,9 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
         return create_scaled_bitmap2(bmp_name_in, cache, win, px_cnt, grayscale, resize, array_new_color);
     }
     unsigned int width = 0;
-    unsigned int height = (unsigned int) (win->FromDIP(px_cnt) + 0.5f);
+    // win may be nullptr; use the static overload, which falls back to the primary display DPI.
+    // Calling win->FromDIP() on a null win is UB and lets the optimizer drop later null checks.
+    unsigned int height = (unsigned int) (wxWindow::FromDIP(px_cnt, win) + 0.5f);
 
     std::string bmp_name = bmp_name_in;
     boost::replace_last(bmp_name, ".png", "");
@@ -459,7 +452,7 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
     // Try loading an SVG first, then PNG if SVG was not found:
     wxBitmap *bmp = cache.load_svg(bmp_name, width, height, grayscale, dark_mode, new_color, resize ? em_unit(win) * 0.1f : 0.f);
     if (bmp == nullptr) {
-        bmp = cache.load_png(bmp_name, width, height, grayscale, resize ? win->FromDIP(10) * 0.1f : 0.f);
+        bmp = cache.load_png(bmp_name, width, height, grayscale, resize ? wxWindow::FromDIP(10, win) * 0.1f : 0.f);
     }
 
     if (bmp == nullptr) {
@@ -480,7 +473,8 @@ wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::Bitm
     const vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
 {
     unsigned int width = 0;
-    unsigned int height = (unsigned int)(win->FromDIP(px_cnt) + 0.5f);
+    // win may be nullptr; see create_scaled_bitmap() above.
+    unsigned int height = (unsigned int)(wxWindow::FromDIP(px_cnt, win) + 0.5f);
 
     std::string bmp_name = bmp_name_in;
     boost::replace_last(bmp_name, ".png", "");
@@ -561,14 +555,20 @@ std::vector<wxBitmap*> get_extruder_color_icons(bool thin_icon/* = false*/)
         const int    icon_width  = lround((thin_icon ? 2 : 4.4) * em);
         const int    icon_height = lround(2 * em);
 
+        // A gradient mixed filament fades over the model's height, so it gets the same
+        // curve-sampled ramp the editor previews instead of a fade between two endpoints.
+        const auto& gradient_ramps = Slic3r::GUI::wxGetApp().plater()->get_filament_gradient_ramps();
+
         int index = 0;
         for (const auto &colors : readable_color_info) {
             auto label = std::to_string(++index);
-            bool is_gradient = ctype[index-1] == "0";
-            if (colors.size() == 1) {
+            const size_t slot = index - 1;
+            bool is_gradient = ctype[slot] == "0";
+            const std::vector<wxColour>* ramp = (slot < gradient_ramps.size() && !gradient_ramps[slot].empty()) ? &gradient_ramps[slot] : nullptr;
+            if (ramp == nullptr && colors.size() == 1) {
                 bmps.push_back(get_extruder_color_icon(colors[0], label, icon_width, icon_height));
             } else {
-                bmps.push_back(get_extruder_color_icon(colors, is_gradient, label, icon_width, icon_height));
+                bmps.push_back(get_extruder_color_icon(colors, is_gradient, label, icon_width, icon_height, ramp));
             }
         }
     } else {
@@ -636,14 +636,27 @@ wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_da
     return data;
 }
 
-wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height){
+wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
+                                  const std::vector<wxColour> *ramp){
 
     static Slic3r::GUI::BitmapCache bmp_cache;
 
-    // build cache key, include all color info
+    // build cache key, include all color info. A ramp already encodes its slot's components,
+    // colours and curve, so keying on it rebuilds the icon whenever any of them change.
     std::string bitmap_key = "";
-    for (const auto& color : colors) {
-        bitmap_key += color + "_";
+    if (ramp != nullptr) {
+        static const char hex_digits[] = "0123456789ABCDEF";
+        bitmap_key = "grad_";
+        for (const wxColour &c : *ramp)
+            for (unsigned char v : {c.Red(), c.Green(), c.Blue()}) {
+                bitmap_key += hex_digits[v >> 4];
+                bitmap_key += hex_digits[v & 0x0F];
+            }
+        bitmap_key += "_";
+    } else {
+        for (const auto& color : colors) {
+            bitmap_key += color + "_";
+        }
     }
     bitmap_key += "h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
@@ -653,16 +666,21 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
     #endif
     if (bitmap == nullptr) {
 
-        std::vector<wxColour> wx_colors;
-        for (const auto& color_str : colors) {
-            wx_colors.push_back(wxColour(color_str));
-        }
-        if (wx_colors.empty()) {
-            wx_colors.push_back(wxColour("#636363")); // default color if no colors provided
-        }
+        wxBitmap base_bitmap;
+        if (ramp != nullptr) {
+            base_bitmap = Slic3r::GUI::create_gradient_ramp_bitmap(*ramp, wxSize(icon_width, icon_height));
+        } else {
+            std::vector<wxColour> wx_colors;
+            for (const auto& color_str : colors) {
+                wx_colors.push_back(wxColour(color_str));
+            }
+            if (wx_colors.empty()) {
+                wx_colors.push_back(wxColour("#636363")); // default color if no colors provided
+            }
 
-        // create filament bitmap in multi color
-        wxBitmap base_bitmap = Slic3r::GUI::create_filament_bitmap(wx_colors, wxSize(icon_width, icon_height), is_gradient);
+            // create filament bitmap in multi color
+            base_bitmap = Slic3r::GUI::create_filament_bitmap(wx_colors, wxSize(icon_width, icon_height), is_gradient);
+        }
 
         if (!base_bitmap.IsOk()) {
             // if create failed, return nullptr
@@ -896,141 +914,6 @@ void LockButton::update_button_bitmaps()
 
 
 // ----------------------------------------------------------------------------
-// ModeButton
-// ----------------------------------------------------------------------------
-
-ModeButton::ModeButton( wxWindow *          parent,
-                        wxWindowID          id,
-                        const std::string&  icon_name   /* = ""*/,
-                        const wxString&     mode        /* = wxEmptyString*/,
-                        const wxSize&       size        /* = wxDefaultSize*/,
-                        const wxPoint&      pos         /* = wxDefaultPosition*/) :
-    ScalableButton(parent, id, icon_name, mode, size, pos, wxBU_EXACTFIT)
-{
-    Init(mode);
-}
-
-ModeButton::ModeButton( wxWindow*           parent,
-                        const wxString&     mode/* = wxEmptyString*/,
-                        const std::string&  icon_name/* = ""*/,
-                        int                 px_cnt/* = 16*/) :
-    ScalableButton(parent, wxID_ANY, ScalableBitmap(parent, icon_name, px_cnt), mode, wxBU_EXACTFIT)
-{
-    Init(mode);
-}
-
-void ModeButton::Init(const wxString &mode)
-{
-    std::string mode_str = std::string(mode.ToUTF8());
-    //m_tt_focused  = Slic3r::GUI::from_u8((boost::format(_utf8(L("Switch to the %s mode"))) % mode_str).str());
-    //m_tt_selected = Slic3r::GUI::from_u8((boost::format(_utf8(L("Current mode is %s"))) % mode_str).str());
-
-    SetBitmapMargins(3, 0);
-
-    //button events
-    Bind(wxEVT_BUTTON,          &ModeButton::OnButton, this);
-    Bind(wxEVT_ENTER_WINDOW,    &ModeButton::OnEnterBtn, this);
-    Bind(wxEVT_LEAVE_WINDOW,    &ModeButton::OnLeaveBtn, this);
-}
-
-void ModeButton::OnButton(wxCommandEvent& event)
-{
-    m_is_selected = true;
-    focus_button(m_is_selected);
-
-    event.Skip();
-}
-
-void ModeButton::SetState(const bool state)
-{
-    m_is_selected = state;
-    focus_button(m_is_selected);
-    SetToolTip(state ? m_tt_selected : m_tt_focused);
-}
-
-void ModeButton::focus_button(const bool focus)
-{
-    const wxFont& new_font = focus ?
-                             Slic3r::GUI::wxGetApp().bold_font() :
-                             Slic3r::GUI::wxGetApp().normal_font();
-
-    SetFont(new_font);
-#ifdef _WIN32
-    GetParent()->Refresh(); // force redraw a background of the selected mode button
-#else
-    SetForegroundColour(wxSystemSettings::GetColour(focus ? wxSYS_COLOUR_BTNTEXT :
-#if defined (__linux__) && defined (__WXGTK3__)
-        wxSYS_COLOUR_GRAYTEXT
-#elif defined (__linux__) && defined (__WXGTK2__)
-        wxSYS_COLOUR_BTNTEXT
-#else
-        wxSYS_COLOUR_BTNSHADOW
-#endif
-    ));
-#endif /* no _WIN32 */
-
-    Refresh();
-    Update();
-}
-
-
-// ----------------------------------------------------------------------------
-// ModeSizer
-// ----------------------------------------------------------------------------
-
-ModeSizer::ModeSizer(wxWindow *parent, int hgap/* = 0*/) :
-    wxFlexGridSizer(3, 0, hgap),
-    m_parent(parent),
-    m_hgap_unscaled((double)(hgap)/em_unit(parent))
-{
-    SetFlexibleDirection(wxHORIZONTAL);
-
-    std::vector < std::pair < wxString, std::string >> buttons = {
-        //{_(L("Simple")),    "mode_simple"},
-        //{_(L("Advanced")),  "mode_advanced"},
-        //{_CTX(L_CONTEXT("Advanced", "Mode"), "Mode"), "mode_advanced"}
-    };
-
-    auto modebtnfn = [](wxCommandEvent &event, int mode_id) {
-        Slic3r::GUI::wxGetApp().save_mode(mode_id);
-        event.Skip();
-    };
-
-    m_mode_btns.reserve(3);
-    for (const auto& button : buttons) {
-        m_mode_btns.push_back(new ModeButton(parent, button.first, button.second, mode_icon_px_size()));
-
-        m_mode_btns.back()->Bind(wxEVT_BUTTON, std::bind(modebtnfn, std::placeholders::_1, int(m_mode_btns.size() - 1)));
-        Add(m_mode_btns.back());
-    }
-}
-
-void ModeSizer::SetMode(const int mode)
-{
-    for (size_t m = 0; m < m_mode_btns.size(); m++)
-        m_mode_btns[m]->SetState(int(m) == mode);
-}
-
-void ModeSizer::set_items_flag(int flag)
-{
-    for (wxSizerItem* item : this->GetChildren())
-        item->SetFlag(flag);
-}
-
-void ModeSizer::set_items_border(int border)
-{
-    for (wxSizerItem* item : this->GetChildren())
-        item->SetBorder(border);
-}
-
-void ModeSizer::msw_rescale()
-{
-    this->SetHGap(std::lround(m_hgap_unscaled * em_unit(m_parent)));
-    for (size_t m = 0; m < m_mode_btns.size(); m++)
-        m_mode_btns[m]->msw_rescale();
-}
-
-// ----------------------------------------------------------------------------
 // MenuWithSeparators
 // ----------------------------------------------------------------------------
 
@@ -1163,6 +1046,10 @@ ScalableButton::ScalableButton( wxWindow *          parent,
         m_width = size.x * 10 / em;
         m_height= size.y * 10 / em;
     }
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
 }
 
 

@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Panchroma PLA Marble @Snapmaker U1",
+	"renamed_from": "Panchroma PLA Marble @U1",
+	"inherits": "Panchroma PLA Marble @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "P9wE2kZSR2Coq1K7",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	]
+}

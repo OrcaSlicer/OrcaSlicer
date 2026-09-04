@@ -353,6 +353,7 @@ bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Ca
                 rot = Vec3d(rot.x(), -rot.z(), rot.y());
             rot = Vec3d(rot.x() * pitchmult, rot.y() * yawmult, rot.z() * rollmult);
             camera.rotate_local_around_target(Vec3d(rot.x(), - rot.z(), rot.y()));
+            camera.auto_type(Camera::EType::Perspective);
 	    } else {
 	    	assert(input_queue_item.is_buttons());
 	        switch (input_queue_item.type_or_buttons) {

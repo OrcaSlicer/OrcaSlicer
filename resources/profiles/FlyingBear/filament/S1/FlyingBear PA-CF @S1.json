@@ -3,7 +3,7 @@
 	"name": "FlyingBear PA-CF @S1",
 	"inherits": "fdm_filament_pa @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CLggyaDcebZSbqIH",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

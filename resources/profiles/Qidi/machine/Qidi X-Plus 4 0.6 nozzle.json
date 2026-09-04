@@ -3,7 +3,7 @@
 	"name": "Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "Qidi X-Plus 4 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "j7rsk7qDSN6EAkX8",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"

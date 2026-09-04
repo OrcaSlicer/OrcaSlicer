@@ -3,7 +3,7 @@
 	"name": "0.30mm Draft @Flashforge Guider 2s 0.4 nozzle",
 	"inherits": "fdm_process_flashforge_common",
 	"from": "system",
-	"setting_id": "GS004",
+	"setting_id": "twWwqkfSRYeAkuzT",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"bridge_flow": "1",

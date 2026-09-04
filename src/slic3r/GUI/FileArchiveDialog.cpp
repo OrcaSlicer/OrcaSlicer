@@ -221,16 +221,7 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
     std::vector<std::pair<boost::filesystem::path, size_t>> filtered_entries; // second is unzipped size
     for (mz_uint i = 0; i < num_entries; ++i) {
         if (mz_zip_reader_file_stat(archive, i, &stat)) {
-            std::string extra(1024, 0);
-            boost::filesystem::path path;
-            size_t extra_size = mz_zip_reader_get_filename_from_extra(archive, i, extra.data(), extra.size());
-            if (extra_size > 0) {
-                path = boost::filesystem::path(extra.substr(0, extra_size));
-            } else {
-                wxString wname = boost::nowide::widen(stat.m_filename);
-                std::string name = into_u8(wname);
-                path = boost::filesystem::path(name);
-            }
+            boost::filesystem::path path = Slic3r::decode_archive_entry_path(archive, stat);
             assert(!path.empty());
             if (!path.has_extension())
                 continue;

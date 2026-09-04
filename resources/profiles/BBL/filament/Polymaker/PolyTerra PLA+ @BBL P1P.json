@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "PolyTerra PLA+ @BBL P1P",
+	"inherits": "PolyTerra PLA+ @base",
+	"from": "system",
+	"setting_id": "GFSL70_02",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
+	],
+	"slow_down_layer_time": [
+		"15"
+	]
+}

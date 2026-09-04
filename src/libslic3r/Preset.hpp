@@ -29,6 +29,11 @@
 #define PRESET_TEMPLATE_DIR "Template"
 #define PRESET_CUSTOM_VENDOR "Custom"
 
+// Orca: bundle import directories
+#define PRESET_LOCAL_DIR          "_local"
+#define PRESET_SUBSCRIBED_DIR     "_subscribed"
+#define PRESET_BUNDLE_METADATA    "bundle_metadata.json"
+
 //BBS: iot preset type strings
 #define PRESET_IOT_PRINTER_TYPE     "printer"
 #define PRESET_IOT_FILAMENT_TYPE    "filament"
@@ -67,6 +72,7 @@
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_END_NAME    "bottom_texture_end_name"
 #define BBL_JSON_KEY_USE_DOUBLE_EXTRUDER_DEFAULT_TEXTURE  "use_double_extruder_default_texture"
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT        "bottom_texture_rect"
+#define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT_LONGER  "bottom_texture_rect_longer"
 #define BBL_JSON_KEY_MIDDLE_TEXTURE_RECT        "middle_texture_rect"
 
 #define BBL_JSON_KEY_HOTEND_MODEL               "hotend_model"
@@ -84,6 +90,16 @@ namespace Slic3r {
 
 class AppConfig;
 class PresetBundle;
+
+// Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
+// Pure function of a system preset's identity, so the value can be assigned by
+// scripts/assign_vendor_setting_ids.py and recomputed here when a profile ships
+// without it. MUST stay byte-identical to scripts/assign_vendor_setting_ids.py.
+// This is NOT the per-user cloud-sync setting_id
+// (OrcaCloudServiceAgent::generate_uuid_for_setting_id) - do not conflate them.
+std::string generate_preset_setting_id(const std::string& vendor,
+                                       const std::string& type,
+                                       const std::string& name);
 
 enum ConfigFileType
 {
@@ -115,6 +131,10 @@ public:
         PrinterVariant() {}
         PrinterVariant(const std::string &name) : name(name) {}
         std::string                 name;
+
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+        template<class Archive>
+        void serialize(Archive& ar) { ar(name); }                       // PrinterVariant
     };
 
     struct PrinterModel {
@@ -123,7 +143,7 @@ public:
         std::string                 name;
         //BBS: this is internal id for the printer. Currently only used for searching in database
         std::string                 model_id;
-        PrinterTechnology           technology;
+        PrinterTechnology           technology = ptFFF;
         std::string                 family;
         std::vector<PrinterVariant> variants;
         std::vector<std::string>	default_materials;
@@ -135,6 +155,7 @@ public:
         std::string                 bottom_texture_end_name;
         std::string                 use_double_extruder_default_texture;
         std::string                 bottom_texture_rect;
+        std::string                 bottom_texture_rect_longer;
         std::string                 middle_texture_rect;
         std::string                 hotend_model;
         PrinterVariant*       variant(const std::string &name) {
@@ -145,6 +166,17 @@ public:
         }
 
         const PrinterVariant* variant(const std::string &name) const { return const_cast<PrinterModel*>(this)->variant(name); }
+
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+        template<class Archive>
+        void serialize(Archive& ar)                                     // PrinterModel
+        {
+            ar(id, name, model_id, technology, family, variants, default_materials,
+               not_support_bed_types, bed_model, bed_texture, image_bed_type,
+               bottom_texture_end_name, use_double_extruder_default_texture,
+               bottom_texture_rect, bottom_texture_rect_longer, middle_texture_rect,
+               hotend_model);
+        }
     };
     std::vector<PrinterModel>          models;
 
@@ -155,6 +187,14 @@ public:
     VendorProfile(std::string id) : id(std::move(id)) {}
 
     bool 		valid() const { return ! name.empty() && ! id.empty() && config_version.valid(); }
+
+    // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+    template<class Archive>
+    void serialize(Archive& ar)                                         // VendorProfile
+    {
+        ar(name, id, config_version, config_update_url, changelog_url,
+           models, default_filaments, default_sla_materials);
+    }
 
     // Load VendorProfile from an ini file.
     // If `load_all` is false, only the header with basic info (name, version, URLs) is loaded.
@@ -228,7 +268,8 @@ public:
     //BBS: add type for project-embedded
     bool                is_project_embedded = false;
     ConfigSubstitutions *loading_substitutions{nullptr};
-    bool                is_user() const { return ! this->is_default && ! this->is_system && ! this->is_project_embedded; }
+    bool                is_user() const { return ! this->is_default && ! this->is_system && ! this->is_project_embedded && ! this->is_from_bundle(); }
+    bool                can_overwrite() const { return ! this->is_default && ! this->is_system && ! this->is_from_bundle(); }
     //bool                is_user() const { return ! this->is_default && ! this->is_system; }
 
     // Name of the preset, usually derived form the file name.
@@ -261,6 +302,11 @@ public:
     // Orca: flag to indicate if this preset is from Orca Filament Library
     bool m_from_orca_filament_lib = false;
 
+    // Orca: bundle tracking - imported preset bundles. Bundle ID: UUID (OrcaCloud) or name+timestamp (external).
+    // Presence of bundle_id is the source of truth for "came from a bundle".
+    std::string         bundle_id;
+    bool                is_from_bundle() const { return ! bundle_id.empty(); }
+
     //BBS
     Semver              version;         // version of preset
     std::string         ini_str;         // ini string of preset
@@ -279,7 +325,7 @@ public:
     static Preset::Type get_type_from_string(std::string type_str);
     void                load_info(const std::string& file);
     void                save_info(std::string file = "");
-    void                remove_files();
+    void                remove_files(bool cloud_already_deleted = false);
 
     //BBS: add logic for only difference save
     //if parent_config is null, save all keys, otherwise, only save difference
@@ -298,6 +344,20 @@ public:
     static std::string& inherits(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("inherits", true)->value; }
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
+
+    // Rewrite cfg's "inherits" to the resolved parent's canonical name. find_preset2 may
+    // resolve a renamed parent, or a removed vendor profile auto-matched to the
+    // OrcaFilamentLibrary; persisting the canonical name lets later plain find_preset()
+    // callers (e.g. get_preset_parent) walk the inheritance chain without the fuzzy match.
+    // No-op when the parent could not be resolved or the name is already canonical.
+    static void normalize_inherits(DynamicPrintConfig &cfg, const Preset *resolved_parent)
+    {
+        if (resolved_parent == nullptr)
+            return;
+        std::string &inherits = Preset::inherits(cfg);
+        if (inherits != resolved_parent->name)
+            inherits = resolved_parent->name;
+    }
 
     // Returns the "compatible_prints_condition".
     static std::string& compatible_prints_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_prints_condition", true)->value; }
@@ -370,6 +430,11 @@ public:
     // Printer machine limits, those are contained in printer_options().
     static const std::vector<std::string>&  machine_limits_options();
 
+    // Option key holding this preset type's plugin capability overrides. Each type has its own key so
+    // the values survive the merge into a single full config; print is the fallback for the types with
+    // no plugin-backed options.
+    static const char*                      plugin_overrides_key(Type type);
+
     static const std::vector<std::string>&  sla_printer_options();
     static const std::vector<std::string>&  sla_material_options();
     static const std::vector<std::string>&  sla_print_options();
@@ -385,15 +450,37 @@ public:
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
 
 protected:
-    Preset() = default;
-
     friend class        PresetCollection;
     friend class        PresetBundle;
+
+    Preset() = default;
 };
 
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer);
+
+// Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
+struct PresetOrigin {
+    enum class Kind { Auto, User, LocalBundle, SubscribedBundle };
+
+    Kind        kind { Kind::Auto };
+    std::string bundle_id;
+
+    PresetOrigin() = default;
+    PresetOrigin(Kind kind, std::string bundle_id = {}) : kind(kind), bundle_id(std::move(bundle_id)) {}
+
+    bool is_bundle() const { return kind == Kind::LocalBundle || kind == Kind::SubscribedBundle; }
+};
+
+// Prepend the bundle folder to `preset_bare_name` based on `origin`. No-op for non-bundle origins.
+std::string get_preset_canonical_name(const std::string &preset_bare_name, const PresetOrigin &origin);
+
+// Tail segment of a canonical name — what's written to the bundle's .json filename and JSON "name" field.
+std::string get_preset_bare_name(const std::string &canonical_name);
+
+// Resolve an origin from a directory path when the caller passes Kind::Auto.
+PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const PresetOrigin &explicit_origin = PresetOrigin());
 
 enum class PresetSelectCompatibleType {
 	// Never select a compatible preset if the newly selected profile is not compatible.
@@ -471,12 +558,12 @@ public:
     void            add_default_preset(const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &preset_name);
 
     // Load ini files of the particular type from the provided directory path.
-    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule);
+    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, std::function<void(Preset&)> preset_loaded_fn = nullptr, const PresetOrigin &load_origin = PresetOrigin());
 
     //BBS: update user presets directory
     void            update_user_presets_directory(const std::string& dir_path, const std::string& type);
-    void            save_user_presets(const std::string& dir_path, const std::string& type, std::vector<std::string>& need_to_delete_list);
-    bool            load_user_preset(std::string name, std::map<std::string, std::string> preset_values, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule);
+    void            save_user_presets(const std::string& dir_path, const std::string& type, std::map<std::string, std::string>& need_to_delete_list);
+    bool            load_user_preset(std::string name, std::map<std::string, std::string> preset_values, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, const PresetOrigin &load_origin = PresetOrigin(PresetOrigin::Kind::User));
     void            update_after_user_presets_loaded();
     //BBS: get user presets
     int  get_user_presets(PresetBundle *preset_bundle, std::vector<Preset> &result_presets);
@@ -550,7 +637,11 @@ public:
     bool            delete_current_preset();
     // Delete the current preset, activate the first visible preset.
     // returns true if the preset was deleted successfully.
-    bool            delete_preset(const std::string& name);
+    // When force=true, bypasses the can_overwrite() check (used for bundle preset cleanup).
+    bool            delete_preset(const std::string& name, bool force = false);
+
+    // Verify and correct the sync metadata for the preset to ensure proper cloud synchronization.
+    void check_and_fix_syncinfo(Preset& preset, const std::string& user_id);
 
     // Enable / disable the "- default -" preset.
     void            set_default_suppressed(bool default_suppressed);
@@ -637,6 +728,7 @@ public:
     {
         return const_cast<PresetCollection*>(this)->find_preset2(name, auto_match);
     }
+    
     size_t first_visible_idx() const;
     // Return the index of the first visible, compatible, system base preset
     // matching the given filament_type.  Falls back to base type, then any visible.
@@ -741,17 +833,19 @@ public:
     std::string     path_from_name(const std::string &new_name, bool detach = false) const;
     std::string     path_for_preset(const Preset & preset) const;
 
+    // Get the alias of a preset, setting it if it's empty
+    std::string     get_preset_alias(Preset &preset, bool force = false);
+
     size_t num_default_presets() { return m_num_default_presets; }
 
 protected:
     PresetCollection() = default;
-    // Copy constructor and copy operators are not to be used from outside PresetBundle,
-    // as the Profile::vendor points to an instance of VendorProfile stored at parent PresetBundle!
-    PresetCollection(const PresetCollection &other) = default;
-    //BBS: add operator= logic insteadof default
+    // Deleted by the std::recursive_mutex member. PresetBundle copies by assignment.
+    PresetCollection(const PresetCollection &other) = delete;
+    //BBS: hand-written because m_mutex cannot be copy-assigned.
     PresetCollection& operator=(const PresetCollection &other);
-    // After copying a collection with the default operators above, call this function
-    // to adjust Profile::vendor pointers.
+    // Copying leaves every Preset::vendor pointing into the source bundle's vendor map.
+    // This re-points them at the matching entries in vendors.
     void            update_vendor_ptrs_after_copy(const VendorMap &vendors);
 
     // Select a preset, if it exists. If it does not exist, select an invalid (-1) index.
@@ -774,6 +868,8 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    std::string canonical_preset_name(const std::string &name, const PresetOrigin &load_origin = PresetOrigin()) const;
+
     // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.
     static bool filament_preset_less(const Preset &a, const Preset &b) {
         bool a_generic = boost::starts_with(a.name, GENERIC_PREFIX);
@@ -795,6 +891,7 @@ private:
     // The "-- default -- " preset is always the first, so it needs
     // to be handled differently.
     // If a preset does not exist, an iterator is returned indicating where to insert a preset with the same name.
+    // `name` must already be canonical — callers canonicalize via find_preset / canonical_preset_name.
     std::deque<Preset>::iterator find_preset_internal(const std::string &name, bool from_orca_lib_only = false)
     {
         auto it = Slic3r::lower_bound_by_predicate(m_presets.begin() + m_num_default_presets, m_presets.end(),
@@ -864,7 +961,7 @@ private:
     friend class PresetBundle;
 
     //BBS: mutex
-    std::mutex          m_mutex;
+    std::recursive_mutex          m_mutex;
 
     // Orca: used for validation only
     int m_errors = 0;
@@ -886,7 +983,8 @@ public:
     bool            only_default_printers() const;
 private:
     PrinterPresetCollection() = default;
-    PrinterPresetCollection(const PrinterPresetCollection &other) = default;
+    // Deleted along with the base copy constructor.
+    PrinterPresetCollection(const PrinterPresetCollection &other) = delete;
     PrinterPresetCollection& operator=(const PrinterPresetCollection &other) = default;
 
     friend class PresetBundle;

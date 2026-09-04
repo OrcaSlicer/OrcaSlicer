@@ -8,7 +8,7 @@
 #ifndef MediaPlayCtrl_h
 #define MediaPlayCtrl_h
 
-#include "wxMediaCtrl2.h"
+#include "wxMediaCtrl3.h"
 
 #include <wx/panel.h>
 
@@ -30,7 +30,7 @@ namespace GUI {
 class MediaPlayCtrl : public wxPanel
 {
 public:
-    MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
+    MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
 
     ~MediaPlayCtrl();
 
@@ -75,7 +75,7 @@ private:
     // token
     std::shared_ptr<int> m_token = std::make_shared<int>(0);
 
-    wxMediaCtrl2 * m_media_ctrl;
+    wxMediaCtrl3 * m_media_ctrl;
     wxMediaState m_last_state = MEDIASTATE_IDLE;
     std::string m_machine;
     int m_lan_proto = 0;
@@ -90,7 +90,7 @@ private:
     bool m_device_busy = false;
     bool m_disable_lan = false;
     wxString m_url;
-    
+
     std::deque<wxString> m_tasks;
     boost::mutex m_mutex;
     boost::condition_variable m_cond;

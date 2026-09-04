@@ -128,3 +128,13 @@ body
 	background: rgba(54, 54, 60, 0.88);
     border: 1px solid rgba(129, 129, 131, 0.64);
 }
+
+/*--- Account Sections ---*/
+.AccountSectionLabel    { color: #818183; }
+.OrcaAccountText        { color: #efeff0; }
+.AccountStatusText      { color: #818183; }
+
+/*--- Bambu Cloud Section ---*/
+#BambuCloudHeader       { color: #818183; }
+#BambuCloudHeader:hover { color: #efeff0; }
+.bambu-chevron svg path { stroke: currentColor; }

@@ -6,14 +6,40 @@
 
 #include "clipper.hpp"
 #include "ShortestPath.hpp"
+#include "ExtrusionEntityCollection.hpp"
 #include "KDTreeIndirect.hpp"
 #include "MutablePriorityQueue.hpp"
 #include "Print.hpp"
+#include "GCode/OrderingStrategies.hpp"
 
 #include <cmath>
 #include <cassert>
 
 namespace Slic3r {
+
+// Orca: Some support entities may contain empty nested paths, which cannot be reordered safely.
+static bool extrusion_entity_has_endpoints(const ExtrusionEntity *entity)
+{
+    auto paths_have_endpoints = [](const ExtrusionPaths &paths) {
+        return !paths.empty() &&
+               !paths.front().polyline.points.empty() &&
+               !paths.back().polyline.points.empty();
+    };
+
+    if (entity == nullptr)
+        return false;
+    if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(entity))
+        return !collection->entities.empty() &&
+               extrusion_entity_has_endpoints(collection->entities.front()) &&
+               extrusion_entity_has_endpoints(collection->entities.back());
+    if (const auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+        return !path->polyline.points.empty();
+    if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath *>(entity))
+        return paths_have_endpoints(multipath->paths);
+    if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(entity))
+        return paths_have_endpoints(loop->paths);
+    return true;
+}
 
 // Naive implementation of the Traveling Salesman Problem, it works by always taking the next closest neighbor.
 // This implementation will always produce valid result even if some segments cannot reverse.
@@ -1000,7 +1026,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
-	auto segment_end_point = [&entities](size_t idx, bool first_point) -> const Point& { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
+	auto segment_end_point = [&entities](size_t idx, bool first_point) -> Point { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
 	auto could_reverse = [&entities](size_t idx) { const ExtrusionEntity *ee = entities[idx]; return ee->is_loop() || ee->can_reverse(); };
 	std::vector<std::pair<size_t, bool>> out = chain_segments_greedy_constrained_reversals<Point, decltype(segment_end_point), decltype(could_reverse)>(segment_end_point, could_reverse, entities.size(), start_near);
 	for (std::pair<size_t, bool> &segment : out) {
@@ -1028,17 +1054,24 @@ void reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const s
     entities.swap(out);
 }
 
+void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near)
+{
+	chain_and_reorder_extrusion_entities(entities, &start_near);
+}
+
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
-    // this function crashes if there are empty elements in entities
-    entities.erase(std::remove_if(entities.begin(), entities.end(), [](ExtrusionEntity *entity) { return static_cast<ExtrusionEntityCollection *>(entity)->empty(); }),
+    // Orca: Reordering queries first_point() / last_point(); drop entities that cannot provide valid endpoints.
+    entities.erase(std::remove_if(entities.begin(), entities.end(), [](ExtrusionEntity *entity) {
+        return !extrusion_entity_has_endpoints(entity);
+    }),
                    entities.end());
 	reorder_extrusion_entities(entities, chain_extrusion_entities(entities, start_near));
 }
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near)
 {
-	auto segment_end_point = [&extrusion_paths](size_t idx, bool first_point) -> const Point& { return first_point ? extrusion_paths[idx].first_point() : extrusion_paths[idx].last_point(); };
+	auto segment_end_point = [&extrusion_paths](size_t idx, bool first_point) -> Point { return first_point ? extrusion_paths[idx].first_point() : extrusion_paths[idx].last_point(); };
 	return chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, extrusion_paths.size(), start_near);
 }
 
@@ -1071,7 +1104,7 @@ std::vector<size_t> chain_expolygons(const ExPolygons &input_exploy) {
 	return chain_points(points);
 }
 
-std::vector<size_t> chain_points(const Points &points, Point *start_near)
+std::vector<size_t> chain_points(const Points &points, const Point *start_near)
 {
 	auto segment_end_point = [&points](size_t idx, bool /* first_point */) -> const Point& { return points[idx]; };
 	std::vector<std::pair<size_t, bool>> ordered = chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, points.size(), start_near);
@@ -1079,7 +1112,24 @@ std::vector<size_t> chain_points(const Points &points, Point *start_near)
 	out.reserve(ordered.size());
 	for (auto &segment_and_reversal : ordered)
 		out.emplace_back(segment_and_reversal.first);
+
 	return out;
+}
+
+std::vector<size_t> chain_points_with_postprocessing(const Points &points, const Point *start_near)
+{
+	std::vector<size_t> path = chain_points(points, start_near);
+	// Alternate 2-opt and crossing removal until convergence.
+	// 2-opt can create new crossings, and crossing removal can create new
+	// opportunities for 2-opt improvement. Break early if neither improves.
+	for (int iter = 0; iter < 3; ++iter) {
+		bool improved = tsp_2opt_improve(path, points);
+		improved |= tsp_remove_crossings(path, points);
+		if (!improved) break;
+	}
+    if (start_near == nullptr)
+        tsp_rotate_minimize_closing(path, points);
+	return path;
 }
 
 #ifndef NDEBUG
@@ -1993,12 +2043,13 @@ std::vector<const PrintInstance*> chain_print_object_instances(const std::vector
 			instances.emplace_back(i, j);
 		}
 	}
-	auto segment_end_point = [&object_reference_points](size_t idx, bool /* first_point */) -> const Point& { return object_reference_points[idx]; };
-	std::vector<std::pair<size_t, bool>> ordered = chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, instances.size(), start_near);
+	// Order objects using nearest neighbor + post-processing (crossing removal + 2-opt).
+	std::vector<size_t> path = chain_points_with_postprocessing(object_reference_points, start_near);
+
 	std::vector<const PrintInstance*> out;
-	out.reserve(instances.size());
-	for (auto& segment_and_reversal : ordered) {
-		const std::pair<size_t, size_t>& inst = instances[segment_and_reversal.first];
+	out.reserve(path.size());
+	for (size_t idx : path) {
+		const std::pair<size_t, size_t>& inst = instances[idx];
 		out.emplace_back(&print_objects[inst.first]->instances()[inst.second]);
 	}
 	return out;

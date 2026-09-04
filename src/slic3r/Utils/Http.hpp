@@ -109,6 +109,8 @@ public:
 	Http& set_range(const std::string& range);
 	// Sets a HTTP header field.
 	Http& header(std::string name, const std::string &value);
+	// Clears all custom headers and restores default implicit headers.
+	Http& headers_reset();
 	// Removes a header field.
 	Http& remove_header(std::string name);
 	// Authorization by HTTP digest, based on RFC2617.
@@ -119,6 +121,10 @@ public:
 	// specifically, this is supported with OpenSSL and NOT supported with Windows and OS X native certificate store.
 	// See also ca_file_supported().
 	Http& ca_file(const std::string &filename);
+	// Enables TLS certificate verification (peer + hostname). Off by default in the
+	// shared client for compatibility with self-signed print hosts; opt in for any
+	// request carrying authentication credentials or sensitive user data.
+	Http& tls_verify(bool enable);
 
 	Http& form_clear();
 	// Add a HTTP multipart form field
@@ -198,6 +204,8 @@ public:
 	static std::string url_decode(const std::string &str);
 
 	static std::string get_filename_from_url(const std::string &url);
+	static std::string get_host_from_url(const std::string &url, std::string *port = nullptr);
+	static std::string get_host_header_value(const std::string &url);
 private:
 	Http(const std::string &url);
 

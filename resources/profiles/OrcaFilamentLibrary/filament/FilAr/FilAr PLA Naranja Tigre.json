@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Naranja Tigre",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "setting_id": "zLZxXa78e1oiYWSg",
+    "filament_id": "FILAR0020",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#FC5017"
+    ]
+}

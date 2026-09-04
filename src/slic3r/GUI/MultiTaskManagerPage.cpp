@@ -783,7 +783,7 @@ void LocalTaskManagerPage::refresh_user_device(bool clear)
             mtitem->m_send_time = task_state_info->get_sent_time();
             mtitem->state_local_task = task_state_info->state();
 
-            task_state_info->set_state_changed_fn([this, mtitem](TaskState state, int percent) {
+            task_state_info->set_state_changed_fn([mtitem](TaskState state, int percent) {
                 mtitem->state_local_task = state;
                 if (state == TaskState::TS_SEND_COMPLETED) {
 

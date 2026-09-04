@@ -3,6 +3,7 @@
 
 #include <iomanip>
 #include <locale>
+#include <set>
 #include <utility>
 #include <functional>
 #include <type_traits>
@@ -18,6 +19,7 @@
 #include <openssl/md5.h>
 
 #include "libslic3r.h"
+#include "Semver.hpp"
 
 //define CLI errors
 
@@ -79,6 +81,7 @@ namespace boost { namespace filesystem { class directory_entry; }}
 namespace Slic3r {
 
 extern void set_logging_level(unsigned int level);
+extern void set_logging_file(const std::string &file);
 extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
 extern unsigned get_logging_level();
@@ -100,6 +103,9 @@ void set_var_dir(const std::string &path);
 const std::string& var_dir();
 // Return a full resource path for a file_name.
 std::string var(const std::string &file_name);
+
+// Snap a nozzle diameter to the closest supported value and format it as a string (e.g. 0.4 -> "0.4").
+std::string format_diameter_to_str(double diameter, int precision = 1);
 
 // Set a path with various static definition data (for example the initial config bundles).
 void set_resources_dir(const std::string &path);
@@ -193,6 +199,8 @@ std::string debug_out_path(const char *name, ...);
 // smaller level means less log. level=5 means saving all logs.
 void set_log_path_and_level(const std::string& file, unsigned int level);
 void flush_logs();
+void shutdown_console_logging();
+boost::filesystem::path get_log_file_name();
 
 // A special type for strings encoded in the local Windows 8-bit code page.
 // This type is only needed for Perl bindings to relay to Perl that the string is raw, not UTF-8 encoded.
@@ -297,6 +305,10 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user id for isolating temp dirs; empty on Windows (its temp dir is already per-user).
+std::string per_user_temp_id();
+// Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 
@@ -707,7 +719,50 @@ inline std::string filter_characters(const std::string& str, const std::string& 
     return filteredStr;
 }
 
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter = nullptr);
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter = nullptr,
+                                bool merge_mode                               = false);
+
+// ---- Vendor installation on disk ------------------------------------------
+// How a vendor bundle is installed from resources into data_dir()/system: as
+// its profile and preset JSONs or, in a build that ships preset caches, as its
+// .opc preset cache alone. Loading what is installed is PresetBundle's business;
+// the cache file format itself is VendorCacheFile's (PresetCacheFormat.hpp).
+
+// True if `vendor` is installed in data_dir()/system. A build that ships preset
+// caches installs the cache alone, so it — not the profile — marks a vendor
+// installed; a cache this build cannot read marks nothing.
+bool is_vendor_installed(const std::string& vendor);
+
+// The version the installed vendor would be loaded at: its cache's stamp while
+// that covers the profile beside it, the profile's own version once it does not.
+// Invalid Semver if neither form is installed.
+Semver installed_vendor_version(const std::string& vendor);
+
+// Remove every form `vendor` can be installed as from data_dir()/system: its
+// profile, its preset cache, and its preset directory.
+void remove_installed_vendor(const std::string& vendor);
+
+// The vendors `dir` holds, sorted: one is named by its profile or, in a build that
+// ships preset caches instead of the raw profile JSONs, by its cache alone.
+std::set<std::string> vendor_names_in(const boost::filesystem::path& dir);
+
+// The version a build ships `vendor` at: whichever of its preset cache and its
+// profile is newer, that being the one installing lays down. Invalid Semver if the
+// build ships neither.
+Semver resource_vendor_version(const std::string& vendor);
+
+// Install vendors from the resources directory into the data directory, each as
+// its preset cache or as its profile and preset JSONs — whichever of the two the
+// build ships at the newer version. Anything the previous install of that vendor
+// left behind goes, so only the form just installed is there to be loaded.
+// bundle_names: vendor names, without extension.
+// Every bundle that can be installed is, whatever the others do. Returns false
+// if any named bundle could not be installed.
+bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
+                                           const std::string& resource_subdir = "profiles",
+                                           const std::string& data_subdir     = "system");
 
 // Orca: Since 1.7.9 Boost deprecated save_string_file and load_string_file, copy and modified from boost 1.7.8
 void save_string_file(const boost::filesystem::path& p, const std::string& str);

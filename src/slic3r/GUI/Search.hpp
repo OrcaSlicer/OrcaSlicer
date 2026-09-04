@@ -130,7 +130,7 @@ public:
 
     const FoundOption &operator[](const size_t pos) const noexcept { return found[pos]; }
     const Option &     get_option(size_t pos_in_filter) const;
-    const Option &     get_option(const std::string &opt_key, Preset::Type type) const;
+    const Option &     get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const;
     Option             get_option(const std::string &opt_key, const wxString &label, Preset::Type type) const;
 
     const std::vector<FoundOption> &found_options() { return found; }
@@ -216,10 +216,12 @@ public:
     SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindow *parent, TextInput *input, wxWindow *search_btn);
     ~SearchDialog();
 
-    void MSWDismissUnfocusedPopup();
-    void Popup(wxPoint position = wxDefaultPosition);
-    void OnDismiss();
-    void Dismiss();
+#ifdef __WXMSW__
+    void MSWDismissUnfocusedPopup() override;
+#endif // __WXMSW__
+    void Popup(wxWindow *focus = nullptr) override;
+    void OnDismiss() override;
+    void Dismiss() override;
     void Die();
     void msw_rescale();
 
@@ -260,10 +262,12 @@ public:
     SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent, TextInput* input);
     ~SearchObjectDialog();
 
-    void MSWDismissUnfocusedPopup();
-    void Popup(wxPoint position = wxDefaultPosition);
-    void OnDismiss();
-    void Dismiss();
+#ifdef __WXMSW__
+    void MSWDismissUnfocusedPopup() override;
+#endif // __WXMSW__
+    void Popup(wxWindow *focus = nullptr) override;
+    void OnDismiss() override;
+    void Dismiss() override;
     void Die();
 
     void OnInputText(wxCommandEvent& event);

@@ -29,6 +29,22 @@ using namespace nlohmann;
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
+#define SETTING_CLOUD_PROVIDERS "cloud_providers"
+#define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
+#define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
+#define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
+#define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
+#define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
+#define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
+#define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
+#define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
+
+#define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
+#define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
+#define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
+#define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
@@ -50,10 +66,19 @@ struct BBLocalMachine
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
+    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for entries persisted before this field existed */
+    // Access code, scoped to printer_agent_id above - so a code saved while bound under one
+    // printer agent isn't treated as valid for a different, independent agent talking to the
+    // same physical dev_id. Empty for entries persisted before this field existed; those fall
+    // back to the legacy flat "access_code"/"user_access_code" AppConfig sections (BBL-only,
+    // since BBL was the only agent when they were saved) - see
+    // get_access_code_with_legacy_fallback() in DevManager.cpp.
+    std::string access_code;
 
     bool operator==(const BBLocalMachine& other) const
     {
-        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type;
+        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
+               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };
@@ -80,6 +105,7 @@ public:
 	std::string get_language_code();
 	std::string get_hms_host();
 	bool get_stealth_mode();
+	bool get_hide_login_side_panel();
 
 	// Clear and reset to defaults.
 	void 			   	reset();
@@ -362,6 +388,10 @@ public:
     std::string get_network_plugin_version() const;
     void set_network_plugin_version(const std::string& version);
 
+    // Number of plugin pages shown as fixed tabs before the rest are collapsed into a
+    // dropdown on the last tab.
+    int get_plugin_pages_visible_count() const;
+
     std::vector<std::string> get_skipped_network_versions() const;
     void add_skipped_network_version(const std::string& version);
     bool is_network_version_skipped(const std::string& version) const;
@@ -373,6 +403,13 @@ public:
     bool should_remind_network_update_later() const;
     void set_remind_network_update_later(bool remind);
     void clear_remind_network_update_later();
+
+    // Cloud providers (semicolon-delimited, e.g. "orca;bambu")
+    std::vector<std::string> get_cloud_providers() const;
+    void set_cloud_providers(const std::vector<std::string>& providers);
+    bool has_cloud_provider(const std::string& provider) const;
+    void add_cloud_provider(const std::string& provider);
+    void remove_cloud_provider(const std::string& provider);
 
 private:
 	template<typename T>

@@ -10,6 +10,7 @@ REQUIRED_DEV_PACKAGES=(
     g++
     gettext
     git
+    gstreamer1.0-gtk3
     libcurl4-openssl-dev
     libdbus-1-dev
     libglew-dev
@@ -26,6 +27,9 @@ REQUIRED_DEV_PACKAGES=(
     ninja-build
     texinfo
     wget
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

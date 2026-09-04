@@ -10,8 +10,41 @@
 		"Bambu Lab A1 0.6 nozzle",
 		"Bambu Lab A1 0.8 nozzle"
 	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"overhang_fan_speed": [
+		"75"
+	],
 	"fan_cooling_layer_time": [
 		"80"
+	],
+	"filament_density": [
+		"1.34"
+	],
+	"bed_type": [
+		"Cool Plate"
 	],
 	"fan_max_speed": [
 		"80"
@@ -19,13 +52,13 @@
 	"fan_min_speed": [
 		"60"
 	],
-	"filament_flow_ratio": [
-		"0.98"
+	"slow_down_min_speed": [
+		"5"
 	],
-	"filament_max_volumetric_speed": [
-		"16"
+	"temperature_vitrification": [
+		"58.2"
 	],
-	"slow_down_layer_time": [
-		"8"
+	"nozzle_temperature_range_high": [
+		"230"
 	]
 }

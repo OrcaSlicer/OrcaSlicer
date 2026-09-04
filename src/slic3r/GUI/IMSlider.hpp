@@ -128,6 +128,8 @@ public:
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
+    // ORCA: expose vertical slider width for right-margin alignment in the preview UI.
+    static float vertical_slider_window_width();
     void on_change_color_mode(bool is_dark);
     void set_menu_enable(bool enable = true) { m_menu_enable = enable; }
 
@@ -174,7 +176,6 @@ private:
     // Use those values to disable selection of active extruders
     bool m_is_dark = false;
 
-    bool is_osx{false};
     int  m_min_value;
     int  m_max_value;
     int  m_lower_value;
@@ -199,10 +200,6 @@ private:
     void *m_one_layer_on_hover_id;
     void *m_one_layer_off_id;
     void *m_one_layer_off_hover_id;
-    void* m_one_layer_on_light_id;
-    void* m_one_layer_on_hover_light_id;
-    void* m_one_layer_off_light_id;
-    void* m_one_layer_off_hover_light_id;
     void* m_one_layer_on_dark_id;
     void* m_one_layer_on_hover_dark_id;
     void* m_one_layer_off_dark_id;

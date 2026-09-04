@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/tipwin.h>
 
 class ButtonProps
 {
@@ -23,17 +24,17 @@ enum class ButtonType{
     Window   , // Font12  FullyRounded  For regular buttons in windows and not related with parameter boxes
     Choice   , // Font14  Semi-Rounded  For dialog/window choice buttons
     Parameter, // Font14  Semi-Rounded  For buttons that near parameter boxes
+    Icon     , // ------  Semi-Rounded  For buttons that only has icons. icons should be 16x16 and iconSize has to be defined as 16 while creation of button
     Expanded , // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 
-class wxTipWindow;
 class Button : public StaticBox
 {
+    wxTipWindow::Ref tipWindow;
     wxRect textSize;
     wxSize minSize; // set by outer
     wxSize paddingSize;
     ScalableBitmap active_icon;
-    ScalableBitmap inactive_icon;
 
     StateColor   text_color;
 
@@ -42,8 +43,6 @@ class Button : public StaticBox
     bool canFocus  = true;
     bool isCenter    = true;
     bool vertical    = false;
-
-    wxTipWindow* tipWindow = nullptr;
 
     static const int buttonWidth = 200;
     static const int buttonHeight = 50;
@@ -60,8 +59,7 @@ public:
     bool SetFont(const wxFont& font) override;
 
     void SetIcon(const wxString& icon);
-
-    void SetInactiveIcon(const wxString& icon);
+    void SetIcon(const wxBitmap& icon);
 
     void SetMinSize(const wxSize& size) override;
     void SetMaxSize(const wxSize& size) override;
@@ -75,6 +73,11 @@ public:
     void SetTextColorNormal(wxColor const &color);
 
     void SetSelected(bool selected = true) { m_selected = selected; }
+
+    // Only meant to be used by inspector, not public API
+    ButtonStyle GetStyle() const { return m_style; }
+    ButtonType  GetType() const  { return m_type; }
+    bool IsSelected() const      { return m_selected; }
 
     bool Enable(bool enable = true) override;
     void EnableTooltipEvenDisabled();// The tip will be shown even if the button is disabled

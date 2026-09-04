@@ -1,9 +1,9 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2014 Daniele Panozzo <daniele.panozzo@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "file_dialog_open.h"
 #include <cstdio>
@@ -13,7 +13,7 @@
   #include <windows.h>
   #undef max
   #undef min
-  
+
   #include <Commdlg.h>
 #endif
 
@@ -21,7 +21,9 @@ IGL_INLINE std::string igl::file_dialog_open()
 {
   const int FILE_DIALOG_MAX_BUFFER = 1024;
   char buffer[FILE_DIALOG_MAX_BUFFER];
-  
+  buffer[0] = '\0';
+  buffer[FILE_DIALOG_MAX_BUFFER - 1] = 'x'; // Initialize last character with a char != '\0'
+
 #ifdef __APPLE__
   // For apple use applescript hack
   FILE * output = popen(
@@ -32,11 +34,22 @@ IGL_INLINE std::string igl::file_dialog_open()
     "   end tell\n"
     "   set existing_file_path to (POSIX path of (existing_file))\n"
     "\" 2>/dev/null | tr -d '\n' ","r");
-  while ( fgets(buffer, FILE_DIALOG_MAX_BUFFER, output) != NULL )
+  if (output)
   {
+    auto ret = fgets(buffer, FILE_DIALOG_MAX_BUFFER, output);
+    if (ret == NULL || ferror(output))
+    {
+      // I/O error
+      buffer[0] = '\0';
+    }
+    if (buffer[FILE_DIALOG_MAX_BUFFER - 1] == '\0')
+    {
+      // File name too long, buffer has been filled, so we return empty string instead
+      buffer[0] = '\0';
+    }
   }
 #elif defined _WIN32
-  
+
   // Use native windows file dialog box
   // (code contributed by Tino Weinkauf)
 
@@ -47,8 +60,8 @@ IGL_INLINE std::string igl::file_dialog_open()
   ZeroMemory(&ofn, sizeof(ofn));
   ofn.lStructSize = sizeof(ofn);
   ofn.hwndOwner = NULL;
-  ofn.lpstrFile = new char[100];
-  // Set lpstrFile[0] to '\0' so that GetOpenFileName does not 
+  ofn.lpstrFile = szFile;
+  // Set lpstrFile[0] to '\0' so that GetOpenFileName does not
   // use the contents of szFile to initialize itself.
   ofn.lpstrFile[0] = '\0';
   ofn.nMaxFile = sizeof(szFile);
@@ -59,7 +72,7 @@ IGL_INLINE std::string igl::file_dialog_open()
   ofn.lpstrInitialDir = NULL;
   ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-  // Display the Open dialog box. 
+  // Display the Open dialog box.
   int pos = 0;
   if (GetOpenFileName(&ofn)==TRUE)
   {
@@ -68,20 +81,33 @@ IGL_INLINE std::string igl::file_dialog_open()
       buffer[pos] = (char)ofn.lpstrFile[pos];
       pos++;
     }
-  } 
+  }
   buffer[pos] = 0;
 #else
-  
+
   // For linux use zenity
   FILE * output = popen("/usr/bin/zenity --file-selection","r");
-  while ( fgets(buffer, FILE_DIALOG_MAX_BUFFER, output) != NULL )
+  if (output)
   {
+    auto ret = fgets(buffer, FILE_DIALOG_MAX_BUFFER, output);
+    if (ret == NULL || ferror(output))
+    {
+      // I/O error
+      buffer[0] = '\0';
+    }
+    if (buffer[FILE_DIALOG_MAX_BUFFER - 1] == '\0')
+    {
+      // File name too long, buffer has been filled, so we return empty string instead
+      buffer[0] = '\0';
+    }
   }
-  
-  if (strlen(buffer) > 0)
+
+  // Replace last '\n' by '\0'
+  if(strlen(buffer) > 0)
   {
-    buffer[strlen(buffer)-1] = 0;
+    buffer[strlen(buffer)-1] = '\0';
   }
+
 #endif
   return std::string(buffer);
 }

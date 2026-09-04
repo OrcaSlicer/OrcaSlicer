@@ -3,7 +3,7 @@
 	"name": "FDplast PETG @System",
 	"inherits": "FDplast PETG @base",
 	"from": "system",
-	"setting_id": "PET01_00",
+	"setting_id": "RlwAEGcf1S6VzDXv",
 	"instantiation": "true",
 	"compatible_printers": []
 }

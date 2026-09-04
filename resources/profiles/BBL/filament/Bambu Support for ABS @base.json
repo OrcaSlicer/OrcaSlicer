@@ -27,11 +27,14 @@
 	"filament_vendor": [
 		"Bambu Lab"
 	],
-	"filament_scarf_seam_type": [
-		"none"
-	],
 	"filament_adhesiveness_category": [
 		"706"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "4",
+        "12",
+        "4"
 	],
 	"nozzle_temperature_range_high": [
 		"270"

@@ -12,6 +12,7 @@ export REQUIRED_DEV_PACKAGES=(
     gettext
     git
     glew
+    gst-plugins-good
     gstreamer
     gtk3
     libmspack
@@ -24,6 +25,9 @@ export REQUIRED_DEV_PACKAGES=(
     wayland-protocols
     webkit2gtk
     wget
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

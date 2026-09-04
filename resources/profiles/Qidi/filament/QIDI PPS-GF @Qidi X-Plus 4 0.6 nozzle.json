@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSN99",
 	"name": "QIDI PPS-GF @Qidi X-Plus 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PPS-GF",
+	"from": "system",
+	"setting_id": "crnZYfMj2aMvTdj3",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.021"
 	],

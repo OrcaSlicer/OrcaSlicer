@@ -380,17 +380,17 @@ void AuFile::on_input_enter(wxCommandEvent &evt)
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -869,11 +869,11 @@ void AuxiliaryPanel::init_tabpanel()
     m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
     m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
 
-    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), "", true);
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), "", false);
-    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), "", false);
-    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), "", false);
-    m_tabpanel->AddPage(m_others_panel, _L("Others"), "", false);
+    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
+    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
+    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
+    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
+    m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
 }
 
 wxWindow *AuxiliaryPanel::create_side_tools()

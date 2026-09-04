@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Comgrow",
 	"bed_model": "comgrow_t500_buildplate_model.stl",
-	"bed_texture": "comgrow_t500_buildplate_texture.png",
+	"bed_texture": "comgrow_t500_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Comgrow Generic PLA;Comgrow Generic PETG;Comgrow Generic ABS"
 }

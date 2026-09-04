@@ -3,7 +3,7 @@
 	"name": "Anycubic Vyper 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "4dZHITQQJ9IB8MHj",
 	"instantiation": "true",
 	"printer_model": "Anycubic Vyper",
 	"default_print_profile": "0.20mm Standard @Anycubic Vyper",

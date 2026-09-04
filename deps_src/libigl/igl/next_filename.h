@@ -11,16 +11,14 @@
 #include <string>
 namespace igl
 {
-  // Find the file with the first filename of the form
-  // "prefix%0[zeros]dsuffix"
-  // 
-  // Inputs:
-  //   prefix  path to containing dir and filename prefix
-  //   zeros number of leading zeros as if digit printed with printf
-  //   suffix  suffix of filename and extension (should included dot)
-  // Outputs:
-  //   next  path to next file
-  // Returns true if found, false if exceeding range in zeros
+  /// Find the file with the first filename of the form
+  /// "prefix%0[zeros]dsuffix"
+  /// 
+  /// @param[in] prefix  path to containing dir and filename prefix
+  /// @param[in] zeros number of leading zeros as if digit printed with printf
+  /// @param[in] suffix  suffix of filename and extension (should include dot)
+  /// @param[out] next  path to next file
+  /// @return true if found, false if exceeding range in zeros
   IGL_INLINE bool next_filename(
     const std::string & prefix, 
     const int zeros,

@@ -3,7 +3,7 @@
 	"name": "FLSun T1 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "M1YWzai2pJOT8PmC",
 	"instantiation": "true",
 	"printer_model": "FLSun T1",
 	"default_print_profile": "0.20mm Standard @FLSun T1",
