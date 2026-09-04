@@ -2891,20 +2891,18 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
-                float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
-                // BBS
-                float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
-                const Print* print = m_process->fff_print();
                 const Print* current_print = part_plate->fff_print();
                 if (!need_wipe_tower && part_plate->get_extruders(true).size() < 2) continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
-                float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
+                // Body and brim from this plate's own estimate: m_process->fff_print() is the
+                // selected plate's, so an auto brim drew every tower with that plate's brim.
+                const WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config);
+                float brim_width = float(footprint.brim_width);
+                Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
                 // The stored position is already clamped onto the bed, by
                 // set_default_wipe_tower_pos_for_plate and again on every drag.
