@@ -911,11 +911,25 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                             params.density = float(region_config.top_surface_density);
                             if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
-                            params.pattern = region_config.bottom_surface_pattern.value;
+                            // Orca types a fully-supported overhang (support on, Top Z distance 0)
+                            // as stBottom, so is_bridge is false and the branch below never runs.
+                            // Honor this setting for those upper-layer bottoms when it is not Default;
+                            // Default keeps bottom_surface_pattern so existing behaviour is unchanged.
+                            if (layer.id() > 0 &&
+                                region_config.bridge_bottom_surface_pattern.value != BridgeBottomSurfacePattern::Default) {
+                                params.pattern = infill_pattern_for_bridge_bottom(region_config.bridge_bottom_surface_pattern.value,
+                                                                                 region_config.top_surface_pattern.value);
+                            } else {
+                                params.pattern = region_config.bottom_surface_pattern.value;
+                            }
                             params.density = float(region_config.bottom_surface_density);
                         }
                     } else if (surface.is_solid_infill()) {
                         params.pattern = region_config.internal_solid_infill_pattern.value;
+                        params.density = 100.f;
+                    } else if (is_bridge && surface.is_bottom()) {
+                        params.pattern = infill_pattern_for_bridge_bottom(region_config.bridge_bottom_surface_pattern.value,
+                                                                         region_config.top_surface_pattern.value);
                         params.density = 100.f;
                     } else {
                         if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)

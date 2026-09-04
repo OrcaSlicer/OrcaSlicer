@@ -828,3 +828,46 @@ SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Confi
         }
     }
 }
+
+TEST_CASE("Default bridge bottom pattern follows the top surface monotonic choice", "[Config]")
+{
+    REQUIRE(infill_pattern_for_bridge_bottom(BridgeBottomSurfacePattern::Default, ipMonotonic) == ipMonotonic);
+    REQUIRE(infill_pattern_for_bridge_bottom(BridgeBottomSurfacePattern::Default, ipMonotonicLine) == ipMonotonic);
+    REQUIRE(infill_pattern_for_bridge_bottom(BridgeBottomSurfacePattern::Default, ipRectilinear) == ipRectilinear);
+    REQUIRE(infill_pattern_for_bridge_bottom(BridgeBottomSurfacePattern::Default, ipConcentric) == ipRectilinear);
+}
+
+TEST_CASE("Explicit bridge bottom pattern maps to the matching infill pattern", "[Config]")
+{
+    using BBSP = BridgeBottomSurfacePattern;
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::Monotonic, ipRectilinear) == ipMonotonic);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::MonotonicLine, ipRectilinear) == ipMonotonicLine);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::Rectilinear, ipMonotonic) == ipRectilinear);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::AlignedRectilinear, ipMonotonic) == ipAlignedRectilinear);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::Concentric, ipMonotonic) == ipConcentric);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::HilbertCurve, ipMonotonic) == ipHilbertCurve);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::ArchimedeanChords, ipMonotonic) == ipArchimedeanChords);
+    REQUIRE(infill_pattern_for_bridge_bottom(BBSP::OctagramSpiral, ipMonotonic) == ipOctagramSpiral);
+}
+
+TEST_CASE("Bridge bottom surface pattern defaults to Default and accepts listed values", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE(config.opt_enum<BridgeBottomSurfacePattern>("bridge_bottom_surface_pattern") == BridgeBottomSurfacePattern::Default);
+    REQUIRE(config.validate().empty());
+
+    config.set_deserialize_strict("bridge_bottom_surface_pattern", "concentric");
+    REQUIRE(config.opt_enum<BridgeBottomSurfacePattern>("bridge_bottom_surface_pattern") == BridgeBottomSurfacePattern::Concentric);
+    REQUIRE(config.validate().empty());
+
+    REQUIRE_THROWS_AS(config.set_deserialize_strict("bridge_bottom_surface_pattern", "not-a-pattern"), BadOptionValueException);
+}
+
+TEST_CASE("Bridge bottom surface pattern remaps zig-zag to rectilinear", "[Config]")
+{
+    t_config_option_key key = "bridge_bottom_surface_pattern";
+    std::string value = "zig-zag";
+    PrintConfigDef::handle_legacy(key, value);
+    REQUIRE(key == "bridge_bottom_surface_pattern");
+    REQUIRE(value == "rectilinear");
+}
