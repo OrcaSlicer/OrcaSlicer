@@ -1149,8 +1149,7 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def = this->add("supertack_plate_temp", coInts);
     def->label = L("Other layers");
-    def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
+    def->tooltip = L("This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
@@ -2789,7 +2788,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fan_cooling_layer_time", coFloats);
     def->label = L("Layer time");
     def->tooltip = L("The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -2942,7 +2941,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament load time");
     def->tooltip = L("Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2951,7 +2950,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament unload time");
     def->tooltip = L("Time to unload old filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2960,7 +2959,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tool change time");
     def->tooltip = L("Time taken to switch tools. It's usually applicable for tool changers or multi-tool machines. "
                      "For single-extruder multi-material machines, it's typically 0. For statistics only.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
@@ -3106,7 +3105,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Time to wait after the filament is unloaded. "
                    "May help to get reliable tool changes with flexible materials "
                    "that may need more time to shrink to original dimensions.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -4225,7 +4224,7 @@ void PrintConfigDef::init_fff_params()
         "\nIt won't move fan commands from custom G-code (they act as a sort of 'barrier')."
         "\nIt won't move fan commands into the start G-code if the 'only custom start G-code' is activated."
         "\nUse 0 to deactivate.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -4241,7 +4240,7 @@ void PrintConfigDef::init_fff_params()
                     "\nThis is useful for fans where a low PWM/power may be insufficient to get the fan started spinning from a stop, or to "
                     "get the fan up to speed faster."
                     "\nSet to 0 to deactivate.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -4885,7 +4884,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Ironing expansion");
     def->category = L("Quality");
     def->tooltip  = L("Expand or contract the ironing area.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = -100;
     def->max      = 100;
     def->mode     = comExpert;
@@ -4922,7 +4921,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip  = L("Minimum Z-layer height.\n"
                       "Also controls the slicing plane.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
     def->mode     = comExpert;
@@ -5121,7 +5120,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The allowed maximum output force of Y axis");
-    def->sidetext   = L("N");
+    def->sidetext   = L_CONTEXT("N", "Newton");	// Newtons, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5131,7 +5130,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The machine bed mass load of Y axis");
-    def->sidetext   = L("g");
+    def->sidetext   = L_CONTEXT("g", "gram");	// grams, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5141,7 +5140,7 @@ void PrintConfigDef::init_fff_params()
     def->category   = L("Machine limits");
     def->readonly   = false;
     def->tooltip    = L("The allowed max printed mass on a plate");
-    def->sidetext   = L("g");
+    def->sidetext   = L_CONTEXT("g", "gram");	// grams, CIS languages need translation
     def->min        = 0;
     def->mode       = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -5500,7 +5499,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped.");
+    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5755,7 +5754,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retract_after_wipe", coPercents);
     def->label = L("Retract amount after wipe");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("The length of fast retraction after wipe, relative to retraction length.\n"
+    def->tooltip = L("This is the length of fast retraction after wipe, relative to retraction length.\n"
                      "The value will be clamped by 100% minus the retract amount before the wipe value.");
     def->sidetext = "%";
     def->mode = comExpert;
@@ -5821,7 +5820,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("z_hop", coFloats);
     def->label = L("Z-hop height");
-    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing.");
+    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comSimple;
     def->min = 0;
@@ -6399,7 +6398,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Layer time");
     def->tooltip = L("The printing speed in exported G-code will be slowed down when the estimated layer time is "
                      "shorter than this value in order to get better cooling for these layers.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -6552,7 +6551,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Preheat time");
     def->tooltip = L("To reduce the waiting time after tool change, Orca can preheat the next tool while the current tool is still in use. "
                      "This setting specifies the time in seconds to preheat the next tool. Orca will insert a M104 command to preheat the tool in advance.");
-    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->mode = comAdvanced;
@@ -6604,10 +6603,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
+    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers.
+    // Every key in this group is read at slice time from m_config, and the two per-plate process
+    // keys (imex_parallel_mode, imex_head_filament_map) round-trip through the 3MF's
+    // model_settings.config plate metadata, so none of them needs to appear in the exported
+    // g-code. They all carry non-nil defaults, so emitting them would add a line to every
+    // printer's dump. Kept out of the g-code config block (banned_keys).
     def = this->add("is_imex", coBool);
-    def->label = L("IMEX Printer");
-    def->tooltip = L("Enable IMEX parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
+    def->label = L("IDEX/IQEX Printer");
+    def->tooltip = L("Enable parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6688,7 +6692,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("imex_viz_theme", coEnum);
     def->label = L("Visualization Theme");
-    def->tooltip = L("Color theme for IMEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
+    def->tooltip = L("Color theme for IDEX/IQEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<ImexVizTheme>::get_enum_values();
     def->enum_values.push_back("standard");
@@ -6702,32 +6706,32 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<ImexVizTheme>(ImexVizTheme::Standard));
 
     def = this->add("imex_parallel_mode", coString);
-    def->label = L("IMEX Print Mode");
-    def->tooltip = L("Name of the active IMEX parallel print mode, or \"primary\" for single-carriage printing. Requires IMEX Printer enabled in the Printer preset (Printer \u2192 Multimaterial \u2192 IMEX Configuration).");
+    def->label = L("IDEX/IQEX Print Mode");
+    def->tooltip = L("Name of the active IDEX/IQEX parallel print mode, or \"primary\" for single-carriage printing. Requires IDEX/IQEX Printer enabled in the Printer preset (Printer \u2192 Multimaterial \u2192 IDEX/IQEX Configuration).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("primary"));
 
     def = this->add("imex_head_filament_map", coString);
-    def->label = L("IMEX head filament map");
+    def->label = L("IDEX/IQEX head filament map");
     def->tooltip = L("Per-plate override mapping physical heads to filament slots "
                      "(1-based). Empty means use pem-inversion defaults.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("imex_mode_names", coStrings);
-    def->label = L("IMEX Mode Names");
-    def->tooltip = L("Display names for each user-defined IMEX parallel print mode.");
+    def->label = L("IDEX/IQEX Mode Names");
+    def->tooltip = L("Display names for each user-defined IDEX/IQEX parallel print mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_active_tools", coStrings);
-    def->label = L("IMEX Mode Active Tools");
-    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IMEX Modes editor in the Printer preset.");
+    def->label = L("IDEX/IQEX Mode Active Tools");
+    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IDEX/IQEX Modes editor in the Printer preset.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_gcodes", coStrings);
-    def->label = L("IMEX Mode G-codes");
+    def->label = L("IDEX/IQEX Mode G-codes");
     def->tooltip = L("G-code or macro call to inject at print start for each mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
@@ -8172,7 +8176,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("machine_hotend_change_time", coFloat);
     def->label    = L("Hotend change time");
     def->tooltip  = L("Time to change hotend.");
-    def->sidetext = L("s");
+    def->sidetext = L_CONTEXT("s", "second");
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -12138,13 +12142,11 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def = this->add("load_defaultfila", coBool);
     def->label = L("Load default filaments");
     def->tooltip = L("Load first filament as default for those not loaded.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("min_save", coBool);
     def->label = L("Minimum save");
     def->tooltip = L("Export 3MF with minimum size.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("mtcpp", coInt);
@@ -12170,7 +12172,6 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def = this->add("normative_check", coBool);
     def->label = L("Normative check");
     def->tooltip = L("Check the normative items.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(true));
 
     /*def = this->add("help_fff", coBool);
@@ -12437,7 +12438,7 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->cli_params = "level";
     def->set_default_value(new ConfigOptionInt(1));
 
-    def = this->add("logfile", coInt);
+    def = this->add("logfile", coString);
     def->label = L("Log file");
     def->tooltip = L("Redirects debug logging to file.\n");
     def->cli_params = "file";
@@ -12485,7 +12486,6 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def = this->add("skip_modified_gcodes", coBool);
     def->label = L("Skip modified G-code in 3MF");
     def->tooltip = L("Skip the modified G-code in 3MF from printer or filament presets.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("makerlab_name", coString);
@@ -12515,14 +12515,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def = this->add("allow_newer_file", coBool);
     def->label = L("Allow 3MF with newer version to be sliced");
     def->tooltip = L("Allow 3MF with newer version to be sliced.");
-    def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 
     def = this->add("allow_mix_temp", coBool);
     // internal use only, don't need translation
     def->label = "Allow filaments with high/low temperature to be printed together";
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
-    def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 }
 
@@ -12624,16 +12622,16 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
     new_def("in_head_wrap_detect_zone", coBool, "In head wrap detect zone", "Indicates if the first layer overlaps with the head wrap zone.");
 
     def = this->add("imex_mode", coString);
-    def->label   = L("IMEX active mode");
-    def->tooltip = L("Name of the active IMEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IMEX is not enabled.");
+    def->label   = L("IDEX/IQEX active mode");
+    def->tooltip = L("Name of the active IDEX/IQEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IDEX/IQEX is not enabled.");
 
     def = this->add("imex_mode_index", coInt);
-    def->label   = L("IMEX active mode index");
-    def->tooltip = L("Zero-based index of the active IMEX parallel print mode within imex_mode_names.");
+    def->label   = L("IDEX/IQEX active mode index");
+    def->tooltip = L("Zero-based index of the active IDEX/IQEX parallel print mode within imex_mode_names.");
 
     def = this->add("imex_mode_gcode", coString);
-    def->label   = L("IMEX active mode G-code");
-    def->tooltip = L("The raw mode G-code template for the active IMEX parallel print mode, after placeholder evaluation. Globals defined here flow into machine_start_gcode.");
+    def->label   = L("IDEX/IQEX active mode G-code");
+    def->tooltip = L("The raw mode G-code template for the active IDEX/IQEX parallel print mode, after placeholder evaluation. Globals defined here flow into machine_start_gcode.");
 }
 
 PrintStatisticsConfigDef::PrintStatisticsConfigDef()

@@ -590,10 +590,11 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         int ams_count = (max_lane_index + 4) / 4;
         build_ams_payload(ams_count, max_lane_index, trays);
 
-        // If every tray reported extruder_index, auto-populate physical_extruder_map
-        // so IMEX PA and temperature emission use the correct physical extruder qualifier.
-        // AFC publishes extruder_index=0 for all AFC lanes (they share one carriage) and
-        // extruder_index=N for independent direct-drive tools on separate carriages.
+        // If every tray reported extruder_index, auto-populate physical_extruder_map on an
+        // IMEX printer so IMEX PA and temperature emission use the correct physical extruder
+        // qualifier. AFC publishes extruder_index=0 for all AFC lanes (they share one carriage)
+        // and extruder_index=N for independent direct-drive tools on separate carriages.
+        // The write itself is gated below, on the GUI thread, where the preset can be read.
         bool all_have_extruder_index = std::all_of(trays.begin(), trays.end(),
             [](const AmsTrayData& t) { return t.extruder_index >= 0; });
         if (all_have_extruder_index) {
@@ -605,6 +606,35 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
                 auto* bundle = GUI::wxGetApp().preset_bundle;
                 if (!bundle) return;
                 auto& config = bundle->printers.get_edited_preset().config;
+
+                // Only IMEX profiles read physical_extruder_map as logical -> physical extruder.
+                // Elsewhere in the tree the key carries the BBL extruder-id reading, or is unused
+                // entirely (a single-nozzle Klipper machine), so writing the device's lane data
+                // there would silently mutate an unrelated setting -- and dirty the preset with
+                // no user action -- for every AFC user who is not running IMEX.
+                const auto* is_imex = config.option<ConfigOptionBool>("is_imex");
+                if (!is_imex || !is_imex->value) return;
+
+                // The map has one entry per LOGICAL extruder, i.e. the nozzle_diameter index
+                // space (see effective_physical_extruder_map() in IMEXHelpers.cpp). The device
+                // reports one entry per lane, which is the same index space only when the counts
+                // match; when they differ the lane -> logical extruder correspondence is not
+                // knowable here, and a wrong-length map is discarded by PrintApply anyway, so
+                // leave whatever the profile authored alone rather than writing a map that
+                // nothing will honour.
+                const auto* nozzles = config.option<ConfigOptionFloats>("nozzle_diameter");
+                if (!nozzles || nozzles->values.size() != pem.size()) {
+                    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: skipping physical_extruder_map sync, device reports "
+                                            << pem.size() << " lanes but the printer profile has "
+                                            << (nozzles ? nozzles->values.size() : 0) << " logical extruders";
+                    return;
+                }
+
+                // Write only on a real change: an unconditional set_key_value() marks the printer
+                // preset dirty on every device poll, so the user sees unsaved changes they never made.
+                const auto* current = config.option<ConfigOptionInts>("physical_extruder_map");
+                if (current && current->values == pem) return;
+
                 config.set_key_value("physical_extruder_map", new ConfigOptionInts(pem));
                 BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: auto-populated physical_extruder_map from AFC extruder_index";
             });

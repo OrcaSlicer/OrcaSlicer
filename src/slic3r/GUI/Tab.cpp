@@ -44,6 +44,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
+#include "IMEXModesCtrl.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
@@ -461,7 +462,7 @@ void Tab::create_preset_tab()
     // tree
     m_tabctrl = new TabCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(20 * m_em_unit, -1),
         wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
-    m_tabctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
+    m_tabctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable right select
     m_tabctrl->SetFont(Label::Body_14);
     //m_left_sizer->Add(m_tabctrl, 1, wxEXPAND);
     const int img_sz = int(32 * scale_factor + 0.5f);
@@ -4978,596 +4979,6 @@ void TabPrinter::build()
     m_printer_technology == ptSLA ? build_sla() : build_fff();
 }
 
-// ---------------------------------------------------------------------------
-// IMEXModesCtrl — visual parallel-mode editor for the IDEX/IQEX printer tab
-//
-// Tool button states:
-//   0 = Inactive  (grey)   — not participating in this mode
-//   1 = Primary   (green)  — the tool the slicer generates paths for
-//   2 = Copy      (blue)   — firmware duplicates Primary at an offset
-//   3 = Mirror    (amber)  — firmware mirrors Primary about an axis
-//   4 = Span      (yellow) — multicolor partner of Primary on the same gantry;
-//                            declares paired-gantry multicolor topology and
-//                            unlocks the multicolor block at slice time. Only
-//                            offered on tools sharing primary's gantry, and
-//                            only on multi-gantry printers (n_rows >= 2).
-//
-// Active-tools string format: "idx:P,idx:C,idx:M,idx:S"  (backwards-compat: plain "idx" = Primary)
-// ---------------------------------------------------------------------------
-class IMEXModesCtrl : public wxPanel {
-public:
-    std::function<void()> on_change;
-
-    // Lazy lookup so the widget always sees the current parent (preset switches
-    // change the parent under us). Returns nullptr when the active preset has no
-    // parent (system preset itself), which disables per-row reset arrows.
-    using ParentConfigLookup = std::function<const DynamicPrintConfig*()>;
-    void set_parent_config_lookup(ParentConfigLookup f) { m_parent_lookup = std::move(f); }
-
-    // layout: 0=front-left, 1=front-right, 2=rear-left, 3=rear-right (T0 corner).
-    // The enum values intentionally line up 1:1 so this is a no-op cast — the helper
-    // is kept to make the conversion explicit at call sites.
-    static int parse_layout(ImexToolLayout layout) { return static_cast<int>(layout); }
-
-    IMEXModesCtrl(wxWindow* parent, int n_cols, int n_rows, int layout = 0)
-        : wxPanel(parent, wxID_ANY), m_n_cols(std::max(1, n_cols)), m_n_rows(std::max(1, n_rows)), m_layout(layout)
-    {
-        // Pull the app's window-default colour explicitly. Without this, GTK gives
-        // child wxPanels a slightly lighter "widget bg" instead of the app's dark
-        // theme — making chromeless ScalableButtons inside the panel render with a
-        // visible light box around the icon. Sub-panels inherit this colour.
-        SetBackgroundColour(wxGetApp().get_window_default_clr());
-
-        m_outer = new wxBoxSizer(wxVERTICAL);
-        m_rows_sizer = new wxBoxSizer(wxVERTICAL);
-
-        // --- Info panel: instruction text + color legend ---
-        auto* info_panel = new wxPanel(this, wxID_ANY);
-        info_panel->SetBackgroundColour(GetBackgroundColour());
-        auto* info_sizer = new wxBoxSizer(wxVERTICAL);
-
-        wxString instructions =
-            _L("Each mode defines which tool heads participate and their roles. "
-               "The Primary tool (green) drives all sliced paths. "
-               "Copy (blue) and Mirror (amber) tools follow the Primary at the firmware level. "
-               "Click a tool button to cycle its role — clear the Primary before reassigning it.");
-        if (m_n_rows >= 2)
-            instructions += " " + _L("Span (yellow) marks a tool on the Primary's gantry as the "
-                                     "multicolor partner — required to enable multi-color printing in "
-                                     "paired-gantry IMEX modes.");
-        auto* inst = new wxStaticText(info_panel, wxID_ANY, instructions);
-        inst->Wrap(FromDIP(620));
-        info_sizer->Add(inst, 0, wxBOTTOM, FromDIP(6));
-
-        // Color legend — swatches sized to the body text height so they read as
-        // matched pairs with their labels regardless of system DPI / font scale,
-        // matching the on-hover ghost tooltip swatch's visual weight.
-        auto* leg_sizer = new wxBoxSizer(wxHORIZONTAL);
-        struct LegendEntry { int state; const char* label; };
-        std::vector<LegendEntry> legend = {
-            {1,"Primary"},{2,"Copy"},{3,"Mirror"}
-        };
-        if (m_n_rows >= 2)
-            legend.push_back({4, "Span"});  // only meaningful on multi-gantry printers
-        const int swatch_side = info_panel->GetCharHeight();
-        for (auto& l : legend) {
-            auto* swatch = new wxPanel(info_panel, wxID_ANY, wxDefaultPosition, wxSize(swatch_side, swatch_side));
-            swatch->SetBackgroundColour(btn_color(l.state));
-            leg_sizer->Add(swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
-            leg_sizer->Add(new wxStaticText(info_panel, wxID_ANY, l.label),
-                           0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(16));
-        }
-        info_sizer->Add(leg_sizer, 0, wxBOTTOM, FromDIP(6));
-        info_panel->SetSizer(info_sizer);
-
-        // Column header row — spacers sized to align with the mode-row fields below.
-        // Name field: FromDIP(130) + FromDIP(6) gap; tool grid: n_cols*(FromDIP(36)+FromDIP(2))-FromDIP(2) + FromDIP(6) gap.
-        auto* hdr_panel = new wxPanel(this, wxID_ANY);
-        hdr_panel->SetBackgroundColour(GetBackgroundColour());
-        auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto* hdr_name  = new wxStaticText(hdr_panel, wxID_ANY, _L("Name"));
-        auto* hdr_tools = new wxStaticText(hdr_panel, wxID_ANY, _L("Tools"));
-        auto* hdr_gcode = new wxStaticText(hdr_panel, wxID_ANY, _L("G-code"));
-        const int grid_px = m_n_cols * FromDIP(38) - FromDIP(2);  // approx grid panel width
-        const int name_col_px = FromDIP(136);
-        hdr_sizer->Add(hdr_name,  0, wxALIGN_CENTER_VERTICAL);
-        hdr_sizer->AddSpacer(std::max(0, name_col_px - hdr_name->GetBestSize().x));
-        hdr_sizer->Add(hdr_tools, 0, wxALIGN_CENTER_VERTICAL);
-        hdr_sizer->AddSpacer(std::max(0, grid_px + FromDIP(6) - hdr_tools->GetBestSize().x));
-        hdr_sizer->Add(hdr_gcode, 1, wxALIGN_CENTER_VERTICAL);
-        hdr_panel->SetSizer(hdr_sizer);
-
-        auto* add_btn = new wxButton(this, wxID_ANY, _L("+ Add Mode"),
-                                     wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-        add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_row(); notify(); });
-
-        m_outer->Add(info_panel, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
-        m_outer->Add(hdr_panel,  0, wxEXPAND | wxBOTTOM, FromDIP(2));
-        m_outer->Add(m_rows_sizer, 0, wxEXPAND);
-        m_outer->AddSpacer(FromDIP(4));
-        m_outer->Add(add_btn, 0);
-        SetSizer(m_outer);
-    }
-
-    void set_grid_size(int n_cols, int n_rows, int layout = -1) {
-        n_cols = std::max(1, n_cols);
-        n_rows = std::max(1, n_rows);
-        if (layout < 0) layout = m_layout;
-        if (n_cols == m_n_cols && n_rows == m_n_rows && layout == m_layout) return;
-        auto [names, tools, gcodes] = get_mode_data();
-        clear_rows();
-        m_n_cols = n_cols;
-        m_n_rows = n_rows;
-        m_layout = layout;
-        for (size_t i = 0; i < names.size(); ++i)
-            add_row(names[i], tools[i], gcodes[i], /*is_primary=*/(names[i] == kImexPrimaryMode));
-        Layout();
-    }
-
-    void load_from_config(const DynamicPrintConfig& cfg) {
-        clear_rows();
-        auto* names  = cfg.option<ConfigOptionStrings>("imex_mode_names");
-        auto* tools  = cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
-        auto* gcodes = cfg.option<ConfigOptionStrings>("imex_mode_gcodes");
-
-        // Primary row is always first and non-deletable.  Look for an existing
-        // "primary" entry in the config (present in configs saved after #8 was
-        // implemented); fall back to empty tool/gcode for older configs.
-        std::string primary_tools, primary_gcode;
-        size_t primary_cfg_idx = std::string::npos;
-        if (names) {
-            for (size_t i = 0; i < names->values.size(); ++i) {
-                if (names->values[i] == kImexPrimaryMode) {
-                    primary_cfg_idx = i;
-                    if (tools  && i < tools->values.size())  primary_tools = tools->values[i];
-                    if (gcodes && i < gcodes->values.size()) primary_gcode = gcodes->values[i];
-                    break;
-                }
-            }
-        }
-        add_row(kImexPrimaryMode, primary_tools, primary_gcode, /*is_primary=*/true);
-
-        size_t n = names ? names->values.size() : 0;
-        for (size_t i = 0; i < n; ++i) {
-            if (i == primary_cfg_idx) continue; // already added above
-            add_row(names->values[i],
-                    (tools  && i < tools->values.size())  ? tools->values[i]  : "",
-                    (gcodes && i < gcodes->values.size()) ? gcodes->values[i] : "");
-        }
-        refresh_reset_buttons();
-        Layout();
-    }
-
-    std::tuple<std::vector<std::string>, std::vector<std::string>, std::vector<std::string>>
-    get_mode_data() const {
-        std::vector<std::string> names, tools, gcodes;
-        for (auto& r : m_rows) {
-            std::string nm = r.is_primary ? std::string(kImexPrimaryMode) : r.name->GetValue().ToStdString();
-            if (nm.empty()) continue;
-            names.push_back(nm);
-            tools.push_back(active_tools_string(r));
-            gcodes.push_back(r.gcode->GetValue().ToStdString());
-        }
-        return {names, tools, gcodes};
-    }
-
-    // True when the widget's current rows already mirror the three IMEX-mode option
-    // vectors in cfg. Used by TabPrinter::update_fff() to skip a destroy-and-rebuild
-    // pass when the only thing that just changed was the widget itself writing back
-    // to config — without this guard, every keystroke in the gcode textbox triggers
-    // a load_from_config() that detaches the textbox the user is typing in.
-    bool matches_config(const DynamicPrintConfig& cfg) const {
-        auto [names, tools, gcodes] = get_mode_data();
-        auto cfg_strings = [&cfg](const char* key) {
-            std::vector<std::string> v;
-            if (auto* o = cfg.option<ConfigOptionStrings>(key)) v = o->values;
-            return v;
-        };
-        return names  == cfg_strings("imex_mode_names")
-            && tools  == cfg_strings("imex_mode_active_tools")
-            && gcodes == cfg_strings("imex_mode_gcodes");
-    }
-
-    // Parse "idx:P,idx:C,idx:M" → map<tool_idx, state>
-    // Backwards compat: plain "idx" (no role) → state 1 (Primary)
-    // Indices are PHYSICAL tool indices (T0..TN-1). all_tool_states preserves
-    // off-grid entries so the tile widget can round-trip indices that fall
-    // outside the currently visible rows × cols without losing data on save.
-    static std::map<int,int> parse_tool_states(const std::string& s) {
-        std::map<int,int> result;
-        if (s.empty()) return result;
-        std::istringstream ss(s);
-        std::string tok;
-        while (std::getline(ss, tok, ',')) {
-            tok.erase(std::remove_if(tok.begin(), tok.end(), ::isspace), tok.end());
-            if (tok.empty()) continue;
-            try {
-                auto colon = tok.find(':');
-                int idx, state = 1;
-                if (colon != std::string::npos) {
-                    idx = std::stoi(tok.substr(0, colon));
-                    char role = std::toupper((unsigned char)tok[colon + 1]);
-                    if      (role == 'C') state = 2;
-                    else if (role == 'M') state = 3;
-                    else if (role == 'S') state = 4;
-                } else {
-                    idx = std::stoi(tok);
-                }
-                result[idx] = state;
-            } catch (...) {}
-        }
-        return result;
-    }
-
-private:
-    // State 0=inactive, 1=primary, 2=copy, 3=mirror, 4=span
-    static wxColour btn_color(int state) {
-        switch (state) {
-        case 1:  return wxColour(50,  160, 50);   // green   — Primary
-        case 2:  return wxColour(60,  120, 210);  // blue    — Copy
-        case 3:  return wxColour(210, 130, 20);   // amber   — Mirror
-        case 4:  return wxColour(180, 180, 40);   // yellow  — Span
-        default: return wxColour(90,  90,  90);   // grey    — Inactive
-        }
-    }
-    static wxColour btn_fg(int /*state*/) { return *wxWHITE; }
-    static const char* state_role(int state) {
-        switch (state) {
-        case 1:  return "P";
-        case 2:  return "C";
-        case 3:  return "M";
-        case 4:  return "S";
-        default: return "";
-        }
-    }
-
-    void apply_btn(wxButton* btn, int tool_idx, int state) {
-        // Always label as T{n} — the button color already encodes the role.
-        btn->SetLabel(wxString::Format("T%d", tool_idx));
-        btn->SetBackgroundColour(btn_color(state));
-        btn->SetForegroundColour(btn_fg(state));
-        btn->Refresh();
-    }
-
-    struct Row {
-        wxPanel*             panel;
-        wxTextCtrl*          name;       // nullptr for primary row (name is fixed)
-        wxTextCtrl*          gcode;
-        std::vector<wxButton*> btns;
-        std::vector<int>     btn_states;
-        std::vector<int>     btn_tool_idx;
-        std::map<int,int>    all_tool_states;
-        bool                 is_primary {false};
-        ScalableButton*      reset_btn {nullptr};   // nullptr when row has no parent counterpart
-        bool                 reset_dirty_cached {false};
-    };
-
-    // Snapshot of row content as it would be saved (matches get_mode_data() per-row).
-    struct RowSnapshot { std::string name, tools, gcode; };
-    RowSnapshot snapshot_row(const Row& r) const {
-        RowSnapshot s;
-        s.name  = r.is_primary ? std::string(kImexPrimaryMode) : r.name->GetValue().ToStdString();
-        s.tools = active_tools_string(r);
-        s.gcode = r.gcode->GetValue().ToStdString();
-        return s;
-    }
-
-    // True when row at `row_idx` differs from the parent preset's value at the same
-    // index. Returns false when there is no parent (system preset), when the row is
-    // beyond the parent's mode count (user added it — no defined "default"), or when
-    // the lookup callback isn't wired. The Primary row's name is sentinel-fixed so
-    // a name diff doesn't count for it; only tools/gcode do.
-    bool row_differs_from_parent(int row_idx) const {
-        if (!m_parent_lookup) return false;
-        const DynamicPrintConfig* parent = m_parent_lookup();
-        if (!parent) return false;
-        auto* p_names  = parent->option<ConfigOptionStrings>("imex_mode_names");
-        auto* p_tools  = parent->option<ConfigOptionStrings>("imex_mode_active_tools");
-        auto* p_gcodes = parent->option<ConfigOptionStrings>("imex_mode_gcodes");
-        if (!p_names || row_idx < 0 || row_idx >= (int)p_names->values.size()) return false;
-        const Row& r = m_rows[row_idx];
-        const RowSnapshot s = snapshot_row(r);
-        if (!r.is_primary && s.name != p_names->values[row_idx]) return true;
-        if (p_tools  && row_idx < (int)p_tools->values.size()  && s.tools  != p_tools->values[row_idx])  return true;
-        if (p_gcodes && row_idx < (int)p_gcodes->values.size() && s.gcode != p_gcodes->values[row_idx]) return true;
-        return false;
-    }
-
-    // True when row index has a parent counterpart at all (i.e., the reset arrow
-    // should be present on the row at all, regardless of dirty state).
-    bool row_has_parent_counterpart(int row_idx) const {
-        if (!m_parent_lookup) return false;
-        const DynamicPrintConfig* parent = m_parent_lookup();
-        if (!parent) return false;
-        auto* p_names = parent->option<ConfigOptionStrings>("imex_mode_names");
-        return p_names && row_idx >= 0 && row_idx < (int)p_names->values.size();
-    }
-
-    void add_row(const std::string& name = "",
-                 const std::string& active_tools = "",
-                 const std::string& gcode = "",
-                 bool is_primary = false)
-    {
-        Row r;
-        r.is_primary = is_primary;
-        r.panel = new wxPanel(this, wxID_ANY);
-        r.panel->SetBackgroundColour(GetBackgroundColour());
-        auto* sizer = new wxBoxSizer(wxHORIZONTAL);
-
-        if (is_primary) {
-            r.name = nullptr;
-            auto* lbl = new wxStaticText(r.panel, wxID_ANY, _L("Primary"),
-                                         wxDefaultPosition, FromDIP(wxSize(130, -1)));
-            wxFont f = lbl->GetFont();
-            f.SetWeight(wxFONTWEIGHT_BOLD);
-            lbl->SetFont(f);
-            sizer->Add(lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
-        } else {
-            r.name = new wxTextCtrl(r.panel, wxID_ANY, name, wxDefaultPosition, FromDIP(wxSize(130, -1)));
-            r.name->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { notify(); });
-        }
-
-        auto* grid_panel = new wxPanel(r.panel, wxID_ANY);
-        grid_panel->SetBackgroundColour(GetBackgroundColour());
-        auto* grid_sizer = new wxGridSizer(m_n_rows, m_n_cols, FromDIP(2), FromDIP(2));
-
-        auto tool_states = parse_tool_states(active_tools);
-        if (tool_states.empty())
-            tool_states[0] = 1; // default T0 → Primary when no assignment is stored
-        r.all_tool_states = tool_states; // preserve all assignments, including off-screen tools
-        wxPanel* this_panel = r.panel;
-
-        // Buttons rendered top=rear (high Y), bottom=front (low Y).
-        // Layout remapping: m_layout encodes which corner T0 is at physically.
-        //   flip_x (layout 1,3): col 0 is on the right (max-X) instead of left
-        //   flip_y (layout 2,3): row 0 is at the rear (max-Y) instead of front
-        // Display iterates: row from n_rows-1 down to 0 (rear→front = top→bottom).
-        // raw_row = flip_y ? (n_rows-1-row) : row
-        // raw_col = flip_x ? (n_cols-1-col) : col
-        //
-        // row_start: anchor displayed rows to the gantry row containing the Primary
-        // assignment, so reducing gantry count keeps the meaningful row visible.
-        int primary_gantry_row = 0;
-        for (const auto& [idx, state] : tool_states) {
-            if (state == 1) { primary_gantry_row = idx / m_n_cols; break; }
-        }
-        int row_start = primary_gantry_row; // display rows [row_start .. row_start+m_n_rows-1]
-
-        bool flip_x = (m_layout == 1 || m_layout == 3);
-        bool flip_y = (m_layout == 2 || m_layout == 3);
-        for (int row = m_n_rows - 1; row >= 0; --row) {
-            for (int col = 0; col < m_n_cols; ++col) {
-                int raw_row = flip_y ? (m_n_rows - 1 - row) : row;
-                raw_row += row_start; // anchor to Primary's gantry row
-                int raw_col = flip_x ? (m_n_cols - 1 - col) : col;
-                int tool_idx = raw_row * m_n_cols + raw_col;
-                int state = 0;
-                auto it = tool_states.find(tool_idx);
-                if (it != tool_states.end()) state = it->second;
-
-                auto* btn = new wxButton(grid_panel, wxID_ANY, wxEmptyString,
-                                         wxDefaultPosition, FromDIP(wxSize(36, 26)), wxBU_EXACTFIT);
-                apply_btn(btn, tool_idx, state);
-
-                int btn_pos = (int)r.btns.size();
-                r.btns.push_back(btn);
-                r.btn_states.push_back(state);
-                r.btn_tool_idx.push_back(tool_idx);
-
-                // The Primary mode is the IMEX-off mode — its tool assignment is
-                // fixed (no parallel printing happening), so cycling tool roles
-                // would be a no-op and confusing. Render the buttons read-only;
-                // the row still shows up in the editor as visual context.
-                if (is_primary) {
-                    btn->Disable();
-                } else {
-                    btn->Bind(wxEVT_BUTTON, [this, this_panel, btn_pos](wxCommandEvent&) {
-                        // Find the row by panel pointer (stable across add/remove)
-                        for (auto& row_ref : m_rows) {
-                            if (row_ref.panel != this_panel) continue;
-                            int& st = row_ref.btn_states[btn_pos];
-                            const int tidx = row_ref.btn_tool_idx[btn_pos];
-
-                            // Check if another button already holds the Primary state,
-                            // and locate the primary's gantry row for Span eligibility.
-                            bool other_primary = false;
-                            int  primary_gantry = -1;
-                            for (int j = 0; j < (int)row_ref.btn_states.size(); ++j) {
-                                if (row_ref.btn_states[j] == 1) {
-                                    if (j != btn_pos) other_primary = true;
-                                    primary_gantry = row_ref.btn_tool_idx[j] / m_n_cols;
-                                }
-                            }
-                            // Span makes sense only on multi-gantry printers, and only
-                            // on a tile sharing primary's gantry (it declares "this tool
-                            // is the within-gantry multicolor partner of Primary").
-                            const bool span_eligible = (m_n_rows >= 2)
-                                                       && (primary_gantry >= 0)
-                                                       && (tidx / m_n_cols == primary_gantry);
-
-                            // Cycle: 0 → 1 → 2 → 3 → 4 → 0 with skips.
-                            st = (st + 1) % 5;
-                            if (st == 1 && other_primary)
-                                st = 2; // skip Primary → go straight to Copy
-                            if (st == 4 && !span_eligible)
-                                st = 0; // skip Span → wrap to Inactive
-
-                            // Keep all_tool_states in sync so off-screen tools are preserved
-                            if (st == 0)
-                                row_ref.all_tool_states.erase(tidx);
-                            else
-                                row_ref.all_tool_states[tidx] = st;
-
-                            apply_btn(row_ref.btns[btn_pos], row_ref.btn_tool_idx[btn_pos], st);
-                            notify();
-                            break;
-                        }
-                    });
-                }
-
-                grid_sizer->Add(btn, 0);
-            }
-        }
-        grid_panel->SetSizer(grid_sizer);
-
-        r.gcode = new wxTextCtrl(r.panel, wxID_ANY, gcode,
-                                 wxDefaultPosition, FromDIP(wxSize(220, 54)), wxTE_MULTILINE);
-        r.gcode->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { notify(); });
-
-        if (!is_primary) {
-            sizer->Add(r.name, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
-        }
-        sizer->Add(grid_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
-        sizer->Add(r.gcode,   1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
-
-        // Edit + remove (for non-primary) — stacked vertically.
-        auto* btn_col = new wxBoxSizer(wxVERTICAL);
-        wxTextCtrl* gcode_ctrl = r.gcode;
-        auto* ph_btn = new ScalableButton(r.panel, wxID_ANY, "edit", wxEmptyString,
-                                          wxDefaultSize, wxDefaultPosition,
-                                          wxBU_EXACTFIT | wxNO_BORDER, 16);
-        ph_btn->SetToolTip(_L("Edit G-code / browse placeholders"));
-        ph_btn->Bind(wxEVT_BUTTON, [this, gcode_ctrl](wxCommandEvent&) {
-            EditGCodeDialog dlg(this, "imex_mode_gcode", gcode_ctrl->GetValue().ToStdString());
-            if (dlg.ShowModal() == wxID_OK)
-                gcode_ctrl->SetValue(dlg.get_edited_gcode());
-        });
-        btn_col->Add(ph_btn, 0, wxBOTTOM, FromDIP(2));
-
-        if (!is_primary) {
-            auto* rm = new ScalableButton(r.panel, wxID_ANY, "imex_remove", wxEmptyString,
-                                          wxDefaultSize, wxDefaultPosition,
-                                          wxBU_EXACTFIT | wxNO_BORDER, 16);
-            rm->SetToolTip(_L("Remove mode"));
-            rm->Bind(wxEVT_BUTTON, [this, this_panel](wxCommandEvent&) {
-                remove_row(this_panel);
-                notify();
-            });
-            btn_col->Add(rm, 0);
-        }
-        sizer->Add(btn_col, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
-
-        // Per-row reset gets its own column on the right so the icon reads as
-        // distinct from the edit/remove column. Reset only renders when this row
-        // has a counterpart in the saved preset (user-added rows beyond the saved
-        // mode count get no reset — the X button covers "remove user-added row").
-        auto* reset_col = new wxBoxSizer(wxVERTICAL);
-        wxPanel* this_panel_for_reset = r.panel;
-        if (row_has_parent_counterpart(static_cast<int>(m_rows.size()))) {
-            r.reset_btn = new ScalableButton(r.panel, wxID_ANY, "dot", wxEmptyString,
-                                             wxDefaultSize, wxDefaultPosition,
-                                             wxBU_EXACTFIT | wxNO_BORDER, 16);
-            r.reset_btn->SetToolTip(_L("Discard in-session edits to this mode (snap back to saved value)"));
-            r.reset_btn->Bind(wxEVT_BUTTON, [this, this_panel_for_reset](wxCommandEvent&) {
-                reset_row_to_parent(this_panel_for_reset);
-            });
-            reset_col->Add(r.reset_btn, 0, wxALIGN_CENTER_VERTICAL);
-        }
-        sizer->Add(reset_col, 0, wxALIGN_CENTER_VERTICAL);
-        r.panel->SetSizer(sizer);
-
-        m_rows_sizer->Add(r.panel, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
-        m_rows.push_back(std::move(r));
-        Layout();
-    }
-
-    void remove_row(wxPanel* panel) {
-        for (size_t i = 0; i < m_rows.size(); ++i) {
-            if (m_rows[i].panel == panel) {
-                if (m_rows[i].is_primary) return; // primary row is non-deletable
-                m_rows_sizer->Detach(panel);
-                m_rows.erase(m_rows.begin() + i);
-                Layout();
-                // Defer widget destruction so any in-flight GTK events for
-                // panel's children (including the × button we're inside) finish
-                // processing before the wxEvtHandlers are freed.
-                wxTheApp->CallAfter([panel]() { panel->Destroy(); });
-                return;
-            }
-        }
-    }
-
-    void clear_rows() {
-        for (auto& r : m_rows) { m_rows_sizer->Detach(r.panel); r.panel->Destroy(); }
-        m_rows.clear();
-    }
-
-    std::string active_tools_string(const Row& r) const {
-        // Serialize from all_tool_states (not just visible buttons) so assignments
-        // for off-screen tools are preserved across grid size changes.
-        std::string s;
-        for (const auto& [idx, state] : r.all_tool_states) {
-            if (state == 0) continue;
-            if (!s.empty()) s += ',';
-            s += std::to_string(idx) + ':' + state_role(state);
-        }
-        return s;
-    }
-
-    void notify() {
-        refresh_reset_buttons();
-        if (on_change) on_change();
-    }
-
-    // Update each row's reset bitmap to reflect current dirty state. Cached so we
-    // only swap the bitmap when state actually transitions — avoids flicker on
-    // every keystroke. Disabled buttons (no saved counterpart) keep their dot.
-    void refresh_reset_buttons() {
-        for (size_t i = 0; i < m_rows.size(); ++i) {
-            Row& r = m_rows[i];
-            if (!r.reset_btn || !r.reset_btn->IsEnabled()) continue;
-            const bool dirty = row_differs_from_parent(static_cast<int>(i));
-            if (dirty == r.reset_dirty_cached) continue;
-            r.reset_dirty_cached = dirty;
-            r.reset_btn->SetBitmap_(dirty ? "undo" : "dot");
-        }
-    }
-
-    // Reset row identified by `panel` (stable across add/remove) to the parent
-    // preset's value at the same index. Primary row's name stays sentinel-fixed —
-    // only tools and gcode are restored.
-    void reset_row_to_parent(wxPanel* panel) {
-        if (!m_parent_lookup) return;
-        const DynamicPrintConfig* parent = m_parent_lookup();
-        if (!parent) return;
-        auto* p_names  = parent->option<ConfigOptionStrings>("imex_mode_names");
-        auto* p_tools  = parent->option<ConfigOptionStrings>("imex_mode_active_tools");
-        auto* p_gcodes = parent->option<ConfigOptionStrings>("imex_mode_gcodes");
-        for (size_t i = 0; i < m_rows.size(); ++i) {
-            Row& r = m_rows[i];
-            if (r.panel != panel) continue;
-            if (!p_names || i >= p_names->values.size()) return;
-            if (!r.is_primary && r.name)
-                r.name->ChangeValue(from_u8(p_names->values[i]));
-            if (p_gcodes && i < p_gcodes->values.size())
-                r.gcode->ChangeValue(from_u8(p_gcodes->values[i]));
-            if (p_tools && i < p_tools->values.size()) {
-                // Reapply tool states from the parent's serialized form. all_tool_states
-                // is the source of truth for round-tripping; rebuild it then re-paint
-                // the visible buttons.
-                r.all_tool_states = parse_tool_states(p_tools->values[i]);
-                for (size_t j = 0; j < r.btns.size(); ++j) {
-                    int tidx = r.btn_tool_idx[j];
-                    auto it = r.all_tool_states.find(tidx);
-                    int st = (it == r.all_tool_states.end()) ? 0 : it->second;
-                    r.btn_states[j] = st;
-                    apply_btn(r.btns[j], tidx, st);
-                }
-            }
-            notify();
-            return;
-        }
-    }
-
-    wxBoxSizer*         m_outer;
-    wxBoxSizer*         m_rows_sizer;
-    std::vector<Row>    m_rows;
-    int                 m_n_cols, m_n_rows;
-    int                 m_layout {0}; // 0=front-left, 1=front-right, 2=rear-left, 3=rear-right
-    ParentConfigLookup  m_parent_lookup;
-};
-// ---------------------------------------------------------------------------
-
 void TabPrinter::build_fff()
 {
     if (!m_pages.empty())
@@ -5722,7 +5133,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("adaptive_bed_mesh_margin", "printer_basic_information_adaptive_bed_mesh#mesh-margin");
 
         optgroup = page->new_optgroup(L("Accessory"), "param_accessory");
-        optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type");
+        optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type", 0);
         optgroup->append_single_option_line("nozzle_hrc", "printer_basic_information_accessory#nozzle-hrc");
         optgroup->append_single_option_line("auxiliary_fan", "printer_basic_information_accessory#auxiliary-part-cooling-fan");
         optgroup->append_single_option_line("fan_direction");
@@ -6225,7 +5636,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("machine_tool_change_time", "printer_multimaterial_advanced#tool-change-time");
 
         // IDEX/IQEX (IMEX) parallel printing configuration
-        optgroup = page->new_optgroup(L("IMEX Configuration"), L"param_advanced");
+        optgroup = page->new_optgroup(L("IDEX/IQEX Configuration"), L"param_advanced");
         optgroup->append_single_option_line("is_imex");
         optgroup->append_single_option_line("imex_firmware_managed_zones");
         optgroup->append_single_option_line("imex_gantry_count");
@@ -6246,7 +5657,7 @@ if (is_marlin_flavor)
             // activate_line to return early before build_field.
             ConfigOptionDef placeholder_def;
             placeholder_def.label   = L("Pre-slice warnings");
-            placeholder_def.tooltip = L("Show a warning dialog before slicing if IMEX parallel mode "
+            placeholder_def.tooltip = L("Show a warning dialog before slicing if IDEX/IQEX parallel mode "
                                         "concerns are detected (bed temperature conflicts, filament type "
                                         "mismatches, multi-material conflicts). Can be suppressed from the "
                                         "dialog itself. Re-enable here if suppressed accidentally.");
@@ -6267,7 +5678,7 @@ if (is_marlin_flavor)
         }
         optgroup->append_single_option_line("imex_viz_theme");
         {
-            auto modes_og = page->new_optgroup(L("IMEX Parallel Modes"), L"param_advanced");
+            auto modes_og = page->new_optgroup(L("IDEX/IQEX Parallel Modes"), L"param_advanced");
             auto line = Line{ L("Modes"), L("") };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) -> wxSizer* {
@@ -6291,6 +5702,53 @@ if (is_marlin_flavor)
                     m_config->set_key_value("imex_mode_gcodes",       new ConfigOptionStrings(gcodes));
                     update_dirty();
                     on_value_change("imex_mode_names", std::string(""));
+                };
+                // A plate stores its IMEX mode as the mode's *name*, resolved against this
+                // table at slice time, so deleting a row strands every plate that was using
+                // it. Those plates print as Primary either way -- GCode.cpp falls back when
+                // the name resolves to no row -- but until they are reset they keep claiming
+                // a mode that no longer exists: the plate button still shows the old label,
+                // the mode is written back out to the 3MF, and re-adding a different mode at
+                // the same position would not revive it. Resetting them here is what makes
+                // "deleting a mode resets the plates using it to Primary" true.
+                //
+                // Deletion only. Renaming is deliberately not funnelled through here: the
+                // name field notifies on every keystroke, so an in-progress rename would
+                // orphan and reset the plate on the first character typed.
+                //
+                // Because of that, a row can be renamed and only then deleted, and the plate
+                // is still holding the name it was set from. The control therefore reports
+                // every name the deleted row was known by -- its build-time name and its name
+                // at delete time -- already filtered of anything a surviving row still
+                // carries, so matching any of them is safe.
+                m_imex_modes_ctrl->on_mode_removed = [](const std::vector<std::string>& removed_modes) {
+                    Plater* plater = wxGetApp().plater();
+                    if (!plater || removed_modes.empty())
+                        return;
+                    PartPlateList&          plates = plater->get_partplate_list();
+                    std::vector<PartPlate*> affected;
+                    for (int i = 0; i < plates.get_plate_count(); ++i) {
+                        PartPlate* plate = plates.get_plate(i);
+                        if (!plate)
+                            continue;
+                        const std::string mode = plate->get_imex_mode();
+                        if (mode.empty() || mode == kImexPrimaryMode)
+                            continue;
+                        if (std::find(removed_modes.begin(), removed_modes.end(), mode) != removed_modes.end())
+                            affected.push_back(plate);
+                    }
+                    if (affected.empty())
+                        return;
+                    // One snapshot for the whole batch, so a single undo restores every plate.
+                    // Same sequence the plate's own mode button runs (Plater::select_plate_by_hover_id,
+                    // PLATE_IMEX_MODE_ID) -- reset_imex_mode() already invalidates each plate's
+                    // slice result and its zone / ghost caches.
+                    plater->take_snapshot("reset imex mode");
+                    for (PartPlate* plate : affected)
+                        plate->reset_imex_mode();
+                    plater->update_project_dirty_from_presets();
+                    plater->set_plater_dirty(true);
+                    plater->update();
                 };
                 auto* sizer = new wxBoxSizer(wxHORIZONTAL);
                 sizer->Add(m_imex_modes_ctrl, 1, wxEXPAND);
@@ -6758,7 +6216,7 @@ void TabPrinter::toggle_options()
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = m_config->option<ConfigOptionEnumsGeneric>("extruder_type");
         auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes](int extruder_id, int stride = 1) {
+            [this, &extruders](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, "printer_extruder_id",
             ExtruderType(extruders->values[extruder_id]), get_actual_nozzle_volume_type(extruder_id), "printer_extruder_variant", stride);
     };
@@ -8468,18 +7926,18 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         this->update_changed_ui();
     };
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([this, &deps, on_toggle](wxMouseEvent& e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([&deps, on_toggle](wxMouseEvent& e) {
         if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([this, &deps, on_toggle](wxMouseEvent& e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([&deps, on_toggle](wxMouseEvent& e) {
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([this, on_toggle](wxCommandEvent& e) {
+    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([on_toggle](wxCommandEvent& e) {
         on_toggle(e.IsChecked());
         e.Skip();
     }), deps.checkbox->GetId());
@@ -9061,7 +8519,7 @@ void Tab::switch_excluder(int extruder_id, bool reload)
             return;
     }
     auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
+            [this, &extruders, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), get_actual_nozzle_volume_type(extruder_id), variant_keys.second, stride);
     };
@@ -9118,7 +8576,7 @@ void Tab::sync_excluder()
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
     auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, NozzleVolumeType nozzle_type) {
+            [this, &extruders, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, NozzleVolumeType nozzle_type) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), nozzle_type, variant_keys.second);
     };
@@ -9159,7 +8617,7 @@ void Tab::sync_excluder()
         }
     }
     if (config_to_apply.empty()) {
-        MessageDialog md(wxGetApp().plater(), _L("No modifications need to be copied."), _L("Copy paramters"), wxICON_INFORMATION | wxOK);
+        MessageDialog md(wxGetApp().plater(), _L("No modifications need to be copied."), _L("Copy parameters"), wxICON_INFORMATION | wxOK);
         md.ShowModal();
         return;
     }
@@ -9167,7 +8625,7 @@ void Tab::sync_excluder()
     std::string pt = m_preset_bundle->printers.get_edited_preset().get_printer_type(m_preset_bundle);
     std::string active_nozzle_name = DevPrinterConfigUtil::get_toolhead_display_name(pt, active_index, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase);
     std::string other_nozzle_name  = DevPrinterConfigUtil::get_toolhead_display_name(pt, 1 - active_index, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase);
-    wxString title  = wxString::Format(_L("Modify paramters of %s"), _L(active_nozzle_name));
+    wxString title  = wxString::Format(_L("Modify parameters of %s"), _L(active_nozzle_name));
     wxString header = wxString::Format(_L("Do you want to modify the following parameters of the %s to that of the %s?"),
                                        _L(active_nozzle_name), _L(other_nozzle_name));
     UnsavedChangesDialog dlg(title, header, &config_origin, from_index, dest_index, active_index == 0, active_nozzle);

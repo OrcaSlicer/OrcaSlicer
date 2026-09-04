@@ -733,12 +733,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
                 ConfigOptionVectorBase* opt_vec_inherit = static_cast<ConfigOptionVectorBase*>(parent_config->option(option));
                 if (opt_vec_src->size() == 1)
                     opt_dst->set(opt_src);
-                else if (opt_vec_src->size() != opt_vec_inherit->size()) {
-                    // Size mismatch (e.g. new multi-extruder profile inheriting from a
-                    // single-extruder base): nil-delta encoding requires matching sizes,
-                    // so fall back to storing the full vector.
-                    opt_dst->set(opt_src);
-                }
                 else if (key_set1->find(option) != key_set1->end()) {
                     opt_vec_dst->set_with_nil(opt_vec_src, opt_vec_inherit, 1);
                 }
@@ -989,15 +983,19 @@ BedType Preset::get_default_bed_type(PresetBundle* preset_bundle)
     if (config.has("default_bed_type") && !config.opt_string("default_bed_type").empty()) {
         try {
             std::string str_bed_type = config.opt_string("default_bed_type");
-            
-            // Try parsing as integer first (legacy format)
+            BedType bed_type;
+            if (ConfigOptionEnum<BedType>::from_string(str_bed_type, bed_type) &&
+                bed_type > btDefault && bed_type < btCount) {
+                return bed_type;
+            }
+
+            // Try parsing as integer (legacy format)
             int bed_type_value = atoi(str_bed_type.c_str());
-            if (bed_type_value > 0) {
+            if (bed_type_value > 0 && bed_type_value < BedType::btCount) {
                 return BedType(bed_type_value);
             }
-            else {
-                BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
-            }
+
+            BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
             return BedType::btPEI;
 
         } catch(...) {
@@ -1905,12 +1903,6 @@ Preset* PresetCollection::get_preset_differed_for_save(Preset& preset)
                 ConfigOptionVectorBase* opt_vec_inherit = static_cast<ConfigOptionVectorBase*>(parent_preset->config.option(option));
                 if (opt_vec_src->size() == 1)
                     opt_dst->set(opt_src);
-                else if (opt_vec_src->size() != opt_vec_inherit->size()) {
-                    // Size mismatch (e.g. new multi-extruder profile inheriting from a
-                    // single-extruder base): nil-delta encoding requires matching sizes,
-                    // so fall back to storing the full vector.
-                    opt_dst->set(opt_src);
-                }
                 else if (key_set1->find(option) != key_set1->end()) {
                     opt_vec_dst->set_with_nil(opt_vec_src, opt_vec_inherit, 1);
                 }

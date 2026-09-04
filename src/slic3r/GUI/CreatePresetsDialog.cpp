@@ -599,7 +599,9 @@ static char* read_json_file(const std::string &preset_path)
         return NULL;
     }
 
-    fread(json_contents, 1, file_size, json_file);
+    const size_t read_bytes = fread(json_contents, 1, file_size, json_file);
+    if (read_bytes != static_cast<size_t>(file_size))
+        BOOST_LOG_TRIVIAL(error) << "Read " << read_bytes << " of " << file_size << " bytes from the JSON file";
     fclose(json_file);
 
     return json_contents;
@@ -1885,7 +1887,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
 
     m_custom_nozzle_diameter_ctrl = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE);
     m_custom_nozzle_diameter_ctrl->SetHint(_L("Input Custom Nozzle Diameter"));
-    m_custom_nozzle_diameter_ctrl->Bind(wxEVT_CHAR, [this](wxKeyEvent &event) {
+    m_custom_nozzle_diameter_ctrl->Bind(wxEVT_CHAR, [](wxKeyEvent &event) {
         int key = event.GetKeyCode();
         if (key != 44 && key != 46 && cannot_input_key.find(key) != cannot_input_key.end()) { // "@" can not be inputed
             event.Skip(false);
@@ -3867,14 +3869,14 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     m_preset_sizer->Add(create_checkbox(m_presets_window, preset.second, printer_name, m_preset), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT,
                                         FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.filament_preset) {
                 for (std::pair<std::string, std::vector<std::pair<std::string, Preset *>>> filament_name_to_preset : m_filament_name_to_presets) {
                     if (filament_name_to_preset.second.empty()) continue;
                     wxString filament_name = wxString::FromUTF8(filament_name_to_preset.first);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, filament_name, m_printer_name), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.process_preset) {
                 for (std::pair<std::string, std::vector<Preset *>> presets : m_process_presets) {
                     Preset *      printer_preset = preset_bundle->printers.find_preset(presets.first, false);
@@ -3890,7 +3892,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     }
 
                 }
-                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a ZIP archive."));
             }
             //m_presets_window->SetSizerAndFit(m_preset_sizer);
             m_presets_window->Layout();

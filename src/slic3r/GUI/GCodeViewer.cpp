@@ -11,6 +11,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
+#include "libslic3r/IMEXZones.hpp"
 //BBS: add convex hull logic for toolpath check
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
@@ -1606,6 +1607,228 @@ void GCodeViewer::reset()
     m_contained_in_bed = true;
 }
 
+// IDEX/IQEX: resolve where every secondary carriage marker sits, relative to the primary,
+// for one (printer preset, active mode, plate bed) triple. This parses the mode string
+// several times over and rebuilds the zone grid, and every one of its inputs is preset or
+// plate state, so render() runs it only when GCodeViewer::ImexMarkerKey changes and replays
+// the returned plan on all the frames in between.
+//
+// `mode` is already resolved (the plate's mode beats the process preset). An empty
+// `carriages` list means "no secondary markers for this configuration" — IMEX off in this
+// mode, firmware-managed zones, or a mode whose roster has no zone-owning secondary.
+GCodeViewer::ImexMarkerPlan GCodeViewer::resolve_imex_marker_plan(const DynamicPrintConfig& printer_cfg,
+                                                                  const std::string&        mode,
+                                                                  const BoundingBoxf&       bed_extents)
+{
+    ImexMarkerPlan plan;
+
+    // Firmware-managed-zones centers the slice at bed origin, so prim_pos
+    // and the preview toolpaths sit in a shifted frame relative to the
+    // plate-local bed bounds the zone math uses. Computing secondaries here
+    // would place them off-bed. The firmware physically fans the centered
+    // toolpath out into the zones, so the centered preview with no
+    // secondaries is the honest representation.
+    auto* fw_opt = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
+    if (fw_opt && fw_opt->value)
+        return plan;
+    if (mode.empty() || mode == kImexPrimaryMode)
+        return plan;
+
+    auto* tpg_opt = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
+    auto* wx_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
+    auto* wy_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
+    // Only the gantry grouping and the mirror axis are decided here; the zone
+    // grid itself comes from compute_imex_zone_layout() below. The fallback is 2,
+    // matching PrintConfig.cpp:6643, compute_imex_zone_layout() and
+    // PartPlate::calc_imex_ghosts() -- all four must agree, or a missing key
+    // groups tools against a grid divided a different way.
+    const int tools_per_gantry = tpg_opt ? std::max(1, tpg_opt->value) : 2;
+    plan.box_wx = wx_opt ? (float)wx_opt->value : 30.0f;
+    plan.box_wy = wy_opt ? (float)wy_opt->value : 30.0f;
+
+    // Parse "idx:P/C/M" via shared helpers — matches PartPlate::calc_imex_zones.
+    // The role travels as an ImexRole all the way to the marker placement
+    // below; there is no int encoding in between, so a role added to the enum
+    // cannot silently fall into the "not Mirror, therefore Copy" branch.
+    int pri_tool = -1;
+    std::vector<int> sec_tool_ids;
+    std::map<int, ImexRole> sec_tool_roles; // tool_id -> Copy or Mirror
+    std::set<int>     sec_aggregated;  // representatives standing in for a whole gantry
+    {
+        // Same lookup rule as PartPlate's zones and ghosts, and as the slicer:
+        // an unresolved mode, and a mode the tools array is too short to cover,
+        // both come back empty and leave the marker roster empty.
+        const std::string entry = find_imex_mode(printer_cfg, mode).active_tools;
+        pri_tool = imex_primary_tool_for_mode(entry);
+        // Aggregate per gantry via the same source of truth as PartPlate's
+        // zone/ghost aggregation: in Span modes only one tool prints per
+        // zone at a time, so a non-primary gantry collapses to one
+        // representative marker. Non-Span gantries keep per-tool markers.
+        const ImexGantryGrouping grouping =
+            group_imex_active_tools_by_gantry(entry, tools_per_gantry);
+        auto add_tool = [&](int phys_idx, ImexRole role, bool aggregated) {
+            if (phys_idx < 0 || phys_idx == pri_tool) return;
+            // Only Copy and Mirror print in a zone of their own, so only they
+            // get a marker. Exhaustive with no default so -Wswitch makes a new
+            // role answer "does this carriage get its own marker?" rather than
+            // defaulting into a Copy-shaped one.
+            switch (role) {
+            case ImexRole::Copy:
+            case ImexRole::Mirror:
+                break;
+            case ImexRole::Primary:  // not a secondary carriage
+            case ImexRole::Span:     // rides in the primary's zone
+                return;
+            }
+            sec_tool_roles[phys_idx] = role;
+            sec_tool_ids.push_back(phys_idx);
+            if (aggregated) sec_aggregated.insert(phys_idx);
+        };
+        // Out-of-grid tool indices (a stale mode string carried over from a
+        // printer with more tools) are handled inconsistently by the code we
+        // must agree with: compute_imex_zone_layout drops them, so they own no
+        // zone, while calc_imex_ghosts still bakes a ghost for them. No single
+        // policy matches both, so the marker roster is left exactly as it was
+        // and such a tool simply falls back to the first zone below. Clamping
+        // pri_tool instead is a trap: the -1 sentinel truncates to gantry 0 in
+        // imex_mirror_axis_for and flips the marker to the opposite mirror
+        // axis from the ghost. It is also why the layout's own `primary_head`
+        // cannot stand in for `pri_tool` here — the layout reports -1 for an
+        // off-grid primary, this roster has to keep the authored index.
+        for (const auto& grp : grouping.groups) {
+            // Markers: an aggregated non-primary gantry shows only its rep.
+            if (grp.aggregate && grp.gantry_index != grouping.primary_gantry)
+                add_tool(grp.representative_phys, grp.representative_role, true);
+            else
+                for (const auto& [phys_idx, role] : grp.tools)
+                    add_tool(phys_idx, role, false);
+        }
+    }
+    const int sec_count = (int)sec_tool_ids.size();
+    if (sec_count == 0)
+        return plan;
+
+    // The zone grid is not re-derived here: this is the same call
+    // PartPlate::calc_imex_zones() makes, with the same printer config and the
+    // same bed extents, so the preview and the plate cannot place a tool
+    // differently for the same mode. The T0-corner flips, the active
+    // column/row sets and the zone pitch all live inside the library; the
+    // markers need nothing from it but `head_zone_centers`.
+    // `mode` is already resolved (per-plate mode beats the process preset),
+    // so it goes in as the plate mode with no process fallback.
+    const ImexZoneLayout zone_layout =
+        compute_imex_zone_layout(printer_cfg, mode, std::string(), bed_extents);
+
+    // Centre of zone (0,0), the fallback for any head the layout gave no zone —
+    // a mode string naming a tool outside this printer's grid. Zone indices are
+    // dense, so the lowest centre on each axis IS zone 0's. An empty layout
+    // means one undivided zone, whose centre is the bed's.
+    Vec2d zone0_center = bed_extents.center();
+    if (!zone_layout.head_zone_centers.empty()) {
+        zone0_center = zone_layout.head_zone_centers.begin()->second;
+        for (const auto& head_center : zone_layout.head_zone_centers) {
+            zone0_center.x() = std::min(zone0_center.x(), head_center.second.x());
+            zone0_center.y() = std::min(zone0_center.y(), head_center.second.y());
+        }
+    }
+    auto zone_center_of = [&](int tid) -> Vec2d {
+        auto it = zone_layout.head_zone_centers.find(tid);
+        return (it == zone_layout.head_zone_centers.end()) ? zone0_center : it->second;
+    };
+    const Vec2d pri_center = zone_center_of(pri_tool);
+
+    // An aggregated gantry's zone is a full-X row strip with no column of its
+    // own, so its marker tracks primary's X. calc_imex_ghosts() reaches the same
+    // zero X offset by putting both frames on the bed centreline; for a single
+    // marker, pinning the centre says it directly.
+    auto sec_center_of = [&](int tid) -> Vec2d {
+        Vec2d c = zone_center_of(tid);
+        if (sec_aggregated.count(tid))
+            c.x() = pri_center.x();
+        return c;
+    };
+
+    // Primary carriage box: seeded from whether primary holds the leftmost zone
+    // column, then turned by any secondary sitting to one side of it.
+    plan.pri_box_offset_x = (pri_center.x() <= zone0_center.x()) ? 0.0f : -plan.box_wx;
+    plan.pri_box_offset_y = -plan.box_wy;
+    for (int i = 0; i < sec_count; ++i) {
+        const Vec2d sc = sec_center_of(sec_tool_ids[i]);
+        if      (sc.x() > pri_center.x()) { plan.pri_box_offset_x = 0.0f;         }
+        else if (sc.x() < pri_center.x()) { plan.pri_box_offset_x = -plan.box_wx; }
+        if      (sc.y() > pri_center.y()) { plan.pri_box_offset_y = 0.0f;         }
+        else if (sc.y() < pri_center.y()) { plan.pri_box_offset_y = -plan.box_wy; }
+    }
+
+    plan.carriages.reserve(sec_count);
+    for (int i = 0; i < sec_count; ++i) {
+        const int   sec_tool   = sec_tool_ids[i];
+        const Vec2d sec_center = sec_center_of(sec_tool);
+        const ImexRole sec_role = sec_tool_roles[sec_tool];
+
+        // A carriage stays inside its own zone; a Mirror reflects its
+        // zone-relative offset about that zone's centerline, on the axis of the
+        // boundary it shares with primary — the same rule the ghosts use:
+        //   Copy                  → tracks primary on both axes.
+        //   Mirror, same gantry   → reflect X (zones sit side by side).
+        //   Mirror, other gantry  → reflect Y (zones sit front-to-back); X
+        //                           tracks primary, since the part off that
+        //                           gantry is a Y-reflection of the tool
+        //                           directly behind it.
+        // The axis comes from the shared helper, so the markers can never drift
+        // out of step with the plate ghosts.
+        const bool is_mirror    = (sec_role == ImexRole::Mirror);
+        const bool cross_gantry = imex_mirror_axis_for(pri_tool, sec_tool,
+                                                       tools_per_gantry) == ImexMirrorAxis::Y;
+
+        // Tracking an axis translates by the gap between the two zone centres.
+        // Mirroring it reflects primary about the midpoint of those centres —
+        // the zones being equal-sized, that midpoint is the boundary between
+        // them, so the carriage still lands inside its own zone. Both are a
+        // single term applied to the live primary position each frame:
+        // `term - pos` when mirrored, `pos + term` when tracked.
+        ImexMarkerPlan::Carriage carriage;
+        carriage.mirror_x = is_mirror && !cross_gantry;
+        carriage.mirror_y = is_mirror &&  cross_gantry;
+        carriage.x_term   = carriage.mirror_x ? (float)(sec_center.x() + pri_center.x())
+                                              : (float)(sec_center.x() - pri_center.x());
+        carriage.y_term   = carriage.mirror_y ? (float)(sec_center.y() + pri_center.y())
+                                              : (float)(sec_center.y() - pri_center.y());
+
+        // The box shows the side a toolhead could COLLIDE from, not merely which
+        // way its body hangs. Tools sharing a gantry share an X rail and can
+        // actually run into each other, and only in a same-gantry (X-axis) mirror
+        // do they converge — so that is the one case where the secondary's box
+        // flips to face the primary. Tools on different gantries cannot collide
+        // in X at all, so a cross-gantry mirror keeps the primary's facing, the
+        // same as a Copy. Do not "fix" this to follow carriage geometry: a box on
+        // the far side would point away from the only tool it can hit.
+        if (is_mirror && !cross_gantry) {
+            if      (sec_center.x() > pri_center.x()) carriage.box_offset_x = -plan.box_wx;
+            else if (sec_center.x() < pri_center.x()) carriage.box_offset_x = 0.0f;
+            else                                      carriage.box_offset_x = plan.pri_box_offset_x;
+        } else {
+            carriage.box_offset_x = plan.pri_box_offset_x;
+        }
+        // Y follows the same collision rule: face the gantry you could hit. A tool
+        // on ANOTHER row faces the primary's row; a tool on the primary's OWN row
+        // shares its gantry and can only hit the same other gantry, so it faces
+        // wherever the primary faces. The old `else` hardcoded -imex_box_wy, which
+        // happens to equal pri_box_offset_y on the rear-* layouts (primary's row
+        // sits above the others, so the loop above settles on -box_wy anyway)
+        // — hence a no-op there. On the front-* layouts the primary flips to 0.0f
+        // and the hardcoded value pointed the same-gantry secondary away from the
+        // only tools it could run into.
+        if      (sec_center.y() > pri_center.y()) carriage.box_offset_y = -plan.box_wy;
+        else if (sec_center.y() < pri_center.y()) carriage.box_offset_y = 0.0f;
+        else                                      carriage.box_offset_y = plan.pri_box_offset_y;
+
+        plan.carriages.push_back(carriage);
+    }
+
+    return plan;
+}
+
 //BBS: GUI refactor: add canvas width and height
 void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 {
@@ -1658,291 +1881,109 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                 auto* mode_opt = process_cfg.opt<ConfigOptionString>("imex_parallel_mode");
                 std::string mode = mode_opt ? mode_opt->value : kImexPrimaryMode;
                 // Per-plate mode overrides the process preset.
-                if (auto* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate()) {
-                    std::string plate_mode = plate->get_imex_mode();
+                PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
+                PartPlate*     curr_plate = plate_list.get_curr_plate();
+                if (curr_plate) {
+                    std::string plate_mode = curr_plate->get_imex_mode();
                     if (plate_mode != kImexPrimaryMode)
                         mode = plate_mode;
                 }
 
-                if (mode != m_imex_last_mode) {
-                    m_sequential_view.m_imex_secondary_markers.clear();
-                    m_imex_last_mode = mode;
+                // Bed X and Y bounds — read from the current plate's shape, which is
+                // in world/GL coordinates (same space as curr_vertex.position), and is
+                // the exact same source PartPlate::calc_imex_zones() hands to the library.
+                BoundingBoxf bed_extents;
+                {
+                    const Pointfs& plate_shape = curr_plate ? curr_plate->get_shape() : Pointfs{};
+                    if (!plate_shape.empty()) {
+                        bed_extents = get_extents(plate_shape);
+                    } else {
+                        // Fallback: use toolpath bounding box extent
+                        bed_extents = BoundingBoxf(Vec2d(m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y()),
+                                                   Vec2d(m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y()));
+                    }
                 }
 
-                // Firmware-managed-zones centers the slice at bed origin, so prim_pos
-                // and the preview toolpaths sit in a shifted frame relative to the
-                // plate-local bed bounds the zone math uses. Computing secondaries here
-                // would place them off-bed. The firmware physically fans the centered
-                // toolpath out into the zones, so the centered preview with no
-                // secondaries is the honest representation.
-                auto* fw_opt = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
-                const bool firmware_managed = fw_opt && fw_opt->value;
+                // Cache guard. The marker plan below is resolved from preset/plate state only,
+                // so it is rebuilt when that state moves and reused otherwise — the sequential
+                // slider is sticky, and re-resolving the zone layout on every frame of the rest
+                // of the session showed up as a measurable per-frame cost. The comparison is
+                // deliberately made against the live config rather than against a freshly built
+                // key, so an unchanged frame allocates nothing at all.
+                static const std::vector<std::string> s_no_strings;
+                auto* gantry_opt = printer_cfg.opt<ConfigOptionInt>("imex_gantry_count");
+                auto* tpg_opt    = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
+                auto* layout_opt = printer_cfg.opt<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
+                auto* wx_opt     = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
+                auto* wy_opt     = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
+                auto* fw_opt     = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
+                auto* names_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
+                auto* tools_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
+                const std::vector<std::string>& mode_names   = names_opt ? names_opt->values : s_no_strings;
+                const std::vector<std::string>& active_tools = tools_opt ? tools_opt->values : s_no_strings;
 
-                if (!firmware_managed && !mode.empty() && mode != kImexPrimaryMode) {
-                    auto* mode_names_opt   = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
-                    auto* active_tools_opt = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
+                ImexMarkerKey::Scalars key;
+                key.plate_index      = plate_list.get_curr_plate_index();
+                key.gantry_count     = gantry_opt ? gantry_opt->value : 0;
+                key.tools_per_gantry = tpg_opt    ? tpg_opt->value    : 0;
+                key.tool_layout      = layout_opt ? (int)layout_opt->value : -1;
+                key.clearance_x      = wx_opt ? wx_opt->value : 0.0;
+                key.clearance_y      = wy_opt ? wy_opt->value : 0.0;
+                key.firmware_managed = fw_opt && fw_opt->value;
+                key.bed_min_x        = bed_extents.min.x();
+                key.bed_min_y        = bed_extents.min.y();
+                key.bed_max_x        = bed_extents.max.x();
+                key.bed_max_y        = bed_extents.max.y();
 
-                    auto* tpg_opt = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
-                    auto* gc_opt  = printer_cfg.opt<ConfigOptionInt>("imex_gantry_count");
-                    auto* wx_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
-                    auto* wy_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
-                    int tools_per_gantry = tpg_opt ? std::max(1, tpg_opt->value) : 1;
-                    int gantry_count     = gc_opt  ? std::max(1, gc_opt->value)  : 1;
-                    imex_box_wx = wx_opt ? (float)wx_opt->value : 30.0f;
-                    imex_box_wy = wy_opt ? (float)wy_opt->value : 30.0f;
+                if (!(m_imex_marker_key.s == key) || m_imex_marker_key.mode != mode ||
+                    m_imex_marker_key.mode_names != mode_names ||
+                    m_imex_marker_key.mode_active_tools != active_tools) {
+                    m_imex_marker_key = ImexMarkerKey{ key, mode, mode_names, active_tools };
+                    m_imex_marker_plan = resolve_imex_marker_plan(printer_cfg, mode, bed_extents);
+                    // The carriage roster — and with it the marker count and colour order —
+                    // can change with any of those inputs, so drop the markers and let the
+                    // lazy init below rebuild them.
+                    m_sequential_view.m_imex_secondary_markers.clear();
+                }
 
-                    // Parse "idx:P/C/M" via shared helpers — matches PartPlate::calc_imex_zones.
-                    // Secondary state is 2=Copy / 3=Mirror to match the legacy encoding used
-                    // downstream for marker color selection.
-                    int pri_tool = -1;
-                    std::vector<int> sec_tool_ids;
-                    std::map<int,int> sec_tool_states; // tool_id -> 2=Copy, 3=Mirror
-                    std::set<int>     sec_aggregated;  // representatives standing in for a whole gantry
-                    // Which tools SIZE the grid is a different question from which tools get a
-                    // MARKER. calc_imex_zones sizes its grid from every Copy/Mirror tool — an
-                    // aggregated gantry's non-representatives still donate their column — while only
-                    // the representative contributes a cell. Track both sets, or the strips here come
-                    // out a different width than the ones painted on the plate and every marker
-                    // drifts from its ghost.
-                    std::vector<int> grid_tool_ids;
-                    if (mode_names_opt && active_tools_opt) {
-                        for (size_t i = 0; i < mode_names_opt->values.size(); ++i) {
-                            if (i < active_tools_opt->values.size() && mode_names_opt->values[i] == mode) {
-                                const std::string& entry = active_tools_opt->values[i];
-                                pri_tool = imex_primary_tool_for_mode(entry);
-                                // Aggregate per gantry via the same source of truth as PartPlate's
-                                // zone/ghost aggregation: in Span modes only one tool prints per
-                                // zone at a time, so a non-primary gantry collapses to one
-                                // representative marker. Non-Span gantries keep per-tool markers.
-                                const ImexGantryGrouping grouping =
-                                    group_imex_active_tools_by_gantry(entry, tools_per_gantry);
-                                auto add_tool = [&](int phys_idx, ImexRole role, bool aggregated) {
-                                    if (phys_idx < 0 || phys_idx == pri_tool) return;
-                                    if      (role == ImexRole::Mirror) sec_tool_states[phys_idx] = 3;
-                                    else if (role == ImexRole::Copy)   sec_tool_states[phys_idx] = 2;
-                                    else return; // Primary / Span carry no secondary marker
-                                    sec_tool_ids.push_back(phys_idx);
-                                    if (aggregated) sec_aggregated.insert(phys_idx);
-                                };
-                                // Out-of-grid tool indices (a stale mode string carried over from a
-                                // printer with more tools) are handled inconsistently by the code we
-                                // must agree with: calc_imex_zones drops them, calc_imex_ghosts keeps
-                                // them. No single policy matches both, so bound only what has to
-                                // match the ZONE grid — the sizing set — and leave pri_tool and the
-                                // markers exactly as they were. Clamping pri_tool instead is a trap:
-                                // the -1 sentinel truncates to gantry 0 in imex_mirror_axis_for and
-                                // flips the marker to the opposite mirror axis from the ghost.
-                                const int grid_slots = tools_per_gantry * gantry_count;
-                                for (const auto& grp : grouping.groups) {
-                                    // Grid sizing: every in-grid Copy/Mirror tool, aggregated or not —
-                                    // matches calc_imex_zones' ac_set/ar_set exactly.
-                                    for (const auto& [phys_idx, role] : grp.tools) {
-                                        if (phys_idx < 0 || phys_idx >= grid_slots) continue;
-                                        if (phys_idx == pri_tool) continue;
-                                        if (role == ImexRole::Copy || role == ImexRole::Mirror)
-                                            grid_tool_ids.push_back(phys_idx);
-                                    }
-                                    // Markers: an aggregated non-primary gantry shows only its rep.
-                                    if (grp.aggregate && grp.gantry_index != grouping.primary_gantry)
-                                        add_tool(grp.representative_phys, grp.representative_role, true);
-                                    else
-                                        for (const auto& [phys_idx, role] : grp.tools)
-                                            add_tool(phys_idx, role, false);
-                                }
-                                break;
-                            }
+                const ImexMarkerPlan& plan      = m_imex_marker_plan;
+                const int             sec_count = (int)plan.carriages.size();
+                if (sec_count > 0) {
+                    imex_active = true;
+                    imex_box_wx = plan.box_wx;
+                    imex_box_wy = plan.box_wy;
+
+                    // Lazy init secondary nozzle markers
+                    if ((int)m_sequential_view.m_imex_secondary_markers.size() != sec_count) {
+                        m_sequential_view.m_imex_secondary_markers.resize(sec_count);
+                        for (int i = 0; i < sec_count; ++i) {
+                            m_sequential_view.m_imex_secondary_markers[i].init(m_marker_filename);
+                            m_sequential_view.m_imex_secondary_markers[i].set_color(
+                                s_carriage_colors[(i + 1) % s_carriage_colors.size()]);
                         }
                     }
-                    int sec_count = (int)sec_tool_ids.size();
 
-                    if (sec_count > 0) {
-                        imex_active = true;
+                    const Vec3f prim_pos = libvgcode::convert(curr_vertex.position);
+                    carriage_box_draws.push_back({ prim_pos, s_carriage_colors[0],
+                                                   plan.pri_box_offset_x, plan.pri_box_offset_y });
 
-                        // Lazy init secondary nozzle markers
-                        if ((int)m_sequential_view.m_imex_secondary_markers.size() != sec_count) {
-                            m_sequential_view.m_imex_secondary_markers.resize(sec_count);
-                            for (int i = 0; i < sec_count; ++i) {
-                                m_sequential_view.m_imex_secondary_markers[i].init(m_marker_filename);
-                                m_sequential_view.m_imex_secondary_markers[i].set_color(
-                                    s_carriage_colors[(i + 1) % s_carriage_colors.size()]);
-                            }
-                        }
-
-                        // Bed X and Y bounds — read from the current plate's shape, which is
-                        // in world/GL coordinates (same space as curr_vertex.position), and is
-                        // the exact same source used by PartPlate::calc_imex_zones().
-                        float bed_x_min, bed_x_max, bed_y_min, bed_y_max;
-                        {
-                            PartPlate* curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-                            const Pointfs& plate_shape = curr_plate ? curr_plate->get_shape() : Pointfs{};
-                            if (!plate_shape.empty()) {
-                                bed_x_min = (float)plate_shape[0].x();
-                                bed_x_max = bed_x_min;
-                                bed_y_min = (float)plate_shape[0].y();
-                                bed_y_max = bed_y_min;
-                                for (const auto& pt : plate_shape) {
-                                    bed_x_min = std::min(bed_x_min, (float)pt.x());
-                                    bed_x_max = std::max(bed_x_max, (float)pt.x());
-                                    bed_y_min = std::min(bed_y_min, (float)pt.y());
-                                    bed_y_max = std::max(bed_y_max, (float)pt.y());
-                                }
-                            } else {
-                                // Fallback: use toolpath bounding box extent
-                                bed_x_min = (float)m_paths_bounding_box.min.x();
-                                bed_x_max = (float)m_paths_bounding_box.max.x();
-                                bed_y_min = (float)m_paths_bounding_box.min.y();
-                                bed_y_max = (float)m_paths_bounding_box.max.y();
-                            }
-                        }
-
-                        // Apply the same flip logic as PartPlate::calc_imex_zones() so physical
-                        // grid positions match the bed zone visualization. Use option<>() not
-                        // opt<>(): enum options load from presets as ConfigOptionEnumGeneric, so
-                        // opt<>()'s dynamic_cast to ConfigOptionEnum<ImexToolLayout> returns null
-                        // and silently falls back to the FrontLeft default (flip_y wrong).
-                        auto* layout_opt = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
-                        const ImexToolLayout layout = layout_opt ? layout_opt->value : ImexToolLayout::FrontLeft;
-                        const bool flip_x = (layout == ImexToolLayout::FrontRight || layout == ImexToolLayout::RearRight);
-                        const bool flip_y = (layout == ImexToolLayout::RearLeft   || layout == ImexToolLayout::RearRight);
-
-                        auto phys_col_of = [&](int tid) -> int {
-                            int raw = tid % tools_per_gantry;
-                            return flip_x ? (tools_per_gantry - 1 - raw) : raw;
-                        };
-                        auto phys_row_of = [&](int tid) -> int {
-                            int raw = tid / tools_per_gantry;
-                            return flip_y ? (gantry_count - 1 - raw) : raw;
-                        };
-
-                        // Build active col/row sets — mirrors PartPlate::calc_imex_zones() so
-                        // zone sizes and positions stay in sync with the bed visualization.
-                        const int   pri_phys_col = (pri_tool >= 0) ? phys_col_of(pri_tool) : 0;
-                        const int   pri_phys_row = (pri_tool >= 0) ? phys_row_of(pri_tool) : 0;
-
-                        // Grid sizing and cell placement answer different questions, and
-                        // calc_imex_zones answers them differently — match it on both counts or the
-                        // markers drift from the ghosts:
-                        //   sizing:    every Copy/Mirror tool donates its OWN column/row (ac_set is
-                        //              built from tool_to_phys, unpinned), so an aggregated gantry's
-                        //              non-representatives still widen the grid.
-                        //   placement: an aggregated cell is PINNED to the primary's column
-                        //              (copy_cells/mirror_cells insert {pri_col, r}), because the
-                        //              row-strip spans full X and has no column of its own.
-                        auto eff_col_of = [&](int tid) {
-                            return sec_aggregated.count(tid) ? pri_phys_col : phys_col_of(tid);
-                        };
-
-                        std::map<int,int> phys_col_to_zone_gv, phys_row_to_zone_gv;
-                        int n_active_cols_gv = 1, n_active_rows_gv = 1;
-                        {
-                            std::set<int> ac, ar;
-                            ac.insert(pri_phys_col); ar.insert(pri_phys_row);
-                            for (int tid : grid_tool_ids) {
-                                ac.insert(phys_col_of(tid));
-                                ar.insert(phys_row_of(tid));
-                            }
-                            // col_to_zone / row_to_zone: physical index → zone index (sorted)
-                            int k = 0;
-                            for (int c : ac) phys_col_to_zone_gv[c] = k++;
-                            k = 0;
-                            for (int r : ar) phys_row_to_zone_gv[r] = k++;
-                            n_active_cols_gv = (int)ac.size();
-                            n_active_rows_gv = (int)ar.size();
-                        }
-                        auto zone_col = [&](int pc) { auto it = phys_col_to_zone_gv.find(pc); return it != phys_col_to_zone_gv.end() ? it->second : 0; };
-                        auto zone_row = [&](int pr) { auto it = phys_row_to_zone_gv.find(pr); return it != phys_row_to_zone_gv.end() ? it->second : 0; };
-
-                        const Vec3f prim_pos         = libvgcode::convert(curr_vertex.position);
-                        const float strip_width      = (bed_x_max - bed_x_min) / (float)n_active_cols_gv;
-                        const float row_strip_height = (bed_y_max - bed_y_min) / (float)n_active_rows_gv;
-                        const int   pri_zone_col     = zone_col(pri_phys_col);
-                        const int   pri_zone_row     = zone_row(pri_phys_row);
-
-                        // Primary carriage box
-                        float pri_box_offset_x = (pri_zone_col == 0) ? 0.0f : -imex_box_wx;
-                        float pri_box_offset_y = -imex_box_wy;
-                        for (int i = 0; i < sec_count; ++i) {
-                            int sc = eff_col_of(sec_tool_ids[i]);
-                            int sr = phys_row_of(sec_tool_ids[i]);
-                            if      (sc > pri_phys_col) { pri_box_offset_x = 0.0f;         }
-                            else if (sc < pri_phys_col) { pri_box_offset_x = -imex_box_wx; }
-                            if      (sr > pri_phys_row) { pri_box_offset_y = 0.0f;         }
-                            else if (sr < pri_phys_row) { pri_box_offset_y = -imex_box_wy; }
-                        }
-                        carriage_box_draws.push_back({ prim_pos, s_carriage_colors[0], pri_box_offset_x, pri_box_offset_y });
-
-                        const float pri_zone_x = bed_x_min + (float)pri_zone_col * strip_width;
-                        const float pri_zone_y = bed_y_min + (float)pri_zone_row * row_strip_height;
-                        const float rel_x      = prim_pos.x() - pri_zone_x;
-                        const float rel_y      = prim_pos.y() - pri_zone_y;
-
-                        for (int i = 0; i < sec_count; ++i) {
-                            int sec_phys_col = eff_col_of(sec_tool_ids[i]);
-                            int sec_phys_row = phys_row_of(sec_tool_ids[i]);
-                            int sec_zc       = zone_col(sec_phys_col);
-                            int sec_zr       = zone_row(sec_phys_row);
-                            const int sec_state = sec_tool_states[sec_tool_ids[i]];
-
-                            // A carriage stays inside its own zone; a Mirror reflects its
-                            // zone-relative offset about that zone's centerline, on the axis of the
-                            // boundary it shares with primary — the same rule the ghosts use:
-                            //   Copy                  → tracks primary on both axes.
-                            //   Mirror, same gantry   → reflect X (zones sit side by side).
-                            //   Mirror, other gantry  → reflect Y (zones sit front-to-back); X
-                            //                           tracks primary, since the part off that
-                            //                           gantry is a Y-reflection of the tool
-                            //                           directly behind it.
-                            // The axis comes from the shared helper, so the markers can never drift
-                            // out of step with the plate ghosts.
-                            const bool is_mirror    = (sec_state == 3);
-                            const bool cross_gantry = imex_mirror_axis_for(pri_tool, sec_tool_ids[i],
-                                                                           tools_per_gantry) == ImexMirrorAxis::Y;
-                            const float sec_zone_x  = bed_x_min + (float)sec_zc * strip_width;
-                            const float sec_zone_y  = bed_y_min + (float)sec_zr * row_strip_height;
-
-                            const float sec_x = (is_mirror && !cross_gantry)
-                                                    ? sec_zone_x + (strip_width - rel_x)
-                                                    : sec_zone_x + rel_x;
-                            const float sec_y = (is_mirror && cross_gantry)
-                                                    ? sec_zone_y + (row_strip_height - rel_y)
-                                                    : sec_zone_y + rel_y;
-
-                            Vec3f sec_pos{ sec_x, sec_y, prim_pos.z() };
-                            m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
-                            m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
-                            // The box shows the side a toolhead could COLLIDE from, not merely which
-                            // way its body hangs. Tools sharing a gantry share an X rail and can
-                            // actually run into each other, and only in a same-gantry (X-axis) mirror
-                            // do they converge — so that is the one case where the secondary's box
-                            // flips to face the primary. Tools on different gantries cannot collide
-                            // in X at all, so a cross-gantry mirror keeps the primary's facing, the
-                            // same as a Copy. Do not "fix" this to follow carriage geometry: a box on
-                            // the far side would point away from the only tool it can hit.
-                            float sec_box_offset_x;
-                            if (is_mirror && !cross_gantry) {
-                                if      (sec_phys_col > pri_phys_col) sec_box_offset_x = -imex_box_wx;
-                                else if (sec_phys_col < pri_phys_col) sec_box_offset_x = 0.0f;
-                                else                                  sec_box_offset_x = pri_box_offset_x;
-                            } else {
-                                sec_box_offset_x = pri_box_offset_x;
-                            }
-                            // Y follows the same collision rule: face the gantry you could hit. A tool
-                            // on ANOTHER row faces the primary's row; a tool on the primary's OWN row
-                            // shares its gantry and can only hit the same other gantry, so it faces
-                            // wherever the primary faces. The old `else` hardcoded -imex_box_wy, which
-                            // happens to equal pri_box_offset_y on the rear-* layouts (primary's row
-                            // sits above the others, so the loop below settles on -imex_box_wy anyway)
-                            // — hence a no-op there. On the front-* layouts the primary flips to 0.0f
-                            // and the hardcoded value pointed the same-gantry secondary away from the
-                            // only tools it could run into.
-                            float sec_box_offset_y;
-                            if      (sec_phys_row > pri_phys_row) sec_box_offset_y = -imex_box_wy;
-                            else if (sec_phys_row < pri_phys_row) sec_box_offset_y = 0.0f;
-                            else                                  sec_box_offset_y = pri_box_offset_y;
-                            carriage_box_draws.push_back({
-                                sec_pos, s_carriage_colors[(i + 1) % s_carriage_colors.size()],
-                                sec_box_offset_x, sec_box_offset_y });
-                        }
+                    for (int i = 0; i < sec_count; ++i) {
+                        const ImexMarkerPlan::Carriage& carriage = plan.carriages[i];
+                        // Tracking an axis translates the primary by the gap between the two
+                        // zone centres; mirroring reflects it about the midpoint of those
+                        // centres — the zones being equal-sized, that midpoint is the boundary
+                        // between them, so the carriage still lands inside its own zone. Which
+                        // axis does which, and both terms, come from resolve_imex_marker_plan().
+                        const Vec3f sec_pos{ carriage.mirror_x ? carriage.x_term - prim_pos.x()
+                                                               : prim_pos.x() + carriage.x_term,
+                                             carriage.mirror_y ? carriage.y_term - prim_pos.y()
+                                                               : prim_pos.y() + carriage.y_term,
+                                             prim_pos.z() };
+                        m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
+                        m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
+                        carriage_box_draws.push_back({
+                            sec_pos, s_carriage_colors[(i + 1) % s_carriage_colors.size()],
+                            carriage.box_offset_x, carriage.box_offset_y });
                     }
                 }
             }
@@ -1961,18 +2002,22 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     // of an app_config entry is also treated as on.
     const bool show_toolhead_boxes = wxGetApp().app_config->get("show_imex_toolhead_boxes") != "false";
     if (show_toolhead_boxes && !carriage_box_draws.empty() && imex_box_wx > 0.0f && imex_box_wy > 0.0f) {
-        // Rebuild box mesh every frame — dimensions can change via config edit without a
-        // G-code reload, so dimension-based caching isn't safe.
+        // The mesh depends only on the two clearance dimensions, which a config edit can
+        // change without a G-code reload — so rebuild it when they move (or when it has not
+        // been built yet) rather than on every frame.
         // Mesh origin: nozzle at x=0, centered in Y, Z starts at nozzle tip level.
         // Per-carriage box_offset_x shifts the mesh left or right so the nozzle lands
         // at the correct (collision-side) edge.
-        {
+        if (!m_imex_toolhead_box.is_initialized() ||
+            m_imex_box_mesh_wx != imex_box_wx || m_imex_box_mesh_wy != imex_box_wy) {
             const float box_h = std::max(imex_box_wx, imex_box_wy);
             indexed_triangle_set its = its_make_cube((double)imex_box_wx, (double)imex_box_wy, (double)box_h);
             // No vertex pre-shifting — box_offset_x/y in the per-carriage transform
             // positions the nozzle at the correct collision-side edge.
             m_imex_toolhead_box.reset();
             m_imex_toolhead_box.init_from(its);
+            m_imex_box_mesh_wx = imex_box_wx;
+            m_imex_box_mesh_wy = imex_box_wy;
         }
 
         GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
@@ -2984,7 +3029,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
 
         return ret;
     };
-    auto append_item = [icon_size, &imgui, imperial_units, &window_padding, &draw_list, this](const ColorRGBA& color, const std::vector<std::pair<std::string, float>>& columns_offsets)
+    auto append_item = [icon_size, &imgui, &window_padding, &draw_list, this](const ColorRGBA& color, const std::vector<std::pair<std::string, float>>& columns_offsets)
     {
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
@@ -3019,7 +3064,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ImGui::Separator();
     };
-    auto get_used_filament_from_volume = [this, imperial_units, &filament_diameters, &filament_densities](double volume, int extruder_id) {
+    auto get_used_filament_from_volume = [imperial_units, &filament_diameters, &filament_densities](double volume, int extruder_id) {
         double koef = imperial_units ? 1.0 / GizmoObjectManipulation::in_to_mm : 0.001;
         std::pair<double, double> ret = { koef * volume / (PI * sqr(0.5 * filament_diameters[extruder_id])),
                                             volume * filament_densities[extruder_id] * 0.001 };
@@ -3605,7 +3650,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     //ImVec2(pos_rect.x + ImGui::GetWindowWidth() + ImGui::GetFrameHeight(),pos_rect.y + ImGui::GetFrameHeight() + window_padding * 2.5),
     //ImGui::GetColorU32(ImVec4(0,0,0,0.3)));
 
-    auto append_item = [icon_size, &imgui, imperial_units, &window_padding, &draw_list, this](
+    auto append_item = [icon_size, &imgui, &window_padding, &draw_list, this](
         EItemType type,
         const ColorRGBA& color,
         const std::vector<std::pair<std::string, float>>& columns_offsets,
@@ -3740,7 +3785,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [&imgui, max_width, window_padding, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -4228,7 +4273,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ distance_text, offsets[3] });
             if (full_layout && !count_text.empty())
                 columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
-            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
+            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
                 });
@@ -4285,7 +4330,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             columns_offsets.push_back({used_filaments_length[i], offsets[3]});
             columns_offsets.push_back({used_filaments_weight[i], offsets[4]});
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_extrusion_role_color(role)), columns_offsets,
-                true, offsets.back(), visible, [this, role, visible]() {
+                true, offsets.back(), visible, [this, role]() {
                     m_viewer.toggle_extrusion_role_visibility(role);
                     update_moves_slider();
                 });
@@ -4304,7 +4349,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ travel_percent, offsets[2] });
                 columns_offsets.push_back({ travel_distance, offsets[3] }); // Usage column
                 columns_offsets.push_back({ travel_moves, offsets[4] });    // Usage column
-                append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item, visible]() {
+                append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
                     });
@@ -4323,7 +4368,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
@@ -4340,7 +4385,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
@@ -4357,7 +4402,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
             });
@@ -4373,7 +4418,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
             });
@@ -4493,7 +4538,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 }
 
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, [this, extruder_idx]() {});
+                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
             }
             i++;
         }

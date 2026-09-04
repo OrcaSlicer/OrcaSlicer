@@ -28,6 +28,7 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Utils.hpp"
 
@@ -573,6 +574,11 @@ void PartPlate::calc_exclude_triangles(const ExPolygon &poly)
 // Forward declaration (defined later in this file)
 static bool init_model_from_lines(GLModel &model, const Lines &lines, float z);
 
+// Thin GUI wrapper: fetch the configs, hand the geometry to libslic3r, turn the returned
+// rectangles into render meshes. Every zone/strip/margin decision lives in
+// compute_imex_zone_layout (libslic3r/IMEXZones.cpp), which is unit-tested headlessly;
+// the only work left here is clipping each rectangle to the bed outline and building the
+// GLModel for it, which needs the GUI's model helpers.
 void PartPlate::calc_imex_zones()
 {
     m_imex_copy_zones.clear();
@@ -589,194 +595,34 @@ void PartPlate::calc_imex_zones()
     if (!wxGetApp().preset_bundle)
         return;
 
-    const DynamicPrintConfig& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
-    if (!is_imex_opt || !is_imex_opt->value)
+    PresetBundle&             bundle      = *wxGetApp().preset_bundle;
+    const DynamicPrintConfig& printer_cfg = bundle.printers.get_edited_preset().config;
+
+    // Process-preset mode is the fallback the library applies when the plate is still on
+    // the reserved Primary mode; it ignores this string otherwise.
+    std::string process_mode;
+    if (auto* mode_opt = bundle.prints.get_edited_preset().config.option<ConfigOptionString>("imex_parallel_mode"))
+        process_mode = mode_opt->value;
+
+    const ImexZoneLayout layout = compute_imex_zone_layout(printer_cfg, get_imex_mode(),
+                                                           process_mode, get_extents(m_shape));
+
+    m_imex_primary_head         = layout.primary_head;
+    m_imex_head_zone_centers    = layout.head_zone_centers;
+    m_imex_primary_zone_box     = layout.primary_zone_box;
+    m_imex_secondary_zone_boxes = layout.secondary_zone_boxes;
+    m_imex_collision_zones      = layout.collision_zones;
+
+    // No primary zone means the layout is empty (IMEX off, Primary mode, single-tool grid,
+    // or a mode with no tools) -- exactly the cases that returned before touching geometry.
+    if (!m_imex_primary_zone_box.has_value())
         return;
-
-    // Per-plate mode takes priority over the process preset.
-    std::string active_mode = get_imex_mode();
-    if (active_mode == kImexPrimaryMode) {
-        const DynamicPrintConfig& process_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        auto* mode_opt = process_cfg.option<ConfigOptionString>("imex_parallel_mode");
-        if (mode_opt && !mode_opt->value.empty())
-            active_mode = mode_opt->value;
-    }
-    if (active_mode == kImexPrimaryMode || active_mode.empty())
-        return;
-
-    // Grid dimensions and tool layout from printer config
-    auto* gantry_opt  = printer_cfg.option<ConfigOptionInt>("imex_gantry_count");
-    auto* tpg_opt     = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
-    auto* layout_opt  = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
-
-    int n_cols  = tpg_opt    ? std::max(1, tpg_opt->value)    : 2;
-    int n_rows  = gantry_opt ? std::max(1, gantry_opt->value) : 1;
-
-    // Which corner is T0? flip_x: col 0 is right(max-X); flip_y: row 0 is rear(max-Y)
-    const ImexToolLayout layout = layout_opt ? layout_opt->value : ImexToolLayout::FrontLeft;
-    bool flip_x = (layout == ImexToolLayout::FrontRight || layout == ImexToolLayout::RearRight);
-    bool flip_y = (layout == ImexToolLayout::RearLeft   || layout == ImexToolLayout::RearRight);
-
-    // Convert tool index to physical (col=X-index, row=Y-index), col/row 0 = min-X/min-Y
-    auto tool_to_phys = [&](int idx) -> std::pair<int,int> {
-        int raw_col = idx % n_cols, raw_row = idx / n_cols;
-        return { flip_x ? (n_cols - 1 - raw_col) : raw_col,
-                 flip_y ? (n_rows - 1 - raw_row) : raw_row };
-    };
-
-    int pri_col = 0, pri_row = 0;
-
-    if (n_cols == 1 && n_rows == 1)
-        return; // nothing to dim with a single zone
-
-    // Look up secondary tool indices (active in mode, but NOT the primary tool)
-    auto* names_opt  = printer_cfg.option<ConfigOptionStrings>("imex_mode_names");
-    auto* tools_opt  = printer_cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
-    std::string active_tools_str;
-    if (names_opt && tools_opt) {
-        for (size_t i = 0; i < names_opt->values.size(); ++i) {
-            if (names_opt->values[i] == active_mode && i < tools_opt->values.size()) {
-                active_tools_str = tools_opt->values[i];
-                break;
-            }
-        }
-    }
-
-    // Parse "phys_idx:P/C/M" format → map<phys_idx, state>  (1=Primary, 2=Copy, 3=Mirror).
-    // imex_primary_tool_for_mode handles the Primary slot (bare legacy token → Primary);
-    // parse_imex_active_tools fills in the Copy/Mirror secondaries. Mode strings use
-    // physical T-indices directly; filament routing is separate (imex_head_filament_map).
-    std::map<int,int> tool_states;
-    {
-        const int primary = imex_primary_tool_for_mode(active_tools_str);
-        if (primary >= 0 && primary < n_rows * n_cols)
-            tool_states[primary] = 1;
-        for (const auto& [phys_idx, role] : parse_imex_active_tools(active_tools_str)) {
-            if (phys_idx < 0 || phys_idx >= n_rows * n_cols) continue;
-            if (phys_idx == primary) continue;
-            if      (role == ImexRole::Mirror) tool_states[phys_idx] = 3;
-            else if (role == ImexRole::Copy)   tool_states[phys_idx] = 2;
-            // Extra ImexRole::Primary entries beyond the first are ignored.
-        }
-    }
-
-    // If the mode name was found but has no tools (e.g. stale process-preset mode on a new
-    // printer that has no modes defined yet), there is nothing to compute.
-    if (tool_states.empty())
-        return;
-
-    // Identify the Primary tool from the mode definition
-    for (auto& [idx, state] : tool_states) {
-        if (state == 1) { auto [c, r] = tool_to_phys(idx); pri_col = c; pri_row = r;
-            m_imex_primary_head = idx; break; }
-    }
-
-    // Per-gantry grouping drives Span-based aggregation. When the mode declares a
-    // Span partner on primary's gantry, non-primary gantries with multiple same-role
-    // tools collapse to one cell each (placed at primary's column so has_col_sep
-    // stays false and make_boxes expands the cell into a full-X row-strip).
-    // Mixed-role / single-tool / no-Span configurations keep per-tool cells.
-    const ImexGantryGrouping grouping =
-        group_imex_active_tools_by_gantry(active_tools_str, n_cols);
-    std::map<int, const ImexGantryGroup*> group_by_gantry;
-    for (const auto& grp : grouping.groups)
-        group_by_gantry[grp.gantry_index] = &grp;
-
-    // Separate copy and mirror secondary cells using physical coordinates
-    std::set<std::pair<int,int>> copy_cells, mirror_cells;
-    for (auto& [idx, state] : tool_states) {
-        if (state == 1) continue;  // primary handled separately
-
-        const int phys_gantry = idx / n_cols;
-        auto git = group_by_gantry.find(phys_gantry);
-        const ImexGantryGroup* grp = (git == group_by_gantry.end()) ? nullptr : git->second;
-
-        if (grp && grp->aggregate) {
-            // Only the representative contributes a cell; non-reps are folded into
-            // the same row-strip and skipped entirely.
-            if (idx != grp->representative_phys) continue;
-            auto [rep_c, r] = tool_to_phys(idx);
-            (void)rep_c;  // intentionally discarded — aggregated cell pins to pri_col
-            if      (state == 2) copy_cells.insert({pri_col, r});
-            else if (state == 3) mirror_cells.insert({pri_col, r});
-        } else {
-            auto [c, r] = tool_to_phys(idx);
-            if      (state == 2) copy_cells.insert({c, r});
-            else if (state == 3) mirror_cells.insert({c, r});
-        }
-    }
-
-    // All active secondary cells combined (for separation axis computation)
-    std::set<std::pair<int,int>> all_secondary;
-    for (auto& p : copy_cells)   all_secondary.insert(p);
-    for (auto& p : mirror_cells) all_secondary.insert(p);
-
-    auto bed_ext = get_extents(m_shape);
-    double x_min = bed_ext.min(0), x_max = bed_ext.max(0);
-    double y_min = bed_ext.min(1), y_max = bed_ext.max(1);
-
-    // Zone sizing is based on ACTIVE tool count per axis, not total grid dimensions.
-    // Inactive tools (absent from tool_states) donate their bed share to active neighbors.
-    // Sorted active col/row lists map physical index k → zone index k.
-    std::vector<int> active_cols_v, active_rows_v;
-    {
-        std::set<int> ac_set, ar_set;
-        for (auto& [idx, state] : tool_states) {
-            auto [c, r] = tool_to_phys(idx);
-            ac_set.insert(c); ar_set.insert(r);
-        }
-        active_cols_v.assign(ac_set.begin(), ac_set.end()); // sorted ascending
-        active_rows_v.assign(ar_set.begin(), ar_set.end());
-    }
-    int n_active_cols = std::max(1, (int)active_cols_v.size());
-    int n_active_rows = std::max(1, (int)active_rows_v.size());
-
-    std::map<int,int> col_to_zone, row_to_zone;
-    for (int k = 0; k < n_active_cols; ++k) col_to_zone[active_cols_v[k]] = k;
-    for (int k = 0; k < n_active_rows; ++k) row_to_zone[active_rows_v[k]] = k;
-
-    double zone_w = (x_max - x_min) / n_active_cols;
-    double zone_h = (y_max - y_min) / n_active_rows;
-
-    // Zone index of the primary tool
-    int pri_col_k = col_to_zone.count(pri_col) ? col_to_zone[pri_col] : 0;
-    int pri_row_k = row_to_zone.count(pri_row) ? row_to_zone[pri_row] : 0;
-
-    // Zone center per physical head — ghost placement consumes this so that
-    // ghosts land in their own secondary zone instead of stacking on primary.
-    // Every active tool (including primary) gets an entry; ghost offset math is
-    // simply center[head] - center[primary].
-    for (auto& [idx, state] : tool_states) {
-        auto [c, r] = tool_to_phys(idx);
-        int ck = col_to_zone.count(c) ? col_to_zone.at(c) : 0;
-        int rk = row_to_zone.count(r) ? row_to_zone.at(r) : 0;
-        m_imex_head_zone_centers[idx] = Vec2d(
-            x_min + (ck + 0.5) * zone_w,
-            y_min + (rk + 0.5) * zone_h);
-    }
-
-    // Separation axes: row-sep = secondaries on a different gantry, col-sep = different column
-    bool has_row_sep = false, has_col_sep = false;
-    for (const auto& [sc, sr] : all_secondary) {
-        if (sr != pri_row) has_row_sep = true;
-        if (sc != pri_col) has_col_sep = true;
-    }
-
-    // Primary zone extent (the clear printable area):
-    //   row-sep only → full bed width × primary row's Y band
-    //   col-sep only → primary col's X band × full bed height
-    //   both         → primary quadrant
-    auto in_primary_zone = [&](int col, int row) {
-        bool row_ok = !has_row_sep || (row == pri_row);
-        bool col_ok = !has_col_sep || (col == pri_col);
-        return row_ok && col_ok;
-    };
 
     ExPolygon bed_poly;
     generate_print_polygon(bed_poly);
 
-    // Build a clipped filled GLModel for an expanded zone rect and push into a vector.
+    // Build a clipped filled GLModel for one zone rect and push it into a vector.
+    // A rect falling entirely outside the bed outline contributes no model.
     auto push_zone_fill = [&](std::vector<GLModel>& vec, double cx0, double cx1, double cy0, double cy1) {
         ExPolygon cell;
         cell.contour.append({ scale_(cx0), scale_(cy0) });
@@ -791,179 +637,16 @@ void PartPlate::calc_imex_zones()
         }
     };
 
-    // Build expanded zone rects for a set of cells.
-    // When secondaries share only a row difference (same column as primary) → expand to full X width.
-    // When secondaries share only a column difference → expand to full Y height.
-    // When both axes differ → per-quadrant.
-    struct BoxRect { double x0, x1, y0, y1; };
-    auto make_boxes = [&](const std::set<std::pair<int,int>>& cells) -> std::vector<BoxRect> {
-        std::vector<BoxRect> boxes;
-        if (cells.empty()) return boxes;
-        auto ck = [&](int c) { return col_to_zone.count(c) ? col_to_zone.at(c) : 0; };
-        auto rk = [&](int r) { return row_to_zone.count(r) ? row_to_zone.at(r) : 0; };
-        if (has_row_sep && !has_col_sep) {
-            std::set<int> rows; for (auto& [c,r] : cells) rows.insert(r);
-            for (int sr : rows) {
-                int k = rk(sr);
-                boxes.push_back({x_min, x_max, y_min + k*zone_h, y_min + (k+1)*zone_h});
-            }
-        } else if (has_col_sep && !has_row_sep) {
-            std::set<int> cols; for (auto& [c,r] : cells) cols.insert(c);
-            for (int sc : cols) {
-                int k = ck(sc);
-                boxes.push_back({x_min + k*zone_w, x_min + (k+1)*zone_w, y_min, y_max});
-            }
-        } else {
-            for (auto& [sc,sr] : cells) {
-                int ck_ = ck(sc), rk_ = rk(sr);
-                boxes.push_back({x_min + ck_*zone_w, x_min + (ck_+1)*zone_w,
-                                 y_min + rk_*zone_h,  y_min + (rk_+1)*zone_h});
-            }
-        }
-        return boxes;
-    };
-
-    // Build fills for copy and mirror zones using expanded boxes (inactive cells not rendered).
-    auto push_expanded_fills = [&](std::vector<GLModel>& vec, const std::set<std::pair<int,int>>& cells) {
-        for (const auto& b : make_boxes(cells))
-            push_zone_fill(vec, b.x0, b.x1, b.y0, b.y1);
-    };
-    push_expanded_fills(m_imex_copy_zones,   copy_cells);
-    push_expanded_fills(m_imex_mirror_zones, mirror_cells);
-
-
-    // --- Secondary zone blocking ---
-    // Collect the expanded bounding boxes for all secondary (copy+mirror) zones.
-    // check_outside() uses these to prevent objects being placed outside the primary zone.
-    for (const auto& b : make_boxes(copy_cells))
-        m_imex_secondary_zone_boxes.push_back(
-            BoundingBoxf3(Vec3d(b.x0, b.y0, -1.0), Vec3d(b.x1, b.y1, 1e4)));
-    for (const auto& b : make_boxes(mirror_cells))
-        m_imex_secondary_zone_boxes.push_back(
-            BoundingBoxf3(Vec3d(b.x0, b.y0, -1.0), Vec3d(b.x1, b.y1, 1e4)));
-
-    // --- Carriage collision danger strips ---
-    // Only add strips at boundaries of the PRIMARY zone — objects are only placed in the
-    // primary zone, so secondary-to-secondary boundaries have no relevance.
-    //
-    // Strip width is the literal nozzle clearance value on the primary side only:
-    //   right X boundary: [bnd_x - nozzle_clearance_x, bnd_x]
-    //   left  X boundary: [bnd_x, bnd_x + nozzle_clearance_x]
-    //   top   Y boundary: [bnd_y - nozzle_clearance_y, bnd_y]
-    //   bottom Y boundary:[bnd_y, bnd_y + nozzle_clearance_y]
-    //
-    // Strip length matches the primary zone extent (same expansion logic as make_boxes):
-    //   !has_row_sep → full bed height;  has_row_sep → primary row only
-    //   !has_col_sep → full bed width;   has_col_sep → primary column only
-
-    auto* cw_opt  = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_x");
-    auto* ch_opt  = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_y");
-    auto* mgn_opt = printer_cfg.option<ConfigOptionFloat>("imex_carriage_margin");
-    double carriage_w = cw_opt  ? cw_opt->value  : 0.0;
-    double carriage_h = ch_opt  ? ch_opt->value  : 0.0;
-    double margin     = mgn_opt ? mgn_opt->value : 0.0;
-
-    // Helper: build a filled GLModel polygon and push into margin overlay (advisory, non-blocking)
-    auto add_margin_fill = [&](double sx0, double sx1, double sy0, double sy1) {
-        ExPolygon cell;
-        cell.contour.append({ scale_(sx0), scale_(sy0) });
-        cell.contour.append({ scale_(sx1), scale_(sy0) });
-        cell.contour.append({ scale_(sx1), scale_(sy1) });
-        cell.contour.append({ scale_(sx0), scale_(sy1) });
-        ExPolygons clipped = intersection_ex({ cell }, { bed_poly });
-        if (!clipped.empty()) {
-            GLModel m;
-            if (init_model_from_poly(m, clipped.front(), GROUND_Z))
-                m_imex_margin_overlay.push_back(std::move(m));
-        }
-    };
-
-    // Primary zone extent — uses zone indices so inactive tools don't shrink the zone
-    double pz_x0 = has_col_sep ? x_min + pri_col_k       * zone_w : x_min;
-    double pz_x1 = has_col_sep ? x_min + (pri_col_k + 1) * zone_w : x_max;
-    double pz_y0 = has_row_sep ? y_min + pri_row_k        * zone_h : y_min;
-    double pz_y1 = has_row_sep ? y_min + (pri_row_k + 1)  * zone_h : y_max;
-    m_imex_primary_zone_box = BoundingBoxf(Vec2d(pz_x0, pz_y0), Vec2d(pz_x1, pz_y1));
-
-    // Helper: build a BoundingBoxf3 strip, clip to bed, add to members
-    auto add_strip = [&](double sx0, double sx1, double sy0, double sy1) {
-        BoundingBoxf3 box;
-        box.min = Vec3d(sx0, sy0, -1.0);
-        box.max = Vec3d(sx1, sy1,  1e4);
-        m_imex_collision_zones.push_back(box);
-
-        ExPolygon cell;
-        cell.contour.append({ scale_(sx0), scale_(sy0) });
-        cell.contour.append({ scale_(sx1), scale_(sy0) });
-        cell.contour.append({ scale_(sx1), scale_(sy1) });
-        cell.contour.append({ scale_(sx0), scale_(sy1) });
-        ExPolygons clipped = intersection_ex({ cell }, { bed_poly });
-        if (!clipped.empty()) {
-            GLModel m;
-            if (init_model_from_poly(m, clipped.front(), GROUND_Z))
-                m_imex_collision_overlay.push_back(std::move(m));
-        }
-    };
-
-    // Determine which directions have mirror secondaries adjacent to the primary.
-    // Only mirror tools can cause carriage collisions — they move toward each other.
-    // Copy tools always move in the same direction, so no collision strip is needed.
-    //
-    // Both axes require zone-adjacent AND same row/column on the OTHER axis: a mirror
-    // diagonally offset from primary (different row AND different column) can't collide
-    // with primary's carriage on either axis since the gantries don't overlap there.
-    // Without these checks, paired-gantry mc-mirror (`0:P,1:S,2:M,3:M`) would draw a
-    // spurious right-edge strip from T3 even though T3 lives on the other gantry's row.
-    bool has_right_sec = false, has_left_sec  = false;
-    bool has_top_sec   = false, has_bottom_sec = false;
-    for (auto& [idx, state] : tool_states) {
-        if (state != 3) continue; // only mirror tools (state==3) require collision strips
-        auto [c, r] = tool_to_phys(idx);
-        int zc = col_to_zone.count(c) ? col_to_zone.at(c) : -1;
-        int zr = row_to_zone.count(r) ? row_to_zone.at(r) : -1;
-        // X-boundary strips: mirror zone-adjacent in X, same physical row as primary.
-        if (zr == pri_row_k && zc == pri_col_k + 1) has_right_sec = true;
-        if (zr == pri_row_k && zc == pri_col_k - 1) has_left_sec  = true;
-        // Y-boundary strips: mirror zone-adjacent in Y, same physical column as primary.
-        if (zr == pri_row_k + 1 && c == pri_col) has_top_sec    = true;
-        if (zr == pri_row_k - 1 && c == pri_col) has_bottom_sec = true;
-    }
-
-    // X-axis boundaries (vertical strips, width = nozzle_clearance_x on primary side)
-    if (carriage_w > 0.0) {
-        if (has_right_sec) {
-            double bnd_x = x_min + (pri_col_k + 1) * zone_w;
-            double strip_inner = bnd_x - carriage_w;
-            add_strip(strip_inner, bnd_x, pz_y0, pz_y1);
-            if (margin > 0.0)
-                add_margin_fill(strip_inner - margin, strip_inner, pz_y0, pz_y1);
-        }
-        if (has_left_sec) {
-            double bnd_x = x_min + pri_col_k * zone_w;
-            double strip_inner = bnd_x + carriage_w;
-            add_strip(bnd_x, strip_inner, pz_y0, pz_y1);
-            if (margin > 0.0)
-                add_margin_fill(strip_inner, strip_inner + margin, pz_y0, pz_y1);
-        }
-    }
-
-    // Y-axis boundaries (horizontal strips, width = nozzle_clearance_y on primary side)
-    if (carriage_h > 0.0) {
-        if (has_top_sec) {
-            double bnd_y = y_min + (pri_row_k + 1) * zone_h;
-            double strip_inner = bnd_y - carriage_h;
-            add_strip(pz_x0, pz_x1, strip_inner, bnd_y);
-            if (margin > 0.0)
-                add_margin_fill(pz_x0, pz_x1, strip_inner - margin, strip_inner);
-        }
-        if (has_bottom_sec) {
-            double bnd_y = y_min + pri_row_k * zone_h;
-            double strip_inner = bnd_y + carriage_h;
-            add_strip(pz_x0, pz_x1, bnd_y, strip_inner);
-            if (margin > 0.0)
-                add_margin_fill(pz_x0, pz_x1, strip_inner, strip_inner + margin);
-        }
-    }
+    for (const BoundingBoxf& b : layout.copy_zones)
+        push_zone_fill(m_imex_copy_zones, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    for (const BoundingBoxf& b : layout.mirror_zones)
+        push_zone_fill(m_imex_mirror_zones, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    // Red-orange fill for each carriage danger strip, and the amber advisory band just
+    // inside it. Both are visual only -- blocking is driven by m_imex_collision_zones.
+    for (const BoundingBoxf3& b : layout.collision_zones)
+        push_zone_fill(m_imex_collision_overlay, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    for (const BoundingBoxf& b : layout.margin_bands)
+        push_zone_fill(m_imex_margin_overlay, b.min.x(), b.max.x(), b.min.y(), b.max.y());
 }
 
 // Build a cache key from the current IDEX/IQEX config options, or "" if IDEX/IQEX is off.
@@ -1014,9 +697,16 @@ std::string PartPlate::build_imex_cache_key() const
     int         primary_phys = -1;
     resolve_active_mode_tools(active_tools, primary_phys); // empty on failure — keyed as such
     auto* fw_opt = printer_cfg.option<ConfigOptionBool>("imex_firmware_managed_zones");
+    // imex_tool_layout decides which physical corner tool 0 occupies (flip_x / flip_y inside
+    // compute_imex_zone_layout), so every zone rectangle, collision strip and ghost offset moves
+    // when it changes while every other keyed field stays put. Without it the key is identical
+    // across a layout change and the baked zones go stale; that this currently appears to work is
+    // incidental -- some other path happens to rebuild -- not something to rely on.
+    auto* layout_opt = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
     return active_mode
          + "|" + std::to_string(n_col_opt ? n_col_opt->value : 2)
          + "x" + std::to_string(n_row_opt ? n_row_opt->value : 1)
+         + "|ly" + std::to_string(layout_opt ? (int)layout_opt->value : 0)
          + "|cw" + std::to_string(cw_opt ? (int)(cw_opt->value * 10) : 0)
          + "|ch" + std::to_string(ch_opt ? (int)(ch_opt->value * 10) : 0)
          + "|mg" + std::to_string(mgn_opt ? (int)(mgn_opt->value * 10) : 0)
@@ -1107,18 +797,16 @@ bool PartPlate::resolve_active_mode_tools(std::string& out_tools_str, int& out_p
     }
     if (active_mode.empty() || active_mode == kImexPrimaryMode) return false;
 
-    auto* names = printer_cfg.option<ConfigOptionStrings>("imex_mode_names");
-    auto* tools = printer_cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
-    if (!names || !tools) return false;
-    auto it = std::find(names->values.begin(), names->values.end(), active_mode);
-    if (it == names->values.end()) return false;
-    const size_t mode_idx = it - names->values.begin();
-    if (mode_idx >= tools->values.size()) return false;
+    const ImexMode mode = find_imex_mode(printer_cfg, active_mode);
+    if (!mode.found()) return false;
 
-    const int primary_phys = imex_primary_tool_for_mode(tools->values[mode_idx]);
+    // Also the ragged case: a tools array too short to reach this row hands back an empty
+    // string, which has no declared primary, which is the same "no zones here" answer the
+    // explicit bounds check used to give.
+    const int primary_phys = imex_primary_tool_for_mode(mode.active_tools);
     if (primary_phys < 0) return false;
 
-    out_tools_str    = tools->values[mode_idx];
+    out_tools_str    = mode.active_tools;
     out_primary_phys = primary_phys;
     return true;
 }
@@ -1159,7 +847,11 @@ void PartPlate::calc_imex_ghosts()
     // non-primary gantry is represented by a single ghost — its column-paired rep —
     // so non-rep tools on aggregated gantries are skipped. This single source of
     // pairing truth keeps ghost emission and zone aggregation in lockstep.
-    int tpg = 1;
+    // 2 matches the value registered in PrintConfig.cpp:6643 and the fallback in
+    // compute_imex_zone_layout(). All three must agree: the zone rectangles come from the
+    // library, so a different grouping default here would pair tools against a grid that
+    // was divided differently.
+    int tpg = 2;
     if (auto* tpg_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
                             .config.option<ConfigOptionInt>("imex_tools_per_gantry"))
         tpg = std::max(1, tpg_opt->value);
@@ -1306,7 +998,11 @@ void PartPlate::update_imex_ghost_transforms(
     // moves the ghost exactly as a rebuild would place it. See the note there: for an
     // aggregated gantry both X frames sit on the bed centerline, which zeroes gantry_offset.x
     // so the cross-gantry mirror tracks primary's X and reflects in Y.
-    int tpg = 1;
+    // 2 matches the value registered in PrintConfig.cpp:6643 and the fallback in
+    // compute_imex_zone_layout(). All three must agree: the zone rectangles come from the
+    // library, so a different grouping default here would pair tools against a grid that
+    // was divided differently.
+    int tpg = 2;
     if (auto* tpg_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
                             .config.option<ConfigOptionInt>("imex_tools_per_gantry"))
         tpg = std::max(1, tpg_opt->value);
@@ -1533,20 +1229,15 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     const std::string mode = get_imex_mode();
     if (mode == kImexPrimaryMode) return false;
 
-    // Resolve the active mode's tools string from the printer config.
-    auto* names_opt = printer_cfg.option<ConfigOptionStrings>("imex_mode_names");
-    auto* tools_opt = printer_cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
     auto* tpg_opt   = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
     auto* pem_opt   = printer_cfg.option<ConfigOptionInts>("physical_extruder_map");
-    if (!names_opt || !tools_opt || !tpg_opt || !pem_opt) return false;
+    if (!tpg_opt || !pem_opt) return false;
 
-    std::string active_tools_str;
-    for (size_t i = 0; i < names_opt->values.size(); ++i) {
-        if (names_opt->values[i] == mode && i < tools_opt->values.size()) {
-            active_tools_str = tools_opt->values[i];
-            break;
-        }
-    }
+    // Resolve the active mode's tools string from the printer config. Print::validate()
+    // resolves the same name the same way and keeps going on an empty result -- the mixed
+    // filament rule below does not depend on the roster -- so this must too, or the badge
+    // goes quiet on exactly the plates the slicer refuses.
+    const std::string active_tools_str = find_imex_mode(printer_cfg, mode).active_tools;
 
     // Convert PartPlate's 1-based extruder list to the 0-based form the helper expects.
     //
@@ -2436,7 +2127,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_hovered_texture);
                         std::string cur = get_imex_mode();
                         if (cur == kImexPrimaryMode) cur = _u8L("Primary");
-                        show_tooltip(_u8L("IMEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
+                        show_tooltip(_u8L("IDEX/IQEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
                     } else {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
                     }
@@ -2444,7 +2135,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                     if (has_imex_multimaterial_conflict()) {
                         render_icon_texture(m_imex_warn_icon, m_partplate_list->m_imex_warn_texture);
                         if (hover_id == (int)PLATE_IMEX_MODE_ID)
-                            show_tooltip(_u8L("Warning: this plate uses a parallel IMEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
+                            show_tooltip(_u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
                     }
                 }
             }
@@ -4884,35 +4575,6 @@ void PartPlate::update_slice_result_valid_state(bool valid)
         m_plater->mark_plate_toolbar_image_dirty();
 }
 
-// IMEX firmware-managed zones: compute the plate-local primary-zone center and push it
-// to m_print as the slice-time XY shift. Vec2d::Zero() in every non-firmware-managed
-// path (flag off, primary/empty mode, empty zone box) → byte-identical gcode output for
-// unaffected printers. Defensive accessors tolerate option() returning nullptr in case
-// the preset bundle is reached during early Plater construction.
-// Called both from update_slice_context (plate switch path) and from
-// Plater::priv::update_background_process (every-slice path) so reslice with mode toggled
-// without plate change picks up the right shift.
-void PartPlate::refresh_imex_slice_offset()
-{
-	Vec2d imex_off = Vec2d::Zero();
-	if (auto* app = &wxGetApp(); app && app->preset_bundle && m_print) {
-		const DynamicPrintConfig& printer_cfg = app->preset_bundle->printers.get_edited_preset().config;
-		auto* fw_opt = printer_cfg.option<ConfigOptionBool>("imex_firmware_managed_zones");
-		if (fw_opt && fw_opt->value) {
-			std::string active_mode = get_imex_mode();
-			if (active_mode == kImexPrimaryMode) {
-				const DynamicPrintConfig& process_cfg = app->preset_bundle->prints.get_edited_preset().config;
-				if (auto* mo = process_cfg.option<ConfigOptionString>("imex_parallel_mode"))
-					if (!mo->value.empty()) active_mode = mo->value;
-			}
-			ensure_imex_zones();
-			imex_off = compute_imex_slice_offset(true, active_mode, m_imex_primary_zone_box);
-		}
-	}
-	if (m_print)
-		m_print->set_imex_slice_offset(imex_off);
-}
-
 //update current slice context into backgroud slicing process
 void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 {
@@ -4925,8 +4587,6 @@ void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 		}
 		wxQueueEvent(m_plater, event);
 	};
-
-	refresh_imex_slice_offset();
 
 	process.set_fff_print(m_print);
 	process.set_gcode_result(m_gcode_result);
@@ -7815,7 +7475,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     plate_data_item->filament_change_sequence = m_plate_list[i]->m_gcode_result->filament_change_sequence;
                     plate_data_item->nozzle_change_sequence = m_plate_list[i]->m_gcode_result->nozzle_change_sequence;
                     plate_data_item->optimal_assignment = m_plate_list[i]->m_gcode_result->optimal_assignment;
-                    plate_data_item->first_layer_time = std::to_string(m_plate_list[i]->cali_bboxes_data.first_layer_time);
+                    plate_data_item->first_layer_time = std::to_string(m_plate_list[i]->get_slice_result()->initial_layer_time);
 					Print *print                      = nullptr;
 					m_plate_list[i]->get_print((PrintBase **) &print, nullptr, nullptr);
 					if (print) {

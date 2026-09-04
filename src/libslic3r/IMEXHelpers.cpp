@@ -13,6 +13,22 @@
 
 namespace Slic3r {
 
+namespace {
+// Strip every whitespace byte from a token in place.
+//
+// Not `::isspace` directly: it takes an int that must be representable as unsigned char
+// (or equal EOF), and `char` is signed on all three targets, so any byte >= 0x80 is sign-
+// extended to a negative int and the call is undefined. The strings parsed below come from
+// printer profiles and 3MF metadata, neither of which is guaranteed ASCII, so the unsigned
+// char cast is the same one the rest of the codebase already applies to std::toupper.
+void strip_whitespace(std::string& token)
+{
+    token.erase(std::remove_if(token.begin(), token.end(),
+                               [](unsigned char c) { return std::isspace(c) != 0; }),
+                token.end());
+}
+} // namespace
+
 ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count)
 {
     // One entry per logical extruder, so a profile has authored a map only when its length
@@ -180,6 +196,25 @@ bool has_non_primary_mmu(const ConfigOptionInts& pem, int primary_physical)
     return false;
 }
 
+char imex_role_letter(ImexRole role)
+{
+    for (const ImexRoleDesc& d : kImexRoleTable)
+        if (d.role == role)
+            return d.letter;
+    // Only reachable if a role was added to the enum but not to kImexRoleTable. Serializing
+    // it as Copy keeps the string parseable rather than emitting a token no parser accepts.
+    return 'C';
+}
+
+ImexRole imex_role_from_suffix(const std::string& suffix)
+{
+    if (suffix.size() == 1)
+        for (const ImexRoleDesc& d : kImexRoleTable)
+            if (d.letter == suffix[0])
+                return d.role;
+    return ImexRole::Copy;
+}
+
 std::vector<std::pair<int, ImexRole>> parse_imex_active_tools(const std::string& active_tools_for_mode)
 {
     std::vector<std::pair<int, ImexRole>> out;
@@ -187,21 +222,18 @@ std::vector<std::pair<int, ImexRole>> parse_imex_active_tools(const std::string&
     std::istringstream ss(active_tools_for_mode);
     std::string tok;
     while (std::getline(ss, tok, ',')) {
-        tok.erase(std::remove_if(tok.begin(), tok.end(), ::isspace), tok.end());
+        strip_whitespace(tok);
         if (tok.empty()) continue;
         const auto colon = tok.find(':');
         const std::string idx_str = (colon == std::string::npos) ? tok : tok.substr(0, colon);
         int phys = -1;
         try { phys = std::stoi(idx_str); } catch (...) { continue; }
         if (phys < 0 || phys >= (int)MAXIMUM_EXTRUDER_NUMBER) continue;
-        ImexRole role = ImexRole::Copy;
-        if (colon != std::string::npos) {
-            const std::string r = tok.substr(colon + 1);
-            if      (r == "P") role = ImexRole::Primary;
-            else if (r == "M") role = ImexRole::Mirror;
-            else if (r == "S") role = ImexRole::Span;
-            // "C" and anything else → Copy.
-        }
+        // A bare token (no ':') is Copy here by design -- see the header note; the
+        // "bare == Primary" backwards-compat rule lives in imex_primary_tool_for_mode().
+        const ImexRole role = (colon == std::string::npos)
+                                  ? ImexRole::Copy
+                                  : imex_role_from_suffix(tok.substr(colon + 1));
         out.emplace_back(phys, role);
     }
     return out;
@@ -272,7 +304,7 @@ int imex_primary_tool_for_mode(const std::string& active_tools_for_mode)
     std::string token;
     int first_bare = -1;
     while (std::getline(ss, token, ',')) {
-        token.erase(std::remove_if(token.begin(), token.end(), ::isspace), token.end());
+        strip_whitespace(token);
         if (token.empty())
             continue;
         const auto colon = token.find(':');
@@ -291,8 +323,9 @@ int imex_primary_tool_for_mode(const std::string& active_tools_for_mode)
                 first_bare = idx;
             continue;
         }
-        const std::string role = token.substr(colon + 1);
-        if (role == "P")
+        // Same suffix reading as parse_imex_active_tools(), so the two can never disagree
+        // about which letter means Primary.
+        if (imex_role_from_suffix(token.substr(colon + 1)) == ImexRole::Primary)
             return idx;
     }
     return first_bare;
@@ -305,14 +338,19 @@ std::map<int,int> parse_imex_head_filament_map(const std::string& s)
     std::istringstream ss(s);
     std::string token;
     while (std::getline(ss, token, ',')) {
-        token.erase(std::remove_if(token.begin(), token.end(), ::isspace), token.end());
+        strip_whitespace(token);
         if (token.empty()) continue;
         auto colon = token.find(':');
         if (colon == std::string::npos) continue;
         try {
             int phys = std::stoi(token.substr(0, colon));
             int slot = std::stoi(token.substr(colon + 1));
-            if (phys >= 0 && slot >= 1)
+            // Same absolute sanity cap parse_imex_active_tools applies to its own physical
+            // index: neither can exceed the slicer-wide extruder ceiling. This only rejects
+            // nonsense; the bound that matters (slot must index a filament that exists) is
+            // in resolve_filament_for_head, which is the one that knows the count.
+            if (phys >= 0 && phys < (int) MAXIMUM_EXTRUDER_NUMBER
+                && slot >= 1 && slot <= (int) MAXIMUM_EXTRUDER_NUMBER)
                 result[phys] = slot;
         } catch (...) {}
     }
@@ -331,6 +369,48 @@ int imex_primary_logical_from_objects(const std::vector<int>&  used_slots_1b,
             return slot_0b;
     }
     return -1;
+}
+
+ImexRouting imex_resolve_routing(const ConfigBase&       cfg,
+                                 const std::string&      parallel_mode,
+                                 const std::vector<int>& used_slots_1b,
+                                 const ConfigOptionInts& pem)
+{
+    ImexRouting out;
+    // An empty mode is a plate that never carried one; kImexPrimaryMode is the reserved
+    // "no parallel printing" sentinel. Neither resolves a row, so neither is looked up.
+    if (parallel_mode.empty() || parallel_mode == kImexPrimaryMode)
+        return out;
+    out.parallel = true;
+
+    // One lookup of the mode table, one parse of its roster, one search for the Primary
+    // marker. Every field below is derived from these, so no caller can re-derive one of
+    // them differently.
+    out.active_tools = find_imex_mode(cfg, parallel_mode).active_tools;
+    out.tools        = parse_imex_active_tools(out.active_tools);
+    out.primary_phys = imex_primary_tool_for_mode(out.active_tools);
+
+    if (out.primary_phys >= 0)
+        out.primary_logical = imex_primary_logical_from_objects(used_slots_1b, pem, out.primary_phys);
+
+    // Bounds-checked exactly as imex_primary_logical_from_objects checks: get_at() would
+    // clamp an out-of-range slot to values.front(), which is how a head that nothing routes
+    // to can end up listed as a head something routes to.
+    out.routed_heads.reserve(used_slots_1b.size());
+    for (int slot_1b : used_slots_1b) {
+        const int slot_0b = slot_1b - 1;
+        if (slot_0b >= 0 && slot_0b < (int) pem.values.size())
+            out.routed_heads.push_back(pem.values[slot_0b]);
+    }
+    std::sort(out.routed_heads.begin(), out.routed_heads.end());
+    out.routed_heads.erase(std::unique(out.routed_heads.begin(), out.routed_heads.end()),
+                           out.routed_heads.end());
+
+    // The pem emptiness test is not folded into primary_logical: an unpopulated map means
+    // the printer has declared no routing at all, which is not the same claim as "this
+    // plate's filaments go somewhere else", and only the latter is an error.
+    out.primary_unrouted = out.primary_phys >= 0 && !pem.values.empty() && out.primary_logical < 0;
+    return out;
 }
 
 std::vector<int> imex_secondary_logical_slots(const std::vector<int>&   active_physicals,
@@ -357,7 +437,16 @@ int resolve_filament_for_head(const std::map<int,int>& plate_map,
     auto it = plate_map.find(physical);
     if (it != plate_map.end()) {
         const int zero_based = it->second - 1;
-        if (zero_based >= 0)
+        // pem has one entry per logical filament slot, so its size IS the slot count and
+        // an override outside it names a filament that does not exist. Bounding here rather
+        // than at the parse site is deliberate: the parser is handed a raw string with no
+        // notion of how many filaments the project has, while every consumer of this
+        // function's result indexes a per-filament array. The picker only ever offers
+        // indices into pem (IMEXFilamentPickerPopover::build_row), so nothing the UI can
+        // author is rejected -- only a hand-edited or corrupt 3MF. Such an override falls
+        // through to the printer's own routing, i.e. it behaves as if it were absent,
+        // rather than resolving to a wrong filament that get_at() would silently clamp.
+        if (zero_based >= 0 && zero_based < (int) pem.values.size())
             return zero_based;
     }
     return first_filament_for_physical_head(pem, physical);
@@ -376,6 +465,14 @@ Transform3d imex_head_transform(int /*primary*/, int /*target*/, ImexRole role,
 {
     switch (role) {
     case ImexRole::Primary:
+    case ImexRole::Span:
+        // Span is the within-gantry multicolor partner of Primary: it prints the same
+        // objects in the same zone via mid-print toolchanges, so it has no zone of its own
+        // to be translated or reflected into. Identity is the only transform that keeps it
+        // on top of the primary. calc_imex_ghosts skips Span outright (no ghost is baked
+        // for it, since the primary's ghost already covers that zone), so today this case
+        // is unreachable — it is here so that a future caller which does reach it gets the
+        // right answer rather than the fall-through, and so -Wswitch stays quiet.
         return Transform3d::Identity();
     case ImexRole::Copy:
         return Eigen::Translation3d(gantry_offset.x(), gantry_offset.y(), 0.0)
@@ -420,6 +517,55 @@ Vec2d compute_imex_slice_offset(bool firmware_managed,
     if (parallel_mode == kImexPrimaryMode)    return Vec2d::Zero();
     if (!primary_zone_box.has_value())        return Vec2d::Zero();
     return primary_zone_box->center();
+}
+
+namespace {
+// Builds the ImexMode for row `i`, padding whatever sibling array does not reach it.
+// `names` is known non-null and `i` known in range; `tools` / `gcodes` may be either.
+ImexMode imex_mode_at(const ConfigOptionStrings*  names,
+                      const ConfigOptionStrings*  tools,
+                      const ConfigOptionStrings*  gcodes,
+                      size_t                      i)
+{
+    ImexMode m;
+    m.index = (int) i;
+    m.name  = names->values[i];
+    const bool has_tools = tools  != nullptr && i < tools->values.size();
+    const bool has_gcode = gcodes != nullptr && i < gcodes->values.size();
+    if (has_tools) m.active_tools = tools->values[i];
+    if (has_gcode) m.gcode        = gcodes->values[i];
+    m.ragged = !has_tools || !has_gcode;
+    return m;
+}
+} // namespace
+
+ImexMode find_imex_mode(const ConfigBase& cfg, const std::string& name)
+{
+    const auto* names = cfg.option<ConfigOptionStrings>("imex_mode_names");
+    if (names == nullptr)
+        return {};
+    // The siblings are fetched once, not per row: a missing option is the same answer for
+    // every row, and it is padding rather than a reason to fail the lookup.
+    const auto* tools  = cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
+    const auto* gcodes = cfg.option<ConfigOptionStrings>("imex_mode_gcodes");
+    for (size_t i = 0; i < names->values.size(); ++i)
+        if (names->values[i] == name)
+            return imex_mode_at(names, tools, gcodes, i);
+    return {};
+}
+
+std::vector<ImexMode> imex_mode_table(const ConfigBase& cfg)
+{
+    std::vector<ImexMode> table;
+    const auto* names = cfg.option<ConfigOptionStrings>("imex_mode_names");
+    if (names == nullptr)
+        return table;
+    const auto* tools  = cfg.option<ConfigOptionStrings>("imex_mode_active_tools");
+    const auto* gcodes = cfg.option<ConfigOptionStrings>("imex_mode_gcodes");
+    table.reserve(names->values.size());
+    for (size_t i = 0; i < names->values.size(); ++i)
+        table.push_back(imex_mode_at(names, tools, gcodes, i));
+    return table;
 }
 
 bool imex_hull_violates_zones(const std::vector<BoundingBoxf3>& zones, const Polygon& hull)

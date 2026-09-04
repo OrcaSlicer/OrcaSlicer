@@ -522,14 +522,14 @@ std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
             gcode << " EXTRUDER=extruder" << tool;
         else if (tool == 0)
             gcode << " EXTRUDER=extruder";
-        gcode << " ; Override pressure advance value\n";
+        gcode << "; Override pressure advance value\n";
     } else if (FLAVOR_IS(gcfRepRapFirmware)) {
-        // RRF: M572 without D applies to the current tool; with D targets a specific extruder.
-        // Use D only when an explicit tool index is provided (IMEX parallel modes).
-        gcode << "M572";
-        if (tool >= 0)
-            gcode << " D" << tool;
-        gcode << " S" << std::setprecision(4) << pa << " ; Override pressure advance value\n";
+        // RRF: M572 D<n> targets a specific extruder; a bare M572 applies to whatever tool is
+        // currently selected and errors when there isn't one. Callers with no tool index keep
+        // the historical D0 rather than the bare form: PA would otherwise depend on
+        // tool-selection state for every RRF user, none of whom are asking for IMEX.
+        gcode << "M572 D" << (tool >= 0 ? tool : 0)
+              << " S" << std::setprecision(4) << pa << "; Override pressure advance value\n";
     } else if (FLAVOR_IS(gcfRepetier)) {
         // Repetier M233: X is quadratic (K), Y is linear (L).
         // Applying the value to both parameters simultaneously.
@@ -539,10 +539,10 @@ std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
         gcode << "M900 K" << std::setprecision(4) << pa;
         if (tool >= 0)
             gcode << " T" << tool;
-        gcode << " ; Override pressure advance value\n";
+        gcode << "; Override pressure advance value\n";
     } else {
         // Marlin Legacy and everything else: single-extruder M900, no tool parameter
-        gcode << "M900 K" << std::setprecision(4) << pa << " ; Override pressure advance value\n";
+        gcode << "M900 K" << std::setprecision(4) << pa << "; Override pressure advance value\n";
     }
     return gcode.str();
 }

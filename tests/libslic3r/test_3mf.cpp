@@ -504,9 +504,26 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
     // Regression guard for the class of bug where per-plate state silently drops through
     // save/load (the variant-truncation bug was the precipitating example; IMEX plate state
     // rides the same XML metadata path and is equally vulnerable).
+    //
+    // The mode name is user-typed free text, so the values below deliberately carry every
+    // character class that is special inside an XML attribute value:
+    //   &  and <  must be escaped or the document is not well formed and the project will
+    //             not load at all,
+    //   "         must be escaped or it terminates the attribute early,
+    //   tab       must be written as a numeric character reference, because XML normalizes
+    //             literal whitespace in attribute values on read and the mode would be
+    //             silently renamed,
+    //   '  and >  are legal raw inside a double-quoted value and must survive untouched.
+    // The head filament map value is machine generated in practice; it is given hostile
+    // content here only to pin the escaping of the sibling attribute, so this asserts the
+    // XML transport, not the map grammar (the loader stores the string verbatim).
+    //
     // BBS exporter scaffolds a backup dir under temporary_dir() for the project config file;
     // point it at a writable location for the test process.
     set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
+    const std::string hostile_mode = "PLA & ABS <hot> \"2x\"\tcopy's mode";
+    const std::string hostile_hfm  = "1:2,2:3 & <\"\tx>";
 
     GIVEN("A Model with a single object on plate 0 and IMEX plate state set") {
         Model src_model;
@@ -519,8 +536,8 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
         PlateDataPtrs src_plates;
         auto *plate0 = new PlateData();
         plate0->plate_index = 0;
-        plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString("copy_mode"));
-        plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString("1:2,2:3"));
+        plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString(hostile_mode));
+        plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString(hostile_hfm));
         src_plates.push_back(plate0);
 
         WHEN("the model is saved to BBS 3MF and loaded back") {
@@ -551,17 +568,17 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
             THEN("the loaded plate list has the same number of plates") {
                 REQUIRE(dst_plates.size() == src_plates.size());
             }
-            THEN("imex_parallel_mode round-trips with its original value") {
+            THEN("imex_parallel_mode round-trips byte for byte, XML metacharacters included") {
                 REQUIRE(dst_plates.size() >= 1);
                 auto *mode_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_parallel_mode");
                 REQUIRE(mode_opt != nullptr);
-                REQUIRE(mode_opt->value == "copy_mode");
+                REQUIRE(mode_opt->value == hostile_mode);
             }
-            THEN("imex_head_filament_map round-trips with its original value") {
+            THEN("imex_head_filament_map round-trips byte for byte, XML metacharacters included") {
                 REQUIRE(dst_plates.size() >= 1);
                 auto *hfm_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
                 REQUIRE(hfm_opt != nullptr);
-                REQUIRE(hfm_opt->value == "1:2,2:3");
+                REQUIRE(hfm_opt->value == hostile_hfm);
             }
 
             release_PlateData_list(dst_plates);

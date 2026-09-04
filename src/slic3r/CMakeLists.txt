@@ -274,6 +274,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/IconManager.hpp
     GUI/IMEXFilamentPickerPopover.cpp
     GUI/IMEXFilamentPickerPopover.hpp
+    GUI/IMEXModesCtrl.cpp
+    GUI/IMEXModesCtrl.hpp
     GUI/ImageGrid.cpp
     GUI/ImageGrid.h
     GUI/ImGuiWrapper.cpp
@@ -914,6 +916,18 @@ if (APPLE)
     find_library(LIBAVUTIL_LIBRARY NAMES libavutil.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
     if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
         message(FATAL_ERROR "Static FFmpeg (libavcodec.a/libswscale.a/libavutil.a) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps — FFMPEG builds static-only on macOS.")
+    endif ()
+    target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
+elseif (WIN32)
+    # Prebuilt shared FFmpeg from the deps install. Windows has no pkg-config,
+    # so resolve the import libraries out of the deps prefix directly; the DLLs
+    # are copied next to the executable by the top level CMakeLists.
+    find_library(LIBAVCODEC_LIBRARY NAMES avcodec PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBSWSCALE_LIBRARY NAMES swscale PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVUTIL_LIBRARY NAMES avutil PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "FFmpeg (avcodec/swscale/avutil) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps.")
     endif ()
     target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)

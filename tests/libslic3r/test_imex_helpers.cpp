@@ -4,6 +4,9 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 
+#include <iterator>
+#include <set>
+
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
 
@@ -95,6 +98,72 @@ TEST_CASE("imex_pem_tool_for - MMU collapse routes multiple logical slots to one
     REQUIRE(imex_pem_tool_for(0, "copy_mode", pem) == 0);
     REQUIRE(imex_pem_tool_for(3, "copy_mode", pem) == 0); // MMU collapse: T3 logical → T0 physical
     REQUIRE(imex_pem_tool_for(6, "copy_mode", pem) == 3);
+}
+
+// ---------------------------------------------------------------------------
+// imex_physical_heater_for
+//
+// GCodeWriter::set_temperature(temp, wait, tool) is logical-in, and M104/M109 name a
+// physical heater, so this is the single translation point for every non-SEMM
+// multi-extruder printer in the tree — IMEX or not. `is_imex` is what keeps non-IMEX
+// profiles out of the remap, and physical_extruder_map carries a *different* meaning on
+// those (indexed by extruder id, not filament id), so remapping them would retarget
+// heaters. fdm_bbl_3dp_002_common ships a non-identity [1, 0], which is the case that
+// makes the guard load-bearing rather than cosmetic.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("imex_physical_heater_for - non-IMEX printer passes the logical id through untouched", "[IMEX]") {
+    // The shipping BBL dual-nozzle map. With is_imex=0 the id must come out unchanged;
+    // remapping here would send filament 0's M109 to heater 1 and vice versa.
+    auto pem = make_pem({1, 0});
+    REQUIRE(imex_physical_heater_for(false, pem, 0) == 0);
+    REQUIRE(imex_physical_heater_for(false, pem, 1) == 1);
+
+    // Same guard on an AFC-shaped map, where a remap would collapse four ids onto heater 0.
+    auto afc = make_pem({0, 0, 0, 0, 1, 2, 3});
+    REQUIRE(imex_physical_heater_for(false, afc, 3) == 3);
+    REQUIRE(imex_physical_heater_for(false, afc, 6) == 6);
+}
+
+TEST_CASE("imex_physical_heater_for - IMEX identity map is a no-op", "[IMEX]") {
+    auto pem = make_pem({0, 1, 2, 3});
+    for (int id = 0; id < 4; ++id)
+        REQUIRE(imex_physical_heater_for(true, pem, id) == id);
+}
+
+TEST_CASE("imex_physical_heater_for - IMEX permutation remaps to the physical heater", "[IMEX]") {
+    // The same [1, 0] map read the IMEX way: filament 0 lives on heater 1.
+    auto pem = make_pem({1, 0});
+    REQUIRE(imex_physical_heater_for(true, pem, 0) == 1);
+    REQUIRE(imex_physical_heater_for(true, pem, 1) == 0);
+}
+
+TEST_CASE("imex_physical_heater_for - IMEX MMU collapse targets the shared heater", "[IMEX]") {
+    // User's IQEX: logical 0-3 are AFC lanes on heater 0, so all four heat the same hotend.
+    auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});
+    REQUIRE(imex_physical_heater_for(true, pem, 0) == 0);
+    REQUIRE(imex_physical_heater_for(true, pem, 3) == 0);
+    REQUIRE(imex_physical_heater_for(true, pem, 4) == 1);
+    REQUIRE(imex_physical_heater_for(true, pem, 6) == 3);
+}
+
+TEST_CASE("imex_physical_heater_for - out-of-range ids pass through instead of clamping", "[IMEX]") {
+    // Deliberately NOT get_at(), which clamps to values.front() and would silently retarget
+    // an out-of-range id at whatever heater sits in slot 0 — heater 1 for this map.
+    auto pem = make_pem({1, 0});
+    REQUIRE(imex_physical_heater_for(true, pem, -1) == -1);   // the "no T parameter" sentinel
+    REQUIRE(imex_physical_heater_for(true, pem, 2)  == 2);    // one past the end
+    REQUIRE(imex_physical_heater_for(true, pem, 99) == 99);
+
+    // Same for the single-entry PrintConfig default, which every non-IMEX printer carries.
+    auto lone = make_pem({0});
+    REQUIRE(imex_physical_heater_for(true, lone, 1) == 1);
+}
+
+TEST_CASE("imex_physical_heater_for - empty pem never remaps", "[IMEX]") {
+    ConfigOptionInts empty_pem;
+    REQUIRE(imex_physical_heater_for(true,  empty_pem, 0) == 0);
+    REQUIRE(imex_physical_heater_for(false, empty_pem, 2) == 2);
 }
 
 TEST_CASE("imex_suppresses_bare_toolchange - non-IMEX printer never suppresses", "[IMEX]") {
@@ -356,6 +425,40 @@ TEST_CASE("parse_imex_head_filament_map - empty string", "[IMEX]") {
     REQUIRE(parse_imex_head_filament_map("").empty());
 }
 
+TEST_CASE("parse_imex_head_filament_map - a high byte makes its token unparseable", "[IMEX]") {
+    // This string comes straight from 3MF metadata, so bytes above 0x7F are reachable without
+    // ever passing through the UI. 0xFF is a letter, never whitespace in any single-byte locale,
+    // so it survives the whitespace strip and makes the physical index unparseable — that token
+    // is dropped and the well-formed token beside it still parses.
+    //
+    // What this case does NOT demonstrate is the undefined behaviour of handing a negative char
+    // to isspace: glibc's ctype table is defined over -128..255 and isspace(-1) returns 0, so
+    // this passes just as well against the unguarded version. Catching that needs a sanitizer
+    // build (UBSan) or an MSVC debug CRT, not an assertion here.
+    auto m = parse_imex_head_filament_map("\xFF" "0:3,4:5");
+    REQUIRE(m.size() == 1);
+    REQUIRE(m.count(0) == 0);
+    REQUIRE(m[4] == 5);
+
+    // A high byte in the slot half is likewise rejected rather than read out of range.
+    REQUIRE(parse_imex_head_filament_map("0:\xFF").empty());
+}
+
+TEST_CASE("parse_imex_head_filament_map - absurd indices are rejected at parse", "[IMEX]") {
+    // Absolute sanity cap only: nothing can exceed the slicer-wide extruder ceiling.
+    // The bound against the project's actual filament count is resolve_filament_for_head's.
+    REQUIRE(parse_imex_head_filament_map("1:9999").empty());
+    REQUIRE(parse_imex_head_filament_map("9999:1").empty());
+    REQUIRE(parse_imex_head_filament_map("1:0").empty());     // slots are 1-based
+    REQUIRE(parse_imex_head_filament_map("-1:2").empty());
+    REQUIRE(parse_imex_head_filament_map("1:-2").empty());
+
+    // A bad token does not poison the good ones beside it.
+    auto m = parse_imex_head_filament_map("0:9999,1:2");
+    REQUIRE(m.size() == 1);
+    REQUIRE(m[1] == 2);
+}
+
 TEST_CASE("resolve_filament_for_head - override wins", "[IMEX]") {
     auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});
     std::map<int,int> plate_map{{0, 3}}; // 1-based slot 3 = 0-based logical 2
@@ -373,6 +476,26 @@ TEST_CASE("resolve_filament_for_head - no routing for head", "[IMEX]") {
     auto pem = make_pem({0, 1}); // no head 2
     std::map<int,int> plate_map{};
     REQUIRE(resolve_filament_for_head(plate_map, pem, 2) == -1);
+}
+
+TEST_CASE("resolve_filament_for_head - override past the filament count is ignored", "[IMEX]") {
+    // pem has one entry per logical filament slot, so a slot at or past its size names a
+    // filament that does not exist. A project file carrying such an override must not
+    // resolve to it: downstream lookups use ConfigOption::get_at, which clamps instead of
+    // failing, so an honoured 1:9999 would be a silently wrong filament rather than a crash.
+    auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});   // 7 slots -> valid 0-based logicals are 0..6
+
+    // Highest legal slot still resolves — the bound must not be off by one.
+    REQUIRE(resolve_filament_for_head({{1, 7}}, pem, 1) == 6);
+
+    // One past it, and far past it, fall back to the printer's own routing for that head
+    // (first_filament_for_physical_head(pem, 1) == 4), i.e. the override is treated as absent.
+    REQUIRE(resolve_filament_for_head({{1, 8}},    pem, 1) == 4);
+    REQUIRE(resolve_filament_for_head({{1, 9999}}, pem, 1) == 4);
+
+    // With no pem routing for the head either, an out-of-range override yields -1 rather
+    // than a wrong slot, so callers take their "no filament" branch.
+    REQUIRE(resolve_filament_for_head({{5, 9999}}, pem, 5) == -1);
 }
 
 TEST_CASE("imex_primary_tool_for_mode - role marker authoritative", "[IMEX]") {
@@ -582,6 +705,22 @@ TEST_CASE("imex_head_transform - primary is identity", "[IMEX]") {
     REQUIRE(xf.isApprox(Transform3d::Identity()));
 }
 
+TEST_CASE("imex_head_transform - span is identity like primary", "[IMEX]") {
+    // A Span tool is the primary's within-gantry multicolor partner: it prints the same
+    // objects in the primary's own zone through mid-print toolchanges, so it has no zone of
+    // its own to be translated or reflected into. It must ignore gantry_offset entirely —
+    // translating it by one would place a phantom copy in a neighbouring zone.
+    const Vec2d offset{120.0, 30.0};
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Span, offset, Vec2d{50.0, 50.0},
+                                         ImexMirrorAxis::X);
+    REQUIRE(xf.isApprox(Transform3d::Identity()));
+
+    // Cross-gantry axis choice is irrelevant for Span for the same reason.
+    Transform3d xf_y = imex_head_transform(0, 2, ImexRole::Span, offset, Vec2d{50.0, 50.0},
+                                           ImexMirrorAxis::Y);
+    REQUIRE(xf_y.isApprox(Transform3d::Identity()));
+}
+
 TEST_CASE("imex_head_transform - mirror with zero offset is identity", "[IMEX]") {
     const Vec2d offset{0.0, 0.0};
     Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(), ImexMirrorAxis::X);
@@ -641,6 +780,60 @@ TEST_CASE("resolve_filament_for_head - no routing returns -1 (ghost color fallba
     // Plate override for an unrouted head still resolves (user's explicit choice wins).
     std::map<int,int> override_on_5 = {{5, 7}};
     REQUIRE(resolve_filament_for_head(override_on_5, pem, 5) == 6);
+}
+
+TEST_CASE("imex_role_letter - the historical letters are pinned", "[IMEX]") {
+    // The write half of the on-disk format for imex_mode_active_tools, spelled out rather than
+    // read back off kImexRoleTable: both imex_role_letter() and imex_role_from_suffix() are
+    // linear scans of that table, so driving them from it asserts only that the table agrees
+    // with itself. These are the letters already written into printer profiles and 3MF projects.
+    REQUIRE(imex_role_letter(ImexRole::Primary) == 'P');
+    REQUIRE(imex_role_letter(ImexRole::Copy)    == 'C');
+    REQUIRE(imex_role_letter(ImexRole::Mirror)  == 'M');
+    REQUIRE(imex_role_letter(ImexRole::Span)    == 'S');
+}
+
+TEST_CASE("the role table gives every role its own letter", "[IMEX]") {
+    // The one property the table can actually violate, and the one the round trip depends on:
+    // a duplicated letter makes the on-disk format ambiguous (imex_role_from_suffix returns the
+    // first row, so the second role silently reads back as the first), and a duplicated role
+    // makes imex_role_letter's answer depend on row order. Appending a fifth role with a letter
+    // already in use is exactly how that happens.
+    std::set<char>     letters;
+    std::set<ImexRole> roles;
+    for (const ImexRoleDesc& d : kImexRoleTable) {
+        INFO("role table row with letter '" << d.letter << "'");
+        CHECK(letters.insert(d.letter).second);
+        CHECK(roles.insert(d.role).second);
+    }
+    REQUIRE(letters.size() == std::size(kImexRoleTable));
+}
+
+TEST_CASE("imex_role_from_suffix - the historical letters are pinned", "[IMEX]") {
+    // Spelled out rather than derived from the table, so a change to the table that would
+    // reinterpret an existing preset fails here instead of silently agreeing with itself.
+    REQUIRE(imex_role_from_suffix("P") == ImexRole::Primary);
+    REQUIRE(imex_role_from_suffix("C") == ImexRole::Copy);
+    REQUIRE(imex_role_from_suffix("M") == ImexRole::Mirror);
+    REQUIRE(imex_role_from_suffix("S") == ImexRole::Span);
+}
+
+TEST_CASE("imex_role_from_suffix - anything unrecognised stays Copy", "[IMEX]") {
+    // Copy is the long-standing fallback for an unknown suffix; a project written by a build
+    // that knows a role this one does not must degrade to Copy, not to Primary.
+    REQUIRE(imex_role_from_suffix("")   == ImexRole::Copy);
+    REQUIRE(imex_role_from_suffix("X")  == ImexRole::Copy);
+    REQUIRE(imex_role_from_suffix("p")  == ImexRole::Copy);   // case sensitive, as before
+    REQUIRE(imex_role_from_suffix("PP") == ImexRole::Copy);   // suffix is the whole token tail
+}
+
+TEST_CASE("imex_primary_tool_for_mode - only an exact P suffix names the primary", "[IMEX]") {
+    // Shares imex_role_from_suffix() with parse_imex_active_tools(), so this pins that the
+    // two agree on which token is the Primary rather than each deciding for itself.
+    REQUIRE(imex_primary_tool_for_mode("0:C,1:P,2:M") == 1);
+    REQUIRE(imex_primary_tool_for_mode("0:PP,1:M")    == -1);
+    REQUIRE(imex_primary_tool_for_mode("0:p,1:M")     == -1);
+    REQUIRE(imex_primary_tool_for_mode("0,1,2")       == 0);   // legacy bare index
 }
 
 TEST_CASE("parse_imex_active_tools - Span role parsed from S suffix", "[IMEX]") {
@@ -883,4 +1076,432 @@ TEST_CASE("imex_hull_violates_zones - violating any one of several zones is enou
     REQUIRE(imex_hull_violates_zones(zones, scaled_rect(45, 45, 60, 60)));
     // Overlaps none of the three (sits in the gaps between them).
     REQUIRE_FALSE(imex_hull_violates_zones(zones, scaled_rect(12, 12, 18, 18)));
+}
+
+// ---------------------------------------------------------------------------
+// find_imex_mode / imex_mode_table
+//
+// The three mode options are positionally coupled ConfigOptionStrings with nothing
+// enforcing equal length, so these pin the resolution rule that every IMEX call site
+// now shares: the names array is the roster, the first matching row wins, and a sibling
+// array too short to reach that row pads to an empty string and flags `ragged` instead
+// of reading out of bounds or degrading into "no such mode".
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// Only the keys the mode lookup reads. Any of the three may be omitted by passing an
+// empty vector for it -- `imex_mode_table` and `find_imex_mode` must cope with a config
+// that never registered the option at all, which is what a non-IMEX preset looks like.
+DynamicPrintConfig mode_cfg(const std::vector<std::string>& names,
+                            const std::vector<std::string>& tools,
+                            const std::vector<std::string>& gcodes)
+{
+    DynamicPrintConfig cfg;
+    if (!names.empty())  cfg.set_key_value("imex_mode_names",        new ConfigOptionStrings(names));
+    if (!tools.empty())  cfg.set_key_value("imex_mode_active_tools", new ConfigOptionStrings(tools));
+    if (!gcodes.empty()) cfg.set_key_value("imex_mode_gcodes",       new ConfigOptionStrings(gcodes));
+    return cfg;
+}
+
+} // namespace
+
+TEST_CASE("find_imex_mode - an exact name yields that row's index, tools and script", "[IMEX]") {
+    // The defining property: all three fields come from the SAME position, so a lookup
+    // that resolved the index against one array and read another cannot pass.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "iq-copy" },
+                                            { "0:P", "0:P,1:C", "0:P,1:C,2:C,3:C" },
+                                            { "", "COPY_SCRIPT", "QUAD_SCRIPT" });
+
+    const ImexMode m = find_imex_mode(cfg, "copy");
+    REQUIRE(m.found());
+    CHECK(m.index == 1);
+    CHECK(m.name == "copy");
+    CHECK(m.active_tools == "0:P,1:C");
+    CHECK(m.gcode == "COPY_SCRIPT");
+    CHECK_FALSE(m.ragged);
+
+    const ImexMode last = find_imex_mode(cfg, "iq-copy");
+    REQUIRE(last.found());
+    CHECK(last.index == 2);
+    CHECK(last.active_tools == "0:P,1:C,2:C,3:C");
+    CHECK(last.gcode == "QUAD_SCRIPT");
+}
+
+TEST_CASE("find_imex_mode - a name no row carries is not found", "[IMEX]") {
+    // What a plate's mode becomes once it is renamed or deleted in Printer Settings, or
+    // once the project is opened against a preset that names its modes differently. The
+    // not-found case has to be explicit: an index of -1, not an out-of-range index that
+    // happens to read empty.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" },
+                                            { "0:P", "0:P,1:C" },
+                                            { "", "COPY_SCRIPT" });
+
+    const ImexMode m = find_imex_mode(cfg, "copy-renamed");
+    CHECK_FALSE(m.found());
+    CHECK(m.index == -1);
+    CHECK(m.name.empty());
+    CHECK(m.active_tools.empty());
+    CHECK(m.gcode.empty());
+    CHECK_FALSE(m.ragged);
+    CHECK_FALSE(static_cast<bool>(m));
+}
+
+TEST_CASE("find_imex_mode - a short active-tools array pads and reports ragged", "[IMEX]") {
+    // The reviewer's opening case: a profile whose imex_mode_active_tools does not reach
+    // the last mode. The mode still exists -- it is named, and its index still has to be
+    // reported to {imex_mode_index} -- but it has no tools, and `ragged` is what lets a
+    // caller say so instead of silently printing a parallel mode with an empty roster.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" },
+                                            { "0:P" },
+                                            { "", "COPY_SCRIPT" });
+
+    const ImexMode m = find_imex_mode(cfg, "copy");
+    REQUIRE(m.found());
+    CHECK(m.index == 1);
+    CHECK(m.active_tools.empty());
+    CHECK(m.gcode == "COPY_SCRIPT");
+    CHECK(m.ragged);
+
+    // The row the short array does reach is not ragged.
+    CHECK_FALSE(find_imex_mode(cfg, kImexPrimaryMode).ragged);
+}
+
+TEST_CASE("find_imex_mode - a short gcodes array pads and reports ragged", "[IMEX]") {
+    // Raggedness in the other direction. A mode with no script is a legitimate profile --
+    // Primary is normally exactly that -- so this must not cost the mode its tools.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" },
+                                            { "0:P", "0:P,1:C" },
+                                            { "" });
+
+    const ImexMode m = find_imex_mode(cfg, "copy");
+    REQUIRE(m.found());
+    CHECK(m.index == 1);
+    CHECK(m.active_tools == "0:P,1:C");
+    CHECK(m.gcode.empty());
+    CHECK(m.ragged);
+}
+
+TEST_CASE("find_imex_mode - a missing sibling option is padding, not a failed lookup", "[IMEX]") {
+    // A profile old enough to predate a key, or a config assembled by hand. Absent is the
+    // limiting case of short, and must be answered the same way.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" }, {}, {});
+
+    const ImexMode m = find_imex_mode(cfg, "copy");
+    REQUIRE(m.found());
+    CHECK(m.index == 1);
+    CHECK(m.active_tools.empty());
+    CHECK(m.gcode.empty());
+    CHECK(m.ragged);
+}
+
+TEST_CASE("find_imex_mode - a config with no mode table finds nothing", "[IMEX]") {
+    // Every non-IMEX printer, and any caller that reaches the helper before the printer
+    // preset is loaded. Must answer not-found rather than dereference a null option.
+    const DynamicPrintConfig empty;
+    CHECK_FALSE(find_imex_mode(empty, "copy").found());
+    CHECK_FALSE(find_imex_mode(empty, kImexPrimaryMode).found());
+    CHECK(imex_mode_table(empty).empty());
+
+    // An empty names array is the same answer, even with siblings present.
+    const DynamicPrintConfig no_names = mode_cfg({}, { "0:P,1:C" }, { "COPY_SCRIPT" });
+    CHECK_FALSE(find_imex_mode(no_names, "copy").found());
+    CHECK(imex_mode_table(no_names).empty());
+}
+
+TEST_CASE("find_imex_mode - a duplicated mode name resolves to the first row", "[IMEX]") {
+    // The modes editor uniquifies names on entry, so duplicates only arrive from a
+    // hand-edited profile -- but the eight open-coded lookups this replaced disagreed
+    // about them: the ones that folded the bounds check into the match condition skipped
+    // a first row the tools array did not reach and silently took the second. First match
+    // wins, unconditionally, so the plate, the preview and the emitted G-code cannot pick
+    // different rows for the same name.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "copy" },
+                                            { "0:P", "0:P,1:C", "0:P,1:M" },
+                                            { "", "FIRST", "SECOND" });
+
+    const ImexMode m = find_imex_mode(cfg, "copy");
+    REQUIRE(m.found());
+    CHECK(m.index == 1);
+    CHECK(m.active_tools == "0:P,1:C");
+    CHECK(m.gcode == "FIRST");
+
+    // Still the first row when the tools array is too short to cover it. This is the case
+    // where the old idioms diverged from each other.
+    const DynamicPrintConfig ragged = mode_cfg({ kImexPrimaryMode, "copy", "copy" },
+                                               { "0:P" },
+                                               { "", "FIRST", "SECOND" });
+    const ImexMode rm = find_imex_mode(ragged, "copy");
+    REQUIRE(rm.found());
+    CHECK(rm.index == 1);
+    CHECK(rm.active_tools.empty());
+    CHECK(rm.gcode == "FIRST");
+    CHECK(rm.ragged);
+}
+
+TEST_CASE("imex_mode_table - one row per name, in config order, padded the same way", "[IMEX]") {
+    // The roster view the modes editor and the plate's mode menu consume. Its size is the
+    // names array's size and nothing else's, or the editor would drop or invent rows when
+    // a profile's arrays disagree.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "mirror" },
+                                            { "0:P", "0:P,1:C" },
+                                            { "", "COPY_SCRIPT", "MIRROR_SCRIPT", "EXTRA" });
+
+    const std::vector<ImexMode> table = imex_mode_table(cfg);
+    REQUIRE(table.size() == 3);
+
+    CHECK(table[0].index == 0);
+    CHECK(table[0].name == kImexPrimaryMode);
+    CHECK(table[0].active_tools == "0:P");
+    CHECK_FALSE(table[0].ragged);
+
+    CHECK(table[1].index == 1);
+    CHECK(table[1].name == "copy");
+    CHECK(table[1].active_tools == "0:P,1:C");
+    CHECK(table[1].gcode == "COPY_SCRIPT");
+    CHECK_FALSE(table[1].ragged);
+
+    // Past the end of the tools array: padded, flagged, and NOT dropped from the roster.
+    CHECK(table[2].index == 2);
+    CHECK(table[2].name == "mirror");
+    CHECK(table[2].active_tools.empty());
+    CHECK(table[2].gcode == "MIRROR_SCRIPT");
+    CHECK(table[2].ragged);
+
+    // A sibling array LONGER than the names array contributes no row: the names array is
+    // the roster, so the trailing "EXTRA" script belongs to no mode.
+    for (const ImexMode& m : table)
+        CHECK(m.gcode != "EXTRA");
+}
+
+TEST_CASE("imex_mode_table - every row agrees with find_imex_mode on that name", "[IMEX]") {
+    // The two entry points must not be able to drift: find_imex_mode is the hot path and
+    // does not build the table, so this pins them to the same answer.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "iq-copy" },
+                                            { "0:P", "0:P,1:C" },
+                                            { "", "COPY_SCRIPT" });
+
+    for (const ImexMode& row : imex_mode_table(cfg)) {
+        DYNAMIC_SECTION("row " << row.index << " (" << row.name << ")") {
+            const ImexMode found = find_imex_mode(cfg, row.name);
+            CHECK(found.index == row.index);
+            CHECK(found.active_tools == row.active_tools);
+            CHECK(found.gcode == row.gcode);
+            CHECK(found.ragged == row.ragged);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// imex_resolve_routing — the one derivation shared by the hard block and the warning
+// ---------------------------------------------------------------------------
+//
+// Print::validate() refuses a plate whose filaments do not route to the mode's declared
+// primary; Plater's collect_imex_warnings() names that same primary's filament. Both used
+// to re-derive the mode, its roster, the primary and the routing test for themselves, which
+// is how they could describe the same plate differently. These pin the single derivation
+// they now share, and in particular the physical/logical distinction that
+// collect_imex_warnings got wrong once already.
+
+TEST_CASE("imex_resolve_routing - a primary mode derives nothing", "[IMEX]") {
+    // The reserved sentinel is "no parallel printing": no mode row is looked up, so no
+    // roster, no primary, and above all no block. Same for a plate that never carried a mode.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" }, { "0:P", "0:P,1:C" }, { "", "S" });
+    const auto pem = make_pem({0, 1});
+
+    for (const std::string& mode : { std::string(kImexPrimaryMode), std::string() }) {
+        DYNAMIC_SECTION("mode '" << mode << "'") {
+            const ImexRouting r = imex_resolve_routing(cfg, mode, { 1 }, pem);
+            CHECK_FALSE(r.parallel);
+            CHECK(r.active_tools.empty());
+            CHECK(r.tools.empty());
+            CHECK(r.primary_phys == -1);
+            CHECK(r.primary_logical == -1);
+            CHECK_FALSE(r.routes_to_primary());
+            CHECK_FALSE(r.primary_unrouted);
+            CHECK(r.routed_heads.empty());
+        }
+    }
+}
+
+TEST_CASE("imex_resolve_routing - plain IDEX copy mode routes its single filament", "[IMEX]") {
+    // The ordinary case: two carriages, one logical filament each, the plate's object on
+    // filament 1. Nothing to warn about and nothing to block.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" }, { "0:P", "0:P,1:C" }, { "", "S" });
+    const ImexRouting r = imex_resolve_routing(cfg, "copy", { 1 }, make_pem({0, 1}));
+
+    CHECK(r.parallel);
+    CHECK(r.active_tools == "0:P,1:C");
+    REQUIRE(r.tools.size() == 2);
+    CHECK(r.tools[0].first == 0);
+    CHECK(r.tools[0].second == ImexRole::Primary);
+    CHECK(r.tools[1].first == 1);
+    CHECK(r.tools[1].second == ImexRole::Copy);
+    CHECK(r.primary_phys == 0);
+    CHECK(r.primary_logical == 0);
+    CHECK(r.routes_to_primary());
+    CHECK_FALSE(r.primary_unrouted);
+    CHECK(r.routed_heads == std::vector<int>{0});
+}
+
+TEST_CASE("imex_resolve_routing - a plate whose filament misses the primary is unrouted", "[IMEX]") {
+    // The hard block's own case: IDEX copy mode declares T0 primary, but the object is
+    // assigned filament 2, which the map routes to T1. `primary_unrouted` is the whole
+    // condition Print::validate refuses on, and routed_heads is what names T1 in the message.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" }, { "0:P", "0:P,1:C" }, { "", "S" });
+    const ImexRouting r = imex_resolve_routing(cfg, "copy", { 2 }, make_pem({0, 1}));
+
+    CHECK(r.primary_phys == 0);
+    CHECK(r.primary_logical == -1);
+    CHECK_FALSE(r.routes_to_primary());
+    CHECK(r.primary_unrouted);
+    CHECK(r.routed_heads == std::vector<int>{1});
+}
+
+TEST_CASE("imex_resolve_routing - AFC manifold: primary is a PHYSICAL index, not a logical slot", "[IMEX]") {
+    // The index confusion collect_imex_warnings shipped with (fixed in fbc58d2a1d): the
+    // mode's tool numbers are PHYSICAL carriages, while filament presets and bed temps are
+    // indexed by LOGICAL slot, and on an AFC manifold the two diverge. Here logical slots
+    // 0-3 are four AFC lanes on physical T0; T1, T2, T3 are direct carriages fed by logical
+    // 4, 5, 6.
+    //
+    // The mode makes physical T1 the primary and the plate's object is on filament 5
+    // (1-based) = logical slot 4. The routing must report slot 4. Reporting slot 1 -- the
+    // primary's own physical number read as a logical index -- is the bug: logical 1 is an
+    // AFC lane on T0, so the warning named a filament that is not on the primary at all.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "afc-copy" },
+                                            { "0:P", "1:P,2:C,3:C" },
+                                            { "", "S" });
+    const auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});
+    const ImexRouting r = imex_resolve_routing(cfg, "afc-copy", { 5 }, pem);
+
+    CHECK(r.primary_phys == 1);
+    CHECK(r.primary_logical == 4);
+    CHECK(r.primary_logical != r.primary_phys);
+    CHECK(r.routes_to_primary());
+    CHECK_FALSE(r.primary_unrouted);
+    CHECK(r.routed_heads == std::vector<int>{1});
+}
+
+TEST_CASE("imex_resolve_routing - AFC manifold: an AFC lane does not satisfy a direct primary", "[IMEX]") {
+    // Same manifold, same mode, but the object is on filament 2 (logical slot 1), an AFC
+    // lane on physical T0. T1 is the declared primary and nothing reaches it, so the plate
+    // is unrouted -- which is precisely the answer a physical-as-logical read would have
+    // inverted, since logical slot 1 exists and would have looked like a hit.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "afc-copy" },
+                                            { "0:P", "1:P,2:C,3:C" },
+                                            { "", "S" });
+    const ImexRouting r = imex_resolve_routing(cfg, "afc-copy", { 2 }, make_pem({0, 0, 0, 0, 1, 2, 3}));
+
+    CHECK(r.primary_phys == 1);
+    CHECK(r.primary_logical == -1);
+    CHECK(r.primary_unrouted);
+    CHECK(r.routed_heads == std::vector<int>{0});
+}
+
+TEST_CASE("imex_resolve_routing - AFC manifold: any lane on the primary head satisfies it", "[IMEX]") {
+    // Four logical lanes share physical T0. With T0 primary, an object on any of them
+    // routes, and the first used slot wins -- the rule imex_primary_logical_from_objects
+    // documents, pinned here because the warning names the filament it picks.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "afc-copy" },
+                                            { "0:P", "0:P,1:C,2:C,3:C" },
+                                            { "", "S" });
+    const auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});
+
+    CHECK(imex_resolve_routing(cfg, "afc-copy", { 3 }, pem).primary_logical == 2);
+    CHECK(imex_resolve_routing(cfg, "afc-copy", { 4, 2 }, pem).primary_logical == 3);
+    CHECK(imex_resolve_routing(cfg, "afc-copy", { 5, 2 }, pem).primary_logical == 1);
+}
+
+TEST_CASE("imex_resolve_routing - warning and block can never disagree about the primary", "[IMEX]") {
+    // The defining property of the extraction. Plater reads primary_logical to name a
+    // filament and Print::validate reads primary_unrouted to refuse the plate; they are two
+    // views of one value, so a plate is unrouted exactly when no slot was found.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "quad" },
+                                            { "0:P", "0:P,1:C", "0:P,1:S,2:M,3:M" },
+                                            { "", "S", "Q" });
+    const std::vector<std::vector<int>> slot_sets = { {}, {1}, {2}, {3}, {1, 2}, {2, 3}, {4} };
+    const std::vector<ConfigOptionInts> pems = { make_pem({0, 1}), make_pem({0, 0, 1, 2}), make_pem({1, 0}) };
+
+    for (const std::string& mode : { "copy", "quad" }) {
+        for (size_t s = 0; s < slot_sets.size(); ++s) {
+            for (size_t p = 0; p < pems.size(); ++p) {
+                DYNAMIC_SECTION(mode << " slots#" << s << " pem#" << p) {
+                    const ImexRouting r = imex_resolve_routing(cfg, mode, slot_sets[s], pems[p]);
+                    REQUIRE(r.primary_phys >= 0);
+                    REQUIRE_FALSE(pems[p].values.empty());
+                    CHECK(r.primary_unrouted == !r.routes_to_primary());
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("imex_resolve_routing - an empty routing map is not an unrouted plate", "[IMEX]") {
+    // A printer that declares no physical_extruder_map has said nothing about where its
+    // filaments go, which is not the same claim as "they go somewhere other than the
+    // primary". Only the latter is an error, so this must not block.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy" }, { "0:P", "0:P,1:C" }, { "", "S" });
+    const ImexRouting r = imex_resolve_routing(cfg, "copy", { 1 }, ConfigOptionInts{});
+
+    CHECK(r.primary_phys == 0);
+    CHECK(r.primary_logical == -1);
+    CHECK_FALSE(r.primary_unrouted);
+    CHECK(r.routed_heads.empty());
+}
+
+TEST_CASE("imex_resolve_routing - a mode with no primary marker never blocks", "[IMEX]") {
+    // A hand-edited roster that declares only copies. There is no primary to route to, so
+    // there is nothing to refuse -- the roster still parses, which is what the plater needs
+    // to decide it has fewer than two tools to compare.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "broken" }, { "0:P", "0:C,1:C" }, { "", "S" });
+    const ImexRouting r = imex_resolve_routing(cfg, "broken", { 2 }, make_pem({0, 1}));
+
+    CHECK(r.parallel);
+    CHECK(r.tools.size() == 2);
+    CHECK(r.primary_phys == -1);
+    CHECK(r.primary_logical == -1);
+    CHECK_FALSE(r.primary_unrouted);
+}
+
+TEST_CASE("imex_resolve_routing - an unresolved or ragged mode yields an empty roster", "[IMEX]") {
+    // A plate whose mode was renamed or deleted in Printer Settings, and a profile whose
+    // active-tools array does not reach the named row. Both are "no tools, no primary,
+    // no block" -- the answer both call sites relied on the mode lookup for.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "copy", "ragged" },
+                                            { "0:P", "0:P,1:C" },
+                                            { "", "S", "R" });
+    const auto pem = make_pem({0, 1});
+
+    for (const std::string& mode : { "copy-renamed", "ragged" }) {
+        DYNAMIC_SECTION("mode " << mode) {
+            const ImexRouting r = imex_resolve_routing(cfg, mode, { 2 }, pem);
+            CHECK(r.parallel);
+            CHECK(r.active_tools.empty());
+            CHECK(r.tools.empty());
+            CHECK(r.primary_phys == -1);
+            CHECK_FALSE(r.primary_unrouted);
+        }
+    }
+}
+
+TEST_CASE("imex_resolve_routing - routed_heads is sorted, deduplicated and never clamps", "[IMEX]") {
+    // routed_heads is what the block's message lists as "this plate's filaments are on ...".
+    // Slots past the end of the map are DROPPED, not clamped: ConfigOption::get_at() clamps
+    // to values.front(), which would let the sentence name T0 -- the very head it just said
+    // nothing routes to.
+    const DynamicPrintConfig cfg = mode_cfg({ kImexPrimaryMode, "quad" },
+                                            { "0:P", "0:P,1:C,2:C,3:C" },
+                                            { "", "Q" });
+    const auto pem = make_pem({0, 0, 1, 2});
+
+    // Slots 3 and 4 (logical 2, 3) reach T1 and T2; slot 2 (logical 1) reaches T0; slot 9
+    // is past the map and contributes nothing.
+    const ImexRouting r = imex_resolve_routing(cfg, "quad", { 4, 2, 3, 9, 4 }, pem);
+    CHECK(r.routed_heads == std::vector<int>{0, 1, 2});
+
+    // Every used slot out of range: the message would otherwise read "on T0".
+    const ImexRouting all_out = imex_resolve_routing(cfg, "quad", { 9, 12 }, pem);
+    CHECK(all_out.routed_heads.empty());
+    CHECK(all_out.primary_unrouted);
 }

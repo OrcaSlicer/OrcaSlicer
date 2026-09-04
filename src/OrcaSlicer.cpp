@@ -1969,7 +1969,7 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [config_substitution_rule](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -7384,7 +7384,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
         << std::endl
         << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
-        << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
+        << "\t2) setting values loaded with --load-settings and --load-filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;
 
     /*if (include_print_options) {

@@ -845,14 +845,14 @@ SCENARIO("set_pressure_advance emits Klipper form with optional EXTRUDER=extrude
             std::string out = writer.set_pressure_advance(0.05);
             THEN("Output contains SET_PRESSURE_ADVANCE ADVANCE=0.05 with no EXTRUDER qualifier") {
                 REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("SET_PRESSURE_ADVANCE"));
-                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("ADVANCE=0.05"));
+                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("ADVANCE=0.05; Override"));
                 REQUIRE_THAT(out, !Catch::Matchers::ContainsSubstring("EXTRUDER="));
             }
         }
         WHEN("set_pressure_advance is called with tool=0") {
             std::string out = writer.set_pressure_advance(0.04, 0);
             THEN("Output targets EXTRUDER=extruder (no trailing index)") {
-                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("EXTRUDER=extruder "));
+                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("EXTRUDER=extruder;"));
                 REQUIRE_THAT(out, !Catch::Matchers::ContainsSubstring("EXTRUDER=extruder0"));
             }
         }
@@ -865,21 +865,20 @@ SCENARIO("set_pressure_advance emits Klipper form with optional EXTRUDER=extrude
     }
 }
 
-SCENARIO("set_pressure_advance emits RepRapFirmware form with optional D<N>", "[GCodeWriter][PressureAdvance]") {
+SCENARIO("set_pressure_advance emits RepRapFirmware form with D<N>", "[GCodeWriter][PressureAdvance]") {
     GIVEN("An RRF-flavored GCodeWriter") {
         GCodeWriter writer;
         writer.config.gcode_flavor.value = gcfRepRapFirmware;
 
         WHEN("set_pressure_advance is called without a tool index") {
             std::string out = writer.set_pressure_advance(0.07);
-            THEN("Output is bare M572 S... with no D qualifier") {
-                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M572 S0.07"));
-                REQUIRE_THAT(out, !Catch::Matchers::ContainsSubstring(" D"));
+            THEN("Output keeps the historical D0 rather than depending on the selected tool") {
+                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M572 D0 S0.07"));
             }
         }
         WHEN("set_pressure_advance is called with tool=0") {
             std::string out = writer.set_pressure_advance(0.08, 0);
-            THEN("Output contains D0 (explicit tool 0, not the current-tool fallback)") {
+            THEN("Output contains D0, same as the tool-less form") {
                 REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M572 D0 S0.08"));
             }
         }
@@ -900,7 +899,7 @@ SCENARIO("set_pressure_advance emits Marlin 2.x form with optional T<N>", "[GCod
         WHEN("set_pressure_advance is called without a tool index") {
             std::string out = writer.set_pressure_advance(0.10);
             THEN("Output is bare M900 K... with no T qualifier") {
-                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M900 K0.1 "));
+                REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M900 K0.1; Override"));
                 REQUIRE_THAT(out, !Catch::Matchers::ContainsSubstring(" T"));
             }
         }

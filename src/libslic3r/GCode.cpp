@@ -2883,19 +2883,10 @@ static std::vector<int> get_imex_active_tools(const Print& print)
     if (active_mode == kImexPrimaryMode)
         return active_tools;
 
-    const auto* mode_names_opt = print.config().option<ConfigOptionStrings>("imex_mode_names");
-    const auto* tools_opt      = print.config().option<ConfigOptionStrings>("imex_mode_active_tools");
-
-    if (!mode_names_opt || !tools_opt || mode_names_opt->values.empty() || tools_opt->values.empty())
-        return active_tools;
-
-    for (size_t i = 0; i < mode_names_opt->values.size(); ++i) {
-        if (i >= tools_opt->values.size() || mode_names_opt->values[i] != active_mode)
-            continue;
-        for (const auto& [phys, role] : parse_imex_active_tools(tools_opt->values[i]))
-            active_tools.push_back(phys);
-        break;
-    }
+    // An unresolved mode, and a mode the tools array is too short to cover, both hand back
+    // an empty tools string, which parses to no tools.
+    for (const auto& [phys, role] : parse_imex_active_tools(find_imex_mode(print.config(), active_mode).active_tools))
+        active_tools.push_back(phys);
     return active_tools;
 }
 
@@ -3685,19 +3676,78 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.config().is_imex.value && !print.objects().empty()) {
         const std::string& raw = print.objects().front()->config().imex_parallel_mode.value;
         imex_active_mode = raw.empty() ? kImexPrimaryMode : raw;
-        m_imex_parallel_mode = imex_active_mode;
         m_imex_head_filament_map = parse_imex_head_filament_map(
             print.objects().front()->config().imex_head_filament_map.value);
-        const auto& mode_names  = print.config().imex_mode_names.values;
-        const auto& mode_gcodes = print.config().imex_mode_gcodes.values;
-        for (size_t i = 0; i < mode_names.size(); ++i) {
-            if (mode_names[i] == imex_active_mode) {
-                imex_active_mode_index = (int)i;
-                if (i < mode_gcodes.size())
-                    imex_active_mode_gcode = mode_gcodes[i];
-                break;
-            }
+        // Look `name` up in the printer's mode table, filling in its index, script and
+        // tool roster. False means the name matches no row, i.e. the mode is unresolved.
+        // find_imex_mode() owns the "which row, and what if a sibling array is short"
+        // rule for every IMEX consumer; see IMEXHelpers.hpp.
+        std::string imex_active_mode_tools;
+        auto resolve_mode = [&](const std::string& name) {
+            const ImexMode mode = find_imex_mode(print.config(), name);
+            if (!mode.found())
+                return false;
+            imex_active_mode_index = mode.index;
+            imex_active_mode_gcode = mode.gcode;
+            imex_active_mode_tools = mode.active_tools;
+            return true;
+        };
+        // An unresolved mode name falls back to Primary rather than being carried into the
+        // parallel-mode paths. `imex_parallel_mode` is a plain string stored on the plate and
+        // matched against the printer's `imex_mode_names` by value, so it goes stale whenever
+        // the two drift apart -- a mode renamed or deleted after a plate was set to it, or a
+        // project shared between printer presets that name their modes differently.
+        //
+        // Without the fallback the exporter took every "not Primary" branch while every lookup
+        // keyed on the mode name came back empty, and wrote a file that is wrong rather than
+        // merely unconfigured: the 1st->2nd layer temperature branch is mutually exclusive with
+        // the standard one, so an empty active-tool roster meant NO head got its transition and
+        // all of them held nozzle_temperature_initial_layer for the whole print; and
+        // imex_suppresses_bare_toolchange() dropped the initial T<n> on the assumption that a
+        // mode script would select the tool, while the mode script -- also looked up by name --
+        // did not exist. Print::validate()'s IMEX rules did not catch it either: they resolve
+        // the same name to an empty tools string, which yields no declared primary and skips
+        // the guard. Primary is the one interpretation that is always well-formed: single
+        // carriage, ordinary temperatures, ordinary tool changes.
+        //
+        // Warned rather than silent, and warned rather than blocked. Silent is not an option:
+        // the plate still labels itself with the stale mode and draws no zones (PartPlate's
+        // zone builder returns early on the same unresolved state), so a user who asked for two
+        // parts in copy mode would get one with nothing anywhere saying why. Blocking is not an
+        // option either -- opening someone else's 3MF on a differently-named preset is a
+        // legitimate way to arrive here, and the Primary interpretation prints correctly, so
+        // refusing to slice would be a regression for a case that has a good answer.
+        //
+        // The second trigger below is the ragged-table case, and it lands here rather than
+        // anywhere else because the damage is identical: the mode's name resolves, but the
+        // printer's `imex_mode_active_tools` is too short to reach its row (or the row is
+        // explicitly empty), so the roster every branch above keys on comes back empty and
+        // the export takes the parallel path with nothing in it. Nothing used to report
+        // that -- half the lookup sites in the tree turned a short tools array into "mode
+        // not found" and the other half did not, and this one did not. One rule now, in
+        // find_imex_mode(), and one warning, here.
+        const bool imex_mode_resolved = resolve_mode(imex_active_mode);
+        if (imex_active_mode != kImexPrimaryMode && (!imex_mode_resolved || imex_active_mode_tools.empty())) {
+            print.active_step_add_warning(
+                PrintStateBase::WarningLevel::NON_CRITICAL,
+                imex_mode_resolved
+                    ? Slic3r::format(_(L("The IDEX/IQEX mode \"%1%\" has no tools assigned on the selected printer. "
+                                         "Printing in Primary mode instead. Assign the mode's tools in Printer "
+                                         "Settings, or pick another mode from the plate's IDEX/IQEX button.")),
+                                     imex_active_mode)
+                    : Slic3r::format(_(L("This plate is set to the IDEX/IQEX mode \"%1%\", which the selected printer "
+                                         "does not define. Printing in Primary mode instead. Pick a mode from the "
+                                         "plate's IDEX/IQEX button, or restore the mode in Printer Settings.")),
+                                     imex_active_mode));
+            imex_active_mode       = kImexPrimaryMode;
+            imex_active_mode_index = 0;
+            imex_active_mode_gcode.clear();
+            imex_active_mode_tools.clear();
+            // Primary is a real row in the table (always the first one), so it may carry its own
+            // setup script; resolve it the same way any other selected mode would be.
+            resolve_mode(imex_active_mode);
         }
+        m_imex_parallel_mode = imex_active_mode;
     }
     this->placeholder_parser().set("imex_mode",       imex_active_mode);
     this->placeholder_parser().set("imex_mode_index", imex_active_mode_index);
@@ -7216,6 +7266,31 @@ void GCode::append_full_config(const Print &print, std::string &str)
         // banning it from the dump has no effect on the feature; the only H2C/H2D delta is the M9711/M971
         // snapshot reposition.
         "farthest_point_timelapse"sv,
+        // The IMEX (IDEX/IQEX parallel printing) keys are newly-registered printer/process keys whose
+        // defaults are non-nil, so leaving them in the dump would add fourteen `; imex_* = <default>`
+        // lines to every printer's config block — an ordinary single-nozzle machine included. Excluding
+        // them keeps the config-dump byte-identical for the whole shipping fleet; the IMEX printers pay
+        // the same price the timelapse/prime-volume keys above already pay, and the active mode is still
+        // visible in the body of their g-code through the injected imex_mode_gcodes macro. Every key is
+        // read at slice time from m_config (get_imex_active_tools / find_imex_mode / the zone layout
+        // helpers) and never parsed back out of the dump, so banning them costs the feature nothing:
+        // the g-code viewer's overlay reads the loaded presets, not the config block, and the two
+        // per-plate process keys round-trip through the 3MF's model_settings.config plate metadata
+        // (bbs_3mf.cpp IMEX_PARALLEL_MODE_ATTR / IMEX_HEAD_FILAMENT_MAP_ATTR), not through this dump.
+        "is_imex"sv,
+        "imex_firmware_managed_zones"sv,
+        "imex_gantry_count"sv,
+        "imex_tools_per_gantry"sv,
+        "imex_tool_layout"sv,
+        "imex_nozzle_clearance_x"sv,
+        "imex_nozzle_clearance_y"sv,
+        "imex_carriage_margin"sv,
+        "imex_viz_theme"sv,
+        "imex_mode_names"sv,
+        "imex_mode_active_tools"sv,
+        "imex_mode_gcodes"sv,
+        "imex_parallel_mode"sv,
+        "imex_head_filament_map"sv,
         "compatible_printers"sv,
         "compatible_prints"sv,
         "filament_colour_type"sv,
@@ -8345,9 +8420,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
-                for (ProcessedPoint &point : new_points)
-                    point.speed = speed;
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                if (!NOZZLE_CONFIG(enable_overhang_speed))
+                    for (ProcessedPoint &point : new_points)
+                        point.speed = speed;
                 variable_speed = new_points.size() > 1;
             }
     }
