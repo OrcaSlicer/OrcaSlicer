@@ -1977,8 +1977,8 @@ int CLI::run(int argc, char **argv)
             AppConfig app_config;
             const std::string app_config_error = app_config.load_if_exists();
             if (!app_config_error.empty()) {
-                error = "Failed to load app config for preset resolution: " + app_config_error;
-                return nullptr;
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI preset resolution: " << app_config_error;
+                app_config.reset();
             }
 
             auto bundle = std::make_unique<PresetBundle>();
