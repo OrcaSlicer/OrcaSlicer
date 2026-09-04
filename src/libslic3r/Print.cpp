@@ -2288,7 +2288,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         obj->clear_shared_object();
 
     //add the print_object share check logic
-    auto is_print_object_the_same = [this](const PrintObject* object1, const PrintObject* object2) -> bool{
+    auto is_print_object_the_same = [](const PrintObject* object1, const PrintObject* object2) -> bool{
         if (object1->trafo().matrix() != object2->trafo().matrix())
             return false;
         const ModelObject* model_obj1 = object1->model_object();
@@ -5699,7 +5699,7 @@ int Print::load_cached_data(const std::string& directory)
         return CLI_IMPORT_CACHE_NOT_FOUND;
     }
 
-    auto find_region = [this](PrintObject* object, size_t config_hash) -> const PrintRegion* {
+    auto find_region = [](PrintObject* object, size_t config_hash) -> const PrintRegion* {
         int regions_count = object->num_printing_regions();
         for (int index = 0; index < regions_count; index++ )
         {

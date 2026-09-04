@@ -2641,7 +2641,7 @@ std::string GUI_App::get_bbl_client_version()
 void GUI_App::on_start_subscribe_again(std::string dev_id)
 {
     auto start_subscribe_timer = new wxTimer(this, wxID_ANY);
-    Bind(wxEVT_TIMER, [this, start_subscribe_timer, dev_id](auto& e) {
+    Bind(wxEVT_TIMER, [start_subscribe_timer, dev_id](auto& e) {
         start_subscribe_timer->Stop();
         Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (!dev) return;
@@ -3231,7 +3231,7 @@ bool GUI_App::on_init_inner()
                 }
             });
 
-        Bind(EVT_SHOW_NO_NEW_VERSION, [this](const wxCommandEvent& evt) {
+        Bind(EVT_SHOW_NO_NEW_VERSION, [](const wxCommandEvent& evt) {
             wxString msg = _L("This is the newest version.");
             InfoDialog dlg(nullptr, _L("Info"), msg);
             dlg.ShowModal();
@@ -5256,7 +5256,7 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 }
             }
             else if (command_str.compare("begin_network_plugin_download") == 0) {
-                CallAfter([this] { wxGetApp().ShowDownNetPluginDlg(); });
+                CallAfter([] { wxGetApp().ShowDownNetPluginDlg(); });
             }
             else if (command_str.compare("get_web_shortcut") == 0) {
                 if (root.get_child_optional("key_event") != boost::none) {
@@ -8297,7 +8297,7 @@ bool GUI_App::show_modal_ip_address_enter_dialog(bool input_sn, wxString title)
     dlg.set_machine_obj(obj);
     if (!title.empty()) dlg.update_title(title);
 
-    dlg.Bind(EVT_ENTER_IP_ADDRESS, [this, obj](wxCommandEvent& e) {
+    dlg.Bind(EVT_ENTER_IP_ADDRESS, [obj](wxCommandEvent& e) {
         auto selection_data_arr = wxSplit(e.GetString().ToStdString(), '|');
 
         if (selection_data_arr.size() == 2) {
@@ -8777,7 +8777,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
         if (!no_need_change && dlg.ShowModal() == wxID_CANCEL)
             return false;
 
-        auto reset_modifications = [this, is_called_from_configwizard]() {
+        auto reset_modifications = [this]() {
             //if (is_called_from_configwizard)
             //    return; // no need to discared changes. It will be done fromConfigWizard closing
 

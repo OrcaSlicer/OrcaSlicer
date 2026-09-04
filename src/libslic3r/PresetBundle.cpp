@@ -1152,7 +1152,9 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         return false;
     };
     auto is_component = [](const std::string& value) {
-        return !value.empty() && value != "." && value != ".." && value.find_first_of("/\\") == std::string::npos;
+        const fs::path path(value);
+        return !value.empty() && value != "." && value != ".." && value.find_first_of("/\\") == std::string::npos &&
+               !path.has_root_name() && !path.has_root_directory();
     };
     if (!is_component(bundle_id))
         return fail("Local bundle id must be a single path component");
@@ -2350,7 +2352,7 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
 
 void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, std::map<std::string, std::string>> *my_presets)
 {
-    auto check_removed = [my_presets, this](Preset &preset) -> bool {
+    auto check_removed = [my_presets](Preset &preset) -> bool {
         if (my_presets == nullptr) return true;
         if (my_presets->find(preset.name) != my_presets->end()) return false;
         if (!preset.sync_info.empty()) return false; // syncing, not remove
@@ -3113,6 +3115,16 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // If executed due to a Config Wizard update, preferred_printer contains the first newly installed printer, otherwise nullptr.
     const Preset *preferred_printer = printers.find_system_preset_by_model_and_variant(preferred_selection.printer_model_id, preferred_selection.printer_variant);
     printers.select_preset_by_name(preferred_printer ? preferred_printer->name : initial_printer_profile_name, true);
+    Preset &selected_printer = printers.get_edited_preset();
+    if (selected_printer.printer_technology() == ptFFF) {
+        BedType bed_type = selected_printer.get_default_bed_type(this);
+        const std::string saved_bed_type = config.get_printer_setting(selected_printer.name, "curr_bed_type");
+        const int saved_bed_type_value = atoi(saved_bed_type.c_str());
+        if (saved_bed_type_value > btDefault && saved_bed_type_value < btCount)
+            bed_type = static_cast<BedType>(saved_bed_type_value);
+        project_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(bed_type));
+        config.set("curr_bed_type", std::to_string(static_cast<int>(bed_type)));
+    }
     CNumericLocalesSetter locales_setter;
 
     // Orca: load from orca_presets
@@ -3605,7 +3617,7 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
                     combox_info.ams_names.push_back(ams_name);
                     continue;
                 }
-                iter = std::find_if(filaments.begin(), filaments.end(), [&filament_type](auto &f) { return f.is_compatible && f.is_system; });
+                iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) { return f.is_compatible && f.is_system; });
                 if (iter == filaments.end())
                     continue;
             }

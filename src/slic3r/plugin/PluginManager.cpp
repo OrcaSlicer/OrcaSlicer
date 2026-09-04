@@ -21,6 +21,7 @@
 #include <chrono>
 #include <mutex>
 #include <slic3r/plugin/PluginConfig.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
@@ -622,6 +623,20 @@ std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(
     return nullptr;
 }
 
+bool PluginManager::get_install_state(const std::string& plugin_key, PluginInstallState& install_state)
+{
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        return false;
+    }
+
+    if (!read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state)) {
+        return false;
+    }
+
+    return true;
+}
+
 // ── Lifecycle ───────────────────────────────────────────────────────────────────────────────
 
 bool PluginManager::is_plugin_loaded(const std::string& plugin_key) const
@@ -910,6 +925,8 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
     if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error)) {
         if (error == LOAD_CANCELLED)
             return; // cancelled: nothing materialized survives, and no error is recorded
+        if (error.rfind("Plugin registration failed:", 0) == 0)
+            mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
         return;
     }
@@ -1135,6 +1152,51 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
     write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
 }
 
+void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return;
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        state.installed_from    = descriptor.is_cloud_plugin() ? "cloud" : "local";
+        state.installed_version = !descriptor.installed_version.empty() ? descriptor.installed_version : descriptor.version;
+        state.plugin_name       = descriptor.name;
+        state.cloud_uuid        = descriptor.cloud_uuid();
+    }
+    state.enabled = false;
+    if (!write_install_state(root, state))
+        return;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (Plugin* plugin = find_plugin_locked(plugin_key))
+        plugin->descriptor.enabled = false;
+}
+
+void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return;
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return;
+    }
+
+    state.permissions = {};
+    if (!write_install_state(root, state))
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to revoke permissions for " << plugin_key;
+}
+
 // ── Callbacks ───────────────────────────────────────────────────────────────────────────────
 
 void PluginManager::subscribe_on_load_callback(PluginLifecycleCompleteFn fn)
@@ -1353,6 +1415,11 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
         return false;
     }
+
+    // Every successful install may have replaced executable plugin code. Revoke any permissions
+    // associated with the previous package so the newly installed version must request them again.
+    if (!plugin_descriptor.plugin_key.empty())
+        revoke_plugin_permissions(plugin_descriptor.plugin_key);
 
     if (!plugin_descriptor.plugin_key.empty())
         clear_plugin_error(plugin_descriptor.plugin_key);
@@ -1741,6 +1808,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
     }
 
     clear_plugin_error(plugin_key);
+
     return true;
 }
 

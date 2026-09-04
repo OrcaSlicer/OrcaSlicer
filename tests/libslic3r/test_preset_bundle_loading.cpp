@@ -351,6 +351,51 @@ TEST_CASE("Reloading a local bundle rejects unsafe source and inheritance change
     CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
     CHECK(bundle.prints.find_preset(target_name, false, true) != nullptr);
     CHECK_FALSE(bundle.reload_local_bundle("", "../outside", &error));
+    CHECK(error == "Local bundle id must be a single path component");
+    CHECK_FALSE(bundle.reload_local_bundle("../outside", id, &error));
+    CHECK(error == "Preset folder must be a single path component");
+#ifdef _WIN32
+    CHECK_FALSE(bundle.reload_local_bundle("", "C:", &error));
+    CHECK(error == "Local bundle id must be a single path component");
+#endif
+}
+
+TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    Preset& printer = add_inmemory_preset(bundle.printers, "Test Printer");
+    printer.is_system = true;
+    printer.config.option<ConfigOptionString>("printer_model")->value = "TEST-MODEL";
+    printer.config.option<ConfigOptionString>("printer_variant")->value = "0.4";
+    printer.config.option<ConfigOptionString>("default_bed_type")->value = "Engineering Plate";
+
+    AppConfig app_config;
+    app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
+    PresetBundle::PresetPreferences preferred_selection;
+    BedType expected_bed_type;
+
+    SECTION("New printer uses its symbolic default") {
+        expected_bed_type = btEP;
+        preferred_selection = {"TEST-MODEL", "0.4"};
+    }
+    SECTION("Re-enabled printer uses its saved selection") {
+        expected_bed_type = btPC;
+        preferred_selection = {"TEST-MODEL", "0.4"};
+        app_config.set_printer_setting("Test Printer", "curr_bed_type",
+                                       std::to_string(static_cast<int>(expected_bed_type)));
+    }
+    SECTION("Existing printer keeps its saved selection after presets reload") {
+        expected_bed_type = btPCT;
+        app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
+        app_config.set_printer_setting("Test Printer", "curr_bed_type",
+                                       std::to_string(static_cast<int>(expected_bed_type)));
+    }
+
+    bundle.load_selections(app_config, preferred_selection);
+    bundle.export_selections(app_config);
+
+    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
+    CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")
