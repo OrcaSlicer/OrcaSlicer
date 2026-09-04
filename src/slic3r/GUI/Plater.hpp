@@ -654,6 +654,13 @@ public:
     GLCanvas3D* get_assmeble_canvas3D();
     wxWindow* get_select_machine_dialog();
 
+    // Docked UV-editor pane used by GLGizmoTextureDisplacement's LSCM projection preview (see
+    // UVEditorCanvas.hpp). Returns nullptr only before the main window is fully constructed.
+    class UVEditorCanvas* get_uv_editor_canvas();
+    // Shows or hides the UV-editor AUI pane, updating its docked layout accordingly. Safe to call
+    // repeatedly (e.g. every time the gizmo's active layer/projection method changes).
+    void show_uv_editor(bool show);
+
     void arrange();
     void orient();
     void find_new_position(const ModelInstancePtrs  &instances);

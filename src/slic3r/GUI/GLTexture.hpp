@@ -100,7 +100,10 @@ namespace GUI {
         bool load_from_file(const std::string& filename, bool use_mipmaps, ECompressionType compression_type, bool apply_anisotropy);
         bool load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px);
         //BBS load GLTexture from raw pixel data
-        bool load_from_raw_data(std::vector<unsigned char> data, unsigned int w, unsigned int h, bool apply_anisotropy = false);
+        // `data` is RGBA, w * h * 4 bytes. With use_mipmaps, a real box-filtered mipmap chain is
+        // built, so the texture may safely be drawn smaller than its pixel size.
+        bool load_from_raw_data(std::vector<unsigned char> data, unsigned int w, unsigned int h, bool apply_anisotropy = false,
+                                bool use_mipmaps = true);
         // meanings of states: (std::pair<int, bool>)
         // first field (int):
         // 0 -> no changes

@@ -2056,6 +2056,11 @@ void ModelVolume::reset_extra_facets()
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
+    // Texture-displacement paint data has no remap-across-topology-change support yet (see
+    // build_texture_displacement()'s documented limitation), so it must be dropped here rather
+    // than left referring to a mesh that no longer matches it.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        this->texture_displacement_facet(i).reset();
 }
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const

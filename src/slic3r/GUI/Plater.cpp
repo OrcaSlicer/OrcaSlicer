@@ -103,6 +103,7 @@
 #include "Selection.hpp"
 #include "GLToolbar.hpp"
 #include "GUI_Preview.hpp"
+#include "UVEditorCanvas.hpp"
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
 #include "Camera.hpp"
@@ -6770,6 +6771,13 @@ struct Plater::priv
     GLToolbar collapse_toolbar;
     Preview *preview;
     AssembleView* assemble_view { nullptr };
+    // Docked/resizable 2D pane showing GLGizmoTextureDisplacement's LSCM unwrap of a painted
+    // patch; a sibling AUI pane alongside "sidebar"/"main", not part of the view3D/preview/
+    // assemble_view sizer - see its registration below and Plater::get_uv_editor_canvas(). The
+    // pane hosts the panel (toolbar + canvas + status line); uv_editor_canvas is its inner canvas,
+    // cached so the gizmo can reach it directly.
+    UVEditorPanel*  uv_editor_panel { nullptr };
+    UVEditorCanvas* uv_editor_canvas { nullptr };
     bool first_enter_assemble{ true };
     std::unique_ptr<NotificationManager> notification_manager;
 
@@ -7463,6 +7471,20 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
                                    .BottomDockable(false)
                                    .BestSize(wxSize(39 * wxGetApp().em_unit(), 90 * wxGetApp().em_unit())));
 
+    // UV editor pane for GLGizmoTextureDisplacement's LSCM unwrap preview - a resizable/dockable
+    // sibling of "sidebar"/"main" like everything else registered on this same AUI manager, not a
+    // change to the view3D/preview/assemble_view sizer above. Hidden by default: only relevant
+    // while that gizmo is active with a layer using the "Unwrap (LSCM)" projection method (see
+    // Plater::show_uv_editor()), so it stays out of the way of everyone else's window layout.
+    uv_editor_panel  = new UVEditorPanel(q);
+    uv_editor_canvas = uv_editor_panel->canvas();
+    m_aui_mgr.AddPane(uv_editor_panel, wxAuiPaneInfo()
+                                            .Name("uv_editor")
+                                            .Caption(_L("UV Editor"))
+                                            .Right()
+                                            .Hide()
+                                            .BestSize(wxSize(40 * wxGetApp().em_unit(), 40 * wxGetApp().em_unit())));
+
     auto* panel_sizer = new wxBoxSizer(wxHORIZONTAL);
     panel_sizer->Add(view3D, 1, wxEXPAND | wxALL, 0);
     panel_sizer->Add(preview, 1, wxEXPAND | wxALL, 0);
@@ -7491,6 +7513,13 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             } else if (removed_floating_state) {
                 BOOST_LOG_TRIVIAL(info) << "Removed floating AUI state from saved window layout for Wayland";
             }
+
+            // The UV editor is a transient, gizmo-driven pane (see show_uv_editor()); a saved layout
+            // from a session that happened to close with it open would otherwise restore it visible on
+            // startup, with nothing painted in it. Force it hidden here so it only ever appears when the
+            // texture-displacement gizmo asks for it.
+            if (wxAuiPaneInfo &uv_pane = m_aui_mgr.GetPane("uv_editor"); uv_pane.IsOk())
+                uv_pane.Hide();
 
             sidebar_layout.is_collapsed = !sidebar.IsShown();
         }
@@ -15902,7 +15931,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
 
-    /// --- scale ---
+    /// -- scale --
     // model is created for a 0.4 nozzle, scale z with nozzle size.
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
     std::vector<int> extruder_types         = printer_config->option<ConfigOptionEnumsGeneric>("extruder_type")->values;
@@ -20197,6 +20226,33 @@ GLCanvas3D* Plater::get_assmeble_canvas3D()
     if (p->assemble_view)
         return p->assemble_view->get_canvas3d();
     return nullptr;
+}
+
+UVEditorCanvas* Plater::get_uv_editor_canvas()
+{
+    return p->uv_editor_canvas;
+}
+
+void Plater::show_uv_editor(bool show)
+{
+    if (p->uv_editor_panel == nullptr)
+        return;
+    const wxAuiPaneInfo &pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
+    if (!pane.IsOk() || pane.IsShown() == show)
+        return;
+
+    // Deferred, because GLGizmoTextureDisplacement calls this from its ImGui panel - that is, from
+    // the middle of the 3D canvas's GL frame. Showing an AUI pane re-lays out the window and
+    // delivers the resulting size/paint events synchronously, and the UV canvas painting itself
+    // makes its own surface current in the app's *shared* GL context, which mid-frame is the one
+    // the 3D canvas is drawing into. Doing the layout once the frame is over avoids that entirely.
+    CallAfter([this, show]() {
+        wxAuiPaneInfo &deferred_pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
+        if (!deferred_pane.IsOk() || deferred_pane.IsShown() == show)
+            return;
+        deferred_pane.Show(show);
+        p->m_aui_mgr.Update();
+    });
 }
 
 GLCanvas3D* Plater::get_current_canvas3D(bool exclude_preview)

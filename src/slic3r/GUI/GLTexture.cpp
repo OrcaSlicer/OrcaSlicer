@@ -171,7 +171,8 @@ bool GLTexture::load_from_svg_file(const std::string& filename, bool use_mipmaps
         return false;
 }
 
-bool GLTexture::load_from_raw_data(std::vector<unsigned char> data, unsigned int w, unsigned int h, bool apply_anisotropy)
+bool GLTexture::load_from_raw_data(std::vector<unsigned char> data, unsigned int w, unsigned int h, bool apply_anisotropy,
+                                   bool use_mipmaps)
 {
     m_width = w;
     m_height = h;
@@ -195,18 +196,51 @@ bool GLTexture::load_from_raw_data(std::vector<unsigned char> data, unsigned int
 
     glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)m_width, (GLsizei)m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)data.data()));
 
-    bool use_mipmaps = true;
     if (use_mipmaps) {
-        // we manually generate mipmaps because glGenerateMipmap() function is not reliable on all graphics cards
-        int lod_w = m_width;
-        int lod_h = m_height;
+        // We generate the mipmap chain ourselves rather than calling glGenerateMipmap(), which this
+        // codebase has historically considered unreliable on some graphics cards.
+        //
+        // Each level is a 2x2 box filter of the level above it. Note this used to re-upload the
+        // *level-0* buffer at every level instead, which does not downscale anything - it just
+        // reinterprets the image's first lod_w * lod_h texels as the whole smaller level, i.e. every
+        // level below 0 held a crop of the top-left corner. It went unnoticed for as long as every
+        // caller drew these textures at roughly their native size (where only level 0 is ever
+        // sampled); it shows up the moment one is drawn small enough to select a lower level, as a
+        // texture that visibly turns into something else as it shrinks.
+        std::vector<unsigned char> scratch;
+        const std::vector<unsigned char> *src = &data;
+        int src_w = m_width;
+        int src_h = m_height;
         GLint level = 0;
-        while (lod_w > 1 || lod_h > 1) {
+        while (src_w > 1 || src_h > 1) {
             ++level;
-            lod_w = std::max(lod_w / 2, 1);
-            lod_h = std::max(lod_h / 2, 1);
-            n_pixels = lod_w * lod_h;
-            glsafe(::glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, (GLsizei)lod_w, (GLsizei)lod_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)data.data()));
+            const int lod_w = std::max(src_w / 2, 1);
+            const int lod_h = std::max(src_h / 2, 1);
+
+            std::vector<unsigned char> lod(size_t(lod_w) * size_t(lod_h) * 4);
+            for (int y = 0; y < lod_h; ++y) {
+                // min() rather than a plain 2*y+1: an odd source extent leaves the last output texel
+                // with only one source row/column to average, not two.
+                const int y0 = std::min(2 * y, src_h - 1);
+                const int y1 = std::min(2 * y + 1, src_h - 1);
+                for (int x = 0; x < lod_w; ++x) {
+                    const int x0 = std::min(2 * x, src_w - 1);
+                    const int x1 = std::min(2 * x + 1, src_w - 1);
+                    for (int c = 0; c < 4; ++c) {
+                        const unsigned int sum = (*src)[(size_t(y0) * size_t(src_w) + size_t(x0)) * 4 + size_t(c)] +
+                                                 (*src)[(size_t(y0) * size_t(src_w) + size_t(x1)) * 4 + size_t(c)] +
+                                                 (*src)[(size_t(y1) * size_t(src_w) + size_t(x0)) * 4 + size_t(c)] +
+                                                 (*src)[(size_t(y1) * size_t(src_w) + size_t(x1)) * 4 + size_t(c)];
+                        lod[(size_t(y) * size_t(lod_w) + size_t(x)) * 4 + size_t(c)] = (unsigned char)(sum / 4);
+                    }
+                }
+            }
+            glsafe(::glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, (GLsizei)lod_w, (GLsizei)lod_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)lod.data()));
+
+            scratch = std::move(lod);
+            src     = &scratch;
+            src_w   = lod_w;
+            src_h   = lod_h;
         }
 
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level));

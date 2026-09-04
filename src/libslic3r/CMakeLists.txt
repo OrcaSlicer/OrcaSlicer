@@ -462,6 +462,24 @@ set(lisbslic3r_sources
     Tesselate.cpp
     Tesselate.hpp
     TextConfiguration.hpp
+    TextureDisplacement.cpp
+    TextureDisplacement.hpp
+    TextureBake/TextureBakeIndex.cpp
+    TextureBake/TextureBakeIndex.hpp
+    TextureBake/TextureBakeSubdivide.cpp
+    TextureBake/TextureBakeSubdivide.hpp
+    TextureBake/TextureBakeRegularize.cpp
+    TextureBake/TextureBakeRegularize.hpp
+    TextureBake/TextureBakeDisplace.cpp
+    TextureBake/TextureBakeDisplace.hpp
+    TextureBake/TextureBakeDecimate.cpp
+    TextureBake/TextureBakeDecimate.hpp
+    TextureBake/TextureBakeRepair.cpp
+    TextureBake/TextureBakeRepair.hpp
+    TextureBake/TextureBakePipeline.cpp
+    TextureBake/TextureBakePipeline.hpp
+    TextureBake/TextureBakeMesh.cpp
+    TextureBake/TextureBakeMesh.hpp
     Thread.cpp
     Thread.hpp
     Time.cpp
