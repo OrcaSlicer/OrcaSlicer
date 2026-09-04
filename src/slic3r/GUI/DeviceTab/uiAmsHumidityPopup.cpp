@@ -98,7 +98,7 @@ void uiAmsPercentHumidityDryPopup::Create()
     Refresh();
 }
 
-void uiAmsPercentHumidityDryPopup::Update(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
+void uiAmsPercentHumidityDryPopup::UpdateInfo(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
 {
     if (m_humidity_level != humidiy_level || m_humidity_percent != humidity_percent ||
         m_left_dry_time != left_dry_time || m_current_temperature != current_temperature)

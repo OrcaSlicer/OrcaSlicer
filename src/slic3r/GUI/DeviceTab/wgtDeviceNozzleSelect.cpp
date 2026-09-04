@@ -114,7 +114,7 @@ static void s_update_nozzle_info(wgtDeviceNozzleRackNozzleItem* item,
                                  std::shared_ptr<DevNozzleRack> rack,
                                  const DevNozzle& nozzle_info)
 {
-    item->Update(rack, nozzle_info.IsOnRack());
+    item->UpdateInfo(rack, nozzle_info.IsOnRack());
     if (nozzle_info.IsUnknown()) {
         if (item->GetToolTipText() != _L("Nozzle information needs to be read")) {
             item->SetToolTip(_L("Nozzle information needs to be read"));
