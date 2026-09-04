@@ -4,7 +4,6 @@
 #include "MixedFilamentMatch.hpp"
 #include "Model.hpp"
 #include "PrintConfig.hpp"
-#include "prusa_fdm_mixer.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -108,10 +107,7 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
         return predicted_swatch_for_mix(mgr.mixed_filaments().front(), slots, nullptr);
     };
     auto mixer_de00 = [](const ColorRGB &a, const ColorRGB &b) -> float {
-        const prusa_fdm_mixer::RGB ra{a.r_uchar(), a.g_uchar(), a.b_uchar()};
-        const prusa_fdm_mixer::RGB rb{b.r_uchar(), b.g_uchar(), b.b_uchar()};
-        return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ra),
-                                                   prusa_fdm_mixer::rgb_to_lab(rb)));
+        return mixer_delta_e00(a, b);
     };
 
     while (mix_base + recipe_rows.size() > SPECTRUM_PAINT_ID_PERSIST_CAP && recipe_rows.size() >= 2) {

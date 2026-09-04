@@ -20,6 +20,9 @@ struct MixMatchResult
     float         distance    = 1e30f; // mixer ΔE00 (CIEDE2000); smaller = closer
 };
 
+// Mixer Lab ΔE00 (CIEDE2000). Shared by Match ranking, paint-bake collapse, and Match UI.
+float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v);
+
 // Vendor physical cards for default TD scales (hex-gated, not n==4 alone).
 struct SpectrumPhysicalCard {
     ColorRGB hex[4];

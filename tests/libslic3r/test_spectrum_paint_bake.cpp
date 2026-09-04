@@ -999,3 +999,42 @@ TEST_CASE("spectrum mix dialog keys_at empty vector returns false", "[spectrum_m
     REQUIRE(spectrum_mix_defs_at(map, std::vector<SpectrumMixDialogUndoRecord>{inactive}, 100).empty());
     REQUIRE(spectrum_mix_defs_at(map, empty, 100).empty());
 }
+
+TEST_CASE("mixer_delta_e00 distinct colours have positive distance", "[MixedFilamentMatch][spectrum_convert_gate]")
+{
+    ColorRGB red;
+    ColorRGB cyan;
+    REQUIRE(decode_color("#FF0000", red));
+    REQUIRE(decode_color("#00FFFF", cyan));
+    REQUIRE(mixer_delta_e00(red, cyan) > 0.f);
+}
+
+TEST_CASE("spectrum_should_prompt_convert gate", "[spectrum_convert_gate]")
+{
+    struct GateCase {
+        const char *name;
+        size_t      enabled_mix_count;
+        bool        paint_nonempty;
+        size_t      filament_n;
+        size_t      source_n;
+        bool        already_mapped;
+        bool        is_restore_or_silence;
+        bool        expected;
+    };
+    const GateCase cases[] = {
+        {"Palette26 mixes present", 1, true, 16, 16, false, false, false},
+        {"already mapped", 0, true, 16, 16, true, false, false},
+        {"restore or silence", 0, true, 16, 16, false, true, false},
+        {"Jackalope paint empty mixes n16 source0", 0, true, 16, 0, false, false, true},
+        {"Jackalope paint empty mixes n16 source16", 0, true, 16, 16, false, false, true},
+        {"Adopted mountain filament4 source8", 0, true, 4, 8, false, false, true},
+        {"no paint", 0, false, 8, 8, false, false, false},
+    };
+    for (const auto &c : cases) {
+        DYNAMIC_SECTION(c.name) {
+            REQUIRE(spectrum_should_prompt_convert(c.enabled_mix_count, c.paint_nonempty, c.filament_n,
+                                                   c.source_n, c.already_mapped, c.is_restore_or_silence)
+                    == c.expected);
+        }
+    }
+}

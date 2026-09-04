@@ -234,4 +234,19 @@ bool apply_spectrum_mix_dialog_keys(DynamicPrintConfig                 &project_
 // Mapped-only project write for Map+dialog compose path.
 bool apply_spectrum_paint_mapped(DynamicPrintConfig &project_config, bool mapped);
 
+// wx-free Convert/Keep gate. Ints/bools in, bool out. Never prompts Palette-class
+// mix recipes, already-mapped paint, restore/silence, or unpainted models.
+inline bool spectrum_should_prompt_convert(
+    size_t enabled_mix_count,
+    bool   paint_nonempty,
+    size_t filament_n,
+    size_t source_n,
+    bool   already_mapped,
+    bool   is_restore_or_silence)
+{
+    if (is_restore_or_silence || already_mapped || enabled_mix_count > 0 || !paint_nonempty)
+        return false;
+    return filament_n > 4 || source_n > 4;
+}
+
 } // namespace Slic3r

@@ -69,15 +69,6 @@ float cie76(const ColorRGB &u, const ColorRGB &v)
     return std::sqrt(dL * dL + da * da + db * db);
 }
 
-// Mixer Lab ΔE00. Do not pipe Match's float rgb_to_lab into mixer delta_e_2000.
-float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v)
-{
-    const prusa_fdm_mixer::RGB ru{u.r_uchar(), u.g_uchar(), u.b_uchar()};
-    const prusa_fdm_mixer::RGB rv{v.r_uchar(), v.g_uchar(), v.b_uchar()};
-    return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ru),
-                                               prusa_fdm_mixer::rgb_to_lab(rv)));
-}
-
 unsigned clamp_physical_id(unsigned id, size_t n)
 {
     if (n == 0)
@@ -164,6 +155,15 @@ int result_period_key(const MixMatchResult &r)
 }
 
 } // namespace
+
+// Mixer Lab ΔE00. Do not pipe Match's float rgb_to_lab into mixer delta_e_2000.
+float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v)
+{
+    const prusa_fdm_mixer::RGB ru{u.r_uchar(), u.g_uchar(), u.b_uchar()};
+    const prusa_fdm_mixer::RGB rv{v.r_uchar(), v.g_uchar(), v.b_uchar()};
+    return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ru),
+                                               prusa_fdm_mixer::rgb_to_lab(rv)));
+}
 
 std::string normalize_mix_match_hex(const std::string &text)
 {

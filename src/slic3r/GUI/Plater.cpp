@@ -130,6 +130,7 @@
 #include "PresetComboBoxes.hpp"
 #include "MsgDialog.hpp"
 #include "MixedFilamentDialog.hpp"
+#include "SpectrumMatchConfirmDialog.hpp"
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
@@ -545,6 +546,7 @@ struct Sidebar::priv
     ScalableButton*   m_bpButton_add_mix{nullptr};
     ScalableButton*   m_bpButton_del_mix{nullptr};
     ScalableButton*   m_bpButton_edit_mix{nullptr};
+    Button*           m_bpButton_match_mix{nullptr};
     wxScrolledWindow* m_panel_color_mixing_content{nullptr};
     wxBoxSizer*       m_sizer_color_mixing_rows{nullptr};
     int               m_color_mixing_selected{-1};
@@ -1615,11 +1617,28 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
      if (m_last_slice_state != p->plater->is_background_process_slicing()) {
          m_last_slice_state = p->plater->is_background_process_slicing();
          //btn_sync->Enable(!m_last_slice_state);
-         p->m_printer_bbl_sync->Enable(!m_last_slice_state);
-         ams_btn->Enable(!m_last_slice_state);
-         Refresh();
-     }
+        p->m_printer_bbl_sync->Enable(!m_last_slice_state);
+        ams_btn->Enable(!m_last_slice_state);
+        Refresh();
+    }
  }
+
+namespace {
+
+bool spectrum_model_has_paint(const Model &model)
+{
+    for (const ModelObject *obj : model.objects) {
+        if (obj == nullptr)
+            continue;
+        for (const ModelVolume *vol : obj->volumes) {
+            if (vol != nullptr && !vol->mmu_segmentation_facets.empty())
+                return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
 
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
@@ -2232,6 +2251,20 @@ Sidebar::Sidebar(Plater *parent)
     mix_title_sizer->SetMinSize(-1, FromDIP(30));
     mix_title_sizer->AddStretchSpacer(1);
 
+    Button *mix_match = new Button(p->m_panel_color_mixing_title, _L("Match"));
+    mix_match->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+    mix_match->SetToolTip(_L("Match painted colours to CMYK mixes (ΔE)"));
+    mix_match->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+        if (p->plater)
+            p->plater->map_painted_colors_to_cmyk_mixes();
+    });
+    mix_match->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent &evt) {
+        const bool enable = p->plater != nullptr && !p->plater->model().objects.empty() &&
+                            spectrum_model_has_paint(p->plater->model());
+        evt.Enable(enable);
+    });
+    p->m_bpButton_match_mix = mix_match;
+
     ScalableButton *mix_del = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "delete_filament");
     mix_del->SetToolTip(_L("Remove selected mix"));
     mix_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { remove_selected_color_mix(); });
@@ -2247,6 +2280,7 @@ Sidebar::Sidebar(Plater *parent)
     mix_edit->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { open_color_mixing_dialog(p->m_color_mixing_selected); });
     p->m_bpButton_edit_mix = mix_edit;
 
+    mix_title_sizer->Add(mix_match, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_del, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_add, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_edit, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
@@ -3013,6 +3047,8 @@ void Sidebar::msw_rescale()
         p->m_bpButton_del_mix->msw_rescale();
     if (p->m_bpButton_edit_mix)
         p->m_bpButton_edit_mix->msw_rescale();
+    if (p->m_bpButton_match_mix)
+        p->m_bpButton_match_mix->Rescale();
     if (p->m_panel_color_mixing_title && p->m_panel_color_mixing_title->GetSizer())
         p->m_panel_color_mixing_title->GetSizer()->SetMinSize(-1, 3 * wxGetApp().em_unit());
     p->m_flushing_volume_btn->Rescale();
@@ -3108,6 +3144,8 @@ void Sidebar::sys_color_changed()
         p->m_bpButton_del_mix->msw_rescale();
     if (p->m_bpButton_edit_mix)
         p->m_bpButton_edit_mix->msw_rescale();
+    if (p->m_bpButton_match_mix)
+        p->m_bpButton_match_mix->Rescale();
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
@@ -3402,6 +3440,12 @@ void Sidebar::refresh_color_mixing_list()
     p->m_panel_color_mixing_content->FitInside();
     if (m_scrolled_sizer)
         m_scrolled_sizer->Layout();
+
+    if (p->m_bpButton_match_mix) {
+        const bool enable = p->plater != nullptr && !p->plater->model().objects.empty() &&
+                            spectrum_model_has_paint(p->plater->model());
+        p->m_bpButton_match_mix->Enable(enable);
+    }
 }
 
 void Sidebar::open_color_mixing_dialog(int initial_row)
@@ -12646,6 +12690,72 @@ void Plater::load_project(wxString const& filename2,
     m_loading_project = false;
     if (!res.empty())
         sidebar().refresh_color_mixing_list();
+
+    const bool load_config = strategy & LoadStrategy::LoadConfig;
+    const bool is_restore  = strategy & LoadStrategy::Restore;
+    const bool is_silence  = strategy & LoadStrategy::Silence;
+    if (!res.empty() && load_config && !is_restore && !is_silence) {
+        CallAfter([this]() {
+            if (model().objects.empty())
+                return;
+            PresetBundle *bundle = wxGetApp().preset_bundle;
+            if (bundle == nullptr)
+                return;
+
+            std::string mixed_defs;
+            if (const ConfigOptionString *opt =
+                    bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+            if (mixed_defs.empty()) {
+                if (const ConfigOptionString *opt =
+                        bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+            }
+            MixedFilamentManager mgr;
+            mgr.load_definitions(mixed_defs);
+            const size_t enabled_mix_count = mgr.enabled_count();
+
+            const bool paint_nonempty = spectrum_model_has_paint(model());
+
+            size_t filament_n = 0;
+            if (const ConfigOptionStrings *fc =
+                    bundle->project_config.option<ConfigOptionStrings>("filament_colour"))
+                filament_n = fc->values.size();
+
+            size_t source_n = 0;
+            if (const ConfigOptionStrings *src =
+                    bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+                source_n = src->values.size();
+
+            bool already_mapped = false;
+            if (const ConfigOptionBool *mapped =
+                    bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped"))
+                already_mapped = mapped->value;
+
+            if (!spectrum_should_prompt_convert(enabled_mix_count, paint_nonempty, filament_n, source_n,
+                                                already_mapped, false))
+                return;
+
+            MessageDialog dlg(
+                this,
+                _L("This project has painted colours and more than four filaments or source colours, with no mix recipes.\n\n"
+                   "Convert may Adopt to Ultra S 4-slot first; if you cancel Match afterwards, Adopt is kept and paint stays unmapped."),
+                _L("Convert painted colours"),
+                wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION);
+            dlg.SetButtonLabel(wxID_YES, _L("Convert"));
+            dlg.SetButtonLabel(wxID_NO, _L("Keep original"));
+            if (dlg.ShowModal() != wxID_YES)
+                return;
+
+            size_t live_filament_n = 0;
+            if (const ConfigOptionStrings *fc =
+                    wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour"))
+                live_filament_n = fc->values.size();
+            if (live_filament_n > 4)
+                adopt_to_zr_ultra_s_cmyk(false);
+            map_painted_colors_to_cmyk_mixes();
+        });
+    }
 }
 
 // BBS: save logic
@@ -12846,7 +12956,7 @@ void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_c
                             << (filament_colour ? filament_colour->values.size() : size_t(0));
 }
 
-void Plater::adopt_to_zr_ultra_s_cmyk()
+void Plater::adopt_to_zr_ultra_s_cmyk(bool show_map_hint)
 {
     PresetBundle *bundle = wxGetApp().preset_bundle;
     if (bundle == nullptr)
@@ -12965,9 +13075,11 @@ void Plater::adopt_to_zr_ultra_s_cmyk()
                             << " process=" << bundle->prints.get_edited_preset().name
                             << " filament=" << filament_name;
 
-    MessageDialog(this,
-        _L("Paint still uses source slot IDs 5–8. Use File → Map painted colors to CMYK mixes to turn those regions into C/M/Y/K physicals and Mix 5+. Slice/print of this file is not this command's goal."),
-        _L("Adopt to ZR Ultra S"), wxOK | wxICON_WARNING).ShowModal();
+    if (show_map_hint) {
+        MessageDialog(this,
+            _L("Paint still uses source slot IDs 5–8. Use File → Map painted colors to CMYK mixes to turn those regions into C/M/Y/K physicals and Mix 5+. Slice/print of this file is not this command's goal."),
+            _L("Adopt to ZR Ultra S"), wxOK | wxICON_WARNING).ShowModal();
+    }
 }
 
 void Plater::apply_rgbw_filament_colours()
@@ -13090,21 +13202,10 @@ void Plater::map_painted_colors_to_cmyk_mixes()
 
     const int mix_lo = int(mix_base + 1);
     const int mix_hi = int(mix_base + plan.mix_count);
-    wxString confirm = wxString::Format(
-        _L("Paint IDs will become C/M/Y/K physicals and Mix %d+. This is not an AMS 8-color replica. Save a copy first."),
-        mix_lo);
-    confirm += "\n\n";
-    if (plan.mix_count > 0) {
-        confirm += wxString::Format(
-            _L("Mapped %d source colors to %d physical slots and %d mixes (Mix %d–%d)."),
-            int(source_opt->values.size()), int(plan.physical_mapped_count), int(plan.mix_count), mix_lo, mix_hi);
-    } else {
-        confirm += wxString::Format(
-            _L("Mapped %d source colors to %d physical slots."),
-            int(source_opt->values.size()), int(plan.physical_mapped_count));
-    }
-    if (MessageDialog(this, confirm, _L("Map painted colors to CMYK mixes"),
-                      wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION).ShowModal() != wxID_YES)
+    BOOST_LOG_TRIVIAL(info) << "Match confirm: mix_lo=" << mix_lo << " mix_hi=" << mix_hi
+                            << " mix_count=" << plan.mix_count;
+    SpectrumMatchConfirmDialog confirm_dlg(this, plan, source_opt->values, physicals, mix_base);
+    if (confirm_dlg.ShowModal() != wxID_OK)
         return;
 
     SpectrumMapUndoKeys pre_keys;
@@ -13166,6 +13267,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
 
     on_config_change(bundle->full_config());
     schedule_background_process();
+    sidebar().refresh_color_mixing_list();
 }
 
 void Plater::apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &pre,
