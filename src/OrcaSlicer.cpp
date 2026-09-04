@@ -7384,7 +7384,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
         << std::endl
         << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
-        << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
+        << "\t2) setting values loaded with --load-settings and --load-filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;
 
     /*if (include_print_options) {
