@@ -1577,11 +1577,19 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         return false;
     }
 
-    if (compatibility == FilamentCompatibilityType::HighLowMixed) {
+    if (compatibility == FilamentCompatibilityType::HighLowMixed || compatibility == FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible) {
         error_tips = _u8L("Selected nozzle temperatures are incompatible. For multi-material printing, each filament's nozzle temperature must be within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
+        if (compatibility == FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible)
+            error_tips += " " + _u8L("Their material compatibility is also unknown, so the printed parts may delaminate.");
         return false;
     }
 
+    if (compatibility == FilamentCompatibilityType::IncompatibleMaterials) {
+        error_tips = _u8L("Selected filament materials are incompatible. For multi-material printing, only materials known to bond with each other (such as ASA and ABS) can be printed together. Otherwise, the printed parts may delaminate.");
+        return false;
+    }
+
+    // PossibleIncompatibleMaterials (unknown bonding, temperatures fine) is only a soft warning and does not block calibration.
     return true;
 }
 

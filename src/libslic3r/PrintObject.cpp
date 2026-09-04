@@ -8,7 +8,9 @@
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
+#include "Color.hpp"
 #include "Layer.hpp"
+#include "MaterialType.hpp"
 #include "MutablePolygon.hpp"
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
@@ -30,11 +32,13 @@
 #include <float.h>
 #include <iterator>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 #include <boost/log/trivial.hpp>
@@ -1372,6 +1376,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "internal_solid_filament_id"
             || opt_key == "top_surface_filament_id"
             || opt_key == "bottom_surface_filament_id"
+            || opt_key == "ironing_filament"
             || opt_key == "sparse_infill_line_width"
             || opt_key == "skin_infill_line_width"
             || opt_key == "skeleton_infill_line_width"
@@ -1553,7 +1558,10 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
-            || opt_key == "flush_into_support") {
+            || opt_key == "flush_into_support"
+            // Support ironing filament only changes which extruder prints the ironing pass, not the
+            // support geometry, so re-run tool ordering and G-code export without regenerating supports.
+            || opt_key == "support_ironing_filament") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
@@ -3729,7 +3737,127 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index)
+// Resolve an "Auto" support filament into a concrete 1-based extruder (0 = "Default"). A candidate must not
+// bond to any of the object's materials, so the support detaches cleanly; among those, preference goes to a
+// support material (soluble or support flagged), then known-incompatible over unknown, then the closest colour.
+// With nothing non-bonding available it falls back to the object's own filament, to avoid mixing colours.
+// Returns "Default" when support is off, on single-extruder-multi-material printers, or with one filament.
+// exclude_extruder (1-based, 0 = none) keeps the base off the interface filament ("Avoid interface filament for
+// base"). print_config is any config carrying the filament-scope keys, so the GUI can resolve Auto the same way.
+int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t num_extruders, const ConfigBase &print_config, bool support_enabled, int exclude_extruder)
+{
+    const ConfigOptionBool *semm_opt = print_config.option<ConfigOptionBool>("single_extruder_multi_material");
+    if (!support_enabled || (semm_opt != nullptr && semm_opt->value) || num_extruders <= 1)
+        return 0;
+
+    const ConfigOptionStrings *filament_types      = print_config.option<ConfigOptionStrings>("filament_type");
+    const ConfigOptionBools   *filament_soluble    = print_config.option<ConfigOptionBools>("filament_soluble");
+    const ConfigOptionBools   *filament_is_support = print_config.option<ConfigOptionBools>("filament_is_support");
+    auto type_of = [&](int extruder_1based) -> std::string {
+        const size_t idx = (size_t)(extruder_1based - 1);
+        return filament_types != nullptr && idx < filament_types->values.size() ? filament_types->values[idx] : std::string();
+    };
+    auto flag_at = [](const ConfigOptionBools *opt, int extruder_1based) {
+        const size_t idx = (size_t)(extruder_1based - 1);
+        return opt != nullptr && idx < opt->values.size() && opt->get_at(idx);
+    };
+    // A filament meant to be removed again: soluble, or a breakaway support filament.
+    auto is_support_material = [&](int extruder_1based) {
+        return flag_at(filament_soluble, extruder_1based) || flag_at(filament_is_support, extruder_1based);
+    };
+
+    // Materials the object is actually printed with (1-based extruder ids).
+    std::set<int> object_extruders;
+    for (const ModelVolume *volume : object.volumes) {
+        if (!volume->is_model_part())
+            continue;
+        if (int e = volume->extruder_id(); e > 0)
+            object_extruders.insert(e);
+        for (int e : volume->get_extruders()) // per-face (MMU) painted extruders
+            if (e > 0)
+                object_extruders.insert(e);
+    }
+    if (object_extruders.empty())
+        object_extruders.insert(1);
+
+    // The object's primary colour, which only breaks ties between equally good candidates.
+    const ConfigOptionStrings *filament_colours = print_config.option<ConfigOptionStrings>("filament_colour");
+    auto colour_at = [&](int extruder_1based, ColorRGB &out) -> bool {
+        const size_t idx = (size_t)(extruder_1based - 1);
+        return filament_colours != nullptr && idx < filament_colours->values.size() && decode_color(filament_colours->values[idx], out);
+    };
+    ColorRGB ref_colour;
+    const bool have_ref = colour_at(*object_extruders.begin(), ref_colour);
+    auto colour_distance = [&](int cand) -> float {
+        ColorRGB c;
+        if (!have_ref || !colour_at(cand, c))
+            return 0.f; // no comparable colours: keep insertion order (lowest extruder wins)
+        const float dr = c.r() - ref_colour.r(), dg = c.g() - ref_colour.g(), db = c.b() - ref_colour.b();
+        return dr * dr + dg * dg + db * db;
+    };
+    // Lexicographic ranking key: support material, then known incompatibility, then colour. The strict
+    // comparison below leaves a full tie with the lowest extruder.
+    using Rank = std::tuple<bool, bool, float>;
+    int  best = 0;
+    Rank best_rank;
+    for (int cand = 1; cand <= (int)num_extruders; ++cand) {
+        if (cand == exclude_extruder)
+            continue;
+        const std::string cand_type = type_of(cand);
+        // First requisite: it must not bond to any of the object's materials.
+        bool bonds_with_any = false;
+        bool all_incompatible = true;
+        for (int e : object_extruders) {
+            const MaterialCompatibility c = MaterialType::compatibility(cand_type, type_of(e));
+            if (c == MaterialCompatibility::Compatible) { bonds_with_any = true; break; }
+            if (c != MaterialCompatibility::Incompatible) all_incompatible = false; // Unknown
+        }
+        if (bonds_with_any)
+            continue;
+        const Rank rank{!is_support_material(cand), !all_incompatible, colour_distance(cand)};
+        if (best == 0 || rank < best_rank) {
+            best      = cand;
+            best_rank = rank;
+        }
+    }
+
+    if (best != 0)
+        return best;
+    // Only bonding filaments left: reuse the object's own, so at least the colour does not change.
+    return *object_extruders.begin();
+}
+
+// Resolve the three support filaments of one object, any of which may be "Auto". The order matters: the
+// interface and the ironing pass resolve unconstrained and therefore share one ranking, and the base resolves
+// last so "Avoid interface filament for base" can keep it off the interface's pick.
+void PrintObject::resolve_auto_support_filaments(const ModelObject &object, size_t num_extruders, const ConfigBase *print_config, bool support_enabled, bool interface_not_for_body,
+                                                 int &support_filament, int &support_interface_filament, int &support_ironing_filament)
+{
+    if (support_filament != SUPPORT_FILAMENT_AUTO && support_interface_filament != SUPPORT_FILAMENT_AUTO && support_ironing_filament != SUPPORT_FILAMENT_AUTO)
+        return;
+    if (print_config == nullptr) {
+        // Nothing to resolve against: fall back to "Default".
+        for (int *value : {&support_filament, &support_interface_filament, &support_ironing_filament})
+            if (*value == SUPPORT_FILAMENT_AUTO)
+                *value = 0;
+        return;
+    }
+    std::optional<int> unconstrained;
+    auto resolve_unconstrained = [&] {
+        if (! unconstrained)
+            unconstrained = resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, 0);
+        return *unconstrained;
+    };
+    if (support_interface_filament == SUPPORT_FILAMENT_AUTO)
+        support_interface_filament = resolve_unconstrained();
+    if (support_ironing_filament == SUPPORT_FILAMENT_AUTO)
+        support_ironing_filament = resolve_unconstrained();
+    if (support_filament == SUPPORT_FILAMENT_AUTO)
+        support_filament = interface_not_for_body ? resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, support_interface_filament) :
+                                                    resolve_unconstrained();
+}
+
+PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config)
 {
     PrintObjectConfig config = default_object_config;
     {
@@ -3737,9 +3865,15 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
+    // Resolve "Auto" before anything downstream reads these. The gate matches has_support_material(): raft and
+    // enforced support use these filaments too.
+    const bool support_enabled = config.enable_support.value || config.enforce_support_layers.value > 0 || config.raft_layers.value > 0;
+    resolve_auto_support_filaments(object, num_extruders, print_config, support_enabled, config.support_interface_not_for_body.value,
+                                   config.support_filament.value, config.support_interface_filament.value, config.support_ironing_filament.value);
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
+    clamp_exturder_to_default(config.support_ironing_filament,   num_extruders);
     return config;
 }
 
@@ -3872,6 +4006,9 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     clamp_feature_filament_to_valid(config.internal_solid_filament_id, num_extruders);
     clamp_feature_filament_to_valid(config.top_surface_filament_id, num_extruders);
     clamp_feature_filament_to_valid(config.bottom_surface_filament_id, num_extruders);
+    // Ironing keeps "Default" (0) as a real choice, so it only resets when out of range.
+    if (config.ironing_filament.value < 0 || config.ironing_filament.value > int(num_extruders))
+        config.ironing_filament.value = 0;
     if (config.sparse_infill_density.value < 0.00011f)
         // Switch of infill for very low infill rates, also avoid division by zero in infill generator for these very low rates.
         // See GH issue #5910.
@@ -3923,7 +4060,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	default_region_config.apply(full_config, true);
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
-	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index);
+	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index, &print_config);
 
 	std::vector<unsigned int> object_extruders;
 	for (const ModelVolume* model_volume : model_object.volumes)

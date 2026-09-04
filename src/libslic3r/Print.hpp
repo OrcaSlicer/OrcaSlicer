@@ -492,6 +492,16 @@ public:
     size_t get_id() const { return m_id; }
     void set_id(size_t id) { m_id = id; }
 
+    // Resolve a support filament set to "Auto" (SUPPORT_FILAMENT_AUTO) into the concrete 1-based filament this
+    // object will use; 0 means "Default". Public so that the GUI can enumerate the filaments a plate actually
+    // prints with (prime tower, AMS mapping, arrange) before the object config is built. See PrintObject.cpp.
+    static int              resolve_auto_support_filament(const ModelObject &object, size_t num_extruders, const ConfigBase &print_config, bool support_enabled, int exclude_extruder = 0);
+    // Resolve the three support filaments of one object at once, in the order their picks depend on each
+    // other. Values that are not "Auto" pass through untouched. print_config may be null, which resolves
+    // "Auto" to "Default"; otherwise it is any config carrying the filament-scope keys the resolver reads.
+    static void             resolve_auto_support_filaments(const ModelObject &object, size_t num_extruders, const ConfigBase *print_config, bool support_enabled, bool interface_not_for_body,
+                                                           int &support_filament, int &support_interface_filament, int &support_ironing_filament);
+
   private:
     // to be called from Print only.
     friend class Print;
@@ -513,7 +523,7 @@ public:
     // If ! m_slicing_params.valid, recalculate.
     void                    update_slicing_parameters();
 
-    static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index);
+    static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config = nullptr);
 
 private:
     void make_perimeters();
@@ -901,10 +911,11 @@ enum FilamentTempType {
 
 enum FilamentCompatibilityType {
     Compatible,
-    HighLowMixed,
-    //HighLowMixed,
-    //HighMidMixed,
-    InvalidTemperatureRange
+    HighLowMixed,                        // nozzle temperatures outside mutual recommended ranges (materials compatible/unknown)
+    InvalidTemperatureRange,             // a recommended range has low >= high
+    IncompatibleMaterials,               // materials are known not to bond (e.g. PLA + PETG)
+    PossibleIncompatibleMaterials,       // material bonding unknown, but temperatures are fine
+    HighLowMixedAndPossibleIncompatible  // temperatures mismatched AND material bonding unknown
 };
 
 // The complete print tray with possibly multiple objects.
@@ -1177,17 +1188,24 @@ public:
 
     void set_check_multi_filaments_compatibility(bool check) { m_need_check_multi_filaments_compatibility = check; }
     bool need_check_multi_filaments_compatibility() const { return m_need_check_multi_filaments_compatibility; }
+    void set_check_multi_filaments_material_compatibility(bool check) { m_need_check_multi_filaments_material_compatibility = check; }
+    bool need_check_multi_filaments_material_compatibility() const { return m_need_check_multi_filaments_material_compatibility; }
 
     // scaled point
     Vec2d translate_to_print_space(const Point &point) const;
     static FilamentTempType get_filament_temp_type(const std::string& filament_type);
     static int get_hrc_by_nozzle_type(const NozzleType& type);
     static std::vector<std::string> get_incompatible_filaments_by_nozzle(const float nozzle_diameter, const std::optional<NozzleVolumeType> nozzle_volume_type = std::nullopt);
+    // support_only marks entries (parallel to filament_types) that the plate uses solely as a
+    // support base/interface/ironing filament. Not bonding to the object is the whole point of
+    // such a filament, so the material-bonding rule is not applied to it; the temperature rules
+    // still are. Pass empty to check every filament as an object material.
     static FilamentCompatibilityType check_multi_filaments_compatibility(
         const std::vector<std::string>& filament_types,
         const std::vector<int>& nozzle_temperatures,
         const std::vector<int>& nozzle_temperature_range_lows,
-        const std::vector<int>& nozzle_temperature_range_highs);
+        const std::vector<int>& nozzle_temperature_range_highs,
+        const std::vector<unsigned char>& support_only = {});
     // similar to check_multi_filaments_compatibility, but the input is int, and may be negative (means unset)
     static bool is_filaments_compatible(const std::vector<int>& types);
     // get the compatible filament type of a multi-material object
@@ -1273,6 +1291,8 @@ protected:
 private:
     //BBS
     static StringObjectException check_multi_filament_valid(const Print &print);
+    // The materials fused together inside one object have to bond; see Print.cpp.
+    static StringObjectException check_object_materials_valid(const Print &print);
 
     bool                has_tpu_filament() const;
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
@@ -1377,6 +1397,7 @@ private:
     Calib_Params m_calib_params;
 
     bool m_need_check_multi_filaments_compatibility{true};
+    bool m_need_check_multi_filaments_material_compatibility{true};
 
     // To allow GCode to set the Print's GCodeExport step status.
     friend class GCode;

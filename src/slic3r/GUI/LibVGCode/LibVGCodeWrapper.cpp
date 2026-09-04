@@ -718,7 +718,8 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                             const Slic3r::ExtrusionRole role = fill.entities.front()->role();
                             const bool is_solid_infill = Slic3r::is_solid_infill(role);
                             const size_t extruder_id = is_solid_infill ?
-                                static_cast<size_t>(std::max((role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
+                                static_cast<size_t>(std::max((role == Slic3r::erIroning && cfg.ironing_filament.value > 0 ? cfg.ironing_filament.value :
+                                                              role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
                                                               role == Slic3r::erBottomSurface ? cfg.bottom_surface_filament_id.value :
                                                               cfg.internal_solid_filament_id.value) - 1, 0)) :
                                 static_cast<size_t>(std::max(cfg.sparse_infill_filament_id.value - 1, 0));

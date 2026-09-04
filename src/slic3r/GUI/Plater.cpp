@@ -1105,8 +1105,17 @@ struct DynamicFilamentList : DynamicList
     // physical-only list for all of its keys.
     explicit DynamicFilamentList(bool physical_only = false) : physical_only(physical_only) {}
     bool physical_only;
-    std::vector<std::pair<wxString, wxBitmap *>> items;
-    std::vector<int> slot_map{0}; // combo index -> 1-based filament slot; slot_map[0] = 0 is "Default"
+    std::vector<std::pair<wxString, wxBitmap *>> items; // every combo entry, "Default" included
+    std::vector<int> slot_map;                          // combo index -> config value: 1-based filament slot, 0 is "Default"
+    std::vector<int> shown_slot_map;                    // slot_map the combos on screen were built from
+
+    int index_of_slot(int slot) const
+    {
+        for (int i = 0; i < int(slot_map.size()); ++i)
+            if (slot_map[i] == slot)
+                return i;
+        return -1;
+    }
 
     void apply_on(Choice *c) override
     {
@@ -1119,17 +1128,20 @@ struct DynamicFilamentList : DynamicList
             return;
         wxString old_selection = cb->GetStringSelection();
         int old_index  = cb->GetSelection();
-        // slot_map is already rebuilt here: restoring through it keeps the index of every slot
-        // still listed and sends a vanished slot to the fallback below.
-        int old_slot = old_index >= 0 && old_index < int(slot_map.size()) ? slot_map[old_index] : -1;
+        // The combo still holds the entries of the previous update(), so the old selection has to be
+        // read through shown_slot_map: slot_map is already rebuilt, and entries added or removed since
+        // (a slot, or the leading "Auto" of DynamicSupportFilamentList) shift every index. Restoring by
+        // config value then keeps the index of every slot still listed and sends a vanished one to the
+        // fallback below.
+        static constexpr int no_slot = INT_MIN;
+        int old_slot = old_index >= 0 && old_index < int(shown_slot_map.size()) ? shown_slot_map[old_index] : no_slot;
         cb->Clear();
-        cb->Append(_L("Default"));
         for (auto i : items) {
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
         }
 
-        int restored = index_of(wxString::Format("%d", old_slot));
-        if (restored > 0 || old_slot == 0) {
+        int restored = old_slot == no_slot ? -1 : index_of_slot(old_slot);
+        if (restored >= 0) {
             cb->SetSelection(restored);
             return;
         }
@@ -1140,7 +1152,7 @@ struct DynamicFilamentList : DynamicList
         } else if (new_index != wxNOT_FOUND) {
             cb->SetSelection(new_index);
         } else {
-            cb->SetSelection(0);
+            cb->SetSelection(std::max(index_of_slot(0), 0)); // "Default"
         }
     }
     wxString get_value(int index) override
@@ -1154,17 +1166,18 @@ struct DynamicFilamentList : DynamicList
         long n = 0;
         if (!value.ToLong(&n))
             return -1;
-        for (int i = 0; i < int(slot_map.size()); ++i)
-            if (slot_map[i] == int(n))
-                return i;
-        return 0;
+        int index = index_of_slot(int(n));
+        return index >= 0 ? index : std::max(index_of_slot(0), 0); // unknown slot falls back to "Default"
     }
     void update(bool force = false)
     {
         items.clear();
-        slot_map.assign(1, 0);
+        slot_map.clear();
         if (!force && m_choices.empty())
             return;
+        prepend_extra_items();
+        items.push_back({_L("Default"), nullptr});
+        slot_map.push_back(0);
         auto icons = get_extruder_color_icons(true);
         auto presets = wxGetApp().preset_bundle->filament_presets;
         for (int i = 0; i < presets.size(); ++i) {
@@ -1177,7 +1190,30 @@ struct DynamicFilamentList : DynamicList
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
             slot_map.push_back(i + 1);
         }
-        DynamicList::update();
+        DynamicList::update(); // rebuilds every registered combo through apply_on()
+        shown_slot_map = slot_map;
+    }
+    // Hook for subclasses listing entries ahead of "Default" (see DynamicSupportFilamentList).
+    virtual void prepend_extra_items() {}
+};
+
+// Same as DynamicFilamentList, but leads with an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
+// support filaments (base, interface and ironing), where "Auto" picks a non-bonding filament per object
+// at slicing time.
+struct DynamicSupportFilamentList : DynamicFilamentList
+{
+    DynamicSupportFilamentList() : DynamicFilamentList(true) {}
+
+    // Order: [Auto,] Default, then the filaments. "Default" (value 0) stays the default value. "Auto" is
+    // left out on single-extruder-multi-material printers, where it would be a no-op; a stored Auto value
+    // then reads back as "Default" through index_of().
+    void prepend_extra_items() override
+    {
+        if (wxGetApp().preset_bundle &&
+            wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+            return;
+        items.push_back({_L("Auto"), nullptr});
+        slot_map.push_back(SUPPORT_FILAMENT_AUTO);
     }
 };
 
@@ -1197,7 +1233,8 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
-static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
+static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (wipe_tower_filament)
+static DynamicSupportFilamentList dynamic_support_filament_list; // physical slots + "Auto" (support_*)
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2419,14 +2456,16 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
-    Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
-    Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
+    Choice::register_dynamic_list("support_filament", &dynamic_support_filament_list);
+    Choice::register_dynamic_list("support_interface_filament", &dynamic_support_filament_list);
+    Choice::register_dynamic_list("support_ironing_filament", &dynamic_support_filament_list);
     Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("ironing_filament", &dynamic_filament_list); // per-region key, resolved per layer
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -6143,6 +6182,7 @@ void Sidebar::update_dynamic_filament_list()
 {
     dynamic_filament_list.update();
     dynamic_physical_filament_list.update();
+    dynamic_support_filament_list.update();
 }
 
 PlaterPresetComboBox* Sidebar::printer_combox()
@@ -7330,23 +7370,77 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     , main_frame(main_frame)
     //BBS: add bed_exclude_area
     , config(Slic3r::DynamicPrintConfig::new_from_defaults_keys({
-        "printable_area", "bed_exclude_area", "wrapping_exclude_area", "extruder_printable_area", "bed_custom_texture", "bed_custom_model", "print_sequence",
+        "printable_area",
+        "bed_exclude_area",
+        "wrapping_exclude_area",
+        "extruder_printable_area",
+        "bed_custom_texture",
+        "bed_custom_model",
+        "print_sequence",
         "extruder_clearance_radius",
-        "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
-		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
-        "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
-        "prime_tower_infill_gap", "prime_volume",
-        "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
+        "extruder_clearance_height_to_lid",
+        "extruder_clearance_height_to_rod",
+        "nozzle_height",
+        "skirt_type",
+        "skirt_loops",
+        "skirt_speed","min_skirt_length",
+        "skirt_distance",
+        "skirt_start_angle",
+        "brim_width",
+        "brim_object_gap",
+        "brim_flow_ratio",
+        "brim_use_efc_outline",
+        "combine_brims",
+        "brim_type",
+        "nozzle_diameter",
+        "single_extruder_multi_material",
+        "preferred_orientation",
+        "enable_prime_tower",
+        "wipe_tower_x",
+        "wipe_tower_y",
+        "prime_tower_width",
+        "prime_tower_brim_width",
+        "prime_tower_skip_points",
+        "prime_tower_enable_framework",
+        "prime_tower_infill_gap",
+        "prime_volume",
+        "extruder_colour",
+        "filament_colour",
+        "filament_type",
+        "filament_is_support",
+        "material_colour",
+        "printable_height",
+        "extruder_printable_height",
+        "printer_model",
+        "printer_technology",
         // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
-        "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
-        "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
-        "enable_support", "support_filament", "support_interface_filament",
-        "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
-        "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
-        "wipe_tower_wall_type", "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
+        "layer_height",
+        "initial_layer_print_height",
+        "min_layer_height",
+        "max_layer_height",
+        "wall_loops",
+        "outer_wall_filament_id",
+        "inner_wall_filament_id",
+        "sparse_infill_density",
+        "sparse_infill_filament_id",
+        "top_shell_layers",
+        "enable_support",
+        "support_filament",
+        "support_interface_filament",
+        "support_ironing_filament",
+        "support_top_z_distance",
+        "support_bottom_z_distance",
+        "raft_layers",
+        "wipe_tower_rotation_angle",
+        "wipe_tower_cone_angle",
+        "wipe_tower_extra_spacing",
+        "wipe_tower_extra_flow",
+        "wipe_tower_max_purge_speed",
+        "wipe_tower_wall_type",
+        "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
         "wipe_tower_filament",
-        "best_object_pos",  "master_extruder_id"
+        "best_object_pos",
+        "master_extruder_id"
         }))
     , sidebar(new Sidebar(q))
     , notification_manager(std::make_unique<NotificationManager>(q))
@@ -10453,6 +10547,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     }
 
     background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
+    background_process.fff_print()->set_check_multi_filaments_material_compatibility(wxGetApp().app_config->get("enable_incompatible_material_mixed_printing") == "false");
 
     Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
@@ -19572,7 +19667,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
     // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -19723,11 +19818,15 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             bed_shape_changed = true;
             update_scheduled = true;
         }
+        else if (opt_key == "single_extruder_multi_material") {
+            // The "Auto" support filament entry is hidden on SEMM printers; refresh the dropdowns.
+            dynamic_support_filament_list.update();
+            update_scheduled = true;
+        }
         else if (boost::starts_with(opt_key, "enable_prime_tower") ||
             boost::starts_with(opt_key, "prime_tower") ||
             boost::starts_with(opt_key, "wipe_tower") ||
             opt_key == "filament_minimal_purge_on_wipe_tower" ||
-            opt_key == "single_extruder_multi_material" ||
             // BBS
             opt_key == "prime_volume") {
             update_scheduled = true;
@@ -19755,10 +19854,11 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             update_scheduled = true;
         }
         // Orca: update when *_filament changed
-        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
+        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "support_ironing_filament" ||
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
-                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "ironing_filament") {
             update_scheduled = true;
         }
     }
@@ -20855,6 +20955,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         Polygons polygons;
         std::vector<std::pair<Polygon, float>> height_polygons;
         p->background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
+        p->background_process.fff_print()->set_check_multi_filaments_material_compatibility(wxGetApp().app_config->get("enable_incompatible_material_mixed_printing") == "false");
         StringObjectException err = p->background_process.validate(&warnings, &polygons, &height_polygons);
         // update string by type
         post_process_string_object_exception(err);

@@ -35,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
     test_meshboolean.cpp
     test_marchingsquares.cpp
     test_model.cpp
+    test_material_type.cpp
     test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
@@ -49,7 +50,7 @@ if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)
 endif()
 
-target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+target_link_libraries(${_TEST_NAME}_tests test_common test_slic3r_bootstrap libslic3r Catch2::Catch2WithMain)
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 

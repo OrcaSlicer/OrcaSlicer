@@ -92,7 +92,7 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"support_bottom_z_distance", "",20},{"support_top_z_distance", "",21},{"support_base_pattern", "",22},{"support_base_pattern_spacing", "",23},
                     {"support_interface_top_layers", "",24},{"support_interface_bottom_layers", "",25},{"support_interface_spacing", "",26},{"support_bottom_interface_spacing", "",27},
                     {"support_object_xy_distance", "",28}, {"bridge_no_support", "",29},{"max_bridge_length", "",30},{"support_critical_regions_only", "",31},{"support_remove_small_overhang","",32},
-                    {"support_object_first_layer_gap","",33}
+                    {"support_object_first_layer_gap","",33},{"support_ironing","",34},{"support_ironing_filament","",35}
                     }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
                   }}
@@ -102,6 +102,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
     {{L("Quality"),
       {{"ironing_type", "", 8},
        {"ironing_flow", "", 9},
+       {"ironing_filament", "", 9},
        {"ironing_spacing", "", 10},
        {"ironing_inset", "", 11},
        {"bridge_flow", "", 11},

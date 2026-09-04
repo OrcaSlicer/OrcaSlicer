@@ -30,6 +30,10 @@
 
 namespace Slic3r {
 
+// "Auto" for the support filaments: pick, per object, a filament that does not bond to the supported part.
+// Resolved to a concrete extruder at apply time.
+static constexpr int SUPPORT_FILAMENT_AUTO = -1;
+
 enum GCodeFlavor : unsigned char {
     gcfMarlinLegacy, 
     gcfKlipper, 
@@ -722,6 +726,10 @@ public:
     const std::vector<std::string>& filament_retract_keys() const { return m_filament_retract_keys; }
 
 private:
+    // The global definition is const, so the material type database can only be mirrored into it
+    // through this function.
+    friend void refresh_material_type_config_defs();
+
     void init_common_params();
     void init_fff_params();
     void init_extruder_option_keys();
@@ -733,13 +741,21 @@ private:
     // BBS
     void init_filament_option_keys();
 
+    // Fills the "filament_type" value list from the material type database.
+    void init_filament_type_values();
+
     std::vector<std::string>    m_filament_option_keys;
     std::vector<std::string>    m_filament_retract_keys;
 };
 
 // The one and only global definition of SLic3r configuration options.
 // This definition is constant.
-extern const PrintConfigDef print_config_def;
+extern const PrintConfigDef& print_config_def;
+
+// Re-reads the option definitions that mirror the material type database (the "filament_type" value
+// list, built during static initialisation from the built-in fallback table). Call once at startup,
+// after MaterialType::load() has read the material tables from disk.
+void refresh_material_type_config_defs();
 
 class StaticPrintConfig;
 
@@ -1183,6 +1199,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<InfillPattern>, support_ironing_pattern))
     ((ConfigOptionPercent,             support_ironing_flow))
     ((ConfigOptionFloat,               support_ironing_spacing))
+    ((ConfigOptionInt,                 support_ironing_filament))
     ((ConfigOptionFloat,               xy_hole_compensation))
     ((ConfigOptionFloat,               xy_contour_compensation))
     ((ConfigOptionBool,                flush_into_objects))
@@ -1358,6 +1375,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, minimum_sparse_infill_area))
     ((ConfigOptionInt, internal_solid_filament_id))
     ((ConfigOptionInt, top_surface_filament_id))
+    ((ConfigOptionInt, ironing_filament))
     ((ConfigOptionInt, bottom_surface_filament_id))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloatsNullable, internal_solid_infill_speed))

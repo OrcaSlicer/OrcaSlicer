@@ -536,6 +536,12 @@ std::vector<unsigned int> Print::support_material_extruders() const
             	unsigned int i = (unsigned int)object->config().support_interface_filament - 1;
                 extruders.emplace_back((i >= num_extruders) ? 0 : i);
             }
+            // Support ironing may print with its own filament; "Default" (0) follows the interface filament,
+            // which is already accounted for above.
+            if (object->config().support_ironing && object->config().support_ironing_filament > 0) {
+                unsigned int i = (unsigned int)object->config().support_ironing_filament - 1;
+                extruders.emplace_back((i >= num_extruders) ? 0 : i);
+            }
         }
     }
 
@@ -1098,7 +1104,8 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     const std::vector<std::string>& filament_types,
     const std::vector<int>& nozzle_temperatures,
     const std::vector<int>& nozzle_temperature_range_lows,
-    const std::vector<int>& nozzle_temperature_range_highs)
+    const std::vector<int>& nozzle_temperature_range_highs,
+    const std::vector<unsigned char>& support_only)
 {
     const size_t filament_count = filament_types.size();
     if (filament_count < 2)
@@ -1131,23 +1138,45 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
         resolved_range_highs[i] = range_high;
     }
 
+    // A filament used solely for support is meant NOT to bond - that is how the support detaches,
+    // and it is exactly what "Auto" support filament selects for. Applying the bonding rule to it
+    // would reject every print whose support filament does its job.
+    auto is_support_only = [&support_only](size_t i) {
+        return i < support_only.size() && support_only[i] != 0;
+    };
+
+    bool any_temperature_mismatch = false;
+    bool any_unknown_material     = false;
     for (size_t i = 0; i < filament_count; ++i) {
         for (size_t j = i + 1; j < filament_count; ++j) {
+            // Material rule: known-incompatible materials never bond (e.g. PLA + PETG) and take
+            // precedence over everything else, so bail out immediately.
+            if (!is_support_only(i) && !is_support_only(j)) {
+                const MaterialCompatibility material = MaterialType::compatibility(filament_types[i], filament_types[j]);
+                if (material == MaterialCompatibility::Incompatible)
+                    return FilamentCompatibilityType::IncompatibleMaterials;
+                if (material == MaterialCompatibility::Unknown)
+                    any_unknown_material = true;
+            }
+
+            // Range rule: both filaments must sit within each other's recommended nozzle range.
             const bool i_temp_is_compatible_with_j =
                 resolved_temperatures[i] >= resolved_range_lows[j] &&
                 resolved_temperatures[i] <= resolved_range_highs[j];
             const bool j_temp_is_compatible_with_i =
                 resolved_temperatures[j] >= resolved_range_lows[i] &&
                 resolved_temperatures[j] <= resolved_range_highs[i];
-
-            if (i_temp_is_compatible_with_j && j_temp_is_compatible_with_i)
-                continue;
-
-            // Range-only rule: any pair outside mutual recommended ranges is incompatible.
-            return FilamentCompatibilityType::HighLowMixed;
+            if (!i_temp_is_compatible_with_j || !j_temp_is_compatible_with_i)
+                any_temperature_mismatch = true;
         }
     }
 
+    if (any_temperature_mismatch && any_unknown_material)
+        return FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible;
+    if (any_temperature_mismatch)
+        return FilamentCompatibilityType::HighLowMixed;
+    if (any_unknown_material)
+        return FilamentCompatibilityType::PossibleIncompatibleMaterials;
     return FilamentCompatibilityType::Compatible;
 }
 
@@ -1190,15 +1219,114 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 }
 
 //BBS: this function is used to check whether multi filament can be printed
+// The message for a filament compatibility verdict. The two dimensions the verdict carries - nozzle
+// temperature ranges and material bonding - get their own text, and a verdict that fails both says both.
+// A bypassed dimension ("Remove ... restriction" in Preferences) turns its case into a warning carrying the
+// same text; otherwise it blocks and the text ends with how to allow it anyway.
+static void fill_filament_compatibility_exception(FilamentCompatibilityType type, bool temperature_bypassed, bool material_bypassed, StringObjectException &ret)
+{
+    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
+    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+    const std::string incompatible_materials_msg = L("Selected filament materials are incompatible. Only materials known to bond with each other (such as ASA and ABS) can be printed together. Otherwise, the printed parts may delaminate.");
+    const std::string possible_incompatible_materials_msg = L("Selected filament materials may not bond. Their compatibility is unknown, so the printed parts may delaminate.");
+    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
+    const std::string incompatible_material_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove incompatible material type restriction.");
+
+    switch (type) {
+    case FilamentCompatibilityType::Compatible:
+        break;
+    case FilamentCompatibilityType::InvalidTemperatureRange:
+        ret.string = invalid_temp_range_msg;
+        break;
+    case FilamentCompatibilityType::IncompatibleMaterials:
+        ret.string     = material_bypassed ? incompatible_materials_msg :
+                                             incompatible_materials_msg + " " + incompatible_material_msg_preferences_enable;
+        ret.is_warning = material_bypassed;
+        break;
+    case FilamentCompatibilityType::PossibleIncompatibleMaterials:
+        ret.string     = possible_incompatible_materials_msg;
+        ret.is_warning = true;
+        break;
+    case FilamentCompatibilityType::HighLowMixed:
+    case FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible: {
+        std::string msg = incompatible_temp_msg;
+        if (type == FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible)
+            msg += " " + possible_incompatible_materials_msg;
+        ret.string     = temperature_bypassed ? msg : msg + " " + incompatible_temp_msg_preferences_enable;
+        ret.is_warning = temperature_bypassed;
+        break;
+    }
+    }
+}
+
+// 0-based ids of the filaments a plate uses only for support (base / interface / ironing). Their
+// job is to not bond to the object, so the material-bonding rule must skip them; any filament that
+// also prints object geometry is excluded here and stays fully checked.
+static std::set<unsigned int> collect_support_only_filaments(const Print &print)
+{
+    const PrintConfig &print_config  = print.config();
+    const size_t       num_filaments = print_config.filament_diameter.size();
+    std::set<unsigned int> support_used, object_used;
+    for (const PrintObject *object : print.objects()) {
+        for (unsigned int e : object->object_extruders())
+            object_used.insert(e);
+        if (!object->has_support_material())
+            continue;
+        auto add_support = [&](int filament_1based) {
+            if (filament_1based >= 1 && size_t(filament_1based) <= num_filaments)
+                support_used.insert(unsigned(filament_1based - 1));
+        };
+        add_support(object->config().support_filament);
+        add_support(object->config().support_interface_filament);
+        if (object->config().support_ironing)
+            add_support(object->config().support_ironing_filament);
+    }
+    std::set<unsigned int> support_only;
+    for (unsigned int e : support_used)
+        if (object_used.find(e) == object_used.end())
+            support_only.insert(e);
+    return support_only;
+}
+
+// Mark the entries of `filaments` (0-based ids, parallel to the collected property vectors) that
+// appear in `support_only`.
+static std::vector<unsigned char> mark_support_only(const std::vector<unsigned int> &filaments,
+                                                    const std::set<unsigned int>    &support_only)
+{
+    std::vector<unsigned char> flags(filaments.size(), 0);
+    for (size_t i = 0; i < filaments.size(); ++i)
+        flags[i] = support_only.find(filaments[i]) != support_only.end();
+    return flags;
+}
+
+// Collect the filament properties check_multi_filaments_compatibility() compares, for the given 0-based filaments.
+static void collect_filament_properties(const PrintConfig &print_config, const std::vector<unsigned int> &filaments,
+                                        std::vector<std::string> &types, std::vector<int> &temperatures,
+                                        std::vector<int> &range_lows, std::vector<int> &range_highs)
+{
+    types.reserve(filaments.size());
+    temperatures.reserve(filaments.size());
+    range_lows.reserve(filaments.size());
+    range_highs.reserve(filaments.size());
+    for (unsigned int filament : filaments) {
+        types.push_back(print_config.filament_type.get_at(filament));
+        temperatures.push_back(print_config.nozzle_temperature.get_at(filament));
+        range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(filament));
+        range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(filament));
+    }
+}
+
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
-    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
-    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
-    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
+    const std::set<unsigned int> support_only_filaments = collect_support_only_filaments(print);
+    auto fill_exception = [](FilamentCompatibilityType type, bool enable_mix_printing, bool enable_mix_incompatible_material, StringObjectException& ret) {
+        fill_filament_compatibility_exception(type, enable_mix_printing, enable_mix_incompatible_material, ret);
+    };
     if(print_config.print_sequence == PrintSequence::ByObject) {// use ByObject valid under ByObject print sequence
-        bool has_incompatible_object = false;
+        FilamentCompatibilityType incompatible_type = FilamentCompatibilityType::Compatible;
         bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+        bool enable_mix_incompatible_material = !print.need_check_multi_filaments_material_compatibility();
         StringObjectException ret;
 
         for (const auto &objectID_t : print.print_object_ids()) {
@@ -1219,88 +1347,106 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 assert(print_object->config().support_interface_filament >= 0);
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
+                if (print_object->config().support_ironing && print_object->config().support_ironing_filament >= 1 && (unsigned int)print_object->config().support_ironing_filament < num_extruders + 1)
+                    obj_used_extruder_ids.insert((unsigned int) print_object->config().support_ironing_filament - 1);
             }
+            const std::vector<unsigned int> obj_filaments(obj_used_extruder_ids.begin(), obj_used_extruder_ids.end());
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
             std::vector<int> nozzle_temperature_range_highs;
-            filament_types.reserve(obj_used_extruder_ids.size());
-            nozzle_temperatures.reserve(obj_used_extruder_ids.size());
-            nozzle_temperature_range_lows.reserve(obj_used_extruder_ids.size());
-            nozzle_temperature_range_highs.reserve(obj_used_extruder_ids.size());
-
-            for (const auto &extruder_idx : obj_used_extruder_ids) {
-                filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
-                nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
-                nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
-                nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
-            }
+            collect_filament_properties(print_config, obj_filaments,
+                                        filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
             auto compatibility = check_multi_filaments_compatibility(
                 filament_types,
                 nozzle_temperatures,
                 nozzle_temperature_range_lows,
-                nozzle_temperature_range_highs); // check for each object
+                nozzle_temperature_range_highs,
+                mark_support_only(obj_filaments, support_only_filaments)); // check for each object
             if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
-                ret.string = invalid_temp_range_msg;
+                fill_exception(compatibility, enable_mix_printing, enable_mix_incompatible_material, ret);
                 return ret;
             }
             if (compatibility != FilamentCompatibilityType::Compatible) {
-                has_incompatible_object = true;
+                incompatible_type = compatibility;
                 break;
             }
         }
-        if (has_incompatible_object){
-            if (enable_mix_printing) {
-                ret.string     = incompatible_temp_msg;
-                ret.is_warning = true;
-            } else
-                ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
-        }
+        fill_exception(incompatible_type, enable_mix_printing, enable_mix_incompatible_material, ret);
         return ret;
     }
-    std::vector<unsigned int> extruders = print.extruders();
+    const std::vector<unsigned int> extruders = print.extruders();
     std::vector<std::string> filament_types;
     std::vector<int> nozzle_temperatures;
     std::vector<int> nozzle_temperature_range_lows;
     std::vector<int> nozzle_temperature_range_highs;
-    filament_types.reserve(extruders.size());
-    nozzle_temperatures.reserve(extruders.size());
-    nozzle_temperature_range_lows.reserve(extruders.size());
-    nozzle_temperature_range_highs.reserve(extruders.size());
-    for (const auto& extruder_idx : extruders) {
-        filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
-        nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
-        nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
-        nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
-    }
+    collect_filament_properties(print_config, extruders,
+                                filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
     auto compatibility = check_multi_filaments_compatibility(
         filament_types,
         nozzle_temperatures,
         nozzle_temperature_range_lows,
-        nozzle_temperature_range_highs);
+        nozzle_temperature_range_highs,
+        mark_support_only(extruders, support_only_filaments));
     bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+    bool enable_mix_incompatible_material = !print.need_check_multi_filaments_material_compatibility();
 
     StringObjectException ret;
 
-    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
-        ret.string = invalid_temp_range_msg;
-        return ret;
-    }
-
-    if(compatibility != FilamentCompatibilityType::Compatible){
-        if(enable_mix_printing){
-            ret.string = incompatible_temp_msg;
-            ret.is_warning = true;
-        }
-        else{
-            ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
-        }
-    }
+    fill_exception(compatibility, enable_mix_printing, enable_mix_incompatible_material, ret);
 
     return ret;
 }
+
+// Everything printed inside one object is fused to its neighbours: a part and the modifier carving into it, a
+// painted region and the wall beside it, the ironed skin and the surface below it. Unlike support, which is
+// chosen for NOT bonding, these have to bond or the object delaminates along the seam. Reported per object and
+// on every printer - a second nozzle keeps the materials out of one hotend, not out of one part - with the
+// same verdicts and messages as the shared-hotend check, since the same two properties decide it.
+// Only ever a warning: the pairing may well be deliberate, and unlike a shared hotend it endangers nothing.
+StringObjectException Print::check_object_materials_valid(const Print &print)
+{
+    StringObjectException     ret;
+    FilamentCompatibilityType worst = FilamentCompatibilityType::Compatible;
+    for (const PrintObject *object : print.objects()) {
+        // Every filament the object prints with: its parts and modifiers, the painted regions, and the
+        // per-feature picks (walls, surfaces, ironing). Support is left out on purpose - it is meant to peel.
+        std::vector<std::string> filament_types;
+        std::vector<int> nozzle_temperatures;
+        std::vector<int> nozzle_temperature_range_lows;
+        std::vector<int> nozzle_temperature_range_highs;
+        collect_filament_properties(print.config(), object->object_extruders(),
+                                    filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
+
+        const FilamentCompatibilityType compatibility = check_multi_filaments_compatibility(
+            filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
+        // Report the worst object. The enum is not ordered by severity, so rank it explicitly.
+        auto severity = [](FilamentCompatibilityType type) {
+            switch (type) {
+            case FilamentCompatibilityType::Compatible:                          return 0;
+            case FilamentCompatibilityType::PossibleIncompatibleMaterials:       return 1;
+            case FilamentCompatibilityType::HighLowMixed:                        return 2;
+            case FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible: return 3;
+            case FilamentCompatibilityType::IncompatibleMaterials:               return 4;
+            case FilamentCompatibilityType::InvalidTemperatureRange:             return 5;
+            }
+            return 0;
+        };
+        if (severity(compatibility) <= severity(worst))
+            continue;
+        worst      = compatibility;
+        ret.object = object->model_object();
+    }
+
+    // Both dimensions report as bypassed, so every case comes out as a warning with no "enable it in
+    // Preferences" hint - there is nothing to unblock here.
+    fill_filament_compatibility_exception(worst, true, true, ret);
+    ret.is_warning = ! ret.string.empty();
+    return ret;
+}
+
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic
@@ -1352,6 +1498,9 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return ret;
         }
     }
+
+    if (auto ret = check_object_materials_valid(*this); !ret.string.empty())
+        add_warning(ret);
 
     if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
@@ -4343,6 +4492,12 @@ void Print::_make_wipe_tower()
         // Initialize the wipe tower.
         WipeTower2 wipe_tower(m_config, m_default_region_config, m_plate_index, m_origin, wipe_volumes,
                               m_wipe_tower_data.tool_ordering.first_extruder());
+        // In auto mode ("wipe_tower_filament" == 0) the tower finishes each layer with the most used
+        // filament type, or a compatible one already on the layer. The tool ordering resolved that
+        // filament and planned it onto layers that had nothing compatible, so a matching filament is
+        // always available and incompatible materials are never used for the tower structure.
+        if (int e = m_wipe_tower_data.tool_ordering.wipe_tower_extruder(); e >= 0)
+            wipe_tower.set_most_used_filament_type(m_config.filament_type.get_at(e));
 
         // wipe_tower.set_retract();
         // wipe_tower.set_zhop();

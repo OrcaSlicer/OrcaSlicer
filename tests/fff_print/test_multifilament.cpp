@@ -715,3 +715,22 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// Ironing runs over the surface below it, so by default it must stay on that surface's filament. Given its
+// own filament it moves there instead, and that filament has to reach tool ordering or the pass is dropped.
+TEST_CASE("Ironing prints with its own filament when one is assigned", "[MultiFilament]")
+{
+    const int ironing_filament = GENERATE(0, 2); // 0 = Default (follow the top surface)
+    DYNAMIC_SECTION("ironing_filament " << ironing_filament) {
+        const std::string gcode = slice({ cube(20) },
+            multifilament_config(2, {
+                { "ironing_type",            "top" },
+                { "ironing_filament",        ironing_filament },
+                { "top_surface_filament_id", 1 },
+                { "skirt_loops",             0 },
+                { "brim_type",               "no_brim" },
+            }));
+        const std::set<int> expected{ (ironing_filament > 0 ? ironing_filament : 1) - 1 };
+        CHECK(tools_for_role(gcode, "ironing") == expected);
+    }
+}

@@ -1270,25 +1270,39 @@ void MixedFilamentDialog::rebuild_recommendation_items()
     size_t n = m_physical_colors.size();
     int count = 0;
 
-    // Group physical filaments by type (only same-type combos are recommended)
-    std::map<std::string, std::vector<size_t>> type_groups;
+    // Recommend combinations whose materials bond. Identical types always do, and so do others in
+    // the same family (PLA / PLA-CF) or with a listed cross-family bond (ABS / ASA) - grouping by
+    // the exact type string would hide all of those.
+    auto type_at = [this](size_t i) {
+        return (i < m_physical_types.size()) ? m_physical_types[i] : std::string("PLA");
+    };
+    std::vector<size_t> candidates;
     for (size_t i = 0; i < n; ++i) {
-        std::string t = (i < m_physical_types.size()) ? m_physical_types[i] : "PLA";
+        const std::string t = type_at(i);
         // Skip support filaments (type ends with "-S")
         if (t.size() >= 2 && t.compare(t.size() - 2, 2, "-S") == 0)
             continue;
-        type_groups[t].push_back(i);
+        candidates.push_back(i);
     }
+    auto combo_bonds = [&type_at](std::initializer_list<size_t> combo) {
+        const std::vector<size_t> idxs(combo);
+        for (size_t a = 0; a < idxs.size(); ++a)
+            for (size_t b = a + 1; b < idxs.size(); ++b)
+                if (!mixed_filament_types_compatible(type_at(idxs[a]), type_at(idxs[b])))
+                    return false;
+        return true;
+    };
 
     if (num_components() >= 3) {
-        // Three-color: C(g,3) x 3 variants per same-type group
-        for (auto& [type, indices] : type_groups) {
-            if (count >= MAX_RECOMMENDATIONS) break;
-            size_t g = indices.size();
+        // Three-color: C(g,3) x 3 variants over every bonding triple
+        {
+            const size_t g = candidates.size();
             for (size_t ai = 0; ai < g && count < MAX_RECOMMENDATIONS; ++ai) {
                 for (size_t bi = ai + 1; bi < g && count < MAX_RECOMMENDATIONS; ++bi) {
                     for (size_t ci = bi + 1; ci < g && count < MAX_RECOMMENDATIONS; ++ci) {
-                        size_t idx[3] = {indices[ai], indices[bi], indices[ci]};
+                        size_t idx[3] = {candidates[ai], candidates[bi], candidates[ci]};
+                        if (!combo_bonds({idx[0], idx[1], idx[2]}))
+                            continue;
                         // 3 variants: each filament takes the 50% role in turn
                         for (int dominant = 0; dominant < 3 && count < MAX_RECOMMENDATIONS; ++dominant) {
                             size_t i0 = idx[(dominant + 1) % 3]; // 25%
@@ -1324,14 +1338,15 @@ void MixedFilamentDialog::rebuild_recommendation_items()
             }
         }
     } else {
-        // Two-color: C(g,2) per same-type group
-        for (auto& [type, indices] : type_groups) {
-            if (count >= MAX_RECOMMENDATIONS) break;
-            size_t g = indices.size();
+        // Two-color: every bonding pair
+        {
+            const size_t g = candidates.size();
             for (size_t ai = 0; ai < g && count < MAX_RECOMMENDATIONS; ++ai) {
                 for (size_t bi = ai + 1; bi < g && count < MAX_RECOMMENDATIONS; ++bi) {
-                    size_t i = indices[ai];
-                    size_t j = indices[bi];
+                    size_t i = candidates[ai];
+                    size_t j = candidates[bi];
+                    if (!combo_bonds({i, j}))
+                        continue;
 
                     wxColour ca(m_physical_colors[i]);
                     wxColour cb(m_physical_colors[j]);
@@ -1418,9 +1433,14 @@ void MixedFilamentDialog::rebuild_all_combos()
 
             int style = 0;
             if (!others_types.empty() && !m_physical_types.empty()) {
+                // Dim only filaments that cannot bond to one already picked. A different type is
+                // not by itself a problem: PLA and PLA-CF, or ABS and ASA, blend fine.
                 std::string this_type = (j < m_physical_types.size()) ? m_physical_types[j] : "PLA";
-                if (others_types.find(this_type) == others_types.end())
-                    style = DD_ITEM_STYLE_DIMMED;
+                for (const std::string &other : others_types)
+                    if (!mixed_filament_types_compatible(this_type, other)) {
+                        style = DD_ITEM_STYLE_DIMMED;
+                        break;
+                    }
             }
 
             int idx = combo->Append(wxString::FromUTF8(m_physical_names[j]), make_swatch_bitmap(j), style);
@@ -1761,33 +1781,30 @@ void MixedFilamentDialog::update_ok_button_state()
 {
     if (!m_btn_ok) return;
 
+    // The components alternate within one printed body, so they have to bond. Differing types are
+    // fine as long as the materials adhere (PLA / PLA-CF, ABS / ASA); only a pair MaterialType
+    // knows does not bond blocks confirmation.
     bool has_type_mismatch = false;
+    m_type_mismatch_msg.clear();
     if (!m_physical_types.empty() && m_result.components.size() >= 2) {
-        std::map<std::string, std::vector<unsigned int>> type_groups;
-        for (size_t i = 0; i < m_result.components.size(); ++i) {
-            unsigned int phys = m_result.components[i];
-            if (phys < 1 || phys > m_physical_types.size()) continue;
-            type_groups[m_physical_types[phys - 1]].push_back(phys);
-        }
-        has_type_mismatch = type_groups.size() > 1;
-        if (has_type_mismatch) {
-            wxString parts;
-            for (auto it = type_groups.begin(); it != type_groups.end(); ++it) {
-                if (!parts.empty())
-                    parts += _L(" and ");
-                wxString slots;
-                for (size_t j = 0; j < it->second.size(); ++j) {
-                    if (!slots.empty()) slots += ", ";
-                    slots += std::to_string(it->second[j]);
-                }
-                parts += wxString::Format(_L("Slot %s (%s)"), slots, wxString::FromUTF8(it->first));
+        auto type_of = [this](unsigned int phys) -> const std::string* {
+            return (phys >= 1 && phys <= m_physical_types.size()) ? &m_physical_types[phys - 1] : nullptr;
+        };
+        for (size_t i = 0; i < m_result.components.size() && !has_type_mismatch; ++i) {
+            const std::string *type_i = type_of(m_result.components[i]);
+            if (type_i == nullptr) continue;
+            for (size_t j = i + 1; j < m_result.components.size(); ++j) {
+                const std::string *type_j = type_of(m_result.components[j]);
+                if (type_j == nullptr || mixed_filament_types_compatible(*type_i, *type_j))
+                    continue;
+                has_type_mismatch   = true;
+                m_type_mismatch_msg = wxString::Format(
+                    _L("Slot %u (%s) and slot %u (%s) cannot be mixed: these materials do not bond."),
+                    m_result.components[i], wxString::FromUTF8(*type_i),
+                    m_result.components[j], wxString::FromUTF8(*type_j));
+                break;
             }
-            m_type_mismatch_msg = parts + " " + _L("cannot be mixed. Please select the same filament type.");
-        } else {
-            m_type_mismatch_msg.clear();
         }
-    } else {
-        m_type_mismatch_msg.clear();
     }
 
     bool has_unselected = false;
@@ -1801,7 +1818,7 @@ void MixedFilamentDialog::update_ok_button_state()
     if (has_unselected)
         m_btn_ok->SetToolTip(_L("Please select a filament for all components"));
     else if (has_type_mismatch)
-        m_btn_ok->SetToolTip(_L("Cannot mix different filament types"));
+        m_btn_ok->SetToolTip(_L("Cannot mix materials that do not bond with each other"));
     else
         m_btn_ok->SetToolTip(wxEmptyString);
 

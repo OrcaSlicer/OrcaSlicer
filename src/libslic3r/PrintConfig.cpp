@@ -3234,12 +3234,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament material type");
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
-
-    // Populate the enum values using the shared material type database
-    for (const auto& filament : MaterialType::all()) {
-        def->enum_values.push_back(filament.name);
-    }
-
+    this->init_filament_type_values();
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionStrings { "PLA" });
 
@@ -4804,6 +4799,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
     
+    def = this->add("ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Ironing filament");
+    def->category = L("Quality");
+    def->tooltip  = L("Filament to iron the surfaces with.\n\"Default\" uses the filament of the surface being ironed.\n"
+                      "Selecting a specific filament lets the ironing pass use another material than the surface below it, "
+                      "for example a smoother one for a cleaner finish.");
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("ironing_flow", coPercent);
     def->label = L("Ironing flow");
     def->category = L("Quality");
@@ -6827,8 +6833,12 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft base");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support base and raft.\n\"Default\" means no specific filament for support and current filament is used.");
-    def->min = 0;
+    def->tooltip = L("Filament to print support base and raft.\n\"Default\" uses the supported object's own filament; if that filament is not printing in the current layer, "
+                     "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used. "
+                     "The support base also avoids the interface filament and soluble filaments to stay distinct from the interface.\n"
+                     "\"Auto\" picks, per object, a filament that does not bond to the supported material so the support detaches cleanly, "
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
+    def->min = SUPPORT_FILAMENT_AUTO;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
 
@@ -6862,8 +6872,11 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft interface");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support interface.\n\"Default\" means no specific filament for support interface and current filament is used.");
-    def->min = 0;
+    def->tooltip = L("Filament to print support interface.\n\"Default\" uses the supported object's own filament; if that filament is not printing in the current layer, "
+                     "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used.\n"
+                     "\"Auto\" picks, per object, a filament that does not bond to the supported material so the interface detaches cleanly, "
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
+    def->min = SUPPORT_FILAMENT_AUTO;
     // BBS
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
@@ -7198,7 +7211,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This setting specifies whether to add infill inside large hollows of tree support.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
-    
+
     def = this->add("support_ironing", coBool);
     def->label = L("Ironing Support Interface");
     def->category = L("Support");
@@ -7218,7 +7231,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Concentric"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    
+
     def = this->add("support_ironing_flow", coPercent);
     def->label = L("Support Ironing flow");
     def->category = L("Support");
@@ -7240,6 +7253,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def = this->add("support_ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Support ironing filament");
+    def->category = L("Support");
+    def->tooltip = L("Filament to iron the support interface with.\n\"Default\" uses the same filament as the support interface.\n"
+                     "\"Auto\" picks, per object, a filament that does not bond to the supported material so the ironed surface detaches cleanly, "
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.\n"
+                     "Selecting a specific filament lets the ironing pass use a different material than the interface, "
+                     "for example a smoother or non-bonding filament for a cleaner support-facing surface.");
+    def->min = SUPPORT_FILAMENT_AUTO;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
@@ -7647,8 +7673,11 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Wipe tower");
     def->category = L("Extruders");
-    def->tooltip = L("The extruder to use when printing perimeter of the wipe tower. "
-                     "Set to 0 to use the one that is available (non-soluble would be preferred).");
+    def->tooltip = L("The extruder to use when printing perimeter of the wipe tower.\n"
+                     "Set to Default to automatically use the most used filament of the print for the tower structure.\n"
+                     "On layers that do not use it, a filament of the same type or one compatible with it that is "
+                     "already printing is used instead; a filament change is only added when nothing compatible is "
+                     "present, so incompatible materials are not mixed in the tower walls.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -9259,7 +9288,21 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
     }
 }
 
-const PrintConfigDef print_config_def;
+// Populate the value list from the shared material type database. Called again by
+// refresh_material_type_config_defs() once the database has been loaded from disk, as the definitions
+// are built during static initialisation, before the resource paths are known.
+void PrintConfigDef::init_filament_type_values()
+{
+    ConfigOptionDef &def = this->options.at("filament_type");
+    def.enum_values.clear();
+    for (const MaterialTypeInfo &filament : MaterialType::all())
+        def.enum_values.push_back(filament.name);
+}
+
+static PrintConfigDef s_print_config_def;
+const PrintConfigDef &print_config_def = s_print_config_def;
+
+void refresh_material_type_config_defs() { s_print_config_def.init_filament_type_values(); }
 
 //todo
 std::set<std::string> print_options_with_variant = {
@@ -12369,6 +12412,13 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     // internal use only, don't need translation
     def->label = "Allow filaments with high/low temperature to be printed together";
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
+    def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("allow_mix_incompatible_material", coBool);
+    // internal use only, don't need translation
+    def->label = "Allow filaments with incompatible material types to be printed together";
+    def->tooltip = "Allow filaments with incompatible material types to be printed together.";
+    def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 }
 

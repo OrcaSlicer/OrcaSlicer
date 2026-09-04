@@ -22,6 +22,7 @@
 #include "libslic3r.h"
 #include "LocalesUtils.hpp"
 #include "libslic3r/format.hpp"
+#include "MaterialType.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 #include <algorithm>
@@ -5869,36 +5870,44 @@ LayerResult GCode::process_layer(
                     }
                 }
 
-                // BBS: try to print support base with a filament other than interface filament
+                // Default ("don't care") support/interface uses the supported object's own material.
+                unsigned int object_extruder = first_extruder_id;
+                if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
+                    object_extruder = obj_extruders.front();
+
+                // The object may switch filament mid-print, so its own may not print on this layer at all.
+                // A bonding filament already on the layer avoids an extra tool change.
+                if (! layer_tools.has_extruder(object_extruder)) {
+                    const std::string &object_type = print.config().filament_type.get_at(object_extruder);
+                    for (unsigned int extruder_id : layer_tools.extruders)
+                        if (MaterialType::bonds(print.config().filament_type.get_at(extruder_id), object_type)) {
+                            object_extruder = extruder_id;
+                            break;
+                        }
+                }
+
+                // The base follows the object's material, but avoids the interface and soluble filaments.
                 if (support_dontcare && !interface_dontcare) {
-                    unsigned int dontcare_extruder = first_extruder_id;
-                    for (unsigned int extruder_id : layer_tools.extruders) {
-                        if (print.config().filament_soluble.get_at(extruder_id))
-                            continue;
-
-                        //BBS: now we don't consider interface filament used in other object
-                        if (extruder_id == interface_extruder)
-                            continue;
-
-                        dontcare_extruder = extruder_id;
-                        break;
+                    unsigned int dontcare_extruder = object_extruder;
+                    if (dontcare_extruder == interface_extruder || print.config().filament_soluble.get_at(dontcare_extruder)) {
+                        for (unsigned int extruder_id : layer_tools.extruders) {
+                            if (print.config().filament_soluble.get_at(extruder_id))
+                                continue;
+                            //BBS: now we don't consider interface filament used in other object
+                            if (extruder_id == interface_extruder)
+                                continue;
+                            dontcare_extruder = extruder_id;
+                            break;
+                        }
                     }
-                #if 0
-                    //BBS: not found a suitable extruder in current layer ,dontcare_extruider==first_extruder_id==interface_extruder
-                    if (dontcare_extruder == interface_extruder && (object.config().support_interface_not_for_body && object.config().support_interface_filament.value!=0)) {
-                        // BBS : get a suitable extruder from other layer
-                        auto all_extruders = print.extruders();
-                        dontcare_extruder = get_next_extruder(dontcare_extruder, all_extruders);
-                    }
-                #endif
 
                     if (support_dontcare)
                         support_extruder = dontcare_extruder;
                 }
                 else if (support_dontcare || interface_dontcare) {
-                    // Some support will be printed with "don't care" material, preferably non-soluble.
-                    // Is the current extruder assigned a soluble filament?
-                    unsigned int dontcare_extruder = first_extruder_id;
+                    // Some support will be printed with "don't care" material: the object's own material,
+                    // preferably non-soluble and non-support.
+                    unsigned int dontcare_extruder = object_extruder;
                     if (print.config().filament_soluble.get_at(dontcare_extruder)) {
                         // The last extruder printed on the previous layer extrudes soluble filament.
                         // Try to find a non-soluble extruder on the same layer.
@@ -5925,6 +5934,19 @@ LayerResult GCode::process_layer(
                 // Both the support and the support interface are printed with the same extruder, therefore
                 // the interface may be interleaved with the support base.
                 bool single_extruder = ! has_support || support_extruder == interface_extruder;
+                // The extruder the support base group prints with; the interface group always uses interface_extruder.
+                const unsigned int base_extruder = has_support ? support_extruder : interface_extruder;
+                // Support ironing extruder. "Default" (0) follows the support interface filament.
+                unsigned int ironing_extruder = object.config().support_ironing_filament.value > 0
+                    ? (unsigned int) (object.config().support_ironing_filament.value - 1)
+                    : interface_extruder;
+                // Ironing sits on the top interface, so not every layer has it.
+                bool has_ironing = false;
+                for (const ExtrusionEntity *ee : support_layer.support_fills.entities)
+                    if (ee->role() == erIroning) { has_ironing = true; break; }
+                // Ironing needs its own group only when neither existing group already uses its extruder.
+                bool ironing_own_group = has_ironing && ironing_extruder != base_extruder && ironing_extruder != interface_extruder;
+
                 // Farthest-point timelapse: record the extruder for each support role so
                 // compute_farthest_point can attribute farthest support points correctly.
                 if (has_support) {
@@ -5932,17 +5954,25 @@ LayerResult GCode::process_layer(
                     support_filaments[{ &support_layer, erSupportTransition }] = support_extruder;
                 }
                 if (has_interface) {
-                    support_filaments[{ &support_layer, erSupportMaterialInterface }] =
-                        single_extruder ? (has_support ? support_extruder : interface_extruder) : interface_extruder;
+                    support_filaments[{ &support_layer, erSupportMaterialInterface }] = interface_extruder;
                 }
                 // Assign an extruder to the base.
-                ObjectByExtruder &obj = object_by_extruder(by_extruder, has_support ? support_extruder : interface_extruder, &layer_to_print - layers.data(), layers.size());
+                ObjectByExtruder &obj = object_by_extruder(by_extruder, base_extruder, &layer_to_print - layers.data(), layers.size());
                 obj.support = &support_layer.support_fills;
                 obj.support_extrusion_role = single_extruder ? erMixed : erSupportMaterial;
+                // Each group prints the ironing pass when the ironing filament is the one it already uses.
+                obj.prints_ironing = has_ironing && ironing_extruder == base_extruder;
                 if (! single_extruder && has_interface) {
                     ObjectByExtruder &obj_interface = object_by_extruder(by_extruder, interface_extruder, &layer_to_print - layers.data(), layers.size());
                     obj_interface.support = &support_layer.support_fills;
                     obj_interface.support_extrusion_role = erSupportMaterialInterface;
+                    obj_interface.prints_ironing = has_ironing && ironing_extruder == interface_extruder;
+                }
+                if (ironing_own_group) {
+                    ObjectByExtruder &obj_ironing = object_by_extruder(by_extruder, ironing_extruder, &layer_to_print - layers.data(), layers.size());
+                    obj_ironing.support = &support_layer.support_fills;
+                    // The erIroning role makes extrude_support() emit only the ironing pass for this group.
+                    obj_ironing.support_extrusion_role = erIroning;
                 }
             }
         }
@@ -6475,14 +6505,18 @@ LayerResult GCode::process_layer(
                     bool support_intf_overridden = wiping_extrusions.is_support_interface_overridden(layer_to_print.original_object);
 
                     ExtrusionRole support_extrusion_role = instance_to_print.object_by_extruder.support_extrusion_role;
-                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden : support_overridden;
+                    // A dedicated ironing group (role erIroning) prints in the normal, non-wiping pass.
+                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden
+                                       : support_extrusion_role == erIroning                 ? false
+                                       :                                                        support_overridden;
                     if (is_overridden == (print_wipe_extrusions != 0)) {
                         gcode += this->extrude_support(
-                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface or erMixed for all extrusion paths.
+                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface,
+                            // erIroning (dedicated ironing group) or erMixed for all extrusion paths.
                             *instance_to_print.object_by_extruder.support, support_extrusion_role);
 
-                        // Make sure ironing is the last
-                        if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
+                        // Ironing goes last. A dedicated ironing group already emitted it above via its role.
+                        if (instance_to_print.object_by_extruder.prints_ironing) {
                             gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                         }
                     }

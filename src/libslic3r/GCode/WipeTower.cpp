@@ -10,6 +10,7 @@
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "LocalesUtils.hpp"
+#include "MaterialType.hpp"
 #include "Triangulation.hpp"
 
 
@@ -3394,6 +3395,8 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
 
     block->cur_depth += (wipe_depth - nozzle_change_depth);
     block->last_filament_change_id = new_tool;
+    if (is_tower_structure_filament(new_tool))
+        block->last_tower_filament_change_id = new_tool;
 
     // BBS
     writer.speed_override_restore();
@@ -4267,6 +4270,19 @@ void WipeTower::add_depth_to_block(int filament_id, int filament_adhesiveness_ca
     }
 }
 
+// Orca: only a filament that stays in the print (not soluble, not support) and bonds with the tower's own
+// filament can build the structure - anything else delaminates from the layers above and below it.
+bool WipeTower::is_tower_structure_filament(int filament_id) const
+{
+    if (filament_id < 0 || m_wall_filament < 0 || (size_t) filament_id >= m_filpar.size())
+        return false;
+    if (m_filpar[filament_id].is_soluble || m_filpar[filament_id].is_support)
+        return false;
+    const std::string &material = m_filpar[filament_id].material;
+    const std::string &wall     = m_filpar[m_wall_filament].material;
+    return MaterialType::bonds(material, wall); // a type always bonds with itself, so equality needs no special case
+}
+
 int WipeTower::get_filament_category(int filament_id)
 {
     if (filament_id >= m_filament_categories.size())
@@ -4279,6 +4295,7 @@ void WipeTower::reset_block_status()
     for (auto &block : m_wipe_tower_blocks) {
         block.cur_depth = block.start_depth;
         block.last_filament_change_id = -1;
+        block.last_tower_filament_change_id = -1;
         block.last_nozzle_change_id   = -1;
     }
 }
@@ -4651,31 +4668,41 @@ int WipeTower::get_wall_filament_for_all_layer()
 {
     std::map<int, int> category_counts;
     std::map<int, int> filament_counts;
-    int current_tool = m_current_tool;
-    for (const auto &layer : m_plan) {
-        if (layer.tool_changes.empty()){
-            filament_counts[current_tool]++;
-            category_counts[get_filament_category(current_tool)]++;
-            continue;
-        }
-        std::unordered_set<int> used_tools;
-        std::unordered_set<int> used_category;
-        for (size_t i = 0; i < layer.tool_changes.size(); ++i) {
-            if (i == 0) {
-                filament_counts[layer.tool_changes[i].old_tool]++;
-                category_counts[get_filament_category(layer.tool_changes[i].old_tool)]++;
-                used_tools.insert(layer.tool_changes[i].old_tool);
-                used_category.insert(get_filament_category(layer.tool_changes[i].old_tool));
+    // Orca: the tower is built from the filament used on most layers, skipping soluble and support ones -
+    // they bond with nothing and would make it delaminate. They are counted only if nothing else qualifies.
+    auto count_filaments = [&](bool skip_support_materials) {
+        category_counts.clear();
+        filament_counts.clear();
+        auto usable = [&](int tool) { return ! skip_support_materials || (! m_filpar[tool].is_soluble && ! m_filpar[tool].is_support); };
+        int current_tool = m_current_tool;
+        for (const auto &layer : m_plan) {
+            // Each filament and each category counts once per layer, however often it is switched to.
+            std::unordered_set<int> used_tools;
+            std::unordered_set<int> used_category;
+            auto count_once = [&](int tool) {
+                if (! usable(tool))
+                    return;
+                const int category = get_filament_category(tool);
+                if (used_category.insert(category).second)
+                    category_counts[category]++;
+                if (used_tools.insert(tool).second)
+                    filament_counts[tool]++;
+            };
+            if (layer.tool_changes.empty()) {
+                count_once(current_tool);
+                continue;
             }
-            if (!used_category.count(get_filament_category(layer.tool_changes[i].new_tool)))
-                category_counts[get_filament_category(layer.tool_changes[i].new_tool)]++;
-            if (!used_tools.count(layer.tool_changes[i].new_tool))
-                filament_counts[layer.tool_changes[i].new_tool]++;
-            used_tools.insert(layer.tool_changes[i].new_tool);
-            used_category.insert(get_filament_category(layer.tool_changes[i].new_tool));
+            for (size_t i = 0; i < layer.tool_changes.size(); ++i) {
+                if (i == 0)
+                    count_once(layer.tool_changes[i].old_tool);
+                count_once(layer.tool_changes[i].new_tool);
+            }
+            current_tool = layer.tool_changes.back().new_tool;
         }
-        current_tool = layer.tool_changes.empty()?current_tool:layer.tool_changes.back().new_tool;
-    }
+    };
+    count_filaments(true);
+    if (filament_counts.empty())
+        count_filaments(false);
 
     // std::vector<std::pair<int, int>> category_counts_vec;
     int selected_category = -1;
@@ -4692,10 +4719,26 @@ int WipeTower::get_wall_filament_for_all_layer()
     //     return left.second > right.second;
     // });
 
+    // Orca: weigh the material type first. One material split across two spools would otherwise lose to a
+    // single filament of a material the print uses less.
+    std::map<std::string, int> type_counts;
+    for (auto iter = filament_counts.begin(); iter != filament_counts.end(); ++iter)
+        if (get_filament_category(iter->first) == selected_category)
+            type_counts[m_filpar[iter->first].material] += iter->second;
+
+    std::string selected_type;
+    int         selected_type_count = 0;
+    for (auto iter = type_counts.begin(); iter != type_counts.end(); ++iter)
+        if (iter->second > selected_type_count) {
+            selected_type       = iter->first;
+            selected_type_count = iter->second;
+        }
+
     int filament_id    = -1;
     int filament_count = 0;
     for (auto iter = filament_counts.begin(); iter != filament_counts.end(); ++iter) {
-        if (m_filament_categories[iter->first] == selected_category && iter->second > filament_count) {
+        if (get_filament_category(iter->first) == selected_category && m_filpar[iter->first].material == selected_type &&
+            iter->second > filament_count) {
             filament_id    = iter->first;
             filament_count = iter->second;
         }
@@ -4723,6 +4766,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         used = 0.f;
 
     int wall_filament = get_wall_filament_for_all_layer();
+    m_wall_filament   = wall_filament;
 
     std::vector<WipeTower::ToolChangeResult> layer_result;
     int index = 0;
@@ -4749,24 +4793,30 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
             if (layer.tool_changes.size() == 0)
                 return -1;
 
-            int candidate_id = -1;
+            // Orca: the tower filament first, then one that bonds with it. Same adhesiveness category says
+            // nothing about bonding, so it is only the fallback for a layer with nothing compatible on it.
+            int compatible_id = -1;
+            int category_id   = -1;
+            auto consider = [&](int tool) {
+                if (compatible_id == -1 && is_tower_structure_filament(tool))
+                    compatible_id = tool;
+                if (category_id == -1 && m_filpar[tool].category == m_filpar[wall_filament].category)
+                    category_id = tool;
+            };
             for (size_t idx = 0; idx < layer.tool_changes.size(); ++idx) {
-                if (idx == 0) {
-                    if (layer.tool_changes[idx].old_tool == wall_filament && is_valid_last_layer(layer.tool_changes[idx].old_tool, this->m_cur_layer_id, layer.z))
+                if (idx == 0 && is_valid_last_layer(layer.tool_changes[idx].old_tool, this->m_cur_layer_id, layer.z)) {
+                    if (layer.tool_changes[idx].old_tool == wall_filament)
                         return wall_filament;
-                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament].category &&
-                             is_valid_last_layer(layer.tool_changes[idx].old_tool, this->m_cur_layer_id, layer.z)) {
-                        candidate_id = layer.tool_changes[idx].old_tool;
-                    }
+                    consider(layer.tool_changes[idx].old_tool);
                 }
                 if (layer.tool_changes[idx].new_tool == wall_filament) {
                     return wall_filament;
                 }
-
-                if ((candidate_id == -1) && (m_filpar[layer.tool_changes[idx].new_tool].category == m_filpar[wall_filament].category))
-                    candidate_id = layer.tool_changes[idx].new_tool;
+                consider(layer.tool_changes[idx].new_tool);
             }
-            return candidate_id == -1 ? layer.tool_changes[0].new_tool : candidate_id;
+            if (compatible_id != -1)
+                return compatible_id;
+            return category_id == -1 ? layer.tool_changes[0].new_tool : category_id;
         };
         int wall_idx = get_wall_filament_for_this_layer();
 
@@ -4837,7 +4887,15 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                 bool block_solid = block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Contact || block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Contact_UP ||
                                    block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Solid;
                 int finish_layer_filament = -1;
-                if (block.last_filament_change_id != -1) {
+                // Orca: finish with a filament that bonds with the tower rather than with whichever one
+                // purged here last - that one may be the soluble support.
+                if (block.last_tower_filament_change_id != -1) {
+                    finish_layer_filament = block.last_tower_filament_change_id;
+                } else if (! layer.tool_changes.empty() && layer.tool_changes.front().old_tool == wall_idx && is_tower_structure_filament(wall_idx)) {
+                    // Nothing bonding changed into this block, but the layer started on the tower filament
+                    // and already printed its wall: fill the rest with it too, merging into that wall.
+                    finish_layer_filament = wall_idx;
+                } else if (block.last_filament_change_id != -1) {
                     finish_layer_filament = block.last_filament_change_id;
                 } else if (block.last_nozzle_change_id != -1) {
                     finish_layer_filament = block.last_nozzle_change_id;

@@ -17,6 +17,7 @@
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
 #include "Fill/FillRectilinear.hpp"
+#include "MaterialType.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -2359,17 +2360,31 @@ int WipeTower2::first_toolchange_to_nonsoluble_nonsupport(
         return -1;
     }
 
-    auto is_wall_filament = [this](size_t tool) {
-        return !m_filpar[tool].is_soluble && !m_filpar[tool].is_support;
-    };
-    for (size_t idx = 0; idx < tool_changes.size(); ++idx)
-        if (is_wall_filament(tool_changes[idx].new_tool))
-            return idx;
-    if (is_wall_filament(tool_changes.front().old_tool))
-        return -1;
-    // Only support/soluble filaments on this layer: keep the first toolchange so the
-    // finish-layer saving and the minimal-purge clamp still apply to it (Orca depth
-    // and wipe volume accounting, see save_on_last_wipe()).
+    // Auto mode: finish with the print's most used filament type, or one that bonds with it, so the tower
+    // structure never mixes incompatible materials.
+    if (!m_most_used_filament_type.empty()) {
+        // Rank a filament: 2 = the most used type, 1 = a compatible (bonding) type, 0 = otherwise.
+        auto rank = [&](int tool) -> int {
+            const FilamentParameters &f = m_filpar[tool];
+            if (f.is_soluble) return -1;
+            if (f.material == m_most_used_filament_type) return 2;
+            return MaterialType::bonds(f.material, m_most_used_filament_type) ? 1 : 0;
+        };
+        // Orca: with nothing better on the layer, keep the first toolchange so the finish-layer saving and the
+        // minimal-purge clamp still apply to it (depth and wipe volume accounting, see save_on_last_wipe()).
+        int best_rank = 0, best_idx = 0;
+        // The filament already loaded at the start of the layer can finish it before any toolchange.
+        if (int r = rank(tool_changes.front().old_tool); r > best_rank) {
+            best_rank = r;
+            best_idx  = -1;
+        }
+        for (size_t idx = 0; idx < tool_changes.size(); ++idx)
+            if (int r = rank(tool_changes[idx].new_tool); r > best_rank) {
+                best_rank = r;
+                best_idx  = int(idx);
+            }
+        return best_idx;
+    }
     return 0;
 }
 

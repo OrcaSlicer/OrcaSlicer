@@ -6,6 +6,7 @@
 #include "PresetBundle.hpp"
 
 #include "PresetCacheFormat.hpp"
+#include <string_view>
 #include "PrintConfig.hpp"
 #include "FilamentMixer.hpp"
 #include "libslic3r.h"
@@ -261,12 +262,12 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     // BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
-    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
-        std::string key = std::string(keys[i]);
-        auto       *opt = dynamic_cast<ConfigOptionInt *>(out.option(key, false));
+    // The support filaments additionally accept the "Auto" sentinel (negative), resolved per object at slicing time.
+    static const char *keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament"};
+    for (const char *key : keys) {
+        auto *opt = dynamic_cast<ConfigOptionInt *>(out.option(key, false));
         assert(opt != nullptr);
-        opt->value = boost::algorithm::clamp<int>(opt->value, 0, int(num_filaments));
+        opt->value = boost::algorithm::clamp<int>(opt->value, SUPPORT_FILAMENT_AUTO, int(num_filaments));
     }
 
     std::vector<std::string> filamnet_preset_names;
@@ -4559,12 +4560,14 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char* keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament"};
-    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++ i) {
-        std::string key = std::string(keys[i]);
+    static const char* keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament",
+                                 "wipe_tower_filament", "ironing_filament"};
+    for (const char *key : keys) {
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        opt->value = boost::algorithm::clamp<int>(opt->value, 0, int(num_filaments));
+        // Only the support filaments accept the "Auto" sentinel (negative), resolved per object at slicing time.
+        const int lower = boost::starts_with(key, "support_") ? SUPPORT_FILAMENT_AUTO : 0;
+        opt->value = boost::algorithm::clamp<int>(opt->value, lower, int(num_filaments));
     }
 
     static const char* keys_with_default[] = {
