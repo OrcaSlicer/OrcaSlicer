@@ -18,6 +18,7 @@ import uuid
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import assign_filament_ids as afi  # noqa: E402
+import update_bambu_filament_ids as ubfi  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 REAL_PROFILES = os.path.join(REPO_ROOT, "resources", "profiles")
@@ -1079,6 +1080,138 @@ class TestReviewFixes(SyntheticTreeCase):
         errors, out = self.t.check()
         self.assertGreater(errors, 0)
         self.assertIn(afi.generate_filament_id("OV", "PLA", "Orphan PLA"), out)
+
+
+# ---------------------------------------------------------------------------
+# scripts/update_bambu_filament_ids.py: the generated Bambu catalog id map
+# ---------------------------------------------------------------------------
+
+class TestBambuMap(unittest.TestCase):
+    def _bs_tree(self, families):
+        # families: list of (family, bambu_id, vendor, type); builds a minimal BBL bundle
+        # with an @base per family carrying the id and one instantiated child.
+        t = SyntheticTree()
+        self.addCleanup(t.cleanup)
+        presets = []
+        for family, bambu_id, vendor, ftype in families:
+            presets.append(preset(f"{family} @base", filament_id=bambu_id,
+                                  instantiation=False, filament_vendor=vendor,
+                                  filament_type=ftype))
+            presets.append(preset(f"{family} @P1", inherits=f"{family} @base",
+                                  compatible_printers=["P1 0.4 nozzle"]))
+        t.add_vendor("BBL", presets)
+        filaments, errors = afi.load_vendor_filaments(t.profiles, "BBL")
+        self.assertEqual(errors, [])
+        return filaments
+
+    def test_one_row_per_family(self):
+        rows = ubfi.derive_rows(self._bs_tree([("Bambu ABS", "GFB00", "Bambu Lab", "ABS")]), {})
+        self.assertEqual(rows, {afi.generate_filament_id("Bambu Lab", "ABS", "Bambu ABS"):
+                                {"bambu_id": "GFB00", "vendor": "Bambu Lab", "type": "ABS", "name": "Bambu ABS"}})
+
+    def test_shared_bambu_id_is_an_error(self):
+        with self.assertRaises(SystemExit):
+            ubfi.derive_rows(self._bs_tree([("A", "GFX00", "V", "PLA"), ("B", "GFX00", "V", "PLA")]), {})
+
+    def test_reuses_the_id_we_ship_for_that_triple(self):
+        rows = ubfi.derive_rows(self._bs_tree([("Bambu ABS", "GFB00", "Bambu Lab", "ABS")]),
+                                {("Bambu Lab", "ABS", "Bambu ABS"): "OFsalted1"})
+        self.assertIn("OFsalted1", rows)
+
+    @unittest.skipUnless(os.path.isdir("/Users/lijiang/codes/BambuStudio/resources/profiles"), "no local clone")
+    def test_local_clone_yields_the_catalog(self):
+        rows = ubfi.derive_rows(afi.load_vendor_filaments("/Users/lijiang/codes/BambuStudio/resources/profiles", "BBL")[0], {})
+        self.assertEqual(len(rows), 100)
+        self.assertEqual(len({r["bambu_id"] for r in rows.values()}), 100)
+
+
+class TestOrcaTriplesFromAnalysis(unittest.TestCase):
+    def _tree(self):
+        t = SyntheticTree()
+        self.addCleanup(t.cleanup)
+        t.add_vendor("VendorA", [
+            # Same triple declared under two different ids on purpose: mirrors
+            # a real, sanctioned case (Cubicon's xCeler line keeps its own id
+            # per printer instead of inheriting the family's @base id).
+            # Ambiguous, but must stay harmless unless something needs it.
+            preset("Ambig PLA @base", filament_id="OF111111", instantiation=False,
+                  filament_vendor="V", filament_type="PLA"),
+            preset("Ambig PLA @P1", filament_id="OF222222", inherits="Ambig PLA @base",
+                  compatible_printers=["P1"]),
+            # An unambiguous family elsewhere in the same tree.
+            preset("Needed PLA @base", filament_id="OF333333", instantiation=False,
+                  filament_vendor="V2", filament_type="PLA"),
+            preset("Needed PLA @P1", inherits="Needed PLA @base",
+                  compatible_printers=["P1"]),
+        ])
+        return afi.analyze_tree(t.profiles)
+
+    def test_ambiguity_outside_needed_triples_is_ignored(self):
+        analysis = self._tree()
+        result = ubfi.orca_triples_from_analysis(analysis, {("V2", "PLA", "Needed PLA")})
+        self.assertEqual(result, {("V2", "PLA", "Needed PLA"): "OF333333"})
+
+    def test_ambiguity_inside_needed_triples_is_an_error(self):
+        analysis = self._tree()
+        with self.assertRaises(SystemExit):
+            ubfi.orca_triples_from_analysis(analysis, {("V", "PLA", "Ambig PLA")})
+
+
+class TestWriteMap(unittest.TestCase):
+    def test_format(self):
+        d = tempfile.mkdtemp(prefix="bambu_map_test_")
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        # nested, not-yet-existing directory: write_map must create it
+        path = os.path.join(d, "out", "bambu_filament_ids.json")
+        rows = {"OFabc123": {"bambu_id": "GFB00", "vendor": "Bambu Lab", "type": "ABS", "name": "Bambu ABS"}}
+
+        ubfi.write_map(path, rows, "66e405477", "2026-09-04")
+
+        with open(path, "rb") as f:
+            raw = f.read()
+        self.assertTrue(raw.endswith(b"\n"))
+        self.assertNotIn(b"\r", raw)
+        text = raw.decode("utf-8")
+        self.assertEqual(json.loads(text), {
+            "source": "https://github.com/bambulab/BambuStudio",
+            "bambustudio_commit": "66e405477",
+            "generated": "2026-09-04",
+            "filaments": rows,
+        })
+        # sorted top-level keys
+        self.assertLess(text.index('"bambustudio_commit"'), text.index('"filaments"'))
+        self.assertLess(text.index('"filaments"'), text.index('"generated"'))
+        self.assertLess(text.index('"generated"'), text.index('"source"'))
+
+
+class TestDriftReport(unittest.TestCase):
+    def test_reports_both_directions(self):
+        t = SyntheticTree()
+        self.addCleanup(t.cleanup)
+        t.add_vendor("BBL", [
+            preset("Match PLA @base", filament_id="GFX01", instantiation=False,
+                  filament_vendor="V", filament_type="PLA"),
+            preset("Match PLA @P1", inherits="Match PLA @base",
+                  compatible_printers=["P1"]),
+            preset("Orphan PLA @base", filament_id="GFX03", instantiation=False,
+                  filament_vendor="V", filament_type="PLA"),
+            preset("Orphan PLA @P1", inherits="Orphan PLA @base",
+                  compatible_printers=["P1"]),
+        ])
+        rows = {
+            # matches the BBL bundle's "Match PLA" family: no drift either way
+            "OFmatch01": {"bambu_id": "GFX01", "vendor": "V", "type": "PLA", "name": "Match PLA"},
+            # no family of this identity in the BBL bundle above
+            "OFghost01": {"bambu_id": "GFX02", "vendor": "V", "type": "PLA", "name": "Upstream Only PLA"},
+        }
+        orca_analysis = afi.analyze_tree(t.profiles)
+
+        lines = ubfi.drift_report(rows, orca_analysis)
+
+        report = "\n".join(lines)
+        self.assertIn("Upstream Only PLA", report)
+        self.assertIn("Orca BBL families with no row: 1", report)
+        self.assertNotIn("Match PLA", report)  # the matched family is not drift
 
 
 if __name__ == "__main__":
