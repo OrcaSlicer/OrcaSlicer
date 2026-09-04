@@ -105,7 +105,10 @@ jobs:
         continue-on-error: true
         working-directory: orca-test-repo
         run: |
-          python -m pytest test_cli_overrides.py -c pytest.ini -v --effect-full \
+          # -rA prints the per-stage summaries: pytest captures stdout on
+          # passing tests, so without it every "grep override sweep" below
+          # finds nothing and the job summary says "no stage summaries"
+          python -m pytest test_cli_overrides.py -c pytest.ini -v -rA --effect-full \
             --effect-shard ${{ matrix.shard }}/8 \
             --orca-bin "$ORCA_BIN" --orca-source "$ORCA_SOURCE" \
             2>&1 | tee ../sweep.log
