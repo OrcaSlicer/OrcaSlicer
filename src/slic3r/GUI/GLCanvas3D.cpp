@@ -1526,6 +1526,14 @@ static std::pair<bool, bool> construct_extruder_unprintable_error(ObjectFilament
         output_text = tips[idx];
     }
 
+    // Conflicts on extruders beyond the left/right pair (3+ tool machines) have
+    // no bucket above; without a message the slice would be blocked silently.
+    if (left_unprintable_objects.empty() && right_unprintable_objects.empty() && !object_result.filaments.empty()) {
+        left_extruder_unprintable_text = _u8L("The position or size of some models exceeds the assigned extruder's printable range. "
+                                              "Please check and adjust the part's position or size to fit the printable range.");
+        return { true, false };
+    }
+
     return { !left_unprintable_objects.empty(),!right_unprintable_objects.empty() };
 }
 
@@ -10725,6 +10733,11 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         }
         if (warning == EWarning::FilamentPrintableError) {
             if (state){
+                // the regroup action is a guarded no-op on non-BBL printers
+                // (see try_pop_up_before_slice); show the error without it
+                if (!wxGetApp().preset_bundle->is_bbl_vendor()) {
+                    notification_manager.push_slicing_customize_error_notification(NotificationType::BBLFilamentPrintableError, NotificationLevel::ErrorNotificationLevel, text);
+                } else {
                 auto callback = [](wxEvtHandler*) {
                     auto plater = wxGetApp().plater();
                     auto partplate = plater->get_partplate_list().get_curr_plate();
@@ -10732,6 +10745,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                     return false;
                 };
                 notification_manager.push_slicing_customize_error_notification(NotificationType::BBLFilamentPrintableError, NotificationLevel::ErrorNotificationLevel, text,  _u8L("Click here to regroup"), callback);
+                }
             }
             else
                 notification_manager.close_slicing_customize_error_notification(NotificationType::BBLFilamentPrintableError, NotificationLevel::ErrorNotificationLevel);

@@ -1460,6 +1460,17 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     {
         const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
         object_results->mode = curr_plate->get_real_filament_map_mode(project_config);
+        // Filament grouping (auto rerouting of filaments between extruders) only
+        // exists on BBL printers. In auto map modes the check below only flags a
+        // filament that fits no extruder at all, assuming grouping will route it
+        // to one that fits — never true on printers whose filament-to-extruder
+        // binding is fixed 1:1, so validate those against the fixed identity
+        // mapping with manual-mode semantics. A genuine manual map is honored
+        // as stored, matching the engine.
+        const bool supports_filament_grouping = Slic3r::GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+        const bool fixed_identity_map = !supports_filament_grouping && object_results->mode < FilamentMapMode::fmmManual;
+        if (fixed_identity_map)
+            object_results->mode = FilamentMapMode::fmmManual;
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1523,6 +1534,13 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
             std::set<int> conflict_filaments_set;
             const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
             std::vector<int> filament_maps = curr_plate->get_real_filament_maps(project_config);
+            auto mapped_extruder = [&](int filament) -> int {
+                if (fixed_identity_map)
+                    return std::min(filament, extruder_count);
+                // a filament beyond the stored map has no mapping: never match
+                // rather than fabricate one
+                return filament <= int(filament_maps.size()) ? filament_maps[filament - 1] : -1;
+            };
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1537,7 +1555,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
-                        if (filament_maps[filament - 1] == extruder_id)
+                        if (mapped_extruder(filament) == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
                             object_results->filament_maps[filament] = extruder_id;

@@ -4712,7 +4712,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_option_item(item, offsets);
     }
     ImGui::Dummy({ window_padding, window_padding });
-    if (m_nozzle_nums > 1 && (m_viewer.get_view_type() == libvgcode::EViewType::Summary || m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint)) // ORCA show only on summary and filament tab
+    // Filament grouping is BBL-only (see should_pop_up() in FilamentGroupPopup.cpp);
+    // hide its legend section on printers that cannot group.
+    if (m_nozzle_nums > 1 && wxGetApp().preset_bundle->is_bbl_vendor() && (m_viewer.get_view_type() == libvgcode::EViewType::Summary || m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint)) // ORCA show only on summary and filament tab
         render_legend_color_arr_recommen(window_padding);
 
     legend_height = ImGui::GetCurrentWindow()->Size.y;

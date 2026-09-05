@@ -3594,6 +3594,12 @@ void NotificationManager::bbl_close_bed_filament_incompatible_notification()
 
 void NotificationManager::bbl_show_filament_map_invalid_notification_before_slice(const NotificationType type,const std::string& text)
 {
+    // Regrouping is a BBL-only capability (try_pop_up_before_slice refuses to open
+    // the dialog for other printers) — don't advertise a dead action on them.
+    if (!wxGetApp().preset_bundle->is_bbl_vendor()) {
+        push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text }, 0);
+        return;
+    }
     auto callback = [](wxEvtHandler*) {
         auto plater = wxGetApp().plater();
         auto partplate = plater->get_partplate_list().get_curr_plate();
@@ -3611,6 +3617,12 @@ void NotificationManager::bbl_close_filament_map_invalid_notification_before_sli
 
 void NotificationManager::bbl_show_filament_map_invalid_notification_after_slice(const NotificationType type, const std::string& text)
 {
+    // The dialog opened by this callback has no internal non-BBL guard
+    // (cf. try_pop_up_before_slice); gate here.
+    if (!wxGetApp().preset_bundle->is_bbl_vendor()) {
+        push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text }, 0);
+        return;
+    }
     auto callback = [](wxEvtHandler*) {
         auto plater = wxGetApp().plater();
         wxCommandEvent evt(EVT_OPEN_FILAMENT_MAP_SETTINGS_DIALOG);
