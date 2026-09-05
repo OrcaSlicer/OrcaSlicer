@@ -12045,6 +12045,19 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("This outputs the model\u2019s information.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    // --inspect-mesh \u2014 structured JSON summary of the loaded model. Parallels
+    // --info but emits machine-readable output (per-object mesh-local + world
+    // bboxes, plus a top-N ranking of planar-face clusters by area) so
+    // CI/AI/scripted tooling can plan orientation, choose a natural sit-flat
+    // face, or verify mesh characteristics without opening the GUI.
+    def = this->add("inspect_mesh", coBool);
+    def->label = L("Inspect mesh (JSON to stdout)");
+    def->tooltip = L("Print a structured JSON summary of the loaded model(s) to stdout \u2014 "
+                     "per-object mesh-local bbox + centroid, world bbox, and the top-N "
+                     "largest planar-face clusters with their normals, areas, and triangle "
+                     "counts. Then exit. Machine-readable alternative to --info.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file.");

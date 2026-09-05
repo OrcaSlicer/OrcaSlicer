@@ -82,6 +82,7 @@ using namespace nlohmann;
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
+#include "slic3r/Utils/MeshInspect.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -5635,6 +5636,17 @@ int CLI::run(int argc, char **argv)
                 model.add_default_instances();
                 model.print_info();
             }
+        } else if (opt_key == "inspect_mesh") {
+            // --inspect-mesh — machine-readable JSON alternative to --info.
+            // Registered as an action so it satisfies the "needs an action"
+            // check and bypasses the GUI fallback. Control falls through the
+            // normal post-action path to a clean exit 0.
+            const std::string source = m_input_files.empty() ? std::string("<no input>") : m_input_files.front();
+            for (Model &model : m_models) {
+                model.add_default_instances();
+                Slic3r::MeshInspect::inspect_to_json(model, source, boost::nowide::cout);
+            }
+            boost::nowide::cout.flush();
         } else if (opt_key == "uptodate") {
             //already processed before
         } else if (opt_key == "min_save") {
