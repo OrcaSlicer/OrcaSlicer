@@ -2846,7 +2846,10 @@ void TreeSupport::drop_nodes()
             const MinimumSpanningTree& mst = spanning_trees[group_index];
             //In the first pass, merge all nodes that are close together.
             std::vector<std::pair<const Point, SupportNode*>> nodes_vec(nodes_this_part.begin(), nodes_this_part.end());
-            tbb::parallel_for_each(nodes_vec.begin(), nodes_vec.end(), [&](const std::pair<const Point, SupportNode*>& entry) {
+            // Run sequentially: this pass merges neighbouring nodes and invalidates them in place, so
+            // whether A absorbs B or B absorbs A - and the order new nodes are appended to
+            // contact_nodes - depended on thread scheduling, making tree support differ on every run.
+            std::for_each(nodes_vec.begin(), nodes_vec.end(), [&](const std::pair<const Point, SupportNode*>& entry) {
                 SupportNode* p_node = entry.second;
                 SupportNode& node = *p_node;
                 if (!p_node->valid)
@@ -2934,7 +2937,35 @@ void TreeSupport::drop_nodes()
             );
 
             //In the second pass, move all middle nodes.
-            tbb::parallel_for_each(nodes_vec.begin(), nodes_vec.end(), [&](const std::pair<const Point, SupportNode*>& entry) {
+            // All the expensive work here - the avoidance/collision queries, the polygon tests and
+            // the movement search - depends only on state that this pass does not change, so it runs
+            // in parallel. Everything with a side effect is recorded per node and applied in node
+            // order afterwards: appending to contact_nodes, invalidating the node, recording an
+            // unsupported leaf, and creating the next layer's node. Node creation has to be deferred
+            // too, because SupportNode's constructor writes `parent->child = this` (and the same for
+            // each of the parent's merged neighbours), which is a write to nodes other than this one.
+            struct PendingNode {
+                Point        position;
+                int          distance_to_top           = 0;
+                int          support_roof_layers_below = 0;
+                bool         to_buildplate             = false;
+                SupportNode *parent                    = nullptr;
+                bool         zero_max_move             = false;
+                bool         has_overhang              = false;
+                ExPolygon    overhang;
+                bool         clamp_radius              = false;
+                coordf_t     parent_radius             = 0;
+                double       dist_to_outer             = 0;
+            };
+            struct PassTwoResult {
+                bool                     invalidate       = false;
+                bool                     unsupported_leaf = false;
+                std::vector<PendingNode> pending;
+            };
+            std::vector<PassTwoResult> pass2_results(nodes_vec.size());
+            auto pass2_body = [&](size_t node_idx) {
+                const std::pair<const Point, SupportNode*>& entry = nodes_vec[node_idx];
+                PassTwoResult& pass2_out = pass2_results[node_idx];
 
                 SupportNode* p_node = entry.second;
                 const SupportNode& node = *p_node;
@@ -2949,14 +2980,16 @@ void TreeSupport::drop_nodes()
                     ExPolygons overhangs_next = diff_clipped({ node.overhang }, get_collision(0, obj_layer_nr_next));
                     for(auto& overhang:overhangs_next) {
                         Point        next_pt     = overhang.contour.centroid();
-                        SupportNode *next_node   = m_ts_data->create_node(next_pt, p_node->distance_to_top + 1, obj_layer_nr_next,
-                                                                          p_node->support_roof_layers_below - (p_node->distance_to_top >= 0 ? 1 : 0),
-                                                                          to_buildplate, p_node, print_z_next, height_next);
-                        next_node->max_move_dist = 0;
-                        next_node->overhang = std::move(overhang);
-                        m_ts_data->m_mutex.lock();
-                        contact_nodes[layer_nr_next].emplace_back(next_node);
-                        m_ts_data->m_mutex.unlock();
+                        PendingNode pending;
+                        pending.position                  = next_pt;
+                        pending.distance_to_top           = p_node->distance_to_top + 1;
+                        pending.support_roof_layers_below = p_node->support_roof_layers_below - (p_node->distance_to_top >= 0 ? 1 : 0);
+                        pending.to_buildplate             = to_buildplate;
+                        pending.parent                    = p_node;
+                        pending.zero_max_move             = true;
+                        pending.has_overhang              = true;
+                        pending.overhang                  = std::move(overhang);
+                        pass2_out.pending.emplace_back(std::move(pending));
 
                     }
                     return;
@@ -2973,17 +3006,17 @@ void TreeSupport::drop_nodes()
                     {
                         if (support_on_buildplate_only)
                         {
-                            unsupported_branch_leaves.push_front({ layer_nr, p_node });
+                            pass2_out.unsupported_leaf = true;
                         }
                         else {
-                            p_node->valid = false;
+                            pass2_out.invalidate = true;
                         }
                         return;
                     }
                     // if the link between parent and current is cut by contours, mark current as bottom contact node
                     if (p_node->parent && intersection_ln({p_node->position, p_node->parent->position}, layer_contours).empty()==false)
                     {
-                        p_node->valid = false;
+                        pass2_out.invalidate = true;
                         return;
                     }
                 }
@@ -3096,20 +3129,47 @@ void TreeSupport::drop_nodes()
                 }
                 auto              next_collision = get_collision(0, obj_layer_nr_next);
                 const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
-                SupportNode *     next_node     = m_ts_data->create_node(next_layer_vertex, node.distance_to_top + 1, obj_layer_nr_next,
-                    node.support_roof_layers_below - (node.distance_to_top >= 0 ? 1 : 0),
-                    to_buildplate, p_node, print_z_next, height_next);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
-                to_outside             = projection_onto(next_collision, next_node->position);
+                to_outside             = projection_onto(next_collision, next_layer_vertex);
                 direction_to_outer     = to_outside - node.position;
                 double dist_to_outer   = unscale_(direction_to_outer.cast<double>().norm());
-                next_node->radius      = std::max(node.radius, std::min(next_node->radius, dist_to_outer));
-                get_max_move_dist(next_node);
-                m_ts_data->m_mutex.lock();
-                contact_nodes[layer_nr_next].push_back(next_node);
-                m_ts_data->m_mutex.unlock();
+                PendingNode pending;
+                pending.position                  = next_layer_vertex;
+                pending.distance_to_top           = node.distance_to_top + 1;
+                pending.support_roof_layers_below = node.support_roof_layers_below - (node.distance_to_top >= 0 ? 1 : 0);
+                pending.to_buildplate             = to_buildplate;
+                pending.parent                    = p_node;
+                pending.clamp_radius              = true;
+                pending.parent_radius             = node.radius;
+                pending.dist_to_outer             = dist_to_outer;
+                pass2_out.pending.emplace_back(std::move(pending));
+            };
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, nodes_vec.size()),
+                [&pass2_body](const tbb::blocked_range<size_t>& node_range) {
+                    for (size_t node_idx = node_range.begin(); node_idx < node_range.end(); ++ node_idx)
+                        pass2_body(node_idx);
+                });
+            // Apply the recorded side effects in node order.
+            for (size_t node_idx = 0; node_idx < nodes_vec.size(); ++ node_idx) {
+                PassTwoResult& pass2_out = pass2_results[node_idx];
+                for (PendingNode& pending : pass2_out.pending) {
+                    SupportNode* next_node = m_ts_data->create_node(pending.position, pending.distance_to_top, obj_layer_nr_next,
+                        pending.support_roof_layers_below, pending.to_buildplate, pending.parent, print_z_next, height_next);
+                    if (pending.zero_max_move)
+                        next_node->max_move_dist = 0;
+                    if (pending.has_overhang)
+                        next_node->overhang = std::move(pending.overhang);
+                    if (pending.clamp_radius) {
+                        next_node->radius = std::max(pending.parent_radius, std::min(next_node->radius, pending.dist_to_outer));
+                        get_max_move_dist(next_node);
+                    }
+                    contact_nodes[layer_nr_next].push_back(next_node);
+                }
+                if (pass2_out.unsupported_leaf)
+                    unsupported_branch_leaves.push_front({ layer_nr, nodes_vec[node_idx].second });
+                if (pass2_out.invalidate)
+                    nodes_vec[node_idx].second->valid = false;
             }
-            );
         }
 
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
