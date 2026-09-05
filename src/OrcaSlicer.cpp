@@ -5749,6 +5749,8 @@ int CLI::run(int argc, char **argv)
                         //get the current partplate
                         Slic3r::GUI::PartPlate* part_plate = partplate_list.get_plate(index);
                         part_plate->get_print(&print, &gcode_result, &print_index);
+                        if (get_logging_level() >= 4)
+                            print->set_dev_mode(true);
 
                         print_fff = dynamic_cast<Print *>(print);
                         /*if (outfile_config.empty())

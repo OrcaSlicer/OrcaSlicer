@@ -240,6 +240,23 @@ enum ForwardCompatibilitySubstitutionRule
     EnableSilentDisableSystem,
 };
 
+namespace FuncArgType
+{
+    enum Type : int {
+        None = 0,
+        Void = 1,
+        Float = 1 << 1,
+        Int = 1 << 2,
+        Numeric = 1 << 3,
+        String = 1 << 4,
+        Strings = 1 << 5,
+        Variable = 1 << 6,
+        Bool = 1 << 7,
+        Points = 1 << 8,
+        Optional = 1 << 9
+    };
+};
+
 class  ConfigOption;
 class  ConfigOptionDef;
 // For forward definition of ConfigOption in ConfigOptionUniquePtr, we have to define a custom deleter.
@@ -2560,6 +2577,25 @@ public:
     // Initialized by ConfigOptionEnum<xxx>::get_enum_values()
     const t_config_enum_values         *enum_keys_map   = nullptr;
 
+    // Only used in FunctionsConfigDef
+    bool is_function;
+    struct FuncArg
+    {
+        std::string name;
+        int type_flags;
+        std::string description;
+        bool repeating;
+
+        FuncArg(std::string _name, FuncArgType::Type type, std::string _description = {}, bool _repeating = false)
+            : name(std::move(_name)), type_flags(static_cast<int>(type)), description(std::move(_description)), repeating(_repeating)
+        {}
+        FuncArg(std::string _name, int _type_flags, std::string _description = {}, bool _repeating = false)
+            : name(std::move(_name)), type_flags(_type_flags), description(std::move(_description)), repeating(_repeating)
+        {}
+    };
+    std::vector<FuncArg> function_args;
+    int function_return_type_flags;
+
     bool has_enum_value(const std::string &value) const {
         for (const std::string &v : enum_values)
             if (v == value)
@@ -2612,7 +2648,7 @@ public:
             out.push_back(kvp.first);
         return out;
     }
-    bool                    empty() { return options.empty(); }
+    bool                    empty() const { return options.empty(); }
 
     // Iterate through all of the CLI options and write them to a stream.
     std::ostream&           print_cli_help(

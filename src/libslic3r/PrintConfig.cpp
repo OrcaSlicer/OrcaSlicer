@@ -12685,6 +12685,122 @@ OtherPresetsConfigDef::OtherPresetsConfigDef()
     def->tooltip = L("Name of the physical printer used for slicing.");
 }
 
+FunctionsConfigDef::FunctionsConfigDef()
+{
+    ConfigOptionDef* def;
+
+    def = this->add_function("min");
+    def->function_args = {
+        {"first", FuncArgType::Numeric},
+        {"second", FuncArgType::Numeric},
+    };
+    def->function_return_type_flags = FuncArgType::Numeric;
+    def->tooltip = L("Returns the lesser of the two values");
+
+    def = this->add_function("max");
+    def->function_args = {
+        {"first", FuncArgType::Numeric},
+        {"second", FuncArgType::Numeric},
+    };
+    def->function_return_type_flags = FuncArgType::Numeric;
+    def->tooltip = L("Returns the greater of the two values");
+
+    def = this->add_function("random");
+    def->function_args = {
+        {"min", FuncArgType::Numeric},
+        {"max", FuncArgType::Numeric}
+    };
+    def->function_return_type_flags = FuncArgType::Numeric;
+
+    def = this->add_function("filament_change");
+    def->function_args = {
+        {"new_filament_id", FuncArgType::Int}
+    };
+    def->function_return_type_flags = FuncArgType::Void;
+
+    def = this->add_function("digits");
+    def->function_args = {
+        {"input", FuncArgType::Numeric},
+        {"num_of_chars", FuncArgType::Int},
+        {"num_of_decimals", FuncArgType::Optional | FuncArgType::Int},
+    };
+    def->function_return_type_flags = FuncArgType::String;
+    def->tooltip = L("Format the input by padding with spaces");
+
+    def = this->add_function("zdigits");
+    def->function_args = {
+        {"input", FuncArgType::Numeric},
+        {"num_of_chars", FuncArgType::Int},
+        {"num_of_decimals", FuncArgType::Optional | FuncArgType::Int}
+    };
+    def->function_return_type_flags = FuncArgType::String;
+    def->tooltip = L("Format the input by padding with zeros");
+
+    def = this->add_function("round");
+    def->function_args = {
+        {"input", FuncArgType::Float}
+    };
+    def->function_return_type_flags = FuncArgType::Int;
+    def->tooltip = L("Round the input to the nearest whole number");
+
+    def = this->add_function("floor");
+    def->function_args = {
+        {"input", FuncArgType::Float}
+    };
+    def->function_return_type_flags = FuncArgType::Int;
+    def->tooltip = L("Round the input down to the nearest whole number");
+
+    def = this->add_function("ceil");
+    def->function_args = {
+        {"input", FuncArgType::Float}
+    };
+    def->function_return_type_flags = FuncArgType::Int;
+    def->tooltip = L("Round the input up to the nearest whole number");
+
+    def = this->add_function("is_nil");
+    def->function_args = {
+        {"variable", FuncArgType::Variable, "Reference to a variable"}
+    };
+    def->function_return_type_flags = FuncArgType::Bool;
+    def->tooltip = L("Return if the variable is nil");
+
+    def = this->add_function("one_of");
+    def->function_args = {
+        {"input", FuncArgType::String, L("Input string to test against")},
+        {"tests", FuncArgType::String, L("A list of tests separated by a comma"), true}
+    };
+    def->function_return_type_flags = FuncArgType::Bool;
+    def->tooltip = L("Returns true if the input matches any of the tests");
+
+    def = this->add_function("empty");
+    def->function_args = {
+        {"vector_variable", FuncArgType::Variable, L("Reference to a vector variable")}
+    };
+    def->function_return_type_flags = FuncArgType::Bool;
+    def->tooltip = L("Returns true if the provided variable is empty");
+
+    def = this->add_function("size");
+    def->function_args = {
+        {"vector_variable", FuncArgType::Variable, L("Reference to a vector variable")}
+    };
+    def->function_return_type_flags = FuncArgType::Int;
+    def->tooltip = L("Returns the size of the vector");
+
+    def = this->add_function("interpolate_table");
+    def->function_args = {
+        {"x", FuncArgType::Numeric, L("The value to lookup in the table")},
+        {"table_entries", FuncArgType::Points, L("A list of sorted table entries in the form of '(x, y)'"), true}
+    };
+    def->function_return_type_flags = FuncArgType::Float;
+    def->tooltip = L("Finds the value of y at x. If the value is between two table entries, the value is interpolated.");
+}
+
+ConfigOptionDef* FunctionsConfigDef::add_function(const t_config_option_key &function)
+{
+    ConfigOptionDef *def = this->add(function, coNone);
+    def->is_function = true;
+    return def;
+}
 
 static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificPlaceholders{
     // Machine G-code
@@ -12778,6 +12894,7 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
 }
 
 const CustomGcodeSpecificConfigDef custom_gcode_specific_config_def;
+const FunctionsConfigDef           functions_config_def;
 
 #undef new_def
 
