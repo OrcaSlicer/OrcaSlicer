@@ -12,6 +12,7 @@
 #include <deque>
 #include <queue>
 #include <mutex>
+#include <tuple>
 #include <utility>
 
 #include <boost/log/trivial.hpp>
@@ -607,6 +608,19 @@ static inline std::vector<IntersectionLines> slice_make_lines(
             }
         }
     );
+    // The loop above is parallelised over facets while appending into per-layer buffers, so the
+    // order within each layer follows thread scheduling rather than the mesh. make_loops() then
+    // seeds and chains loops in that order, which decides both the order of the islands and the
+    // start vertex of each loop - making slicing output vary between runs on the same input.
+    // Restore a canonical order from the mesh topology, which is identical on every run.
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, lines.size()),
+        [&lines](const tbb::blocked_range<size_t> &range) {
+            for (size_t i = range.begin(); i < range.end(); ++ i)
+                std::sort(lines[i].begin(), lines[i].end(), [](const IntersectionLine &l, const IntersectionLine &r) {
+                    return std::make_tuple(l.edge_a_id, l.edge_b_id, l.a_id, l.b_id, l.a.x(), l.a.y(), l.b.x(), l.b.y()) <
+                           std::make_tuple(r.edge_a_id, r.edge_b_id, r.a_id, r.b_id, r.a.x(), r.a.y(), r.b.x(), r.b.y());
+                });
+        });
     return lines;
 }
 
