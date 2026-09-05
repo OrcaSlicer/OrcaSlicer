@@ -473,10 +473,6 @@
 			"sub_path": "filament/Eryone PLA-CF.json"
 		},
 		{
-			"name": "Eryone PP",
-			"sub_path": "filament/Eryone PP.json"
-		},
-		{
 			"name": "Eryone PP-CF",
 			"sub_path": "filament/Eryone PP-CF.json"
 		},
@@ -551,6 +547,58 @@
 		{
 			"name": "Eryone TPU @0.2 nozzle",
 			"sub_path": "filament/Eryone TPU @0.2 nozzle.json"
+		},
+		{
+			"name": "Eryone PLA+HS @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PLA+HS @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PLA-Matte @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PLA-Matte @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PLA-Matte HS @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PLA-Matte HS @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone pla-Ultra Silk @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone pla-Ultra Silk @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone ABS+-HS @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone ABS+-HS @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone ABS-GF @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone ABS-GF @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PETG HS @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PETG HS @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PETG-GF @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PETG-GF @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PETG-Lite @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PETG-Lite @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PETG-Matte @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PETG-Matte @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone PETG-Translucent @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone PETG-Translucent @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone petg-Galaxy @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone petg-Galaxy @Thinker X400 0.4 nozzle.json"
+		},
+		{
+			"name": "Eryone ASA-HS @Thinker X400 0.4 nozzle",
+			"sub_path": "filament/Eryone ASA-HS @Thinker X400 0.4 nozzle.json"
 		}
 	],
 	"machine_list": [
