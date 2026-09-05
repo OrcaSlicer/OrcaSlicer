@@ -12,6 +12,7 @@
 #include <wx/osx/webview_webkit.h>
 #endif
 #include <wx/uri.h>
+#include <wx/utils.h>
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -24,6 +25,7 @@
 #include <gtk/gtk.h>
 #define WEBKIT_API
 struct WebKitWebView;
+struct WebKitWebContext;
 struct WebKitJavascriptResult;
 extern "C" {
 WEBKIT_API void
@@ -38,6 +40,11 @@ webkit_web_view_run_javascript_finish                (WebKitWebView             
 						      GError                    **error);
 WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
+WEBKIT_API WebKitWebContext *
+webkit_web_context_get_default              (void);
+WEBKIT_API void
+webkit_web_context_set_preferred_languages  (WebKitWebContext          *context,
+                                             const gchar * const       *languages);
 }
 #endif
 
@@ -253,6 +260,15 @@ static WebViewRef *webview_ref(wxWebView *webView)
 
 wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 {
+    // The embedded browser engines do not follow the app UI language on their
+    // own, so it has to be propagated per platform below for web pages relying
+    // on Accept-Language / navigator.language (e.g. Fluidd or Mainsail on the
+    // device tab) to localize accordingly.
+    wxString app_lang = Slic3r::GUI::wxGetApp().current_language_code(); // e.g. "fr_FR"
+    app_lang.Replace("_", "-");
+    std::string const lang_region = app_lang.ToStdString();                  // e.g. "fr-FR"
+    std::string const lang_base   = app_lang.BeforeFirst('-').ToStdString(); // e.g. "fr"
+
 #if wxUSE_WEBVIEW_EDGE
     // Check if a fixed version of edge is present in
     // $executable_path/edge_fixed and use it
@@ -262,6 +278,23 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
     if (edgeFixedDir.DirExists()) {
         wxWebViewEdge::MSWSetBrowserExecutableDir(edgeFixedDir.GetFullPath());
         wxLogMessage("Using fixed edge version");
+    }
+
+    // WebView2 follows the Windows display language, not the app UI language.
+    // --accept-lang overrides both the Accept-Language header and
+    // navigator.language(s); the WebView2 loader only reads this environment
+    // variable when the first WebView2 environment of the process is created.
+    if (!lang_region.empty()) {
+        wxString extra_args;
+        wxGetEnv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", &extra_args);
+        if (!extra_args.Contains("--accept-lang")) {
+            std::string accept_langs = lang_region;
+            if (lang_base != lang_region) accept_langs += "," + lang_base;
+            if (lang_base != "en") accept_langs += ",en";
+            if (!extra_args.empty()) extra_args += " ";
+            extra_args += "--accept-lang=" + accept_langs;
+            wxSetEnv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", extra_args);
+        }
     }
 #endif
     auto url2  = url;
@@ -302,9 +335,37 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
             s_schemes_registered = true;
         }
+#ifdef __linux__
+        // WebKitGTK derives Accept-Language and navigator.language from the
+        // process locale, which does not necessarily match the app UI language;
+        // register the preferred languages explicitly on the (global) default
+        // context shared by all webviews, before the first page load.
+        if (!lang_region.empty()) {
+            std::vector<const gchar *> langs;
+            langs.push_back(lang_region.c_str());
+            if (lang_base != lang_region) langs.push_back(lang_base.c_str());
+            if (lang_base != "en") langs.push_back("en");
+            langs.push_back(nullptr);
+            webkit_web_context_set_preferred_languages(webkit_web_context_get_default(), langs.data());
+        }
+#endif
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+#ifdef __WXOSX__
+        // WKWebView exposes the system languages (AppleLanguages) to scripts
+        // regardless of the app UI language and has no public API to override
+        // Accept-Language, so override the JS-visible values instead.
+        if (!lang_region.empty()) {
+            std::string js_langs = "'" + lang_region + "'";
+            if (lang_base != lang_region) js_langs += ",'" + lang_base + "'";
+            if (lang_base != "en") js_langs += ",'en'";
+            webView->AddUserScript(wxString::Format(
+                "Object.defineProperty(navigator, 'language', {get: function() {return '%s';}});"
+                "Object.defineProperty(navigator, 'languages', {get: function() {return [%s];}});",
+                wxString(lang_region), wxString(js_langs)));
+        }
+#endif
 #endif
 #ifdef __WXMAC__
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
