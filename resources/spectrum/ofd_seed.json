@@ -1,0 +1,103 @@
+{
+  "source": "Open Filament Database",
+  "license": "MIT",
+  "url": "https://github.com/OpenFilamentCollective/open-filament-database",
+  "variants": [
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Charcoal Black",
+      "material": "PLA",
+      "color_hex": "#2F2E30",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Cotton White",
+      "material": "PLA",
+      "color_hex": "#E6DDDB",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Lava Red",
+      "material": "PLA",
+      "color_hex": "#DE1619",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Sapphire Blue",
+      "material": "PLA",
+      "color_hex": "#005AA2",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Savannah Yellow",
+      "material": "PLA",
+      "color_hex": "#F0BE02",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Sky Blue",
+      "material": "PLA",
+      "color_hex": "#1AC5FC",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Cyan",
+      "material": "PLA",
+      "color_hex": "#1AC5FC",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Forest Green",
+      "material": "PLA",
+      "color_hex": "#519F61",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Matte PLA",
+      "variant": "Lotus Pink",
+      "material": "PLA",
+      "color_hex": "#DD76C0",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Neon PLA",
+      "variant": "Magenta",
+      "material": "PLA",
+      "color_hex": "#D7025D",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Neon PLA",
+      "variant": "Yellow",
+      "material": "PLA",
+      "color_hex": "#FEDA04",
+      "traits": { "translucent": false }
+    },
+    {
+      "brand": "Panchroma",
+      "filament": "Dual Silk PLA",
+      "variant": "Caribbean",
+      "material": "PLA",
+      "color_hex": "#63AFBA",
+      "traits": { "translucent": false }
+    }
+  ]
+}

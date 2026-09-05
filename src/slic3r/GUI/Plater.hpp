@@ -316,6 +316,12 @@ public:
     int save_project(bool saveAs = false);
     void adopt_to_zr_ultra_s_cmyk(bool show_map_hint = true);
     void apply_rgbw_filament_colours();
+    void apply_ofd_catalog_hexes(int slot, const std::vector<std::string> &hexes);
+    void set_ofd_slot_user_override(int idx, bool value);
+    bool is_ofd_slot_user_override(int idx) const;
+    void set_ofd_last_filament_idx(int idx);
+    int  ofd_last_filament_idx() const;
+    void maybe_ofd_mix_seed_prompt();
     void map_painted_colors_to_cmyk_mixes();
     void picprint();
     void picprint_on_selected();

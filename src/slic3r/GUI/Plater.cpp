@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <limits>
 #include <vector>
@@ -69,6 +70,8 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentCookbook.hpp"
+#include "libslic3r/MixedFilamentOfd.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/SpectrumAutoGraft.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
@@ -135,6 +138,7 @@
 #include "PresetComboBoxes.hpp"
 #include "MsgDialog.hpp"
 #include "MixedFilamentDialog.hpp"
+#include "OfdCatalogDialog.hpp"
 #include "SpectrumMatchConfirmDialog.hpp"
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
@@ -553,6 +557,7 @@ struct Sidebar::priv
     ScalableButton*   m_bpButton_edit_mix{nullptr};
     Button*           m_bpButton_match_mix{nullptr};
     Button*           m_bpButton_palette_mix{nullptr};
+    Button*           m_bpButton_ofd_catalog{nullptr};
     wxScrolledWindow* m_panel_color_mixing_content{nullptr};
     wxBoxSizer*       m_sizer_color_mixing_rows{nullptr};
     int               m_color_mixing_selected{-1};
@@ -2143,6 +2148,20 @@ Sidebar::Sidebar(Plater *parent)
 
     bSizer39->AddStretchSpacer(1);
 
+    Button *ofd_catalog = new Button(p->m_panel_filament_title, _L("Catalog…"));
+    ofd_catalog->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+    ofd_catalog->SetToolTip(_L("Search filament catalog / apply color to a slot"));
+    ofd_catalog->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+        int idx = p->plater ? p->plater->ofd_last_filament_idx() : 0;
+        if (idx < 0 || size_t(idx) >= p->combos_filament.size())
+            idx = 0;
+        OfdCatalogDialog dlg(this, idx);
+        if (dlg.ShowModal() == wxID_OK && p->plater)
+            p->plater->apply_ofd_catalog_hexes(dlg.filament_idx(), dlg.selected().color_hexes);
+    });
+    p->m_bpButton_ofd_catalog = ofd_catalog;
+    bSizer39->Add(ofd_catalog, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+
     // BBS
     // add wiping dialog
     //wiping_dialog_button->SetFont(wxGetApp().normal_font());
@@ -2474,6 +2493,11 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 {
     *combo = new PlaterPresetComboBox(p->m_panel_filament_content, Slic3r::Preset::TYPE_FILAMENT);
     (*combo)->set_filament_idx(filament_idx);
+    (*combo)->Bind(wxEVT_SET_FOCUS, [this, filament_idx](wxFocusEvent &evt) {
+        if (p->plater)
+            p->plater->set_ofd_last_filament_idx(filament_idx);
+        evt.Skip();
+    });
 
     auto combo_and_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -3064,6 +3088,8 @@ void Sidebar::msw_rescale()
         p->m_bpButton_match_mix->Rescale();
     if (p->m_bpButton_palette_mix)
         p->m_bpButton_palette_mix->Rescale();
+    if (p->m_bpButton_ofd_catalog)
+        p->m_bpButton_ofd_catalog->Rescale();
     if (p->m_panel_color_mixing_title && p->m_panel_color_mixing_title->GetSizer())
         p->m_panel_color_mixing_title->GetSizer()->SetMinSize(-1, 3 * wxGetApp().em_unit());
     p->m_flushing_volume_btn->Rescale();
@@ -3163,6 +3189,8 @@ void Sidebar::sys_color_changed()
         p->m_bpButton_match_mix->Rescale();
     if (p->m_bpButton_palette_mix)
         p->m_bpButton_palette_mix->Rescale();
+    if (p->m_bpButton_ofd_catalog)
+        p->m_bpButton_ofd_catalog->Rescale();
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
@@ -3326,6 +3354,11 @@ std::vector<ColorRGB> sidebar_live_physical_colors()
         }
     }
     return out;
+}
+
+std::string ofd_serialize_mix_rows(const std::vector<MixedFilament> &rows)
+{
+    return spectrum_ofd_serialize_mix_rows(rows);
 }
 
 SpectrumMixDialogUndoKeys sidebar_capture_mix_dialog_keys()
@@ -5212,6 +5245,11 @@ struct Plater::priv
     SpectrumMapUndoRecord           m_spectrum_map_undo;
     // Mixed Filaments dialog: one side-record per successful OK (do not overwrite Map).
     std::vector<SpectrumMixDialogUndoRecord> m_spectrum_mix_dialog_undos;
+
+    // OFD catalog (0061): session-only well override bits; lost on restart.
+    std::vector<char> m_ofd_slot_user_override;
+    bool              m_ofd_mix_seed_prompted{false};
+    int               m_ofd_last_filament_idx{0};
 
     //BBS: add print project related logic
     void update_fff_scene_only_shells(bool only_shells = true);
@@ -8011,6 +8049,9 @@ void Plater::priv::reset(bool apply_presets_change)
     m_saved_timestamp = m_backup_timestamp = size_t(-1);
     m_spectrum_map_undo = SpectrumMapUndoRecord{};
     m_spectrum_mix_dialog_undos.clear();
+    m_ofd_slot_user_override.clear();
+    m_ofd_mix_seed_prompted = false;
+    m_ofd_last_filament_idx = 0;
 
     // Mix list follows resolved defs after project reset (New Project / load_project prefix).
     sidebar->refresh_color_mixing_list();
@@ -12716,6 +12757,12 @@ void Plater::load_project(wxString const& filename2,
     const bool load_config = strategy & LoadStrategy::LoadConfig;
     const bool is_restore  = strategy & LoadStrategy::Restore;
     const bool is_silence  = strategy & LoadStrategy::Silence;
+    if (!res.empty() && load_config && !is_silence) {
+        const SpectrumMixSeedMode seed_mode = spectrum_mix_seed_mode_from_string(
+            wxGetApp().app_config ? wxGetApp().app_config->get("app", "spectrum_mix_seed") : std::string());
+        if (seed_mode == SpectrumMixSeedMode::Always)
+            maybe_ofd_mix_seed_prompt();
+    }
     if (!res.empty() && load_config && !is_restore && !is_silence) {
         CallAfter([this]() {
             if (model().objects.empty())
@@ -13155,6 +13202,148 @@ void Plater::apply_rgbw_filament_colours()
         ams[i].clear();
     if (wxGetApp().app_config->get("auto_calculate_flush") != "disabled")
         sidebar().auto_calc_flushing_volumes(-1);
+}
+
+void Plater::set_ofd_slot_user_override(int idx, bool value)
+{
+    if (idx < 0)
+        return;
+    if (p->m_ofd_slot_user_override.size() <= size_t(idx))
+        p->m_ofd_slot_user_override.resize(size_t(idx) + 1, 0);
+    p->m_ofd_slot_user_override[size_t(idx)] = value ? 1 : 0;
+}
+
+bool Plater::is_ofd_slot_user_override(int idx) const
+{
+    if (idx < 0 || size_t(idx) >= p->m_ofd_slot_user_override.size())
+        return false;
+    return p->m_ofd_slot_user_override[size_t(idx)] != 0;
+}
+
+void Plater::set_ofd_last_filament_idx(int idx)
+{
+    p->m_ofd_last_filament_idx = std::max(0, idx);
+}
+
+int Plater::ofd_last_filament_idx() const
+{
+    return p->m_ofd_last_filament_idx;
+}
+
+void Plater::apply_ofd_catalog_hexes(int slot, const std::vector<std::string> &hexes)
+{
+    if (slot < 0 || hexes.empty())
+        return;
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    take_snapshot(_u8L("Apply filament catalog color"));
+
+    auto &combos = sidebar().combos_filament();
+    if (size_t(slot) < combos.size() && combos[size_t(slot)] != nullptr) {
+        combos[size_t(slot)]->sync_colour_config(hexes, false);
+    } else {
+        ConfigOptionStrings *colour =
+            bundle->project_config.option<ConfigOptionStrings>("filament_colour", true);
+        ConfigOptionStrings *multi =
+            bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true);
+        ConfigOptionStrings *ctype =
+            bundle->project_config.option<ConfigOptionStrings>("filament_colour_type", true);
+        if (colour && multi && ctype) {
+            std::vector<char> flags = p->m_ofd_slot_user_override;
+            spectrum_ofd_stamp_slot(colour->values, multi->values, ctype->values, flags, size_t(slot), hexes, true);
+            p->m_ofd_slot_user_override = std::move(flags);
+            DynamicPrintConfig new_cfg;
+            new_cfg.set_key_value("filament_colour",
+                static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour")->clone()));
+            new_cfg.set_key_value("filament_multi_colour",
+                static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_multi_colour")->clone()));
+            new_cfg.set_key_value("filament_colour_type",
+                static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour_type")->clone()));
+            update_project_dirty_from_presets();
+            bundle->export_selections(*wxGetApp().app_config);
+            on_config_change(new_cfg);
+        }
+    }
+
+    set_ofd_slot_user_override(slot, false);
+
+    wxCommandEvent *evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+    evt->SetInt(slot);
+    wxQueueEvent(this, evt);
+
+    sidebar().update_all_preset_comboboxes();
+    for (PlaterPresetComboBox *combo : sidebar().combos_filament())
+        combo->update();
+    sidebar().obj_list()->update_filament_colors();
+
+    maybe_ofd_mix_seed_prompt();
+}
+
+void Plater::maybe_ofd_mix_seed_prompt()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+    AppConfig *app_cfg = wxGetApp().app_config;
+    const SpectrumMixSeedMode mode = spectrum_mix_seed_mode_from_string(
+        app_cfg ? app_cfg->get("app", "spectrum_mix_seed") : std::string());
+
+    std::vector<std::string> slot_hexes;
+    if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour"))
+        slot_hexes = fc->values;
+    const size_t n_slots = bundle->filament_presets.empty() ? slot_hexes.size() : bundle->filament_presets.size();
+    if (n_slots == 0)
+        return;
+    if (slot_hexes.size() > n_slots)
+        slot_hexes.resize(n_slots);
+    if (slot_hexes.size() < n_slots)
+        slot_hexes.resize(n_slots);
+    if (slot_hexes.empty())
+        return;
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(sidebar_resolved_mix_defs(), true);
+    const SpectrumMixSeedDecision decision =
+        spectrum_ofd_mix_seed_decision(mgr.mixed_filaments(), slot_hexes, mode, p->m_ofd_mix_seed_prompted);
+    if (decision == SpectrumMixSeedDecision::Skip)
+        return;
+
+    bool user_yes = decision == SpectrumMixSeedDecision::Append;
+    if (decision == SpectrumMixSeedDecision::Prompt) {
+        const wxString title = _L("Create starter mixed colors?");
+        const wxString body  = (slot_hexes.size() == 4)
+            ? _L("You have colors on all four filament slots. Add a starter set of mixed colors? You can change or remove them anytime in Color Mixing.")
+            : _L("You have colors on all filament slots. Add a starter set of mixed colors? You can change or remove them anytime in Color Mixing.");
+        RichMessageDialog dlg(this, body, title, wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION);
+        dlg.SetButtonLabel(wxID_YES, _L("Add starter mixes"), true);
+        dlg.SetButtonLabel(wxID_NO, _L("Not now"));
+        dlg.ShowCheckBox(_L("Don't ask again"));
+        const int rc = dlg.ShowModal();
+        if (dlg.IsCheckBoxChecked() && app_cfg)
+            app_cfg->set("app", "spectrum_mix_seed", "never");
+        user_yes = rc == wxID_YES;
+    }
+
+    p->m_ofd_mix_seed_prompted = true;
+    if (!user_yes)
+        return;
+
+    const SpectrumMixSeedMode apply_mode =
+        (app_cfg && app_cfg->get("app", "spectrum_mix_seed") == "never") ? SpectrumMixSeedMode::Ask : mode;
+    const auto applied = spectrum_ofd_mix_seed_apply(mgr.mixed_filaments(), slot_hexes.size(), true, apply_mode);
+    const std::string serialized = ofd_serialize_mix_rows(applied);
+    if (serialized.empty() || serialized == sidebar_resolved_mix_defs())
+        return;
+
+    SpectrumMixDialogUndoKeys pre = sidebar_capture_mix_dialog_keys();
+    SpectrumMixDialogUndoKeys post = pre;
+    post.mixed_filament_definitions = serialized;
+    apply_mixed_filament_dialog_keys(pre, post);
+    on_config_change(bundle->full_config());
+    schedule_background_process();
+    sidebar().refresh_color_mixing_list();
 }
 
 void Plater::map_painted_colors_to_cmyk_mixes()

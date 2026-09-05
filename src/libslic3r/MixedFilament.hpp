@@ -48,7 +48,7 @@ class MixedFilamentManager
 {
 public:
     void        clear();
-    void        load_definitions(const std::string &serialized);
+    void        load_definitions(const std::string &serialized, bool keep_disabled = false);
     std::string serialize_definitions() const;
 
     size_t enabled_count() const { return m_mixed.size(); }

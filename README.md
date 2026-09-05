@@ -58,3 +58,4 @@ ZR Spectrum includes OrcaSlicer. Wiki, calibration guides, and the wider Orca co
 - Pressure-advance calibration pattern: adapted from Andrew Ellis' generator (GPL-3), itself adapted from Sineos for Marlin (GPL-3).
 - The **Bambu networking plugin** uses non-free Bambu Lab libraries. It is optional.
 - Vendors [prusa-fdm-mixer](https://github.com/prusa3d/prusa-fdm-mixer) (MIT). Not official Prusa ColorMix / PrusaSlicer.
+- Ships a seed of [Open Filament Database](https://github.com/OpenFilamentCollective/open-filament-database) (MIT) colour hexes.

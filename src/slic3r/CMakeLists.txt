@@ -88,6 +88,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/MixedFilamentDialog.cpp
     GUI/MixedFilamentDialog.hpp
+    GUI/OfdCatalogDialog.cpp
+    GUI/OfdCatalogDialog.hpp
     GUI/SpectrumMatchConfirmDialog.cpp
     GUI/SpectrumMatchConfirmDialog.hpp
     GUI/ConfigManipulation.cpp

@@ -446,7 +446,7 @@ bool spectrum_mix_looks_like_snapmaker_custom_entries(const std::string &seriali
     return saw_u || (saw_m && saw_o);
 }
 
-void MixedFilamentManager::load_definitions(const std::string &serialized)
+void MixedFilamentManager::load_definitions(const std::string &serialized, bool keep_disabled)
 {
     m_mixed.clear();
     if (serialized.empty())
@@ -512,8 +512,8 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
         if (mf.component_c != 0 && !saw_rc)
             mf.ratio_c = 1;
 
-        // Keep enabled rows only.
-        if (mf.enabled)
+        // Keep enabled rows only unless keep_disabled (0061 mix-seed must not drop them).
+        if (mf.enabled || keep_disabled)
             m_mixed.emplace_back(mf);
     }
 }

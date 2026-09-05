@@ -207,7 +207,7 @@ public:
     void update_badge_according_flag();
 
     FilamentColor get_cur_color_info();
-    void show_default_color_picker();
+    bool show_default_color_picker();
     void sync_colour_config(const std::vector<std::string> &clrs, bool is_gradient);
     void sys_color_changed() override;
 
