@@ -1182,8 +1182,8 @@ sla::DrainHoles SLAPrintObject::transformed_drainhole_points() const
 {
     assert(m_model_object != nullptr);
     auto pts = m_model_object->sla_drain_holes;
-    auto tr = trafo().cast<float>();
-    auto sc = m_model_object->instances.front()->get_scaling_factor().cast<float>();
+    const Transform3f tr = trafo().cast<float>();
+    const Vec3f sc = m_model_object->instances.front()->get_scaling_factor().cast<float>();
     for (sla::DrainHole &hl : pts) {
         hl.pos = tr * hl.pos;
         hl.normal = tr * hl.normal - tr.translation();
