@@ -1,4 +1,5 @@
 #include "BoundingBox.hpp"
+#include "Brim.hpp"
 #include "Config.hpp"
 #include "GCodeWriter.hpp"
 #include "Polygon.hpp"
@@ -28,6 +29,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <chrono>
 #include <iostream>
 #include <iterator>
@@ -3763,14 +3765,16 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->m_objsWithBrim.clear();
     m_brim_done = false;
 
-    // Orca: Track brims by instance. When a combined brim is printed, all of
-    // its instances are marked done together.
+    // Track brims by instance with remaining layer counts from brim_layers config.
+    // When a combined brim is printed, all its instances share the same brim geometry.
     for (const Print::SkirtBrimGroup& group : print.skirt_brim_groups()) {
         for (const Print::SkirtBrimGroup::Brim& brim : group.brims) {
             if (brim.brim.empty())
                 continue;
-            for (const ObjectInstanceID& instance : brim.instances)
-                this->m_objsWithBrim.insert(instance);
+            for (const ObjectInstanceID& instance : brim.instances) {
+                const PrintObject* obj = print.get_object(instance.object_id);
+                this->m_objsWithBrim[instance] = obj ? obj->config().brim_layers.value : 1;
+            }
         }
     }
     if (this->m_objsWithBrim.empty()) m_brim_done = true;
@@ -5114,42 +5118,184 @@ std::string GCode::generate_object_skirt_group(const Print &print,
                           object_skirt_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
 }
 
-std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, bool first_layer)
+// Find the layer of `object` matching `layer`'s index and Z. `layer` may belong
+// to a different PrintObject, so it cannot be used directly.
+static const Layer *find_layer_by_id(const PrintObject &object, const Layer *layer)
 {
-    if (!first_layer)
-        return {};
+    for (const Layer *l : object.layers())
+        if (l && l->id() == layer->id() && abs(l->bottom_z() - layer->bottom_z()) < EPSILON)
+            return l;
+    return nullptr;
+}
 
-    auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectInstanceID>& instances) {
-        std::string gcode;
-        const bool already_emitted = std::none_of(instances.begin(), instances.end(), [this](const ObjectInstanceID& instance) {
-            return m_objsWithBrim.find(instance) != m_objsWithBrim.end();
-        });
-        if (already_emitted || brim.empty())
-            return gcode;
+// Compute brim entities for a non-first brim layer from the current layer's outlines.
+static ExtrusionEntityCollection compute_instance_brim_entities(
+    const Print &print, const Layer &layer,
+    const PrintObject &object, size_t instance_id,
+    const Print::SkirtBrimGroup::Brim &brim_group);
 
-        this->set_origin(0., 0.);
-        m_avoid_crossing_perimeters.use_external_mp();
-        for (const ExtrusionEntity* ee : brim.entities)
-            if (ee != nullptr)
-                gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
-        m_avoid_crossing_perimeters.use_external_mp(false);
-        m_avoid_crossing_perimeters.disable_once();
-        for (const ObjectInstanceID& instance : instances)
-            m_objsWithBrim.erase(instance);
-        return gcode;
-    };
+std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, const Layer *layer)
+{
+    const bool first_layer = layer && layer->id() == 0 && abs(layer->bottom_z()) < EPSILON;
 
     const ObjectInstanceID object_instance_id{ object.id(), instance_id };
     const size_t group_idx = find_skirt_brim_group_idx(print, object.id(), instance_id);
-    if (group_idx != size_t(-1)) {
-        std::string gcode;
-        for (const Print::SkirtBrimGroup::Brim& brim : print.skirt_brim_groups()[group_idx].brims)
-            if (std::find(brim.instances.begin(), brim.instances.end(), object_instance_id) != brim.instances.end())
-                gcode += emit_brim(brim.brim, brim.instances);
-        return gcode;
+    if (group_idx == size_t(-1))
+        return {};
+
+    std::string gcode;
+    for (const Print::SkirtBrimGroup::Brim& brim : print.skirt_brim_groups()[group_idx].brims) {
+        if (std::find(brim.instances.begin(), brim.instances.end(), object_instance_id) == brim.instances.end())
+            continue;
+
+        // Check if any instance still has remaining brim layers.
+        // (Entries are erased once their counter reaches 0.)
+        const bool should_emit = std::any_of(brim.instances.begin(), brim.instances.end(), [this](const ObjectInstanceID& instance) {
+            return m_objsWithBrim.find(instance) != m_objsWithBrim.end();
+        });
+        if (!should_emit)
+            continue;
+
+        // For combined brims, generate_object_brim is called once per object per layer.
+        // Skip if this brim was already emitted this layer by another object.
+        if (m_brim_emitted_this_layer.count(&brim))
+            continue;
+
+        // Layer 0 uses the pre-computed brim (no copy); upper layers compute their own.
+        const ExtrusionEntityCollection *brim_entities = nullptr;
+        ExtrusionEntityCollection computed_entities;
+        if (first_layer) {
+            // Layer 0: use the pre-computed brim (preserves ears, EFC, auto-brim, combined logic).
+            brim_entities = &brim.brim;
+        } else {
+            // Subsequent brim layers: regenerate from the current layer's outlines
+            // so the brim adapts to the object shape and avoids overlap.
+            const Layer *this_layer = find_layer_by_id(object, layer);
+            if (!this_layer)
+                continue; // no geometry at this layer for this object
+            computed_entities = compute_instance_brim_entities(print, *this_layer, object, instance_id, brim);
+            brim_entities = &computed_entities;
+        }
+
+        if (!brim_entities->empty()) {
+            this->set_origin(0., 0.);
+            m_avoid_crossing_perimeters.use_external_mp();
+            for (const ExtrusionEntity* ee : brim_entities->entities)
+                if (ee != nullptr)
+                    gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
+            m_avoid_crossing_perimeters.use_external_mp(false);
+            m_avoid_crossing_perimeters.disable_once();
+        }
+        // Only mark as emitted once geometry has been produced, so other objects
+        // in a combined brim group are not skipped when this one has no layer here.
+        m_brim_emitted_this_layer.insert(&brim);
+        // Always decrement brim layer counter even when brim is empty
+        // (e.g. btInnerOnly with no holes on this layer).
+        for (const ObjectInstanceID& instance : brim.instances) {
+            auto it = m_objsWithBrim.find(instance);
+            if (it != m_objsWithBrim.end() && --it->second == 0)
+                m_objsWithBrim.erase(it);
+        }
+    }
+    return gcode;
+}
+
+// Collect support exclusion polygons at the given Z from ALL objects in the print,
+// shifted to plate coordinates. This ensures brim from object A does not
+// overlap with support from a neighboring object B.
+static Polygons get_all_support_exclusions(const Print &print, coordf_t bottom_z)
+{
+    Polygons exclusions;
+    for (const PrintObject *object : print.objects()) {
+        if (object->support_layers().empty())
+            continue;
+
+        // Find the support layer closest to the given Z.
+        const SupportLayer *sl = nullptr;
+        coordf_t min_dist = std::numeric_limits<coordf_t>::max();
+        for (const SupportLayer *layer : object->support_layers())
+            if (layer && abs(layer->bottom_z() - bottom_z) < min_dist) {
+                min_dist = abs(layer->bottom_z() - bottom_z);
+                sl = layer;
+            }
+        if (!sl)
+            continue;
+
+        // Collect support polygons in object-local coords.
+        Polygons obj_support;
+        for (const ExPolygon &ex : sl->support_islands)
+            obj_support.push_back(ex.contour);
+        if (sl->support_type == stInnerTree)
+            for (const ExPolygon &ex : sl->lslices)
+                obj_support.push_back(ex.contour);
+
+        // Shift to plate coords for each instance of that object.
+        for (const PrintInstance &instance : object->instances()) {
+            for (const Polygon &p : obj_support) {
+                Polygon shifted = p;
+                shifted.translate(instance.shift_without_plate_offset());
+                exclusions.push_back(std::move(shifted));
+            }
+        }
+    }
+    return exclusions;
+}
+
+
+
+// Compute brim entities for a non-first brim layer from the current layer's outlines.
+static ExtrusionEntityCollection compute_instance_brim_entities(
+    const Print &print, const Layer &layer,
+    const PrintObject &object, size_t instance_id,
+    const Print::SkirtBrimGroup::Brim &brim_group)
+{
+    // Support geometry at this Z is identical for all instances of the group,
+    // so collect it once. Subtracting it keeps the brim from overlapping
+    // with support from neighboring objects.
+    const Polygons all_support = get_all_support_exclusions(print, layer.bottom_z());
+
+    if (brim_group.instances.size() > 1) {
+        // For combined brims, merge per-instance areas with proximity check.
+        ExPolygons combined_area;
+
+        for (const ObjectInstanceID &inst_id : brim_group.instances) {
+            const PrintObject *obj = print.get_object(inst_id.object_id);
+            if (!obj) continue;
+            const Layer *inst_layer = find_layer_by_id(*obj, &layer);
+            if (!inst_layer || inst_layer->lslices.empty()) continue;
+
+            // Build this instance's brim area respecting its brim type.
+            ExPolygons area = make_brim_area_for_layer(print, *obj, inst_id.instance_id, inst_layer->id());
+            if (area.empty()) continue;
+            if (!all_support.empty()) {
+                area = diff_ex(area, all_support);
+                if (area.empty()) continue;
+            }
+
+            if (!combined_area.empty() && brim_areas_within_contact_distance(print, area, combined_area)) {
+                ExPolygons merged;
+                expolygons_append(merged, combined_area);
+                expolygons_append(merged, area);
+                combined_area = merge_brim_areas(print, merged);
+            } else {
+                expolygons_append(combined_area, area);
+            }
+        }
+        if (combined_area.empty())
+            return {};
+        return makeBrimInfill(combined_area, print, {});
     }
 
-    return {};
+    // Single-instance brim.
+    ExPolygons brim_area = make_brim_area_for_layer(print, object, instance_id, layer.id());
+    if (brim_area.empty())
+        return {};
+    if (!all_support.empty()) {
+        brim_area = diff_ex(brim_area, all_support);
+        if (brim_area.empty())
+            return {};
+    }
+    return makeBrimInfill(brim_area, print, {});
 }
 
 // Bedslinger model. The heavier the bed load, the lower the achievable Y acceleration for a given
@@ -6278,6 +6424,7 @@ LayerResult GCode::process_layer(
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
     m_skirt_group_done.resize(print.skirt_brim_groups().size());
+    m_brim_emitted_this_layer.clear();
     for (unsigned int extruder_id : layer_tools.extruders)
     {
         if (print.config().skirt_type == stCombined && !print.skirt_brim_groups().empty()) {
@@ -6405,7 +6552,7 @@ LayerResult GCode::process_layer(
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 if (visit.first_visit && print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
                     gcode += generate_object_skirt_group(print, instance_to_print.print_object, instance_to_print.instance_id, layer_tools, layer, extruder_id);
-                    gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, first_layer);
+                    gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, &layer);
                 }
 
                 // To control print speed of the 1st object layer printed over raft interface.

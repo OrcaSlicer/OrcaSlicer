@@ -6,6 +6,7 @@
 	"bridge_flow": "1",
 	"bridge_speed": "50",
 	"brim_width": "5",
+	"brim_layers": "1",
 	"bridge_no_support": "0",
 	"bottom_surface_pattern": "monotonic",
 	"bottom_shell_layers": "3",

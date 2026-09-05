@@ -3047,6 +3047,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Brim"), L"param_adhension");
         optgroup->append_single_option_line("brim_type", "others_settings_brim#type");
         optgroup->append_single_option_line("brim_width", "others_settings_brim#width");
+        optgroup->append_single_option_line("brim_layers", "others_settings_brim#brim-layers");
         optgroup->append_single_option_line("brim_object_gap", "others_settings_brim#brim-object-gap");
         optgroup->append_single_option_line("brim_flow_ratio", "others_settings_brim#brim-flow-ratio");
         optgroup->append_single_option_line("brim_use_efc_outline", "others_settings_brim#brim-use-efc-outline");
