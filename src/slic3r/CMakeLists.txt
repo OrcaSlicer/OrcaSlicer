@@ -981,10 +981,6 @@ endif ()
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
 
-if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
-    target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
-endif()
-
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE
         plugin/PythonPluginBridge.cpp
