@@ -4780,16 +4780,18 @@ void DesignSketchTool::clear_base_pick()
     m_dbp_hover = -1;
 }
 
-// Reference planes are larger than the bed (Onshape default-plane feel). Half-extent = 0.6 * the
-// bed's larger side, so the square fully overhangs the print area. Falls back to 150mm if the bed
-// isn't queryable yet.
+// Reference planes sit INSIDE the bed. They used to be 0.6 * the bed's larger side, i.e. a square
+// 1.2x the plate, and three of them are drawn with depth testing off — so they painted over the
+// plate grid from edge to edge and the bed simply was not readable any more. "The planes hide the
+// bed", reported exactly that way. Small enough to leave the grid legible around them is also the
+// Onshape look this was reaching for: a modest square at the origin, not a tablecloth.
 double DesignSketchTool::dbp_half_extent() const
 {
-    double half = 150.0;
+    double half = 75.0;
     if (auto* pl = wxGetApp().plater()) {
         const BoundingBoxf bb = pl->build_volume().bounding_volume2d();
         const double w = bb.max.x() - bb.min.x(), d = bb.max.y() - bb.min.y();
-        if (w > 1.0 && d > 1.0) half = 0.6 * std::max(w, d);
+        if (w > 1.0 && d > 1.0) half = 0.3 * std::max(w, d);
     }
     return half;
 }

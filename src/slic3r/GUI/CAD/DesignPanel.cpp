@@ -4483,11 +4483,15 @@ void DesignPanel::set_ui_mode(UiMode m)
     // rebuild, which is not an event that happens when you merely press Sketch.
     update_reference_planes();
 
-    // Say where you are, in words, across the top of the viewport — and mute the printer bed
-    // while you are there. The plate grid and a sketch grid are the same visual language, and
-    // reading one as the other is how a sketch gets drawn against the wrong reference. The bed
-    // checkbox stays the stored preference and is restored on the way out; ticking it mid-sketch
-    // still shows the bed, because that is a deliberate act and this is only a default.
+    // Say where you are, in words, across the top of the viewport.
+    //
+    // THE BED IS NOT MUTED HERE, and it was: "a plate grid and a sketch grid are the same visual
+    // language" is true and still the wrong call, because there IS no sketch grid to replace it.
+    // Seen on the rig: pick XY, arm Line, and the viewport is an empty grey field — no bed, no
+    // grid, no origin, nothing to judge a length or a direction against. The plate grid was
+    // carrying the ground reference for the whole tab. The banner already says where you are;
+    // taking the floor away as well only made the sketch harder to draw. The Bed checkbox is the
+    // one thing that governs the bed, in every mode.
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
@@ -4497,8 +4501,6 @@ void DesignPanel::set_ui_mode(UiMode m)
                                  m_feature_counter + 1));
         m_sketch_banner->Show(sketching);
         m_sketch_banner->GetParent()->Layout();
-        if (m_viewport != nullptr)
-            m_viewport->set_show_bed(!sketching && (m_show_bed == nullptr || m_show_bed->GetValue()));
     }
 }
 

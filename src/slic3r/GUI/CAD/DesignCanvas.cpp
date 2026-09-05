@@ -121,11 +121,13 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // Bottom-right viewport HUD: a borderless, non-focusable float label showing the active
     // tool's current values. Top-level (a child widget is hidden by the GL surface, same as
     // the inline editor). Fed every frame by the tool's on_readout; empty text hides it.
+    // NON-FOCUSABLE IS THE LOAD-BEARING WORD, and a wxFrame is not: see the header. The chip
+    // outlives the gesture that drew it, and while it held the X input focus every sketch
+    // shortcut was swallowed until the user clicked the canvas. Same window class as the status
+    // chip below for the same reason. Do not "simplify" it back to a wxFrame.
     {
         wxWindow* top = wxGetTopLevelParent(m_canvas_widget);
-        m_hud = new wxFrame(top, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
-                            wxFRAME_NO_TASKBAR | wxBORDER_NONE | wxFRAME_FLOAT_ON_PARENT |
-                            wxSTAY_ON_TOP | wxTRANSPARENT_WINDOW);
+        m_hud = new wxPopupWindow(top, wxBORDER_NONE);
         m_hud->SetBackgroundColour(wxColour(28, 30, 34));
         m_hud_label = new wxStaticText(m_hud, wxID_ANY, wxEmptyString);
         m_hud_label->SetForegroundColour(wxColour(0x46, 0xE0, 0xC8));   // teal, reads on dark bed
@@ -1158,6 +1160,13 @@ void DesignCanvas::set_readout(const std::string& text)
     m_hud_last = text;
     if (text.empty()) { m_hud->Hide(); return; }
     m_hud_label->SetLabel(wxString::FromUTF8(text));
+    place_readout_hud();
+}
+
+void DesignCanvas::place_readout_hud()
+{
+    if (!m_hud || !m_hud_label || !m_canvas_widget) return;
+    if (m_hud_last.empty() || !m_canvas_widget->IsShownOnScreen()) { m_hud->Hide(); return; }
     m_hud->Fit();
     // Anchor to the canvas's bottom-right corner with a small margin (screen coords).
     const wxSize  cs = m_canvas_widget->GetClientSize();
@@ -1167,6 +1176,16 @@ void DesignCanvas::set_readout(const std::string& text)
     if (!m_hud->IsShown()) m_hud->Show();           // Show before Move (GTK ignores pre-map Move)
     m_hud->Move(br);
     m_hud->Raise();
+}
+
+// A popup is override-redirect: the window manager does not own it, so an iconised or
+// deactivated app would leave the chip sitting on the bare desktop. The status chip already
+// had to answer this; now that the readout is a popup too, it answers it the same way.
+void DesignCanvas::show_readout_hud(bool on)
+{
+    if (!m_hud) return;
+    if (on) place_readout_hud();
+    else    m_hud->Hide();
 }
 
 // Clear of the view cube and the two round view buttons, which own the bottom-left corner.
@@ -1230,12 +1249,14 @@ void DesignCanvas::place_status_hud()
 void DesignCanvas::on_frame_iconize(wxIconizeEvent& e)
 {
     show_status_hud(!e.IsIconized());
+    show_readout_hud(!e.IsIconized());
     e.Skip();
 }
 
 void DesignCanvas::on_frame_activate(wxActivateEvent& e)
 {
     show_status_hud(e.GetActive());
+    show_readout_hud(e.GetActive());
     e.Skip();
 }
 

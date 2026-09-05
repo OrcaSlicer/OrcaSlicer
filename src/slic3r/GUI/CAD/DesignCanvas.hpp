@@ -397,10 +397,19 @@ private:
     std::unique_ptr<SketchInlineEditor> m_inline_editor;  // floating in-canvas value editor
     // Bottom-right viewport HUD: a borderless float label over the GL canvas showing the
     // active tool's current values (fed by the tool's on_readout). Empty text hides it.
-    wxFrame*      m_hud{nullptr};
+    // A wxPopupWindow for the SAME reason as the status chip below, and it was a wxFrame until
+    // the reason was measured rather than assumed: "it appears mid-gesture and the next input is
+    // the mouse" is false. The chip keeps the last value on screen AFTER the gesture ends, and a
+    // frame holds the X input focus once it has it — so the next keystroke went to a 119x31
+    // window that has no use for it. Measured on :10: focus on the chip, `r` produced no
+    // CHAR_HOOK line at all; one bare canvas click moved focus back and the same key armed the
+    // tool. That is every sketch shortcut dead after every dimensioned entity.
+    wxPopupWindow* m_hud{nullptr};
     wxStaticText* m_hud_label{nullptr};
     std::string   m_hud_last;
     void set_readout(const std::string& text);
+    void place_readout_hud();            // anchor + show, using m_hud_last
+    void show_readout_hud(bool on);      // iconise/deactivate: a popup would float on the desktop
 
     // Bottom-LEFT viewport HUD: the selection / tool status line, written by DesignPanel.
     // A wxPopupWindow, NOT the wxFrame the readout HUD uses: a frame accepts keyboard focus,
