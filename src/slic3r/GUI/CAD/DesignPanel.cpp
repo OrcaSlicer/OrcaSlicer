@@ -4184,7 +4184,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
             fprintf(stderr, "[KEYTRACE] key=%d ui_mode=%d is_sketching=%d in_text=%d inline_busy=%d focus=%s\n",
                     key, int(m_ui_mode), (m_viewport && m_viewport->is_sketching()) ? 1 : 0, in_text ? 1 : 0,
                     (m_viewport && m_viewport->inline_busy()) ? 1 : 0,
-                    fw ? (const char*) fw->GetClassInfo()->GetClassName() : "(none)");
+                    // wxString, not a cast: GetClassName() returns const wxChar* — wchar_t* in
+                    // this build — and casting THAT to const char* and printing it with %s emits
+                    // the first byte and stops at the padding NUL. Every focus= field this tracer
+                    // has ever printed was a single letter: "wxGLCanvas" came out as "w", and so
+                    // did "wxWindow". An instrument that silently truncates its most important
+                    // field is worse than no instrument, and this one was trusted for a whole
+                    // day's diagnosis.
+                    fw ? wxString(fw->GetClassInfo()->GetClassName()).utf8_str().data() : "(none)");
             fflush(stderr);
         }
 

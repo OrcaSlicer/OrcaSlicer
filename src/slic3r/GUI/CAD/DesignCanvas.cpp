@@ -93,6 +93,17 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // re-entrancy guard giving up looks like. Refresh() posts a paint event instead: the current
     // frame finishes, the event loop runs (which is where ImGui's queued characters are consumed),
     // and the next frame starts clean.
+    // MEASUREMENT: does a typed character reach the GL canvas at all? Everything downstream of
+    // this point is known good (ImGui reports want_text=1 and our InputText active), so if these
+    // lines do not appear the character never got past the panel's CHAR_HOOK / the focus chain,
+    // and no amount of work inside the field will help. Skips always: a pure observer.
+    if (m_canvas_widget != nullptr && std::getenv("SNAPORCA_UXTRACE")) {
+        m_canvas_widget->Bind(wxEVT_CHAR, [](wxKeyEvent& e) {
+            fprintf(stderr, "[UX] canvas_char key=%d\n", e.GetKeyCode());
+            fflush(stderr);
+            e.Skip();
+        });
+    }
     m_inline_editor->request_frame = [this] {
         // BOTH halves, and the dirty flag first: GLCanvas3D's paint handler returns without
         // rendering when the canvas is not marked dirty, so a bare Refresh() posts an event that
