@@ -416,6 +416,20 @@ static PrinterTechnology get_printer_technology(const DynamicConfig &config)
     return(ret);}
 #endif
 
+// AI/CI-friendly failure taxonomy for result.json. Populated during a CLI
+// run by cli_record_failure(); flushed as the top-level "failures" array
+// by record_exit_reson. Lets a CI/AI consumer branch on a stable `class`
+// string instead of regex-matching stderr or error_string. Also carries
+// the strict-mode marker (set by --strict) so a caller can tell whether
+// the same slice would fail non-zero under strict rules.
+namespace { nlohmann::json g_cli_failures = nlohmann::json::array(); bool g_cli_strict_mode = false; }
+static void cli_record_failure(const std::string &cls, nlohmann::json details = nlohmann::json::object())
+{
+    details["class"] = cls;
+    g_cli_failures.push_back(std::move(details));
+}
+static void cli_set_strict_mode(bool s) { g_cli_strict_mode = s; }
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -453,6 +467,9 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
         }
         for (auto& iter: key_values)
             j[iter.first] = iter.second;
+
+        j["failures"]    = g_cli_failures;
+        j["strict_mode"] = g_cli_strict_mode;
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
@@ -5584,6 +5601,7 @@ int CLI::run(int argc, char **argv)
     // loop through action options
     bool export_to_3mf = false, load_slicedata = false, export_slicedata = false, export_slicedata_error = false;
     bool no_check = false;
+    bool strict_mode = false;   // --strict — see PrintConfig.cpp option comment
     std::string export_3mf_file, load_slice_data_dir, export_slice_data_dir, export_stls_dir;
     std::vector<ThumbnailData*> calibration_thumbnails;
     std::vector<int> plate_object_count(partplate_list.get_plate_count(), 0);
@@ -5675,6 +5693,9 @@ int CLI::run(int argc, char **argv)
             export_3mf_file = m_config.opt_string(opt_key);
         }else if(opt_key=="no_check"){
             no_check = m_config.opt_bool(opt_key);
+        }else if(opt_key=="strict"){
+            strict_mode = m_config.opt_bool(opt_key);
+            cli_set_strict_mode(strict_mode);
         //} else if (opt_key == "export_gcode" || opt_key == "export_sla" || opt_key == "slice") {
         } else if (opt_key == "normative_check") {
             //already processed before
@@ -6325,6 +6346,15 @@ int CLI::run(int argc, char **argv)
 
                                                 if (status.warning_level == PrintStateBase::WarningLevel::NON_CRITICAL) {
                                                     BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": found NON_CRITICAL slicing warnings: "<<status.text <<std::endl;
+                                                    // Always record for AI/CI consumers; under --strict, elevate to a
+                                                    // non-zero exit so scripted pipelines don't ship a "warning OK" slice.
+                                                    cli_record_failure("slicing_warning_non_critical",
+                                                                       nlohmann::json{{"plate_id", index+1}, {"text", status.text}});
+                                                    if (strict_mode) {
+                                                        sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                                        record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                                        flush_and_exit(CLI_SLICING_ERROR);
+                                                    }
                                                 }
                                                 else {
                                                     BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: found slicing warnings: %2%, no_check=%3%")%(index+1) %status.text %no_check;
