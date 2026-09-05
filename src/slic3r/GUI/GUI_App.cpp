@@ -4078,6 +4078,15 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
+    // The machine's printer_type is compared with Preset::get_printer_type() -- the vendor MODEL
+    // ID -- by is_blocking_printing() and Plater's same-printer checks, so that is what it has to
+    // carry. It was stamped with the display name, which only matches where a vendor uses the
+    // name as the id (WonderMaker does, Snapmaker does not: "Snapmaker U1" vs "797581801"), so the
+    // U1 read as a different printer than its own profile and filament sync stayed unavailable.
+    const std::string model_name = session.profile().config.opt_string("printer_model");
+    const std::string model_id   = session.printer_type();
+    const std::string machine_type = model_id.empty() ? model_name : model_id;
+
     // If machine doesn't exist, create it first
     if (!existing) {
         BBLocalMachine machine;
@@ -4085,7 +4094,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = session.profile().config.opt_string("printer_model");
+        machine.printer_type = machine_type;
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", conn.access_code());
@@ -4097,6 +4106,9 @@ void GUI_App::select_machine(const std::string& agent_id)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
     }
     existing->local_use_ssl = conn.use_ssl;
+    // A machine this session created earlier under the display name is healed the same way.
+    if (existing->printer_type == model_name && machine_type != model_name)
+        existing->printer_type = machine_type;
 
     // The agent's REST calls have to dial the same address this selection just resolved, so bind
     // it here rather than leaving each REST entry point to work it out from the machine's own
