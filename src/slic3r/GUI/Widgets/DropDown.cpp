@@ -778,6 +778,19 @@ void DropDown::mouseMove(wxMouseEvent &event)
 
 void DropDown::mouseWheelMoved(wxMouseEvent &event)
 {
+    // Orca #13244: an open group submenu holds the pointer grab, so wheel events
+    // arrive here while the cursor is still over the main list. Forward them to the
+    // main list so it keeps scrolling instead of trapping the cursor in the submenu.
+    if (mainDropDown) {
+        wxPoint screen_pt = ClientToScreen(event.GetPosition());
+        if (mainDropDown->GetScreenRect().Contains(screen_pt) && !GetScreenRect().Contains(screen_pt)) {
+            wxPoint main_pt = mainDropDown->ScreenToClient(screen_pt);
+            event.m_x = main_pt.x;
+            event.m_y = main_pt.y;
+            mainDropDown->mouseWheelMoved(event);
+            return;
+        }
+    }
     auto delta = event.GetWheelRotation();
     wxSize  size  = GetSize();
     wxPoint pt2   = offset + wxPoint{0, delta};
