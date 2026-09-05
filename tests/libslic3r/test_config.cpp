@@ -856,19 +856,19 @@ TEST_CASE("read_cli rejects an invalid boolean value", "[Config]") {
 
 TEST_CASE("read_cli accepts the common spellings of a boolean value", "[Config]") {
     const auto [text, expected] = GENERATE(table<const char*, bool>({
-        {"--reduce-crossing-wall=1",        true },
-        {"--reduce-crossing-wall=true",     true },
-        {"--reduce-crossing-wall=Yes",      true },
-        {"--reduce-crossing-wall=on",       true },
-        {"--reduce-crossing-wall=enabled",  true },
-        {"--reduce-crossing-wall=TRUE",     true },
-        {"--reduce-crossing-wall=oN",       true },
-        {"--reduce-crossing-wall=0",        false},
-        {"--reduce-crossing-wall=false",    false},
-        {"--reduce-crossing-wall=No",       false},
-        {"--reduce-crossing-wall=off",      false},
+        {"--reduce-crossing-wall=1", true},
+        {"--reduce-crossing-wall=true", true},
+        {"--reduce-crossing-wall=Yes", true},
+        {"--reduce-crossing-wall=on", true},
+        {"--reduce-crossing-wall=enabled", true},
+        {"--reduce-crossing-wall=TRUE", true},
+        {"--reduce-crossing-wall=oN", true},
+        {"--reduce-crossing-wall=0", false},
+        {"--reduce-crossing-wall=false", false},
+        {"--reduce-crossing-wall=No", false},
+        {"--reduce-crossing-wall=off", false},
         {"--reduce-crossing-wall=disabled", false},
-        {"--reduce-crossing-wall=FALSE",    false},
+        {"--reduce-crossing-wall=FALSE", false},
         {"--reduce-crossing-wall=DiSaBlEd", false},
     }));
 
@@ -1050,4 +1050,44 @@ TEST_CASE("read_cli accepts nil entries for a nullable vector option", "[Config]
     REQUIRE(opt->is_nil(0));
     REQUIRE_FALSE(opt->is_nil(1));
     REQUIRE_THAT(opt->values[1], Catch::Matchers::WithinAbs(2.5, 1e-9));
+}
+
+// get_at() returns values.front() for an out-of-range index, so calling it on an empty vector
+// option is UB. filament_id and filament_is_support are unpopulated on a CLI from-scratch slice.
+TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][Filament]")
+{
+    DynamicPrintConfig config;
+    std::string displayed;
+
+    SECTION("an empty filament_type yields no type at all")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "");
+    }
+
+    SECTION("an empty filament_is_support falls back to the plain filament type")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PETG");
+        REQUIRE(displayed == "PETG");
+    }
+
+    SECTION("a support filament with an empty filament_id resolves from the type alone")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
+
+    SECTION("a populated filament_id still selects the support type by id")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings({"GFS00"}));
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
 }
