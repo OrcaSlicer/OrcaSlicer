@@ -1,0 +1,50 @@
+{
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_settings_id": [
+        "Flashforge PETG-CF @FF Adventurer A5"
+    ],
+    "from": "system",
+    "setting_id": "aDSOS4PWssYHk8Fh",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.4 nozzle",
+      "Flashforge Adventurer A5 0.6 nozzle",
+      "Flashforge Adventurer A5 0.8 nozzle"
+    ],
+    "inherits": "Flashforge Generic PETG-CF10",
+    "is_custom_defined": "0",
+    "name": "Flashforge PETG-CF @FF Adventurer A5",
+    "supertack_plate_temp": [
+        "70"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_cool_plate_temp": [
+        "70"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "version": "2.1.1.0"
+}

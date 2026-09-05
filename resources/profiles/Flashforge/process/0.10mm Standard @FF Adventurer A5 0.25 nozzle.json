@@ -1,0 +1,24 @@
+{
+    "elefant_foot_compensation": "0.15",
+    "enable_arc_fitting": "1",
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "from": "system",
+    "setting_id": "H74U0yaiNgyQpdbc",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer A5 0.25 nozzle"
+    ],
+    "infill_wall_overlap": "15%",
+    "inherits": "0.10mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
+    "is_custom_defined": "0",
+    "name": "0.10mm Standard @FF Adventurer A5 0.25 nozzle",
+    "only_one_wall_top": "1",
+    "print_settings_id": "0.10mm Standard @FF Adventurer A5 0.25 nozzle",
+    "seam_slope_conditional": "1",
+    "seam_slope_inner_walls": "1",
+    "slowdown_for_curled_perimeters": "0",
+    "small_perimeter_speed": "25",
+    "sparse_infill_pattern": "grid",
+    "version": "2.2.0.4",
+    "wipe_speed": "200"
+}

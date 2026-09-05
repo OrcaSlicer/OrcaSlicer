@@ -1,0 +1,33 @@
+{
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA Basic @FF Adventurer A5 0.25 nozzle"
+    ],
+    "from": "system",
+    "setting_id": "e8JkrQPgHO1ekM7Q",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.25 nozzle"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "inherits": "Flashforge PLA Basic @FF AD5M 0.25 nozzle",
+    "is_custom_defined": "0",
+    "name": "Flashforge PLA Basic @FF Adventurer A5 0.25 nozzle",
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "version": "2.1.1.0"
+}

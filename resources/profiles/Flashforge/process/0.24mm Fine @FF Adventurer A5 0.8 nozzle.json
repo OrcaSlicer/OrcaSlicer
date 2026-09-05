@@ -1,0 +1,20 @@
+{
+    "bridge_flow": "1",
+    "enable_arc_fitting": "1",
+    "from": "system",
+    "setting_id": "INfUgOlQBMZLYrfu",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer A5 0.8 nozzle"
+    ],
+    "infill_wall_overlap": "15%",
+    "inherits": "0.24mm Fine @Flashforge AD5M Pro 0.8 Nozzle",
+    "initial_layer_print_height": "0.3",
+    "is_custom_defined": "0",
+    "name": "0.24mm Fine @FF Adventurer A5 0.8 nozzle",
+    "only_one_wall_top": "1",
+    "print_settings_id": "0.24mm Fine @FF Adventurer A5 0.8 nozzle",
+    "slowdown_for_curled_perimeters": "0",
+    "sparse_infill_pattern": "grid",
+    "version": "2.2.0.4"
+}
