@@ -87,7 +87,21 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // The tool draws it: it owns the frame's ImGui pass and the render scale. Handing it a raw
     // pointer rather than the unique_ptr keeps the ownership where it was.
     m_sketch_tool.inline_editor = m_inline_editor.get();
-    m_inline_editor->request_frame = [this] { request_repaint(); };
+    // SCHEDULE a paint, do not render one. request_repaint() renders SYNCHRONOUSLY on software
+    // GL, and this callback runs from inside DesignSketchTool::render() — so using it here asks
+    // for a render from within a render. The frames stopped after nine, which is what a
+    // re-entrancy guard giving up looks like. Refresh() posts a paint event instead: the current
+    // frame finishes, the event loop runs (which is where ImGui's queued characters are consumed),
+    // and the next frame starts clean.
+    m_inline_editor->request_frame = [this] {
+        // BOTH halves, and the dirty flag first: GLCanvas3D's paint handler returns without
+        // rendering when the canvas is not marked dirty, so a bare Refresh() posts an event that
+        // draws nothing and the frames still stop. request_repaint() does exactly this pair on
+        // the hardware path; what it must NOT do here is its software path, which renders
+        // synchronously — and this callback runs from inside render().
+        if (m_canvas)        m_canvas->set_as_dirty();
+        if (m_canvas_widget) m_canvas_widget->Refresh(false);
+    };
     m_sketch_tool.on_inline_edit = [this](wxPoint screen_px, double current,
                                           const std::string& title,
                                           std::function<void(double)> commit,
