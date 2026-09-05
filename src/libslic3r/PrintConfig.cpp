@@ -12518,9 +12518,9 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->label = L("Print time (normal mode)");
     def->tooltip = L("Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time.");
 
-    //def = this->add("printing_filament_types", coString);
-    //def->label = L("Used filament types");
-    //def->tooltip = L("Comma-separated list of all filament types used during the print.");
+    def = this->add("printing_filament_types", coString);
+    def->label = L("Used filament types");
+    def->tooltip = L("Hyphen-separated list of all filament types used during the print.");
 
     def = this->add("silent_print_time", coString);
     def->label = L("Print time (silent mode)");

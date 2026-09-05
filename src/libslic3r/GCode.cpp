@@ -4086,6 +4086,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Const input (tool-change fallback for non-wipe-tower prints)
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
+    {
+        // Orca: only the filaments extruded on this plate, deduplicated, in filament id order
+        std::vector<std::string> printing_filament_types;
+        for (const Extruder &extruder : m_writer.extruders()) {
+            std::string type = m_config.filament_type.get_at(extruder.id());
+            if (std::find(printing_filament_types.begin(), printing_filament_types.end(), type) == printing_filament_types.end())
+                printing_filament_types.emplace_back(std::move(type));
+        }
+        // joined with '-' rather than ',' to stay safe in URLs and on print hosts
+        print.m_print_statistics.printing_filament_types = boost::algorithm::join(printing_filament_types, "-");
+    }
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
             print.m_print_statistics.total_weight);
