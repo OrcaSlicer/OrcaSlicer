@@ -3330,7 +3330,12 @@ void StatusPanel::update_ams(MachineObject *obj)
     if (m_ams_setting_dlg && m_ams_setting_dlg->IsShown()) {
         m_ams_setting_dlg->UpdateByObj(obj);
     }
-    if (m_filament_setting_dlg) { m_filament_setting_dlg->obj = obj; }
+    if (m_filament_setting_dlg) {
+        m_filament_setting_dlg->obj = obj;
+    	if (m_filament_setting_dlg->IsShown()) {
+            m_filament_setting_dlg->TryRefreshPAProfiles();
+        }
+    }
 
     if (obj && (obj->last_cali_version != obj->cali_version) && (obj->is_lan_mode_printer() || obj->is_security_control_ready())) {
         obj->last_cali_version = obj->cali_version;
