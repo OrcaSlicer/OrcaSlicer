@@ -653,6 +653,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     static float get_outer_wall_volumetric_speed(const FullPrintConfig& config, const Print& print, int filament_id, int filament_variant_idx, int extruder_id) {
         float outer_wall_volumetric_speed = 0;
         float filament_max_volumetric_speed = config.filament_max_volumetric_speed.get_at(filament_variant_idx);
+        float filament_max_outer_volumetric_speed = config.filament_max_outer_volumetric_speed.get_at(filament_variant_idx);
+        if (filament_max_outer_volumetric_speed > 0.f)
+            filament_max_volumetric_speed = std::min(filament_max_volumetric_speed, filament_max_outer_volumetric_speed);
         const double filament_diameter = config.filament_diameter.get_at(filament_id);
         float outer_wall_line_width = print.default_region_config().get_abs_value("outer_wall_line_width", filament_diameter);
         if (outer_wall_line_width == 0.0) {
@@ -8038,8 +8041,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         filament_max_volumetric_speed = std::min(filament_max_volumetric_speed, fitted_value);
     }
 
+    double filament_max_outer_volumetric_speed = FILAMENT_CONFIG(filament_max_outer_volumetric_speed);
+    const bool use_outer_feature_limit = filament_max_outer_volumetric_speed > 0.
+        && (path.role() == erExternalPerimeter || path.role() == erTopSolidInfill || path.role() == erBottomSurface);
+    double effective_filament_max_volumetric_speed = use_outer_feature_limit
+        ? std::min(filament_max_volumetric_speed, filament_max_outer_volumetric_speed)
+        : filament_max_volumetric_speed;
+
     if (speed == 0)
-        speed = filament_max_volumetric_speed / _mm3_per_mm;
+        speed = effective_filament_max_volumetric_speed / _mm3_per_mm;
     
     const auto _layer = layer_id();
     if (this->on_first_layer() || object_layer_over_raft()) {
@@ -8092,9 +8102,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     //        m_config.max_volumetric_speed.value / _mm3_per_mm
     //    );
     //}
-    if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+    if (effective_filament_max_volumetric_speed > 0) {
         // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
-        speed = std::min(speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
+        speed = std::min(speed, effective_filament_max_volumetric_speed / _mm3_per_mm);
     }
     // ORCA: resonance‑avoidance on short external perimeters
 {
@@ -8108,10 +8118,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         }
 
         // re‑apply volumetric cap
-        if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+        if (effective_filament_max_volumetric_speed > 0) {
             speed = std::min(
                 speed,
-                FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm
+                effective_filament_max_volumetric_speed / _mm3_per_mm
             );
         }
 
@@ -8141,12 +8151,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (need_overhang_detection && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
+            const double max_volumetric_speed_for_role = (is_external && FILAMENT_CONFIG(filament_max_outer_volumetric_speed) > 0.)
+                ? std::min(FILAMENT_CONFIG(filament_max_volumetric_speed), FILAMENT_CONFIG(filament_max_outer_volumetric_speed))
+                : FILAMENT_CONFIG(filament_max_volumetric_speed);
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
             if (ref_speed == 0)
-                ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
+                ref_speed = max_volumetric_speed_for_role / _mm3_per_mm;
 
-            if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
-                ref_speed = std::min(ref_speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
+            if (max_volumetric_speed_for_role > 0) {
+                ref_speed = std::min(ref_speed, max_volumetric_speed_for_role / _mm3_per_mm);
             }
             if (sloped) {
                 ref_speed = std::min(ref_speed, m_config.scarf_joint_speed.get_abs_value(ref_speed));

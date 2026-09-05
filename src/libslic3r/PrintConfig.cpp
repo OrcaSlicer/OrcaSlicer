@@ -2918,6 +2918,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
 
+    def = this->add("filament_max_outer_volumetric_speed", coFloats);
+    def->label = L("Max outer volumetric speed");
+    def->tooltip = L("Optional volumetric speed limit for outer walls, top surfaces and bottom surfaces.\n"
+                     "Set to 0 to disable this override. If enabled, it is always clamped by Max volumetric speed.");
+    def->sidetext = L(u8"mm³/s");	// cubic millimeters per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 0. });
+
     def = this->add("machine_load_filament_time", coFloat);
     def->label = L("Filament load time");
     def->tooltip = L("Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
@@ -9321,6 +9330,7 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ramming_travel_time_nc",
     "filament_retract_length_nc",
     "filament_preheat_temperature_delta",
+    "filament_max_outer_volumetric_speed",
     //"filament_extruder_id",
     "filament_extruder_variant",
     "filament_retraction_length",
@@ -11764,6 +11774,20 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             error_message.emplace("filament_flow_ratio", L("invalid value ") + cfg.filament_flow_ratio.serialize());
             break;
         }
+
+    // --filament-max-outer-volumetric-speed
+    // If enabled (> 0), this per-filament value must stay less than or equal to filament_max_volumetric_speed.
+    for (size_t i = 0; i < cfg.filament_max_outer_volumetric_speed.values.size(); ++i) {
+        const double outer_v = cfg.filament_max_outer_volumetric_speed.get_at(i);
+        const double max_v   = cfg.filament_max_volumetric_speed.get_at(i);
+        if (outer_v > 0 && outer_v > max_v) {
+            error_message.emplace(
+                "filament_max_outer_volumetric_speed",
+                L("invalid value ") + cfg.filament_max_outer_volumetric_speed.serialize() +
+                L(". Max outer volumetric speed must be less than or equal to Max volumetric speed."));
+            break;
+        }
+    }
 
     // --spiral-vase
     //for non-cli case, we will popup dialog for spiral mode correction
