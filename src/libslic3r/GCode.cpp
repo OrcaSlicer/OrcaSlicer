@@ -3099,9 +3099,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 throw Slic3r::ExportError(error_str);
             }
 
-            if (!thumbnails.empty())
+            if (!thumbnails.empty()) {
+                const ConfigOptionBool* opt_thumbs_bed_gcode = print.full_print_config().option<ConfigOptionBool>("thumbnails_with_bed_gcode");
+                bool show_bed_in_gcode = opt_thumbs_bed_gcode ? opt_thumbs_bed_gcode->value : false;
                 GCodeThumbnails::export_thumbnails_to_file(
-                    thumbnail_cb, print.get_plate_index(), thumbnails, [&file](const char* sz) { file.write(sz); }, [&print]() { print.throw_if_canceled(); });
+                    thumbnail_cb, print.get_plate_index(), thumbnails, [&file](const char* sz) { file.write(sz); }, [&print]() { print.throw_if_canceled(); }, show_bed_in_gcode);
+            }
         }
     }
 

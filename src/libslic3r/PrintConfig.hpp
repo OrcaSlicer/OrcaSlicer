@@ -1901,6 +1901,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // Corexy farthest-point timelapse (default false → inert for existing printers)
     ((ConfigOptionBool,               farthest_point_timelapse))
     ((ConfigOptionString,             thumbnails))
+    ((ConfigOptionBool,               thumbnails_with_bed_gcode))
     // BBS: move from PrintObjectConfig
     ((ConfigOptionBool, independent_support_layer_height))
     ((ConfigOptionBool,               combine_brims))

@@ -1827,6 +1827,12 @@ void GLCanvas3D::reset_select_plate_toolbar_selection() {
         wxGetApp().mainframe->update_slice_print_status(MainFrame::eEventSliceUpdate, true, true);
 }
 
+void GLCanvas3D::force_toolbar_render_update()
+{
+    m_sel_plate_toolbar.is_render_finish = false;
+    set_as_dirty();
+}
+
 void GLCanvas3D::enable_select_plate_toolbar(bool enable)
 {
     m_sel_plate_toolbar.set_enabled(enable);
@@ -2075,7 +2081,7 @@ void GLCanvas3D::render(bool only_init)
         if (!no_partplate)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         if (!no_partplate) //BBS: add outline logic
-            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
+            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), camera.get_viewport(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
         
         //BBS: add outline logic
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
@@ -2092,7 +2098,7 @@ void GLCanvas3D::render(bool only_init)
         _render_sla_slices();
         _render_selection();
         _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), camera.get_viewport(), !camera.is_looking_downward(), only_current, true, hover_id);
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode(cnv_size.get_width(), cnv_size.get_height());
     }
@@ -6436,8 +6442,25 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
 
     glsafe(::glDisable(GL_DEPTH_TEST));
 
-    //don't render plate in thumbnail
-    //plate->render( false, true, true);
+    if (thumbnail_params.show_bed) {
+        // Render the plate model into the thumbnail
+        if (wxGetApp().plater() != nullptr) {
+            GLCanvas3D* canvas          = wxGetApp().plater()->get_view3D_canvas3D();
+            PartPlate*  current_plate   = partplate_list.get_curr_plate();
+            PartPlate*  thumbnail_plate = partplate_list.get_plate(thumbnail_params.plate_id);
+            if ((canvas != nullptr) && (current_plate != nullptr) && (thumbnail_plate != nullptr)) {
+                Vec3d       current_origin = current_plate->get_origin();
+                Vec3d       target_origin  = thumbnail_plate->get_origin();
+                Vec3d       delta          = target_origin - current_origin;
+                Transform3d plate_offset   = Transform3d::Identity();
+                plate_offset.translation() = delta;
+                canvas->_render_bed(view_matrix * plate_offset, projection_matrix, !camera.is_looking_downward(), false);
+            }
+        }
+
+        // Render the plate grid and texture into the thumbnail (no UI icons)
+        partplate_list.render(view_matrix, projection_matrix, camera.get_viewport(), !camera.is_looking_downward(), false, false, -1, false, true, true, thumbnail_params.plate_id);
+    }
 
     // restore background color
     //if (thumbnail_params.transparent_background)
@@ -7953,9 +7976,9 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
     m_bed.render(*this, view_matrix, projection_matrix, bottom, scale_factor, show_axes);
 }
 
-void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
+void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
-    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
+    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, viewport, bottom, only_current, only_body, hover_id, render_cali, show_grid, false, -1);
 }
 
 void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix)
@@ -9288,10 +9311,19 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
             ImGui::GetWindowDrawList()->AddRectFilled(start_pos, end_pos, plate_bg, button_radius);
         }
 
-        // draw text
+        // ORCA draw text with a colored background box sized to the text
         GImGui->FontSize = 18.0f * f_scale; // ORCA fix font scaling
         ImVec2 text_start_pos = ImVec2(start_pos.x + 4.0f * f_scale, start_pos.y + 2.0f * f_scale); // ORCA move close to corner to prevent overlapping with preview
-        ImGui::RenderText(text_start_pos, std::to_string(i + 1).c_str());
+        std::string thumb_text = std::to_string(i + 1);
+        ImVec2 text_size = ImGui::CalcTextSize(thumb_text.c_str());
+        float pad = 2.0f * f_scale;
+        ImVec2 box_start = text_start_pos - ImVec2(pad, pad);
+        ImVec2 box_end   = text_start_pos + text_size + ImVec2(pad, pad);
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImU32 box_color = m_is_dark ? IM_COL32(66, 66, 71, 191) : IM_COL32(238, 238, 238, 191);
+        float round_r = 3.0f * f_scale;
+        draw_list->AddRectFilled(box_start, box_end, box_color, round_r);
+        ImGui::RenderText(text_start_pos, thumb_text.c_str());
         ImGui::SetWindowFontScale(1.2f); // ORCA fix font scaling
 
         ImGui::PopID();

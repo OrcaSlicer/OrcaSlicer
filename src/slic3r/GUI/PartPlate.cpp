@@ -720,17 +720,17 @@ void PartPlate::calc_vertex_for_icons_background(int icon_count, GLModel &buffer
 }
 */
 
-void PartPlate::render_background(bool force_default_color)
+void PartPlate::render_background(bool force_default_color, bool thumbnail)
 {
 	//return directly for current plate
-	if (m_selected && !force_default_color) return;
+	if ((m_selected || thumbnail) && !force_default_color) return;
 
 	// draw background
 	glsafe(::glDepthMask(GL_FALSE));
 
 	ColorRGBA color;
 	if (!force_default_color) {
-		if (m_selected) {
+		if (m_selected || thumbnail) {
             color = PartPlate::SELECT_COLOR;
 		}
 		else {
@@ -745,7 +745,7 @@ void PartPlate::render_background(bool force_default_color)
 	glsafe(::glDepthMask(GL_TRUE));
 }
 
-void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffer, bool bottom)
+void PartPlate::render_logo_texture(const Transform3d& view_matrix, const Transform3d& projection_matrix, GLTexture &logo_texture, GLModel& logo_buffer, bool bottom)
 {
 	//check valid
 	if (logo_texture.unsent_compressed_data_available()) {
@@ -757,9 +757,10 @@ void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffe
 		GLShaderProgram* shader = wxGetApp().get_shader("printbed");
 		if (shader != nullptr) {
 			shader->start_using();
-            const Camera &camera = wxGetApp().plater()->get_camera();
-            shader->set_uniform("view_model_matrix", camera.get_view_matrix());
-            shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+		    // ORCA: Using passed in camera parameters
+            //const Camera &camera = wxGetApp().plater()->get_camera();
+            shader->set_uniform("view_model_matrix", view_matrix);
+            shader->set_uniform("projection_matrix", projection_matrix);
 			shader->set_uniform("transparent_background", 0);
 			shader->set_uniform("svg_source", 0);
 
@@ -791,7 +792,7 @@ void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffe
 	}
 }
 
-void PartPlate::render_logo(bool bottom, bool render_cali)
+void PartPlate::render_logo(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool render_cali)
 {
 	if (!m_partplate_list->render_bedtype_logo) {
 		// render third-party printer texture logo
@@ -858,7 +859,7 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
 		}
 
 		if (m_logo_triangles.is_initialized())
-			render_logo_texture(m_partplate_list->m_logo_texture, m_logo_triangles, bottom);
+			render_logo_texture(view_matrix, projection_matrix, m_partplate_list->m_logo_texture, m_logo_triangles, bottom);
 		return;
 	}
 
@@ -889,7 +890,9 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
 					part.offset = Vec2d(m_origin.x(), m_origin.y());
 					part.update_buffer();
 				}
-				render_logo_texture(*(part.texture),
+				render_logo_texture(view_matrix,
+									projection_matrix,
+									*(part.texture),
 									*(part.buffer),
 									bottom);
 			}
@@ -905,7 +908,9 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
 						part.offset = Vec2d(m_origin.x(), m_origin.y());
 						part.update_buffer();
 					}
-					render_logo_texture(*(part.texture),
+					render_logo_texture(view_matrix,
+						projection_matrix,
+						*(part.texture),
 						*(part.buffer),
 						bottom);
 				}
@@ -924,7 +929,7 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
                         part.offset = Vec2d(m_origin.x(), m_origin.y());
                         part.update_buffer();
                     }
-                    render_logo_texture(*(part.texture), *(part.buffer), bottom);
+                    render_logo_texture(view_matrix, projection_matrix, *(part.texture), *(part.buffer), bottom);
                 }
             }
         }
@@ -975,7 +980,7 @@ void PartPlate::render_exclude_area(bool force_default_color) {
 	glsafe(::glDepthMask(GL_TRUE));
 }*/
 
-void PartPlate::render_grid(bool bottom) {
+void PartPlate::render_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool thumbnail) {
 	//glsafe(::glEnable(GL_MULTISAMPLE));
 	// draw grid
 
@@ -990,10 +995,11 @@ void PartPlate::render_grid(bool bottom) {
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    const std::array<int, 4>& viewport = camera.get_viewport();
-    const Transform3d& view_matrix = camera.get_view_matrix();
-    const Transform3d& projection_matrix = camera.get_projection_matrix();
+    // ORCA: Using passed in camera parameters
+    //const Camera& camera = wxGetApp().plater()->get_camera();
+    //const std::array<int, 4>& viewport = camera.get_viewport();
+    //const Transform3d& view_matrix = camera.get_view_matrix();
+    //const Transform3d& projection_matrix = camera.get_projection_matrix();
 
     shader->set_uniform("view_model_matrix", view_matrix);
     shader->set_uniform("projection_matrix", projection_matrix);
@@ -1007,7 +1013,7 @@ void PartPlate::render_grid(bool bottom) {
 	if (bottom)
         color = LINE_BOTTOM_COLOR;
 	else {
-		if (m_selected)
+		if (m_selected || thumbnail)
             color = m_partplate_list->m_is_dark ? LINE_TOP_SEL_DARK_COLOR : LINE_TOP_SEL_COLOR;
 		else
             color = m_partplate_list->m_is_dark ? LINE_TOP_DARK_COLOR : LINE_TOP_COLOR;
@@ -3484,7 +3490,7 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 	return print_volume.intersects(bb);
 }
 
-void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid)
+void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid, bool thumbnail)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
 
@@ -3499,29 +3505,34 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
 
         if (!bottom) {
             // draw background
-            render_background(force_background_color);
-
-            render_exclude_area(force_background_color);
-            if(m_selected && wxGetApp().plater()->get_enable_wrapping_detection()){
-                if(!m_wrapping_detection_triangles.is_initialized()){
-                    auto points = get_plate_wrapping_detection_area();
-                    if (points.size() > 0) {//wrapping_detection_area
-                        ExPolygon temp_poly;
-                        for (const Vec2d &p : points) {
-                            temp_poly.contour.append({scale_(p(0)), scale_(p(1))});
-                        }
-                        auto      result = intersection(m_print_polygon, temp_poly);
-                        if (result.size() > 0) {
-                            ExPolygon wrapp_poly(result[0]);
-                            calc_triangles_from_polygon(wrapp_poly, m_wrapping_detection_triangles);
-                        }
-                    }
-                }
-                render_wrapping_detection_area(force_background_color);
-            }
+            render_background(force_background_color, thumbnail);
         }
 
-        render_height_limit(mode);
+        if (!thumbnail) {
+            if (!bottom) {
+                // Draw bed_exclude_area polygon
+                render_exclude_area(force_background_color);
+                if(m_selected && wxGetApp().plater()->get_enable_wrapping_detection()){
+                    if(!m_wrapping_detection_triangles.is_initialized()){
+                        auto points = get_plate_wrapping_detection_area();
+                        if (points.size() > 0) {//wrapping_detection_area
+                            ExPolygon temp_poly;
+                            for (const Vec2d &p : points) {
+                                temp_poly.contour.append({scale_(p(0)), scale_(p(1))});
+                            }
+                            auto      result = intersection(m_print_polygon, temp_poly);
+                            if (result.size() > 0) {
+                                ExPolygon wrapp_poly(result[0]);
+                                calc_triangles_from_polygon(wrapp_poly, m_wrapping_detection_triangles);
+                            }
+                        }
+                    }
+                    render_wrapping_detection_area(force_background_color);
+                }
+            }
+
+            render_height_limit(mode);
+        }
 
         glsafe(::glDisable(GL_BLEND));
 
@@ -3533,18 +3544,20 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
     }
 
     if (wxGetApp().show_plate_gridlines() && show_grid)
-        render_grid(bottom);
+        render_grid(view_matrix, projection_matrix, viewport, bottom, thumbnail);
 
-    if (!bottom && m_selected && !force_background_color) {
+    if (!bottom && (m_selected || thumbnail) && !force_background_color) {
         if (m_partplate_list)
-            render_logo(bottom, m_partplate_list->render_cali_logo && render_cali);
+            render_logo(view_matrix, projection_matrix, bottom, m_partplate_list->render_cali_logo && render_cali);
         else
-            render_logo(bottom);
+            render_logo(view_matrix, projection_matrix, bottom, true);
     }
 
-    render_icons(bottom, only_body, hover_id);
-    if (!force_background_color) {
-        render_only_numbers(bottom);
+    if (!thumbnail){
+        render_icons(bottom, only_body, hover_id);
+        if (!force_background_color) {
+            render_only_numbers(bottom);
+        }
     }
 
     glsafe(::glDisable(GL_DEPTH_TEST));
@@ -5949,7 +5962,7 @@ void PartPlateList::postprocess_arrange_polygon(arrangement::ArrangePolygon& arr
 
 /*rendering related functions*/
 //render
-void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
+void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid, bool thumbnail, int plate_id)
 {
 	const std::lock_guard<std::mutex> local_lock(m_plates_mutex);
 	std::vector<PartPlate*>::iterator it = m_plate_list.begin();
@@ -5969,20 +5982,25 @@ void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& pr
 		generate_icon_textures();
 	for (it = m_plate_list.begin(); it != m_plate_list.end(); it++) {
 		int current_index = (*it)->get_index();
-		if (only_current && (current_index != m_current_plate))
-			continue;
+		if (thumbnail){
+			if ((plate_id >= 0) && (current_index != plate_id))
+				continue;
+		} else {
+			if (only_current && (current_index != m_current_plate))
+				continue;
+		}
 		if (current_index == m_current_plate) {
 			PartPlate::HeightLimitMode height_mode = (only_current)?PartPlate::HEIGHT_LIMIT_NONE:m_height_limit_mode;
 			if (plate_hover_index == current_index)
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, plate_hover_action, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, viewport, bottom, only_body, false, height_mode, plate_hover_action, render_cali, show_grid, thumbnail);
 			else
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, -1, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, viewport, bottom, only_body, false, height_mode, -1, render_cali, show_grid, thumbnail);
 		}
 		else {
 			if (plate_hover_index == current_index)
-				(*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, plate_hover_action, render_cali, show_grid);
+				(*it)->render(view_matrix, projection_matrix, viewport, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, plate_hover_action, render_cali, show_grid, thumbnail);
 			else
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, -1, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, viewport, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, -1, render_cali, show_grid, thumbnail);
 		}
 	}
 }

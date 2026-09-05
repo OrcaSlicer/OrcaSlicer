@@ -427,6 +427,16 @@ void AppConfig::set_defaults()
         set_bool("show_splash_screen", true);
     }
 
+    // Orca
+    if(get("thumbnails_with_bed_gui").empty()) {
+        set_bool("thumbnails_with_bed_gui", false);
+    }
+
+    // Orca
+    if(get("thumbnails_with_bed_3mf").empty()) {
+        set_bool("thumbnails_with_bed_3mf", false);
+    }
+
     if(get("auto_arrange").empty()) {
         set_bool("auto_arrange", true);
     }

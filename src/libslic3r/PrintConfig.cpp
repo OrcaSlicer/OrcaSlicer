@@ -7823,6 +7823,12 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("ColPic");
     def->set_default_value(new ConfigOptionEnum<GCodeThumbnailsFormat>(GCodeThumbnailsFormat::PNG));
 
+    def = this->add("thumbnails_with_bed_gcode", coBool);
+    def->label = L("Bed in G-code thumbnails");
+    def->tooltip = L("Show the bed texture in the G-code thumbnail picture.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("use_relative_e_distances", coBool);
     def->label = L("Use relative E distances");
     def->tooltip = L("Relative extrusion is recommended when using \"label_objects\" option. "

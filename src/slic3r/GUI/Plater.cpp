@@ -16725,7 +16725,8 @@ void Plater::update_all_plate_thumbnails(bool force_update)
 {
     for (int i = 0; i < get_partplate_list().get_plate_count(); i++) {
         PartPlate* plate = get_partplate_list().get_plate(i);
-        ThumbnailsParams thumbnail_params = { {}, false, true, true, true, i};
+        bool show_bed_in_gui = wxGetApp().app_config->get_bool("thumbnails_with_bed_gui");
+        ThumbnailsParams thumbnail_params = { {}, false, true, show_bed_in_gui, true, i};
         if (force_update || !plate->thumbnail_data.is_valid()) {
             get_view3D_canvas3D()->render_thumbnail(plate->thumbnail_data, plate->plate_thumbnail_width, plate->plate_thumbnail_height, thumbnail_params, Camera::EType::Ortho);
         }
@@ -16739,7 +16740,8 @@ void Plater::update_all_plate_thumbnails(bool force_update)
 void Plater::update_obj_preview_thumbnail(ModelObject *mo, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type)
 {
     PartPlate *      plate            = get_partplate_list().get_plate(0);
-    ThumbnailsParams thumbnail_params = {{}, false, true, true, true, 0, false};
+    bool show_bed_in_gui = wxGetApp().app_config->get_bool("thumbnails_with_bed_gui");
+    ThumbnailsParams thumbnail_params = {{}, false, true, show_bed_in_gui, true, 0, false};
     GLVolumeCollection cur_volumes;
     cur_volumes.load_object_volume(mo, obj_idx, vol_idx, 0, "volume", true, false, false, false);
     ModelObjectPtrs model_objects;
@@ -18554,6 +18556,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": path=%1%, backup=%2%, export_plate_idx=%3%, SaveStrategy=%4%")
         % std::string("") % (strategy & SaveStrategy::Backup) % export_plate_idx % (unsigned int)strategy;
 
+    bool show_bed_in_3mf = wxGetApp().app_config->get_bool("thumbnails_with_bed_3mf");
+
     //BBS: add plate logic for thumbnail generate
     std::vector<ThumbnailData*> thumbnails;
     std::vector<ThumbnailData*> no_light_thumbnails;
@@ -18571,7 +18575,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate thumbnail for plate %1%") % i;
-                const ThumbnailsParams thumbnail_params = { {}, false, true, true, true, i };
+                const ThumbnailsParams thumbnail_params = { {}, false, true, show_bed_in_3mf, true, i };
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second,
                                     thumbnail_params, Camera::EType::Ortho);
             }
@@ -18583,7 +18587,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": non need to re-generate thumbnail for gcode/exported mode of plate %1%") % i;
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate thumbnail for plate %1%") % i;
-                const ThumbnailsParams thumbnail_params = {{}, false, true, true, true, i};
+                const ThumbnailsParams thumbnail_params = {{}, false, true, show_bed_in_3mf, true, i};
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->no_light_thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second, thumbnail_params,
                                       Camera::EType::Ortho,  Camera::ViewAngleType::Iso, false, true);
             }
@@ -18625,7 +18629,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             //BBS generate BBS calibration thumbnails
             int index = p->partplate_list.get_curr_plate_index();
             //ThumbnailData* calibration_data = calibration_thumbnails[index];
-            //const ThumbnailsParams calibration_params = { {}, false, true, true, true, p->partplate_list.get_curr_plate_index() };
+            //const ThumbnailsParams calibration_params = { {}, false, true, show_bed_in_3mf, true, p->partplate_list.get_curr_plate_index() };
             //p->generate_calibration_thumbnail(*calibration_data, PartPlate::cali_thumbnail_width, PartPlate::cali_thumbnail_height, calibration_params);
             if (using_exported_file()) {
                 //do nothing

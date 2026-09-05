@@ -218,6 +218,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
+        "thumbnails_with_bed_gcode",
         "center_of_surface_pattern",
         "separated_infills",
         "seam_gap",
