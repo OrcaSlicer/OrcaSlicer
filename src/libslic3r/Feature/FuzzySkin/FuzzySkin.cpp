@@ -342,7 +342,7 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
 }
 
 // Thanks Cura developers for this function.
-void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed)
+void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, coordf_t layer_height, const FuzzySkinConfig& cfg, bool closed)
 {
 
     if (cfg.noise_type == NoiseType::Ripple) {
@@ -356,7 +356,12 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const double range_random_point_dist = cfg.point_distance / 2.;
-    const double min_extrusion_width = 0.01; // workaround for many print options. Need overwrite formula with the layer height parameter. The width must more than >>> layer_height * (1 - 0.25 * PI) * 1.05 <<< (last num is the coeff of overlay error case)
+    // ExtrusionJunction::w is a scaled coord_t, and so is cfg.thickness, so this floor has to be
+    // scaled too - it used to be a bare 0.01, i.e. 1e-8 mm, which is no floor at all. When the noise
+    // drove p1.w + r negative the junction ended up ~0 wide, and Flow::rounded_rectangle_extrusion_spacing()
+    // then threw FlowErrorNegativeSpacing and failed the whole slice. That function needs
+    // width > height * (1 - 0.25 * PI); keep 5% above it.
+    const double min_extrusion_width = scaled<double>(layer_height * (1. - 0.25 * M_PI) * 1.05);
     double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
 
     auto* p0 = &ext_lines.front();
@@ -685,12 +690,13 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
 void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerator& perimeter_generator, const bool is_contour, const bool closed)
 {
     const auto  slice_z = perimeter_generator.slice_z;
+    const auto  layer_height = perimeter_generator.layer_height;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
     if (regions.size() == 1) { // optimization
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (fuzzify)
-            fuzzy_extrusion_line(extrusion->junctions, slice_z, config, closed);
+            fuzzy_extrusion_line(extrusion->junctions, slice_z, perimeter_generator.layer_height, config, closed);
     } else {
         // Merge regions that produce identical fuzzy effects (differ only in type).
         // When the style (e.g. External) and a painted region (All) both fuzzify this loop
@@ -701,7 +707,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 
             // Fast path: single merged region — apply directly without splitting
             if (merged_regions.size() == 1 && merged_regions.front().expolygons.empty()) {
-                fuzzy_extrusion_line(extrusion->junctions, slice_z, *merged_regions.front().config, closed);
+                fuzzy_extrusion_line(extrusion->junctions, slice_z, perimeter_generator.layer_height, *merged_regions.front().config, closed);
                 return;
             }
 
@@ -761,7 +767,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 // Fuzzy splitted extrusion
                 if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
                     // The entire polygon is fuzzified
-                    fuzzy_extrusion_line(extrusion->junctions, slice_z, *r.config, closed);
+                    fuzzy_extrusion_line(extrusion->junctions, slice_z, perimeter_generator.layer_height, *r.config, closed);
                     continue;
                 } else {
                     const auto                              current_ext = extrusion->junctions;
@@ -769,12 +775,12 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     segment.reserve(current_ext.size());
                     extrusion->junctions.clear();
 
-                    const auto fuzzy_current_segment = [&segment, &extrusion, &r, slice_z]() {
+                    const auto fuzzy_current_segment = [&segment, &extrusion, &r, slice_z, layer_height]() {
                         // Orca: non fuzzy points to isolate fuzzy region
                         const auto front = segment.front();
                         const auto back  = segment.back();
 
-                        fuzzy_extrusion_line(segment, slice_z, *r.config, false);
+                        fuzzy_extrusion_line(segment, slice_z, layer_height, *r.config, false);
                         // Orca: only add non fuzzy point if it's not in the extrusion closing point.
                         if (!extrusion->junctions.empty() && extrusion->junctions.front().p != front.p) {
                             extrusion->junctions.push_back(front);
