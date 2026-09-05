@@ -1505,3 +1505,18 @@ TEST_CASE("imex_resolve_routing - routed_heads is sorted, deduplicated and never
     CHECK(all_out.routed_heads.empty());
     CHECK(all_out.primary_unrouted);
 }
+
+TEST_CASE("imex_pem_tool_for - a filament id past the end of the map has no tool", "[IMEX]") {
+    // See the note on imex_pem_tool_for in IMEXHelpers.hpp for why get_at() is wrong here: it
+    // clamps an out-of-range id to values.front(), which would pin that filament's pressure
+    // advance onto the primary's carriage instead of reporting "no mapping".
+    //
+    // -1 differs deliberately from imex_physical_heater_for(), which returns the logical id
+    // unchanged when out of range: that one must still name SOME heater, while a PA qualifier
+    // can simply be omitted.
+    const auto pem = make_pem({0, 0, 1, 2});  // 4 nozzles; slots 0-1 share head 0
+
+    REQUIRE(imex_pem_tool_for(4, "copy_mode", pem) == -1);
+    REQUIRE(imex_pem_tool_for(9, "copy_mode", pem) == -1);
+    REQUIRE(imex_pem_tool_for(-1, "copy_mode", pem) == -1);
+}

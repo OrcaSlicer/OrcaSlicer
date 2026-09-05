@@ -408,20 +408,24 @@ void IMEXModesCtrl::add_row(const std::string& name,
     // raw_row = flip_y ? (n_rows-1-row) : row
     // raw_col = flip_x ? (n_cols-1-col) : col
     //
-    // row_start: anchor displayed rows to the gantry row containing the Primary
-    // assignment, so reducing gantry count keeps the meaningful row visible.
-    int primary_gantry_row = 0;
-    for (const auto& [idx, role] : tool_roles) {
-        if (role == ImexRole::Primary) { primary_gantry_row = idx / m_n_cols; break; }
-    }
-    int row_start = primary_gantry_row; // display rows [row_start .. row_start+m_n_rows-1]
+    // The displayed window is always the whole grid: m_n_rows is the gantry count, so valid tool
+    // indices are 0 .. m_n_rows*m_n_cols-1 and rows 0 .. m_n_rows-1. A window m_n_rows tall can
+    // only lie entirely inside the grid when it starts at row 0.
+    //
+    // This used to anchor the window's first row to the Primary's gantry row, to "keep the
+    // meaningful row visible" when the gantry count shrank. That cannot work: shifting a
+    // full-height window forward walks it off the end, so it drew tiles for tools that do not
+    // exist and hid real ones, and clicking a phantom tile wrote a tool index that
+    // compute_imex_zone_layout() (IMEXZones.cpp:76) then discards. A Primary sitting outside the
+    // current grid is a data problem -- only reachable from a hand-authored mode string, since
+    // the editor will not move Primary off tool 0 -- and the zone layout already answers it by
+    // producing no zones at all. Showing the real grid is the honest rendering of that state.
 
     bool flip_x = (m_layout == 1 || m_layout == 3);
     bool flip_y = (m_layout == 2 || m_layout == 3);
     for (int row = m_n_rows - 1; row >= 0; --row) {
         for (int col = 0; col < m_n_cols; ++col) {
             int raw_row = flip_y ? (m_n_rows - 1 - row) : row;
-            raw_row += row_start; // anchor to Primary's gantry row
             int raw_col = flip_x ? (m_n_cols - 1 - col) : col;
             int tool_idx = raw_row * m_n_cols + raw_col;
             std::optional<ImexRole> role;  // nullopt == Inactive

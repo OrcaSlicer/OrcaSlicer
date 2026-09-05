@@ -60,7 +60,17 @@ int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const C
     const bool imex_parallel = !parallel_mode.empty() && parallel_mode != kImexPrimaryMode;
     if (!imex_parallel || pem.values.empty())
         return -1;
-    return pem.get_at(filament_id);
+    // Bounds-check rather than get_at(), for the same reason imex_physical_heater_for() below
+    // does: get_at() CLAMPS to values.front(), so a filament id past the end of the map would
+    // silently address physical head pem[0] instead of reporting "no mapping". The map is one
+    // entry per NOZZLE (effective_physical_extruder_map), while filament ids index filament
+    // SLOTS, and nothing caps the slot count at the nozzle count -- set_num_filaments() takes
+    // its size from the project, so opening a project authored with more filaments than this
+    // printer has extruders leaves ids past the end. Emitting no tool qualifier is correct
+    // there; pinning PA onto the primary's carriage is not.
+    if (filament_id < 0 || filament_id >= (int) pem.values.size())
+        return -1;
+    return pem.values[filament_id];
 }
 
 int imex_physical_heater_for(bool is_imex, const ConfigOptionInts& pem, int logical_id)
@@ -97,7 +107,7 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
         std::unordered_set<int> seen_physicals;
         for (int filament : used_filaments_0b) {
             if (filament < 0 || filament >= (int)pem.values.size()) continue;
-            const int phys = pem.get_at(filament);
+            const int phys = pem.values[filament];  // bounds-checked above; get_at would clamp
             if (!seen_physicals.insert(phys).second) {
                 return "Multi-color prints in IMEX parallel modes require each filament "
                        "to have its own dedicated physical extruder. Two or more of the active "

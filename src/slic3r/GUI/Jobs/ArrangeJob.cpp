@@ -448,6 +448,22 @@ void ArrangeJob::prepare()
     Model::setExtruderParams(config, numExtruders);
     Model::setPrintSpeedTable(config, print_config);
 
+    // Snapshot the IMEX zones here, on the main thread, so process() never has to touch
+    // PartPlate's IMEX cache. See the members' declaration for why that matters.
+    m_imex_primary_zone_local.reset();
+    m_imex_collision_zones_local.clear();
+    if (PartPlate* curr_plate = m_plater->get_partplate_list().get_curr_plate()) {
+        if (auto pz = curr_plate->imex_primary_zone()) {
+            const Vec3d  plate_origin = curr_plate->get_origin();
+            const double ox = plate_origin.x(), oy = plate_origin.y();
+            m_imex_primary_zone_local = BoundingBoxf(Vec2d(pz->min.x() - ox, pz->min.y() - oy),
+                                                     Vec2d(pz->max.x() - ox, pz->max.y() - oy));
+            for (const BoundingBoxf3& cz : curr_plate->imex_collision_zones())
+                m_imex_collision_zones_local.emplace_back(Vec2d(cz.min.x() - ox, cz.min.y() - oy),
+                                                         Vec2d(cz.max.x() - ox, cz.max.y() - oy));
+        }
+    }
+
     int state = m_plater->get_prepare_state();
     if (state == Job::JobPrepareState::PREPARE_STATE_DEFAULT) {
         only_on_partplate = false;
@@ -541,39 +557,34 @@ void ArrangeJob::process(Ctl &ctl)
 
     // When an IDEX/IQEX parallel mode is active, constrain auto-arrange to the primary zone only
     // and treat carriage collision strips as hard excluded regions.
-    // NOTE: m_imex_primary_zone_box and imex_collision_zones() are in global (world) coordinates
-    // because they are derived from m_shape which includes the plate origin offset.  The arranger
-    // always works in plate-local space (origin = 0,0), so we subtract the plate origin here.
-    if (PartPlate* curr_plate = partplate_list.get_curr_plate()) {
-        if (auto pz = curr_plate->imex_primary_zone()) {
-            Vec3d plate_origin = curr_plate->get_origin();
-            double ox = plate_origin.x(), oy = plate_origin.y();
-            BoundingBoxf pz_local(Vec2d(pz->min.x() - ox, pz->min.y() - oy),
-                                  Vec2d(pz->max.x() - ox, pz->max.y() - oy));
-            BoundingBox scaled_pz = scaled(pz_local);
-            bedpts = {
-                { scaled_pz.min.x(), scaled_pz.min.y() },
-                { scaled_pz.max.x(), scaled_pz.min.y() },
-                { scaled_pz.max.x(), scaled_pz.max.y() },
-                { scaled_pz.min.x(), scaled_pz.max.y() },
-            };
-            for (const BoundingBoxf3& cz : curr_plate->imex_collision_zones()) {
-                Polygon poly({
-                    { scaled(cz.min.x() - ox), scaled(cz.min.y() - oy) },
-                    { scaled(cz.max.x() - ox), scaled(cz.min.y() - oy) },
-                    { scaled(cz.max.x() - ox), scaled(cz.max.y() - oy) },
-                    { scaled(cz.min.x() - ox), scaled(cz.max.y() - oy) },
-                });
-                arrangement::ArrangePolygon ap;
-                ap.poly.contour  = poly;
-                ap.translation   = Vec2crd(0, 0);
-                ap.rotation      = 0.0;
-                ap.is_virt_object = true;
-                ap.bed_idx       = current_plate_index;
-                ap.height        = 1;
-                ap.name          = "IMEXCollisionZone";
-                m_unselected.emplace_back(std::move(ap));
-            }
+    // NOTE: the plate's zone boxes are in global (world) coordinates because they derive from
+    // m_shape, which includes the plate origin offset. The arranger works in plate-local space
+    // (origin = 0,0), so the plate origin is subtracted when the snapshot is taken in prepare();
+    // m_imex_primary_zone_local / m_imex_collision_zones_local are already plate-local here.
+    if (const auto& pz = m_imex_primary_zone_local) {
+        BoundingBox scaled_pz = scaled(*pz);
+        bedpts = {
+            { scaled_pz.min.x(), scaled_pz.min.y() },
+            { scaled_pz.max.x(), scaled_pz.min.y() },
+            { scaled_pz.max.x(), scaled_pz.max.y() },
+            { scaled_pz.min.x(), scaled_pz.max.y() },
+        };
+        for (const BoundingBoxf& cz : m_imex_collision_zones_local) {
+            Polygon poly({
+                { scaled(cz.min.x()), scaled(cz.min.y()) },
+                { scaled(cz.max.x()), scaled(cz.min.y()) },
+                { scaled(cz.max.x()), scaled(cz.max.y()) },
+                { scaled(cz.min.x()), scaled(cz.max.y()) },
+            });
+            arrangement::ArrangePolygon ap;
+            ap.poly.contour  = poly;
+            ap.translation   = Vec2crd(0, 0);
+            ap.rotation      = 0.0;
+            ap.is_virt_object = true;
+            ap.bed_idx       = current_plate_index;
+            ap.height        = 1;
+            ap.name          = "IMEXCollisionZone";
+            m_unselected.emplace_back(std::move(ap));
         }
     }
 

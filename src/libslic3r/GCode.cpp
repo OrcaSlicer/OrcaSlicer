@@ -3418,9 +3418,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         const auto plate_head_map = parse_imex_head_filament_map(
             print.objects().front()->config().imex_head_filament_map.value);
         const ConfigOptionInts& pem = print.config().physical_extruder_map;
-        const int primary_physical = pem.values.empty()
-            ? -1
-            : pem.get_at((int)initial_extruder_id);
+        // Bounds-check rather than get_at(), which clamps out-of-range to values.front(). The
+        // clamped value is used as a skip-primary sentinel below, so a filament id past the end
+        // of the map would suppress whichever head sits at pem[0]. -1 matches no head.
+        const int primary_physical =
+            ((int) initial_extruder_id >= 0 &&
+             (int) initial_extruder_id < (int) pem.values.size())
+                ? pem.values[(int) initial_extruder_id]
+                : -1;
         for (int logical : imex_secondary_logical_slots(
                 get_imex_active_tools(print), primary_physical, plate_head_map, pem))
             if (logical < (int)is_extruder_used.size())
@@ -3910,7 +3915,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // loop can skip the primary head (which emitted PA via the normal path).
             // Then pem-invert each active physical head back to its first routed filament
             // for the PA setting lookup. Guarded on non-empty pem above.
-            const int initial_physical = m_config.physical_extruder_map.get_at((int)initial_extruder_id);
+            // Bounds-check rather than get_at(), which clamps out-of-range to values.front():
+            // a clamped initial_physical would make this loop skip whichever active head equals
+            // pem[0], leaving that head with no PA at all. Same reasoning as the second-layer
+            // temperature loop below. -1 matches no head, so every active head is emitted.
+            const int initial_physical =
+                ((int) initial_extruder_id >= 0 &&
+                 (int) initial_extruder_id < (int) m_config.physical_extruder_map.values.size())
+                    ? m_config.physical_extruder_map.values[(int) initial_extruder_id]
+                    : -1;
             for (int tool_idx : get_imex_active_tools(print)) {
                 // Unlike the second-layer temperature loop, the primary is skipped here:
                 // set_extruder() above already emitted its PA with the pem tool qualifier.
@@ -5937,9 +5950,17 @@ LayerResult GCode::process_layer(
             // transition at all. `tool_idx` is physical; the printing head uses this layer's
             // own filament, the parallel carriages resolve through the head map.
             const int num_filament_columns = (int)print.config().nozzle_temperature.values.size();
-            const int initial_physical = m_config.physical_extruder_map.values.empty()
-                ? -1
-                : m_config.physical_extruder_map.get_at((int)first_extruder_id);
+            // Bounds-check rather than get_at(): get_at() clamps to values.front(), which would
+            // make initial_physical the primary's head for any first_extruder_id past the end of
+            // the map. A secondary that happens to sit on that head would then take the
+            // "initial" branch below and be given the wrong filament's transition temperature,
+            // while never receiving its own. -1 matches no tool, so every head takes the
+            // resolved path instead.
+            const int initial_physical =
+                ((int) first_extruder_id >= 0 &&
+                 (int) first_extruder_id < (int) m_config.physical_extruder_map.values.size())
+                    ? m_config.physical_extruder_map.values[(int) first_extruder_id]
+                    : -1;
             for (int tool_idx : get_imex_active_tools(print)) {
                 const int logical = (tool_idx == initial_physical)
                     ? (int)first_extruder_id

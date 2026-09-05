@@ -39,6 +39,14 @@ void IMEXFilamentPickerPopover::popup_at_cursor()
     Popup();
 }
 
+void IMEXFilamentPickerPopover::OnDismiss()
+{
+    wxPopupTransientWindow::OnDismiss();
+    // No CallAfter needed: wxPopupTransientWindowBase::Destroy() already defers by appending to
+    // wxPendingDelete, and guards a second call with a wxCHECK rather than double-freeing.
+    Destroy();
+}
+
 void IMEXFilamentPickerPopover::build_row()
 {
     m_root_sizer->Clear(true);
@@ -100,7 +108,10 @@ void IMEXFilamentPickerPopover::build_row()
         int sel = choice->GetSelection();
         if (sel < 0 || sel >= (int)lane_logicals.size()) return;
         on_filament_selected(lane_logicals[sel] + 1);
-        Dismiss();
+        // DismissAndNotify(), not Dismiss(): Dismiss() is only PopHandlers()+Hide() and never
+        // reaches OnDismiss(), so destroying from OnDismiss() would miss this path entirely --
+        // which is the one users take on every successful pick.
+        DismissAndNotify();
     });
 
     m_root_sizer->Add(choice, 0, wxALIGN_CENTER_VERTICAL | wxALL, 6);

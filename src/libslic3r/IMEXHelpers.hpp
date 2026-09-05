@@ -113,8 +113,12 @@ std::vector<ImexMode> imex_mode_table(const ConfigBase& cfg);
 //     resolve_filament_for_head(plate_head_filament_map, pem, physical_idx)
 // (or the simpler `first_filament_for_physical_head` if no per-plate override).
 //
-// The reverse translation (logical → physical) is `pem.get_at(logical_idx)`, already
-// encapsulated in `imex_pem_tool_for` for the per-tool-qualifier case.
+// The reverse translation (logical → physical) is `imex_pem_tool_for`. Do NOT reach for
+// `pem.get_at(logical_idx)`: get_at() CLAMPS an out-of-range index to values.front(), silently
+// answering "physical head pem[0]" for a logical id that has no mapping at all. The map is one
+// entry per nozzle while logical ids index filament slots, and nothing caps the slot count at
+// the nozzle count, so out-of-range is reachable. Bounds-check and treat the miss as "no
+// mapping" (-1 for a tool qualifier, which every caller renders as "emit none").
 //
 // Past bugs in this class:
 //   - GCode PA emission used the inline `pem.get_at(filament_id)` form at two

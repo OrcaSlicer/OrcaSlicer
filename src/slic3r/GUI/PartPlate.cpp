@@ -2126,7 +2126,21 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_hovered_texture);
                         std::string cur = get_imex_mode();
                         if (cur == kImexPrimaryMode) cur = _u8L("Primary");
-                        show_tooltip(_u8L("IDEX/IQEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
+                        // One format string, not two catalog fragments concatenated around a
+                        // runtime value: translators need to move the mode name within the
+                        // sentence, and the space-padded fragments were untranslatable alone.
+                        //
+                        // Guarded because this runs on the paint path: boost::format throws if a
+                        // TRANSLATED string drops or malforms %1%, and an exception escaping here
+                        // would take down the frame rather than show a wrong tooltip. The English
+                        // literal is the fallback and cannot itself throw.
+                        std::string imex_tip;
+                        try {
+                            imex_tip = (boost::format(_u8L("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)")) % cur).str();
+                        } catch (const std::exception&) {
+                            imex_tip = (boost::format("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)") % cur).str();
+                        }
+                        show_tooltip(imex_tip);
                     } else {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
                     }
