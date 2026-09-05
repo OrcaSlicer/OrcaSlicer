@@ -3148,7 +3148,25 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                 // BOOST_LOG_TRIVIAL(trace) << "Support generator - trim_support_layers_by_object - trimmming non-empty layer " << idx_layer << " of " << nonempty_layers.size();
                 assert(! support_layer.polygons.empty() && support_layer.print_z >= m_slicing_params.raft_contact_top_z + EPSILON);
                 // Find the overlapping object layers including the extra above / below gap.
-                coordf_t z_threshold = support_layer.bottom_print_z() - gap_extra_below + EPSILON;
+                // ORCA: For bottom-contact support layers, the support physically occupies
+                // [bottom_print_z, print_z] and sits on an object top surface that's gap_object_support
+                // below it. Object layers outside that vertical span cannot collide with the support,
+                // and including them in the lslice-based trim can erase the very area the support is
+                // meant to underpin. This is particularly harmful when:
+                //   * an object layer lies entirely above the support (its lslice may contain a
+                //     newly-emerging horizontal/cantilever cross-section), or
+                //   * an object layer lies entirely below the support with is_overlap == false; its
+                //     lslice gets inflated by no_overlap_xy_gap and that halo bleeds outward into
+                //     the cantilever bottom area near the riser/cantilever junction.
+                // Variable-layer-height combined with multi-material painting exposes this because
+                // painting forces extra object layer subdivisions that pull such layers into the trim.
+                const bool is_bottom_contact = (support_layer.layer_type == SupporLayerType::BottomContact);
+                const coordf_t upper_z_limit = is_bottom_contact
+                    ? support_layer.bottom_print_z()
+                    : support_layer.print_z + gap_extra_above;
+                coordf_t z_threshold = is_bottom_contact
+                    ? support_layer.bottom_print_z() - EPSILON
+                    : (support_layer.bottom_print_z() - gap_extra_below + EPSILON);
                 idx_object_layer_overlapping = Layer::idx_higher_or_equal(
                     object.layers().begin(), object.layers().end(), idx_object_layer_overlapping,
                     [z_threshold](const Layer *layer){ return layer->print_z >= z_threshold; });
@@ -3157,11 +3175,32 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                 size_t i = idx_object_layer_overlapping;
                 for (; i < object.layers().size(); ++ i) {
                     const Layer &object_layer = *object.layers()[i];
-                    if (object_layer.bottom_z() > support_layer.print_z + gap_extra_above - EPSILON)
+                    if (object_layer.bottom_z() > upper_z_limit - EPSILON)
                         break;
 
                     bool is_overlap = is_layers_overlap(support_layer, object_layer);
-                    for (const ExPolygon& expoly : object_layer.lslices) {
+
+                    // ORCA: When a top-contact support is trimmed by an object layer that lies
+                    // entirely above it, only the part of that cross-section that continues down
+                    // as a real wall (i.e. is present in the object layer immediately below) can
+                    // physically collide with the support. The freshly-emerging part is the
+                    // overhang this contact is meant to support, so trimming the contact by it
+                    // would erase the dense interface directly beneath the overhang. Restrict the
+                    // trim source to the vertically-continuous region in that case.
+                    // With uniform layers the supported overhang sits more than gap_support_object
+                    // above the contact and never enters the [print_z, print_z + gap_extra_above]
+                    // window, so this is a no-op for vertical walls; variable layer height combined
+                    // with multi-material painting can subdivide the object thinner than
+                    // gap_support_object and pull the supported bridge/overhang into the window,
+                    // which previously wiped the interface (e.g. a flat bridge over a recess losing
+                    // its interface on the recessed areas).
+                    const ExPolygons *trim_source = &object_layer.lslices;
+                    ExPolygons trim_continuous;
+                    if (!is_bottom_contact && i > 0 && object_layer.bottom_z() >= support_layer.print_z - EPSILON) {
+                        trim_continuous = intersection_ex(object_layer.lslices, object.layers()[i - 1]->lslices);
+                        trim_source = &trim_continuous;
+                    }
+                    for (const ExPolygon& expoly : *trim_source) {
                         // BBS
                         bool is_sharptail = !intersection_ex({ expoly }, object_layer.sharp_tails).empty();
                         coordf_t trimming_offset = is_sharptail ? scale_(sharp_tail_xy_gap) :
@@ -3177,13 +3216,13 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                         bool some_region_overlaps = false;
                         for (LayerRegion *region : object_layer.regions()) {
                             coordf_t bridging_height = region->region().bridging_height_avg(*m_print_config);
-                            if (object_layer.print_z - bridging_height > support_layer.print_z + gap_extra_above - EPSILON)
+                            if (object_layer.print_z - bridging_height > upper_z_limit - EPSILON)
                                 break;
                             some_region_overlaps = true;
 
                             bool is_overlap = is_layers_overlap(support_layer, object_layer, bridging_height);
                             coordf_t trimming_offset = is_overlap ? gap_xy_scaled : scale_(no_overlap_xy_gap);
-                            polygons_append(polygons_trimming, 
+                            polygons_append(polygons_trimming,
                                 offset(region->fill_surfaces.filter_by_type(stBottomBridge), trimming_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
                             if (region->region().config().detect_overhang_wall.value)
                                 // Add bridging perimeters.
