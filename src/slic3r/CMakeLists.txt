@@ -63,6 +63,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/BuildCommit.cpp
+    GUI/BuildCommit.hpp
     GUI/CrealityDiscoveryDialog.cpp
     GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
@@ -845,6 +847,18 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
 
+# Only BuildCommit.cpp includes the generated header, plus BaseException.cpp on
+# Windows. Both build into libslic3r_gui, so the header only has to exist before
+# that target builds.
+set(_git_commit_hash_header "${CMAKE_CURRENT_BINARY_DIR}/git_commit_hash.h")
+add_custom_target(git_commit_hash_header
+    BYPRODUCTS "${_git_commit_hash_header}"
+    COMMAND ${CMAKE_COMMAND}
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DOUT_FILE=${_git_commit_hash_header}"
+        -P "${CMAKE_CURRENT_LIST_DIR}/GitCommitHash.cmake"
+    COMMENT "Resolving the git commit hash")
+add_dependencies(libslic3r_gui git_commit_hash_header)
 
 if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(_opengl_link_lib "")
