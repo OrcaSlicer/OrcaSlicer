@@ -54,6 +54,21 @@ public:
     // frame's ImGui pass; `scale` is the tool's m_render_scale. Returns true if it drew.
     bool render(ImGuiWrapper& imgui, float scale);
 
+    // Ask for another frame. THE FIELD DOES NOT WORK WITHOUT THIS, and the reason is a deadlock
+    // that only a per-frame trace shows:
+    //
+    //   [UX] frame want_text=0 want_kb=0 active=0     <- frame 1: the widget is not active yet
+    //   [UX] frame want_text=0 want_kb=0 active=1     <- frame 2: it is now
+    //   (nothing further)                             <- the canvas has nothing to redraw, so it stops
+    //
+    // This canvas repaints ON DEMAND. ImGui decides whether it wants the keyboard at the END of a
+    // frame, from the active item, and GLCanvas3D::on_char only calls render() when
+    // update_key_data() says ImGui wants it. No frames -> WantTextInput never turns on -> no
+    // render on a keystroke -> still no frames. The characters sit in ImGui's queue and the field
+    // looks exactly as deaf as the window it replaced. One repaint per frame while it is open
+    // breaks the circle.
+    std::function<void()> request_frame;
+
     // Kept because callers ask them, but there is no longer any difference to report: with no
     // window there is no state where the field is on screen but logically closed, and no state
     // where it is open but somebody else holds the keyboard.

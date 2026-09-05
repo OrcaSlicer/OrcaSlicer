@@ -87,6 +87,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // The tool draws it: it owns the frame's ImGui pass and the render scale. Handing it a raw
     // pointer rather than the unique_ptr keeps the ownership where it was.
     m_sketch_tool.inline_editor = m_inline_editor.get();
+    m_inline_editor->request_frame = [this] { request_repaint(); };
     m_sketch_tool.on_inline_edit = [this](wxPoint screen_px, double current,
                                           const std::string& title,
                                           std::function<void(double)> commit,

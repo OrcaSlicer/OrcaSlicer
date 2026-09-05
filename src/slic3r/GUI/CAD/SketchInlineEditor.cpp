@@ -170,10 +170,26 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
                                           ImGuiInputTextFlags_EnterReturnsTrue
                                               | ImGuiInputTextFlags_AutoSelectAll
                                               | ImGuiInputTextFlags_CharsDecimal);
+    // MEASUREMENT, not a fix: one line per frame saying whether ImGui believes it owns the
+    // keyboard and whether our widget is the active one. "Typing does not arrive" has two very
+    // different causes — no FRAMES (this canvas repaints on demand only, so an idle canvas never
+    // processes ImGui's queued characters) versus frames that run while the input is not active —
+    // and they are indistinguishable from outside.
+    if (std::getenv("SNAPORCA_UXTRACE")) {
+        const ImGuiIO& io = ImGui::GetIO();
+        std::fprintf(stderr, "[UX] frame title=%s want_text=%d want_kb=%d active=%d buf=%s\n",
+                     m_title.c_str(), (int) io.WantTextInput, (int) io.WantCaptureKeyboard,
+                     (int) ImGui::IsItemActive(), m_buf);
+        std::fflush(stderr);
+    }
     ImGui::PopItemWidth();
     imgui.end();
     ImGui::PopStyleVar();
     ImGuiWrapper::pop_common_window_style();
+
+    // Keep the frames coming while the field is up — see request_frame's note in the header.
+    if (m_open && request_frame)
+        request_frame();
 
     // Act AFTER end(): do_commit can reopen the field for the next queued dimension, and that
     // must not happen inside this frame's window.
