@@ -1707,15 +1707,18 @@ void PrintConfigDef::init_fff_params()
         "This option creates bridges for counterbore holes, allowing them to be printed without support. Available modes include:\n"
          "1. None: No bridge is created\n"
          "2. Partially Bridged: Only a part of the unsupported area will be bridged\n"
-         "3. Sacrificial Layer: A full sacrificial bridge layer is created");
+         "3. Sacrificial Layer: A full sacrificial bridge layer is created\n"
+         "4. Tangential bridge: Generates crossed struts under the hole, providing a solid anchor with minimal extra material");
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<CounterboreHoleBridgingOption>::get_enum_values();
     def->enum_values.emplace_back("none");
     def->enum_values.emplace_back("partiallybridge");
     def->enum_values.emplace_back("sacrificiallayer");
+    def->enum_values.emplace_back("tangential");
     def->enum_labels.emplace_back(L("None"));
     def->enum_labels.emplace_back(L("Partially bridged"));
     def->enum_labels.emplace_back(L("Sacrificial layer"));
+    def->enum_labels.emplace_back(L("Tangential bridge"));
     def->set_default_value(new ConfigOptionEnum<CounterboreHoleBridgingOption>(chbNone));
 
     def = this->add("overhang_reverse_threshold", coFloatOrPercent);

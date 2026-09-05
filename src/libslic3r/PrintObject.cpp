@@ -1214,6 +1214,15 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wipe_on_loops"
             || opt_key == "wipe_speed") {
             steps.emplace_back(posPerimeters);
+            // ORCA: Tangential bridging logic uses wall_loops and line widths during slicing
+            if (opt_key == "wall_loops" || opt_key == "inner_wall_line_width") {
+                for (size_t i = 0; i < this->num_printing_regions(); ++i) {
+                    if (this->printing_region(i).config().counterbore_hole_bridging == chbTangential) {
+                        steps.emplace_back(posSlice);
+                        break;
+                    }
+                }
+            }
         } else if (
             opt_key == "small_area_infill_flow_compensation_model") {
             steps.emplace_back(posSlice);
@@ -1479,6 +1488,15 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "precise_outer_wall") {
             steps.emplace_back(posPerimeters);
             steps.emplace_back(posSupportMaterial);
+            // ORCA: Tangential bridging logic uses line widths during slicing
+            if (opt_key == "outer_wall_line_width") {
+                for (size_t i = 0; i < this->num_printing_regions(); ++i) {
+                    if (this->printing_region(i).config().counterbore_hole_bridging == chbTangential) {
+                        steps.emplace_back(posSlice);
+                        break;
+                    }
+                }
+            }
         } else if (opt_key == "bridge_flow" || opt_key == "internal_bridge_flow") {
             if (m_config.support_top_z_distance > 0.) {
             	// Only invalidate due to bridging if bridging is enabled.
