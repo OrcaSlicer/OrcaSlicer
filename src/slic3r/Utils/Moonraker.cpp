@@ -48,9 +48,10 @@ std::string Moonraker::make_url(const std::string &path) const
 
 void Moonraker::set_auth(Http &http) const
 {
-    //ORCA: Moonraker accepts unauthenticated requests by default; X-Api-Key is the only auth header
-    //      defined by the Moonraker spec. HTTP Basic / Digest do NOT belong here even if the user
-    //      filled the user/password fields — those are PrusaLink/OctoPrint conventions.
+    // ORCA: Send X-Api-Key only when configured. Without a key, requests rely on
+    // Moonraker's `[authorization] trusted_clients`; `force_logins` overrides
+    // trusted-client access when enabled and at least one user exists.
+    // HTTP Basic / Digest credentials are not used.
     if (!m_apikey.empty())
         http.header("X-Api-Key", m_apikey);
     if (!m_cafile.empty())

@@ -1,5 +1,6 @@
 #include "MoonrakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -111,7 +112,7 @@ MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
 
 AgentInfo MoonrakerPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"moonraker", "Moonraker", MoonrakerPrinterAgent_VERSION, "Klipper/Moonraker printer agent"};
+    return AgentInfo{MOONRAKER_PRINTER_AGENT_ID, "Moonraker", MoonrakerPrinterAgent_VERSION, "Klipper/Moonraker printer agent"};
 }
 
 void MoonrakerPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
@@ -1355,11 +1356,6 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     }
 
     const std::string model_id = device_info.model_id;
-
-    if (auto* app_config = GUI::wxGetApp().app_config) {
-        const std::string access_code = device_info.api_key.empty() ? "88888888" : device_info.api_key;
-        app_config->set_str("access_code", device_info.dev_id, access_code);
-    }
 
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;

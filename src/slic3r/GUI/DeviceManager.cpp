@@ -2,6 +2,7 @@
 #include "DeviceManager.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
@@ -434,6 +435,54 @@ std::string MachineObject::dev_id_from_address(const std::string& host, const st
     return result;
 }
 
+std::optional<std::string> MachineObject::find_printhost_access_code(
+    const PresetBundle& preset_bundle, const std::string& agent_id, const std::string& dev_id)
+{
+    if (agent_id != MOONRAKER_PRINTER_AGENT_ID)
+        return std::nullopt;
+
+    auto code_for_device = [&dev_id](const DynamicPrintConfig& config) -> std::optional<std::string> {
+        if (config.opt_string("printer_agent") != MOONRAKER_PRINTER_AGENT_ID)
+            return std::nullopt;
+
+        const std::string host = config.opt_string("print_host");
+        if (host.empty() || dev_id_from_address(host, config.opt_string("printhost_port")) != dev_id)
+            return std::nullopt;
+
+        return config.opt_string("printhost_apikey");
+    };
+
+    std::optional<std::string> matched_code;
+    bool                       conflicting_codes = false;
+    auto consider = [&](const DynamicPrintConfig& config) {
+        if (auto code = code_for_device(config)) {
+            if (matched_code && *matched_code != *code)
+                conflicting_codes = true;
+            else
+                matched_code = std::move(code);
+        }
+    };
+
+    consider(preset_bundle.printers.get_edited_preset().config);
+    for (const PhysicalPrinter& printer : preset_bundle.physical_printers)
+        consider(printer.config);
+    for (const Preset& preset : preset_bundle.printers)
+        consider(preset.config);
+
+    return conflicting_codes ? std::nullopt : matched_code;
+}
+
+bool MachineObject::reconcile_printhost_access_code(const PresetBundle& preset_bundle, bool persist)
+{
+    auto configured_code = find_printhost_access_code(preset_bundle, printer_agent_id, get_dev_id());
+    if (!configured_code)
+        return false;
+
+    if (*configured_code != get_access_code())
+        set_access_code(*configured_code, persist);
+    return true;
+}
+
 bool MachineObject::HasRecentCloudMessage()
 {
     auto curr_time = std::chrono::system_clock::now();
@@ -446,6 +495,11 @@ bool MachineObject::HasRecentLanMessage()
     auto curr_time = std::chrono::system_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_lan_msg_time_);
     return diff.count() < 5000;
+}
+
+bool MachineObject::has_access_right() const
+{
+    return printer_agent_id == MOONRAKER_PRINTER_AGENT_ID || !get_access_code().empty();
 }
 
 std::string MachineObject::get_access_code() const
@@ -2630,6 +2684,13 @@ int MachineObject::connect(bool use_openssl)
     if (get_dev_ip().empty()) return -1;
     std::string username = "bblp";
     std::string password = get_access_code();
+
+    if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID) {
+        if (const PresetBundle* bundle = GUI::wxGetApp().preset_bundle) {
+            if (reconcile_printhost_access_code(*bundle))
+                password = get_access_code();
+        }
+    }
 
     if (m_agent) {
         try {
