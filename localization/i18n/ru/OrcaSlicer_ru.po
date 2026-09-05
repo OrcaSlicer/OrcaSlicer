@@ -24111,3 +24111,18 @@ msgstr ""
 
 #~ msgid "Right click to reset value to system default."
 #~ msgstr "Правая кнопка мыши - сброс значения до системного по умолчанию."
+
+msgid "multiple intersections with a perimeter detected"
+msgstr "обнаружены множественные пересечения с периметром"
+
+msgid "modifier fully crosses the printable perimeter"
+msgstr "модификатор пересекает печатаемый периметр насквозь"
+
+msgid "modifier shape is not solid (has holes inside) and was ignored"
+msgstr "форма модификатора не сплошная (имеет отверстия) и была проигнорирована"
+
+msgid "perimeter is fully contained inside modifier and was ignored"
+msgstr "периметр полностью содержится внутри модификатора и был проигнорирован"
+
+msgid "Seam placement may differ from expected."
+msgstr "Размещение шва может отличаться от ожидаемого."

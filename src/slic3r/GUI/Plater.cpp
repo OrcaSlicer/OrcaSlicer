@@ -6668,6 +6668,7 @@ bool emboss_svg(Plater& plater, const wxString &svg_file, const Vec2d& mouse_dro
 }
 }
 
+
 // State to manage showing after export notifications and device ejecting
 enum ExportingStatus{
     NOT_EXPORTING,
