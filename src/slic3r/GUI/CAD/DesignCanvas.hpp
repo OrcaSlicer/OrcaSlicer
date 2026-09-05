@@ -293,6 +293,14 @@ public:
     // Sketch selection, for the offer menu: how many entities are selected and what the first
     // one is. Returns 0 when nothing is selected.
     int  sketch_selection_count() const;
+    // Esc routing (DesignInteraction.hpp). The panel decides WHICH level one press belongs to;
+    // these are the levels it can act on inside the canvas. Each returns whether it did anything,
+    // so the panel can fall through to the next level without asking twice.
+    bool sketch_abort_gesture();     // CadLevel::Gesture — drop the entity being drawn
+    bool sketch_disarm_tool();       // CadLevel::Tool    — armed sketch tool falls back to Select
+    bool drawing_in_progress() const;// an entity has clicks down but is not committed
+    bool has_any_selection() const;  // model pick or sketch pick
+    bool clear_any_selection();      // CadLevel::Idle — drop both; true if anything was dropped
     bool sketch_first_selected_type(SketchEntity::Type& out) const;
     // Live sketch session (Fase 4.2 live constraint path): the panel reads the in-session
     // selection and entities, and commits a planned constraint through the tool's
@@ -355,7 +363,8 @@ private:
 
     std::function<void(const wxPoint&)> m_on_context_menu;
     bool        m_ctx_bound{false};   // bind the RIGHT_UP handler once, however often the cb is set
-    wxPoint     m_ctx_press{0, 0};    // right-press origin: a right-DRAG pans, it must not offer
+    wxPoint     m_ctx_press{0, 0};    // right-press origin: a right-DRAG orbits, it must not offer
+    long long   m_ctx_press_ms{0};    // and a right-HOLD is navigation too, however still it is held
 
     Bed3D       m_bed;
     // The half of the camera swap above that is NOT on screen: the editor tabs' view while

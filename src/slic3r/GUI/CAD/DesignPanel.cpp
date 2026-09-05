@@ -4118,9 +4118,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         refresh_preview();
     });
 
-    // Esc exits the active sketch tool: drop the live session, restore Feature mode +
-    // the committed-sketch overlay (an in-progress draw is discarded). The tool's layered
-    // request_exit only calls this once it's an idle Select session.
+    // Leaving an EMPTY sketch session: restore Feature mode + the committed-sketch overlay.
+    // request_exit() calls this only for an idle Select session that holds no geometry, so
+    // nothing a user drew can reach here — discarding drawn work goes through tool_cancel's
+    // confirmation instead.
     m_viewport->set_on_sketch_exit([this]() {
         // While placing imported Text/SVG art, right-click = Confirm (keep the art) — the
         // Insert card is the explicit gate, this is the in-canvas shortcut to it.
@@ -4135,13 +4136,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->Refresh();
     });
 
-    // The tool refuses the exit layer of Esc when the sketch still has unsaved geometry (a
-    // second consecutive Esc is let through). The refusal lives in the tool's request_exit();
-    // only the STATUS LINE lives here, so the tool reports via this callback instead of
-    // writing text itself.
+    // The tool declined to leave because the session holds geometry. There is no "press it again"
+    // any more — the answer is a deliberate Finish or Cancel — so this is a plain statement of
+    // where you are, not a warning shot. Only the STATUS LINE lives here; the tool reports via
+    // this callback instead of writing text itself.
     m_viewport->set_on_sketch_exit_refused([this]() {
-        m_status->SetForegroundColour(wxColour(235, 110, 110));
-        set_status(_L("Sketch has unsaved geometry — use Confirm to keep it, or Cancel to discard"));
+        m_status->SetForegroundColour(wxNullColour);
+        set_status(_L("Sketch kept — Finish to commit it, Cancel to discard"));
         m_status->Refresh();
     });
 
@@ -4194,32 +4195,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_viewport->inline_commit();
                 return;
             }
-            if (key == WXK_ESCAPE) {
-                m_viewport->inline_cancel();
-                return;
-            }
+            // Esc is NOT special-cased here any more: escape() routes it, and the open field is
+            // exactly what CadLevel::Transient means, so it closes the field and stops there.
         }
 
-        // Esc must exit the sketch wherever focus happens to be. Which widget holds focus is an
-        // accident of where the user last clicked (a toolbar button, the Construction checkbox),
-        // and Esc must not depend on it — request_exit() is the layered behaviour the GL-canvas
-        // path already uses, so Esc means the same thing here as it does over the viewport.
-        // The predicate is the SESSION, not the armed tool. is_sketching() is
-        // DesignSketchTool::is_active(), true only while a draw tool is armed, and the state you
-        // are left in after committing an entity is ui_mode=Sketch with no tool armed -- so this
-        // branch used to be skipped exactly when a user reaches for Esc, and the Cancel button
-        // was the only way out ("Esc hardly ever works", exussum12 on PR #15238). Same mistake as
-        // snaporca-0ud, which gated the sketch key MAP on is_sketching() thirty lines above.
-        // request_exit() is layered and already handles the idle case, so widening the gate
-        // costs nothing: in-progress entity -> drop to Select -> exit the session.
-        if (key == WXK_ESCAPE && m_viewport
-            && (m_ui_mode == UiMode::Sketch || m_viewport->is_sketching())) {
-            m_viewport->request_sketch_exit();
-            return;
-        }
-
-        const bool dismissable = m_active != Tool::None || (m_viewport && m_viewport->moving_body());
-        if (key == WXK_ESCAPE && dismissable) { tool_cancel(); return; }
+        // ONE Esc, ONE route, whatever holds focus. Which widget has focus is an accident of where
+        // the user last clicked (a toolbar button, the Construction checkbox), and Esc must not
+        // depend on it. It used to be answered in four places — the inline field above, a sketch
+        // branch, a feature-card branch, and the canvas — none of which could see the others, so
+        // a press aimed at one of them fell through to the next and the SECOND press reached a
+        // layer that discarded the live sketch. escape() picks the single deepest live level and
+        // acts on that one only; see DesignInteraction.hpp for the ladder and its invariant.
+        if (key == WXK_ESCAPE) { escape(); return; }
 
         // The offer from the keyboard (charter 4.1): the Menu key, or Shift+F10 for keyboards that
         // do not have one. Same menu the right-click opens — show_offer_menu already decides which
@@ -11277,17 +11264,18 @@ void DesignPanel::tool_cancel()
     if (m_active == Tool::Insert) { cancel_insert(); return; }
     if (m_active != Tool::None)   { cancel_tool();   return; }
     if (m_ui_mode == UiMode::Sketch) {
-        // Escape is how anyone dismisses the inline dimension field, and it used to cascade
-        // straight through to here: first press disarmed the tool, second press dropped the
-        // whole live session — a drawn rectangle gone, silently, with no undo prompt. That is
-        // the "I cannot add the circle after the rectangle" report: the sketch was already
-        // destroyed. Discarding real work needs the explicit Cancel button, not a key people
-        // press to close a text field.
+        // THE explicit discard. Esc no longer arrives here at all (it routes through escape(),
+        // which cannot destroy anything), so this button is now the only way a drawn sketch is
+        // thrown away — and being the only way, it has to ask. It used to refuse instead, telling
+        // the user to press the very button they had just pressed: a sketch could be kept but
+        // never discarded.
         if (m_viewport && m_viewport->live_sketch_has_work()) {
-            m_status->SetForegroundColour(wxNullColour);
-            set_status(_L("Sketch kept — use Confirm to keep it, Cancel to discard"));
-            m_status->Refresh();
-            return;
+            wxMessageDialog dlg(this,
+                                _L("Discard this sketch and everything drawn in it?"),
+                                _L("Discard sketch"),
+                                wxYES_NO | wxNO_DEFAULT | wxICON_EXCLAMATION);
+            dlg.SetYesNoLabels(_L("Discard"), _L("Keep drawing"));
+            if (dlg.ShowModal() != wxID_YES) return;
         }
         if (m_viewport) m_viewport->cancel_sketch();   // drop the live session (committed art stays)
         m_edit_index = -1;
@@ -11307,6 +11295,98 @@ void DesignPanel::tool_cancel()
         m_status->SetForegroundColour(wxNullColour);
         set_status(wxString());
         m_status->Refresh();
+    }
+}
+
+// Which level of the interaction stack one Esc press belongs to. The rule itself lives in
+// DesignInteraction.hpp, decidable without a window; this only answers the four questions it
+// asks about THIS panel.
+CadLevel DesignPanel::escape_level() const
+{
+    CadInteractionState st;
+    // A value being typed is the deepest thing on screen, whether it is the in-canvas floating
+    // field or the panel's value card: both are "a number you are in the middle of entering".
+    st.value_field_open = (m_value_cont != nullptr)
+                          || (m_viewport && m_viewport->inline_busy());
+    // An uncommitted delta: clicks are down on an entity that does not exist yet, or a body is
+    // being moved by a gizmo that has not been confirmed.
+    st.gesture_active   = m_viewport
+                          && (m_viewport->drawing_in_progress()
+                              || (m_active == Tool::None && m_viewport->moving_body()));
+    // Something is armed and waiting for input: a feature card, a sketch draw tool, Constrain.
+    // A sketch SESSION is deliberately not in this list — see escape().
+    st.tool_armed       = (m_active != Tool::None)
+                          || m_ui_mode == UiMode::Constrain
+                          || (m_ui_mode == UiMode::Sketch && m_viewport && !m_viewport->sketch_is_selecting());
+    st.has_selection    = m_viewport && m_viewport->has_any_selection();
+    return cad_escape_level(st);
+}
+
+// Esc: unwind exactly one level. Nothing here deletes a feature, discards geometry or touches
+// history — those need Delete/Backspace on a selection, the sketch banner's Cancel, or Ctrl+Z.
+void DesignPanel::escape()
+{
+    switch (escape_level()) {
+    case CadLevel::Transient:
+        // Close just the field. The tool stays armed and the geometry is untouched, which is the
+        // whole reason this level exists: dismissing a number people press Esc for reflexively
+        // used to cascade down the stack and take the sketch with it.
+        if (m_value_cont)                      { cancel_value(); return; }
+        if (m_viewport)                        { m_viewport->inline_cancel(); return; }
+        return;
+
+    case CadLevel::Gesture:
+        // Restore the state from before the uncommitted delta. Drawing: drop the clicks, keep the
+        // tool armed so the next click starts a fresh entity. Moving: tool_cancel's move branch
+        // puts the body back at the pose it had when the gizmo appeared.
+        if (m_viewport && m_viewport->drawing_in_progress()) {
+            m_viewport->sketch_abort_gesture();
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(wxString());
+            m_status->Refresh();
+            return;
+        }
+        tool_cancel();
+        return;
+
+    case CadLevel::Tool:
+        // Back to the idle state of whatever environment we are in. A feature card discards its
+        // CANDIDATE (never a committed feature — in edit mode reset_edit_state only forgets which
+        // feature was being edited, the feature itself is untouched); an armed sketch tool falls
+        // back to Select, leaving every entity already drawn exactly where it is.
+        if (m_active != Tool::None || m_ui_mode == UiMode::Constrain) { tool_cancel(); return; }
+        if (m_viewport && m_viewport->sketch_disarm_tool()) {
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(_L("Select"));
+            m_status->Refresh();
+        }
+        return;
+
+    case CadLevel::Idle:
+        // Deselect. In a sketch this is the floor: the session is left through Finish or Cancel,
+        // both of which say which one they are, and never through a key pressed on the way out of
+        // something else.
+        if (m_viewport && m_viewport->clear_any_selection()) {
+            m_sel_sketch_region = -1;
+            m_sel_sketch_feat   = -1;
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(wxString());
+            m_status->Refresh();
+            return;
+        }
+        // Nothing selected and nothing to unwind. An EMPTY sketch session may as well close —
+        // there is no work to lose, so this cannot be the destructive case, and being unable to
+        // leave a sketch you have not drawn in yet is its own small trap.
+        if (m_ui_mode == UiMode::Sketch && m_viewport && !m_viewport->live_sketch_has_work()) {
+            m_viewport->request_sketch_exit();
+            return;
+        }
+        if (m_ui_mode == UiMode::Sketch) {
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(_L("Sketch kept — Finish to commit it, Cancel to discard"));
+            m_status->Refresh();
+        }
+        return;
     }
 }
 

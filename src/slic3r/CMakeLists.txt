@@ -785,6 +785,7 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignSketchTool.cpp
         GUI/CAD/DesignSketchTool.hpp
         GUI/CAD/DesignOffer.hpp
+        GUI/CAD/DesignInteraction.hpp
         GUI/CAD/SketchInlineEditor.cpp
         GUI/CAD/SketchInlineEditor.hpp
         GUI/CAD/McpControl.cpp

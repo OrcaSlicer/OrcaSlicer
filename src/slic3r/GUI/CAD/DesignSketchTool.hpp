@@ -185,6 +185,7 @@ public:
     // Survives set_solid_pick() — it is owned by the panel, not by the mesh feed.
     void set_pick_only_body(int b) { m_pick_only_body = b; }
     void clear_solid_selection();
+    bool has_solid_selection() const { return m_solid_sel != SolidSel::None; }
     // Select a whole body by index (from the Parts list) — Whole-level highlight, no face/edge.
     // body < 0 or out of range clears the selection.
     void select_body(int body);
@@ -455,6 +456,9 @@ public:
     // Selection (Mode::Select): pick points/lines/arcs/circles of the in-session
     // sketch; Shift/Ctrl extends, double-click grabs the whole connected loop.
     const std::vector<int>& selection() const { return m_selection; }
+    // Entities OR bare points: clear_selection() drops both, so "is anything picked" must ask
+    // about both, or Esc at idle would report nothing to do while a point sat highlighted.
+    bool sketch_has_selection() const { return !m_selection.empty() || !m_point_sel.empty(); }
     // Type of the first selected entity. False when nothing is selected, so the offer menu can
     // tell a line from an arc from a point and stop collapsing every sketch selection to "none".
     bool first_selected_type(SketchEntity::Type& out) const {
@@ -620,14 +624,17 @@ public:
     // Emitted when a closed-loop face is clicked in Select mode (Onshape: a region
     // becomes a selectable face → extrude). The panel commits the sketch + extrudes.
     std::function<void(int)> on_face_selected;   // region index into region_loops(m_entities)
-    // Esc pressed while the tool is active: exit/cancel the session (the panel restores
-    // Feature mode). Layered: an in-progress entity or a non-Select draw tool is dropped
-    // first; a second Esc exits the session.
+    // Esc pressed while the tool is active with nothing left to unwind and no geometry to
+    // lose: leave the session (the panel restores Feature mode).
     std::function<void()> on_exit;
-    // Esc refusal: request_exit() declined to destroy a sketch that still has geometry. The
-    // panel owns the status line, so the tool reports through this instead of writing text itself.
+    // request_exit() declined to leave because the session holds geometry. The panel owns the
+    // status line, so the tool reports through this instead of writing text itself.
     std::function<void()> on_exit_refused;
     std::function<void()> on_move_exit;   // right-click finished the move-body gizmo
+    // The two inner Esc levels, callable on their own so the panel can route one press to one
+    // level (see DesignInteraction.hpp). Each returns whether it had anything to unwind.
+    bool abort_gesture();   // CadLevel::Gesture — drop the entity being drawn
+    bool disarm_tool();     // CadLevel::Tool    — armed draw/edit tool falls back to Select
     void request_exit();
     // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) while the Design canvas is focused: undo/redo the
     // committed feature history. The tool just forwards to the host, which owns the
@@ -1174,10 +1181,6 @@ private:
                             double& edge_d, int& face_feat, int& face_reg) const;
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     bool m_escalate_repick{true};          // re-picking the same sub-element takes the whole body
-    // One-shot exit confirmation: request_exit() refused once because the sketch has unsaved
-    // geometry. The NEXT exit request (with nothing in between) is allowed through; any other
-    // action re-arms the refusal, so the warning is never a permanent block.
-    bool m_exit_refused{false};
     void render_solid_highlight();
     // The shared body of the above: one highlight from explicit arguments, so the committed
     // selection and the hover pre-highlight cannot drift apart in how they look.

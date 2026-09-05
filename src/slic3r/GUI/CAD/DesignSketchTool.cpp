@@ -225,7 +225,6 @@ void DesignSketchTool::rebuild_features_from_entities()
 
 void DesignSketchTool::set_tool(Mode mode)
 {
-    m_exit_refused = false;                 // any new action re-arms the one-shot exit refusal
     // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
     // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
     // here is most of why Fillet looked like it simply did not work: every documented route (type
@@ -335,28 +334,44 @@ void DesignSketchTool::cancel()
     reset_tf();
 }
 
-// Esc while active: layered exit (Onshape-like). Abort an in-progress entity first, then
-// drop a draw tool back to Select; only an idle Select session exits to Feature mode.
+// CadLevel::Gesture inside a sketch: drop the entity being drawn, keep the tool armed.
+bool DesignSketchTool::abort_gesture()
+{
+    if (m_points.empty()) return false;
+    m_points.clear();
+    m_has_cursor = false;
+    return true;
+}
+
+// CadLevel::Tool inside a sketch: an armed draw/edit tool falls back to Select.
+// Drop any pending edit-op BEFORE the downgrade: set_tool commits a ready one, and Esc must
+// cancel it, never apply it. Right-click already discards it through its own branch.
+bool DesignSketchTool::disarm_tool()
+{
+    if (m_mode == Mode::Select) return false;
+    reset_op();
+    set_tool(Mode::Select);
+    return true;
+}
+
+// Esc / right-click while active: layered exit (Onshape-like), and layered is where it stops.
+// Abort an in-progress entity first, then drop a draw tool back to Select, then — only if the
+// session holds NOTHING a user could mourn — leave it.
+//
+// It used to have a fourth layer: refuse once, and let the SECOND consecutive request destroy a
+// drawn sketch. That is the "I pressed Esc twice and my rectangle was gone" report, and no
+// warning makes it acceptable, because the two presses are never deliberate — the first is aimed
+// at a value field or a tool and the second at the tool underneath it. A session holding geometry
+// is now left ONLY through Finish (keep) or Cancel (discard), both of which say which they are.
+// This is the single decision point for every caller, keyboard and mouse alike, so the guarantee
+// cannot be re-opened by adding a route.
 void DesignSketchTool::request_exit()
 {
-    if (!m_points.empty()) { m_points.clear(); m_has_cursor = false; return; }
-    // Drop any pending edit-op BEFORE the downgrade: set_tool commits a ready one, and Esc must
-    // cancel it, never apply it. Right-click already discards it through its own branch.
-    if (m_mode != Mode::Select) { reset_op(); set_tool(Mode::Select); return; }
-    if (on_exit) {
-        // This is the layer that would destroy a drawn-but-uncommitted sketch. That is the one
-        // thing Esc must not do silently: refuse the FIRST time work exists, and only let a
-        // second consecutive Esc through. The panel reports the refusal; the tool only decides.
-        if (live_sketch_has_work() && !m_exit_refused) {
-            m_exit_refused = true;
-            if (on_exit_refused) on_exit_refused();
-            return;
-        }
-        m_exit_refused = false;
-        on_exit();
-    } else {
-        cancel();
-    }
+    if (abort_gesture()) return;
+    if (disarm_tool())   return;
+    if (live_sketch_has_work()) { if (on_exit_refused) on_exit_refused(); return; }
+    if (on_exit) on_exit();
+    else         cancel();
 }
 
 void DesignSketchTool::request_undo_redo(bool redo)
@@ -375,7 +390,6 @@ void DesignSketchTool::clear_selection()
 void DesignSketchTool::delete_selected()
 {
     if (m_selection.empty()) return;
-    m_exit_refused = false;                 // deleting is an action; re-arm the exit refusal
     const int n = int(m_entities.size());
     std::vector<bool> del(n, false);
     for (int i : m_selection)
@@ -9625,10 +9639,6 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 
 bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
-    // Re-arm the one-shot exit refusal on a BUTTON press only, never on motion: moving the
-    // mouse between the two Esc presses is what anyone would do, and re-arming there would
-    // make the second Esc refuse again — an Esc that can never exit while the hand moves.
-    if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) m_exit_refused = false;
     // Track the cursor in canvas client px so the in-canvas value editor can open right
     // where the user clicked (Onshape places the field at the click, not via a camera
     // projection — the design canvas's viewport isn't valid outside its own paint).

@@ -1,6 +1,7 @@
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 
 #include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
+#include "slic3r/GUI/CAD/DesignInteraction.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/3DBed.hpp"
@@ -16,6 +17,7 @@
 #include <cstdlib>
 
 #include <wx/glcanvas.h>
+#include <wx/stopwatch.h>   // wxGetLocalTimeMillis: the right-click vs right-hold budget
 #include <wx/sizer.h>
 #include <wx/frame.h>
 #include <wx/stattext.h>
@@ -1038,23 +1040,33 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     // the view. The offer is the release of a STATIONARY right-click, at the same 8 px budget
     // the left-click pick uses.
     m_canvas_widget->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
-        m_ctx_press = e.GetPosition();
-        e.Skip();     // the canvas still needs the press to seed the pan
+        m_ctx_press    = e.GetPosition();
+        m_ctx_press_ms = wxGetLocalTimeMillis().GetValue();
+        e.Skip();     // the canvas still needs the press to seed the orbit
     });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
-        const wxPoint d = e.GetPosition() - m_ctx_press;
+        const wxPoint d  = e.GetPosition() - m_ctx_press;
+        const long long dt = wxGetLocalTimeMillis().GetValue() - m_ctx_press_ms;
         // Always read-and-clear, even when another guard already rules the offer out, or a
         // terminator recorded under one condition would still be pending under the next.
         const bool terminated = m_sketch_tool.take_right_consumed();
-        if (m_on_context_menu && !terminated && !inline_busy()
-            && std::max(std::abs(d.x), std::abs(d.y)) <= 8) {
-            // The menu belongs to what you POINTED AT. Pick first, so a right-click on a line
-            // offers that line's verbs instead of the empty-selection vocabulary. Selecting an
-            // entity that is already selected is a no-op, so a multi-entity pick survives a
+        // Click, or navigation? Both budgets must hold: a press that travelled orbited, and a
+        // press that was HELD was aiming to orbit even if the hand never quite moved. Two
+        // independent budgets because the two failure modes are independent — the drift one
+        // alone still popped a menu at the end of a slow, careful orbit.
+        const bool is_click = std::max(std::abs(d.x), std::abs(d.y)) <= kCadRightClickDriftPx
+                              && dt <= kCadRightClickMs;
+        if (m_on_context_menu && !terminated && !inline_busy() && is_click) {
+            // The menu belongs to what you POINTED AT — and pointing happened at the PRESS, not
+            // at the release, so the raycast uses the press position. Within a 3 px budget the
+            // two are the same pixel in practice; using the press is what makes that a
+            // guarantee rather than a coincidence. Pick first, so a right-click on a line offers
+            // that line's verbs instead of the empty-selection vocabulary. Selecting an entity
+            // that is already selected is a no-op, so a multi-entity pick survives a
             // right-click on one of its members.
-            if (m_canvas && m_sketch_tool.select_at_screen(*m_canvas, e.GetX(), e.GetY()))
+            if (m_canvas && m_sketch_tool.select_at_screen(*m_canvas, m_ctx_press.x, m_ctx_press.y))
                 request_repaint();
-            m_on_context_menu(m_canvas_widget->ClientToScreen(e.GetPosition()));
+            m_on_context_menu(m_canvas_widget->ClientToScreen(m_ctx_press));
             return;   // consumed
         }
         e.Skip();
@@ -1472,6 +1484,48 @@ bool DesignCanvas::is_constraining_entities() const
 int DesignCanvas::sketch_selection_count() const
 {
     return int(m_sketch_tool.selection().size());
+}
+
+bool DesignCanvas::sketch_abort_gesture()
+{
+    if (!m_sketch_tool.abort_gesture()) return false;
+    request_repaint();     // the rubber band is gone; the canvas must stop drawing it
+    return true;
+}
+
+bool DesignCanvas::sketch_disarm_tool()
+{
+    if (!m_sketch_tool.disarm_tool()) return false;
+    request_repaint();
+    return true;
+}
+
+bool DesignCanvas::drawing_in_progress() const
+{
+    return m_sketch_tool.pending_points() > 0;
+}
+
+bool DesignCanvas::has_any_selection() const
+{
+    return m_sketch_tool.has_solid_selection() || m_sketch_tool.sketch_has_selection();
+}
+
+bool DesignCanvas::clear_any_selection()
+{
+    if (!has_any_selection()) return false;
+    // Both, unconditionally: which of the two is live depends on the mode, and Esc at idle means
+    // "nothing is picked" in either of them. clear_selection() reports through the tool's own
+    // on_selection_changed; the solid side has no such notification, so the panel refreshes what
+    // depends on it (see DesignPanel::escape).
+    m_sketch_tool.clear_selection();
+    m_sketch_tool.clear_solid_selection();
+    // clear_solid_selection() is silent by design (recomputes call it while ids are invalid), but
+    // the panel mirrors the pick to aim Extrude and the dress-up tools. An Esc that cleared the
+    // highlight without telling the panel would leave those aimed at a body nothing points to.
+    if (m_sketch_tool.on_solid_selection_changed)
+        m_sketch_tool.on_solid_selection_changed(0, -1, -1, -1);
+    request_repaint();
+    return true;
 }
 
 bool DesignCanvas::sketch_first_selected_type(SketchEntity::Type& out) const

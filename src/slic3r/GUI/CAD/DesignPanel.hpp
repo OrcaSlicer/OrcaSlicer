@@ -11,6 +11,7 @@
 #include <map>
 
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "slic3r/GUI/CAD/DesignInteraction.hpp"   // CadLevel: what one Esc press means
 
 class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
 class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)
@@ -106,7 +107,14 @@ private:
     void apply_dof_status(int dof, bool ok, bool has_constraints);
     // Unified action-bar dispatch: one Confirm / one Cancel for every tool and mode.
     void tool_confirm();        // ✓ : commit the active feature / sketch / constrain session
-    void tool_cancel();         // ✗ / Esc : cancel the active feature / discard / exit
+    void tool_cancel();         // ✗ : cancel the active feature / discard / exit
+    // Esc. ONE press unwinds ONE level of the interaction stack (DesignInteraction.hpp), and no
+    // level of it destroys committed work. escape_level() answers which level the press belongs
+    // to; escape() acts on exactly that one. Every Esc in the tab routes through here — the key
+    // used to be handled in four places that could not see each other, and that is how two
+    // presses in a row reached past a tool and discarded the sketch under it.
+    CadLevel escape_level() const;
+    void     escape();
     void update_action_bar();   // show the ✓/✗ bar iff a tool or mode is active
 
     void on_shape_changed();
