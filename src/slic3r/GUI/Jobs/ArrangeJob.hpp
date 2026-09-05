@@ -27,6 +27,7 @@ class ArrangeJob : public Job
     std::vector<int> m_uncompatible_plates;  // plate indices with different printing sequence than global
 
     arrangement::ArrangeParams params;
+    std::optional<arrangement::PortfolioResult> m_portfolio_result;
     int current_plate_index = 0;
     Polygon bed_poly;
     Plater *m_plater;

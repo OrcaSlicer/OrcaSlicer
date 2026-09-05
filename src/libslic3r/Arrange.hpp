@@ -5,6 +5,8 @@
 #include "PrintConfig.hpp"
 #include "Print.hpp"
 
+#include <optional>
+
 #define BED_SHRINK_SEQ_PRINT 5
 
 namespace Slic3r {
@@ -12,6 +14,39 @@ namespace Slic3r {
 class BoundingBox;
 
 namespace arrangement {
+
+/// Placement tactic for sequential printing — determines the starting_point
+/// of the NFP placer. Maps directly to libnest2d NfpPConfig::Alignment values.
+/// Corresponds to STRATEGY.Tactic in Portfolio-CEGAR-SEQ (Surynek, 2026).
+enum class PlacementTactic {
+    Center,   // Place towards bed center (libnest2d: CENTER)
+    MaxXMinY, // Place towards max X, min Y corner (libnest2d: BOTTOM_RIGHT)
+    MinXMaxY, // Place towards min X, max Y corner (libnest2d: TOP_LEFT)
+    MinXMinY, // Place towards min X, min Y corner (libnest2d: BOTTOM_LEFT) — current seq_print default
+    MaxXMaxY, // Place towards max X, max Y corner (libnest2d: TOP_RIGHT) — current non-seq default
+};
+
+/// Object ordering for sequential printing — determines how items are sorted
+/// before packing. Corresponds to STRATEGY.Ordering in Portfolio-CEGAR-SEQ.
+enum class ObjectOrdering {
+    HeightMinToMax, // Shortest first (ascending height) — current default
+    HeightMaxToMin, // Tallest first (descending height)
+    HeightRandom,   // Random order (deterministic seed per run)
+    HeightInput,    // Input order (no height-based reordering)
+};
+
+/// A composite arrangement strategy combining a placement tactic and an object ordering.
+/// Used by the portfolio runner (ORCA-2) to evaluate multiple strategies in parallel.
+struct ArrangeStrategy {
+    PlacementTactic tactic;
+    ObjectOrdering  ordering;
+
+    /// Returns the current default strategy for sequential printing.
+    static ArrangeStrategy defaults_for_seq_print()
+    {
+        return {PlacementTactic::MinXMinY, ObjectOrdering::HeightMinToMax};
+    }
+};
 
 /// A geometry abstraction for a circular print bed. Similarly to BoundingBox.
 class CircleBed {
@@ -138,6 +173,11 @@ struct ArrangeParams {
     float printable_height = 256.0;
     Vec2d align_center{ 0.5,0.5 };
 
+    /// Optional arrangement strategy for sequential printing (portfolio mode).
+    /// When set and is_seq_print is true, overrides the default placement tactic
+    /// and object ordering. When nullopt, behavior is identical to current code.
+    std::optional<ArrangeStrategy> strategy;
+
     ArrangePolygons excluded_regions;   // regions cant't be used
     ArrangePolygons nonprefered_regions; // regions can be used but not prefered
 
@@ -213,6 +253,32 @@ inline void arrange(ArrangePolygons &items, const BoundingBox &bed, const Arrang
 inline void arrange(ArrangePolygons &items, const CircleBed &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 inline void arrange(ArrangePolygons &items, const Polygon &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 inline void arrange(ArrangePolygons &items, const InfiniteBed &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
+
+/// Result info from portfolio arrangement, reporting which strategy won.
+struct PortfolioResult {
+    ArrangeStrategy best_strategy;
+    int             num_plates;          // number of plates used by best strategy
+    int             strategies_evaluated; // how many strategies completed (may be < 20 on cancel)
+};
+
+/**
+ * \brief Runs multiple arrangement strategies in parallel and picks the best.
+ *
+ * Generates the cartesian product of all PlacementTactics × ObjectOrderings (20 strategies),
+ * runs each in parallel via TBB, and selects the result with the fewest plates.
+ * Falls back to single arrange() if is_seq_print is false or items are empty.
+ *
+ * \param items      Input/output polygons (overwritten with best result).
+ * \param excludes   Fixed exclusion regions (shared, read-only).
+ * \param bed        Bed shape as point set.
+ * \param params     Arrangement parameters. strategy field is ignored (overwritten per run).
+ * \return           Info about which strategy won, or nullopt if fallback was used.
+ */
+std::optional<PortfolioResult> portfolio_arrange(
+    ArrangePolygons &items,
+    const ArrangePolygons &excludes,
+    const Points &bed,
+    const ArrangeParams &params);
 
 }} // namespace Slic3r::arrangement
 
