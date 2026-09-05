@@ -1,7 +1,6 @@
 {
     "type": "filament",
     "setting_id": "GFSA04",
-    "from": "system",
     "instantiation": "true",
     "chamber_temperature": "55",
     "default_filament_colour": [
