@@ -1400,13 +1400,26 @@ int CLI::run(int argc, char **argv)
         params.load_configs = load_configs;
         params.extra_config = std::move(m_extra_config);
 
+        //ORCA: argv file paths must be absolutized before they reach the GUI. wxWidgets can change
+        //      the process cwd during init (locale / AppConfig / wxStandardPaths), so a relative
+        //      argv path resolves against the wrong directory by the time Plater::load_files runs —
+        //      silent failure / "no geometry data". Use weakly_canonical so existing relative paths
+        //      are fully canonicalized; non-existent paths fall back to absolute() against the
+        //      current cwd.
         std::vector<std::string>    gcode_files;
         std::vector<std::string>    non_gcode_files;
         for (const auto& filename : m_input_files) {
-            if (is_gcode_file(filename))
-                gcode_files.emplace_back(filename);
+            std::string abs_filename = filename;
+            try {
+                abs_filename = boost::filesystem::weakly_canonical(boost::filesystem::path(filename)).string();
+            } catch (const std::exception &ex) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to canonicalize input path \""
+                                           << filename << "\": " << ex.what() << "; using path as-is";
+            }
+            if (is_gcode_file(abs_filename))
+                gcode_files.emplace_back(std::move(abs_filename));
             else {
-                non_gcode_files.emplace_back(filename);
+                non_gcode_files.emplace_back(std::move(abs_filename));
             }
         }
         if (non_gcode_files.empty() && !gcode_files.empty()) {
@@ -1415,7 +1428,9 @@ int CLI::run(int argc, char **argv)
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", gcode only, gcode_files size = "<<params.input_files.size();
         }
         else {
-            params.input_files  = std::move(m_input_files);
+            //ORCA: use the absolutized non_gcode_files vector here, not the raw m_input_files
+            //      (which still holds the relative paths read from argv).
+            params.input_files  = std::move(non_gcode_files);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", normal mode, input_files size = "<<params.input_files.size();
         }
         //BBS: remove GCodeViewer as separate APP logic
