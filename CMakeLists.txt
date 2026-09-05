@@ -1089,6 +1089,9 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${CMAKE_PREFIX_PATH}/bin/avutil-59.dll
          DESTINATION ${_out_dir})
 
+    file(COPY ${CMAKE_PREFIX_PATH}/bin/mesa/opengl32.dll
+        DESTINATION ${_out_dir}/mesa/)
+
     set(${output_dlls}
         ${_out_dir}/libgmp-10.dll
         ${_out_dir}/libmpfr-4.dll
@@ -1257,6 +1260,9 @@ if (WIN32)
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
+
+    # install Mesa3D
+    install(FILES "${CMAKE_PREFIX_PATH}/bin/mesa/opengl32.dll" DESTINATION "./mesa")
 elseif (SLIC3R_FHS)
     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
     set(SLIC3R_FHS_RESOURCES "${CMAKE_INSTALL_FULL_DATAROOTDIR}/OrcaSlicer")
