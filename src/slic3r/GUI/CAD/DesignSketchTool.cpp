@@ -2,6 +2,7 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <imgui/imgui.h>
@@ -8479,6 +8480,11 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     m_dim_label_seq = 0;
     m_render_scale  = canvas.get_scale();
     emit_step_hint();   // before the early returns: an armed tool on an empty sketch still guides
+    // The value field, BEFORE every early return below. It can be up in Constrain mode on a
+    // committed feature and on an empty sketch, and a field that is not drawn is a field that is
+    // not there — there is no window to fall back to any more.
+    if (inline_editor != nullptr)
+        inline_editor->render(*wxGetApp().imgui(), m_render_scale);
     (void)canvas;
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD

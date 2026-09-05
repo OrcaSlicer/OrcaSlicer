@@ -4,88 +4,75 @@
 #include <functional>
 #include <string>
 
-#include <wx/window.h>
-
-class wxFrame;
-class wxTextCtrl;
-class wxStaticText;
-class wxPoint;
+#include <wx/gdicmn.h>
 
 namespace Slic3r {
 namespace GUI {
 
-// Onshape-style in-canvas value editor: a small borderless floating frame holding a
-// wxTextCtrl, shown at screen coordinates over the GL canvas. A top-level frame is
-// used (not a child widget) because a native child cannot be composited over the
-// double-buffered wxGLCanvas under GTK3/llvmpipe — it stays invisible. Enter (or blur)
-// commits the parsed number, Esc cancels. This is the single numeric-entry path for
-// sketch dimensions, replacing the docked/modal value cards.
+class ImGuiWrapper;
+
+// Onshape-style in-canvas value editor.
+//
+// IT IS NOT A WINDOW. It used to be a borderless top-level wxFrame holding a wxTextCtrl, and
+// that is the whole history of this file: a separate top-level window can only receive typing
+// if the window manager grants it focus, and whether it does is not ours to decide. openbox
+// grants it; mutter's focus-stealing prevention refuses it, so on a GNOME desktop the field
+// appeared, showed its value selected, and silently ignored every keystroke — Enter then
+// committed the number it opened with. Seven workarounds were tried against that (a real X11
+// server timestamp for gtk_window_present, re-asserted SetFocus, dropping the _UTILITY hint,
+// keeping the frame mapped between two queued fields, forwarding keys from the panel's
+// CHAR_HOOK), one of them caused a macOS regression, and the test harness ended up clicking the
+// field before typing — which is the workaround a user cannot be asked to perform, and is
+// exactly the "label value not editable" report.
+//
+// So the field stops asking. It is now drawn INSIDE the GL canvas as an ImGui overlay, at the
+// same screen point as before, and its keys arrive through the canvas's own key events, which
+// GLCanvas3D already feeds to ImGui (see GLCanvas3D::on_key / on_char -> update_key_data). The
+// canvas is part of the main window and already has focus, so there is no second window, no
+// second focus, and no window manager in the path. The dimension labels next to it are already
+// ImGui overlays (DesignSketchTool::draw_dim_label), so this is the same vocabulary, not a new
+// one.
+//
+// Ownership: DesignCanvas owns it; DesignSketchTool::render() calls render() once per frame.
 class SketchInlineEditor
 {
 public:
-    explicit SketchInlineEditor(wxWindow* parent_canvas);
+    SketchInlineEditor() = default;
 
-    // Show the editor centred on `screen_px` (absolute screen coords), pre-filled with
-    // `value`. on_commit(parsed) fires on Enter with a valid number; on_cancel() on Esc.
-    void open(const wxPoint& screen_px, double value, const std::string& title,
+    // Open the field anchored at `canvas_px` (canvas DEVICE pixels, the coordinate space the
+    // sketch tool works in), pre-filled with `value` and pre-selected. on_commit(parsed) fires
+    // on Enter with a valid number; on_cancel() on Esc.
+    void open(const wxPoint& canvas_px, double value, const std::string& title,
               std::function<void(double)> on_commit,
               std::function<void()> on_cancel);
-    void close();
+    void close();                        // drop it with neither callback
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
     void commit();                       // if open, run the registered commit (accept the typed value)
     bool is_open() const { return m_open; }
-    // MAPPED is not the same question as OPEN, and conflating them is how the keyboard dies.
-    // The frame is deliberately left mapped across a queued dimension chain (mutter refuses
-    // focus to a re-mapped window), so there is a window in which m_open is already false and
-    // the frame is still on screen holding the X input focus. GTK meanwhile reports the window
-    // inactive, so it routes nothing to the text control — and every key the user presses lands
-    // in a window that cannot use it and will not give it back. Delete, Esc and typing all read
-    // as dead. Callers ask this to find the orphan; dismiss() is how they kill it.
-    bool is_mapped() const;
-    void dismiss();                      // unconditional teardown: works on an ORPHANED frame too
 
-private:
-    void return_focus();                 // hand the keyboard back to the canvas, not to a hidden window
-public:
-    // True when the field itself holds keyboard focus. Callers use this to decide whether the
-    // field will handle a key on its own or needs it forwarded — see DesignPanel's CHAR_HOOK.
-    //
-    // NOTE what this is NOT for any more: deciding whether the field may receive a character.
-    // Whether a borderless top-level window is granted focus is the window manager's call and
-    // differs per desktop — openbox grants it, mutter refuses it — so a routing rule built on
-    // this question gives a different product on every machine. Routing is now by CONTENT
-    // (DesignPanel's arbiter); this stays only to avoid forwarding a key the field is already
-    // going to get for itself, which would type it twice.
-    bool has_focus() const { return m_ctrl != nullptr && wxWindow::FindFocus() == m_ctrl; }
+    // Draw it, and let ImGui do the editing. Called from DesignSketchTool::render() inside the
+    // frame's ImGui pass; `scale` is the tool's m_render_scale. Returns true if it drew.
+    bool render(ImGuiWrapper& imgui, float scale);
 
-    // Deliver one character into the field programmatically, bypassing focus entirely.
-    // `key` is a wx key code: a printable character is inserted, WXK_BACK/WXK_DELETE edit.
-    // Returns true if the field consumed it. Modelled on FreeCAD, whose sketcher decides where a
-    // key belongs from the key itself and never queries focus:
-    // DrawSketchKeyboardManager::detectKeyboardEventHandlingMode routes digits, '-', '.', ','
-    // and Backspace/Delete to the on-view parameter and everything else to the view.
-    bool type_char(int key);
+    // Kept because callers ask them, but there is no longer any difference to report: with no
+    // window there is no state where the field is on screen but logically closed, and no state
+    // where it is open but somebody else holds the keyboard.
+    bool is_mapped() const { return m_open; }
+    bool has_focus() const { return m_open; }
+    void dismiss() { close(); }
 
 private:
     void do_commit();
     void do_cancel();
-    // Say WHY a value was refused, in the title line above the field. Refusing input in
-    // silence is indistinguishable from the app having frozen — the field just sits there
-    // with the text re-selected and the user has no idea what it wants.
-    void refit();                        // re-Fit around a changed title, then re-clamp on-screen
-    void flag_invalid(const wxString& why);
-    void clear_invalid();
 
-    wxWindow*                   m_parent{nullptr};   // the GL canvas: where focus must go back to
-    wxFrame*                    m_frame{nullptr};
-    wxTextCtrl*                 m_ctrl{nullptr};
-    wxStaticText*               m_title{nullptr};
     std::function<void(double)> m_commit;
     std::function<void()>       m_cancel;
-    bool                        m_open{false};
-    bool                        m_closing{false};
-    wxString                    m_title_text;   // the real title, restored after an error message
-    wxString                    m_prefill;      // what open() put in the field; see trace_ux
+    bool        m_open{false};
+    bool        m_focus_pending{false};  // one frame of SetKeyboardFocusHere after opening
+    wxPoint     m_anchor{0, 0};          // canvas device px
+    std::string m_title;
+    std::string m_err;                   // why the last value was refused, shown in the title line
+    char        m_buf[64]{};             // the edited text; ImGui::InputText writes into it
 };
 
 }} // namespace Slic3r::GUI

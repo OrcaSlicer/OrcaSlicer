@@ -1,469 +1,187 @@
 #include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
-#include "slic3r/GUI/I18N.hpp"   // _L for the refusal messages shown in the title line
 
-#include <wx/display.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/Color.hpp"
 
-#include <wx/frame.h>
-#include <wx/textctrl.h>
-#include <wx/stattext.h>
-#include <wx/sizer.h>
-#include <wx/window.h>
-#include <wx/toplevel.h>
-#include <wx/gdicmn.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>   // BringWindowToDisplayFront / GetCurrentWindow
 
-#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-
-#ifdef __WXGTK__
-#include <gtk/gtk.h>
-#ifdef GDK_WINDOWING_X11
-#include <gdk/gdkx.h>
-#endif
-#endif
+#include <cstring>
+#include <string>
 
 namespace Slic3r {
 namespace GUI {
 
 namespace {
-// Locale-safe value <-> text (wx sets LC_NUMERIC to the user locale, so snprintf may
-// emit a comma; parsing accepts either separator). Mirrors DesignPanel's en_*.
-wxString en_format(double v, int digits = 2)
+
+// Numbers are typed and shown with a POINT, whatever the locale: this field feeds a CAD kernel,
+// and a decimal comma reaching it as a thousands separator is a silent order-of-magnitude error.
+// Parsing accepts either separator because a keyboard's numeric pad may only offer one.
+std::string fmt_value(double v, int digits = 2)
 {
     char fmt[16];
     std::snprintf(fmt, sizeof(fmt), "%%.%df", digits);
     char buf[64];
     std::snprintf(buf, sizeof(buf), fmt, v);
-    for (char* c = buf; *c; ++c) if (*c == ',') *c = '.';
-    return wxString::FromUTF8(buf);
-}
-bool en_parse(const wxString& text, double& out)
-{
-    wxString t(text);
-    t.Replace(wxT(","), wxT("."));
-    return t.ToCDouble(&out);
+    for (char* c = buf; *c; ++c)
+        if (*c == ',') *c = '.';
+    return std::string(buf);
 }
 
-// Present the toplevel with a real X11 server timestamp: wxFrame::Raise() maps to
-// gtk_window_present() with gtk_get_current_event_time(), which inside a CallAfter is
-// GDK_CURRENT_TIME (0) and is ignored by mutter's focus-stealing prevention. A server
-// timestamp lets the compositor grant focus to the re-mapped window.
-#ifdef __WXGTK__
-void present_toplevel(wxFrame* frame)
+bool parse_value(const char* text, double& out)
 {
-#ifdef GDK_WINDOWING_X11
-    if (frame) {
-        GtkWidget* widget = static_cast<GtkWidget*>(frame->GetHandle());
-        if (widget && GTK_IS_WIDGET(widget)) {
-            GdkWindow* gdkwin = gtk_widget_get_window(widget);
-            // REALIZE, then retry, rather than dropping to the fallback below. An unrealized
-            // widget has no GdkWindow, so there is nothing to read a server timestamp from —
-            // and the fallback is wxFrame::Raise(), which asks for activation with
-            // GDK_CURRENT_TIME. Zero is precisely the value focus-stealing prevention throws
-            // away; metacity says so out loud:
-            //
-            //   Buggy client sent a _NET_ACTIVE_WINDOW message with a timestamp of 0
-            //
-            // and mutter, same lineage, refuses it silently on the user's desktop. That refusal
-            // IS the reported bug: the field is on screen, never gets the keyboard, and Enter
-            // commits the as-drawn prefill. The timestamped call was already here; this is the
-            // path that was quietly bypassing it.
-            if (gdkwin == nullptr) {
-                gtk_widget_realize(widget);
-                gdkwin = gtk_widget_get_window(widget);
-            }
-            if (gdkwin) {
-                gtk_window_present_with_time(GTK_WINDOW(widget),
-                                             gdk_x11_get_server_time(gdkwin));
-                return;
-            }
-        }
-    }
-    // Deliberately NOT falling back to Raise() on X11: a timestamp-0 activation is worse than
-    // no activation — it is refused anyway, and on some WMs it marks the window as demanding
-    // attention instead.
-    return;
-#else
-    if (frame) frame->Raise();
-#endif
+    if (text == nullptr) return false;
+    std::string t(text);
+    for (char& c : t)
+        if (c == ',') c = '.';
+    // strtod, not std::stod: no exceptions, and `end` tells us whether the WHOLE field was a
+    // number. "12mm" must be refused, not silently read as 12.
+    const char* b = t.c_str();
+    char* end = nullptr;
+    const double v = std::strtod(b, &end);
+    if (end == b) return false;
+    while (*end == ' ' || *end == '\t') ++end;
+    if (*end != '\0') return false;
+    out = v;
+    return true;
 }
-#else
-void present_toplevel(wxFrame* frame)
-{
-    if (frame) frame->Raise();
-}
-#endif
 
-// Between two queued dimensions (a rectangle's Width then Height) the frame is either kept
-// MAPPED and merely re-titled, or unmapped and mapped again. That is a per-toolkit choice, not
-// a preference:
-//   GTK/mutter  keep it mapped. Focus-stealing prevention refuses keyboard focus to a window
-//               that was just re-mapped, so hiding between the two fields left the second one
-//               visible but dead (snaporca-p8uw).
-//   elsewhere   map it afresh. This is what shipped before that workaround, which was applied
-//               with no platform guard — and it is the only difference between the first queued
-//               field (works everywhere) and the second (macOS wedges the whole app, PR #15238).
-//               A workaround for one window manager must not become a contract for all of them.
-constexpr bool keep_mapped_between_fields =
-#ifdef __WXGTK__
-    true;
-#else
-    false;
-#endif
-
-// The click-edit contract, made observable. scripts/CAD/check-gui-click-edit.py grades a build
-// on these four lines and nothing else, because they are the only place the distinction it cares
-// about is visible: a field that is on screen but deaf commits its PREFILL, and every other
-// signal — the field drew, a constraint appeared, the solve succeeded — looks perfectly healthy
-// either way. `typed` is what the control actually held when Enter arrived; `prefill` is what
-// open() put there. typed == prefill on a commit means the keyboard never reached the field.
+// One machine-readable line per event of the click-edit contract, for the UX check that runs
+// after every build (scripts/CAD/check-gui-click-edit.py). Deliberately NOT the same switch as
+// SNAPORCA_KEYTRACE: that one is a debugging firehose, this one is an assertion surface and its
+// format is a contract the script parses.
 //
-// stderr, one line, no buffering, only under SNAPORCA_UXTRACE: this is a test surface, not
-// logging, and it must cost nothing in a normal run.
-void trace_ux(const char* event, const std::string& title, const std::string& kv)
+// The pair that matters is `open` vs `commit`: the check always types a value DIFFERENT from the
+// prefill, so a field that is on screen but not editable commits its prefill and the two lines
+// disagree. A focus flag cannot show that — it read 0 even when typing worked — but the number
+// the user actually gets can.
+void ux_trace(const char* event, const std::string& title, const std::string& detail)
 {
     if (!std::getenv("SNAPORCA_UXTRACE")) return;
-    fprintf(stderr, "[UX] %s title=%s%s%s\n", event, title.c_str(),
-            kv.empty() ? "" : " ", kv.c_str());
-    fflush(stderr);
+    std::fprintf(stderr, "[UX] %s title=%s %s\n", event, title.c_str(), detail.c_str());
+    std::fflush(stderr);
 }
 
-void trace_inline_focus(wxFrame* frame, const std::string& title)
-{
-    if (!std::getenv("SNAPORCA_KEYTRACE")) return;
-#ifdef __WXGTK__
-    GtkWindow* win = nullptr;
-    if (frame) {
-        GtkWidget* widget = static_cast<GtkWidget*>(frame->GetHandle());
-        if (widget && GTK_IS_WIDGET(widget)) win = GTK_WINDOW(widget);
-    }
-    fprintf(stderr, "[INLINE_FOCUS] title=%s active=%d toplevel_focus=%d shown=%d\n",
-            title.c_str(),
-            win ? (int) gtk_window_is_active(win) : -1,
-            win ? (int) gtk_window_has_toplevel_focus(win) : -1,
-            frame ? (int) frame->IsShown() : -1);
-#else
-    fprintf(stderr, "[INLINE_FOCUS] title=%s shown=%d\n",
-            title.c_str(), frame ? (int) frame->IsShown() : -1);
-#endif
-    fflush(stderr);
-}
 } // namespace
 
-// The title line doubles as the error line, so both colours live here rather than as a
-// literal at the one place that used to set it.
-// Keep the frame fully on-screen: an anchor that maps off the display makes GTK drop the
-// window at a default corner (top-left) instead of the requested point. Clamp to the display
-// the anchor is ON, not the primary one — wxGetClientDisplayRect() only ever describes the
-// primary monitor, so on a multi-head desktop this shoved the field onto a different screen
-// than the app. It then sat invisible while m_awaiting_length made the sketch tool eat every
-// mouse event, which read as the viewport freezing after a sketch, with only Enter able to
-// release it. Shared with the error re-fit below, which can widen the frame after placement.
-static wxPoint clamp_to_display(wxPoint pos, const wxSize& sz, const wxPoint& anchor, wxWindow* w)
-{
-    int disp = wxDisplay::GetFromPoint(anchor);
-    if (disp == wxNOT_FOUND) disp = wxDisplay::GetFromWindow(w);
-    const wxRect area = (disp != wxNOT_FOUND) ? wxDisplay(unsigned(disp)).GetClientArea()
-                                              : wxGetClientDisplayRect();
-    pos.x = std::max(area.GetLeft(), std::min(pos.x, area.GetRight()  - sz.GetWidth()));
-    pos.y = std::max(area.GetTop(),  std::min(pos.y, area.GetBottom() - sz.GetHeight()));
-    return pos;
-}
-
-static const wxColour kTitleFg (160, 162, 168);
-static const wxColour kTitleErr(232, 106, 106);
-
-SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
-{
-    m_parent = parent_canvas;   // where the keyboard goes back to when this field lets go
-    wxWindow* top = parent_canvas ? wxGetTopLevelParent(parent_canvas) : nullptr;
-    // Borderless floating frame: a top-level window so the WM composites it above the
-    // GL canvas (a child widget would be hidden by the GL surface). Floats on its
-    // parent and stays on top so it tracks the main window.
-    // NB: no wxFRAME_FLOAT_ON_PARENT — that maps to a GTK _UTILITY_ window-type hint, which
-    // many WMs (incl. the xrdp/x11vnc session on :10) refuse to give keyboard focus, so the
-    // field opened un-focusable and needed a click before typing. Plain stay-on-top frame is
-    // WM-focusable; we present + SetFocus it explicitly in open().
-    m_frame = new wxFrame(top, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
-                          wxFRAME_NO_TASKBAR | wxBORDER_NONE | wxSTAY_ON_TOP);
-    m_ctrl = new wxTextCtrl(m_frame, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(82, -1),
-                            wxTE_PROCESS_ENTER | wxTE_RIGHT | wxBORDER_SIMPLE);
-    m_frame->SetBackgroundColour(wxColour(40, 42, 46));
-    m_title = new wxStaticText(m_frame, wxID_ANY, wxEmptyString);
-    m_title->SetForegroundColour(kTitleFg);
-    auto* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(m_title, 0, wxLEFT | wxRIGHT | wxTOP, 3);
-    sizer->Add(m_ctrl, 1, wxEXPAND | wxALL, 2);
-    m_frame->SetSizerAndFit(sizer);
-    m_frame->Hide();
-
-    m_ctrl->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { do_commit(); });
-    // The complaint goes away the moment the user starts answering it — an error that
-    // outlives the input it was about is just noise on the next attempt.
-    m_ctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { clear_invalid(); e.Skip(); });
-    m_ctrl->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& e) {
-        // Esc on an ORPHAN (mapped, m_open already false) must still take the field off the
-        // screen. do_cancel() returns early there, and while the frame holds the X input focus
-        // this handler is the ONLY code the keyboard can still reach — so if it refuses, nothing
-        // else gets a turn and the application looks frozen.
-        if (e.GetKeyCode() == WXK_ESCAPE) { if (m_open) do_cancel(); else dismiss(); }
-        // Tab commits, exactly like Enter — the caller's on_commit is what walks to the next
-        // dimension. Left to wx's default handling it navigated within this one-control popup,
-        // i.e. back to the same field with the text re-selected: typing 60, Tab, 40 looked like
-        // two dimensions entered and silently kept only the 40. Losing typed input with no
-        // visible difference from a committed field is the part that made this worth a key case.
-        else if (e.GetKeyCode() == WXK_TAB) do_commit();
-        else                             e.Skip();
-    });
-}
-
-void SketchInlineEditor::open(const wxPoint& screen_px, double value,
-                              const std::string& title,
+void SketchInlineEditor::open(const wxPoint& canvas_px, double value, const std::string& title,
                               std::function<void(double)> on_commit,
                               std::function<void()> on_cancel)
 {
-    if (m_frame == nullptr || m_ctrl == nullptr) { if (on_cancel) on_cancel(); return; }
-    // Where the frame is kept mapped, never close/unmap on the way in: the previous queued
-    // dimension left it mapped (see do_commit) and re-mapping is what mutter refuses to focus,
-    // so reuse it and just re-title/re-position. Elsewhere, force a fresh map.
-    if (!keep_mapped_between_fields && m_frame->IsShown())
-        m_frame->Hide();
+    m_anchor = canvas_px;
+    m_title  = title;
+    m_err.clear();
     m_commit = std::move(on_commit);
     m_cancel = std::move(on_cancel);
-    m_ctrl->ChangeValue(en_format(value));
-    if (m_title) {
-        m_title_text = wxString::FromUTF8(title.c_str());
-        m_title->SetLabel(m_title_text);
-        m_title->SetForegroundColour(kTitleFg);   // drop any refusal left over from the last field
-        m_title->Show(!title.empty());
-    }
-    m_frame->Fit();
-    const wxSize sz = m_frame->GetSize();
-    wxPoint pos = clamp_to_display(wxPoint(screen_px.x - sz.GetWidth() / 2,
-                                           screen_px.y - sz.GetHeight() / 2),
-                                   sz, screen_px, m_frame);
-    // Show() BEFORE Move(): GTK ignores a Move() issued before the window is mapped (the
-    // WM places it at its default, i.e. the top-left corner). Move after Show sticks.
-    if (!m_frame->IsShown())
-        m_frame->Show();
-    m_frame->Move(pos);
-    present_toplevel(m_frame);    // activate the top-level so SetFocus routes
-    m_frame->SetFocus();
-    m_ctrl->SetFocus();
-    m_ctrl->SelectAll();
-    m_open = true;
-    m_prefill = m_ctrl->GetValue();
-    trace_ux("open", title, "prefill=" + std::string(m_prefill.utf8_str()));
-    trace_inline_focus(m_frame, title);
-    // Re-assert on the next tick too: the GL canvas can reclaim focus while it finishes
-    // handling the click/render that opened us, so a single immediate SetFocus may be stolen.
-    m_ctrl->CallAfter([this, title] {
-        if (m_open && m_ctrl) {
-            present_toplevel(m_frame);
-            m_ctrl->SetFocus();
-            m_ctrl->SelectAll();
-            trace_inline_focus(m_frame, title);
-        }
-    });
+    const std::string v = fmt_value(value);
+    std::snprintf(m_buf, sizeof(m_buf), "%s", v.c_str());
+    m_open          = true;
+    // ImGui takes keyboard focus for one frame on request; asking on the frame the field first
+    // appears is what makes typing land without a click. There is no window manager to consult.
+    m_focus_pending = true;
+    ux_trace("open", m_title, "prefill=" + v);
 }
 
-void SketchInlineEditor::do_commit()
+void SketchInlineEditor::close()
 {
-    if (!m_open || m_ctrl == nullptr) return;
-    double v = 0.0;
-    if (!en_parse(m_ctrl->GetValue(), v)) {   // invalid: keep editing, and SAY SO
-        // Silence here read as a freeze: Enter did nothing, the text re-selected itself, and
-        // nothing on screen said the value had been refused or what would be accepted. Every
-        // other CAD names the problem in place; so do we.
-        trace_ux("refused", std::string(m_title_text.utf8_str()),
-                 "typed=" + std::string(m_ctrl->GetValue().utf8_str()));
-        flag_invalid(m_ctrl->GetValue().Strip(wxString::both).IsEmpty()
-                         ? _L("Enter a number")
-                         : _L("Not a number"));
-        m_ctrl->SetFocus();
-        m_ctrl->SelectAll();
-        return;
-    }
-    {
-        // LOCALE-INVARIANT on purpose. printf honours the app's locale, which on an Italian
-        // desktop makes this "61,0000" — and the ladder that reads it does float(), which raises
-        // on a comma and takes the whole run down one check after the first success. A machine
-        // surface must not change shape with the user's regional settings.
-        char buf[64];
-        snprintf(buf, sizeof(buf), "%.4f", v);
-        for (char* c = buf; *c; ++c) if (*c == ',') *c = '.';
-        trace_ux("commit", std::string(m_title_text.utf8_str()),
-                 "typed=" + std::string(m_ctrl->GetValue().utf8_str()) + " value=" + buf);
-    }
-    auto cb = m_commit;
-    m_open   = false;          // logically closed; whether it stays MAPPED is per-toolkit
-    m_commit = nullptr;
-    m_cancel = nullptr;
-    // Unmap BEFORE the callback where we are not keeping it mapped, so the reopen the callback
-    // schedules starts from a hidden frame — the ordering that shipped before the workaround.
-    if (!keep_mapped_between_fields)
-        m_frame->Hide();
-    if (cb) cb(v);
-    // Kept mapped: the callback either re-opens us for the next queued dimension (via its own
-    // CallAfter, queued during cb(v), therefore BEFORE the one below) or it does not. Hiding
-    // here would unmap the window and mutter would refuse to focus the re-map; so hide only
-    // after the reopen has had its turn. Harmless on the unmapped path — already hidden.
-    m_frame->CallAfter([this] {
-        if (m_open || m_frame == nullptr) return;
-        m_frame->Hide();
-        return_focus();   // the chain is over; the keyboard belongs to the canvas again
-    });
-}
-
-// Deliver one character into the field without the window manager's permission.
-//
-// This is the whole content-based-routing idea in one function: the caller has already decided,
-// from the KEY ITSELF, that this keystroke belongs to a number field, so the field takes it —
-// whether or not any window manager saw fit to give it focus. FreeCAD's sketcher works exactly
-// this way and never asks who is focused.
-bool SketchInlineEditor::type_char(int key)
-{
-    if (!m_open || m_ctrl == nullptr) return false;
-
-    if (key == WXK_BACK || key == WXK_DELETE) {
-        long from = 0, to = 0;
-        m_ctrl->GetSelection(&from, &to);
-        if (from != to) {
-            m_ctrl->Remove(from, to);
-        } else {
-            const long ip = m_ctrl->GetInsertionPoint();
-            if (key == WXK_BACK) { if (ip > 0) m_ctrl->Remove(ip - 1, ip); }
-            else                 { if (ip < m_ctrl->GetLastPosition()) m_ctrl->Remove(ip, ip + 1); }
-        }
-        clear_invalid();
-        return true;
-    }
-
-    // The numeric keypad reports its own key codes, and a keypad is exactly what someone typing
-    // dimensions all day uses.
-    int ch = key;
-    if (key >= WXK_NUMPAD0 && key <= WXK_NUMPAD9) ch = '0' + (key - WXK_NUMPAD0);
-    else if (key == WXK_NUMPAD_DECIMAL)           ch = '.';
-    else if (key == WXK_NUMPAD_SUBTRACT)          ch = '-';
-
-    const bool numeric = (ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' || ch == ',';
-    if (!numeric) return false;
-
-    // A decimal COMMA is normalised to a point on the way in: this field feeds a CAD kernel and
-    // the rest of the file already promises a point whatever the locale (see fmt_value).
-    if (ch == ',') ch = '.';
-
-    // WriteText replaces the current selection — and open() left the whole prefill selected, so
-    // the FIRST character typed replaces the as-drawn value and the rest append. That is the
-    // behaviour a person expects from a pre-selected field, obtained for free rather than
-    // reimplemented.
-    m_ctrl->WriteText(wxString(wxUniChar(ch)));
-    clear_invalid();
-    return true;
+    m_open          = false;
+    m_focus_pending = false;
+    m_commit        = nullptr;
+    m_cancel        = nullptr;
+    m_err.clear();
 }
 
 void SketchInlineEditor::cancel()
 {
-    if (m_open)      do_cancel();
-    else if (is_mapped()) dismiss();   // orphan: logically gone, still on screen, still eating keys
-}
-
-bool SketchInlineEditor::is_mapped() const
-{
-    return m_frame != nullptr && m_frame->IsShown();
-}
-
-// Everything the frame can hold onto, released — with no m_open guard, because the state this
-// exists for is precisely the one where m_open lies.
-void SketchInlineEditor::dismiss()
-{
-    if (m_frame == nullptr) return;
-    m_open   = false;
-    m_commit = nullptr;
-    m_cancel = nullptr;
-    if (m_frame->IsShown()) m_frame->Hide();
-    return_focus();
-}
-
-// Hiding the frame is not enough: X keeps the input focus pointed at the window that had it, so
-// an unmapped field keeps swallowing keys. The canvas has to ask for it back explicitly.
-void SketchInlineEditor::return_focus()
-{
-    if (m_parent == nullptr) return;
-    if (wxWindow* top = wxGetTopLevelParent(m_parent))
-        top->Raise();
-    m_parent->SetFocus();
-}
-
-// Accept what is typed and close. Leaving a tool must not silently discard the value the user
-// just entered — the same rule set_tool already follows for a ready edit-op.
-void SketchInlineEditor::commit()
-{
-    // Same orphan case as cancel(): Enter or Tab forwarded by the panel must not be the one
-    // gesture that leaves the field on screen.
-    if (!m_open) { if (is_mapped()) dismiss(); return; }
-    do_commit();
-    // do_commit REFUSES to close on unparseable text, which is right while the user is still
-    // typing — but this entry point is "we are leaving", and the caller (set_tool) unfreezes
-    // the canvas immediately afterwards. Refusing here left the field alive and focused over a
-    // viewport that was interactive again, editing geometry nothing was pointing at any more.
-    // We cannot accept the text and we must not keep it: fall back to keep-as-drawn, the same
-    // thing Esc means.
     if (m_open) do_cancel();
 }
 
-// Re-fit around a changed title, keeping the field itself where it is. The frame is anchored
-// top-left, so growing it can push the right edge off the display — re-clamp after the Fit.
-void SketchInlineEditor::refit()
+void SketchInlineEditor::commit()
 {
-    if (m_frame == nullptr) return;
-    const wxPoint at = m_frame->GetPosition();
-    m_frame->Fit();
-    m_frame->Move(clamp_to_display(at, m_frame->GetSize(), at, m_frame));
-}
-
-void SketchInlineEditor::flag_invalid(const wxString& why)
-{
-    if (m_title == nullptr) return;
-    m_title->SetLabel(why);
-    m_title->SetForegroundColour(kTitleErr);
-    m_title->Show(true);
-    refit();      // "Not a number" is wider than "Length" — without this it renders as "Not a"
-    m_title->Refresh();
-}
-
-void SketchInlineEditor::clear_invalid()
-{
-    if (m_title == nullptr || m_title->GetForegroundColour() != kTitleErr) return;
-    m_title->SetLabel(m_title_text);
-    m_title->SetForegroundColour(kTitleFg);
-    m_title->Show(!m_title_text.IsEmpty());
-    refit();
-    m_title->Refresh();
+    if (m_open) do_commit();
 }
 
 void SketchInlineEditor::do_cancel()
 {
-    if (!m_open) return;
-    trace_ux("cancel", std::string(m_title_text.utf8_str()), "");
+    ux_trace("cancel", m_title, "");
     auto cb = m_cancel;
     close();
     if (cb) cb();
 }
 
-void SketchInlineEditor::close()
+void SketchInlineEditor::do_commit()
 {
-    // m_closing was written and never read — a flag that looked like re-entrancy protection
-    // and was not. Hide() below pumps native events, so a nested close is reachable in
-    // principle; read the flag and the guard becomes real.
-    if (m_frame == nullptr || !m_open || m_closing) return;
-    m_closing = true;
-    m_open    = false;
-    m_frame->Hide();
-    m_commit = nullptr;
-    m_cancel = nullptr;
-    m_closing = false;
-    return_focus();
+    double v = 0.0;
+    if (!parse_value(m_buf, v)) {
+        // Refusing input in silence is indistinguishable from the app having frozen: the field
+        // just sits there and the user has no idea what it wants. Say so in the title line and
+        // keep editing.
+        ux_trace("refused", m_title, std::string("typed=") + m_buf);
+        m_err = (m_buf[0] == '\0') ? into_u8(_L("Enter a number")) : into_u8(_L("Not a number"));
+        m_focus_pending = true;
+        return;
+    }
+    ux_trace("commit", m_title, std::string("typed=") + m_buf + " value=" + fmt_value(v, 4));
+    auto cb = m_commit;
+    close();
+    // AFTER close(): the callback may open the next queued dimension (a rectangle queues Width
+    // then Height), and doing that into a field that still believes it is open would drop the
+    // second one's prefill on the floor.
+    if (cb) cb(v);
+}
+
+bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
+{
+    if (!m_open) return false;
+
+    ImGuiWrapper::push_common_window_style(scale);
+    imgui.set_next_window_pos((float) m_anchor.x, (float) m_anchor.y, ImGuiCond_Always, 0.5f, 0.5f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3.0f);
+    // NoInputs is what every other sketch overlay sets and is exactly what this one must not:
+    // it is the only overlay in the tab that the user types into.
+    imgui.begin(std::string("##sketchvalue"),
+                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration
+                    | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+
+    if (!m_title.empty() || !m_err.empty()) {
+        if (m_err.empty()) {
+            imgui.text(m_title);
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGBA(0.91f, 0.42f, 0.42f, 1.0f)));
+            imgui.text(m_err);
+            ImGui::PopStyleColor();
+        }
+    }
+
+    if (m_focus_pending) {
+        ImGui::SetKeyboardFocusHere();
+        m_focus_pending = false;
+    }
+    ImGui::PushItemWidth(90.0f * scale);
+    // EnterReturnsTrue so Enter commits from inside the widget; AutoSelectAll so the prefill is
+    // replaced by the first digit typed, which is what "pre-selected" meant when this was a
+    // wxTextCtrl and is what makes typing a value a single gesture.
+    const bool entered = ImGui::InputText("##sketchvalue_in", m_buf, sizeof(m_buf),
+                                          ImGuiInputTextFlags_EnterReturnsTrue
+                                              | ImGuiInputTextFlags_AutoSelectAll
+                                              | ImGuiInputTextFlags_CharsDecimal);
+    ImGui::PopItemWidth();
+    imgui.end();
+    ImGui::PopStyleVar();
+    ImGuiWrapper::pop_common_window_style();
+
+    // Act AFTER end(): do_commit can reopen the field for the next queued dimension, and that
+    // must not happen inside this frame's window.
+    if (entered)
+        do_commit();
+    else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
+        do_cancel();
+    return true;
 }
 
 }} // namespace Slic3r::GUI

@@ -83,21 +83,29 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // Onshape-style in-canvas value editor, floating over the GL canvas. The tool hands
     // us a screen pixel (device px) + a commit/cancel pair; we convert to logical client
     // px and wrap the callbacks so each one re-solves and re-renders the viewport.
-    m_inline_editor = std::make_unique<SketchInlineEditor>(m_canvas_widget);
+    m_inline_editor = std::make_unique<SketchInlineEditor>();
+    // The tool draws it: it owns the frame's ImGui pass and the render scale. Handing it a raw
+    // pointer rather than the unique_ptr keeps the ownership where it was.
+    m_sketch_tool.inline_editor = m_inline_editor.get();
     m_sketch_tool.on_inline_edit = [this](wxPoint screen_px, double current,
                                           const std::string& title,
                                           std::function<void(double)> commit,
                                           std::function<void()> cancel) {
         if (!m_inline_editor) { if (cancel) cancel(); return; }
-        // The tool hands us canvas device px; convert to logical client px, then to
-        // absolute screen coords for the floating editor frame.
-        const double s = m_canvas_widget ? m_canvas_widget->GetContentScaleFactor() : 1.0;
-        const wxPoint client_pt(int(screen_px.x / s), int(screen_px.y / s));
-        const wxPoint scr = m_canvas_widget ? m_canvas_widget->ClientToScreen(client_pt) : client_pt;
+        // The tool hands us canvas device px and the field is now drawn IN the canvas, so this
+        // is already the coordinate space it wants — no conversion to screen coordinates, and no
+        // window to place there.
         // Freeze the sketch tool while the field is open so a stray click/move on the GL
-        // canvas can't draw under the floating editor; released on commit or cancel.
+        // canvas can't draw under the field; released on commit or cancel.
         m_sketch_tool.set_inline_busy(true);
-        m_inline_editor->open(scr, current, title,
+        // AND PUT THE KEYBOARD ON THE CANVAS. The field is drawn by ImGui, and ImGui is fed from
+        // GLCanvas3D's own key handler, so a key only reaches it if the canvas is the focused
+        // widget. That is a focus move WITHIN one window — the toolkit's business, not the window
+        // manager's, which is the whole point of not being a window any more — but it still has
+        // to be asked for: after a toolbar click or a tree selection the focus is elsewhere in
+        // the panel, and the field would sit there taking nothing.
+        if (m_canvas_widget) m_canvas_widget->SetFocus();
+        m_inline_editor->open(screen_px, current, title,
             [this, commit](double v) {
                 m_sketch_tool.set_inline_busy(false);
                 if (commit) commit(v);
@@ -1326,12 +1334,12 @@ void DesignCanvas::delete_selected_sketch_entities()
 
 bool DesignCanvas::inline_busy() const
 {
-    // The TOOL's flag says a value is pending; the FRAME being mapped says a window is on screen
-    // holding the keyboard. Either one means "a field is up", and only the union of the two is
-    // safe to route Esc by: the flag alone went false while the frame was still mapped, which is
-    // the orphan that swallowed every key with nothing able to close it.
+    // Two sources, still: the TOOL's flag says a value is pending, the editor says a field is
+    // drawn. They agree now that the field is not a window — the orphan state (logically closed,
+    // still on screen, still eating keys) cannot be represented when there is nothing to leave
+    // mapped — but the union costs nothing and is the honest question to ask.
     return m_sketch_tool.inline_busy()
-           || (m_inline_editor && m_inline_editor->is_mapped());
+           || (m_inline_editor && m_inline_editor->is_open());
 }
 
 bool DesignCanvas::inline_has_focus() const
@@ -1407,25 +1415,17 @@ void DesignCanvas::open_inline_value(double current, std::function<void(double)>
     if (!m_inline_editor || !m_canvas_widget) { if (cancel) cancel(); return; }
     // Host-driven value entry (committed-feature Constrain path): the trigger is a toolbar
     // button. Anchor the field OVER the picked geometry (same as the draw-then-edit tools) when
-    // the tool can project it; else fall back to the viewport centre, where the sketch is in
-    // view. GetScreenRect collapses GetClientSize()+ClientToScreen() into one call; if the GL
-    // canvas reports degenerate geometry (transiently, right after a re-layout), fall back to the
-    // always-realised top-level window so the editor never lands in the top-left corner.
-    wxRect r = m_canvas_widget->GetScreenRect();
-    if (r.GetWidth() <= 1 || r.GetHeight() <= 1) {
-        if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget))
-            r = top->GetScreenRect();
-    }
-    wxPoint scr(r.GetLeft() + r.GetWidth() / 2, r.GetTop() + r.GetHeight() / 2);
-    wxPoint anchor;
-    if (m_sketch_tool.constrain_value_anchor(anchor)) {     // device px in the canvas viewport
-        const double s = m_canvas_widget->GetContentScaleFactor();
-        scr = m_canvas_widget->ClientToScreen(wxPoint(int(anchor.x / s), int(anchor.y / s)));
-    }
-    // Freeze the canvas so focus-follows-mouse can't steal keyboard focus off the field — the
-    // same fix the draw-then-edit path uses (cursor focus stays on the field, no pre-click).
+    // the tool can project it; else fall back to the middle of the canvas, where the sketch is
+    // in view. Everything here is canvas DEVICE px, the space the field is drawn in.
+    const wxSize  cs = m_canvas_widget->GetClientSize();
+    const double  sf = m_canvas_widget->GetContentScaleFactor();
+    wxPoint anchor(int(cs.GetWidth() * sf) / 2, int(cs.GetHeight() * sf) / 2);
+    m_sketch_tool.constrain_value_anchor(anchor);          // device px in the canvas viewport
     m_sketch_tool.set_inline_busy(true);
-    m_inline_editor->open(scr, current, "",
+    m_canvas_widget->SetFocus();   // same reason as the draw-then-edit path: ImGui reads the
+                                   // canvas's key events, so the canvas must be the focused widget
+
+    m_inline_editor->open(anchor, current, "",
         [this, commit](double v) {
             m_sketch_tool.set_inline_busy(false);
             if (commit) commit(v);

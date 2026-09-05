@@ -140,6 +140,9 @@ public:
     // decide whether that right-click was the user's, in which case it opens the offer.
     bool take_right_consumed() { const bool b = m_right_consumed; m_right_consumed = false; return b; }
     void render(GLCanvas3D& canvas);
+    // The in-canvas value field, drawn by render() before any early return. Owned by
+    // DesignCanvas; null until it sets it. Not a window — see SketchInlineEditor.hpp.
+    class SketchInlineEditor* inline_editor{nullptr};
 
     // Persistent committed sketches to draw even when no session is active (e.g. an
     // un-consumed sketch left visible after its extrude is removed). Each carries its
