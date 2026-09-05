@@ -7050,19 +7050,64 @@ int CLI::run(int argc, char **argv)
             }
         }
 
+        //ORCA: synthesize a minimal valid PlateBBoxData from model objects on the plate when there is
+        //      no slice result (e.g. --export-3mf without --slice). Without this,
+        //      PlateBBoxData::is_valid() returns false, _BBS_3MF_Exporter::_add_calibration_file_to_archive
+        //      skips emitting Metadata/plate_1.json, and the GUI 3MF project loader reports
+        //      "The file does not contain any geometry data." even though geometry is intact.
+        //      Area / layer_height / first_layer_time are unavailable without a slice, so we use the
+        //      model's 2D footprint as an approximation; the GUI loader only requires the file to
+        //      exist and parse, not to be slice-accurate.
+        auto synth_plate_bbox = [this](Slic3r::GUI::PartPlate *part_plate) -> PlateBBoxData* {
+            auto *bbox_data = new PlateBBoxData();
+            if (!part_plate)
+                return bbox_data;
+            const auto objects = part_plate->get_objects_on_this_plate();
+            if (objects.empty())
+                return bbox_data;
+            double layer_h = 0.2;
+            if (auto *lh = m_print_config.option<ConfigOptionFloat>("layer_height"))
+                layer_h = lh->value;
+            BoundingBoxf bbox_all2d;
+            bool first = true;
+            for (ModelObject *mo : objects) {
+                if (mo->instances.empty()) continue;
+                const BoundingBoxf3 bb3 = mo->instance_bounding_box(0);
+                BBoxData data;
+                data.id = mo->id().id;
+                data.name = mo->name.empty() ? std::string("object") : mo->name;
+                data.layer_height = static_cast<float>(layer_h);
+                data.bbox = { bb3.min.x(), bb3.min.y(), bb3.max.x(), bb3.max.y() };
+                data.area = static_cast<float>((bb3.max.x() - bb3.min.x()) * (bb3.max.y() - bb3.min.y()));
+                bbox_data->bbox_objs.push_back(std::move(data));
+                const BoundingBoxf bb2d({bb3.min.x(), bb3.min.y()}, {bb3.max.x(), bb3.max.y()});
+                if (first) { bbox_all2d = bb2d; first = false; } else { bbox_all2d.merge(bb2d); }
+            }
+            if (!first) {
+                bbox_data->bbox_all = { bbox_all2d.min.x(), bbox_all2d.min.y(), bbox_all2d.max.x(), bbox_all2d.max.y() };
+            }
+            if (auto *nd = m_print_config.option<ConfigOptionFloats>("nozzle_diameter"))
+                if (!nd->values.empty())
+                    bbox_data->nozzle_diameter = static_cast<float>(nd->values[0]);
+            bbox_data->version = 2;
+            return bbox_data;
+        };
+
         //generate first layer bboxes
         for (int i = 0; i < partplate_list.get_plate_count(); i++) {
+            Slic3r::GUI::PartPlate *part_plate = partplate_list.get_plate(i);
             if ((plate_to_slice != 0) && (plate_to_slice != (i + 1))) {
                 BOOST_LOG_TRIVIAL(info) << boost::format("Line %1%: generate bbox, Skip plate %2%.")%__LINE__%(i+1);
-                plate_bboxes.push_back(new PlateBBoxData());
+                //ORCA: still synthesize a model-bbox-derived PlateBBoxData so GUI 3MF loader doesn't bail
+                plate_bboxes.push_back(synth_plate_bbox(part_plate));
                 continue;
             }
-            Slic3r::GUI::PartPlate *part_plate      = partplate_list.get_plate(i);
             //render calibration thumbnail
             if (!part_plate->get_slice_result() || !part_plate->is_slice_result_valid()) {
                 BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% doesn't have a valid sliced result, skip it")%(i+1);
                 //calibration_thumbnails.push_back(new ThumbnailData());
-                plate_bboxes.push_back(new PlateBBoxData());
+                //ORCA: synthesize from model footprint so plate_1.json still gets written
+                plate_bboxes.push_back(synth_plate_bbox(part_plate));
                 continue;
             }
             PrintBase  *print_base=NULL;
