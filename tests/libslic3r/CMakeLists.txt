@@ -24,6 +24,7 @@ add_executable(${_TEST_NAME}_tests
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_geometry.cpp
+    test_localesutils.cpp
     test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
     test_polygon.cpp
@@ -57,3 +58,18 @@ set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 orcaslicer_copy_test_dlls()
 
 orcaslicer_discover_tests(${_TEST_NAME}_tests)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Each case needs a fresh process: Boost.Filesystem caches its path locale.
+    add_test(NAME filesystem_locale_missing_measurement
+        COMMAND ${_TEST_NAME}_tests "[LocalesUtils]")
+    set_tests_properties(filesystem_locale_missing_measurement PROPERTIES
+        ENVIRONMENT "LC_ALL=;LANG=C;LC_MEASUREMENT=orca_missing_locale.UTF-8"
+        LABELS "LocalesUtils;Regression")
+
+    add_test(NAME filesystem_locale_missing_override
+        COMMAND ${_TEST_NAME}_tests "[LocalesUtils]")
+    set_tests_properties(filesystem_locale_missing_override PROPERTIES
+        ENVIRONMENT "LC_ALL=orca_missing_locale.UTF-8"
+        LABELS "LocalesUtils;Regression")
+endif()

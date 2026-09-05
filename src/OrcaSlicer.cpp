@@ -45,7 +45,6 @@ using namespace nlohmann;
 #include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/fstream.hpp>
-#include <boost/nowide/filesystem.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -69,6 +68,7 @@ using namespace nlohmann;
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/BlacklistedLibraryCheck.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
 
@@ -1300,7 +1300,7 @@ int CLI::run(int argc, char **argv)
 
 	// Switch boost::filesystem to utf8.
     try {
-        boost::nowide::nowide_filesystem();
+        init_utf8_filesystem();
     } catch (const std::runtime_error& ex) {
         std::string caption = std::string(SLIC3R_APP_FULL_NAME) + " Error";
         std::string text = std::string("boost::nowide::nowide_filesystem Failed!\n") + (
