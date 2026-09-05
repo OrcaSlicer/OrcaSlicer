@@ -12045,6 +12045,22 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("This outputs the model\u2019s information.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    // --inspect-config \u2014 dump the fully-resolved effective print config as
+    // JSON to stdout and exit. Same merged values that would feed into
+    // --slice, but surfaced before burning a slice cycle so a CI / AI
+    // pipeline can verify preset inheritance and calibrate-type overrides
+    // came out as expected. Runs AFTER --load-settings / --load-filaments
+    // / --datadir have merged everything.
+    def = this->add("inspect_config", coBool);
+    def->label = L("Inspect effective config (JSON to stdout)");
+    def->tooltip = L("Print the fully-resolved effective print config as JSON to stdout \u2014 "
+                     "the same merged values that --slice would feed into the slicer \u2014 then "
+                     "exit. Includes source_presets (paths that were loaded), config "
+                     "(every resolved key/value), and summary (key counts). Machine-readable "
+                     "alternative for verifying preset resolution before a slice.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file.");
