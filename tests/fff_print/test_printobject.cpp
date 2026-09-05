@@ -9,8 +9,11 @@
 
 #include "test_helpers.hpp"
 
+#include <cmath>
 #include <iterator>
+#include <map>
 #include <set>
+#include <vector>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
