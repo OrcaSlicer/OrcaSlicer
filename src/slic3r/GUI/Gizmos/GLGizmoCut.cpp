@@ -731,15 +731,29 @@ void GLGizmoCut3D::render_move_center_input(int axis)
     }
 }
 
+// -0.0 and tiny negatives print as "-0.00" with "%.2f"; collapse them for display.
+static double norm_zero_display(double v) { return std::fabs(v) < 5e-4 ? 0. : v; }
+
 // Rotation block styled after GizmoObjectManipulation::do_render_rotate_window:
 // a header row with colored axis names, plus Relative (pending deltas applied
 // on commit) and Absolute (plane orientation) rows.
 void GLGizmoCut3D::render_cut_rotation_input()
 {
     const float space_size  = m_imgui->get_style_scaling() * 8;
-    const float caption_max = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
-                                         m_imgui->calc_text_size(_L("Relative")).x,
-                                         m_imgui->calc_text_size(_L("Absolute")).x }) + space_size;
+    const float caption_max_meas = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
+                                              m_imgui->calc_text_size(_L("Relative")).x,
+                                              m_imgui->calc_text_size(_L("Absolute")).x });
+
+    // Draw the header caption first and compare its rendered width against the
+    // measured one: toolbar font scaling can render text wider than
+    // calc_text_size reports, which used to slide fields under the captions.
+    ImGui::AlignTextToFramePadding();
+    const float text_start_x = ImGui::GetCursorPosX();
+    m_imgui->text(_L("Rotation"));
+    const float drawn_w = ImGui::GetCursorPosX() - text_start_x;
+    const float meas_w  = m_imgui->calc_text_size(_L("Rotation")).x;
+    const float wfix = (meas_w > 0.f) ? drawn_w / meas_w : 1.f;
+    const float caption_max = caption_max_meas * wfix + 2 * space_size;
     const float unit_size = ImGui::CalcTextSize("-180.00").x + ImGui::GetStyle().FramePadding.x * 2.0f;
     const float offset_to_center = (unit_size - ImGui::CalcTextSize("X").x) * 0.5f;
 
@@ -749,9 +763,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
                              caption_max + 2 * unit_size + 3 * space_size };
     const float unit_x = col_x[2] + unit_size + space_size;
 
-    // Header row.
-    ImGui::AlignTextToFramePadding();
-    m_imgui->text(_L("Rotation"));
+    // Header row (caption already drawn above for width calibration).
     ImGui::SameLine(col_x[0] + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X");
     ImGui::SameLine(col_x[1] + offset_to_center);
@@ -768,6 +780,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
     for (int axis = X; axis <= Z; ++axis) {
         ImGui::SameLine(col_x[axis]);
         ImGui::PushItemWidth(unit_size);
+        m_cut_relative_deg[axis] = norm_zero_display(m_cut_relative_deg[axis]);
         ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0, 0.0, "%.2f");
         ImGui::PopItemWidth();
         if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -816,7 +829,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
         // Refresh the display buffer when the user is not editing it, so drags
         // and relative commits show up immediately without clobbering typing.
         for (int axis = X; axis <= Z; ++axis) {
-            double value = rad2deg(m_cut_rotation[axis]);
+            double value = norm_zero_display(rad2deg(m_cut_rotation[axis]));
             while (value > 180.) value -= 360.;
             while (value <= -180.) value += 360.;
             m_cut_absolute_deg[axis] = value;
