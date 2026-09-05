@@ -4083,7 +4083,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
         }
         return time * 60.f;
     };
-    auto estimate_wipe_time = [&estimate_time_kernel, & cleaning_box, &target_speed, &x_to_wipe, &xr, &xl, &dy, &WipeSpeedMap, &solid_tool_toolchange](int begin_line) -> float {
+    auto estimate_wipe_time = [&estimate_time_kernel, & cleaning_box, &x_to_wipe, &xr, &xl, &dy, &solid_tool_toolchange](int begin_line) -> float {
         int                      n            = std::ceil(x_to_wipe / (xr - xl));
         if (solid_tool_toolchange) n = (cleaning_box.lu[1] - cleaning_box.ld[1]) / dy;
         float total_time   = estimate_time_kernel(n);
@@ -5111,7 +5111,7 @@ Polygon WipeTower::generate_rib_polygon(const box_coordinates &wt_box)
 
 Polygon WipeTower::generate_support_wall_new(WipeTowerWriter &writer, const box_coordinates &wt_box, double feedrate, bool first_layer,bool rib_wall, bool extrude_perimeter, bool skip_points)
 {
-    auto get_closet_idx = [this, &writer](Polylines &pls) -> std::pair<int,int> {
+    auto get_closet_idx = [&writer](Polylines &pls) -> std::pair<int,int> {
         Vec2f anchor{writer.x(), writer.y()};
         int   closestIndex = -1;
         int   closestPl = -1;
