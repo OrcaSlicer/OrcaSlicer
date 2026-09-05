@@ -426,10 +426,33 @@ void GLGizmoCut3D::sync_cut_rotation_from_matrix()
 
 void GLGizmoCut3D::apply_cut_rotation(const Vec3d& euler_rad)
 {
+    const Transform3d new_m = rotation_transform(euler_rad);
+    if (m_rotation_m.isApprox(new_m))
+        return;
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
-    m_rotation_m = rotation_transform(euler_rad);
+    m_rotation_m = new_m;
     m_start_dragging_m = m_rotation_m;
     m_cut_rotation = euler_rad;
+    cut_rotation_changed();
+}
+
+void GLGizmoCut3D::apply_relative_cut_rotation(int axis, double delta_deg)
+{
+    if (is_approx(delta_deg, 0.))
+        return;
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
+    Vec3d delta = Vec3d::Zero();
+    delta[axis] = deg2rad(delta_deg);
+    // Post-multiply so the delta applies about the plane's own (local) axes,
+    // matching the freehand drag composition in dragging_grabber_rotation().
+    m_rotation_m = m_rotation_m * rotation_transform(delta);
+    m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
+    cut_rotation_changed();
+}
+
+void GLGizmoCut3D::cut_rotation_changed()
+{
     m_transformed_bounding_box = transformed_bounding_box(m_plane_center, m_rotation_m);
     update_clipper();
     check_and_update_connectors_state();
@@ -708,37 +731,96 @@ void GLGizmoCut3D::render_move_center_input(int axis)
     }
 }
 
+// Rotation block styled after GizmoObjectManipulation::do_render_rotate_window:
+// a header row with colored axis names, plus Relative (pending deltas applied
+// on commit) and Absolute (plane orientation) rows.
 void GLGizmoCut3D::render_cut_rotation_input()
 {
-    render_cut_rotation_axis_input(X);
-    render_cut_rotation_axis_input(Y);
-    // In-plane spin is only meaningful for the dovetail groove orientation.
-    if (CutMode(m_mode) == CutMode::cutTongueAndGroove)
-        render_cut_rotation_axis_input(Z);
-}
+    const float space_size  = m_imgui->get_style_scaling() * 8;
+    const float caption_max = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
+                                         m_imgui->calc_text_size(_L("Relative")).x,
+                                         m_imgui->calc_text_size(_L("Absolute")).x }) + space_size;
+    const float unit_size = ImGui::CalcTextSize("-180.00").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    const float offset_to_center = (unit_size - ImGui::CalcTextSize("X").x) * 0.5f;
 
-void GLGizmoCut3D::render_cut_rotation_axis_input(int axis)
-{
-    const std::string label = std::string("Rotation ") + m_axis_names[axis];
+    // Column x-positions for the three axis fields.
+    const float col_x[3] = { caption_max + 1 * space_size,
+                             caption_max + 1 * unit_size + 2 * space_size,
+                             caption_max + 2 * unit_size + 3 * space_size };
+    const float unit_x = col_x[2] + unit_size + space_size;
+
+    // Header row.
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(_L(label));
-    ImGui::SameLine(m_label_width);
-    ImGui::PushItemWidth(0.3f * m_control_width);
+    m_imgui->text(_L("Rotation"));
+    ImGui::SameLine(col_x[0] + offset_to_center);
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X");
+    ImGui::SameLine(col_x[1] + offset_to_center);
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y");
+    ImGui::SameLine(col_x[2] + offset_to_center);
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z");
 
-    double value = rad2deg(m_cut_rotation[axis]);
-    while (value > 180.) value -= 360.;
-    while (value <= -180.) value += 360.;
-    double new_value = value;
-    ImGui::InputDouble(("##cut_rotation_" + m_axis_names[axis]).c_str(), &new_value, 0.0, 0.0, "%.2f", ImGuiInputTextFlags_CharsDecimal);
-    ImGui::SameLine();
+    static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
+    static const char* abs_ids[3] = { "##cut_rotation_abs_x", "##cut_rotation_abs_y", "##cut_rotation_abs_z" };
+
+    // Relative row: pending deltas, applied on commit (Enter / focus loss), then cleared.
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Relative"));
+    for (int axis = X; axis <= Z; ++axis) {
+        ImGui::SameLine(col_x[axis]);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0, 0.0, "%.2f");
+        ImGui::PopItemWidth();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            apply_relative_cut_rotation(axis, m_cut_relative_deg[axis]);
+            m_cut_relative_deg[axis] = 0.;
+        }
+    }
+    ImGui::SameLine(unit_x);
     m_imgui->text("°");
+    ImGui::SameLine();
+    m_imgui->disabled_begin(is_approx(m_cut_relative_deg.x(), 0.) &&
+                            is_approx(m_cut_relative_deg.y(), 0.) &&
+                            is_approx(m_cut_relative_deg.z(), 0.));
+    if (render_reset_button("cut_rotation_relative", _u8L("Clear relative rotation values")))
+        m_cut_relative_deg = Vec3d::Zero();
+    m_imgui->disabled_end();
 
-    if (new_value != value) {
-        while (new_value > 180.) new_value -= 360.;
-        while (new_value <= -180.) new_value += 360.;
-        Vec3d euler_rad = m_cut_rotation;
-        euler_rad[axis] = deg2rad(new_value);
-        apply_cut_rotation(euler_rad);
+    // Absolute row: plane orientation, applied on commit (Enter / focus loss).
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Absolute"));
+    bool abs_editing = false;
+    for (int axis = X; axis <= Z; ++axis) {
+        ImGui::SameLine(col_x[axis]);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(abs_ids[axis], &m_cut_absolute_deg[axis], 0.0, 0.0, "%.2f");
+        ImGui::PopItemWidth();
+        abs_editing = abs_editing || ImGui::IsItemActive();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            double new_value = m_cut_absolute_deg[axis];
+            while (new_value > 180.) new_value -= 360.;
+            while (new_value <= -180.) new_value += 360.;
+            Vec3d euler_rad = m_cut_rotation;
+            euler_rad[axis] = deg2rad(new_value);
+            apply_cut_rotation(euler_rad);
+        }
+    }
+    ImGui::SameLine(unit_x);
+    m_imgui->text("°");
+    ImGui::SameLine();
+    m_imgui->disabled_begin(m_rotation_m.isApprox(Transform3d::Identity()));
+    if (render_reset_button("cut_rotation_absolute", _u8L("Reset cut plane rotation")))
+        apply_cut_rotation(Vec3d::Zero());
+    m_imgui->disabled_end();
+
+    if (!abs_editing) {
+        // Refresh the display buffer when the user is not editing it, so drags
+        // and relative commits show up immediately without clobbering typing.
+        for (int axis = X; axis <= Z; ++axis) {
+            double value = rad2deg(m_cut_rotation[axis]);
+            while (value > 180.) value -= 360.;
+            while (value <= -180.) value += 360.;
+            m_cut_absolute_deg[axis] = value;
+        }
     }
 }
 
