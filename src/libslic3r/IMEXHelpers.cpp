@@ -8,8 +8,11 @@
 #include <sstream>
 #include <unordered_set>
 
+#include <boost/log/trivial.hpp>
+
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
@@ -194,6 +197,63 @@ bool has_non_primary_mmu(const ConfigOptionInts& pem, int primary_physical)
             return true;
     }
     return false;
+}
+
+// The def-side match is on type() rather than a dynamic_cast: ConfigOptionPercent and
+// ConfigOptionFloatOrPercent both derive from ConfigOptionFloat, so a cast would accept a
+// registration whose value cfg.option<ConfigOptionFloat>() had just refused, and silently return
+// the default while a real value sat in the config. For the int, float and bool accessors here
+// both halves therefore agree on the type. imex_cfg_enum() is the exception and goes the other
+// way -- dynamic_cast on both halves -- because every ConfigOptionEnum<T> reports coEnum and a
+// type() check cannot tell one enum type from another; see the comment on it in IMEXHelpers.hpp.
+//
+// Reaching the final return means the key is not registered at all -- a typo in the literal, which
+// the compiler cannot catch. For the clearances that would be worse than the literal it replaced:
+// zero suppresses every collision strip. assert() is compiled out under NDEBUG, so it catches this
+// in a debug build only; the log line is what remains in Release, and the return is still a
+// degraded value. This is a programming-error path, not a runtime-input one.
+void imex_cfg_report_unregistered(const char* fn, const std::string& key)
+{
+    BOOST_LOG_TRIVIAL(error) << fn << ": no registered default for " << key;
+}
+
+int imex_cfg_int(const ConfigBase& cfg, const std::string& key)
+{
+    if (const auto* opt = cfg.option<ConfigOptionInt>(key))
+        return opt->value;
+    if (const ConfigOptionDef* def = print_config_def.get(key))
+        if (const ConfigOption* dv = def->default_value.get())
+            if (dv->type() == ConfigOptionInt::static_type())
+                return static_cast<const ConfigOptionInt*>(dv)->value;
+    assert(false && "imex_cfg_int: key not registered in print_config_def");
+    imex_cfg_report_unregistered("imex_cfg_int", key);
+    return 0;
+}
+
+bool imex_cfg_bool(const ConfigBase& cfg, const std::string& key)
+{
+    if (const auto* opt = cfg.option<ConfigOptionBool>(key))
+        return opt->value;
+    if (const ConfigOptionDef* def = print_config_def.get(key))
+        if (const ConfigOption* dv = def->default_value.get())
+            if (dv->type() == ConfigOptionBool::static_type())
+                return static_cast<const ConfigOptionBool*>(dv)->value;
+    assert(false && "imex_cfg_bool: key not registered in print_config_def");
+    imex_cfg_report_unregistered("imex_cfg_bool", key);
+    return false;
+}
+
+double imex_cfg_float(const ConfigBase& cfg, const std::string& key)
+{
+    if (const auto* opt = cfg.option<ConfigOptionFloat>(key))
+        return opt->value;
+    if (const ConfigOptionDef* def = print_config_def.get(key))
+        if (const ConfigOption* dv = def->default_value.get())
+            if (dv->type() == ConfigOptionFloat::static_type())
+                return static_cast<const ConfigOptionFloat*>(dv)->value;
+    assert(false && "imex_cfg_float: key not registered in print_config_def");
+    imex_cfg_report_unregistered("imex_cfg_float", key);
+    return 0.0;
 }
 
 char imex_role_letter(ImexRole role)

@@ -3408,7 +3408,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // pollute is_extruder_used with the *first* slot routed to the primary's
     // physical extruder, which is generally not the slot the user assigned to
     // the printing object.  Same skip-primary pattern as the IMEX PA emission
-    // path (GCode.cpp ~3265).
+    // path (GCode.cpp:3917).
     //
     // For secondaries: translate physical -> logical via the per-plate
     // imex_head_filament_map (set by the IMEX ghost picker), with

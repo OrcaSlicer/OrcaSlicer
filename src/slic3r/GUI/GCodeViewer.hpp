@@ -243,10 +243,18 @@ private:
     // nothing that changes between frames. A stale plan would put the preview markers
     // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
     // drift the shared layout call exists to prevent -- so this deliberately mirrors
-    // PartPlate::build_imex_cache_key(), and adds the two inputs only the preview reads:
-    // the plate's bed extents (zone centres scale with them) and imex_tool_layout (the
-    // T0-corner flips inside compute_imex_zone_layout). imex_carriage_margin is absent on
-    // purpose: it only sizes the plate's advisory bands, which the preview never draws.
+    // PartPlate::build_imex_cache_key(). The two keys are not field-for-field identical, and
+    // the differences are deliberate rather than incidental:
+    //   - bed extents and plate_index are here and not there. Zone centres scale with the
+    //     extents, and one preview serves every plate, so the preview must key what the plate
+    //     gets for free -- it re-bakes on set_shape() and is keyed by being that plate.
+    //   - mode_names / mode_active_tools hold the printer's WHOLE mode table; the plate resolves
+    //     one active mode and keys that roster plus its primary head. Same information reached
+    //     two ways, so a change to the active mode moves both keys.
+    //   - imex_carriage_margin is there and not here: it only sizes the plate's advisory bands,
+    //     which the preview never draws.
+    // imex_tool_layout is in both, which the plate's key gained for the reason this one has it:
+    // the T0-corner flip moves every zone rectangle while nothing else keyed changes.
     struct ImexMarkerKey
     {
         // Scalar half. Built fresh on the stack each frame -- it allocates nothing -- and

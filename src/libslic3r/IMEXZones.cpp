@@ -27,15 +27,12 @@ ImexZoneLayout compute_imex_zone_layout(const DynamicPrintConfig& printer_cfg,
         return out;
 
     // Grid dimensions and tool layout from printer config
-    auto* gantry_opt  = printer_cfg.option<ConfigOptionInt>("imex_gantry_count");
-    auto* tpg_opt     = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
-    auto* layout_opt  = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
 
-    int n_cols  = tpg_opt    ? std::max(1, tpg_opt->value)    : 2;
-    int n_rows  = gantry_opt ? std::max(1, gantry_opt->value) : 1;
+    int n_cols  = std::max(1, imex_cfg_int(printer_cfg, "imex_tools_per_gantry"));
+    int n_rows  = std::max(1, imex_cfg_int(printer_cfg, "imex_gantry_count"));
 
     // Which corner is T0? flip_x: col 0 is right(max-X); flip_y: row 0 is rear(max-Y)
-    const ImexToolLayout layout = layout_opt ? layout_opt->value : ImexToolLayout::FrontLeft;
+    const ImexToolLayout layout = imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout");
     bool flip_x = (layout == ImexToolLayout::FrontRight || layout == ImexToolLayout::RearRight);
     bool flip_y = (layout == ImexToolLayout::RearLeft   || layout == ImexToolLayout::RearRight);
 
@@ -269,18 +266,13 @@ ImexZoneLayout compute_imex_zone_layout(const DynamicPrintConfig& printer_cfg,
     //   !has_row_sep → full bed height;  has_row_sep → primary row only
     //   !has_col_sep → full bed width;   has_col_sep → primary column only
 
-    auto* cw_opt  = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_x");
-    auto* ch_opt  = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_y");
-    auto* mgn_opt = printer_cfg.option<ConfigOptionFloat>("imex_carriage_margin");
-    // Fallbacks mirror the values registered in PrintConfig.cpp: 30.0 for both clearances
-    // (6664, 6672), 0.0 for the margin (6680). The clearances must NOT fall back to 0.0 --
-    // both strip loops below are gated on `carriage_w > 0.0` / `carriage_h > 0.0`, so a zero
-    // would silently emit no collision strips at all while the preview still draws 30 mm
-    // toolhead boxes. A config built from the ConfigDef always carries these; a partial or
-    // hand-built one is the only way to reach the fallback.
-    double carriage_w = cw_opt  ? cw_opt->value  : 30.0;
-    double carriage_h = ch_opt  ? ch_opt->value  : 30.0;
-    double margin     = mgn_opt ? mgn_opt->value : 0.0;
+    // Both strip blocks below are gated on `carriage_w > 0.0` / `carriage_h > 0.0`, so a zero
+    // clearance emits no collision strips at all while the preview still draws toolhead boxes.
+    // That is why these read through imex_cfg_float() rather than carrying a literal: the value
+    // for an absent key comes from the option's own registration, not from a number repeated here.
+    double carriage_w = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
+    double carriage_h = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
+    double margin     = imex_cfg_float(printer_cfg, "imex_carriage_margin");
 
     // Primary zone extent (the clear printable area):
     //   row-sep only → full bed width × primary row's Y band

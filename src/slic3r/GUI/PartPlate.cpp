@@ -655,8 +655,11 @@ void PartPlate::calc_imex_zones()
 // Inputs that contribute to the key (any change must invalidate the IMEX zone cache):
 //   - active_mode (per-plate or process-preset fallback)
 //   - imex_tools_per_gantry, imex_gantry_count                  (grid shape)
+//   - imex_tool_layout                                          (which corner tool 0 occupies)
 //   - imex_nozzle_clearance_x, imex_nozzle_clearance_y          (zone widths / collision strips)
 //   - imex_carriage_margin                                       (zone shrink)
+//   - the active mode's tool roster and its Primary head        (same name, different roster)
+//   - imex_firmware_managed_zones                               (suppresses ghost generation)
 //
 // IMPORTANT: if you add a printer config option that affects zone geometry, ghost transforms,
 // or collision strips, it MUST be incorporated here — otherwise ghost meshes and zone overlays
@@ -683,11 +686,6 @@ std::string PartPlate::build_imex_cache_key() const
         if (mode_opt && !mode_opt->value.empty())
             active_mode = mode_opt->value;
     }
-    auto* n_col_opt = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
-    auto* n_row_opt = printer_cfg.option<ConfigOptionInt>("imex_gantry_count");
-    auto* cw_opt    = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_x");
-    auto* ch_opt    = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_y");
-    auto* mgn_opt   = printer_cfg.option<ConfigOptionFloat>("imex_carriage_margin");
     // Mode NAME alone is not printer identity: two presets can define the same mode
     // name with different tool rosters/primary, and imex_firmware_managed_zones
     // suppresses ghost generation entirely. Both shape the baked zone/ghost set, so
@@ -696,23 +694,24 @@ std::string PartPlate::build_imex_cache_key() const
     std::string active_tools;
     int         primary_phys = -1;
     resolve_active_mode_tools(active_tools, primary_phys); // empty on failure — keyed as such
-    auto* fw_opt = printer_cfg.option<ConfigOptionBool>("imex_firmware_managed_zones");
     // imex_tool_layout decides which physical corner tool 0 occupies (flip_x / flip_y inside
     // compute_imex_zone_layout), so every zone rectangle, collision strip and ghost offset moves
     // when it changes while every other keyed field stays put. Without it the key is identical
     // across a layout change and the baked zones go stale; that this currently appears to work is
     // incidental -- some other path happens to rebuild -- not something to rely on.
-    auto* layout_opt = printer_cfg.option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
+    // Geometry values go through imex_cfg_* so the key is built from the same numbers
+    // compute_imex_zone_layout() lays out with; a literal here could key on a value the layout
+    // never used.
     return active_mode
-         + "|" + std::to_string(n_col_opt ? n_col_opt->value : 2)
-         + "x" + std::to_string(n_row_opt ? n_row_opt->value : 1)
-         + "|ly" + std::to_string(layout_opt ? (int)layout_opt->value : 0)
-         + "|cw" + std::to_string(cw_opt ? (int)(cw_opt->value * 10) : 0)
-         + "|ch" + std::to_string(ch_opt ? (int)(ch_opt->value * 10) : 0)
-         + "|mg" + std::to_string(mgn_opt ? (int)(mgn_opt->value * 10) : 0)
+         + "|" + std::to_string(imex_cfg_int(printer_cfg, "imex_tools_per_gantry"))
+         + "x" + std::to_string(imex_cfg_int(printer_cfg, "imex_gantry_count"))
+         + "|ly" + std::to_string((int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout"))
+         + "|cw" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x") * 10))
+         + "|ch" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y") * 10))
+         + "|mg" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_carriage_margin") * 10))
          + "|t" + active_tools
          + "|p" + std::to_string(primary_phys)
-         + "|fw" + ((fw_opt && fw_opt->value) ? "1" : "0");
+         + "|fw" + (imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones") ? "1" : "0");
 }
 
 // Reposition the IMEX mode icon without requiring a full set_shape() rebuild.
@@ -831,9 +830,8 @@ void PartPlate::calc_imex_ghosts()
     // placement at primary_zone_center + gantry_offset) would draw them at positions the
     // firmware doesn't honor (e.g. off-bed once the centered slice is in play). Suppress
     // ghost generation entirely so we don't lie about something the slicer doesn't own.
-    if (auto* fw_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
-                          .config.option<ConfigOptionBool>("imex_firmware_managed_zones");
-        fw_opt && fw_opt->value)
+    if (imex_cfg_bool(wxGetApp().preset_bundle->printers.get_edited_preset().config,
+                      "imex_firmware_managed_zones"))
         return;
 
     // Zone centers are the basis for ghost placement; make sure they exist before
@@ -847,14 +845,10 @@ void PartPlate::calc_imex_ghosts()
     // non-primary gantry is represented by a single ghost — its column-paired rep —
     // so non-rep tools on aggregated gantries are skipped. This single source of
     // pairing truth keeps ghost emission and zone aggregation in lockstep.
-    // 2 matches the value registered in PrintConfig.cpp:6643 and the fallback in
-    // compute_imex_zone_layout(). All three must agree: the zone rectangles come from the
-    // library, so a different grouping default here would pair tools against a grid that
-    // was divided differently.
-    int tpg = 2;
-    if (auto* tpg_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
-                            .config.option<ConfigOptionInt>("imex_tools_per_gantry"))
-        tpg = std::max(1, tpg_opt->value);
+    // Grouping must divide the grid the same way compute_imex_zone_layout() does, so the key is
+    // read through the same accessor rather than against a literal repeated here.
+    const int tpg = std::max(1, imex_cfg_int(
+        wxGetApp().preset_bundle->printers.get_edited_preset().config, "imex_tools_per_gantry"));
     const ImexGantryGrouping grouping =
         group_imex_active_tools_by_gantry(active_tools_str, tpg);
     auto is_aggregated = [&](int phys) -> bool {
@@ -998,14 +992,11 @@ void PartPlate::update_imex_ghost_transforms(
     // moves the ghost exactly as a rebuild would place it. See the note there: for an
     // aggregated gantry both X frames sit on the bed centerline, which zeroes gantry_offset.x
     // so the cross-gantry mirror tracks primary's X and reflects in Y.
-    // 2 matches the value registered in PrintConfig.cpp:6643 and the fallback in
-    // compute_imex_zone_layout(). All three must agree: the zone rectangles come from the
-    // library, so a different grouping default here would pair tools against a grid that
-    // was divided differently.
-    int tpg = 2;
-    if (auto* tpg_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
-                            .config.option<ConfigOptionInt>("imex_tools_per_gantry"))
-        tpg = std::max(1, tpg_opt->value);
+    // Same accessor, same reason as calc_imex_ghosts() above: this must group the grid the way
+    // compute_imex_zone_layout() does. The grouping/is_aggregated preamble that follows is
+    // duplicated from that function; the duplication predates this change and is left alone.
+    const int tpg = std::max(1, imex_cfg_int(
+        wxGetApp().preset_bundle->printers.get_edited_preset().config, "imex_tools_per_gantry"));
     const ImexGantryGrouping grouping =
         group_imex_active_tools_by_gantry(active_tools_str, tpg);
     auto is_aggregated = [&](int phys) -> bool {
@@ -1229,6 +1220,12 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     const std::string mode = get_imex_mode();
     if (mode == kImexPrimaryMode) return false;
 
+    // Both keys bail rather than defaulting through imex_cfg_int(), deliberately, and for the same
+    // reason: this reports a routing CONFLICT, so it must run on the printer's real configuration
+    // or not at all. Without physical_extruder_map there is no mapping to check; with a defaulted
+    // grid the conflict would be computed against a shape the printer does not have. A false
+    // conflict warning is worse than staying quiet, so an absent key means "no answer" here --
+    // unlike the geometry paths, where a defaulted value still describes a drawable bed.
     auto* tpg_opt   = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
     auto* pem_opt   = printer_cfg.option<ConfigOptionInts>("physical_extruder_map");
     if (!tpg_opt || !pem_opt) return false;

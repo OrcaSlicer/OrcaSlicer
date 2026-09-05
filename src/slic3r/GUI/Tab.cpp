@@ -5489,6 +5489,18 @@ PageShp TabPrinter::build_kinematics_page()
  * but "Motion ability" and "Single extruder MM setup" too
  * (These pages can changes according to the another values of a current preset)
  * */
+// Grid shape for the IMEX modes editor, for the three sites that build or resize the control:
+// build_unregular_pages(), reload_config() and update_fff(). They must read these keys the way
+// compute_imex_zone_layout() does, so this goes through the shared accessors rather than
+// opt_int(), which does not throw on an absent key -- it dereferences the null that
+// option<ConfigOptionInt>() returns (Config.hpp:2991), where every other reader falls back.
+static void imex_grid_shape(const DynamicPrintConfig* cfg, int& n_cols, int& n_rows, int& layout)
+{
+    n_cols = std::max(1, imex_cfg_int(*cfg, "imex_tools_per_gantry"));
+    n_rows = std::max(1, imex_cfg_int(*cfg, "imex_gantry_count"));
+    layout = IMEXModesCtrl::parse_layout(imex_cfg_enum<ImexToolLayout>(*cfg, "imex_tool_layout"));
+}
+
 void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
 {
     size_t		n_before_extruders = 2;			//	Count of pages before Extruder pages
@@ -5682,11 +5694,9 @@ if (is_marlin_flavor)
             auto line = Line{ L("Modes"), L("") };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) -> wxSizer* {
-                int n_cols = m_config->opt_int("imex_tools_per_gantry");
-                int n_rows = m_config->opt_int("imex_gantry_count");
-                ImexToolLayout layout = ImexToolLayout::FrontLeft;
-                if (auto* o = m_config->option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout")) layout = o->value;
-                m_imex_modes_ctrl = new IMEXModesCtrl(parent, n_cols, n_rows, IMEXModesCtrl::parse_layout(layout));
+                int n_cols = 0, n_rows = 0, layout = 0;
+                imex_grid_shape(m_config, n_cols, n_rows, layout);
+                m_imex_modes_ctrl = new IMEXModesCtrl(parent, n_cols, n_rows, layout);
                 // Lazy lookup pointing at the *saved* state of the currently-selected
                 // preset (not the parent). Per-row reset means "discard in-session
                 // edits to this row" — matches the page-level reset semantic and works
@@ -6052,11 +6062,9 @@ void TabPrinter::reload_config()
         // standard Choice fields; only the modes grid still needs explicit re-sync
         // because it spans three options at once and isn't a Field.
         if (m_imex_modes_ctrl) {
-            int n_cols = m_config->opt_int("imex_tools_per_gantry");
-            int n_rows = m_config->opt_int("imex_gantry_count");
-            ImexToolLayout layout = ImexToolLayout::FrontLeft;
-            if (auto* o = m_config->option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout")) layout = o->value;
-            m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, IMEXModesCtrl::parse_layout(layout));
+            int n_cols = 0, n_rows = 0, layout = 0;
+            imex_grid_shape(m_config, n_cols, n_rows, layout);
+            m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, layout);
             m_imex_modes_ctrl->load_from_config(*m_config);
         }
     }
@@ -6307,10 +6315,10 @@ void TabPrinter::toggle_options()
         if (is_imex) {
             if (Field* layout_field = get_field("imex_tool_layout"); layout_field) {
                 if (auto* choice = dynamic_cast<Choice*>(layout_field); choice) {
-                    const int gantry_count = m_config->opt_int("imex_gantry_count");
-                    int current_val = 0;
-                    if (auto* o = m_config->option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout"))
-                        current_val = static_cast<int>(o->value);
+                    const int gantry_count = std::max(1, imex_cfg_int(*m_config, "imex_gantry_count"));
+                    // Not const: the rear-* -> front-* normalization below reassigns it.
+                    int current_val =
+                        static_cast<int>(imex_cfg_enum<ImexToolLayout>(*m_config, "imex_tool_layout"));
 
                     // Normalize rear-* → front-* when collapsing to 1 gantry.
                     if (gantry_count == 1 && (current_val == static_cast<int>(ImexToolLayout::RearLeft)
@@ -6583,11 +6591,9 @@ void TabPrinter::update_fff()
     // refreshes the rows because that path actually changes the config, which
     // matches_config() then detects.
     if (m_imex_modes_ctrl) {
-        int n_cols = m_config->opt_int("imex_tools_per_gantry");
-        int n_rows = m_config->opt_int("imex_gantry_count");
-        ImexToolLayout layout = ImexToolLayout::FrontLeft;
-        if (auto* o = m_config->option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout")) layout = o->value;
-        m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, IMEXModesCtrl::parse_layout(layout));
+        int n_cols = 0, n_rows = 0, layout = 0;
+        imex_grid_shape(m_config, n_cols, n_rows, layout);
+        m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, layout);
         if (!m_imex_modes_ctrl->matches_config(*m_config))
             m_imex_modes_ctrl->load_from_config(*m_config);
     }

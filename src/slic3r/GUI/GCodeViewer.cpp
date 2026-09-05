@@ -1628,23 +1628,16 @@ GCodeViewer::ImexMarkerPlan GCodeViewer::resolve_imex_marker_plan(const DynamicP
     // would place them off-bed. The firmware physically fans the centered
     // toolpath out into the zones, so the centered preview with no
     // secondaries is the honest representation.
-    auto* fw_opt = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
-    if (fw_opt && fw_opt->value)
+    if (imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones"))
         return plan;
     if (mode.empty() || mode == kImexPrimaryMode)
         return plan;
 
-    auto* tpg_opt = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
-    auto* wx_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
-    auto* wy_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
-    // Only the gantry grouping and the mirror axis are decided here; the zone
-    // grid itself comes from compute_imex_zone_layout() below. The fallback is 2,
-    // matching PrintConfig.cpp:6643, compute_imex_zone_layout() and
-    // PartPlate::calc_imex_ghosts() -- all four must agree, or a missing key
-    // groups tools against a grid divided a different way.
-    const int tools_per_gantry = tpg_opt ? std::max(1, tpg_opt->value) : 2;
-    plan.box_wx = wx_opt ? (float)wx_opt->value : 30.0f;
-    plan.box_wy = wy_opt ? (float)wy_opt->value : 30.0f;
+    // Only the gantry grouping and the mirror axis are decided here; the zone grid itself comes
+    // from compute_imex_zone_layout() below, which reads the same keys through the same accessor.
+    const int tools_per_gantry = std::max(1, imex_cfg_int(printer_cfg, "imex_tools_per_gantry"));
+    plan.box_wx = (float)imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
+    plan.box_wy = (float)imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
 
     // Parse "idx:P/C/M" via shared helpers — matches PartPlate::calc_imex_zones.
     // The role travels as an ImexRole all the way to the marker placement
@@ -1911,12 +1904,6 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                 // deliberately made against the live config rather than against a freshly built
                 // key, so an unchanged frame allocates nothing at all.
                 static const std::vector<std::string> s_no_strings;
-                auto* gantry_opt = printer_cfg.opt<ConfigOptionInt>("imex_gantry_count");
-                auto* tpg_opt    = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
-                auto* layout_opt = printer_cfg.opt<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout");
-                auto* wx_opt     = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
-                auto* wy_opt     = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
-                auto* fw_opt     = printer_cfg.opt<ConfigOptionBool>("imex_firmware_managed_zones");
                 auto* names_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
                 auto* tools_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
                 const std::vector<std::string>& mode_names   = names_opt ? names_opt->values : s_no_strings;
@@ -1924,12 +1911,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
                 ImexMarkerKey::Scalars key;
                 key.plate_index      = plate_list.get_curr_plate_index();
-                key.gantry_count     = gantry_opt ? gantry_opt->value : 0;
-                key.tools_per_gantry = tpg_opt    ? tpg_opt->value    : 0;
-                key.tool_layout      = layout_opt ? (int)layout_opt->value : -1;
-                key.clearance_x      = wx_opt ? wx_opt->value : 0.0;
-                key.clearance_y      = wy_opt ? wy_opt->value : 0.0;
-                key.firmware_managed = fw_opt && fw_opt->value;
+                // Same accessor the plan is built from: a key holding a different fallback than
+                // the value actually laid out would compare equal across a real change.
+                key.gantry_count     = imex_cfg_int(printer_cfg, "imex_gantry_count");
+                key.tools_per_gantry = imex_cfg_int(printer_cfg, "imex_tools_per_gantry");
+                key.tool_layout      = (int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout");
+                key.clearance_x      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
+                key.clearance_y      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
+                key.firmware_managed = imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones");
                 key.bed_min_x        = bed_extents.min.x();
                 key.bed_min_y        = bed_extents.min.y();
                 key.bed_max_x        = bed_extents.max.x();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <map>
 #include <optional>
 #include <string>
@@ -155,7 +156,7 @@ int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const C
 // so it does not depend on a parallel mode being active the way imex_pem_tool_for does.
 //
 // Gated on is_imex because physical_extruder_map carries two readings in this tree: the
-// BBL paths index it by extruder id (GCode.cpp:3333, WipeTower.cpp:1353), the IMEX paths
+// BBL paths index it by extruder id (GCode.cpp:3295, WipeTower.cpp:1353), the IMEX paths
 // by filament id. Those coincide only when the filament and nozzle counts match, so an
 // ungated mapping would impose the IMEX reading on profiles that mean the other one --
 // fdm_bbl_3dp_002_common ships a non-identity [1,0] and is spared today only because
@@ -330,6 +331,46 @@ inline constexpr ImexRoleDesc kImexRoleTable[] = {
     { ImexRole::Mirror,  'M' },
     { ImexRole::Span,    'S' },
 };
+
+// Reads an IMEX geometry key, falling back to the value registered for that option in
+// print_config_def when the key is absent from `cfg`, rather than to a literal repeated at the
+// call site. Only a partial or hand-built config reaches the fallback -- anything instantiated
+// from the ConfigDef carries every key -- but that is exactly the case a literal gets wrong.
+int    imex_cfg_int(const ConfigBase& cfg, const std::string& key);
+double imex_cfg_float(const ConfigBase& cfg, const std::string& key);
+
+// Enum sibling. ConfigOptionEnum<T> derives from ConfigOptionSingle<T>, not from ConfigOptionInt,
+// so it cannot go through imex_cfg_int(). Header-inline because it is a template.
+bool imex_cfg_bool(const ConfigBase& cfg, const std::string& key);
+
+// Logs an unregistered-key lookup. Out-of-line to keep boost.log out of this header.
+void imex_cfg_report_unregistered(const char* fn, const std::string& key);
+
+template<class T>
+T imex_cfg_enum(const ConfigBase& cfg, const std::string& key)
+{
+    // dynamic_cast on BOTH halves here, unlike imex_cfg_int/_float. Every ConfigOptionEnum<T>
+    // reports coEnum, so the type() comparison that option<TYPE>() (Config.hpp:2643) and the
+    // int/float accessors rely on cannot tell one enum type from another: it would accept a
+    // ConfigOptionEnum<OtherEnum> and static_cast it to this T. ConfigOptionEnum<A> and
+    // ConfigOptionEnum<B> are unrelated siblings (both derive from ConfigOptionSingle<T>), so a
+    // dynamic_cast rejects the mismatch outright. The ConfigOptionPercent : ConfigOptionFloat
+    // inheritance that rules dynamic_cast out for imex_cfg_float has no analogue for enums.
+    if (const ConfigOption* opt = cfg.option(key))
+        if (const auto* e = dynamic_cast<const ConfigOptionEnum<T>*>(opt))
+            return e->value;
+    if (const ConfigOptionDef* def = print_config_def.get(key))
+        if (const ConfigOption* dv = def->default_value.get())
+            if (const auto* e = dynamic_cast<const ConfigOptionEnum<T>*>(dv))
+                return e->value;
+    // Same policy as imex_cfg_int/_float: an unregistered key is a typo the compiler cannot
+    // catch, so say so rather than return a silent zero that reads as a legitimate enumerator.
+    // The log call is out-of-line so this header, which much of libslic3r and the GUI includes,
+    // does not pull in boost.log for a path that only a typo reaches.
+    assert(false && "imex_cfg_enum: key not registered in print_config_def");
+    imex_cfg_report_unregistered("imex_cfg_enum", key);
+    return static_cast<T>(0);
+}
 
 // The on-disk suffix letter for `role`. Inverse of imex_role_from_suffix().
 char imex_role_letter(ImexRole role);

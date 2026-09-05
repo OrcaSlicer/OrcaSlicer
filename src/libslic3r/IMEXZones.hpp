@@ -75,8 +75,9 @@ struct ImexZoneLayout
 // `printer_cfg`   — the edited printer preset's config. Read for is_imex, the tool grid
 //                   (imex_gantry_count / imex_tools_per_gantry / imex_tool_layout), the
 //                   mode roster (imex_mode_names / imex_mode_active_tools) and the strip
-//                   widths (imex_nozzle_clearance_x / _y, imex_carriage_margin). A missing
-//                   option falls back to the same default the caller would have seen.
+//                   widths (imex_nozzle_clearance_x / _y, imex_carriage_margin). A key absent
+//                   from the config falls back to the value registered for that option in
+//                   print_config_def, via the imex_cfg_* accessors.
 // `plate_mode`    — the plate's own IMEX mode. Wins over the process preset unless it is
 //                   `kImexPrimaryMode`.
 // `process_mode`  — the process preset's `imex_parallel_mode`, used only as the fallback
