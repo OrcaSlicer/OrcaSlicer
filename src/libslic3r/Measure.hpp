@@ -33,15 +33,6 @@ public:
     SurfaceFeature(const Vec3d& pt)
     : m_type{SurfaceFeatureType::Point}, m_pt1{pt} {}
 
-    SurfaceFeature(const SurfaceFeature& sf){
-        this->clone(sf);
-        volume                 = sf.volume;
-        plane_indices          = sf.plane_indices;
-        world_tran             = sf.world_tran;
-        world_plane_features   = sf.world_plane_features;
-        origin_surface_feature = sf.origin_surface_feature;
-    }
-
     void clone(const SurfaceFeature &sf)
     {
         m_type               = sf.get_type();

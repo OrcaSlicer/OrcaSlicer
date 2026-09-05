@@ -71,7 +71,7 @@ wxFlexGridSizer* TroubleshootDialog::create_item_loaded_profiles()
     auto gen_stats = GetProfilesOverview();
     gen_stats      = ""; // clear mem. not needed after generating m_..._act, m_..._usr variables
    
-    auto add_sizer = [this, g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
+    auto add_sizer = [g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
         int sys = 0;
         for (auto it = col->begin(); it != col->end(); it++) {
             if (it->is_system)
@@ -178,7 +178,7 @@ TroubleshootDialog::TroubleshootDialog()
         return wxTheClipboard->SetData(new wxTextDataObject(GetSysInfoAll()));
     });
 
-    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines, sys_copy_btn](wxCommandEvent &e) {
+    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines](wxCommandEvent &e) {
         m_sys_panel_mode = !m_sys_panel_mode;
         sys_panel->SetText(sys_info_lines(m_sys_panel_mode));
         sys_less_btn->SetLabel(m_sys_panel_mode ? _L("Hide") : _L("Show"));
@@ -226,7 +226,7 @@ TroubleshootDialog::TroubleshootDialog()
     };
 
     auto info_desc_1 = create_info_line(_L("We need information for diagnosing source of the issue. Check wiki page for detailed guide."));
-    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a zip file."));
+    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a ZIP archive."));
     auto info_desc_3 = create_info_line(_L("Any additional visual examples like images or screen recordings might be helpful while reporting the issue."));
     wxBoxSizer *info_desc_sizer = new wxBoxSizer(wxVERTICAL);
     info_desc_sizer->Add(info_desc_1, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
@@ -292,7 +292,7 @@ TroubleshootDialog::TroubleshootDialog()
     auto log_level_szr = create_label(_L("Log level"), "");
     log_level_szr->Add(create_item_log_level_combo(), 0, wxALIGN_CENTER_VERTICAL);
 
-    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a zip file."));
+    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a ZIP archive."));
     auto log_pack_btn = create_btn(_L("Pack") + "...", "");
     log_pack_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         auto data_dir   = boost::filesystem::path(Slic3r::data_dir());

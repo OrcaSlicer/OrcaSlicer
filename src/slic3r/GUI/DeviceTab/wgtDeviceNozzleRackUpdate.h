@@ -3,7 +3,7 @@
 *  Description: The panel for updating hotends
 *
 *  \n class wgtDeviceNozzleRackUpdate
-//**********************************************************/
+************************************************************/
 
 #pragma once
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
@@ -122,7 +122,6 @@ private:
 private:
     int m_ext_nozzle_id = -1;
     int m_rack_nozzle_id = -1;
-    bool m_isRefreshFinish = false;
     bool findNozzleImage = false;
 
     NozzleStatus m_nozzle_status = NOZZLE_STATUS_DC;
@@ -154,7 +153,6 @@ private:
     Label* m_diameter_label;
     Label* m_flowtype_label;
     Label* m_type_label;
-    ScalableButton* m_error_button{ nullptr };
 
     Label* m_sn_label;
     Label* m_version_label;
