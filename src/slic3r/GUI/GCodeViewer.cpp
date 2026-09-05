@@ -9,6 +9,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/FilamentGradient.hpp"
 //BBS: add convex hull logic for toolpath check
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
@@ -100,6 +101,8 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
 // ORCA: Add Pressure Advance visualization support
     else if (view_type == libvgcode::EViewType::PressureAdvance)
         return _u8L("Pressure Advance");
+    else if (view_type == libvgcode::EViewType::GradientFilament)
+        return _u8L("Gradient Filament");
     return "";
 }
 
@@ -1201,8 +1204,49 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         return;
     }
 
+    // Build per-filament gradient definitions from the active project config (flattened,
+    // per-extruder) — the same source as the swatch colors. A filament is a gradient when
+    // filament_colour_type == "0". Stops come from our positioned filament_gradient_stops,
+    // or (for native library gradients) are evenly spaced across filament_multi_colour.
+    std::vector<Slic3r::FilamentGradient> filament_gradients;
+    {
+        auto* bundle = wxGetApp().preset_bundle;
+        if (bundle != nullptr) {
+            const DynamicPrintConfig& cfg = bundle->project_config;
+            const size_t n = str_tool_colors.size();
+            filament_gradients.resize(n);
+
+            const auto* type_opt  = cfg.option<ConfigOptionStrings>("filament_colour_type");
+            const auto* stops_opt = cfg.option<ConfigOptionStrings>("filament_gradient_stops");
+            const auto* multi_opt = cfg.option<ConfigOptionStrings>("filament_multi_colour");
+            const auto* cycle_opt = cfg.option<ConfigOptionFloats>("filament_gradient_cycle_length");
+            const auto* off_opt   = cfg.option<ConfigOptionFloats>("filament_gradient_start_offset");
+
+            for (size_t fi = 0; fi < n; ++fi) {
+                if (type_opt == nullptr || fi >= type_opt->values.size() || type_opt->values[fi] != "0")
+                    continue;
+
+                Slic3r::FilamentGradient grad;
+                const std::string stops_str = (stops_opt && fi < stops_opt->values.size()) ? stops_opt->values[fi] : "";
+                if (!Slic3r::FilamentGradient::parse_stops(stops_str, grad.stops)) {
+                    // No positioned stops — fall back to evenly spaced from the native color list.
+                    if (multi_opt && fi < multi_opt->values.size())
+                        Slic3r::FilamentGradient::stops_from_color_list(multi_opt->values[fi], grad.stops);
+                }
+                if (grad.stops.size() < 2)
+                    continue;
+
+                const float cycle_len = (cycle_opt && fi < cycle_opt->values.size()) ? (float)cycle_opt->values[fi] : 500.0f;
+                const float start_off = (off_opt && fi < off_opt->values.size()) ? (float)off_opt->values[fi] : 0.0f;
+                grad.cycle_length_mm = cycle_len > 0.0f ? cycle_len : 500.0f;
+                grad.start_offset_mm = start_off;
+                filament_gradients[fi] = std::move(grad);
+            }
+        }
+    }
+
     // convert data from PrusaSlicer format to libvgcode format
-    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer);
+    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer, filament_gradients);
 
 //#define ENABLE_DATA_EXPORT 1
 //#if ENABLE_DATA_EXPORT
@@ -1298,7 +1342,14 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     // send data to the viewer
     m_viewer.reset_default_extrusion_roles_colors();
+
+    // remember whether gradient data was computed before the move
+    const bool has_gradient_data = !data.gradient_colors.empty();
+
     m_viewer.load(std::move(data));
+
+    // Gradient auto-view is integrated into the "smart default view type" block below
+    // (ORCA #13625) so the two don't fight: a gradient print defaults to the Filament view.
 
 // #if !VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 //     const size_t vertices_count = m_viewer.get_vertices_count();
@@ -1387,10 +1438,14 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         }
     } else {
         if (m_last_extruder_count_default_applied != 1) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
+            // Single extruder: default to Line Type, except a gradient filament defaults to the
+            // Filament (ColorPrint) view so its computed gradient colors are visible.
+            const libvgcode::EViewType def = has_gradient_data ? libvgcode::EViewType::ColorPrint
+                                                               : libvgcode::EViewType::FeatureType;
+            auto it = std::find(view_type_items.begin(), view_type_items.end(), def);
             if (it != view_type_items.end())
                 m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::FeatureType);
+            set_view_type(def);
             m_last_extruder_count_default_applied = 1;
         }
     }
@@ -3510,6 +3565,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     push_combo_style();
 
     ImGui::SameLine();
+    // Guard against an out-of-range selection (e.g. a view type that is not in the label list).
+    if (m_view_type_sel < 0 || m_view_type_sel >= static_cast<int>(view_type_items_str.size()))
+        m_view_type_sel = 0;
     const char* view_type_value = view_type_items_str[m_view_type_sel].c_str();
     ImGuiComboFlags flags = ImGuiComboFlags_HeightLargest; // ORCA allow to fit all items to prevent scrolling on reaching last elements
     if (ImGui::BBLBeginCombo("", view_type_value, flags)) {

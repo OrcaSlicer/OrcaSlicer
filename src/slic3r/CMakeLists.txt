@@ -453,6 +453,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
     GUI/RammingChart.hpp
+    GUI/GradientColorPickerDialog.cpp
+    GUI/GradientColorPickerDialog.hpp
     GUI/RecenterDialog.cpp
     GUI/RecenterDialog.hpp
     GUI/ReleaseNote.cpp

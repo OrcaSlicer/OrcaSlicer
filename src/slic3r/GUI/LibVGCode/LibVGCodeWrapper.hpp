@@ -16,6 +16,7 @@
 
 #include "../../src/libvgcode/include/Types.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/FilamentGradient.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "slic3r/GUI/GUI_Preview.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -71,7 +72,8 @@ extern Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode
 
 // mapping from Slic3r::GCodeProcessorResult to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
-    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer);
+    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
+    const std::vector<Slic3r::FilamentGradient>& gradients = {});
 
 // mapping from Slic3r::Print to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string>& str_tool_colors,

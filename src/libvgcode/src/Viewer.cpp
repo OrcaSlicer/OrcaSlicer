@@ -309,7 +309,7 @@ float Viewer::get_estimated_time_at(size_t id) const
 
 Color Viewer::get_vertex_color(const PathVertex& vertex) const
 {
-    return m_impl->get_vertex_color(vertex);
+    return m_impl->get_vertex_color(vertex, 0);
 }
 
 size_t Viewer::get_extrusion_roles_count() const

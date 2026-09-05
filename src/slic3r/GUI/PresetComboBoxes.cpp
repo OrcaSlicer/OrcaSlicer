@@ -16,6 +16,7 @@
 #include <wx/colordlg.h>
 #include <wx/wupdlock.h>
 #include <wx/menu.h>
+#include <wx/time.h>   // wxGetUTCTimeMillis
 #include <wx/odcombo.h>
 #include <wx/listbook.h>
 
@@ -25,6 +26,7 @@
 #endif
 
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Utils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
@@ -44,6 +46,8 @@
 #include "MsgDialog.hpp"
 #include "ParamsDialog.hpp"
 #include "FilamentPickerDialog.hpp"
+#include "GradientColorPickerDialog.hpp"
+#include "libslic3r/Color.hpp"
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -915,6 +919,18 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
             evt->SetInt(m_filament_idx);
             wxQueueEvent(wxGetApp().plater(), evt);
         });
+        // Right-click the swatch to set/edit a gradient on ANY filament (not just Bambu library ones).
+        // Bind both CONTEXT_MENU and RIGHT_UP for cross-platform reach: CONTEXT_MENU covers the
+        // standard path (and macOS Ctrl-click); RIGHT_UP is a fallback for platforms/widgets where
+        // a button does not generate CONTEXT_MENU. open_gradient_editor() is re-entrancy guarded so
+        // platforms that deliver both events (e.g. Windows) do not open the dialog twice.
+        clr_picker->Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent&) {
+            open_gradient_editor();
+        });
+        clr_picker->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
+            open_gradient_editor();
+            e.Skip();
+        });
     }
     else {
         edit_btn = new ScalableButton(parent, wxID_ANY, "cog");
@@ -1620,6 +1636,123 @@ void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &cl
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     update();  // refresh the preset combobox with new config
 
+    wxGetApp().plater()->on_config_change(cfg_new);
+}
+
+void PlaterPresetComboBox::open_gradient_editor()
+{
+    if (m_filament_idx < 0) return;
+    // Re-entrancy guard for overlapping calls, plus a short debounce: a single right-click can
+    // deliver both RIGHT_UP and CONTEXT_MENU, and the second fires right after the modal closes
+    // (so the boolean alone would let it reopen). Ignore a second open within 300 ms of a close.
+    if (m_gradient_editor_open) return;
+    if (wxGetUTCTimeMillis().GetValue() - m_gradient_editor_last_close_ms < 300) return;
+    m_gradient_editor_open = true;
+    Slic3r::ScopeGuard editor_guard([this]() {
+        m_gradient_editor_open = false;
+        m_gradient_editor_last_close_ms = wxGetUTCTimeMillis().GetValue();
+    });
+
+    DynamicPrintConfig* cfg = &wxGetApp().preset_bundle->project_config;
+
+    auto get_str = [&](const char* key) -> std::string {
+        auto* o = cfg->option<ConfigOptionStrings>(key);
+        return (o && m_filament_idx < (int)o->values.size()) ? o->values[m_filament_idx] : std::string();
+    };
+    auto get_flt = [&](const char* key, double def) -> double {
+        auto* o = cfg->option<ConfigOptionFloats>(key);
+        return (o && m_filament_idx < (int)o->values.size()) ? o->values[m_filament_idx] : def;
+    };
+
+    // Seed the editor from the current project_config for this extruder.
+    FilamentGradient grad;
+    if (!FilamentGradient::parse_stops(get_str("filament_gradient_stops"), grad.stops))
+        FilamentGradient::stops_from_color_list(get_str("filament_multi_colour"), grad.stops);
+    grad.cycle_length_mm = (float)get_flt("filament_gradient_cycle_length", 500.0);
+    grad.start_offset_mm = (float)get_flt("filament_gradient_start_offset", 0.0);
+
+    // Look up this filament's diameter & density so the editor can offer weight (g) input.
+    double diameter_mm = 1.75, density = 1.24;
+    {
+        auto* bundle = wxGetApp().preset_bundle;
+        if (bundle != nullptr && m_filament_idx < (int)bundle->filament_presets.size()) {
+            const Preset* fp = bundle->filaments.find_preset(bundle->filament_presets[m_filament_idx]);
+            if (fp != nullptr) {
+                if (auto* d = fp->config.option<ConfigOptionFloats>("filament_diameter");
+                    d && !d->values.empty() && d->values[0] > 0.0)
+                    diameter_mm = d->values[0];
+                if (auto* r = fp->config.option<ConfigOptionFloats>("filament_density");
+                    r && !r->values.empty() && r->values[0] > 0.0)
+                    density = r->values[0];
+            }
+        }
+    }
+
+    GradientColorPickerDialog dlg(this, grad, diameter_mm, density);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+
+    const FilamentGradient result = dlg.get_gradient();
+    std::vector<std::string> colours;
+    colours.reserve(result.stops.size());
+    for (const auto& s : result.stops)
+        colours.push_back(encode_color(s.color));
+
+    sync_gradient_config(result.serialize_stops(), colours,
+                         result.cycle_length_mm, result.start_offset_mm);
+
+    wxCommandEvent* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+    evt->SetInt(m_filament_idx);
+    wxQueueEvent(wxGetApp().plater(), evt);
+}
+
+void PlaterPresetComboBox::sync_gradient_config(const std::string& stops_serialized,
+                                                const std::vector<std::string>& colours,
+                                                double cycle_length_mm, double start_offset_mm)
+{
+    if (colours.empty() || m_filament_idx < 0) return;
+    DynamicPrintConfig* cfg = &wxGetApp().preset_bundle->project_config;
+
+    // option(key, true) creates the option from its definition if absent, so clone() is never
+    // called on a null pointer (hardening against a project_config missing these keys).
+    auto multi_colour_opt = static_cast<ConfigOptionStrings*>(cfg->option("filament_multi_colour", true)->clone());
+    auto colour_type_opt  = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type", true)->clone());
+    auto colour_opt       = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour", true)->clone());
+    auto stops_opt        = static_cast<ConfigOptionStrings*>(cfg->option("filament_gradient_stops", true)->clone());
+    auto cycle_opt        = static_cast<ConfigOptionFloats*>(cfg->option("filament_gradient_cycle_length", true)->clone());
+    auto offset_opt       = static_cast<ConfigOptionFloats*>(cfg->option("filament_gradient_start_offset", true)->clone());
+
+    const size_t need = (size_t)m_filament_idx + 1;
+    if (multi_colour_opt->values.size() < need) multi_colour_opt->values.resize(need);
+    if (colour_type_opt->values.size()  < need) colour_type_opt->values.resize(need, "1");
+    if (colour_opt->values.size()       < need) colour_opt->values.resize(need);
+    if (stops_opt->values.size()        < need) stops_opt->values.resize(need);
+    if (cycle_opt->values.size()        < need) cycle_opt->values.resize(need, 500.0);
+    if (offset_opt->values.size()       < need) offset_opt->values.resize(need, 0.0);
+
+    std::string clr_str;
+    for (const auto& c : colours) clr_str += c + " ";
+    if (!clr_str.empty()) clr_str.pop_back();
+
+    multi_colour_opt->values[m_filament_idx] = clr_str;
+    colour_opt->values[m_filament_idx]       = colours.front();
+    colour_type_opt->values[m_filament_idx]  = "0"; // 0 == gradient
+    stops_opt->values[m_filament_idx]        = stops_serialized;
+    cycle_opt->values[m_filament_idx]        = cycle_length_mm;
+    offset_opt->values[m_filament_idx]       = start_offset_mm;
+
+    DynamicPrintConfig cfg_new = *cfg;
+    cfg_new.set_key_value("filament_multi_colour", multi_colour_opt);
+    cfg_new.set_key_value("filament_colour", colour_opt);
+    cfg_new.set_key_value("filament_colour_type", colour_type_opt);
+    cfg_new.set_key_value("filament_gradient_stops", stops_opt);
+    cfg_new.set_key_value("filament_gradient_cycle_length", cycle_opt);
+    cfg_new.set_key_value("filament_gradient_start_offset", offset_opt);
+    cfg->apply(cfg_new);
+
+    wxGetApp().plater()->update_project_dirty_from_presets();
+    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    update();
     wxGetApp().plater()->on_config_change(cfg_new);
 }
 

@@ -19,6 +19,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/FilamentGradient.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -1131,6 +1132,35 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
 
+    // Per-extruder filament gradients (Prepare-view approximation), read from project_config.
+    // A filament is a gradient when filament_colour_type == "0"; stops come from our positioned
+    // filament_gradient_stops or (fallback) evenly spaced from the native filament_multi_colour.
+    std::vector<Slic3r::FilamentGradient> filament_gradients;
+    {
+        const DynamicPrintConfig& pcfg = GUI::wxGetApp().preset_bundle->project_config;
+        const auto* type_opt  = pcfg.option<ConfigOptionStrings>("filament_colour_type");
+        const auto* stops_opt = pcfg.option<ConfigOptionStrings>("filament_gradient_stops");
+        const auto* multi_opt = pcfg.option<ConfigOptionStrings>("filament_multi_colour");
+        // Fast path: skip all allocation/parsing when no filament is a gradient (the common case).
+        const bool any_gradient = type_opt != nullptr &&
+            std::any_of(type_opt->values.begin(), type_opt->values.end(),
+                        [](const std::string& t) { return t == "0"; });
+        if (any_gradient) {
+            filament_gradients.resize(type_opt->values.size());
+            for (size_t i = 0; i < type_opt->values.size(); ++i) {
+                if (type_opt->values[i] != "0") continue;
+                Slic3r::FilamentGradient grad;
+                const std::string stops_str = (stops_opt && i < stops_opt->values.size()) ? stops_opt->values[i] : std::string();
+                if (!Slic3r::FilamentGradient::parse_stops(stops_str, grad.stops)) {
+                    if (multi_opt && i < multi_opt->values.size())
+                        Slic3r::FilamentGradient::stops_from_color_list(multi_opt->values[i], grad.stops);
+                }
+                if (grad.stops.size() >= 2)
+                    filament_gradients[i] = std::move(grad);
+            }
+        }
+    }
+
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         if (type == ERenderType::Transparent) {
@@ -1168,6 +1198,31 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("color_clip_plane", m_color_clip_plane);
         shader->set_uniform("uniform_color_clip_plane_1", m_color_clip_plane_colors[0]);
         shader->set_uniform("uniform_color_clip_plane_2", m_color_clip_plane_colors[1]);
+
+        // Filament gradient (Prepare-view approximation): stretch one gradient cycle up the object's Z.
+        {
+            const int eid = volume.first->extruder_id - 1;
+            const Slic3r::FilamentGradient* grad =
+                (!volume.first->is_modifier && !volume.first->is_wipe_tower &&
+                 eid >= 0 && eid < (int)filament_gradients.size() && !filament_gradients[eid].empty())
+                ? &filament_gradients[eid] : nullptr;
+            if (grad != nullptr) {
+                const BoundingBoxf3& bb = volume.first->transformed_bounding_box();
+                const int count = std::min((int)grad->stops.size(), 8);
+                shader->set_uniform("use_filament_gradient", true);
+                shader->set_uniform("gradient_count", count);
+                shader->set_uniform("gradient_z_min", (float)bb.min.z());
+                shader->set_uniform("gradient_z_max", (float)bb.max.z());
+                for (int s = 0; s < count; ++s) {
+                    const GradientColorStop& st = grad->stops[s];
+                    shader->set_uniform(("gradient_pos[" + std::to_string(s) + "]").c_str(), (float)st.position);
+                    shader->set_uniform(("gradient_col[" + std::to_string(s) + "]").c_str(),
+                        std::array<float, 4>{ st.color.r(), st.color.g(), st.color.b(), st.color.a() });
+                }
+            } else {
+                shader->set_uniform("use_filament_gradient", false);
+            }
+        }
         //BOOST_LOG_TRIVIAL(info) << boost::format("set uniform_color to {%1%, %2%, %3%, %4%}, with_outline=%5%, selected %6%")
         //    %volume.first->render_color[0]%volume.first->render_color[1]%volume.first->render_color[2]%volume.first->render_color[3]
         //    %with_outline%volume.first->selected;
@@ -1240,6 +1295,9 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
     }
+
+    // Don't let gradient mode leak to other users of the gouraud shader.
+    shader->set_uniform("use_filament_gradient", false);
 
     if (m_show_sinking_contours) {
         shader->stop_using();

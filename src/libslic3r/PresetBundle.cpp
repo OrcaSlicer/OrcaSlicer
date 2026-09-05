@@ -52,6 +52,9 @@ static std::vector<std::string> s_project_options {
     "filament_colour",
     "filament_colour_type",
     "filament_multi_colour",
+    "filament_gradient_stops",
+    "filament_gradient_cycle_length",
+    "filament_gradient_start_offset",
     "wipe_tower_x",
     "wipe_tower_y",
     "curr_bed_type",
@@ -2837,6 +2840,35 @@ void PresetBundle::update_selections(AppConfig &config)
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
+    // Gradient filament data (per extruder), restored from printer settings (persisted across
+    // sessions in export_selections). Stops are joined with '|' since each stop string itself
+    // contains commas. Defaults mean "no gradient".
+    {
+        std::vector<std::string> grad_stops;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_stops"))
+            boost::algorithm::split(grad_stops, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_stops"), boost::algorithm::is_any_of("|"));
+        grad_stops.resize(filament_presets.size(), "");
+        project_config.option<ConfigOptionStrings>("filament_gradient_stops")->values = grad_stops;
+
+        std::vector<double> grad_cycle(filament_presets.size(), 500.0);
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_cycle_length")) {
+            std::vector<std::string> toks;
+            boost::algorithm::split(toks, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_cycle_length"), boost::algorithm::is_any_of("|"));
+            for (size_t i = 0; i < grad_cycle.size() && i < toks.size(); ++i)
+                if (!toks[i].empty()) try { grad_cycle[i] = boost::lexical_cast<double>(toks[i]); } catch (...) {}
+        }
+        project_config.option<ConfigOptionFloats>("filament_gradient_cycle_length")->values = grad_cycle;
+
+        std::vector<double> grad_offset(filament_presets.size(), 0.0);
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_start_offset")) {
+            std::vector<std::string> toks;
+            boost::algorithm::split(toks, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_start_offset"), boost::algorithm::is_any_of("|"));
+            for (size_t i = 0; i < grad_offset.size() && i < toks.size(); ++i)
+                if (!toks[i].empty()) try { grad_offset[i] = boost::lexical_cast<double>(toks[i]); } catch (...) {}
+        }
+        project_config.option<ConfigOptionFloats>("filament_gradient_start_offset")->values = grad_offset;
+    }
+
     std::vector<int> filament_maps(filament_colors.size(), 1);
     project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
 
@@ -3000,6 +3032,35 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
+    // Gradient filament data (per extruder), restored from printer settings (persisted across
+    // sessions in export_selections). Stops are joined with '|' since each stop string itself
+    // contains commas. Defaults mean "no gradient".
+    {
+        std::vector<std::string> grad_stops;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_stops"))
+            boost::algorithm::split(grad_stops, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_stops"), boost::algorithm::is_any_of("|"));
+        grad_stops.resize(filament_presets.size(), "");
+        project_config.option<ConfigOptionStrings>("filament_gradient_stops")->values = grad_stops;
+
+        std::vector<double> grad_cycle(filament_presets.size(), 500.0);
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_cycle_length")) {
+            std::vector<std::string> toks;
+            boost::algorithm::split(toks, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_cycle_length"), boost::algorithm::is_any_of("|"));
+            for (size_t i = 0; i < grad_cycle.size() && i < toks.size(); ++i)
+                if (!toks[i].empty()) try { grad_cycle[i] = boost::lexical_cast<double>(toks[i]); } catch (...) {}
+        }
+        project_config.option<ConfigOptionFloats>("filament_gradient_cycle_length")->values = grad_cycle;
+
+        std::vector<double> grad_offset(filament_presets.size(), 0.0);
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_gradient_start_offset")) {
+            std::vector<std::string> toks;
+            boost::algorithm::split(toks, config.get_printer_setting(initial_printer_profile_name, "filament_gradient_start_offset"), boost::algorithm::is_any_of("|"));
+            for (size_t i = 0; i < grad_offset.size() && i < toks.size(); ++i)
+                if (!toks[i].empty()) try { grad_offset[i] = boost::lexical_cast<double>(toks[i]); } catch (...) {}
+        }
+        project_config.option<ConfigOptionFloats>("filament_gradient_start_offset")->values = grad_offset;
+    }
+
     std::vector<int> filament_maps(filament_colors.size(), 1);
     project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
 
@@ -3146,6 +3207,18 @@ void PresetBundle::export_selections(AppConfig &config)
     // Load filament color type data into app config
     std::string           filament_color_types = boost::algorithm::join(project_config.option<ConfigOptionStrings>("filament_colour_type")->values, ",");
     config.set_printer_setting(printer_name, "filament_color_types", filament_color_types);
+
+    // Gradient filament data — stops joined with '|' (each stop string itself contains commas).
+    std::string filament_gradient_stops = boost::algorithm::join(project_config.option<ConfigOptionStrings>("filament_gradient_stops")->values, "|");
+    config.set_printer_setting(printer_name, "filament_gradient_stops", filament_gradient_stops);
+    std::string filament_gradient_cycle = boost::algorithm::join(project_config.option<ConfigOptionFloats>("filament_gradient_cycle_length")->values |
+                                                                 boost::adaptors::transformed(static_cast<std::string (*)(double)>(std::to_string)),
+                                                             "|");
+    config.set_printer_setting(printer_name, "filament_gradient_cycle_length", filament_gradient_cycle);
+    std::string filament_gradient_offset = boost::algorithm::join(project_config.option<ConfigOptionFloats>("filament_gradient_start_offset")->values |
+                                                                  boost::adaptors::transformed(static_cast<std::string (*)(double)>(std::to_string)),
+                                                              "|");
+    config.set_printer_setting(printer_name, "filament_gradient_start_offset", filament_gradient_offset);
 
     // Load ams counts data into app config
     std::string           extruder_ams_count_str = boost::algorithm::join(save_extruder_ams_count_to_string(this->extruder_ams_counts), ",");
