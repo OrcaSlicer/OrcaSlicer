@@ -1239,7 +1239,8 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     const std::string smoothing = GENERATE("0%", "100%");
     const int multiline = GENERATE(1, 2);
     const bool rotated = GENERATE(false, true);
-    CAPTURE(pattern, smoothing, multiline, rotated);
+    const bool separated = GENERATE(false, true);
+    CAPTURE(pattern, smoothing, multiline, rotated, separated);
 
     auto config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
@@ -1249,7 +1250,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
                                    {"infill_direction", 45},
                                    {"sparse_infill_rotate_template", rotated ? "0,25,50" : ""},
                                    {"align_infill_direction_to_model", rotated},
-                                   {"separated_infills", false},
+                                   {"separated_infills", separated},
                                    {"top_shell_layers", 0},
                                    {"bottom_shell_layers", 0},
                                    {"top_shell_thickness", 0},
@@ -1259,7 +1260,14 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
                                    {"resolution", 0.012}});
     Print print;
     Model model;
-    Slic3r::Test::init_print({make_cube(30, 24, 1)}, print, model, config, nullptr, false);
+    TriangleMesh mesh = make_cube(30, 24, 1);
+    if (separated) {
+        // Orca: Two disconnected bodies in one object must each use their own infill origin.
+        TriangleMesh second = make_cube(30, 24, 1);
+        second.translate(50, 0, 0);
+        mesh.merge(second);
+    }
+    Slic3r::Test::init_print({mesh}, print, model, config, nullptr, false);
     if (rotated) {
         model.objects.front()->instances.front()->set_rotation(Vec3d(0., 0., Geometry::deg2rad(23.)));
         print.apply(model, config);
