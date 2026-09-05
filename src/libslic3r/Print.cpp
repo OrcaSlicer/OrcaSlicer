@@ -1626,8 +1626,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             double extrusion_width_max = config.get_abs_value(opt_key, max_nozzle_diameter);
             if (extrusion_width_min == 0) {
                 // Default "auto-generated" extrusion width is always valid.
-            } else if (extrusion_width_min <= layer_height) {
-                    err_msg = L("Line width too small");
+            } else if (extrusion_width_min < layer_height) {
+                    err_msg = L("Lowest line width too small - must be at least equal to layer height");
                     return false;
                 } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
                 err_msg = L("Line width too large");
