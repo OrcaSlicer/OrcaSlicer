@@ -5649,12 +5649,6 @@ void GLCanvas3D::update_sequential_clearance()
     // the results are then cached for following displacements
     if (m_sequential_print_clearance_first_displacement) {
         m_sequential_print_clearance.m_hull_2d_cache.clear();
-        auto [object_skirt_offset, _] = fff_print()->object_skirt_offset();
-        float shrink_factor;
-        if (fff_print()->is_all_objects_are_short())
-            shrink_factor = scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1);
-        else
-            shrink_factor = static_cast<float>(scale_(0.5 * fff_print()->config().extruder_clearance_radius.value + object_skirt_offset - 0.1));
 
         double mitter_limit = scale_(0.1);
         m_sequential_print_clearance.m_hull_2d_cache.reserve(m_model->objects.size());
@@ -5663,6 +5657,14 @@ void GLCanvas3D::update_sequential_clearance()
             ModelInstance* model_instance0 = model_object->instances.front();
             Polygon hull_no_offset = model_object->convex_hull_2d(Geometry::assemble_transform({ 0.0, 0.0, model_instance0->get_offset().z() }, model_instance0->get_rotation(),
                 model_instance0->get_scaling_factor(), model_instance0->get_mirror()));
+
+            float object_skirt_offset = fff_print()->object_skirt_offset(&hull_no_offset);
+            float shrink_factor;
+            if (fff_print()->is_all_objects_are_short())
+                shrink_factor = scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset)/2 - 0.1);
+            else
+                shrink_factor = static_cast<float>(scale_(0.5 * fff_print()->config().extruder_clearance_radius.value + object_skirt_offset - 0.1));
+
             auto tmp = offset(hull_no_offset,
                 // Shrink the extruder_clearance_radius a tiny bit, so that if the object arrangement algorithm placed the objects
                 // exactly by satisfying the extruder_clearance_radius, this test will not trigger collision.

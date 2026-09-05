@@ -20207,6 +20207,12 @@ GLCanvas3D* Plater::get_current_canvas3D(bool exclude_preview)
 
 void Plater::arrange()
 {
+    if (wxGetApp().plater()->get_partplate_list().get_current_fff_print().config().min_skirt_length != 0.) {
+        wxMessageBox(_u8L("Arrange is not available when Skirt minimum extrusion length is set. Please set it to 0 to use Arrange."), _u8L("Arrange"),
+                     wxOK | wxICON_EXCLAMATION);
+        return;
+    }
+
     auto &w = get_ui_job_worker();
     if (w.is_idle()) {
         p->take_snapshot(_u8L("Arrange"));
