@@ -4597,7 +4597,7 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     mainframe->shutdown();
     ProgressDialog dlg(msg_name, msg_name, 100, nullptr, wxPD_AUTO_HIDE);
     dlg.Pulse();
-    dlg.Update(10, _L("Rebuild") + dots);
+    dlg.Update(10, _L("Rebuilding") + dots);
 
     MainFrame *old_main_frame = mainframe;
     struct ClientData : wxClientData
