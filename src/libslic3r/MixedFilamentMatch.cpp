@@ -781,4 +781,37 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
     return cands.front();
 }
 
+SpectrumPaletteAddResult spectrum_palette_try_add(
+    std::vector<MixedFilament> &rows,
+    const MixedFilament        &candidate,
+    size_t                      cap)
+{
+    const std::string cand_key = serialize_mix_recipe(candidate);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        if (serialize_mix_recipe(rows[i]) == cand_key) {
+            SpectrumPaletteAddResult result;
+            result.outcome = SpectrumPaletteAddOutcome::SelectExisting;
+            result.index   = i;
+            return result;
+        }
+    }
+
+    size_t enabled = 0;
+    for (const MixedFilament &row : rows) {
+        if (row.enabled)
+            ++enabled;
+    }
+    if (candidate.enabled && !spectrum_mix_enabled_fits(enabled, 1, cap)) {
+        SpectrumPaletteAddResult result;
+        result.outcome = SpectrumPaletteAddOutcome::CapRefuse;
+        return result;
+    }
+
+    rows.push_back(candidate);
+    SpectrumPaletteAddResult result;
+    result.outcome = SpectrumPaletteAddOutcome::Append;
+    result.index   = rows.size() - 1;
+    return result;
+}
+
 } // namespace Slic3r

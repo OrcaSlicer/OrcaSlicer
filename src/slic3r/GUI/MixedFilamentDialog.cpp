@@ -17,8 +17,10 @@
 #include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/prusa_fdm_mixer.hpp"
 
 #include <wx/clrpicker.h>
+#include <wx/dcclient.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/stattext.h>
@@ -26,6 +28,7 @@
 #include <wx/listbox.h>
 #include <wx/notebook.h>
 #include <wx/panel.h>
+#include <wx/scrolwin.h>
 
 #include <algorithm>
 #include <cctype>
@@ -119,10 +122,12 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent, int initial_row)
 
     // Stock wxNotebook is acceptable (Orca DarkMode prefers a custom notebook; do not block on it).
     m_notebook = new wxNotebook(this, wxID_ANY);
-    auto *page_ratio = new wxPanel(m_notebook);
-    auto *page_cycle = new wxPanel(m_notebook);
-    auto *page_match = new wxPanel(m_notebook);
-    auto *page_grad  = new wxPanel(m_notebook);
+    auto *page_palette = new wxPanel(m_notebook);
+    auto *page_ratio   = new wxPanel(m_notebook);
+    auto *page_cycle   = new wxPanel(m_notebook);
+    auto *page_match   = new wxPanel(m_notebook);
+    auto *page_grad    = new wxPanel(m_notebook);
+    page_palette->SetBackgroundColour(*wxWHITE);
     page_ratio->SetBackgroundColour(*wxWHITE);
     page_cycle->SetBackgroundColour(*wxWHITE);
     page_match->SetBackgroundColour(*wxWHITE);
@@ -216,10 +221,17 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent, int initial_row)
     grad_sizer->Add(m_gradient, 0, wxALL, FromDIP(12));
     page_grad->SetSizer(grad_sizer);
 
+    m_notebook->AddPage(page_palette, _L("Palette"));
     m_notebook->AddPage(page_ratio, _L("Ratio"));
     m_notebook->AddPage(page_cycle, _L("Cycle"));
     m_notebook->AddPage(page_match, _L("Match"));
     m_notebook->AddPage(page_grad, _L("Gradient"));
+    build_palette_page(page_palette);
+    {
+        const int pal = notebook_page_index(_L("Palette"));
+        if (pal >= 0)
+            m_notebook->SetSelection(pal);
+    }
     root->Add(m_notebook, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     m_enabled      = new wxCheckBox(this, wxID_ANY, _L("Enabled"));
@@ -392,6 +404,138 @@ std::vector<ColorRGB> MixedFilamentDialog::live_physical_colors() const
     // Preview uses every live physical (same list as the gizmo). Do not
     // truncate to 4 — Create-mix lattice prefix is match_printable_mix min(n,4).
     return out;
+}
+
+int MixedFilamentDialog::notebook_page_index(const wxString &label) const
+{
+    if (m_notebook == nullptr)
+        return wxNOT_FOUND;
+    const size_t n = m_notebook->GetPageCount();
+    for (size_t i = 0; i < n; ++i) {
+        if (m_notebook->GetPageText(i) == label)
+            return int(i);
+    }
+    return wxNOT_FOUND;
+}
+
+bool MixedFilamentDialog::notebook_page_is(const wxString &label) const
+{
+    const int idx = notebook_page_index(label);
+    return idx >= 0 && m_notebook != nullptr && m_notebook->GetSelection() == idx;
+}
+
+void MixedFilamentDialog::build_palette_page(wxWindow *page)
+{
+    if (page == nullptr)
+        return;
+
+    auto *page_sizer = new wxBoxSizer(wxVERTICAL);
+    auto *honesty    = new wxStaticText(page, wxID_ANY,
+        _L("Printable layer mixes from the loaded filaments, not a continuous color wheel."));
+    honesty->Wrap(FromDIP(360));
+    page_sizer->Add(honesty, 0, wxEXPAND | wxALL, FromDIP(12));
+
+    auto *scroll = new wxScrolledWindow(page, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(180)), wxVSCROLL);
+    scroll->SetBackgroundColour(*wxWHITE);
+    scroll->SetScrollRate(0, FromDIP(16));
+
+    const std::vector<ColorRGB> physicals = live_physical_colors();
+    std::vector<MixMatchResult> lattice   = spectrum_swatch_lattice(physicals);
+
+    const SwatchLUT *lut = nullptr;
+    std::vector<std::string> preset_names;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        preset_names = bundle->filament_presets;
+        const std::string live_batch = spectrum_compute_batch_key(physicals, preset_names);
+        lut = spectrum_lut_for_batch(live_batch);
+    }
+    if (lut != nullptr) {
+        for (MixMatchResult &cell : lattice) {
+            const SwatchLUTEntry *entry = lut->find_recipe(spectrum_swatch_recipe_key(cell));
+            if (entry == nullptr)
+                continue;
+            cell.measured = true;
+            const prusa_fdm_mixer::RGB rgb =
+                prusa_fdm_mixer::lab_to_rgb(prusa_fdm_mixer::LAB{entry->L, entry->a, entry->b});
+            cell.predicted = ColorRGB(rgb.r, rgb.g, rgb.b);
+        }
+    }
+
+    const std::vector<std::string> names_cmik{"C", "M", "Y", "K"};
+    const std::vector<std::string> *slot_names =
+        (physicals.size() == 4) ? &names_cmik : nullptr;
+
+    auto *grid = new wxFlexGridSizer(0, 8, FromDIP(4), FromDIP(4));
+    const int dip = FromDIP(28);
+    for (const MixMatchResult &cell : lattice) {
+        auto *tile = new wxPanel(scroll, wxID_ANY, wxDefaultPosition, wxSize(dip, dip), wxBORDER_SIMPLE);
+        const wxColour fill(cell.predicted.r_uchar(), cell.predicted.g_uchar(), cell.predicted.b_uchar());
+        tile->SetBackgroundColour(fill);
+        tile->SetMinSize(wxSize(dip, dip));
+        tile->Bind(wxEVT_PAINT, [fill](wxPaintEvent &evt) {
+            wxWindow *w = static_cast<wxWindow *>(evt.GetEventObject());
+            wxPaintDC dc(w);
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(fill));
+            dc.DrawRectangle(w->GetClientRect());
+        });
+
+        wxString tip;
+        if (cell.kind == MixMatchResult::Kind::Physical) {
+            if (cell.physical_id >= 1 && size_t(cell.physical_id - 1) < preset_names.size() &&
+                !preset_names[size_t(cell.physical_id - 1)].empty()) {
+                tip = wxString::FromUTF8(preset_names[size_t(cell.physical_id - 1)].c_str());
+            } else {
+                tip = wxString::Format(_L("Physical %u"), cell.physical_id);
+            }
+        } else {
+            tip = wxString::FromUTF8(mix_recipe_label(cell.mix, slot_names).c_str());
+        }
+        tile->SetToolTip(tip);
+        tile->Bind(wxEVT_LEFT_DOWN, [this, cell](wxMouseEvent &) { on_palette_cell_click(cell); });
+        grid->Add(tile, 0, wxALIGN_CENTER);
+    }
+
+    auto *grid_pad = new wxBoxSizer(wxVERTICAL);
+    grid_pad->Add(grid, 0, wxALL, FromDIP(8));
+    scroll->SetSizer(grid_pad);
+    scroll->FitInside();
+    page_sizer->Add(scroll, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    page->SetSizer(page_sizer);
+}
+
+void MixedFilamentDialog::on_palette_cell_click(const MixMatchResult &cell)
+{
+    if (cell.kind == MixMatchResult::Kind::Physical) {
+        if (cell.physical_id >= 1) {
+            m_apply_physical_id = cell.physical_id;
+            if (m_apply_object != nullptr)
+                m_apply_object->SetValue(true);
+        }
+        return;
+    }
+    if (cell.kind != MixMatchResult::Kind::Mix)
+        return;
+
+    m_apply_physical_id = 0;
+    if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size())
+        store_editors_into_selected_row();
+
+    const SpectrumPaletteAddResult added = spectrum_palette_try_add(m_rows, cell.mix);
+    if (added.outcome == SpectrumPaletteAddOutcome::CapRefuse) {
+        MessageDialog(this,
+                      wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_MIX_ENABLED_CAP)),
+                      _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return;
+    }
+
+    m_selected_row = int(added.index);
+    if (added.outcome == SpectrumPaletteAddOutcome::Append)
+        wxGetApp().maybe_warn_opaque_blend(this, serialize_mix_row(cell.mix));
+    refresh_list();
+    load_selected_row_into_editors();
 }
 
 void MixedFilamentDialog::refresh_predicted_swatch()
@@ -660,6 +804,7 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
     }
 
     m_rows.push_back(mix_to_add->mix);
+    m_apply_physical_id = 0;
     m_selected_row = int(m_rows.size()) - 1;
     wxGetApp().maybe_warn_opaque_blend(this, serialize_mix_row(mix_to_add->mix));
     refresh_list();
@@ -733,6 +878,7 @@ void MixedFilamentDialog::select_row(int idx)
         return;
     if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size() && idx != m_selected_row)
         store_editors_into_selected_row();
+    m_apply_physical_id = 0;
     m_selected_row = idx;
     if (m_list != nullptr) {
         m_suppress_events = true;
@@ -762,16 +908,23 @@ void MixedFilamentDialog::load_selected_row_into_editors()
     m_perimeter->SetValue(mf.perimeter_modulation);
     refresh_predicted_swatch();
 
-    if (m_notebook != nullptr) {
+    if (m_notebook != nullptr && !notebook_page_is(_L("Palette"))) {
         const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
         const bool        prev    = m_suppress_events;
         m_suppress_events         = true;
-        if (!pattern.empty())
-            m_notebook->SetSelection(1); // Cycle
-        else if (mf.gradient_enabled)
-            m_notebook->SetSelection(3); // Gradient
-        else
-            m_notebook->SetSelection(0); // Ratio
+        if (!pattern.empty()) {
+            const int cycle = notebook_page_index(_L("Cycle"));
+            if (cycle >= 0)
+                m_notebook->SetSelection(cycle);
+        } else if (mf.gradient_enabled) {
+            const int grad = notebook_page_index(_L("Gradient"));
+            if (grad >= 0)
+                m_notebook->SetSelection(grad);
+        } else {
+            const int ratio = notebook_page_index(_L("Ratio"));
+            if (ratio >= 0)
+                m_notebook->SetSelection(ratio);
+        }
         m_suppress_events = prev;
     }
 }
@@ -791,7 +944,7 @@ void MixedFilamentDialog::store_editors_into_selected_row()
     if (mf.component_c != 0 && mf.ratio_c == 0)
         mf.ratio_c = 1;
     mf.enabled = m_enabled->GetValue();
-    if (m_notebook != nullptr && m_notebook->GetSelection() == 0) {
+    if (m_notebook != nullptr && notebook_page_is(_L("Ratio"))) {
         mf.manual_pattern.clear();
         m_pattern->SetValue(wxEmptyString);
     } else {
@@ -818,6 +971,7 @@ void MixedFilamentDialog::on_list_select(wxCommandEvent &)
     if (m_suppress_events)
         return;
     store_editors_into_selected_row();
+    m_apply_physical_id = 0;
     m_selected_row = m_list->GetSelection();
     load_selected_row_into_editors();
     // Labels may change if the previous row's A/B/enabled was edited.
@@ -836,6 +990,7 @@ void MixedFilamentDialog::on_add_row(wxCommandEvent &)
         return;
     }
     m_rows.emplace_back();
+    m_apply_physical_id = 0;
     m_selected_row = int(m_rows.size()) - 1;
     refresh_list();
     load_selected_row_into_editors();
@@ -846,6 +1001,7 @@ void MixedFilamentDialog::on_remove_row(wxCommandEvent &)
     if (m_selected_row < 0 || size_t(m_selected_row) >= m_rows.size())
         return;
     m_rows.erase(m_rows.begin() + m_selected_row);
+    m_apply_physical_id = 0;
     if (m_rows.empty()) {
         m_selected_row = -1;
     } else if (size_t(m_selected_row) >= m_rows.size()) {
@@ -885,6 +1041,7 @@ void MixedFilamentDialog::on_add_recommended(wxCommandEvent &)
     }
 
     m_rows.insert(m_rows.end(), r.added.begin(), r.added.end());
+    m_apply_physical_id = 0;
     m_selected_row = int(m_rows.size()) - 1;
     refresh_list();
     load_selected_row_into_editors();
@@ -1025,12 +1182,13 @@ bool MixedFilamentDialog::apply_to_project()
     post.mixed_filament_gradient_mode  = any_enabled_g;
 
     const int virtual_id = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
+    const int assign_id  = (m_apply_physical_id > 0) ? int(m_apply_physical_id) : virtual_id;
 
     // Resolve assign target before the no-op skip so unchanged keys + checkbox-on
     // with no volume/object selection does not create an empty undo snapshot.
     ModelVolume *assign_volume = nullptr;
     ModelObject *assign_object = nullptr;
-    if (m_apply_object->GetValue() && virtual_id > 0 && !plater->model().objects.empty()) {
+    if (m_apply_object->GetValue() && assign_id > 0 && !plater->model().objects.empty()) {
         if (ObjectList *list = wxGetApp().obj_list())
             assign_volume = list->get_selected_model_volume();
         const Selection &sel = plater->get_selection();
@@ -1069,10 +1227,10 @@ bool MixedFilamentDialog::apply_to_project()
     if (will_assign) {
         if (assign_volume != nullptr) {
             // Palette path: assign only the selected volume. Do not touch siblings.
-            assign_extruder(assign_volume->config, virtual_id);
+            assign_extruder(assign_volume->config, assign_id);
         } else if (assign_object != nullptr) {
             // Persist mix rows even when nothing is selected. Do not assign objects.front().
-            assign_extruder(assign_object->config, virtual_id);
+            assign_extruder(assign_object->config, assign_id);
         }
     }
 

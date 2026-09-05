@@ -552,6 +552,7 @@ struct Sidebar::priv
     ScalableButton*   m_bpButton_del_mix{nullptr};
     ScalableButton*   m_bpButton_edit_mix{nullptr};
     Button*           m_bpButton_match_mix{nullptr};
+    Button*           m_bpButton_palette_mix{nullptr};
     wxScrolledWindow* m_panel_color_mixing_content{nullptr};
     wxBoxSizer*       m_sizer_color_mixing_rows{nullptr};
     int               m_color_mixing_selected{-1};
@@ -2270,6 +2271,12 @@ Sidebar::Sidebar(Plater *parent)
     });
     p->m_bpButton_match_mix = mix_match;
 
+    Button *mix_palette = new Button(p->m_panel_color_mixing_title, _L("Palette…"));
+    mix_palette->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+    mix_palette->SetToolTip(_L("Open printable mix palette"));
+    mix_palette->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { open_color_mixing_dialog(-1); });
+    p->m_bpButton_palette_mix = mix_palette;
+
     ScalableButton *mix_del = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "delete_filament");
     mix_del->SetToolTip(_L("Remove selected mix"));
     mix_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { remove_selected_color_mix(); });
@@ -2286,6 +2293,7 @@ Sidebar::Sidebar(Plater *parent)
     p->m_bpButton_edit_mix = mix_edit;
 
     mix_title_sizer->Add(mix_match, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+    mix_title_sizer->Add(mix_palette, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_del, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_add, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     mix_title_sizer->Add(mix_edit, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
@@ -3054,6 +3062,8 @@ void Sidebar::msw_rescale()
         p->m_bpButton_edit_mix->msw_rescale();
     if (p->m_bpButton_match_mix)
         p->m_bpButton_match_mix->Rescale();
+    if (p->m_bpButton_palette_mix)
+        p->m_bpButton_palette_mix->Rescale();
     if (p->m_panel_color_mixing_title && p->m_panel_color_mixing_title->GetSizer())
         p->m_panel_color_mixing_title->GetSizer()->SetMinSize(-1, 3 * wxGetApp().em_unit());
     p->m_flushing_volume_btn->Rescale();
@@ -3151,6 +3161,8 @@ void Sidebar::sys_color_changed()
         p->m_bpButton_edit_mix->msw_rescale();
     if (p->m_bpButton_match_mix)
         p->m_bpButton_match_mix->Rescale();
+    if (p->m_bpButton_palette_mix)
+        p->m_bpButton_palette_mix->Rescale();
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 

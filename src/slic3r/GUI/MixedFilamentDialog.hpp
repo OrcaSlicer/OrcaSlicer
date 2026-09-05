@@ -64,6 +64,10 @@ private:
     size_t   physical_filament_count() const;
     size_t   enabled_mix_count() const;
     std::vector<ColorRGB> live_physical_colors() const;
+    int      notebook_page_index(const wxString &label) const;
+    bool     notebook_page_is(const wxString &label) const;
+    void     build_palette_page(wxWindow *page);
+    void     on_palette_cell_click(const MixMatchResult &cell);
 
     std::vector<MixedFilament>  m_rows;
     std::vector<MixMatchResult> m_candidates;
@@ -71,6 +75,7 @@ private:
     bool                        m_candidates_target_valid{false};
     int                         m_selected_row{-1};
     bool                        m_suppress_events{false};
+    unsigned                    m_apply_physical_id{0};
 
     wxNotebook *m_notebook{nullptr};
     wxListBox  *m_list{nullptr};

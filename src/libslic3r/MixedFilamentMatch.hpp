@@ -58,6 +58,20 @@ bool spectrum_stamp_multi_heads(std::vector<std::string>       &multi,
 // Manager-canonical Mix recipe row (same string as MixMatchResult::recipe_row).
 std::string serialize_mix_recipe(const MixedFilament &mf);
 
+enum class SpectrumPaletteAddOutcome { Append, SelectExisting, CapRefuse };
+
+struct SpectrumPaletteAddResult {
+    SpectrumPaletteAddOutcome outcome = SpectrumPaletteAddOutcome::Append;
+    size_t                    index   = 0; // append index or existing row
+};
+
+// Duplicate = serialize_mix_recipe equality (includes manual_pattern).
+// Not spectrum_cookbook_same_recipe ("1234" cycle ≠ 1:1 pair).
+SpectrumPaletteAddResult spectrum_palette_try_add(
+    std::vector<MixedFilament> &rows,
+    const MixedFilament        &candidate,
+    size_t                      cap = SPECTRUM_MIX_ENABLED_CAP);
+
 // 0010 printable lattice: physicals + pair/triple generators + "1234".
 // period_cap=4, no min-share / max-share / max_results. Physicals always included.
 std::vector<MixMatchResult> spectrum_swatch_lattice(const std::vector<ColorRGB> &physicals);
