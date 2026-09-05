@@ -60,7 +60,12 @@ void TextInput::Create(wxWindow *     parent,
     StaticBox::Create(parent, wxID_ANY, pos, size, style);
     wxWindow::SetLabel(label);
     assert((style & wxRIGHT) == 0);
+    // wxTE_PASSWORD (0x0800) shares a bit with wxALIGN_CENTER_VERTICAL and would
+    // be discarded by the wxALIGN_MASK strip below, silently defeating password
+    // masking. Preserve it explicitly.
+    const long keep_password = style & wxTE_PASSWORD;
     style &= ~wxALIGN_MASK;
+    style |= keep_password;
     state_handler.attach({&label_color, & text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);

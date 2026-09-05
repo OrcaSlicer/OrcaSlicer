@@ -153,6 +153,7 @@
 #include "Widgets/RadioGroup.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
+#include "AIGenerate.hpp"
 #include "Widgets/StaticGroup.hpp"
 
 #include "GUI_ObjectTable.hpp"
@@ -2453,6 +2454,42 @@ Sidebar::Sidebar(Plater *parent)
     // Sizer in the scrolled area
     auto* scrolled_sizer = m_scrolled_sizer = new wxBoxSizer(wxVERTICAL);
     p->scrolled->SetSizer(scrolled_sizer);
+
+    // AI: compact in-panel shape generator (prompt + adjacent Generate button).
+    // Uses the shared ai_generate_shape_to_plate() pipeline; the sidebar controls
+    // live for the app's lifetime so raw captures are safe.
+    {
+        auto *ai_prompt = new wxTextCtrl(p->scrolled, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                         wxSize(FromDIP(150), -1), wxTE_PROCESS_ENTER);
+        ai_prompt->SetHint(_L("e.g. a bracket with four M3 holes"));
+        auto *ai_btn = new Button(p->scrolled, _L("Generate"));
+        ai_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+        auto *ai_status = new wxStaticText(p->scrolled, wxID_ANY, wxEmptyString);
+        auto do_gen = [ai_prompt, ai_btn, ai_status]() {
+            const wxString q = ai_prompt->GetValue();
+            if (q.IsEmpty()) return;
+            ai_btn->Disable();
+            ai_status->SetForegroundColour(wxColour(0x60, 0x60, 0x60));
+            ai_status->SetLabel(_L("Generating..."));
+            ai_status->GetParent()->Layout();
+            ai_generate_shape_to_plate(into_u8(q), [ai_btn, ai_status](bool ok, const std::string &m) {
+                ai_status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
+                ai_status->SetLabel(from_u8(m));
+                ai_status->GetParent()->Layout();
+                ai_btn->Enable();
+            });
+        };
+        ai_btn->Bind(wxEVT_BUTTON, [do_gen](wxCommandEvent &) { do_gen(); });
+        ai_prompt->Bind(wxEVT_TEXT_ENTER, [do_gen](wxCommandEvent &) { do_gen(); });
+        auto *ai_row = new wxBoxSizer(wxHORIZONTAL);
+        ai_row->Add(ai_prompt, 1, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
+        ai_row->Add(ai_btn,    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        auto *ai_box = new wxBoxSizer(wxVERTICAL);
+        ai_box->Add(new wxStaticText(p->scrolled, wxID_ANY, _L("AI part generator (mechanical shapes)")), 0, wxLEFT | wxTOP, FromDIP(6));
+        ai_box->Add(ai_row,    0, wxEXPAND | wxTOP, FromDIP(2));
+        ai_box->Add(ai_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(4));
+        scrolled_sizer->Add(ai_box, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+    }
 
     wxColour title_bg = wxColour(248, 248, 248);
     wxColour inactive_text = wxColour(86, 86, 86);

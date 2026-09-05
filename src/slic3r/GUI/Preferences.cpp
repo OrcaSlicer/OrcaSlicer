@@ -1,5 +1,6 @@
 #include "Preferences.hpp"
 #include "OptionsGroup.hpp"
+#include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
@@ -7,7 +8,11 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "slic3r/Utils/AIProvider.hpp"
+#include "slic3r/Utils/AIShapeGen.hpp"
+#include <chrono>
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -1595,6 +1600,64 @@ void PreferencesDialog::Split(const std::string &src, const std::string &separat
     dest.push_back(substring);
 }
 
+// --- AI provider helpers (used by the Preferences "AI" section) --------------
+static int ai_provider_index(const std::string &key)
+{
+    if (key == "anthropic")                                return 2;
+    if (key == "compatible" || key == "openai_compatible") return 3;
+    if (key == "openai")                                   return 1;
+    return 0; // disabled
+}
+static std::string ai_provider_key(int idx)
+{
+    switch (idx) { case 1: return "openai"; case 2: return "anthropic"; case 3: return "compatible"; default: return ""; }
+}
+
+// Run the create_model qualification test: does the model return a buildable
+// shape via a forced tool call? Fills `msg` either way; returns true on pass.
+static bool ai_qualify_model(const AIConfig &cfg, wxString &msg)
+{
+    std::unique_ptr<AIProvider> provider(AIProvider::create(cfg));
+    if (! provider) { msg = _L("Configure a provider, API key, and model first."); return false; }
+
+    nlohmann::json tool = {
+        {"type", "function"},
+        {"function", {
+            {"name", "create_model"},
+            {"description", "Create a printable 3D shape as a parametric tree. Never explain in prose. "
+                            "Node \"type\": box{size:[x,y,z]}, cylinder{radius,height}, cone{radius,height}, "
+                            "sphere{radius}, or union|difference|intersection{children:[...]}."},
+            {"parameters", {{"type", "object"}, {"properties", {{"shape", {{"type", "object"}}}}},
+                            {"required", nlohmann::json::array({"shape"})}}}
+        }}
+    };
+    nlohmann::json params;
+    params["tools"]       = nlohmann::json::array({tool});
+    params["tool_choice"] = {{"type", "function"}, {"function", {{"name", "create_model"}}}};
+    params["temperature"] = 0.1;
+
+    std::vector<AIMessage> msgs;
+    msgs.push_back({"system", "You design printable 3D shapes by calling create_model."});
+    msgs.push_back({"user", "a 30mm cube with a 10mm hole through the center"});
+
+    const auto t0 = std::chrono::steady_clock::now();
+    AIResponse resp = provider->chat(msgs, params);
+    const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+
+    if (! resp.ok) { msg = _L("Not suitable — request failed: ") + from_u8(resp.error); return false; }
+    if (resp.tool_call_arguments.empty()) {
+        msg = _L("Not suitable — the model replied with text instead of a create_model tool call.");
+        return false;
+    }
+    Model m; std::string err;
+    if (! ai_build_model_from_tool_call(resp.tool_call_arguments, "qualify", m, err) || m.objects.empty()) {
+        msg = _L("Returned a tool call, but its shape wasn't buildable: ") + from_u8(err);
+        return false;
+    }
+    msg = wxString::Format(_L("Qualified for 3D generation (%.1fs). This model works."), secs);
+    return true;
+}
+
 void PreferencesDialog::create_items()
 {
     // ORCA
@@ -1733,6 +1796,77 @@ void PreferencesDialog::create_items()
 
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
+
+    //// GENERAL > AI
+    g_sizer->Add(create_item_title(_L("AI")), 1, wxEXPAND);
+    {
+        // Provider
+        {
+            auto sizer = create_item_label(_L("AI provider"), _L("LLM provider used by the AI shape generator (AI menu)."), "");
+            auto combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(320), -1), 0, nullptr, wxCB_READONLY);
+            combo->Append(_L("Disabled"));
+            combo->Append(_L("OpenAI"));
+            combo->Append(_L("Anthropic"));
+            combo->Append(_L("OpenAI-compatible (custom gateway)"));
+            combo->SetSelection(ai_provider_index(app_config->get("ai_slicer", "provider")));
+            combo->Bind(wxEVT_COMBOBOX, [this, combo](wxCommandEvent &) {
+                app_config->set("ai_slicer", "provider", ai_provider_key(combo->GetSelection()));
+                app_config->save();
+            });
+            sizer->Add(combo, 0, wxALIGN_CENTER);
+            g_sizer->Add(sizer);
+        }
+        // Text fields (API key / gateway / model), each bound to an ai_slicer key.
+        auto ai_text_row = [this, g_sizer](const wxString &label, const wxString &tip, const std::string &key, long extra_style) {
+            auto sizer = create_item_label(label, tip, "");
+            auto input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(320), -1), wxTE_PROCESS_ENTER | extra_style);
+            input->GetTextCtrl()->SetValue(from_u8(app_config->get("ai_slicer", key)));
+            auto save = [this, input, key]() {
+                app_config->set("ai_slicer", key, into_u8(input->GetTextCtrl()->GetValue()));
+                app_config->save();
+            };
+            input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save](wxFocusEvent &e) { save(); e.Skip(); });
+            input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save](wxCommandEvent &e) { save(); e.Skip(); });
+            sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+            g_sizer->Add(sizer);
+        };
+        ai_text_row(_L("API key"), _L("Provider API key (stored locally in the config file)."), "api_key", wxTE_PASSWORD);
+        ai_text_row(_L("Gateway URL"), _L("Base URL for an OpenAI-compatible gateway, e.g. https://host/v1/"), "gateway_url", 0);
+        ai_text_row(_L("Model"), _L("Model id. Use a mid/large instruct or code model; avoid embedding/reranker/tiny models."), "model", 0);
+        // Test connection + Qualify-for-3D
+        {
+            auto sizer  = create_item_label(_L("AI connection"), _L("Verify the settings and whether the model can generate 3D shapes."), "");
+            auto status = new wxStaticText(m_parent, wxID_ANY, wxEmptyString);
+            auto test_btn = new Button(m_parent, _L("Test connection"));
+            test_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            test_btn->Bind(wxEVT_BUTTON, [this, status](wxCommandEvent &) {
+                std::unique_ptr<AIProvider> p(AIProvider::create(AIProvider::config_from_app_config(*app_config)));
+                if (! p) { status->SetForegroundColour(wxColour(0xC0, 0x30, 0x30)); status->SetLabel(_L("Configure a provider and API key first.")); status->GetParent()->Layout(); return; }
+                std::string err; bool ok;
+                { wxBusyCursor wait; ok = p->test_connection(err); }
+                status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
+                status->SetLabel(ok ? _L("Connection OK.") : _L("Failed: ") + from_u8(err));
+                status->GetParent()->Layout();
+            });
+            auto qual_btn = new Button(m_parent, _L("Qualify for 3D"));
+            qual_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            qual_btn->Bind(wxEVT_BUTTON, [this, status](wxCommandEvent &) {
+                wxString msg; bool ok;
+                { wxBusyCursor wait; ok = ai_qualify_model(AIProvider::config_from_app_config(*app_config), msg); }
+                status->SetForegroundColour(ok ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0xC0, 0x30, 0x30));
+                status->SetLabel(msg);
+                status->GetParent()->Layout();
+            });
+            sizer->Add(test_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+            sizer->Add(qual_btn, 0, wxALIGN_CENTER_VERTICAL);
+            g_sizer->Add(sizer);
+            // Result text on its own full-width row: a long "Failed: ..." message
+            // must not stretch the button row and clip the General page.
+            auto status_row = create_item_label(wxEmptyString, wxEmptyString, "");
+            status_row->Add(status, 0, wxALIGN_CENTER_VERTICAL);
+            g_sizer->Add(status_row);
+        }
+    }
 
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
