@@ -1513,13 +1513,20 @@ std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value
 }
 
 //BBS: add json support
-void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
+void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version, const std::string &type) const
 {
     json j;
     //record the headers
     j[BBL_JSON_KEY_VERSION] = version;
     j[BBL_JSON_KEY_NAME] = name;
     j[BBL_JSON_KEY_FROM] = from;
+    //ORCA: emit type when caller supplies it (Preset::save passes get_type_string). Required by CLI
+    //      --load-settings loader, which rejects JSONs missing the `type` field with "unknown config type".
+    //      Must be get_type_string ("machine"/"process"/"filament"), NOT get_iot_type_string
+    //      ("printer"/"print"/"filament") -- the CLI string-compares against the former, and system
+    //      profiles on disk carry those names. Only the filament case coincides between the two.
+    if (!type.empty())
+        j[BBL_JSON_KEY_TYPE] = type;
 
     //record all the key-values
     for (const std::string &opt_key : this->keys())

@@ -743,13 +743,14 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
-        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        //ORCA: emit Preset::Type so CLI --load-settings can resolve the preset type without relying on directory layout
+        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string(), Preset::get_type_string(this->type));
     } else if (!filament_id.empty() && inherits().empty()) {
         DynamicPrintConfig temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
-        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string(), Preset::get_type_string(this->type));
     } else {
-        this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string(), Preset::get_type_string(this->type));
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
