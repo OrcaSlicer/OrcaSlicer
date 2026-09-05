@@ -292,6 +292,10 @@ static const wxString ctrl_t = ctrl;
 #endif
 static const wxString shift = _L("Shift+");
 
+#ifdef __WXMSW__
+static RECT GetWindowBorderThickness(HWND hWnd, bool exclude_caption);
+#endif
+
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
@@ -545,9 +549,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         auto      size = display.GetClientArea().GetSize();
         auto      pos  = display.GetClientArea().GetPosition();
         HWND      hWnd = GetHandle();
-        RECT      borderThickness;
-        SetRectEmpty(&borderThickness);
-        AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE, 0);
+        const RECT borderThickness = GetWindowBorderThickness(hWnd, false);
         const auto max_size = size + wxSize{-borderThickness.left + borderThickness.right, -borderThickness.top + borderThickness.bottom};
         const auto current_size = GetSize();
         SetSize({std::min(max_size.x, current_size.x), std::min(max_size.y, current_size.y)});
@@ -796,6 +798,35 @@ void MainFrame::bind_diff_dialog()
 
 #ifdef __WXMSW__
 
+static RECT GetWindowBorderThickness(const HWND hWnd, const bool exclude_caption)
+{
+    RECT borderThickness;
+    SetRectEmpty(&borderThickness);
+
+    DWORD style = static_cast<DWORD>(GetWindowLongPtr(hWnd, GWL_STYLE));
+    if (exclude_caption)
+        style &= ~WS_CAPTION;
+    const DWORD ex_style = static_cast<DWORD>(GetWindowLongPtr(hWnd, GWL_EXSTYLE));
+
+    const HMODULE user32 = GetModuleHandleW(L"user32.dll");
+    if (user32 != nullptr) {
+        using GetDpiForWindowFn = UINT(WINAPI *)(HWND);
+        using AdjustWindowRectExForDpiFn = BOOL(WINAPI *)(LPRECT, DWORD, BOOL, DWORD, UINT);
+
+        auto get_dpi_for_window = reinterpret_cast<GetDpiForWindowFn>(GetProcAddress(user32, "GetDpiForWindow"));
+        auto adjust_window_rect_ex_for_dpi = reinterpret_cast<AdjustWindowRectExForDpiFn>(GetProcAddress(user32, "AdjustWindowRectExForDpi"));
+
+        if (get_dpi_for_window && adjust_window_rect_ex_for_dpi) {
+            const UINT dpi = get_dpi_for_window(hWnd);
+            adjust_window_rect_ex_for_dpi(&borderThickness, style, FALSE, ex_style, dpi);
+            return borderThickness;
+        }
+    }
+
+    AdjustWindowRectEx(&borderThickness, style, FALSE, ex_style);
+    return borderThickness;
+}
+
 // Orca: Fix maximized window overlaps taskbar when taskbar auto hide is enabled (#8085)
 // Adopted from https://gist.github.com/MortenChristiansen/6463580
 static void AdjustWorkingAreaForAutoHide(const HWND hWnd, MINMAXINFO* mmi)
@@ -819,9 +850,7 @@ static void AdjustWorkingAreaForAutoHide(const HWND hWnd, MINMAXINFO* mmi)
         return;
     }
 
-    RECT borderThickness;
-    SetRectEmpty(&borderThickness);
-    AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, 0);
+    const RECT borderThickness = GetWindowBorderThickness(hWnd, true);
 
     // Determine taskbar position
     SHAppBarMessage(ABM_GETTASKBARPOS, &abd);
@@ -877,12 +906,8 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
             wPos.length = sizeof(wPos);
             GetWindowPlacement(hWnd, &wPos);
             NCCALCSIZE_PARAMS *sz = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
-            RECT borderThickness;
-            SetRectEmpty(&borderThickness);
-            // Use & ~WS_CAPTION to get only the border thickness, not the caption height.
-            // wxWidgets 3.3 adds WS_CAPTION when wxMINIMIZE_BOX/wxMAXIMIZE_BOX/wxCLOSE_BOX is set,
-            // but we use a custom titlebar so we must exclude the caption from NC area calculations.
-            AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
+            // Use a DPI-aware border thickness to avoid white gaps on mixed-scale multi-monitor setups.
+            RECT borderThickness = GetWindowBorderThickness(hWnd, true);
             borderThickness.left *= -1;
             borderThickness.top *= -1;
             if (wPos.showCmd != SW_SHOWMAXIMIZED) {
@@ -909,9 +934,7 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
         // Allow resizing from top of the title bar
         wxPoint mouse_pos = ::wxGetMousePosition();
         if (m_topbar->GetScreenRect().GetBottom() >= mouse_pos.y) {
-            RECT borderThickness;
-            SetRectEmpty(&borderThickness);
-            AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
+            RECT borderThickness = GetWindowBorderThickness(hWnd, true);
             borderThickness.left *= -1;
             borderThickness.top *= -1;
             wxPoint client_pos = this->ScreenToClient(mouse_pos);
