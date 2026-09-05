@@ -765,12 +765,22 @@ void GLGizmoCut3D::render_cut_rotation_input()
                              caption_max + 2 * unit_size + 3 * space_size };
     const float unit_x = col_x[2] + unit_size + space_size;
 
+    // Go to column x, but never move the cursor backwards: if a caption
+    // rendered wider than measured (font/scale discrepancies), the widget
+    // starts after the caption instead of overlapping it. The grid stays
+    // aligned whenever measurement is accurate.
+    auto same_line_no_overlap = [](float x) {
+        ImGui::SameLine();
+        if (ImGui::GetCursorPosX() < x)
+            ImGui::SetCursorPosX(x);
+    };
+
     // Header row (caption already drawn above for width calibration).
-    ImGui::SameLine(col_x[0] + offset_to_center);
+    same_line_no_overlap(col_x[0] + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X");
-    ImGui::SameLine(col_x[1] + offset_to_center);
+    same_line_no_overlap(col_x[1] + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y");
-    ImGui::SameLine(col_x[2] + offset_to_center);
+    same_line_no_overlap(col_x[2] + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z");
 
     static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
@@ -781,7 +791,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
     m_imgui->text(_L("Relative"));
     delete_negative_sign(m_cut_relative_deg);
     for (int axis = X; axis <= Z; ++axis) {
-        ImGui::SameLine(col_x[axis]);
+        same_line_no_overlap(col_x[axis]);
         ImGui::PushItemWidth(unit_size);
         ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0, 0.0, "%.2f");
         ImGui::PopItemWidth();
@@ -790,7 +800,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
             m_cut_relative_deg[axis] = 0.;
         }
     }
-    ImGui::SameLine(unit_x);
+    same_line_no_overlap(unit_x);
     m_imgui->text("°");
     ImGui::SameLine();
     m_imgui->disabled_begin(is_approx(m_cut_relative_deg.x(), 0.) &&
@@ -805,7 +815,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
     m_imgui->text(_L("Absolute"));
     bool abs_editing = false;
     for (int axis = X; axis <= Z; ++axis) {
-        ImGui::SameLine(col_x[axis]);
+        same_line_no_overlap(col_x[axis]);
         ImGui::PushItemWidth(unit_size);
         ImGui::BBLInputDouble(abs_ids[axis], &m_cut_absolute_deg[axis], 0.0, 0.0, "%.2f");
         ImGui::PopItemWidth();
@@ -819,7 +829,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
             apply_cut_rotation(euler_rad);
         }
     }
-    ImGui::SameLine(unit_x);
+    same_line_no_overlap(unit_x);
     m_imgui->text("°");
     ImGui::SameLine();
     m_imgui->disabled_begin(m_rotation_m.isApprox(Transform3d::Identity()));
