@@ -184,7 +184,7 @@
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
 	"support_multi_bed_types": "1",
-	"default_bed_type": "4",
+	"default_bed_type": "Textured PEI Plate",
 	"printable_area": [
 		"0.5x1",
 		"270.5x1",

@@ -762,7 +762,7 @@ void CaliPageActionPanel::bind_button(CaliPageActionType action_type, bool is_bl
 
             if (is_block) {
                 m_action_btns[i]->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent& evt) {
+                    [](wxCommandEvent& evt) {
                         MessageDialog msg(nullptr, _L("The current firmware version of the printer does not support calibration.\nPlease upgrade the printer firmware."), _L("Calibration not supported"), wxOK | wxICON_WARNING);
                         msg.ShowModal();
                     });
