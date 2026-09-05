@@ -241,6 +241,8 @@ class GLCanvas3D
 
         mutable float               m_adaptive_quality{ 0.5f };
         mutable HeightProfileSmoothingParams m_smooth_params;
+        //ORCA: Limit max layer height to layer height
+        mutable bool                m_limit_max_layer_height{ false };
 
         static float                s_overlay_window_width;
 
