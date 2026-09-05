@@ -2757,8 +2757,13 @@ void MainFrame::init_menubar_as_editor()
             [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
         append_menu_item(fileMenu, wxID_ANY, _L("PicPrint") + dots,
-            _L("Approximate a PNG/JPEG with FS mixes on the selected object (not a lithophane)"),
+            _L("Add a plate matching the picture aspect (~80% of the bed) and paint it with FS mixes (not a lithophane)"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->picprint(); }, "", nullptr,
+            [this]() { return m_plater != nullptr; }, this);
+
+        append_menu_item(fileMenu, wxID_ANY, _L("PicPrint on Selected") + dots,
+            _L("Paint the selected object with FS mixes on planar XY (rotate/lay the object flat first; back faces are mirrored). Not a lithophane"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->picprint_on_selected(); }, "", nullptr,
             [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
         fileMenu->AppendSeparator();

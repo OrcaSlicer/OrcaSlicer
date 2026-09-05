@@ -3,6 +3,7 @@
 #include "BoundingBox.hpp"
 #include "Color.hpp"
 #include "MixedFilament.hpp"
+#include "TriangleMesh.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,5 +57,23 @@ bool spectrum_picprint_apply_to_volume(ModelVolume &vol,
                                        const Transform3d &world,
                                        const BoundingBoxf3 &xy_bbox,
                                        const SpectrumPicPrintPlan &plan);
+
+// Flat plate sized to the picture aspect, contained in `fill` of the bed (default 80%).
+// nx/ny are the top-face grid (one cell per downsampled pixel).
+struct SpectrumPicPrintPlate
+{
+    double width_mm      = 0;
+    double depth_mm      = 0;
+    double thickness_mm  = 2.0;
+    int    nx            = 1;
+    int    ny            = 1;
+};
+
+SpectrumPicPrintPlate spectrum_picprint_fit_plate(
+    int img_w, int img_h, double bed_w, double bed_d, double fill = 0.8, double thickness_mm = 2.0);
+
+// Watertight tessellated box: matching top/bottom grids (2*nx*ny each) plus subdivided walls.
+// Not Loop-smoothed. Top facet count is 2*nx*ny.
+TriangleMesh spectrum_picprint_make_plate(const SpectrumPicPrintPlate &plate);
 
 } // namespace Slic3r

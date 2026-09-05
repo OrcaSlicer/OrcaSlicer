@@ -501,4 +501,119 @@ bool spectrum_picprint_apply_to_volume(ModelVolume &vol,
     return true;
 }
 
+SpectrumPicPrintPlate spectrum_picprint_fit_plate(
+    int img_w, int img_h, double bed_w, double bed_d, double fill, double thickness_mm)
+{
+    SpectrumPicPrintPlate plate;
+    if (img_w <= 0 || img_h <= 0 || bed_w < 1e-6 || bed_d < 1e-6)
+        return plate;
+    if (fill < 0.05)
+        fill = 0.05;
+    if (fill > 1.0)
+        fill = 1.0;
+    if (thickness_mm < 0.2)
+        thickness_mm = 0.2;
+    const double max_w = bed_w * fill;
+    const double max_d = bed_d * fill;
+    const double aspect = double(img_w) / double(img_h);
+    const double bed_aspect = max_w / max_d;
+    if (aspect >= bed_aspect) {
+        plate.width_mm = max_w;
+        plate.depth_mm = max_w / aspect;
+    } else {
+        plate.depth_mm = max_d;
+        plate.width_mm = max_d * aspect;
+    }
+    plate.thickness_mm = thickness_mm;
+    plate.nx = img_w;
+    plate.ny = img_h;
+    return plate;
+}
+
+TriangleMesh spectrum_picprint_make_plate(const SpectrumPicPrintPlate &plate)
+{
+    const int nx = std::max(1, plate.nx);
+    const int ny = std::max(1, plate.ny);
+    const float w = float(std::max(plate.width_mm, 1e-3));
+    const float d = float(std::max(plate.depth_mm, 1e-3));
+    const float t = float(std::max(plate.thickness_mm, 0.2));
+
+    indexed_triangle_set its;
+    const int cols  = nx + 1;
+    const int rows  = ny + 1;
+    const int layer = cols * rows;
+    its.vertices.reserve(size_t(layer) * 2);
+    its.indices.reserve(size_t(nx) * size_t(ny) * 4 + size_t(nx + ny) * 4);
+
+    auto top_idx = [cols](int i, int j) -> int { return j * cols + i; };
+    auto bot_idx = [cols, layer](int i, int j) -> int { return layer + j * cols + i; };
+
+    for (int j = 0; j < rows; ++j) {
+        const float y = (float(j) / float(ny)) * d;
+        for (int i = 0; i < cols; ++i) {
+            const float x = (float(i) / float(nx)) * w;
+            its.vertices.push_back(Vec3f(x, y, t));
+        }
+    }
+    for (int j = 0; j < rows; ++j) {
+        const float y = (float(j) / float(ny)) * d;
+        for (int i = 0; i < cols; ++i) {
+            const float x = (float(i) / float(nx)) * w;
+            its.vertices.push_back(Vec3f(x, y, 0));
+        }
+    }
+
+    for (int j = 0; j < ny; ++j) {
+        for (int i = 0; i < nx; ++i) {
+            const int a = top_idx(i, j);
+            const int b = top_idx(i + 1, j);
+            const int c = top_idx(i, j + 1);
+            const int e = top_idx(i + 1, j + 1);
+            its.indices.push_back({a, b, e});
+            its.indices.push_back({a, e, c});
+            const int ba = bot_idx(i, j);
+            const int bb = bot_idx(i + 1, j);
+            const int bc = bot_idx(i, j + 1);
+            const int be = bot_idx(i + 1, j + 1);
+            its.indices.push_back({ba, be, bb});
+            its.indices.push_back({ba, bc, be});
+        }
+    }
+
+    for (int i = 0; i < nx; ++i) {
+        const int t0 = top_idx(i, 0);
+        const int t1 = top_idx(i + 1, 0);
+        const int b0 = bot_idx(i, 0);
+        const int b1 = bot_idx(i + 1, 0);
+        its.indices.push_back({b0, b1, t1});
+        its.indices.push_back({b0, t1, t0});
+    }
+    for (int i = 0; i < nx; ++i) {
+        const int t0 = top_idx(i, ny);
+        const int t1 = top_idx(i + 1, ny);
+        const int b0 = bot_idx(i, ny);
+        const int b1 = bot_idx(i + 1, ny);
+        its.indices.push_back({b1, b0, t0});
+        its.indices.push_back({b1, t0, t1});
+    }
+    for (int j = 0; j < ny; ++j) {
+        const int t0 = top_idx(0, j);
+        const int t1 = top_idx(0, j + 1);
+        const int b0 = bot_idx(0, j);
+        const int b1 = bot_idx(0, j + 1);
+        its.indices.push_back({b1, b0, t0});
+        its.indices.push_back({b1, t0, t1});
+    }
+    for (int j = 0; j < ny; ++j) {
+        const int t0 = top_idx(nx, j);
+        const int t1 = top_idx(nx, j + 1);
+        const int b0 = bot_idx(nx, j);
+        const int b1 = bot_idx(nx, j + 1);
+        its.indices.push_back({b0, b1, t1});
+        its.indices.push_back({b0, t1, t0});
+    }
+
+    return TriangleMesh(std::move(its));
+}
+
 } // namespace Slic3r

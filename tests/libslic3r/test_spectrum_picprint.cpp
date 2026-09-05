@@ -62,6 +62,17 @@ size_t unique_dest_count(const SpectrumPicPrintPlan &plan)
     return dests.size();
 }
 
+bool picprint_apply_front_volume(ModelObject &obj, const SpectrumPicPrintPlan &plan)
+{
+    if (obj.instances.empty() || obj.volumes.empty() || obj.volumes.front() == nullptr)
+        return false;
+    ModelVolume *vol = obj.volumes.front();
+    const ModelInstance *inst = obj.instances.front();
+    const BoundingBoxf3 xy_bbox = obj.instance_bounding_box(*inst);
+    const Transform3d world = inst->get_matrix() * vol->get_matrix();
+    return spectrum_picprint_apply_to_volume(*vol, world, xy_bbox, plan);
+}
+
 } // namespace
 
 TEST_CASE("PicPrint 8x2 two-colour buffer clusters and samples", "[spectrum_picprint]")
@@ -286,5 +297,204 @@ TEST_CASE("PicPrint apply paints original facets from world XY", "[spectrum_picp
         thin.min = Vec3d(0., 0., 0.);
         thin.max = Vec3d(1e-7, 10., 10.);
         REQUIRE_FALSE(spectrum_picprint_apply_to_volume(*vol, Transform3d::Identity(), thin, plan));
+    }
+}
+
+TEST_CASE("PicPrint plate fit contains image aspect in 80 percent of bed", "[spectrum_picprint]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    const SpectrumPicPrintPlate plate = spectrum_picprint_fit_plate(8, 2, 200., 200., 0.8, 2.0);
+    REQUIRE_THAT(plate.width_mm, WithinAbs(160.0, 1e-9));
+    REQUIRE_THAT(plate.depth_mm, WithinAbs(40.0, 1e-9));
+    REQUIRE_THAT(plate.thickness_mm, WithinAbs(2.0, 1e-12));
+    REQUIRE(plate.nx == 8);
+    REQUIRE(plate.ny == 2);
+
+    SECTION("portrait image is limited by bed depth")
+    {
+        const SpectrumPicPrintPlate portrait = spectrum_picprint_fit_plate(2, 8, 200., 200., 0.8, 2.0);
+        REQUIRE_THAT(portrait.width_mm, WithinAbs(40.0, 1e-9));
+        REQUIRE_THAT(portrait.depth_mm, WithinAbs(160.0, 1e-9));
+    }
+}
+
+TEST_CASE("PicPrint make_plate is a dense watertight grid not Loop-smoothed", "[spectrum_picprint]")
+{
+    SpectrumPicPrintPlate spec;
+    spec.width_mm     = 16.;
+    spec.depth_mm     = 4.;
+    spec.thickness_mm = 2.;
+    spec.nx           = 8;
+    spec.ny           = 2;
+    TriangleMesh mesh = spectrum_picprint_make_plate(spec);
+    REQUIRE_FALSE(mesh.empty());
+    REQUIRE(mesh.its.indices.size() == size_t(4 * 8 * 2 + 4 * 8 + 4 * 2));
+
+    size_t top_tris = 0;
+    for (const stl_triangle_vertex_indices &tri : mesh.its.indices) {
+        int above = 0;
+        for (int k = 0; k < 3; ++k) {
+            if (mesh.its.vertices[size_t(tri(k))].z() > 1.0f)
+                ++above;
+        }
+        if (above == 3)
+            ++top_tris;
+    }
+    REQUIRE(top_tris == size_t(2 * 8 * 2));
+    REQUIRE(mesh.volume() > 0.f);
+
+    SECTION("apply to generated plate still yields at least two dests")
+    {
+        const std::vector<std::uint8_t> rgb  = two_colour_8x2();
+        const SpectrumPicPrintPlan      plan = plan_spectrum_picprint(rgb.data(), 8, 2, panchroma_physicals(), 4);
+        REQUIRE(plan.valid);
+
+        Model model;
+        ModelObject *obj = model.add_object("picprint_plate", "", mesh);
+        REQUIRE(obj != nullptr);
+        obj->add_instance();
+        REQUIRE_FALSE(obj->volumes.empty());
+        ModelVolume *vol = obj->volumes.front();
+        BoundingBoxf3 bb = vol->mesh().bounding_box();
+        REQUIRE(spectrum_picprint_apply_to_volume(*vol, Transform3d::Identity(), bb, plan));
+
+        TriangleSelector sel(vol->mesh());
+        sel.deserialize(vol->mmu_segmentation_facets.get_data());
+        std::set<unsigned> painted;
+        const indexed_triangle_set &its = vol->mesh().its;
+        for (int i = 0; i < int(its.indices.size()); ++i) {
+            const stl_triangle_vertex_indices &tri = its.indices[size_t(i)];
+            Vec3d centroid = Vec3d::Zero();
+            for (int k = 0; k < 3; ++k)
+                centroid += its.vertices[size_t(tri(k))].cast<double>();
+            centroid /= 3.0;
+            double u = 0.;
+            double v = 0.;
+            REQUIRE(spectrum_picprint_world_to_uv(centroid, bb, u, v));
+            const unsigned dest = spectrum_picprint_sample_facet(plan, u, v);
+            REQUIRE(dest != 0);
+            painted.insert(dest);
+            REQUIRE(sel.num_facets(EnforcerBlockerType(dest)) > 0);
+        }
+        REQUIRE(painted.size() >= 2);
+    }
+}
+
+TEST_CASE("PicPrint on selected keeps object count (no generated plate)", "[spectrum_picprint]")
+{
+    const std::vector<std::uint8_t> rgb  = two_colour_8x2();
+    const SpectrumPicPrintPlan      plan = plan_spectrum_picprint(rgb.data(), 8, 2, panchroma_physicals(), 4);
+    REQUIRE(plan.valid);
+
+    Model model;
+    ModelObject *obj = model.add_object("picprint_on_selected_cube", "", make_cube(10., 10., 10.));
+    REQUIRE(obj != nullptr);
+    obj->add_instance();
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE_FALSE(obj->volumes.empty());
+    REQUIRE_FALSE(obj->instances.empty());
+
+    ModelVolume *vol = obj->volumes.front();
+    const ModelInstance *inst = obj->instances.front();
+    const BoundingBoxf3 xy_bbox = obj->instance_bounding_box(*inst);
+    const Transform3d world = inst->get_matrix() * vol->get_matrix();
+    REQUIRE(spectrum_picprint_apply_to_volume(*vol, world, xy_bbox, plan));
+
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(obj->volumes.size() == 1);
+    REQUIRE(vol->is_mm_painted());
+}
+
+TEST_CASE("PicPrint on selected paints all volumes of one object", "[spectrum_picprint]")
+{
+    const std::vector<std::uint8_t> rgb  = two_colour_8x2();
+    const SpectrumPicPrintPlan      plan = plan_spectrum_picprint(rgb.data(), 8, 2, panchroma_physicals(), 4);
+    REQUIRE(plan.valid);
+
+    Model model;
+    ModelObject *obj = model.add_object("picprint_multi_volume", "", make_cube(10., 10., 10.));
+    REQUIRE(obj != nullptr);
+    obj->add_instance();
+    ModelVolume *vol2 = obj->add_volume(make_cube(8., 8., 8.));
+    REQUIRE(vol2 != nullptr);
+    REQUIRE(obj->volumes.size() == 2);
+    REQUIRE_FALSE(obj->instances.empty());
+
+    const ModelInstance *inst = obj->instances.front();
+    const BoundingBoxf3 xy_bbox = obj->instance_bounding_box(*inst);
+    for (ModelVolume *vol : obj->volumes) {
+        REQUIRE(vol != nullptr);
+        REQUIRE_FALSE(vol->mesh().empty());
+        const Transform3d world = inst->get_matrix() * vol->get_matrix();
+        REQUIRE(spectrum_picprint_apply_to_volume(*vol, world, xy_bbox, plan));
+        REQUIRE(vol->is_mm_painted());
+        TriangleSelector sel(vol->mesh());
+        sel.deserialize(vol->mmu_segmentation_facets.get_data());
+        REQUIRE(sel.num_facets(EnforcerBlockerType(0)) < int(vol->mesh().its.indices.size()));
+    }
+    REQUIRE(model.objects.size() == 1);
+}
+
+TEST_CASE("PicPrint apply keeps original triangle count", "[spectrum_picprint]")
+{
+    const std::vector<std::uint8_t> rgb  = two_colour_8x2();
+    const SpectrumPicPrintPlan      plan = plan_spectrum_picprint(rgb.data(), 8, 2, panchroma_physicals(), 4);
+    REQUIRE(plan.valid);
+
+    SECTION("coarse cube is original-triangle set_facet only")
+    {
+        Model model;
+        ModelObject *obj = model.add_object("picprint_tess_cube", "", make_cube(10., 10., 10.));
+        REQUIRE(obj != nullptr);
+        obj->add_instance();
+        REQUIRE_FALSE(obj->volumes.empty());
+        const size_t before = obj->volumes.front()->mesh().its.indices.size();
+        REQUIRE(before == 12);
+        REQUIRE(picprint_apply_front_volume(*obj, plan));
+        REQUIRE(obj->volumes.front()->mesh().its.indices.size() == before);
+        REQUIRE(obj->volumes.front()->is_mm_painted());
+        REQUIRE(model.objects.size() == 1);
+    }
+
+    SECTION("dense sphere does not subdivide")
+    {
+        TriangleMesh sphere = make_sphere(10., 2 * PI / 20.);
+        REQUIRE(sphere.its.indices.size() > 12);
+        Model model;
+        ModelObject *obj = model.add_object("picprint_tess_sphere", "", sphere);
+        REQUIRE(obj != nullptr);
+        obj->add_instance();
+        REQUIRE_FALSE(obj->volumes.empty());
+        const size_t before = obj->volumes.front()->mesh().its.indices.size();
+        REQUIRE(before == sphere.its.indices.size());
+        REQUIRE(before > 12);
+        REQUIRE(picprint_apply_front_volume(*obj, plan));
+        REQUIRE(obj->volumes.front()->mesh().its.indices.size() == before);
+        REQUIRE(obj->volumes.front()->is_mm_painted());
+        REQUIRE(model.objects.size() == 1);
+    }
+
+    SECTION("generated plate mesh triangle count is unchanged by apply")
+    {
+        SpectrumPicPrintPlate spec;
+        spec.width_mm     = 16.;
+        spec.depth_mm     = 4.;
+        spec.thickness_mm = 2.;
+        spec.nx           = 8;
+        spec.ny           = 2;
+        TriangleMesh mesh = spectrum_picprint_make_plate(spec);
+        const size_t plate_tris = mesh.its.indices.size();
+        REQUIRE(plate_tris > 12);
+
+        Model model;
+        ModelObject *obj = model.add_object("picprint_tess_plate", "", mesh);
+        REQUIRE(obj != nullptr);
+        obj->add_instance();
+        REQUIRE_FALSE(obj->volumes.empty());
+        REQUIRE(obj->volumes.front()->mesh().its.indices.size() == plate_tris);
+        REQUIRE(picprint_apply_front_volume(*obj, plan));
+        REQUIRE(obj->volumes.front()->mesh().its.indices.size() == plate_tris);
+        REQUIRE(obj->volumes.front()->is_mm_painted());
     }
 }
