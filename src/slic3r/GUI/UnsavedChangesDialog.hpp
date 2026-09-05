@@ -59,10 +59,12 @@ public:
     bool        m_toggle {true};
 #ifdef __linux__
     wxIcon      m_icon;
+    wxIcon      m_icon_collapsed; //ORCA: Icon for collapsed state
     wxIcon      m_old_color_bmp;
     wxIcon      m_new_color_bmp;
 #else
     wxBitmap    m_icon;
+    wxBitmap    m_icon_collapsed; //ORCA: Icon for collapsed state
     wxBitmap    m_old_color_bmp;
     wxBitmap    m_new_color_bmp;
 #endif //__linux__
@@ -80,6 +82,7 @@ public:
     // AND the classical node was removed (a new node temporary without children
     // would be added to the control)
     bool                m_container {true};
+    bool                m_collapsible {false};
 
     // preset(root) node
     ModelNode(Preset::Type preset_type, wxWindow* parent_win, const wxString& text, const std::string& icon_name);
@@ -94,6 +97,7 @@ public:
     ModelNode(ModelNode* parent, const wxString& text, const wxString& old_value, const wxString& new_value);
 
     bool                IsContainer() const         { return m_container; }
+    bool                IsCollapsible() const       { return m_collapsible; }
     bool                IsToggled() const           { return m_toggle; }
     void                Toggle(bool toggle = true)  { m_toggle = toggle; }
     bool                IsRoot() const              { return m_parent == nullptr; }
