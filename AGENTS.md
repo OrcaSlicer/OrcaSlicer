@@ -32,6 +32,15 @@ ctest --test-dir ./tests/fff_print
 - Parallelization via TBB — be mindful of shared state
 - Always use `SetSizerAndFit(sizer)` instead of `SetSizer(sizer)` on top level window. Unless `SetSizer` must be called before the full layout is built, call `sizer->SetSizeHints(window)` afterwards in this case.
 
+## Formatting
+
+`.clang-format` (clang-format 18), enforced on PR-changed lines by `.github/workflows/clang-format.yml`. Untouched code is left alone.
+
+```bash
+git clang-format --diff origin/main    # preview
+git clang-format origin/main           # apply
+```
+
 ## Key Entry Points
 
 - App startup: `src/OrcaSlicer.cpp`
