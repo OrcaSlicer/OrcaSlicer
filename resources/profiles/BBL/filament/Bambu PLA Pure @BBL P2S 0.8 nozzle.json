@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"name": "Bambu PLA Pure @BBL H2S",
+	"name": "Bambu PLA Pure @BBL P2S 0.8 nozzle",
 	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSA19_18",
+	"setting_id": "GFSA19_29",
 	"instantiation": "true",
-	"description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
 	"additional_cooling_fan_speed": [
 		"75"
 	],
@@ -80,8 +79,8 @@
 		"-1"
 	],
 	"filament_retract_before_wipe": [
-		"nil",
-		"nil"
+		"0",
+		"0"
 	],
 	"filament_retract_length_nc": [
 		"14",
@@ -127,6 +126,9 @@
 		"Spiral Lift",
 		"Spiral Lift"
 	],
+	"first_x_layer_fan_speed": [
+		"40"
+	],
 	"long_retractions_when_ec": [
 		"0",
 		"0"
@@ -158,12 +160,9 @@
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle"
+		"Bambu Lab P2S 0.8 nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
-	],
-	"filament_end_gcode": [
-		"; filament end gcode \n"
 	]
 }
