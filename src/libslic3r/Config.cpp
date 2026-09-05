@@ -1715,6 +1715,36 @@ const ConfigOption* DynamicConfig::optptr(const t_config_option_key &opt_key) co
     return (it == options.end()) ? nullptr : it->second.get();
 }
 
+// ConfigOptionBool(s)::deserialize only understands "1" and "0", but scripts commonly spell CLI
+// flags as --opt=true or --opt=no. Map the usual spellings onto what deserialize() accepts, per
+// comma-separated item so vector options keep working, and pass anything else through unchanged
+// so a genuine typo is still reported as invalid.
+static std::string normalize_cli_bool_value(const std::string &value)
+{
+    static const char* true_values[]  = { "1", "true",  "yes", "on",  "enabled"  };
+    static const char* false_values[] = { "0", "false", "no",  "off", "disabled" };
+
+    auto matches = [](const std::string &item, const char* const* candidates, size_t count) {
+        return std::any_of(candidates, candidates + count, [&item](const char* candidate) { return boost::iequals(item, candidate); });
+    };
+
+    std::string        normalized;
+    std::istringstream is(value);
+    std::string        item;
+    while (std::getline(is, item, ',')) {
+        boost::trim(item);
+        if (! normalized.empty())
+            normalized += ",";
+        if (matches(item, true_values, std::size(true_values)))
+            normalized += "1";
+        else if (matches(item, false_values, std::size(false_values)))
+            normalized += "0";
+        else
+            normalized += item;
+    }
+    return normalized;
+}
+
 bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option_keys* extra, t_config_option_keys* keys)
 {
     // cache the CLI option => opt_key mapping
@@ -1812,17 +1842,32 @@ bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option
             // to the end of the value.
             if (opt_base->type() == coBools && value.empty())
                 static_cast<ConfigOptionBools*>(opt_base)->values.push_back(!no);
-            else
+            else {
                 // Deserialize any other vector value (ConfigOptionInts, Floats, Percents, Points) the same way
                 // they get deserialized from an .ini file. For ConfigOptionStrings, that means that the C-style unescape
                 // will be applied for values enclosed in quotes, while values non-enclosed in quotes are left to be
                 // unescaped by the calling shell.
-				opt_vector->deserialize(value, true);
+                const std::string vector_value = opt_base->type() == coBools ? normalize_cli_bool_value(value) : value;
+                bool deserialized = false;
+                try {
+                    deserialized = opt_vector->deserialize(vector_value, true);
+                } catch (const std::exception &ex) {
+                    // e.g. "nil" deserialized into a non-nullable vector option throws instead of
+                    // returning false - treat that the same as any other invalid value here.
+                    deserialized = false;
+                }
+                if (! deserialized) {
+                    boost::nowide::cerr << "Invalid value for option --" << token.c_str() << std::endl;
+                    return false;
+                }
+            }
         } else if (opt_base->type() == coBool) {
             if (value.empty())
                 static_cast<ConfigOptionBool*>(opt_base)->value = !no;
-            else
-                opt_base->deserialize(value);
+            else if (! opt_base->deserialize(normalize_cli_bool_value(value))) {
+                boost::nowide::cerr << "Invalid value for option --" << token.c_str() << std::endl;
+                return false;
+            }
         } else if (opt_base->type() == coString) {
             // Do not unescape single string values, the unescaping is left to the calling shell.
             static_cast<ConfigOptionString*>(opt_base)->value = value;

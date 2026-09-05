@@ -1024,28 +1024,29 @@ std::string CoolingBuffer::apply_layer_cooldown(
         }
 
         if (need_set_fan) {
+            const auto set_fan = [&](int speed) {
+                if (m_current_fan_speed != speed) {
+                    new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, speed, part_cooling_fan_min_pwm);
+                    m_current_fan_speed = speed;
+                }
+            };
             if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
-                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, overhang_fan_speed, part_cooling_fan_min_pwm);
-                m_current_fan_speed = overhang_fan_speed;
+                set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
-                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, internal_bridge_fan_speed, part_cooling_fan_min_pwm);
-                m_current_fan_speed = internal_bridge_fan_speed;
+                set_fan(internal_bridge_fan_speed);
             }
             else if (fan_speed_change_requests[CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START]){
-                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, supp_interface_fan_speed, part_cooling_fan_min_pwm);
-                m_current_fan_speed = supp_interface_fan_speed;
+                set_fan(supp_interface_fan_speed);
             }
             else if (fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START]){
-                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, ironing_fan_speed, part_cooling_fan_min_pwm);
-                m_current_fan_speed = ironing_fan_speed;
+                set_fan(ironing_fan_speed);
             }
             else if(fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] && m_current_fan_speed != -1){
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_current_fan_speed, part_cooling_fan_min_pwm);
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
             }
             else {
-                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_fan_speed, part_cooling_fan_min_pwm);
-                m_current_fan_speed = m_fan_speed;
+                set_fan(m_fan_speed);
             }
             need_set_fan = false;
         }

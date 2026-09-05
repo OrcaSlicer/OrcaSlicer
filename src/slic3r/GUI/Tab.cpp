@@ -459,7 +459,7 @@ void Tab::create_preset_tab()
     // tree
     m_tabctrl = new TabCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(20 * m_em_unit, -1),
         wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
-    m_tabctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
+    m_tabctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable right select
     m_tabctrl->SetFont(Label::Body_14);
     //m_left_sizer->Add(m_tabctrl, 1, wxEXPAND);
     const int img_sz = int(32 * scale_factor + 0.5f);
@@ -2174,21 +2174,25 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     //Orca: sync filament num if it's a multi tool printer
     if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
-        auto num_extruder = boost::any_cast<size_t>(value);
-        int         old_filament_size = wxGetApp().preset_bundle->filament_presets.size();
-        std::vector<std::string> new_colors;
-        for (int i = old_filament_size; i < num_extruder; ++i) {
-            wxColour    new_col   = Plater::get_next_color_for_filament();
-            std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-            new_colors.push_back(new_color);
+        const size_t num_extruder = boost::any_cast<size_t>(value);
+        auto        *bundle       = wxGetApp().preset_bundle;
+        Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
+        // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
+        // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
+        // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
+        // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
+        // Both also refresh the print tab and export the selections, so nothing to do afterwards.
+        size_t physical = bundle->num_physical_filaments();
+        while (physical != num_extruder) {
+            if (physical < num_extruder)
+                sidebar.add_custom_filament(Plater::get_next_color_for_filament());
+            else
+                sidebar.delete_filament(physical - 1);   // physical > num_extruder >= 1
+            const size_t updated = bundle->num_physical_filaments();
+            if (updated == physical)
+                break;   // the call declined, e.g. the total slot limit - do not spin
+            physical = updated;
         }
-        // Mixed-color slots are virtual filaments at the tail of the list with no nozzle of their
-        // own, so they are carried on top of the new extruder count instead of being truncated.
-        const size_t total_filaments = num_extruder + wxGetApp().preset_bundle->num_mixed_filaments();
-        wxGetApp().preset_bundle->set_num_filaments(total_filaments, new_colors);
-        wxGetApp().plater()->on_filament_count_change(total_filaments);
-        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     }
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
@@ -5126,7 +5130,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("adaptive_bed_mesh_margin", "printer_basic_information_adaptive_bed_mesh#mesh-margin");
 
         optgroup = page->new_optgroup(L("Accessory"), "param_accessory");
-        optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type");
+        optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type", 0);
         optgroup->append_single_option_line("nozzle_hrc", "printer_basic_information_accessory#nozzle-hrc");
         optgroup->append_single_option_line("auxiliary_fan", "printer_basic_information_accessory#auxiliary-part-cooling-fan");
         optgroup->append_single_option_line("fan_direction");
@@ -6071,7 +6075,7 @@ void TabPrinter::toggle_options()
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = m_config->option<ConfigOptionEnumsGeneric>("extruder_type");
         auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes](int extruder_id, int stride = 1) {
+            [this, &extruders](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, "printer_extruder_id",
             ExtruderType(extruders->values[extruder_id]), get_actual_nozzle_volume_type(extruder_id), "printer_extruder_variant", stride);
     };
@@ -7526,7 +7530,7 @@ void Tab::delete_preset()
         for (auto &preset2 : *m_presets)
             if (preset2.inherits() == current_preset.name) {
                 ++count;
-                presets += "\n - " + preset2.name;
+                presets += "\n - " + from_u8(preset2.name);
             }
         if (count > 0) {
             msg = _L("Presets inherited by other presets cannot be deleted!");
@@ -7709,18 +7713,18 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         this->update_changed_ui();
     };
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([this, &deps, on_toggle](wxMouseEvent& e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([&deps, on_toggle](wxMouseEvent& e) {
         if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([this, &deps, on_toggle](wxMouseEvent& e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([&deps, on_toggle](wxMouseEvent& e) {
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([this, on_toggle](wxCommandEvent& e) {
+    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([on_toggle](wxCommandEvent& e) {
         on_toggle(e.IsChecked());
         e.Skip();
     }), deps.checkbox->GetId());
@@ -8302,7 +8306,7 @@ void Tab::switch_excluder(int extruder_id, bool reload)
             return;
     }
     auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
+            [this, &extruders, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), get_actual_nozzle_volume_type(extruder_id), variant_keys.second, stride);
     };
@@ -8359,7 +8363,7 @@ void Tab::sync_excluder()
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
     auto get_index_for_extruder =
-            [this, &extruders, &nozzle_volumes, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, NozzleVolumeType nozzle_type) {
+            [this, &extruders, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, NozzleVolumeType nozzle_type) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), nozzle_type, variant_keys.second);
     };
@@ -8400,7 +8404,7 @@ void Tab::sync_excluder()
         }
     }
     if (config_to_apply.empty()) {
-        MessageDialog md(wxGetApp().plater(), _L("No modifications need to be copied."), _L("Copy paramters"), wxICON_INFORMATION | wxOK);
+        MessageDialog md(wxGetApp().plater(), _L("No modifications need to be copied."), _L("Copy parameters"), wxICON_INFORMATION | wxOK);
         md.ShowModal();
         return;
     }
@@ -8408,7 +8412,7 @@ void Tab::sync_excluder()
     std::string pt = m_preset_bundle->printers.get_edited_preset().get_printer_type(m_preset_bundle);
     std::string active_nozzle_name = DevPrinterConfigUtil::get_toolhead_display_name(pt, active_index, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase);
     std::string other_nozzle_name  = DevPrinterConfigUtil::get_toolhead_display_name(pt, 1 - active_index, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase);
-    wxString title  = wxString::Format(_L("Modify paramters of %s"), _L(active_nozzle_name));
+    wxString title  = wxString::Format(_L("Modify parameters of %s"), _L(active_nozzle_name));
     wxString header = wxString::Format(_L("Do you want to modify the following parameters of the %s to that of the %s?"),
                                        _L(active_nozzle_name), _L(other_nozzle_name));
     UnsavedChangesDialog dlg(title, header, &config_origin, from_index, dest_index, active_index == 0, active_nozzle);

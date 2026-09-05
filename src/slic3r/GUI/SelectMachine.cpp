@@ -483,7 +483,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
-        if (this && this->m_is_in_sending_mode) {
+        if (m_is_in_sending_mode) {
             return;
         }
 
@@ -2847,7 +2847,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             });
 
         // STUDIO-9580
-        /* use warning color if there are warning and normal messages* /
+        /* use warning color if there are warning and normal messages*/
         /* use indexes if there are several messages*/
         /* add header and ending if there are several messages or has none block warnings*/
         if (confirm_text.size() > 1 || !is_printing_block)
@@ -3428,7 +3428,7 @@ void SelectMachineDialog::show_timelapse_storage_dialog(MachineObject* obj)
 
     if (show_cleanup_btn) {
         auto* btn_cleanup = new Button(&dlg, _L("Clean Up"));
-        btn_cleanup->Bind(wxEVT_BUTTON, [&dlg, ID_CLEANUP](wxCommandEvent&) { dlg.EndModal(ID_CLEANUP); });
+        btn_cleanup->Bind(wxEVT_BUTTON, [&dlg](wxCommandEvent&) { dlg.EndModal(ID_CLEANUP); });
         btn_sizer->Add(btn_cleanup, 0, wxEXPAND);
     }
 
@@ -5497,7 +5497,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
             first_enabled_id = extruder;
         }
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent &e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent &e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder](wxMouseEvent &e) {
             if (!item->m_enable) {return;}
             if (!m_check_flag || m_print_status == PrintDialogStatus::PrintStatusUnsupportedPrinter) { return; } /*STUDIO-11301*/
@@ -6128,8 +6128,8 @@ void SelectMachineDialog::set_default_from_sdcard()
             first_enabled_id = fo.id;
         }
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials](wxMouseEvent& e) {});
-        item->Bind(wxEVT_LEFT_DOWN, [this, obj_, item, materials, diameters_count, fo](wxMouseEvent& e) {
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});
+        item->Bind(wxEVT_LEFT_DOWN, [this, obj_, item, materials, fo](wxMouseEvent& e) {
             if (!item->m_enable) {return;}
             if (!m_check_flag || m_print_status == PrintDialogStatus::PrintStatusUnsupportedPrinter) { return; } /*STUDIO-11301*/
 

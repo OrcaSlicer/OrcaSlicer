@@ -2157,7 +2157,7 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
 
 void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, std::map<std::string, std::string>> *my_presets)
 {
-    auto check_removed = [my_presets, this](Preset &preset) -> bool {
+    auto check_removed = [my_presets](Preset &preset) -> bool {
         if (my_presets == nullptr) return true;
         if (my_presets->find(preset.name) != my_presets->end()) return false;
         if (!preset.sync_info.empty()) return false; // syncing, not remove
@@ -2920,6 +2920,16 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // If executed due to a Config Wizard update, preferred_printer contains the first newly installed printer, otherwise nullptr.
     const Preset *preferred_printer = printers.find_system_preset_by_model_and_variant(preferred_selection.printer_model_id, preferred_selection.printer_variant);
     printers.select_preset_by_name(preferred_printer ? preferred_printer->name : initial_printer_profile_name, true);
+    Preset &selected_printer = printers.get_edited_preset();
+    if (selected_printer.printer_technology() == ptFFF) {
+        BedType bed_type = selected_printer.get_default_bed_type(this);
+        const std::string saved_bed_type = config.get_printer_setting(selected_printer.name, "curr_bed_type");
+        const int saved_bed_type_value = atoi(saved_bed_type.c_str());
+        if (saved_bed_type_value > btDefault && saved_bed_type_value < btCount)
+            bed_type = static_cast<BedType>(saved_bed_type_value);
+        project_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(bed_type));
+        config.set("curr_bed_type", std::to_string(static_cast<int>(bed_type)));
+    }
     CNumericLocalesSetter locales_setter;
 
     // Orca: load from orca_presets
@@ -3190,63 +3200,6 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
-// BBS
-void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> new_colors) {
-    int old_filament_count = this->filament_presets.size();
-    if (n > old_filament_count && old_filament_count != 0)
-        filament_presets.resize(n, filament_presets.back());
-    else {
-        filament_presets.resize(n);
-    }
-    ConfigOptionStrings* filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
-    ConfigOptionStrings *filament_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
-    ConfigOptionStrings* filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
-    ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
-    ConfigOptionInts* filament_nozzle_map = project_config.option<ConfigOptionInts>("filament_nozzle_map");
-    ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
-
-    filament_color->resize(n);
-    // Sync filament multi colour
-    filament_multi_color->values.resize(n);
-    for (size_t i = 0; i < n; i++) {
-        filament_multi_color->values[i] = filament_color->values[i];
-    }
-    filament_color_type->resize(n);
-    filament_map->values.resize(n, 1);
-    filament_nozzle_map->values.resize(n, 0);
-    filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
-    ams_multi_color_filment.resize(n);
-
-    // Mixed-color metadata is a parallel per-filament array set, so it has to grow and shrink
-    // with the filament count exactly like filament_colour above.
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
-        opt->values.resize(n, false);
-
-    // BBS set new filament color to new_color
-    if (old_filament_count < n) {
-        if (!new_colors.empty()) {
-            for (int i = old_filament_count; i < n; i++) {
-                filament_color->values[i] = new_colors[i - old_filament_count];
-                filament_multi_color->values[i] = new_colors[i - old_filament_count];
-                filament_color_type->values[i]  = "1";  // default color type
-            }
-        }
-    }
-
-    update_multi_material_filament_presets();
-}
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();
@@ -3261,6 +3214,11 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
     ConfigOptionInts* filament_nozzle_map = project_config.option<ConfigOptionInts>("filament_nozzle_map");
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
+
+    // Which slots are new is a fact about the arrays below, not about filament_presets:
+    // update_multi_material_filament_presets() tops that list up to the nozzle count on its own,
+    // so it can already sit at the new size while every array below is still at the old one.
+    const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
     // Sync filament multi colour
@@ -3292,13 +3250,11 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
         opt->values.resize(n, false);
 
     //BBS set new filament color to new_color
-    if (old_filament_count < n) {
-        if (!new_color.empty()) {
-            for (unsigned i = old_filament_count; i < n; i++) {
-                filament_color->values[i] = new_color;
-                filament_multi_color->values[i] = new_color;
-                filament_color_type->values[i]  = "1";  // default color type
-            }
+    if (!new_color.empty()) {
+        for (size_t i = old_slot_count; i < n; i++) {
+            filament_color->values[i] = new_color;
+            filament_multi_color->values[i] = new_color;
+            filament_color_type->values[i]  = "1";  // default color type
         }
     }
 
@@ -3407,6 +3363,16 @@ size_t PresetBundle::num_mixed_filaments() const
     return opt == nullptr ? 0 : size_t(std::count(opt->values.begin(), opt->values.end(), true));
 }
 
+// Counted off the mixed flags, not filament_presets: that list is topped up to the nozzle count on
+// its own, so it can sit a slot ahead of the arrays that describe slots. Unlike the sibling
+// physical_filament_config_indices(), which bounds by filament_presets, this ignores that top-up.
+size_t PresetBundle::num_physical_filaments() const
+{
+    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    return opt == nullptr ? filament_presets.size()
+                          : size_t(std::count(opt->values.begin(), opt->values.end(), false));
+}
+
 std::vector<size_t> PresetBundle::physical_filament_config_indices() const
 {
     std::vector<size_t> indices;
@@ -3456,7 +3422,7 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
                     combox_info.ams_names.push_back(ams_name);
                     continue;
                 }
-                iter = std::find_if(filaments.begin(), filaments.end(), [&filament_type](auto &f) { return f.is_compatible && f.is_system; });
+                iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) { return f.is_compatible && f.is_system; });
                 if (iter == filaments.end())
                     continue;
             }
