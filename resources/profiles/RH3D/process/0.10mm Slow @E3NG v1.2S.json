@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "0.10mm Slow @E3NG v1.2S",
+	"inherits": "process_Slow_E3NG v1.2S",
+	"from": "system",
+	"setting_id": "W35S1kwfonBFrHAy",
+	"instantiation": "true",
+	"layer_height": "0.1",
+	"initial_layer_print_height": "0.15",
+	"compatible_printers": [
+		"E3NG v1.2S - 0.2 nozzle",
+		"E3NG v1.2S - 0.3 nozzle",
+		"E3NG v1.2S - 0.4 nozzle"
+	]
+}

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @VIRTU E3",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "ifG0f5hgJ7L9zw34",
+	"filament_id": "Generic TPU @VIRTU E3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"VIRTU E3 - 0.4 nozzle",
+		"VIRTU E3 - 0.5 nozzle",
+		"VIRTU E3 - 0.6 nozzle"
+	]
+}

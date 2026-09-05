@@ -27,7 +27,7 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"10"
+		"12"
 	],
 	"filament_max_volumetric_speed": [
 		"8"
@@ -76,9 +76,9 @@
 		"330"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"2"
+		"4"
 	]
 }

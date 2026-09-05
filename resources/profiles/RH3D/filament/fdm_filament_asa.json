@@ -27,10 +27,10 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"10"
+		"12"
 	],
 	"filament_max_volumetric_speed": [
-		"32"
+		"24"
 	],
 	"filament_type": [
 		"ASA"
@@ -55,7 +55,7 @@
 		"50"
 	],
 	"fan_min_speed": [
-		"10"
+		"15"
 	],
 	"overhang_fan_threshold": [
 		"25%"
@@ -76,9 +76,9 @@
 		"275"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"2"
+		"4"
 	]
 }

@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @VIRTU E3",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "yJa8PC5f8c4uYgny",
+	"filament_id": "Generic ASA @VIRTU E3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"VIRTU E3 - 0.2 nozzle",
+		"VIRTU E3 - 0.3 nozzle",
+		"VIRTU E3 - 0.4 nozzle",
+		"VIRTU E3 - 0.5 nozzle",
+		"VIRTU E3 - 0.6 nozzle"
+	]
+}
