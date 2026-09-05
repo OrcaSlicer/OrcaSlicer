@@ -922,6 +922,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                             params.pattern = ipMonotonic;
                         else
                             params.pattern = ipRectilinear;
+                        // Orca: follow local boundary curvature instead, wherever the bridge
+                        // surface has any to follow (see FillNormalizedLines' fallback).
+                        if (region_config.normalize_bridge_lines)
+                            params.pattern = ipBridgeNormalized;
                         params.density = 100.f;
                     }
                 } else if (params.density <= 0)

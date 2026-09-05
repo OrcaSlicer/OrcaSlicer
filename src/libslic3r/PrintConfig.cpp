@@ -277,7 +277,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "bridgenormalized", ipBridgeNormalized }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -1442,6 +1443,21 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Relative bridge angle");
     def->category = L("Strength");
     def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Orca: follow local boundary curvature for bridge infill lines instead of a single
+    // straight-line direction across the whole bridge (both external and internal bridges).
+    def = this->add("normalize_bridge_lines", coBool);
+    def->label = L("Normalize bridge lines");
+    def->category = L("Strength");
+    def->tooltip = L("Wherever a bridge's boundary curves toward the filled area (for example around a hole, a "
+                      "rounded corner, or an inward notch of the outer contour), draw bridge lines along the local "
+                      "normal instead of a single straight-line direction across the whole bridge, so no span is "
+                      "much longer than necessary. Because this angle is derived independently from whatever "
+                      "curvature is found, the resulting line direction can differ from the bridge angle settings "
+                      "even on a bridge without an obvious hole, as long as some part of its boundary curves toward "
+                      "the fill area. Only falls back to the usual bridge angle where the boundary is straight.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

@@ -836,7 +836,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
-        "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
+        "bridge_angle", "internal_bridge_angle", "relative_bridge_angle", "normalize_bridge_lines",
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id",
         })
         toggle_field(el, have_infill || has_solid_infill);

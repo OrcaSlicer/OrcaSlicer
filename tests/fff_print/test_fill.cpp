@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -194,6 +196,256 @@ TEST_CASE("Pattern path length", "[Fill]") {
          
         REQUIRE(test_if_solid_surface_filled(expolygon, 0.5, 45.0, 0.99) == true);
     }
+}
+
+TEST_CASE("Normalized bridge line fill", "[Fill]") {
+    // A 40x40mm square with a finely-tessellated 10mm-diameter circular hole in
+    // the middle stands in for an annular bridge: an outer contour with an inner
+    // hole that curves toward the fill area along its whole length. A many-sided
+    // polygon (rather than a perfect square hole) exercises the same per-segment
+    // normal approximation a real, mesh-tessellated circular hole would produce.
+    Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
+    Slic3r::Points hole;
+    const int    hole_sides  = 32;
+    const double hole_radius = 5.;
+    for (int i = 0; i < hole_sides; ++i) {
+        double theta = 2. * M_PI * double(i) / double(hole_sides);
+        hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
+    }
+    std::reverse(hole.begin(), hole.end());
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
+    filler->bounding_box = get_extents(Polygon(square));
+    filler->spacing = 0.4;
+    FillParams fill_params;
+    fill_params.density = 1.0;
+    fill_params.dont_adjust = true;
+
+    SECTION("Lines cast from the hole reach the outer contour without gaps") {
+        Slic3r::ExPolygon annulus(square, hole);
+        Surface surface(stBottomBridge, annulus);
+        Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+
+        REQUIRE(paths.size() > 4);
+        // Every line must lie inside the annulus, not cross into the hole or past the contour.
+        REQUIRE(diff_pl(paths, offset(annulus, float(SCALED_EPSILON * 10))).empty());
+
+        // Regression test: a locally-computed normal that isn't perfectly radial
+        // must not clip back into the hole it started from, producing a short stub
+        // instead of a line spanning the full annular gap (minimum 15mm here).
+        double min_len = std::numeric_limits<double>::max();
+        for (const Polyline &pl : paths)
+            min_len = std::min(min_len, unscale<double>(pl.length()));
+        REQUIRE(min_len > 10.);
+    }
+
+    SECTION("Falls back to full coverage when the boundary has no favorable curvature") {
+        Slic3r::ExPolygon plain(square);
+        Surface surface(stBottomBridge, plain);
+        Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+        REQUIRE(!paths.empty());
+    }
+}
+
+TEST_CASE("Normalized bridge lines stay close together far from a small hole", "[Fill]") {
+    // Regression test: lines cast from evenly-spaced origins on a small hole
+    // diverge as they travel out to a much larger outer contour, so evenly
+    // spacing the origins alone leaves growing gaps between the far ends -
+    // exactly the visible gaps reported on a circular bridge. A small hole in
+    // a large square exaggerates that divergence.
+    Slic3r::Points square{ Point::new_scale(-100, -100), Point::new_scale(100, -100), Point::new_scale(100, 100), Point::new_scale(-100, 100) };
+    Slic3r::Points hole;
+    const int    hole_sides  = 32;
+    const double hole_radius = 3.;
+    for (int i = 0; i < hole_sides; ++i) {
+        double theta = 2. * M_PI * double(i) / double(hole_sides);
+        hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
+    }
+    std::reverse(hole.begin(), hole.end());
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
+    filler->bounding_box = get_extents(Polygon(square));
+    filler->spacing = 0.4;
+    FillParams fill_params;
+    fill_params.density = 1.0;
+    fill_params.dont_adjust = true;
+
+    Slic3r::ExPolygon annulus(square, hole);
+    Surface surface(stBottomBridge, annulus);
+    Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+    REQUIRE(paths.size() > 4);
+
+    // Sort the far (outer) endpoints by angle around the hole, then measure the
+    // actual distance between each consecutive pair - this is exactly what
+    // should stay bounded regardless of the outer contour's shape.
+    std::vector<Point> far_points;
+    for (const Polyline &pl : paths)
+        far_points.push_back(pl.points.back());
+    std::sort(far_points.begin(), far_points.end(), [](const Point &a, const Point &b) {
+        return std::atan2(double(a.y()), double(a.x())) < std::atan2(double(b.y()), double(b.x()));
+    });
+
+    double spacing_mm = 0.4;
+    double max_gap_mm = 0.;
+    for (size_t i = 0; i < far_points.size(); ++i) {
+        const Point &p0 = far_points[i];
+        const Point &p1 = far_points[(i + 1) % far_points.size()];
+        max_gap_mm = std::max(max_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
+    }
+    // Adjacent far endpoints should stay within a small multiple of the
+    // target line spacing - not diverge unbounded with distance from the hole.
+    REQUIRE(max_gap_mm < spacing_mm * 4.);
+}
+
+TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved hole", "[Fill]") {
+    // Regression test: a real STL mesh's tessellated approximation of a circular
+    // hole often has a seam (where the mesh wraps around) spanning a couple of
+    // vertices that aren't quite convex - flattened here onto the chord between
+    // the seam's neighbors. That non-curving stretch must not fragment sampling
+    // and leave a gap (or, from over-correcting, crowded/overlapping lines) in
+    // the lines right around it.
+    Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
+    Slic3r::Points hole;
+    const int    hole_sides  = 32;
+    const double hole_radius = 5.;
+    for (int i = 0; i < hole_sides; ++i) {
+        double theta = 2. * M_PI * double(i) / double(hole_sides);
+        hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
+    }
+    const int   seam_width = 2;
+    const Point seam_prev  = hole[hole.size() - 1];
+    const Point seam_next  = hole[seam_width];
+    for (int i = 0; i < seam_width; ++i) {
+        double t = double(i + 1) / double(seam_width + 1);
+        hole[i]  = Point(
+            coord_t(seam_prev.x() + t * (seam_next.x() - seam_prev.x())),
+            coord_t(seam_prev.y() + t * (seam_next.y() - seam_prev.y())));
+    }
+    std::reverse(hole.begin(), hole.end());
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
+    filler->bounding_box = get_extents(Polygon(square));
+    filler->spacing = 0.4;
+    FillParams fill_params;
+    fill_params.density = 1.0;
+    fill_params.dont_adjust = true;
+
+    Slic3r::ExPolygon annulus(square, hole);
+    Surface surface(stBottomBridge, annulus);
+    Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+    REQUIRE(paths.size() > 4);
+
+    std::vector<Point> far_points;
+    for (const Polyline &pl : paths)
+        far_points.push_back(pl.points.back());
+    std::sort(far_points.begin(), far_points.end(), [](const Point &a, const Point &b) {
+        return std::atan2(double(a.y()), double(a.x())) < std::atan2(double(b.y()), double(b.x()));
+    });
+
+    double spacing_mm = 0.4;
+    double max_gap_mm = 0.;
+    for (size_t i = 0; i < far_points.size(); ++i) {
+        const Point &p0 = far_points[i];
+        const Point &p1 = far_points[(i + 1) % far_points.size()];
+        max_gap_mm = std::max(max_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
+    }
+    REQUIRE(max_gap_mm < spacing_mm * 4.);
+
+    // Regression test: bridging a seam must not produce two independent lines
+    // crowded right next to each other there (e.g. one from each end of what
+    // would otherwise be an open chain covering almost the whole ring) -
+    // overlapping lines print on top of each other and throw off layer height.
+    std::vector<Point> near_points;
+    for (const Polyline &pl : paths)
+        near_points.push_back(pl.points.front());
+    std::sort(near_points.begin(), near_points.end(), [](const Point &a, const Point &b) {
+        return std::atan2(double(a.y()), double(a.x())) < std::atan2(double(b.y()), double(b.x()));
+    });
+    double min_gap_mm = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < near_points.size(); ++i) {
+        const Point &p0 = near_points[i];
+        const Point &p1 = near_points[(i + 1) % near_points.size()];
+        min_gap_mm = std::min(min_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
+    }
+    // A closed loop's wraparound step is rarely an exact multiple of the
+    // target spacing, so the last sample before wrapping is normally somewhat
+    // closer to the first than the nominal spacing - that's expected and
+    // harmless. A literal duplicate/overlapping line, by contrast, measures
+    // at (or extremely near) zero, which this still catches easily.
+    REQUIRE(min_gap_mm > spacing_mm * 0.05);
+}
+
+TEST_CASE("Normalize bridge lines option selects which Fill class handles a bridge", "[Fill]") {
+    // Regression test: normalize_bridge_lines must actually control the pattern used
+    // for a bridge - leaving it disabled must not silently keep producing the
+    // curvature-following line pattern (or vice versa).
+    auto bridge_path_count = [](const Print &print) {
+        size_t count = 0;
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erBridgeInfill || entity->role() == erInternalBridgeInfill)
+                        ++count;
+        return count;
+    };
+
+    Print print_default;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_default, {
+        { "normalize_bridge_lines", "0" }
+    });
+    Print print_normalized;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_normalized, {
+        { "normalize_bridge_lines", "1" }
+    });
+
+    size_t default_paths = bridge_path_count(print_default);
+    size_t normalized_paths = bridge_path_count(print_normalized);
+
+    REQUIRE(default_paths > 0);
+    // The curvature-following pattern draws one disconnected line per sampled origin
+    // around the hole, so it produces far more separate extrusion paths than a
+    // connected rectilinear/monotonic sweep over the same bridge-over-a-hole.
+    REQUIRE(normalized_paths > default_paths * 3);
+}
+
+TEST_CASE("Normalize bridge lines falls back to the default fill angle on a flat bridge", "[Fill]") {
+    // Regression test: when a bridge has no favorable curvature to follow,
+    // normalize_bridge_lines must fall back to the exact same fill angle the
+    // default (disabled) path would use - not one rotated 90 degrees from it,
+    // which an earlier bug caused by re-deriving the fill angle a second time
+    // (Fill::_infill_direction() unconditionally adds a fixed 90 degree
+    // offset, so doing that twice compounds into an extra 90 degree rotation).
+    auto first_bridge_line_angle = [](const Print &print) {
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erBridgeInfill || entity->role() == erInternalBridgeInfill) {
+                        Polyline pl = entity->as_polyline();
+                        REQUIRE(pl.points.size() >= 2);
+                        Vec2d dir = (pl.points[1] - pl.points[0]).cast<double>();
+                        // Normalize to [0, PI) - a fill line's orientation is
+                        // undirected, so angle and angle+PI are the same line.
+                        double angle = std::fmod(std::atan2(dir.y(), dir.x()) + 100. * M_PI, M_PI);
+                        return angle;
+                    }
+        throw std::runtime_error("no bridge line found");
+    };
+
+    Print print_default;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge }, print_default, {
+        { "normalize_bridge_lines", "0" }
+    });
+    Print print_normalized;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge }, print_normalized, {
+        { "normalize_bridge_lines", "1" }
+    });
+
+    double angle_default    = first_bridge_line_angle(print_default);
+    double angle_normalized = first_bridge_line_angle(print_normalized);
+
+    double diff = std::fabs(angle_default - angle_normalized);
+    diff        = std::min(diff, M_PI - diff);
+    REQUIRE(diff < 0.05);
 }
 
 /*
