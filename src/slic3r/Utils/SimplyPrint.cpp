@@ -192,7 +192,7 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
 
     bool res = true;
 
-    const auto create_request = [this, &build_request, &res, &on_complete](const std::string& access_token, bool is_retry) {
+    const auto create_request = [&build_request, &res, &on_complete](const std::string& access_token, bool is_retry) {
         auto http = build_request(is_retry);
         set_auth(http, access_token);
         http.header("User-Agent", "SimplyPrint Orca Plugin")
@@ -300,7 +300,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
 
             return http;
         },
-        [&error_fn, &filename, this](std::string body, unsigned status) {
+        [&error_fn, &filename](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(info) << boost::format("SimplyPrint: File uploaded: HTTP %1%: %2%") % status % body;
 
             // Get file UUID
@@ -423,7 +423,7 @@ bool SimplyPrint::do_chunk_upload(const boost::filesystem::path& file_path, cons
 
                 return http;
             },
-            [&error_fn, i, chunk_amount, this, &chunk_id, &delete_token](std::string body, unsigned status) {
+            [&error_fn, i, chunk_amount, &chunk_id, &delete_token](std::string body, unsigned status) {
                 BOOST_LOG_TRIVIAL(info) << boost::format("SimplyPrint: File chunk [%1%/%2%] uploaded: HTTP %3%: %4%") % (i + 1) % chunk_amount % status % body;
                 if (i == 0) {
                     // First chunk, parse chunk id
