@@ -1520,3 +1520,19 @@ TEST_CASE("imex_pem_tool_for - a filament id past the end of the map has no tool
     REQUIRE(imex_pem_tool_for(9, "copy_mode", pem) == -1);
     REQUIRE(imex_pem_tool_for(-1, "copy_mode", pem) == -1);
 }
+
+TEST_CASE("resolve_filament_for_head answers in nozzle index space, not filament slots", "[IMEX]") {
+    // The contract that callers get wrong: the returned index is bounded by pem's length --
+    // one entry per NOZZLE -- and NOT by the number of filaments the project has. A caller that
+    // feeds this straight into a per-filament option must bound it first, or get_at() clamps
+    // the overflow onto filament 0 (see GCode.cpp's IMEX pressure-advance loop, which does).
+    const auto pem = make_pem({0, 1, 2, 3});  // 4 nozzles, identity routing
+
+    // Head 3 resolves to index 3 even for a 2-filament project: nothing here knows the
+    // filament count, so the result can legitimately exceed it.
+    REQUIRE(resolve_filament_for_head({}, pem, 3) == 3);
+    REQUIRE(resolve_filament_for_head({}, pem, 2) == 2);
+
+    // Only a head with no routing at all yields -1, so "-1 means safe to index" is false.
+    REQUIRE(resolve_filament_for_head({}, pem, 9) == -1);
+}

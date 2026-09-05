@@ -11,8 +11,12 @@
 #include <boost/log/trivial.hpp>
 
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/I18N.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+
+// Mark string for localization and translate.
+#define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
 
@@ -60,14 +64,9 @@ int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const C
     const bool imex_parallel = !parallel_mode.empty() && parallel_mode != kImexPrimaryMode;
     if (!imex_parallel || pem.values.empty())
         return -1;
-    // Bounds-check rather than get_at(), for the same reason imex_physical_heater_for() below
-    // does: get_at() CLAMPS to values.front(), so a filament id past the end of the map would
-    // silently address physical head pem[0] instead of reporting "no mapping". The map is one
-    // entry per NOZZLE (effective_physical_extruder_map), while filament ids index filament
-    // SLOTS, and nothing caps the slot count at the nozzle count -- set_num_filaments() takes
-    // its size from the project, so opening a project authored with more filaments than this
-    // printer has extruders leaves ids past the end. Emitting no tool qualifier is correct
-    // there; pinning PA onto the primary's carriage is not.
+    // Bounds-checked, not get_at() -- see the note in IMEXHelpers.hpp for why the two index
+    // spaces diverge. Emitting no tool qualifier is correct for a miss; pinning PA onto the
+    // primary's carriage is not.
     if (filament_id < 0 || filament_id >= (int) pem.values.size())
         return -1;
     return pem.values[filament_id];
@@ -109,11 +108,11 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
             if (filament < 0 || filament >= (int)pem.values.size()) continue;
             const int phys = pem.values[filament];  // bounds-checked above; get_at would clamp
             if (!seen_physicals.insert(phys).second) {
-                return "Multi-color prints in IMEX parallel modes require each filament "
-                       "to have its own dedicated physical extruder. Two or more of the active "
-                       "filaments are routed to the same physical head via the printer's "
-                       "physical extruder map (an MMU/AFC manifold), which the slaved gantry "
-                       "cannot follow.";
+                return L("Multi-color prints in IDEX/IQEX parallel modes require each filament "
+                         "to have its own dedicated physical extruder. Two or more of the active "
+                         "filaments are routed to the same physical head via the printer's "
+                         "physical extruder map (an MMU/AFC manifold), which the slaved gantry "
+                         "cannot follow.");
             }
         }
     }
@@ -121,9 +120,9 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
     // Determine which physical head is the primary in this mode.
     const int primary_physical = imex_primary_tool_for_mode(active_tools_str);
     if (primary_physical < 0) {
-        return "The active IMEX mode does not define a primary tool, so multi-color "
-               "printing cannot be scheduled. Open the printer settings IMEX Modes "
-               "editor and assign a Primary role to one tool.";
+        return L("The active IDEX/IQEX mode does not define a primary tool, so multi-color "
+                 "printing cannot be scheduled. Open the printer settings IDEX/IQEX Modes "
+                 "editor and assign a Primary role to one tool.");
     }
 
     // Walk the active tools once: collect the set of distinct gantries spanned by
@@ -149,11 +148,11 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
     // (use Primary mode for that), and the user's mode_gcode would still emit
     // parallel-print firmware setup that doesn't apply here.
     if (active_gantries.size() < 2) {
-        return "Multi-color in this mode isn't a parallel-print scenario — all of the "
-               "active tools sit on a single gantry, so there's no second gantry being "
-               "copied or mirrored to. Switch the plate to Primary mode for multi-color "
-               "printing on a single gantry, or define an IMEX mode that includes "
-               "tools on a second gantry.";
+        return L("Multi-color in this mode isn't a parallel-print scenario — all of the "
+                 "active tools sit on a single gantry, so there's no second gantry being "
+                 "copied or mirrored to. Switch the plate to Primary mode for multi-color "
+                 "printing on a single gantry, or define an IDEX/IQEX mode that includes "
+                 "tools on a second gantry.");
     }
 
     // Dual-gantry mode but no Span tool on the primary's gantry — the slicer would
@@ -162,11 +161,11 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
     // copies (each gantry tool prints its own object) which is incompatible with
     // mid-print multicolor in a parallel mode.
     if (!span_on_primary_gantry) {
-        return "Multi-color prints in IMEX parallel modes require a Span tool on the "
-               "primary's gantry — without one, the mode doesn't declare a within-gantry "
-               "multicolor partner. Either reduce the print to a single filament, switch to "
-               "Primary mode, or open the printer settings IMEX Modes editor and mark a "
-               "tool on the primary's gantry as Span.";
+        return L("Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the "
+                 "primary's gantry — without one, the mode doesn't declare a within-gantry "
+                 "multicolor partner. Either reduce the print to a single filament, switch to "
+                 "Primary mode, or open the printer settings IDEX/IQEX Modes editor and mark a "
+                 "tool on the primary's gantry as Span.");
     }
     return {};
 }
@@ -507,8 +506,8 @@ int resolve_filament_for_head(const std::map<int,int>& plate_map,
     auto it = plate_map.find(physical);
     if (it != plate_map.end()) {
         const int zero_based = it->second - 1;
-        // pem has one entry per logical filament slot, so its size IS the slot count and
-        // an override outside it names a filament that does not exist. Bounding here rather
+        // pem is indexed by filament slot here, so an override outside it names a filament
+        // this printer cannot route. Bounding here rather
         // than at the parse site is deliberate: the parser is handed a raw string with no
         // notion of how many filaments the project has, while every consumer of this
         // function's result indexes a per-filament array. The picker only ever offers

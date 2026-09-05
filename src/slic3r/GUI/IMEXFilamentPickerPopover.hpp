@@ -26,12 +26,9 @@ public:
     void popup_at_cursor();
 
 private:
-    // wxPopupTransientWindow::Dismiss() only hides the window; it does not destroy it, and it
-    // does not call OnDismiss() either -- only DismissAndNotify() does. The ghost-click handler
-    // creates one popover per click and keeps no reference, so without destroying here every
-    // click would leak a live top-level window (with its BitmapComboBox, bitmaps and event
-    // bindings) parented to the GL canvas. The filament-selected handler therefore calls
-    // DismissAndNotify(), not Dismiss(), or it would bypass this entirely.
+    // Destroys the popover: the ghost-click handler creates one per click and keeps no
+    // reference, so every click would otherwise leak a live top-level window parented to the
+    // GL canvas. Only DismissAndNotify() reaches this -- plain Dismiss() just hides.
     void OnDismiss() override;
     void build_row();
     void on_filament_selected(int slot_1_based);

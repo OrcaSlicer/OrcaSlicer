@@ -118,7 +118,16 @@ std::vector<ImexMode> imex_mode_table(const ConfigBase& cfg);
 // answering "physical head pem[0]" for a logical id that has no mapping at all. The map is one
 // entry per nozzle while logical ids index filament slots, and nothing caps the slot count at
 // the nozzle count, so out-of-range is reachable. Bounds-check and treat the miss as "no
-// mapping" (-1 for a tool qualifier, which every caller renders as "emit none").
+// mapping" (-1).
+//
+// The same nozzle-vs-slot divergence bites in the other direction: anything derived from pem
+// -- `resolve_filament_for_head`, `first_filament_for_physical_head` -- answers in NOZZLE index
+// space, so bound it against the filament array you are about to index before using it as a
+// filament id.
+//
+// -1 as a tool qualifier reaches GCodeWriter::set_pressure_advance, which omits the qualifier
+// on Klipper, Marlin and BBL but substitutes the historical `D0` on RepRapFirmware
+// (GCodeWriter.cpp, set_pressure_advance) -- deliberate, not a miss.
 //
 // Past bugs in this class:
 //   - GCode PA emission used the inline `pem.get_at(filament_id)` form at two

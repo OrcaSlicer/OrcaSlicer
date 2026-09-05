@@ -408,18 +408,10 @@ void IMEXModesCtrl::add_row(const std::string& name,
     // raw_row = flip_y ? (n_rows-1-row) : row
     // raw_col = flip_x ? (n_cols-1-col) : col
     //
-    // The displayed window is always the whole grid: m_n_rows is the gantry count, so valid tool
-    // indices are 0 .. m_n_rows*m_n_cols-1 and rows 0 .. m_n_rows-1. A window m_n_rows tall can
-    // only lie entirely inside the grid when it starts at row 0.
-    //
-    // This used to anchor the window's first row to the Primary's gantry row, to "keep the
-    // meaningful row visible" when the gantry count shrank. That cannot work: shifting a
-    // full-height window forward walks it off the end, so it drew tiles for tools that do not
-    // exist and hid real ones, and clicking a phantom tile wrote a tool index that
-    // compute_imex_zone_layout() (IMEXZones.cpp:76) then discards. A Primary sitting outside the
-    // current grid is a data problem -- only reachable from a hand-authored mode string, since
-    // the editor will not move Primary off tool 0 -- and the zone layout already answers it by
-    // producing no zones at all. Showing the real grid is the honest rendering of that state.
+    // Render the whole grid: m_n_rows is the gantry count, so the valid tool indices are
+    // 0 .. m_n_rows*m_n_cols-1 and a window this tall only fits inside the grid at row 0.
+    // A Primary outside the grid is a data problem the zone layout already reports by
+    // producing no zones (compute_imex_zone_layout, IMEXZones.cpp).
 
     bool flip_x = (m_layout == 1 || m_layout == 3);
     bool flip_y = (m_layout == 2 || m_layout == 3);

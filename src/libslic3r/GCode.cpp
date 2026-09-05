@@ -3408,7 +3408,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // pollute is_extruder_used with the *first* slot routed to the primary's
     // physical extruder, which is generally not the slot the user assigned to
     // the printing object.  Same skip-primary pattern as the IMEX PA emission
-    // path (GCode.cpp:3917).
+    // path in _do_export().
     //
     // For secondaries: translate physical -> logical via the per-plate
     // imex_head_filament_map (set by the IMEX ghost picker), with
@@ -3418,9 +3418,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         const auto plate_head_map = parse_imex_head_filament_map(
             print.objects().front()->config().imex_head_filament_map.value);
         const ConfigOptionInts& pem = print.config().physical_extruder_map;
-        // Bounds-check rather than get_at(), which clamps out-of-range to values.front(). The
-        // clamped value is used as a skip-primary sentinel below, so a filament id past the end
-        // of the map would suppress whichever head sits at pem[0]. -1 matches no head.
+        // Bounds-checked, not get_at() -- see IMEXHelpers.hpp. The value is a skip-primary
+        // sentinel below, so a clamp would suppress whichever head sits at pem[0].
         const int primary_physical =
             ((int) initial_extruder_id >= 0 &&
              (int) initial_extruder_id < (int) pem.values.size())
@@ -3915,22 +3914,29 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // loop can skip the primary head (which emitted PA via the normal path).
             // Then pem-invert each active physical head back to its first routed filament
             // for the PA setting lookup. Guarded on non-empty pem above.
-            // Bounds-check rather than get_at(), which clamps out-of-range to values.front():
-            // a clamped initial_physical would make this loop skip whichever active head equals
-            // pem[0], leaving that head with no PA at all. Same reasoning as the second-layer
-            // temperature loop below. -1 matches no head, so every active head is emitted.
+            // Bounds-checked, not get_at() -- see the note on imex_pem_tool_for in
+            // IMEXHelpers.hpp. A clamped initial_physical would skip whichever active head
+            // equals pem[0], leaving it with no PA at all.
             const int initial_physical =
                 ((int) initial_extruder_id >= 0 &&
                  (int) initial_extruder_id < (int) m_config.physical_extruder_map.values.size())
                     ? m_config.physical_extruder_map.values[(int) initial_extruder_id]
                     : -1;
+            const int num_pa_filament_columns = std::min(
+                (int) print.config().enable_pressure_advance.values.size(),
+                (int) print.config().pressure_advance.values.size());
             for (int tool_idx : get_imex_active_tools(print)) {
                 // Unlike the second-layer temperature loop, the primary is skipped here:
                 // set_extruder() above already emitted its PA with the pem tool qualifier.
                 if (tool_idx == initial_physical) continue;
                 const int logical = resolve_filament_for_head(
                     m_imex_head_filament_map, m_config.physical_extruder_map, tool_idx);
-                if (logical < 0) continue;
+                // resolve_filament_for_head() answers in pem's index space -- one entry per
+                // NOZZLE -- while these two options are indexed per FILAMENT SLOT. The spaces
+                // diverge when the printer has more nozzles than the project has filaments, and
+                // get_at() would clamp a past-the-end index to filament 0 and pin its PA onto a
+                // secondary carriage. Same guard the second-layer temperature loop uses.
+                if (logical < 0 || logical >= num_pa_filament_columns) continue;
                 if (!print.config().enable_pressure_advance.get_at(logical)) continue;
                 file.write(m_writer.set_pressure_advance(
                     print.config().pressure_advance.get_at(logical),
@@ -5950,12 +5956,9 @@ LayerResult GCode::process_layer(
             // transition at all. `tool_idx` is physical; the printing head uses this layer's
             // own filament, the parallel carriages resolve through the head map.
             const int num_filament_columns = (int)print.config().nozzle_temperature.values.size();
-            // Bounds-check rather than get_at(): get_at() clamps to values.front(), which would
-            // make initial_physical the primary's head for any first_extruder_id past the end of
-            // the map. A secondary that happens to sit on that head would then take the
-            // "initial" branch below and be given the wrong filament's transition temperature,
-            // while never receiving its own. -1 matches no tool, so every head takes the
-            // resolved path instead.
+            // Bounds-checked, not get_at() -- see IMEXHelpers.hpp. A clamp would hand the
+            // "initial" branch below to whichever secondary sits on pem[0], giving it the wrong
+            // filament's transition temperature and never its own.
             const int initial_physical =
                 ((int) first_extruder_id >= 0 &&
                  (int) first_extruder_id < (int) m_config.physical_extruder_map.values.size())
