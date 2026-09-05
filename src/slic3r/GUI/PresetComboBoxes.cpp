@@ -1003,18 +1003,19 @@ bool PlaterPresetComboBox::switch_to_tab()
     if (!tab)
         return false;
 
-    const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
-        {
-            const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
-            if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
-                wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
-            else {
-                return false;
-            }
+        if (m_filament_idx < 0 || static_cast<size_t>(m_filament_idx) >= wxGetApp().preset_bundle->filament_presets.size())
+            return false;
+
+        TabPresetComboBox* tab_combo = wxGetApp().get_tab(m_type)->get_combo_box();
+        const int previous_filament_idx = tab_combo->get_filament_idx();
+        tab_combo->set_filament_idx(m_filament_idx);
+
+        const std::string& preset_name = wxGetApp().preset_bundle->filament_presets[m_filament_idx];
+        if (!wxGetApp().get_tab(m_type)->select_preset(preset_name, false, "", true, true)) {
+            tab_combo->set_filament_idx(previous_filament_idx);
+            return false;
         }
     }
 
@@ -1197,6 +1198,8 @@ void PlaterPresetComboBox::update()
                             // The case, when some physical printer is selected
                             m_type == Preset::TYPE_PRINTER && m_preset_bundle->physical_printers.has_selection() ? false :
                             i == m_collection->get_selected_idx();
+        bool is_selected_filament_dirty = m_type == Preset::TYPE_FILAMENT && is_selected &&
+                                          wxGetApp().sidebar().is_filament_dirty(static_cast<size_t>(m_filament_idx));
 
         if (!is_selected && !preset.is_visible)
         {
@@ -1209,8 +1212,13 @@ void PlaterPresetComboBox::update()
         }
 
         bool single_bar = false;
-        wxString name = from_u8(preset.name);
-        preset_aliases[name] = get_preset_name(preset).utf8_string(); // ORCA
+        wxString name = from_u8(is_selected_filament_dirty ? Preset::suffix_modified() + preset.name : preset.name);
+        const wxString preset_display_name = get_preset_name(preset);
+        const std::string clean_display_name = Preset::remove_suffix_modified(preset_display_name.utf8_string());
+        const wxString display_name = m_type == Preset::TYPE_FILAMENT && is_selected ?
+                                      from_u8((is_selected_filament_dirty ? Preset::suffix_modified() : std::string()) + clean_display_name) :
+                                      preset_display_name;
+        preset_aliases[name] = display_name.utf8_string(); // ORCA
 
         // Track bundle names for bundled presets
         if (preset.is_from_bundle()) {
@@ -1723,6 +1731,9 @@ void TabPresetComboBox::update()
         const Preset& preset = presets[i];
         if (!preset.is_visible || (!show_incompatible && !preset.is_compatible && i != idx_selected))
             continue;
+        const bool is_selected = i == idx_selected;
+        const bool is_selected_filament_dirty = m_type == Preset::TYPE_FILAMENT && is_selected && m_filament_idx >= 0 &&
+                                                wxGetApp().sidebar().is_filament_dirty(static_cast<size_t>(m_filament_idx));
 
         // marker used for disable incompatible printer models for the selected physical printer
         bool is_enabled = true;
@@ -1730,8 +1741,13 @@ void TabPresetComboBox::update()
         wxBitmap* bmp = get_bmp(preset);
         assert(bmp);
 
-        const wxString name = from_u8(preset.name);
-        preset_aliases[name] = get_preset_name(preset).utf8_string();
+        const wxString name = from_u8(is_selected_filament_dirty ? Preset::suffix_modified() + preset.name : preset.name);
+        const wxString preset_display_name = get_preset_name(preset);
+        const std::string clean_display_name = Preset::remove_suffix_modified(preset_display_name.utf8_string());
+        const wxString display_name = m_type == Preset::TYPE_FILAMENT && is_selected ?
+                                      from_u8((is_selected_filament_dirty ? Preset::suffix_modified() : std::string()) + clean_display_name) :
+                                      preset_display_name;
+        preset_aliases[name] = display_name.utf8_string();
         if (preset.is_system)
             preset_descriptions.emplace(name, from_u8(preset.description));
 
@@ -1750,7 +1766,7 @@ void TabPresetComboBox::update()
         if (preset.is_default || preset.is_system) {
             //BBS: move system to the end
             system_presets.emplace(name, std::pair<wxBitmap *, bool>(bmp, is_enabled));
-            if (i == idx_selected)
+            if (is_selected)
                 selected = name;
             //int item_id = Append(get_preset_name(preset), *bmp);
             //if (!is_enabled)
@@ -1762,21 +1778,21 @@ void TabPresetComboBox::update()
         {
             //std::pair<wxBitmap*, bool> pair(bmp, is_enabled);
             project_embedded_presets.emplace(name, std::pair<wxBitmap *, bool>(bmp, is_enabled));
-            if (i == idx_selected)
+            if (is_selected)
                 selected = name;
         }
         // ORCA: add bundle presets
         else if (preset.is_from_bundle())
         {
             bundle_presets.emplace(name, std::pair<wxBitmap*, bool>(bmp, is_enabled));
-            if (i == idx_selected)
+            if (is_selected)
                 selected = name;
         }
         else
         {
             std::pair<wxBitmap*, bool> pair(bmp, is_enabled);
             nonsys_presets.emplace(name, std::pair<wxBitmap *, bool>(bmp, is_enabled));
-            if (i == idx_selected)
+            if (is_selected)
                 selected = name;
         }
         //BBS: move system to the end
@@ -1925,6 +1941,11 @@ void TabPresetComboBox::update_dirty()
         Preset* preset = m_collection->find_preset(preset_name, false);
         if (preset) {
             std::string new_label = preset->label(true);
+            if (m_type == Preset::TYPE_FILAMENT && static_cast<int>(ui_id) == GetSelection() && m_filament_idx >= 0) {
+                const bool is_selected_filament_dirty = wxGetApp().sidebar().is_filament_dirty(static_cast<size_t>(m_filament_idx));
+                new_label = (is_selected_filament_dirty ? Preset::suffix_modified() : std::string()) +
+                            Preset::remove_suffix_modified(preset->label(true));
+            }
 
             if (marker == LABEL_ITEM_PHYSICAL_PRINTER)
                 new_label = ph_printer_name + PhysicalPrinter::separator() + new_label;

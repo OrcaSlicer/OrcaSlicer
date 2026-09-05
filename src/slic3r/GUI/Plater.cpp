@@ -714,10 +714,18 @@ struct Sidebar::priv
     void layout_printer(bool isBBL, bool isDual);
 
     void flush_printer_sync(bool restart = false);
+    void stash_filament_edit(int filament_idx);
+    void restore_filament_edit(int filament_idx);
 
     PlaterPresetComboBox *combo_print = nullptr;
     std::vector<PlaterPresetComboBox*> combos_filament;
     int editing_filament = -1;
+    struct FilamentEditSnapshot {
+        std::string        preset_name;
+        DynamicPrintConfig config;
+        bool               dirty { false };
+    };
+    std::vector<FilamentEditSnapshot> filament_edit_snapshots;
     wxBoxSizer *sizer_filaments = nullptr;
 
     //BBS Sidebar widgets
@@ -942,6 +950,47 @@ void Sidebar::priv::flush_printer_sync(bool restart)
     m_printer_bbl_sync->SetBitmap_((*counter_sync_printer & 1) ? "printer_sync_not" : "printer_sync_ok");
     if (--*counter_sync_printer <= 0)
         timer_sync_printer->Stop();
+}
+
+void Sidebar::priv::stash_filament_edit(int filament_idx)
+{
+    if (filament_idx < 0 || static_cast<size_t>(filament_idx) >= wxGetApp().preset_bundle->filament_presets.size())
+        return;
+
+    if (filament_edit_snapshots.size() < wxGetApp().preset_bundle->filament_presets.size())
+        filament_edit_snapshots.resize(wxGetApp().preset_bundle->filament_presets.size());
+
+    Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+    if (!filament_tab || !filament_tab->get_presets())
+        return;
+
+    FilamentEditSnapshot& snapshot = filament_edit_snapshots[filament_idx];
+    if (!filament_tab->current_preset_is_dirty()) {
+        snapshot = {};
+        return;
+    }
+
+    Preset& edited_preset = filament_tab->get_presets()->get_edited_preset();
+    snapshot.preset_name  = edited_preset.name;
+    snapshot.config       = edited_preset.config;
+    snapshot.dirty        = true;
+}
+
+void Sidebar::priv::restore_filament_edit(int filament_idx)
+{
+    if (filament_idx < 0 || static_cast<size_t>(filament_idx) >= wxGetApp().preset_bundle->filament_presets.size() ||
+        static_cast<size_t>(filament_idx) >= filament_edit_snapshots.size())
+        return;
+
+    const FilamentEditSnapshot& snapshot = filament_edit_snapshots[filament_idx];
+    if (!snapshot.dirty || snapshot.preset_name != wxGetApp().preset_bundle->filament_presets[filament_idx])
+        return;
+
+    Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+    if (!filament_tab)
+        return;
+
+    filament_tab->load_config(snapshot.config);
 }
 
 Sidebar::priv::~priv()
@@ -3381,8 +3430,15 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
         }
         else {
             // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
-            p->editing_filament = filament_idx;
-            combobox->switch_to_tab();
+            const int previous_editing_filament = p->editing_filament;
+            p->stash_filament_edit(previous_editing_filament);
+            p->editing_filament = -1;
+            if (combobox->switch_to_tab()) {
+                p->restore_filament_edit(filament_idx);
+                p->editing_filament = filament_idx;
+            } else {
+                p->editing_filament = previous_editing_filament;
+            }
         }
     });
     combobox->edit_btn = edit_btn;
@@ -3573,6 +3629,15 @@ void Sidebar::update_presets(Preset::Type preset_type)
         const size_t filament_cnt = p->combos_filament.size();
 #endif
         const std::string &name = preset_bundle.filaments.get_selected_preset_name();
+        auto debug_filament_slot = [&preset_bundle](size_t idx) -> std::string {
+            return preset_bundle.filament_presets.size() > idx ? preset_bundle.filament_presets[idx] : "<none>";
+        };
+        BOOST_LOG_TRIVIAL(error) << "DEBUG issue14226 update_presets FILAMENT"
+                                 << " editing_filament=" << p->editing_filament
+                                 << " selected=" << name
+                                 << " filament_cnt=" << filament_cnt
+                                 << " slot0=" << debug_filament_slot(0)
+                                 << " slot1=" << debug_filament_slot(1);
         if (p->editing_filament >= 0) {
             preset_bundle.set_filament_preset(p->editing_filament, name);
         } else if (filament_cnt == 1) {
@@ -5493,10 +5558,16 @@ void Sidebar::change_filament(size_t from_id, size_t to_id)
 
 void Sidebar::edit_filament()
 {
+    const int previous_editing_filament = p->editing_filament;
+    p->stash_filament_edit(previous_editing_filament);
     p->editing_filament = -1;
     if (p->m_menu_filament_id >= 0 && p->m_menu_filament_id < p->combos_filament.size()
-            && p->combos_filament[p->m_menu_filament_id]->switch_to_tab())
+            && p->combos_filament[p->m_menu_filament_id]->switch_to_tab()) {
+        p->restore_filament_edit(p->m_menu_filament_id);
         p->editing_filament = p->m_menu_filament_id; // sync with TabPresetComboxBox's m_filament_idx
+    } else {
+        p->editing_filament = previous_editing_filament;
+    }
 }
 
 void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_name, bool /*skip_preset_validation*/) {
@@ -6232,6 +6303,106 @@ bool Sidebar::is_multifilament()
     return p->combos_filament.size() > 1;
 }
 
+bool Sidebar::is_filament_dirty(size_t filament_idx) const
+{
+    if (filament_idx >= wxGetApp().preset_bundle->filament_presets.size())
+        return false;
+
+    if (p->editing_filament == static_cast<int>(filament_idx)) {
+        if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT); filament_tab && filament_tab->current_preset_is_dirty())
+            return true;
+    }
+
+    return filament_idx < p->filament_edit_snapshots.size() &&
+           p->filament_edit_snapshots[filament_idx].dirty &&
+           p->filament_edit_snapshots[filament_idx].preset_name == wxGetApp().preset_bundle->filament_presets[filament_idx];
+}
+
+bool Sidebar::has_dirty_filament_edits() const
+{
+    for (size_t idx = 0; idx < wxGetApp().preset_bundle->filament_presets.size(); ++idx)
+        if (is_filament_dirty(idx))
+            return true;
+    return false;
+}
+
+std::vector<Sidebar::DirtyFilamentEdit> Sidebar::dirty_filament_edits() const
+{
+    std::vector<DirtyFilamentEdit> edits;
+    const std::vector<std::string>& filament_presets = wxGetApp().preset_bundle->filament_presets;
+    PresetCollection& presets = wxGetApp().preset_bundle->filaments;
+
+    for (size_t idx = 0; idx < filament_presets.size(); ++idx) {
+        if (!is_filament_dirty(idx))
+            continue;
+
+        const std::string& preset_name = filament_presets[idx];
+        const Preset* selected_preset = presets.find_preset(preset_name, false, true);
+        if (!selected_preset)
+            continue;
+
+        const bool use_live_edit = p->editing_filament == static_cast<int>(idx);
+        const DynamicPrintConfig* new_config = nullptr;
+        if (use_live_edit) {
+            if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT); filament_tab && filament_tab->current_preset_is_dirty())
+                new_config = &filament_tab->get_presets()->get_edited_preset().config;
+        }
+        if (!new_config && idx < p->filament_edit_snapshots.size() && p->filament_edit_snapshots[idx].dirty &&
+            p->filament_edit_snapshots[idx].preset_name == preset_name)
+            new_config = &p->filament_edit_snapshots[idx].config;
+        if (!new_config)
+            continue;
+
+        DirtyFilamentEdit edit;
+        edit.filament_idx         = idx;
+        edit.preset_name          = preset_name;
+        edit.old_config           = selected_preset->config;
+        edit.new_config           = *new_config;
+        edit.can_overwrite        = selected_preset->can_overwrite();
+        edit.is_project_embedded  = selected_preset->is_project_embedded;
+        edits.emplace_back(std::move(edit));
+    }
+
+    return edits;
+}
+
+void Sidebar::stash_current_filament_edit()
+{
+    p->stash_filament_edit(p->editing_filament);
+}
+
+void Sidebar::save_dirty_filament_edit(size_t filament_idx, const std::string& new_name, bool save_to_project)
+{
+    if (filament_idx >= wxGetApp().preset_bundle->filament_presets.size() || filament_idx >= p->filament_edit_snapshots.size())
+        return;
+
+    const auto& snapshot = p->filament_edit_snapshots[filament_idx];
+    if (!snapshot.dirty || snapshot.preset_name != wxGetApp().preset_bundle->filament_presets[filament_idx])
+        return;
+
+    Preset* selected_preset = wxGetApp().preset_bundle->filaments.find_preset(snapshot.preset_name, false, true);
+    if (!selected_preset)
+        return;
+
+    Preset preset = *selected_preset;
+    preset.config = snapshot.config;
+    wxGetApp().preset_bundle->filaments.save_current_preset(new_name, false, save_to_project, &preset);
+    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
+    wxGetApp().preset_bundle->set_filament_preset(filament_idx, new_name);
+    p->filament_edit_snapshots[filament_idx] = {};
+}
+
+void Sidebar::clear_dirty_filament_edit(size_t filament_idx)
+{
+    if (filament_idx < p->filament_edit_snapshots.size())
+        p->filament_edit_snapshots[filament_idx] = {};
+}
+
+void Sidebar::clear_dirty_filament_edits()
+{
+    p->filament_edit_snapshots.clear();
+}
+
 void Sidebar::deal_btn_sync() {
     m_begin_sync_printer_status = true;
     bool only_external_material;
@@ -6396,7 +6567,11 @@ bool Sidebar::show_object_list(bool show) const
     return true;
 }
 
-void Sidebar::finish_param_edit() { p->editing_filament = -1; }
+void Sidebar::finish_param_edit()
+{
+    p->stash_filament_edit(p->editing_filament);
+    p->editing_filament = -1;
+}
 
 std::vector<PlaterPresetComboBox*>& Sidebar::combos_filament()
 {

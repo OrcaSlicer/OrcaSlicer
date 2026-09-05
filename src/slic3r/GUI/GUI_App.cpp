@@ -8664,6 +8664,9 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
 
 bool GUI_App::has_unsaved_preset_changes() const
 {
+    if (plater_ && plater_->sidebar().has_dirty_filament_edits())
+        return true;
+
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (const Tab* const tab : tabs_list) {
         if (tab->supports_printer_technology(printer_technology) && tab->saved_preset_is_dirty())
@@ -8674,6 +8677,9 @@ bool GUI_App::has_unsaved_preset_changes() const
 
 bool GUI_App::has_current_preset_changes() const
 {
+    if (plater_ && plater_->sidebar().has_dirty_filament_edits())
+        return true;
+
     PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
     for (const Tab* const tab : tabs_list) {
         if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
@@ -8718,6 +8724,7 @@ std::vector<std::pair<unsigned int, std::string>> GUI_App::get_selected_presets(
 // - Taking snapshot
 bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice/* = true*/, bool dont_save_insted_of_discard/* = false*/)
 {
+    sidebar().stash_current_filament_edit();
     if (has_current_preset_changes()) {
         int act_buttons = ActionButtons::SAVE;
         if (dont_save_insted_of_discard)
@@ -8732,8 +8739,12 @@ bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, con
         if (dlg.save_preset())  // save selected changes
         {
             //BBS: add project embedded preset relate logic
-            for (const UnsavedChangesDialog::PresetData& nt : dlg.get_names_and_types())
-                preset_bundle->save_changes_for_preset(nt.name, nt.type, dlg.get_unselected_options(nt.type), nt.save_to_project);
+            for (const UnsavedChangesDialog::PresetData& nt : dlg.get_names_and_types()) {
+                if (nt.type == Preset::TYPE_FILAMENT && nt.filament_idx >= 0)
+                    sidebar().save_dirty_filament_edit(static_cast<size_t>(nt.filament_idx), nt.name, nt.save_to_project);
+                else
+                    preset_bundle->save_changes_for_preset(nt.name, nt.type, dlg.get_unselected_options(nt.type), nt.save_to_project);
+            }
             //for (const std::pair<std::string, Preset::Type>& nt : dlg.get_names_and_types())
             //    preset_bundle->save_changes_for_preset(nt.first, nt.second, dlg.get_unselected_options(nt.second));
 
@@ -8770,6 +8781,7 @@ void GUI_App::apply_keeped_preset_modifications()
 // Note: no_nullptr postponed_apply_of_keeped_changes indicates that thie function is called after ConfigWizard is closed
 bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, const wxString& header, int action_buttons, bool* postponed_apply_of_keeped_changes/* = nullptr*/)
 {
+    sidebar().stash_current_filament_edit();
     if (has_current_preset_changes()) {
         bool is_called_from_configwizard = postponed_apply_of_keeped_changes != nullptr;
 
@@ -8787,6 +8799,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
                 if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
                     tab->m_presets->discard_current_changes();
             }
+            sidebar().clear_dirty_filament_edits();
             load_current_presets(false);
         };
 
@@ -8797,8 +8810,12 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
             //BBS: add project embedded preset relate logic
             const auto& preset_names_and_types = dlg.get_names_and_types();
             if (dlg.save_preset()) {
-                for (const UnsavedChangesDialog::PresetData& nt : preset_names_and_types)
-                    preset_bundle->save_changes_for_preset(nt.name, nt.type, dlg.get_unselected_options(nt.type), nt.save_to_project);
+                for (const UnsavedChangesDialog::PresetData& nt : preset_names_and_types) {
+                    if (nt.type == Preset::TYPE_FILAMENT && nt.filament_idx >= 0)
+                        sidebar().save_dirty_filament_edit(static_cast<size_t>(nt.filament_idx), nt.name, nt.save_to_project);
+                    else
+                        preset_bundle->save_changes_for_preset(nt.name, nt.type, dlg.get_unselected_options(nt.type), nt.save_to_project);
+                }
 
                 // if we saved changes to the new presets, we should to
                 // synchronize config.ini with the current selections.

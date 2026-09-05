@@ -1173,9 +1173,13 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
 
         PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
 
+        const bool has_dirty_filament_edits = wxGetApp().sidebar().has_dirty_filament_edits();
+
         for (Tab* tab : wxGetApp().tabs_list)
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
                 const Preset& preset = tab->get_presets()->get_edited_preset();
+                if (preset.type == Preset::TYPE_FILAMENT && has_dirty_filament_edits)
+                    continue;
                 //BBS: add project embedded preset logic and refine is_external
                 if (!preset.can_overwrite())
                 //if (preset.is_system || preset.is_default || preset.is_external)
@@ -1187,6 +1191,23 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
                 //names_and_types.emplace_back(make_pair(preset.name, preset.type));
             }
 
+        for (const Sidebar::DirtyFilamentEdit& edit : wxGetApp().sidebar().dirty_filament_edits()) {
+            std::string name = edit.preset_name;
+            bool save_to_project = edit.is_project_embedded;
+            if (!edit.can_overwrite) {
+                SavePresetDialog save_dlg(this, Preset::TYPE_FILAMENT);
+                save_dlg.input_name_from_other((boost::format("%1% - %2%") % edit.preset_name % _u8L("Copy")).str());
+                if (save_dlg.ShowModal() != wxID_OK) {
+                    m_exit_action = Action::Discard;
+                    return false;
+                }
+                name = save_dlg.get_name();
+                save_to_project = save_dlg.get_save_to_project_selection(Preset::TYPE_FILAMENT);
+            }
+
+            names_and_types.emplace_back(name, Preset::TYPE_FILAMENT, save_to_project, static_cast<int>(edit.filament_idx));
+        }
+
 
         if (show_save_preset_dialog && !types_for_save.empty()) {
             SavePresetDialog save_dlg(this, types_for_save);
@@ -1197,6 +1218,8 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
 
             //BBS: add project embedded preset relate logic
             for (PresetData& nt : names_and_types) {
+                if (nt.filament_idx >= 0)
+                    continue;
                 const std::string& name = save_dlg.get_name(nt.type);
                 if (!name.empty())
                     nt.name = name;
@@ -1733,9 +1756,14 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
     {
         PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
 
+        const bool has_dirty_filament_edits = wxGetApp().sidebar().has_dirty_filament_edits();
         for (Tab* tab : wxGetApp().tabs_list)
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+            {
+                if (tab->type() == Preset::TYPE_FILAMENT && has_dirty_filament_edits)
+                    continue;
                 presets_list.emplace_back(tab->get_presets());
+            }
     }
     else
         presets_list.emplace_back(presets_);
@@ -1809,6 +1837,30 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             PresetItem pi = {type, opt_key, category, option.group_local, option.label_local, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
             m_presetitems.push_back(pi);
 
+        }
+    }
+
+    if (type == Preset::TYPE_INVALID) {
+        for (const Sidebar::DirtyFilamentEdit& edit : wxGetApp().sidebar().dirty_filament_edits()) {
+            Preset old_preset(Preset::TYPE_FILAMENT, edit.preset_name);
+            Preset new_preset(Preset::TYPE_FILAMENT, edit.preset_name);
+            old_preset.config = edit.old_config;
+            new_preset.config = edit.new_config;
+
+            auto dirty_options = PresetCollection::dirty_options(&new_preset, &old_preset, true);
+
+            for (const std::string& opt_key : dirty_options) {
+                const std::string lookup_key = get_pure_opt_key(opt_key);
+                Search::Option option = searcher.get_option(lookup_key, Preset::TYPE_FILAMENT);
+                if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                    option = searcher.get_option(opt_key, get_full_label(opt_key, edit.new_config), Preset::TYPE_FILAMENT);
+                if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                    continue;
+
+                PresetItem pi = {Preset::TYPE_FILAMENT, opt_key, option.category_local, option.group_local, option.label_local,
+                                 get_string_value(opt_key, edit.old_config), get_string_value(opt_key, edit.new_config)};
+                m_presetitems.push_back(pi);
+            }
         }
     }
 

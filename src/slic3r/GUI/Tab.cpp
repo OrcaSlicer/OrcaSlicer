@@ -1483,6 +1483,10 @@ void Tab::on_roll_back_value(const bool to_sys /*= true*/)
 
     // BBS: restore all pages in preset
     m_presets->discard_current_changes();
+    if (m_type == Preset::TYPE_FILAMENT && m_presets_choice && m_presets_choice->get_filament_idx() >= 0) {
+        wxGetApp().sidebar().clear_dirty_filament_edit(static_cast<size_t>(m_presets_choice->get_filament_idx()));
+        wxGetApp().sidebar().update_all_preset_comboboxes();
+    }
 
     m_postpone_update_ui = false;
 
@@ -6701,6 +6705,20 @@ bool Tab::select_preset(
     assert(! delete_current || (m_presets->get_edited_preset().name != preset_name && (m_presets->get_edited_preset().is_user() || m_presets->get_edited_preset().is_project_embedded)));
     //assert(! delete_current || (m_presets->get_edited_preset().name != preset_name && m_presets->get_edited_preset().is_user()));
     bool current_dirty = ! delete_current && m_presets->current_is_dirty();
+    auto debug_filament_slot = [this](size_t idx) -> std::string {
+        return m_preset_bundle->filament_presets.size() > idx ? m_preset_bundle->filament_presets[idx] : "<none>";
+    };
+    BOOST_LOG_TRIVIAL(error) << "DEBUG issue14226 select_preset"
+                             << " type=" << m_type
+                             << " preset_name=" << preset_name
+                             << " current=" << m_presets->get_selected_preset().name
+                             << " edited=" << m_presets->get_edited_preset().name
+                             << " dirty=" << current_dirty
+                             << " delete_current=" << delete_current
+                             << " force_select=" << force_select
+                             << " force_no_transfer=" << force_no_transfer
+                             << " slot0=" << debug_filament_slot(0)
+                             << " slot1=" << debug_filament_slot(1);
     bool print_tab     = m_presets->type() == Preset::TYPE_PRINT || m_presets->type() == Preset::TYPE_SLA_PRINT;
     bool printer_tab   = m_presets->type() == Preset::TYPE_PRINTER;
     bool canceled      = false;
@@ -6730,7 +6748,7 @@ bool Tab::select_preset(
     if (force_no_transfer) {
         no_transfer = true;
     }
-    if (current_dirty && ! may_discard_current_dirty_preset(nullptr, preset_name, no_transfer) && !force_select) {
+    if (current_dirty && !force_select && ! may_discard_current_dirty_preset(nullptr, preset_name, no_transfer)) {
         canceled = true;
         BOOST_LOG_TRIVIAL(info) << boost::format("current dirty and cancelled");
     } else if (print_tab) {
