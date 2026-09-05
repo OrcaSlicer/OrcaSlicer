@@ -48,6 +48,7 @@
 #if !defined(_WIN32)
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <cerrno>
 #endif
 
@@ -117,10 +118,8 @@ public:
 #else
         m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
         if (m_fd == -1) { m_locked = true; return; }              // can't open -> don't block
-        struct flock fl{};
-        fl.l_type = F_WRLCK; fl.l_whence = SEEK_SET; fl.l_start = 0; fl.l_len = 0;
         int rc;
-        do { rc = ::fcntl(m_fd, F_SETLKW, &fl); } while (rc == -1 && errno == EINTR); // blocks in kernel
+        do { rc = ::flock(m_fd, LOCK_EX); } while (rc == -1 && errno == EINTR); // blocks in kernel
         m_locked = (rc != -1);
 #endif
     }
