@@ -560,10 +560,10 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
         for (int i = 0; i < int(layers_sorted.size());) {
             // Find the last layer with roughly the same print_z, find the minimum layer height of all.
             // Due to the floating point inaccuracies, the print_z may not be the same even if in theory they should.
-            int j = i + 1;
+            int j = i;
             coordf_t zmax = layers_sorted[i]->print_z + EPSILON;
             bool empty = true;
-            for (; j < layers_sorted.size() && layers_sorted[j]->print_z <= zmax; ++j)
+            for (; i == j || (j < layers_sorted.size() && layers_sorted[j]->print_z <= zmax); ++j)
                 if (! layers_sorted[j]->polygons.empty())
                     empty = false;
             if (! empty) {
