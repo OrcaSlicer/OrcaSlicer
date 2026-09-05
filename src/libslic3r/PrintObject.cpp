@@ -958,6 +958,13 @@ void PrintObject::generate_support_material()
             this->_generate_support_material();
             m_print->throw_if_canceled();
         }
+
+        // When using minimal support interface the support generation doesn't realize it
+        // shouldn't change support interface on objects itself, so we have to fix this
+        if (m_config.minimal_support_interface.value) {
+            this->reassign_on_object_support(erSupportMaterialInterface);
+        }
+
         this->set_done(posSupportMaterial);
     }
 }
@@ -4470,6 +4477,32 @@ void PrintObject::_generate_support_material()
     else {
         PrintObjectSupportMaterial support_material(this, m_slicing_params);
         support_material.generate(*this);
+    }
+}
+
+void PrintObject::reassign_on_object_support(ExtrusionRole new_role) {
+    std::vector<BoundingBox> boxesA;
+    std::vector<BoundingBox> boxesB;
+    std::vector<BoundingBox> *boxesBelow = &boxesA;
+    std::vector<BoundingBox> *boxesCurr = &boxesB;
+    for (size_t layer_idx = 0; layer_idx < m_support_layers.size(); ++ layer_idx) {
+        SupportLayer* slayer = m_support_layers[layer_idx];
+        // We identify on-object support as that which does not intersect (by bounding box)
+        // support or support interface on the previous layer
+        // We then convert it using ExtrusionEntity::set_extrusion_role_all
+        for (ExtrusionEntity *ee : slayer->support_fills) {
+            BoundingBox eebox = get_extents(ee->as_polylines());
+            boxesCurr->push_back(eebox);
+            if (!layer_idx) continue;
+            bool unsupp = true;
+            for (BoundingBox boxBelow : *boxesBelow) if (eebox.overlap(boxBelow)) unsupp = false;
+            if (unsupp) ee->set_extrusion_role_all(new_role);
+        }
+        // Prepare and swap the pointers
+        boxesBelow->clear();
+        std::vector<BoundingBox> *nextBoxesBelow = boxesCurr;
+        boxesCurr = boxesBelow;
+        boxesBelow = nextBoxesBelow;
     }
 }
 

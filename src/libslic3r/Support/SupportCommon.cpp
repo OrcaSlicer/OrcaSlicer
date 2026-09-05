@@ -1717,6 +1717,11 @@ void generate_support_toolpaths(
             auto extrude_interface = [&](SupportGeneratorLayerExtruded &layer_ex, InterfaceLayerType interface_layer_type) {
                 if (! layer_ex.empty() && ! layer_ex.polygons_to_extrude().empty()) {
                     bool interface_as_base = interface_layer_type == InterfaceLayerType::InterfaceAsBase;
+                    bool mat_regular = interface_as_base;
+                    if (config.minimal_support_interface.value) mat_regular |= true
+                        && (interface_layer_type != InterfaceLayerType::BottomContact)
+                        && (interface_layer_type != InterfaceLayerType::TopContact)
+                        && (interface_layer_type != InterfaceLayerType::RaftContact);
                     bool raft_contact      = interface_layer_type == InterfaceLayerType::RaftContact;
                     // ORCA: detect bottom interface layers for density selection.
                     bool bottom_interface  = interface_layer_type == InterfaceLayerType::BottomContact ||
@@ -1751,7 +1756,7 @@ void generate_support_toolpaths(
                         // Filler and its parameters
                         filler, float(density),
                         // Extrusion parameters
-                        interface_as_base ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, interface_flow);
+                        mat_regular ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, interface_flow);
                 }
             };
             extrude_interface(top_contact_layer,    raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);

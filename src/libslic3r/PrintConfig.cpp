@@ -2226,6 +2226,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InternalBridgeFilter>(ibfDisabled));
 
+    def = this->add("minimal_support_interface", coBool);
+    def->label = L("Use minimal support interface");
+    def->category = L("Support");
+    def->tooltip = L("Use support interface only on the direct top and bottom of objects.\n"
+                     "This reduces filament changes, and is especially helpful for multiplexer (AMS-like) multi-material systems.\n"
+                     "It may also help with support interface filament that bonds poorly to the support filament.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("max_bridge_length", coFloat);
     def->label = L("Max bridge length");

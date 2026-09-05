@@ -2931,7 +2931,8 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Filament for Supports"), L"param_support_filament");
         optgroup->append_single_option_line("support_filament", "support_settings_filament#base");
         optgroup->append_single_option_line("support_interface_filament", "support_settings_filament#interface");
-        optgroup->append_single_option_line("support_interface_not_for_body", "support_settings_filament#avoid-interface-filament-for-base");
+        optgroup->append_single_option_line("support_interface_not_for_body", "support_settings_filament#avoid-interface-filament-for-base"); 
+        optgroup->append_single_option_line("minimal_support_interface", "support_settings_filament#use-minimal-support-interface");
 
         optgroup = page->new_optgroup(L("Support ironing"), L"param_ironing");
         optgroup->append_single_option_line("support_ironing", "support_settings_ironing");

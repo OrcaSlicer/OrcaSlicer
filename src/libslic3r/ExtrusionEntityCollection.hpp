@@ -62,6 +62,9 @@ public:
         }
         return out;
     }
+    void set_extrusion_role_all(ExtrusionRole new_role) override {
+        for (ExtrusionEntity *ee : entities) ee->set_extrusion_role_all(new_role);
+    }
     bool has_perimeters() const
     {
         return std::any_of(entities.begin(), entities.end(), [](const ExtrusionEntity* ee) { return is_perimeter(ee->role()); });

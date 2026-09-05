@@ -1127,6 +1127,7 @@ static std::vector<std::string> s_Preset_print_options{
     "support_on_build_plate_only",
     "support_critical_regions_only",
     "bridge_no_support",
+    "minimal_support_interface",
     "thick_bridges",
     "thick_internal_bridges",
     "dont_filter_internal_bridges",
