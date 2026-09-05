@@ -16,6 +16,7 @@ using LayerPtrs = std::vector<Layer*>;
 class LayerRegion;
 using LayerRegionPtrs = std::vector<LayerRegion*>;
 class PrintRegion;
+class PrintRegionConfig;
 class PrintObject;
 class Print;
 
@@ -200,6 +201,17 @@ public:
                                                                            FillAdaptive::Octree *support_fill_octree,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
+    // Selects the extruder used for ironing the given region (1-based filament id),
+    // or -1 if ironing is disabled by config. Extracted from make_ironing so it's
+    // unit-testable without running a full slice.
+    //
+    // When surface_wall_override_filament_target ∈ {Surfaces, Both} and surface_wall_override_filament is set,
+    // returns surface_wall_override_filament so the iron pass uses the same nozzle as the cosmetic
+    // top/bottom surface — and the same filament_ironing_* per-filament overrides are
+    // looked up against that index. Otherwise returns top_surface_filament_id.
+    static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                                    bool spiral_mode,
+                                                    bool is_topmost_layer);
     void                    make_contour_z(const sla::IndexedMesh &mesh);
 
     void                    export_region_slices_to_svg(const char *path) const;

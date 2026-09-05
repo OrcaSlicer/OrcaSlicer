@@ -1539,6 +1539,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	// Orca: surface_wall_override_filament default is 0 (disabled).
+	int glb_surface_override_extr = glb_config.opt_int("surface_wall_override_filament");
 	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
@@ -1619,6 +1621,15 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 			plate_extruders.push_back(obj_inner_wall_extr);
 		else if (glb_inner_wall_extr != 0)
 			plate_extruders.push_back(glb_inner_wall_extr);
+
+		// Orca: surface_wall_override_filament. 0 = disabled (use the regular wall filament).
+		int obj_surface_override_extr = 0;
+		if (const ConfigOption* sov_opt = mo->config.option("surface_wall_override_filament"); sov_opt != nullptr)
+			obj_surface_override_extr = sov_opt->getInt();
+		if (obj_surface_override_extr != 0)
+			plate_extruders.push_back(obj_surface_override_extr);
+		else if (glb_surface_override_extr != 0)
+			plate_extruders.push_back(glb_surface_override_extr);
 
 		int obj_sparse_infill_extr = 0;
 		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament_id");
@@ -1709,6 +1720,8 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	// Orca: surface_wall_override_filament default is 0 (disabled).
+	int glb_surface_override_extr = full_config.opt_int("surface_wall_override_filament");
 	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
@@ -1798,6 +1811,15 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(obj_inner_wall_extr);
 			else if (glb_inner_wall_extr != 0)
 				plate_extruders.push_back(glb_inner_wall_extr);
+
+			// Orca: surface_wall_override_filament. 0 = disabled (use the regular wall filament).
+			int obj_surface_override_extr = 0;
+			if (const ConfigOption* sov_opt = object->config.option("surface_wall_override_filament"); sov_opt != nullptr)
+				obj_surface_override_extr = sov_opt->getInt();
+			if (obj_surface_override_extr != 0)
+				plate_extruders.push_back(obj_surface_override_extr);
+			else if (glb_surface_override_extr != 0)
+				plate_extruders.push_back(glb_surface_override_extr);
 
 			int obj_sparse_infill_extr = 0;
 			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament_id");

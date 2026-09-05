@@ -320,6 +320,7 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                 auto region = layerm->region();
                 int outer_wall_filament_id = region.config().outer_wall_filament_id;
                 int inner_wall_filament_id = region.config().inner_wall_filament_id;
+                int surface_wall_override_filament = region.config().surface_wall_override_filament;
                 int internal_solid_filament_id = region.config().internal_solid_filament_id;
                 int top_surface_filament_id = region.config().top_surface_filament_id;
                 int bottom_surface_filament_id = region.config().bottom_surface_filament_id;
@@ -407,15 +408,20 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                             }
                         }
 
+                        const int surface_wall_override_filament = region.config().surface_wall_override_filament;
+                        const bool outer_wall_active = surface_wall_override_filament > 0 && surface_wall_override_filament != outer_wall_filament_id;
                         bool do_outer_wall_filament_detect = outer_wall_filament_id > 0 && tbb_geometric_unprintables[idx].count(outer_wall_filament_id - 1) == 0;
                         bool do_inner_wall_filament_detect = inner_wall_filament_id > 0 && tbb_geometric_unprintables[idx].count(inner_wall_filament_id - 1) == 0;
-                        if (!layerm->perimeters.entities.empty() && (do_outer_wall_filament_detect || do_inner_wall_filament_detect)) {
+                        bool do_override_wall_filament_detect = outer_wall_active && tbb_geometric_unprintables[idx].count(surface_wall_override_filament - 1) == 0;
+                        if (!layerm->perimeters.entities.empty() && (do_outer_wall_filament_detect || do_inner_wall_filament_detect || do_override_wall_filament_detect)) {
                             // if infill is unprintable, no need to check wall since wall contour surrounds infill contour
                             if (infill_unprintable) {
                                 if (outer_wall_filament_id > 0)
                                     tbb_geometric_unprintables[idx].insert(outer_wall_filament_id - 1);
                                 if (inner_wall_filament_id > 0)
                                     tbb_geometric_unprintables[idx].insert(inner_wall_filament_id - 1);
+                                if (outer_wall_active)
+                                    tbb_geometric_unprintables[idx].insert(surface_wall_override_filament - 1);
                                 continue;
                             }
 
@@ -434,6 +440,8 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                                     tbb_geometric_unprintables[idx].insert(outer_wall_filament_id - 1);
                                 if (inner_wall_filament_id > 0)
                                     tbb_geometric_unprintables[idx].insert(inner_wall_filament_id - 1);
+                                if (outer_wall_active)
+                                    tbb_geometric_unprintables[idx].insert(surface_wall_override_filament - 1);
                             }
                         }
                     }
@@ -1460,6 +1468,8 @@ bool PrintObject::invalidate_state_by_config_options(
                opt_key == "outer_wall_line_width"
             || opt_key == "outer_wall_filament_id"
             || opt_key == "inner_wall_filament_id"
+            || opt_key == "surface_wall_override_filament"
+            || opt_key == "outer_wall_count"
             || opt_key == "fuzzy_skin"
             || opt_key == "fuzzy_skin_thickness"
             || opt_key == "fuzzy_skin_point_distance"
@@ -3750,7 +3760,8 @@ static constexpr const std::initializer_list<const std::string_view> keys_extrud
     "top_surface_filament_id"sv,
     "bottom_surface_filament_id"sv,
     "outer_wall_filament_id"sv,
-    "inner_wall_filament_id"sv
+    "inner_wall_filament_id"sv,
+    "surface_wall_override_filament"sv
 };
 
 struct FeatureFilamentOverrideMask
@@ -3936,6 +3947,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
 				if (range_and_config.second.has("outer_wall_filament_id") ||
 					range_and_config.second.has("inner_wall_filament_id") ||
+					range_and_config.second.has("surface_wall_override_filament") ||
 					range_and_config.second.has("sparse_infill_filament_id") ||
 					range_and_config.second.has("internal_solid_filament_id") ||
 					range_and_config.second.has("top_surface_filament_id") ||

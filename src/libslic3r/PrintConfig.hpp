@@ -177,6 +177,19 @@ enum class IroningType {
     Count,
 };
 
+// Where surface_wall_override_filament is applied. Walls = outer N perimeter loops only;
+// Surfaces = top/bottom external solid surfaces only; Both = walls + surfaces.
+// Replaces the earlier surface_wall_override_filament_applies_to_surfaces bool — the
+// dropdown lets users pick "surfaces only" (visible skin in the surface
+// filament, walls in the regular wall_filament), which the bool couldn't
+// express.
+enum class SurfaceWallOverrideFilamentTarget {
+    Walls,
+    Surfaces,
+    Both,
+    Count,
+};
+
 //BBS
 enum class WallInfillOrder {
     InnerOuterInfill,
@@ -1350,6 +1363,15 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, detect_overhang_wall))
     ((ConfigOptionInt, outer_wall_filament_id))
     ((ConfigOptionInt, inner_wall_filament_id))
+    // Filament for the outermost N perimeter loops (counted from outside in).
+    // 0 = disabled (use the regular wall filament for all loops).
+    ((ConfigOptionInt, surface_wall_override_filament))
+    // Number of outermost perimeter loops that use surface_wall_override_filament.
+    ((ConfigOptionInt, outer_wall_count))
+    // Where surface_wall_override_filament is applied: outer wall loops only (Walls), top/
+    // bottom external solid surfaces only (Surfaces), or both (Both). Only meaningful when
+    // surface_wall_override_filament > 0.
+    ((ConfigOptionEnum<SurfaceWallOverrideFilamentTarget>, surface_wall_override_filament_target))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloatsNullable, inner_wall_speed))
     // Total number of perimeters.

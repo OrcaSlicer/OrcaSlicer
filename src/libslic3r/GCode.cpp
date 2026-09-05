@@ -6056,28 +6056,51 @@ LayerResult GCode::process_layer(
                             }
                         };
 
+                        // Orca (reconciled): split a mixed-role perimeter island so each homogeneous
+                        // piece routes to its own filament. Two inputs are combined:
+                        //   1) per-loop override surface_wall_override_filament, stamped onto the
+                        //      outermost N loops as ExtrusionEntity::extruder_override by PerimeterGenerator;
+                        //   2) upstream's outer vs inner wall filament (outer_wall_filament_id /
+                        //      inner_wall_filament_id), keyed off perimeter role.
+                        // Entities are bucketed by an effective key (override if set, else role); each
+                        // bucket goes through process_extrusions(), and LayerTools::extruder() resolves
+                        // it (uniform extruder_override first, then role-based wall filament).
+                        bool any_loop_override = false;
+                        for (const ExtrusionEntity *entity : extrusions->entities)
+                            if (entity->extruder_override > 0) { any_loop_override = true; break; }
+
                         bool split_mixed_perimeters =
                             entity_type == ObjectByExtruder::Island::Region::PERIMETERS &&
-                            region.config().outer_wall_filament_id.value != region.config().inner_wall_filament_id.value &&
-                            extrusions->role() == erMixed;
+                            extrusions->role() == erMixed &&
+                            (region.config().outer_wall_filament_id.value != region.config().inner_wall_filament_id.value
+                             || any_loop_override);
 
                         if (split_mixed_perimeters) {
-                            auto outer_perimeters = std::make_unique<ExtrusionEntityCollection>();
-                            auto inner_perimeters = std::make_unique<ExtrusionEntityCollection>();
+                            // key: >0 = 1-based override filament id; -1 = outer (external/overhang)
+                            // wall; -2 = inner perimeter; -3 = anything else (gap fill, etc.).
+                            std::map<int, std::unique_ptr<ExtrusionEntityCollection>> perimeter_buckets;
                             for (const ExtrusionEntity *entity : extrusions->entities) {
-                                const ExtrusionRole role = entity->role();
-                                if (role == erExternalPerimeter || role == erOverhangPerimeter)
-                                    outer_perimeters->append(*entity);
-                                else if (role == erPerimeter)
-                                    inner_perimeters->append(*entity);
+                                int key;
+                                if (entity->extruder_override > 0) {
+                                    key = entity->extruder_override;
+                                } else {
+                                    const ExtrusionRole role = entity->role();
+                                    if (role == erExternalPerimeter || role == erOverhangPerimeter)
+                                        key = -1;
+                                    else if (role == erPerimeter)
+                                        key = -2;
+                                    else
+                                        key = -3;
+                                }
+                                auto &col = perimeter_buckets[key];
+                                if (!col)
+                                    col = std::make_unique<ExtrusionEntityCollection>();
+                                col->append(*entity);
                             }
-
-                            if (!outer_perimeters->entities.empty()) {
-                                split_perimeter_storage.emplace_back(std::move(outer_perimeters));
-                                process_extrusions(split_perimeter_storage.back().get(), nullptr, false);
-                            }
-                            if (!inner_perimeters->entities.empty()) {
-                                split_perimeter_storage.emplace_back(std::move(inner_perimeters));
+                            for (auto &kv : perimeter_buckets) {
+                                if (kv.second->entities.empty())
+                                    continue;
+                                split_perimeter_storage.emplace_back(std::move(kv.second));
                                 process_extrusions(split_perimeter_storage.back().get(), nullptr, false);
                             }
                         } else {
@@ -8846,15 +8869,22 @@ std::string encodeBase64(uint64_t value)
     return dest;
 }
 
-std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
+// static — extracted so libslic3r unit tests can exercise the encoding without a
+// full GCode instance (tests/libslic3r/test_label_ids_encoding.cpp). known_ids must
+// be sorted. Returns "" for an empty id set (regression guard for the
+// "Label object id error!" crash hit by surface-filament routing).
+std::string GCode::encode_label_ids_to_base64(const std::vector<size_t> &ids,
+                                              const std::vector<size_t> &known_ids)
 {
-    assert(m_label_objects_ids.size() < 64);
+    assert(known_ids.size() < 64);
+    if (ids.empty())
+        return std::string();
 
     uint64_t bitset = 0;
     for (size_t id : ids) {
-        auto index = std::lower_bound(m_label_objects_ids.begin(), m_label_objects_ids.end(), id);
-        if (index != m_label_objects_ids.end() && *index == id)
-            bitset |= (1ull << (index - m_label_objects_ids.begin()));
+        auto index = std::lower_bound(known_ids.begin(), known_ids.end(), id);
+        if (index != known_ids.end() && *index == id)
+            bitset |= (1ull << (index - known_ids.begin()));
         else
             throw Slic3r::LogicError("Unknown label object id!");
     }
@@ -8862,6 +8892,11 @@ std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
         throw Slic3r::LogicError("Label object id error!");
 
     return encodeBase64(bitset);
+}
+
+std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
+{
+    return encode_label_ids_to_base64(ids, m_label_objects_ids);
 }
 
 // This method accepts &point in print coordinates.

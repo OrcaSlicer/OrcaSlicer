@@ -4559,7 +4559,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char* keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament"};
+    // Orca: surface_wall_override_filament uses 0 = disabled, so it's clamped to [0, num_filaments] like the support keys.
+    static const char* keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament", "surface_wall_override_filament"};
     for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++ i) {
         std::string key = std::string(keys[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));

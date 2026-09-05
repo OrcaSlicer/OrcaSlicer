@@ -78,18 +78,36 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
         object_extruders.emplace_back((i >= num_extruders) ? 0 : i);
     };
     if (region_config.wall_loops.value > 0 || has_brim) {
-    	emplace_extruder(region_config.outer_wall_filament_id);
-                if (region_config.wall_loops.value > 1)
-			emplace_extruder(region_config.inner_wall_filament_id);
+        emplace_extruder(region_config.outer_wall_filament_id);
+        if (region_config.wall_loops.value > 1)
+            emplace_extruder(region_config.inner_wall_filament_id);
+    }
+    // Orca: surface_wall_override_filament for the outermost N perimeter loops and/or the
+    // external top/bottom solid surfaces, depending on surface_wall_override_filament_target.
+    {
+        const auto target = region_config.surface_wall_override_filament_target.value;
+        const bool target_includes_walls    = target == SurfaceWallOverrideFilamentTarget::Walls    || target == SurfaceWallOverrideFilamentTarget::Both;
+        const bool target_includes_surfaces = target == SurfaceWallOverrideFilamentTarget::Surfaces || target == SurfaceWallOverrideFilamentTarget::Both;
+        if (region_config.surface_wall_override_filament.value > 0) {
+            if (target_includes_walls && region_config.wall_loops.value > 0
+                && region_config.surface_wall_override_filament.value != region_config.outer_wall_filament_id.value)
+                emplace_extruder(region_config.surface_wall_override_filament);
+            if (target_includes_surfaces && region_config.top_shell_layers.value > 0
+                && region_config.surface_wall_override_filament.value != region_config.top_surface_filament_id.value)
+                emplace_extruder(region_config.surface_wall_override_filament);
+            if (target_includes_surfaces && region_config.bottom_shell_layers.value > 0
+                && region_config.surface_wall_override_filament.value != region_config.bottom_surface_filament_id.value)
+                emplace_extruder(region_config.surface_wall_override_filament);
+        }
     }
     if (region_config.sparse_infill_density.value > 0)
-    	emplace_extruder(region_config.sparse_infill_filament_id);
+        emplace_extruder(region_config.sparse_infill_filament_id);
     if (region_config.sparse_infill_density.value > 0 || region_config.top_shell_layers.value > 0 || region_config.bottom_shell_layers.value > 0)
-    	emplace_extruder(region_config.internal_solid_filament_id);
+        emplace_extruder(region_config.internal_solid_filament_id);
     if (region_config.top_shell_layers.value > 0)
-    	emplace_extruder(region_config.top_surface_filament_id);
+        emplace_extruder(region_config.top_surface_filament_id);
     if (region_config.bottom_shell_layers.value > 0)
-    	emplace_extruder(region_config.bottom_surface_filament_id);
+        emplace_extruder(region_config.bottom_surface_filament_id);
 }
 
 void PrintRegion::collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const

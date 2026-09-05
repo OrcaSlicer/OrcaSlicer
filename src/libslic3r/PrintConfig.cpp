@@ -289,6 +289,13 @@ static t_config_enum_values s_keys_map_IroningType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(IroningType)
 
+static t_config_enum_values s_keys_map_SurfaceWallOverrideFilamentTarget {
+    { "walls",    int(SurfaceWallOverrideFilamentTarget::Walls) },
+    { "surfaces", int(SurfaceWallOverrideFilamentTarget::Surfaces) },
+    { "both",     int(SurfaceWallOverrideFilamentTarget::Both) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceWallOverrideFilamentTarget)
+
 //BBS
 static t_config_enum_values s_keys_map_WallInfillOrder {
     { "inner wall/outer wall/infill",     int(WallInfillOrder::InnerOuterInfill) },
@@ -5551,6 +5558,49 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 
+    def = this->add("surface_wall_override_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Surface / outer wall override");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament for the outermost N perimeter loops and/or top/bottom external solid surfaces — "
+                     "see 'Apply to' below for which features the filament is used on. Set to 0 to disable (all walls "
+                     "use the regular wall filament). When this differs from the wall filament, applicable loops or "
+                     "surfaces are routed to this filament. With the Inner-Outer-Inner wall sequence, this causes one "
+                     "toolchange per island per layer instead of per layer; wipe-tower volume will increase "
+                     "significantly.");
+    def->min = 0;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("outer_wall_count", coInt);
+    def->label = L("Outer wall count");
+    def->category = L("Extruders");
+    def->tooltip = L("Number of outermost perimeter loops (counted from the outside in) that use the override "
+                     "filament. Only applies when 'Surface / outer wall override' is set and differs from the outer "
+                     "wall filament, and 'Apply to' is set to 'Walls' or 'Both'.");
+    def->min = 1;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("surface_wall_override_filament_target", coEnum);
+    def->label = L("Apply to");
+    def->category = L("Extruders");
+    def->tooltip = L("Where to apply 'Surface / outer wall override':\n"
+                     " - Walls: outermost N perimeter loops only.\n"
+                     " - Surfaces: top and bottom external solid surfaces only — walls keep using the regular wall filament.\n"
+                     " - Both: walls AND top/bottom surfaces (the default).\n"
+                     "Only meaningful when 'Surface / outer wall override' is set. 'Surfaces' and 'Both' add extra toolchanges per "
+                     "layer; wipe-tower volume increases.");
+    def->enum_keys_map = &ConfigOptionEnum<SurfaceWallOverrideFilamentTarget>::get_enum_values();
+    def->enum_values.push_back("walls");
+    def->enum_values.push_back("surfaces");
+    def->enum_values.push_back("both");
+    def->enum_labels.push_back(L("Walls"));
+    def->enum_labels.push_back(L("Surfaces"));
+    def->enum_labels.push_back(L("Both"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<SurfaceWallOverrideFilamentTarget>(SurfaceWallOverrideFilamentTarget::Both));
+
     def = this->add("inner_wall_line_width", coFloatOrPercent);
     def->label = L("Inner wall");
     def->category = L("Quality");
@@ -9504,6 +9554,9 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
                 this->option("top_surface_filament_id", true)->setInt(extruder);
             if (!this->has("bottom_surface_filament_id") || this->option("bottom_surface_filament_id")->getInt() == 0)
                 this->option("bottom_surface_filament_id", true)->setInt(extruder);
+            // Orca: surface_wall_override_filament is NOT reset here. The per-volume "extruder"
+            // override sets the BASE filament; surface_wall_override_filament still applies on
+            // top of it for the outermost N loops.
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
             // for soluble supports one certainly does not want to set the extruder to non-soluble.
@@ -9601,6 +9654,9 @@ void DynamicPrintConfig::normalize_fdm_1()
                 this->option("top_surface_filament_id", true)->setInt(extruder);
             if (!this->has("bottom_surface_filament_id") || this->option("bottom_surface_filament_id")->getInt() == 0)
                 this->option("bottom_surface_filament_id", true)->setInt(extruder);
+            // Orca: surface_wall_override_filament is NOT reset here. The per-volume "extruder"
+            // override sets the BASE filament; surface_wall_override_filament still applies on
+            // top of it for the outermost N loops.
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
             // for soluble supports one certainly does not want to set the extruder to non-soluble.

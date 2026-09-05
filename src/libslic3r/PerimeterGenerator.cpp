@@ -284,6 +284,22 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             }
 
             eloop->inset_idx = loop.depth;
+            // Orca: per-loop filament override for outer-N walls.
+            // Active only when surface_wall_override_filament differs from wall_filament, this loop's
+            // depth (0 = outermost) is within outer_wall_count, and the dropdown target
+            // includes walls (Walls or Both — 'Surfaces' uses wall_filament for all loops).
+            const auto target_classic = perimeter_generator.config->surface_wall_override_filament_target.value;
+            const bool target_includes_walls_classic =
+                target_classic == SurfaceWallOverrideFilamentTarget::Walls || target_classic == SurfaceWallOverrideFilamentTarget::Both;
+            if (perimeter_generator.config->surface_wall_override_filament > 0
+                && perimeter_generator.config->surface_wall_override_filament != perimeter_generator.config->outer_wall_filament_id
+                && target_includes_walls_classic
+                && (int)loop.depth < perimeter_generator.config->outer_wall_count) {
+                const int8_t ov = (int8_t)perimeter_generator.config->surface_wall_override_filament.value;
+                eloop->extruder_override = ov;
+                for (ExtrusionPath &p : eloop->paths)
+                    p.extruder_override = ov;
+            }
             if (loop.is_contour) {
                 out.append(std::move(children.entities));
                 out.entities.emplace_back(eloop);
@@ -406,6 +422,18 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
         const bool    is_external = extrusion->inset_idx == 0;
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
+
+        // Orca: per-loop filament override for outer-N walls.
+        // Disabled when target is 'Surfaces' (which scopes surface_wall_override_filament to top/bottom infill only).
+        const auto target_arachne = perimeter_generator.config->surface_wall_override_filament_target.value;
+        const bool target_includes_walls_arachne =
+            target_arachne == SurfaceWallOverrideFilamentTarget::Walls || target_arachne == SurfaceWallOverrideFilamentTarget::Both;
+        const int8_t outer_override = (perimeter_generator.config->surface_wall_override_filament > 0
+                                       && perimeter_generator.config->surface_wall_override_filament != perimeter_generator.config->outer_wall_filament_id
+                                       && target_includes_walls_arachne
+                                       && (int)extrusion->inset_idx < perimeter_generator.config->outer_wall_count)
+                                      ? (int8_t)perimeter_generator.config->surface_wall_override_filament.value
+                                      : (int8_t)-1;
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
@@ -548,13 +576,16 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
         // Append paths to collection.
         if (!paths.empty()) {
+            // Orca: stamp the per-loop override onto each path so it survives downstream.
+            if (outer_override > 0)
+                for (ExtrusionPath &p : paths) p.extruder_override = outer_override;
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
                 else
-                    extrusion_loop.make_clockwise();  
+                    extrusion_loop.make_clockwise();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -562,6 +593,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 assert(extrusion_loop.paths.front().first_point() == extrusion_loop.paths.back().last_point());
+                extrusion_loop.extruder_override = outer_override;
                 extrusion_coll.append(std::move(extrusion_loop));
                 // Orca: Reverse the order of paths for thin wall holes. We define thin wall hole as a hole with only one perimeter.
                 const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
@@ -581,12 +613,14 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
                 for (auto it_path = std::next(paths.begin()); it_path != paths.end(); ++it_path) {
                     if (multi_path.paths.back().last_point() != it_path->first_point()) {
+                        multi_path.extruder_override = outer_override;
                         extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
                         multi_path = ExtrusionMultiPath();
                     }
                     multi_path.paths.emplace_back(std::move(*it_path));
                 }
 
+                multi_path.extruder_override = outer_override;
                 extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
             }
         }

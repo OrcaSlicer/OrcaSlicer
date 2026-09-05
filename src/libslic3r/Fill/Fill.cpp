@@ -1443,9 +1443,30 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                     params.density = 1.0f - (1.0f - elefant_density) * (elefant_layers - (f->layer_id - 1)) / elefant_layers; // Reverse calculation - The higher layer number means the higher density. Counting starts from the second layer.
             }
             // make fill
+            ExtrusionEntitiesPtr &fill_entities = m_regions[surface_fill.region_id]->fills.entities;
+            const size_t          fill_entities_before = fill_entities.size();
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
-				m_regions[surface_fill.region_id]->fills.entities);
+				fill_entities);
+            // Orca: route external top/bottom solid surfaces through surface_wall_override_filament when
+            // surface_wall_override_filament_target ∈ {Surfaces, Both}, so the visible cosmetic skin
+            // matches the outer wall colour instead of revealing the default infill filament.
+            const PrintRegionConfig &region_config_for_fill = m_regions[surface_fill.region_id]->region().config();
+            const auto target_for_fill = region_config_for_fill.surface_wall_override_filament_target.value;
+            const bool target_includes_surfaces =
+                target_for_fill == SurfaceWallOverrideFilamentTarget::Surfaces || target_for_fill == SurfaceWallOverrideFilamentTarget::Both;
+            if (target_includes_surfaces
+                && region_config_for_fill.surface_wall_override_filament.value > 0
+                && (surface_fill.surface.is_top() || surface_fill.surface.is_bottom())) {
+                const int8_t ov = (int8_t) region_config_for_fill.surface_wall_override_filament.value;
+                for (size_t k = fill_entities_before; k < fill_entities.size(); ++ k) {
+                    ExtrusionEntity *ent = fill_entities[k];
+                    ent->extruder_override = ov;
+                    if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent))
+                        for (ExtrusionEntity *child : coll->entities)
+                            child->extruder_override = ov;
+                }
+            }
 		}
     }
 
@@ -1596,6 +1617,32 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
     return sparse_infill_polylines;
 }
 
+// See declaration in Layer.hpp.
+int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                   bool spiral_mode,
+                                   bool is_topmost_layer)
+{
+    if (cfg.ironing_type == IroningType::NoIroning)
+        return -1;
+    const bool gate = (cfg.ironing_type == IroningType::AllSolid)
+        || ((cfg.top_shell_layers > 0 || (spiral_mode && cfg.bottom_shell_layers > 1))
+            && (cfg.ironing_type == IroningType::TopSurfaces
+                || (cfg.ironing_type == IroningType::TopmostOnly && is_topmost_layer)));
+    if (!gate)
+        return -1;
+    // Orca: when surface_wall_override_filament_target ∈ {Surfaces, Both}, top/bottom external solid
+    // surfaces are routed through surface_wall_override_filament. Iron with that same filament so the
+    // cosmetic skin and the iron pass come from the same nozzle/material — and so the
+    // per-filament filament_ironing_* settings looked up later pick up the outer-wall
+    // filament's overrides instead of top_surface_filament_id's.
+    const auto target = cfg.surface_wall_override_filament_target.value;
+    const bool target_includes_surfaces =
+        target == SurfaceWallOverrideFilamentTarget::Surfaces || target == SurfaceWallOverrideFilamentTarget::Both;
+    if (target_includes_surfaces && cfg.surface_wall_override_filament.value > 0)
+        return cfg.surface_wall_override_filament.value;
+    return cfg.top_surface_filament_id;
+}
+
 // Create ironing extrusions over top surfaces.
 void Layer::make_ironing()
 {
@@ -1670,13 +1717,10 @@ void Layer::make_ironing()
 				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
 					    (config.ironing_type == IroningType::TopSurfaces ||
 					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.outer_wall_filament_id == config.top_surface_filament_id || config.wall_loops == 0) {
-					// Iron the whole face.
-					ironing_params.extruder = config.top_surface_filament_id;
-				} else {
-					// Iron just the infill.
-					ironing_params.extruder = config.top_surface_filament_id;
-				}
+				ironing_params.extruder = Layer::choose_ironing_extruder(
+					config,
+					this->object()->print()->config().spiral_mode,
+					/*is_topmost_layer=*/ layerm->layer()->upper_layer == nullptr);
 			}
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
@@ -1825,6 +1869,15 @@ void Layer::make_ironing()
 		            eec->entities, std::move(polylines),
 		            erIroning,
 		            flow_mm3_per_mm, extrusion_width, float(extrusion_height));
+		        // Orca: tag the ironing collection (and each path inside) with extruder_override
+		        // so LayerTools::extruder() routes it to the chosen ironing extruder, including the
+		        // surface_wall_override_filament_target ∈ {Surfaces, Both} case where the iron extruder differs from
+		        // top_surface_filament_id. no_sort=true above makes the GCode bucket-split a no-op for
+		        // this collection, so the override on the collection itself is what matters.
+		        const int8_t iron_ov = (int8_t) ironing_params.extruder;
+		        eec->extruder_override = iron_ov;
+		        for (ExtrusionEntity *child : eec->entities)
+		            child->extruder_override = iron_ov;
 		    }
 		}
 
