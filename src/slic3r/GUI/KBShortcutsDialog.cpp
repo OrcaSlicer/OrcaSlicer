@@ -263,6 +263,7 @@ void KBShortcutsDialog::fill_shortcuts()
             { "U", L("Gizmo measure") },
             { "Y", L("Gizmo assemble") },
             { "E", L("Gizmo brim ears") },
+            { "Z", L("Zoom to objects or selection") },
             { "I", L("Zoom in") },
             { "O", L("Zoom out") },
             { "V", L("Toggle printable for object/part") },

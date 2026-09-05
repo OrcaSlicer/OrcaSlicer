@@ -3552,18 +3552,18 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
                     post_event(SimpleEvent(EVT_GLCANVAS_ORIENT));
                 break;
             }
-        //case 'Z':
-        //case 'z': {
-        //    if (!m_selection.is_empty())
-        //        zoom_to_selection();
-        //    else {
-        //        if (!m_volumes.empty())
-        //            zoom_to_volumes();
-        //        else
-        //            _zoom_to_box(m_gcode_viewer.get_paths_bounding_box());
-        //    }
-        //    break;
-        //}
+        case 'Z':
+        case 'z': {
+            if (!m_selection.is_empty())
+                zoom_to_selection();
+            else {
+                if (!m_volumes.empty())
+                    zoom_to_volumes();
+                else
+                    _zoom_to_box(m_gcode_viewer.get_paths_bounding_box());
+            }
+            break;
+        }
         case 'v':
         case 'V': { post_event(SimpleEvent(EVT_GLCANVAS_PRINTABLE)); break; }
         default:  { evt.Skip(); break; }
