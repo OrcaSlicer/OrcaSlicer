@@ -82,6 +82,7 @@ using namespace nlohmann;
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
+#include "slic3r/Utils/PaintCLI.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -5635,6 +5636,16 @@ int CLI::run(int argc, char **argv)
                 model.add_default_instances();
                 model.print_info();
             }
+        } else if (opt_key == "inspect_paint") {
+            // --inspect-paint — read the per-facet enforcer/blocker/extruder/
+            // fuzzy state from the loaded model and emit a JSON summary.
+            // Machine-readable alternative to opening the paint gizmos.
+            const std::string source = m_input_files.empty() ? std::string("<no input>") : m_input_files.front();
+            for (Model &model : m_models) {
+                model.add_default_instances();
+                Slic3r::PaintCLI::inspect_to_json(model, source, boost::nowide::cout);
+            }
+            boost::nowide::cout.flush();
         } else if (opt_key == "uptodate") {
             //already processed before
         } else if (opt_key == "min_save") {
