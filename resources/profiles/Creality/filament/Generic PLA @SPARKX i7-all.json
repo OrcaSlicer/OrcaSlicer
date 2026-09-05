@@ -42,19 +42,19 @@
         "1.75"
     ],
     "filament_flow_ratio": [
-        "0.98"
+        "0.95"
     ],
     "filament_is_support": [
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "16"
+        "14"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
     ],
     "filament_retract_before_wipe": [
-        "nil"
+        "100%"
     ],
     "filament_retract_restart_extra": [
         "nil"
@@ -66,7 +66,7 @@
         "nil"
     ],
     "filament_retraction_minimum_travel": [
-        "nil"
+        "2"
     ],
     "filament_retraction_speed": [
         "nil"
@@ -105,7 +105,10 @@
         "0"
     ],
     "slow_down_layer_time": [
-        "8"
+        "14"
+    ],
+    "slow_down_min_speed": [
+        "20"
     ],
     "temperature_vitrification": [
         "110"
@@ -117,7 +120,7 @@
         "55"
     ],
     "filament_start_gcode": [
-        "; Filament gcode\n"
+        ";filament start gcode\n"
     ],
     "filament_end_gcode": [
         "; filament end gcode \n"
@@ -154,7 +157,7 @@
     "filament_unloading_speed_start": "100",
     "material_flow_dependent_temperature": "0",
     "material_flow_temp_graph": "[[0.2,210],[0.6,220]]",
-    "pressure_advance": "0.12",
+    "pressure_advance": "0.032",
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality SPARKX i7 0.2 nozzle",
