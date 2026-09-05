@@ -110,6 +110,7 @@ option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 
 option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 
 # Python stubgen module
@@ -375,6 +376,16 @@ if (MSVC)
 	# helps incremental builds by preventing the double-link restart from TBB
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+endif ()
+
+# Without this every object names its build directory and two worktrees never
+# share cache entries. The linker still writes absolute paths into the PDB.
+if (SLIC3R_RELATIVE_DEBUG_PATHS)
+    if (IS_CLANG_CL)
+        add_compile_options(-ffile-compilation-dir=.)
+    else ()
+        message(WARNING "SLIC3R_RELATIVE_DEBUG_PATHS is only implemented for clang-cl")
+    endif ()
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
