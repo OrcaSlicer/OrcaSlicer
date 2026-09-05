@@ -267,7 +267,7 @@ protected:
     void         init_render_input_window();
     virtual void on_render_input_window(float x, float y, float bottom_limit) override;
 
-    virtual void render_input_window_warning(bool same_model_object);
+    void render_input_window_warning(bool same_model_object) const; // ORCA use const otherwise measure / assembly gizmos not properly resize
     void remove_selected_sphere_raycaster(int id);
     void update_measurement_result();
 

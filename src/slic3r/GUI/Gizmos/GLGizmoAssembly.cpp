@@ -103,10 +103,14 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
         ;
     }
     show_selection_ui();
-    show_face_face_assembly_common();
+    render_input_window_warning(m_same_model_object); // ORCA show warning under selection section
 
-    ImGui::Separator();
+    //ImGui::Separator();
+    // actions
+    show_face_face_assembly_common(); // ORCA show it under actions section
     show_face_face_assembly_senior();
+
+    // measurements
     show_distance_xyz_ui();
 
     ImGui::Separator();
@@ -120,8 +124,6 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
-
-    render_input_window_warning(m_same_model_object);
 
     if (last_feature != m_curr_feature || last_mode != m_mode || last_selected_features != m_selected_features) {
         // the dialog may have changed its size, ask for an extra frame to render it properly
@@ -138,16 +140,16 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
     ImGuiWrapper::pop_toolbar_style();
 }
 
-void GLGizmoAssembly::render_input_window_warning(bool same_model_object)
+void GLGizmoAssembly::render_input_window_warning(bool same_model_object) const // ORCA use const otherwise measure / assembly gizmos not properly resize
 {
     const bool same_mesh_warning        = m_hit_different_volumes.size() == 1;
     const bool wrong_feature_warning    = m_selected_wrong_feature_waring_tip;
     const bool not_assembled_warning    = m_hit_different_volumes.size() == 2 && same_model_object == false &&
                                         wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D;
 
-    if (same_mesh_warning || not_assembled_warning || wrong_feature_warning) {
-        ImGui::Separator();
-    }
+    //if (same_mesh_warning || not_assembled_warning || wrong_feature_warning) {
+    //    ImGui::Separator();
+    //}
 
     if (same_mesh_warning) {
         m_imgui->warning_text(_L("Warning: please select two different meshes."));
@@ -178,6 +180,12 @@ bool GLGizmoAssembly::render_assembly_mode_combo(double label_width, float item_
     if (render_combo(_u8L("Mode"), modes, selection_idx, label_width, item_width)) {
         is_changed = true;
         switch_to_mode((AssemblyMode) selection_idx);
+    } 
+    else if (ImGui::IsItemHovered()) {
+        if(selection_idx == 0)
+             m_imgui->tooltip(_u8L("Select 2 faces on objects and \n make objects assemble together."), 9999.f);
+        else if(selection_idx == 1)
+             m_imgui->tooltip(_u8L("Select 2 points or circles on objects and \n specify distance between them."), 9999.f);
     }
     ImGuiWrapper::pop_combo_style();
     return is_changed;
