@@ -1,6 +1,7 @@
 {
 	"type": "filament",
-	"name": "COEX NYLEX UNFILLED  @BBL X1C",
+	"name": "COEX NYLEX UNFILLED @BBL X1C",
+	"renamed_from": "COEX NYLEX UNFILLED  @BBL X1C",
 	"inherits": "COEX NYLEX UNFILLED @base",
 	"from": "system",
 	"setting_id": "CXPAUB21_01",

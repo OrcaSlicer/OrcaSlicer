@@ -1241,8 +1241,8 @@
             "sub_path": "filament/BASE/Generic ASA @base.json"
         },
         {
-            "name": "Elegoo TPU @base",
-            "sub_path": "filament/BASE/Elegoo TPU @base.json"
+            "name": "Elegoo TPU 95A @base",
+            "sub_path": "filament/BASE/Elegoo TPU 95A @base.json"
         },
         {
             "name": "Elegoo PETG @base",
@@ -1261,8 +1261,8 @@
             "sub_path": "filament/BASE/Elegoo ABS @base.json"
         },
         {
-            "name": "Elegoo PAHT @base",
-            "sub_path": "filament/BASE/Elegoo PAHT @base.json"
+            "name": "Elegoo PAHT-CF @base",
+            "sub_path": "filament/BASE/Elegoo PAHT-CF @base.json"
         },
         {
             "name": "Elegoo PC @base",

@@ -4,24 +4,25 @@ Mint deterministic filament_id values for OrcaSlicer system filament products an
 validate the tree against the sanctioned-state snapshot.
 
 Policy (companion to assign_vendor_setting_ids.py; see docs/HLSD/filament_id.md):
-  * filament_id is a PRODUCT id: one commercial product line = one id, shared by
-    all of that material's per-printer/per-nozzle variants in every bundle.
-    OrcaFilamentLibrary (OFL) is the product catalog: a family's id is declared
-    once, on its family root (instantiation != "true"); vendor bundles carry
-    only specializations of OFL families — same base name, non-empty
-    compatible_printers, no filament_id key — which resolve the OFL id through
-    the loader's inherits/base-bundle walk. Products OFL does not carry mint
-    their id in the vendor bundle with the same rule; the key is
-    bundle-independent, so hoisting a family into OFL never changes its id.
-  * New ids are content-addressed by the product triple, resolved from the
-    declaring preset's flattened config (filament_vendor and filament_type are
-    inheritable list options — first element; family name = preset base name):
+  * filament_id is a PRODUCT id: one named spool product = one id, shared by all
+    of that product's per-printer/per-nozzle variants in every bundle. The
+    granularity is the name on the spool, not the brand: "AAA PLA Lite" and
+    "AAA PLA Pro" are two products with two ids, not variants of one. The
+    id is a pure function of the product triple (below), so WHERE a preset gets
+    it from is irrelevant: it may declare the key itself or inherit it from any
+    ancestor — a root preset, a real (instantiated) filament, an
+    OrcaFilamentLibrary (OFL) preset — as long as the id it ends up with is the
+    mint of its OWN triple. Inheritance carries settings, never identity; the
+    key is bundle-independent, so moving a filament into OFL never changes it.
+  * Ids are content-addressed by the product triple, resolved from the preset's
+    flattened config (filament_vendor and filament_type are inheritable list
+    options — first element; filament name = preset base name):
         filament_id = "OF" + base62_6( uuid5(FILAMENT_ID_NAMESPACE,
-            "filament_product/<filament_vendor>/<filament_type>/<family_name>") )
+            "filament_product/<filament_vendor>/<filament_type>/<filament_name>") )
     8 chars total, which satisfies the AMS length limit. Nobody invents ids by
     hand; on the astronomically rare collision with an existing id the input
     is salted ("/1", "/2", ...) until free and the result is frozen in file.
-    Identity changes (a family rename, a filament_vendor/filament_type fix)
+    Identity changes (a filament rename, a filament_vendor/filament_type fix)
     change the id BY DESIGN.
   * Reserved id spaces that are never minted into or altered:
       - GF*                    Bambu AMS/RFID catalog: frozen, no preset of any
@@ -33,11 +34,12 @@ Policy (companion to assign_vendor_setting_ids.py; see docs/HLSD/filament_id.md)
                                preset may declare one
       - P + 7 hex chars (case-insensitive) and the literal "null"
                                user-custom presets (CreatePresetsDialog.cpp)
-      - every already-shipped id, grandfathered via scripts/filament_id_snapshot.json
-  * scripts/filament_id_snapshot.json is the sanctioned-state snapshot (ids,
-    claims and declared triples): it must exactly equal the tree-derived state
-    at all times, so any id/claim/triple change shows up as a reviewable diff to
-    that file (the maintainer gate).
+  * scripts/filament_id_snapshot.json is the sanctioned-state snapshot: one
+    entry per id, carrying the product triple it is minted from and the
+    "Vendor/Filament" presets claiming it. It must exactly equal the tree-derived
+    state at all times, so any id/claim/triple change shows up as a reviewable
+    diff to that file (the maintainer gate). It sanctions state, never
+    exceptions: no check consults it to excuse a preset from the rules above.
 
 The effective-id resolution below is loader-faithful (PresetBundle.cpp
 load_vendor_configs_from_json): own filament_id key, else walk `inherits` within
@@ -46,10 +48,10 @@ OFL it stays in OFL; a vendor chain that dead-ends id-less retries its direct
 parent in the OFL map. filament_vendor / filament_type resolve the same way.
 
 Run from anywhere:  python3 scripts/assign_filament_ids.py
-  (default)          mint + insert ids for id-less families, mint + replace
+  (default)          mint + insert ids for id-less filaments, mint + replace
                      non-OF-format declarations; idempotent, never rewrites a
-                     valid OF-format id; a no-op once every family has one
-  --mint "Vendor/Type/Family"
+                     valid OF-format id; a no-op once every filament has one
+  --mint "Vendor/Type/Filament"
                      print the id that triple would mint; touches nothing
   --update-snapshot  regenerate the snapshot from the tree
   --remint VENDOR    re-derive VENDOR's declared ids from their triples and
@@ -90,10 +92,10 @@ OF_ID_RE = re.compile(r"^OF[0-9A-Za-z]{6}$")
 # User-custom id space minted by CreatePresetsDialog.cpp ("P" + md5(name)[0:7]);
 # reserved case-insensitively, together with its "null" sentinel.
 USER_CUSTOM_ID_RE = re.compile(r"^P[0-9A-Fa-f]{7}$", re.IGNORECASE)
-# Family name = preset base name: strip the first "@..." suffix. The space before
+# Filament name = preset base name: strip the first "@..." suffix. The space before
 # "@" is optional because names like "Afinia PLA@HS" exist.
 BASE_NAME_RE = re.compile(r"\s?@.*$")
-# Salt iterations accepted by the mint-conformance check (check 3).
+# Salt iterations accepted by the identity check (check 3).
 MAX_CHECK_SALT = 8
 
 UPDATE_HINT = 'run "python scripts/assign_filament_ids.py --update-snapshot" and commit the diff for maintainer review'
@@ -130,19 +132,19 @@ def _utf8_console():
 # ---------------------------------------------------------------------------
 
 def base_name(name):
-    """Family name of a preset: name with the first "@..." suffix stripped."""
+    """Filament name of a preset: name with the first "@..." suffix stripped."""
     return BASE_NAME_RE.sub("", name, count=1)
 
 
-def generate_filament_id(filament_vendor, filament_type, family, salt=0):
+def generate_filament_id(filament_vendor, filament_type, filament_name, salt=0):
     """Deterministic "OF" + 6-char base62 filament_id for a filament product.
 
-    input = "filament_product/<filament_vendor>/<filament_type>/<family_name>"
+    input = "filament_product/<filament_vendor>/<filament_type>/<filament_name>"
     (+ "/<salt>" when salted); u = uuid5(FILAMENT_ID_NAMESPACE, input); the id
     tail is the low FILAMENT_ID_LENGTH base62 digits of int(u.bytes, "big"),
     most-significant first — the same derivation as generate_preset_setting_id.
     """
-    key = f"filament_product/{filament_vendor}/{filament_type}/{family}"
+    key = f"filament_product/{filament_vendor}/{filament_type}/{filament_name}"
     if salt:
         key = f"{key}/{salt}"
     u = uuid.uuid5(FILAMENT_ID_NAMESPACE, key)
@@ -154,14 +156,19 @@ def generate_filament_id(filament_vendor, filament_type, family, salt=0):
     return "OF" + "".join(reversed(digits))
 
 
-def mint_filament_id(filament_vendor, filament_type, family, taken):
+def mint_filament_id(filament_vendor, filament_type, filament_name, taken):
     """Mint the product's id, salting past any id in `taken`."""
     for salt in range(10000):
-        candidate = generate_filament_id(filament_vendor, filament_type, family, salt)
+        candidate = generate_filament_id(filament_vendor, filament_type, filament_name, salt)
         if candidate not in taken:
             return candidate
     raise RuntimeError(
-        f"could not mint a free filament_id for {filament_vendor}/{filament_type}/{family}")
+        f"could not mint a free filament_id for {filament_vendor}/{filament_type}/{filament_name}")
+
+
+def mint_iterations(triple):
+    """The ids that count as the mint of `triple`: salt 0..MAX_CHECK_SALT."""
+    return {generate_filament_id(*triple, salt=s) for s in range(MAX_CHECK_SALT + 1)}
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +241,8 @@ def resolve_filament_id(name, filaments, ofl_filaments, seen=None, in_ofl=False,
     vendor is re-tried against the OFL map keyed by its direct parent name.
 
     skip_own ignores the first preset's own filament_id key (used to compute the
-    id its inherits chain would resolve WITHOUT the declaration — check 6b drift).
+    id its inherits chain would resolve WITHOUT the declaration — the
+    --drop-redundant-ids redundancy test).
 
     Returns (filament_id or None, source, ofl_entry) where source is one of
     "own"/"inherited"/"missing"/"dangling"/"cycle" and ofl_entry is the name of
@@ -307,7 +315,7 @@ def resolve_filament_field(name, field, filaments, ofl_filaments, seen=None, in_
 
 
 def resolve_triple(name, filaments, ofl_filaments):
-    """The preset's mint-key triple (filament_vendor, filament_type, family)."""
+    """The preset's mint-key triple (filament_vendor, filament_type, filament name)."""
     return (resolve_filament_field(name, "filament_vendor", filaments, ofl_filaments),
             resolve_filament_field(name, "filament_type", filaments, ofl_filaments),
             base_name(name))
@@ -317,7 +325,7 @@ def analyze_tree(profiles_dir):
     """Load every vendor bundle and derive the full filament_id state.
 
     Returns a dict with the tree-derived snapshot sections plus the working data
-    the checks and the assign pass need. All claims are "Vendor/Family" strings
+    the checks and the assign pass need. All claims are "Vendor/Filament" strings
     over INSTANTIATED system filaments, tree-wide including OFL and BBL.
     """
     profiles_dir = str(profiles_dir)
@@ -325,7 +333,6 @@ def analyze_tree(profiles_dir):
     ofl_filaments, ofl_errors = (
         load_vendor_filaments(profiles_dir, OFL) if OFL in vendor_names else ({}, [])
     )
-    ofl_declared = {r["filament_id"] for r in ofl_filaments.values() if r.get("filament_id")}
 
     vendors = {}
     read_errors = list(ofl_errors)
@@ -336,51 +343,39 @@ def analyze_tree(profiles_dir):
             filaments, errs = load_vendor_filaments(profiles_dir, vendor)
             read_errors.extend(errs)
         for rec in filaments.values():
-            eff, src, ofl_entry = resolve_filament_id(rec["name"], filaments, ofl_filaments)
+            eff, src, _entry = resolve_filament_id(rec["name"], filaments, ofl_filaments)
             rec["eff_filament_id"] = eff
             rec["id_source"] = src
-            rec["ofl_entry"] = ofl_entry
         vendors[vendor] = filaments
 
-    # id -> set of "Vendor/Family" claims over instantiated presets. Every id
+    # id -> set of "Vendor/Filament" claims over instantiated presets. Every id
     # occurring in the tree is a key; ids only ever DECLARED (e.g. on a root
-    # whose children all override them) keep an empty claim list, so that the
-    # snapshot exactly equals the tree-derived state and the format/retirement
-    # checks can grandfather them.
+    # none of whose descendants instantiate) keep an empty claim list, so that
+    # the snapshot exactly equals the tree-derived state.
     ids = {}
     vendor_ids = {}             # vendor -> set of ids occurring there (declared or effective)
     declared_ids = {}           # vendor -> set of ids DECLARED in that vendor's own files
-    instantiated_with_id = []   # "Vendor/PresetName" (own filament_id key on an instantiated preset)
-    overrides = []              # (vendor, name, declared, inherited, file)
     missing_effective = []      # (vendor, name, file) instantiated presets resolving no id
-    alias_candidates = []       # (vendor, rec, ofl_entry, own_key) presets riding an OFL family
+    inherited = []              # (vendor, rec, eff, triple) instantiated presets inheriting an OF id
     triples = {}                # fid -> set of triples of its declarers
     declarer_triples = []       # (vendor, rec, fid, triple) per declarer
-    family_triples = {}         # (vendor, family) -> {triple: [declarer names]}
+    filament_triples = {}       # (vendor, filament_name) -> {triple: [declarers]}
 
     for vendor, filaments in vendors.items():
         occurring = vendor_ids.setdefault(vendor, set())
         for rec in filaments.values():
+            triple = resolve_triple(rec["name"], filaments, ofl_filaments)
+            rec["triple"] = triple
             if rec.get("filament_id"):
                 fid = rec["filament_id"]
                 occurring.add(fid)
                 declared_ids.setdefault(vendor, set()).add(fid)
                 ids.setdefault(fid, set())
-                triple = resolve_triple(rec["name"], filaments, ofl_filaments)
-                rec["triple"] = triple
                 declarer_triples.append((vendor, rec, fid, triple))
                 triples.setdefault(fid, set()).add(triple)
-                family_triples.setdefault(
+                filament_triples.setdefault(
                     (vendor, base_name(rec["name"])), {}).setdefault(
                     triple, []).append(rec["name"])
-                if rec.get("inherits"):
-                    inherited, _src, skip_entry = resolve_filament_id(
-                        rec["name"], filaments, ofl_filaments, skip_own=True)
-                    if inherited and inherited != fid:
-                        overrides.append((vendor, rec["name"], fid, inherited, rec["file"]))
-                    if (vendor != OFL and skip_entry and inherited
-                            and inherited in ofl_declared):
-                        alias_candidates.append((vendor, rec, skip_entry, True))
             if not rec["instantiation"]:
                 continue
             eff = rec.get("eff_filament_id")
@@ -389,47 +384,28 @@ def analyze_tree(profiles_dir):
                 continue
             occurring.add(eff)
             ids.setdefault(eff, set()).add(f"{vendor}/{base_name(rec['name'])}")
-            if rec.get("filament_id"):
-                instantiated_with_id.append(f"{vendor}/{rec['name']}")
-            if vendor != OFL and rec["ofl_entry"] and eff in ofl_declared:
-                alias_candidates.append((vendor, rec, rec["ofl_entry"], False))
+            if not rec.get("filament_id") and OF_ID_RE.match(eff):
+                inherited.append((vendor, rec, eff, triple))
 
-    # Alias hygiene (check 4): a vendor preset that rides an OFL family (its id
-    # resolves through OFL) is matched to the OFL preset by ALIAS (base name);
-    # renaming it re-exposes the OFL preset and creates a live duplicate, empty
-    # compatible_printers cannot claim any printer, and declaring its own
-    # filament_id key forks the family off the catalog id.
-    alias_violations = []       # (vendor, name, ofl_entry, reason, file)
-    for vendor, rec, entry, own_key in alias_candidates:
-        expected = base_name(entry)
-        own_base = base_name(rec["name"])
-        if own_key:
-            alias_violations.append((
-                vendor, rec["name"], entry,
-                f'declares its own filament_id "{rec["filament_id"]}" — dropping the key '
-                f"lets it resolve the OFL family's id through inherits",
-                rec["file"]))
-        elif own_base != expected:
-            alias_violations.append((
-                vendor, rec["name"], entry,
-                f'base name "{own_base}" != "{expected}" — the rename re-exposes the '
-                f"OFL preset on its printers (alias shadowing is name-based)",
-                rec["file"]))
-        elif not rec["compatible_printers"]:
-            alias_violations.append((
-                vendor, rec["name"], entry,
-                "empty compatible_printers cannot shadow the OFL preset anywhere",
-                rec["file"]))
+    # Identity (check 3b): an inherited id must be the mint of the preset's
+    # OWN triple. A declared id is held to the same rule as a declarer (3a),
+    # and an id whose declarer already fails 3a is reported there once, not
+    # again under every preset inheriting it.
+    unminted = {fid for _v, _r, fid, triple in declarer_triples
+                if OF_ID_RE.match(fid) and fid not in mint_iterations(triple)}
+    id_mismatches = [
+        (vendor, rec, eff, triple) for vendor, rec, eff, triple in inherited
+        if eff not in unminted and eff not in mint_iterations(triple)]
 
-    # Cross-bundle triple divergence (check 7, warning only): the same family
+    # Cross-bundle triple divergence (check 5, warning only): the same filament
     # name declared in several bundles with different triples cannot converge
     # on one id until the divergence is fixed.
     name_bundles = {}
-    for (vendor, family), tmap in family_triples.items():
-        name_bundles.setdefault(family, {})[vendor] = frozenset(tmap)
+    for (vendor, filament_name), tmap in filament_triples.items():
+        name_bundles.setdefault(filament_name, {})[vendor] = frozenset(tmap)
     cross_bundle_triples = [
-        (family, {v: sorted(ts) for v, ts in per_vendor.items()})
-        for family, per_vendor in sorted(name_bundles.items())
+        (filament_name, {v: sorted(ts) for v, ts in per_vendor.items()})
+        for filament_name, per_vendor in sorted(name_bundles.items())
         if len(per_vendor) > 1 and len(set(per_vendor.values())) > 1
     ]
 
@@ -439,18 +415,12 @@ def analyze_tree(profiles_dir):
         "ids": {fid: sorted(claims) for fid, claims in ids.items()},
         "vendor_ids": vendor_ids,
         "declared_ids": declared_ids,
-        "instantiated_with_id": sorted(instantiated_with_id),
-        "overrides": overrides,
-        "id_overrides": sorted(f"{v}/{n}" for v, n, _d, _i, _f in overrides),
         "missing_effective": sorted(missing_effective),
-        "alias_violations": alias_violations,
-        "alias_exceptions": sorted(f"{v}/{n}" for v, n, _e, _r, _f in alias_violations),
+        "id_mismatches": id_mismatches,
         "triples": {fid: sorted(list(t) for t in ts) for fid, ts in triples.items()},
         "triple_sets": triples,
         "declarer_triples": declarer_triples,
-        "family_triples": family_triples,
-        "triple_exceptions": sorted(
-            f"{v}/{f}" for (v, f), tmap in family_triples.items() if len(tmap) > 1),
+        "filament_triples": filament_triples,
         "cross_bundle_triples": cross_bundle_triples,
     }
 
@@ -460,14 +430,19 @@ def analyze_tree(profiles_dir):
 # ---------------------------------------------------------------------------
 
 def snapshot_from_analysis(analysis):
-    return {
-        "ids": {fid: sorted(claims) for fid, claims in analysis["ids"].items()},
-        "instantiated_with_id": analysis["instantiated_with_id"],
-        "id_overrides": analysis["id_overrides"],
-        "alias_exceptions": analysis["alias_exceptions"],
-        "triples": analysis["triples"],
-        "triple_exceptions": analysis["triple_exceptions"],
-    }
+    """One entry per id, in id order: the product triple it is minted from and
+    the "Vendor/Filament" claims on it. Requires exactly one declared triple per
+    id (update_snapshot refuses any other state; check 3 rejects it anyway)."""
+    ids = {}
+    for fid, claims in sorted(analysis["ids"].items()):
+        [(vendor, ftype, filament_name)] = analysis["triples"][fid]
+        ids[fid] = {"filaments": sorted(claims), "name": filament_name,
+                    "filament_type": ftype, "filament_vendor": vendor}
+    return {"ids": ids}
+
+
+def snapshot_triple(entry):
+    return [entry["filament_vendor"], entry["filament_type"], entry["name"]]
 
 
 def load_snapshot(path):
@@ -475,18 +450,15 @@ def load_snapshot(path):
     if not os.path.exists(path):
         return None
     data = load_json(path)
-    for key in ("ids", "triples"):
-        data.setdefault(key, {})
-    for key in ("instantiated_with_id", "id_overrides", "alias_exceptions",
-                "triple_exceptions"):
-        data.setdefault(key, [])
+    data.setdefault("ids", {})
     return data
 
 
 def write_snapshot(path, obj):
-    """Deterministic serialization: sorted keys, indent 1, LF, trailing newline."""
+    """Deterministic serialization: snapshot_from_analysis order, indent 1, LF,
+    trailing newline."""
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(obj, f, indent=1, ensure_ascii=False, sort_keys=True)
+        json.dump(obj, f, indent=1, ensure_ascii=False)
         f.write("\n")
 
 
@@ -526,29 +498,27 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
 
     1. Format: every id occurring in the tree (declared or effective) must
        match ^OF[0-9A-Za-z]{6}$. No exceptions: not the snapshot, not BBL.
-    2. Snapshot equality, both directions: the tree-derived id->families multimap
-       AND the id->triples map of the declarers must equal the snapshot exactly
-       (the snapshot diff is the maintainer gate).
-    3. Mint conformance: an OF-format declaration must equal the mint of the
-       declarer's triple or a salted iteration, unless that exact (id, triple)
-       pair is grandfathered in the snapshot.
-    4. Alias hygiene: a vendor preset riding an OFL family must keep the OFL
-       base name, claim printers via non-empty compatible_printers, and declare
-       no filament_id key of its own.
-    5. Reserved namespaces (GF*/QD_*/P-hex/"null", all ownerless) must not be
-       claimed by any vendor, except claims grandfathered in the snapshot.
-    6. Structure ratchet: (a) no NEW instantiated preset carries its own
-       filament_id key; (b) no NEW declared-vs-inherited id drift; (c) every
-       instantiated filament resolves an effective id (a hard load error in C++).
-    7. Triple integrity: (a) every declarer resolves non-empty filament_vendor
-       and filament_type (hard error, no grandfathering); (b) declarers of one
-       (bundle, family) resolve identical triples, unless grandfathered in
-       snapshot triple_exceptions; cross-bundle divergence on the same family
-       name is a warning only.
-    8. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
+    2. Snapshot equality, both directions: every id in the tree, the filaments
+       claiming it and the triple its declarers resolve must equal the snapshot
+       entry exactly (the snapshot diff is the maintainer gate).
+    3. Identity: the id is a function of the triple alone. (a) A declared id
+       must equal the mint of the declarer's own triple or a salted iteration;
+       (b) the id an instantiated preset inherits must equal the mint of ITS
+       own triple — how it inherits it (a root, a real filament, an OFL
+       preset) is irrelevant; (c) every instantiated filament resolves an
+       effective id at all (an id-less one is a hard load error in C++).
+    4. Reserved namespaces (GF*/QD_*/P-hex/"null", all ownerless) must not be
+       claimed by any vendor.
+    5. Triple integrity: (a) every declarer resolves non-empty filament_vendor
+       and filament_type; (b) declarers of one (bundle, filament) resolve
+       identical triples; cross-bundle divergence on the same filament name is a
+       warning only.
+    6. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
        carry source/bambustudio_commit/generated, key only OF-format ids, map
        each Bambu id at most once, and for every row whose key the tree claims,
        the tree's triple for that id must equal the row's (vendor, type, name).
+
+    Nothing is grandfathered: the snapshot sanctions state, never exceptions.
     """
     _utf8_console()
     errors = 0
@@ -571,23 +541,35 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 continue
             print_error(
                 f'filament_id "{fid}" ({vendor}) is not a minted "OF" id; new '
-                f'family ids must come from "python scripts/assign_filament_ids.py" '
+                f'filament ids must come from "python scripts/assign_filament_ids.py" '
                 f'(see --mint)')
             errors += 1
 
     # -- 2. snapshot equality (both directions) -----------------------------
+    tree_triples = analysis["triples"]
     for fid in sorted(tree_ids):
-        if fid not in snap_ids:
+        entry = snap_ids.get(fid)
+        if entry is None:
             print_error(
                 f'filament_id "{fid}" is not sanctioned by '
                 f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
             errors += 1
             continue
         for claim in tree_ids[fid]:
-            if claim not in snap_ids[fid]:
+            if claim not in entry["filaments"]:
                 print_error(
                     f'filament_id "{fid}" claim "{claim}" is not sanctioned by '
                     f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
+                errors += 1
+        # Every tree id has at least one declarer; the snapshot records one
+        # triple per id, so a divergent declarer is a mismatch in both directions.
+        sanctioned = snapshot_triple(entry)
+        for t in tree_triples[fid]:
+            if t != sanctioned:
+                print_error(
+                    f'filament_id "{fid}" triple "{"/".join(t)}" is not sanctioned by '
+                    f'scripts/filament_id_snapshot.json, which records '
+                    f'"{"/".join(sanctioned)}"; {UPDATE_HINT}')
                 errors += 1
     for fid in sorted(snap_ids):
         if fid not in tree_ids:
@@ -596,91 +578,31 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f"{UPDATE_HINT}")
             errors += 1
             continue
-        for claim in snap_ids[fid]:
+        for claim in snap_ids[fid]["filaments"]:
             if claim not in tree_ids[fid]:
                 print_error(
                     f'filament_id stability: snapshot claim "{claim}" of id "{fid}" '
                     f"vanished from the tree; {UPDATE_HINT}")
                 errors += 1
-    # ... and the declared triples, both directions.
-    snap_triples = snapshot["triples"]
-    tree_triples = analysis["triples"]
-    for fid in sorted(tree_triples):
-        for t in tree_triples[fid]:
-            if t not in snap_triples.get(fid, []):
-                print_error(
-                    f'filament_id "{fid}" triple "{"/".join(t)}" is not sanctioned by '
-                    f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
-                errors += 1
-    for fid in sorted(snap_triples):
-        for t in snap_triples[fid]:
-            if t not in tree_triples.get(fid, []):
-                print_error(
-                    f'filament_id triple stability: snapshot triple "{"/".join(t)}" of '
-                    f'id "{fid}" vanished from the tree; {UPDATE_HINT}')
-                errors += 1
 
-    # -- 3. mint conformance for OF-format declarations ----------------------
+    # -- 3. identity: the id is a function of the triple alone ---------------
     for vendor, rec, fid, triple in sorted(
             analysis["declarer_triples"], key=lambda x: (x[0], x[1]["file"])):
-        if not OF_ID_RE.match(fid):
-            continue
-        if list(triple) in snap_triples.get(fid, []):
-            continue  # grandfathered (id, triple) pair
-        minted = [generate_filament_id(*triple, salt=s) for s in range(MAX_CHECK_SALT + 1)]
-        if fid not in minted:
-            print_error(
-                f'filament_id "{fid}" declared by "{rec["name"]}" ({rec["file"]}) does '
-                f'not match the mint of its triple "{"/".join(triple)}": expected '
-                f'"{minted[0]}" (or a salted iteration); paste the expected id into the '
-                f"family root (or, for an intentionally kept id, {UPDATE_HINT})")
-            errors += 1
-
-    # -- 4. alias hygiene for presets riding OFL families --------------------
-    exceptions = set(snapshot["alias_exceptions"])
-    for vendor, name, entry, reason, file in analysis["alias_violations"]:
-        if f"{vendor}/{name}" in exceptions:
+        if not OF_ID_RE.match(fid) or fid in mint_iterations(triple):
             continue
         print_error(
-            f'preset "{name}" ({file}) rides the OFL family "{entry}" but {reason}; '
-            f"a vendor specialization keeps the OFL base name, sets non-empty "
-            f"compatible_printers and declares no filament_id key — or the family "
-            f"gets its own minted id")
+            f'filament_id "{fid}" declared by "{rec["name"]}" ({rec["file"]}) does '
+            f'not match the mint of its triple "{"/".join(triple)}": expected '
+            f'"{generate_filament_id(*triple)}" (or a salted iteration); paste the '
+            f"expected id, or fix the triple and --remint the vendor")
         errors += 1
-
-    # -- 5. reserved namespaces ----------------------------------------------
-    for fid in sorted(tree_ids):
-        is_reserved, owner = reserved_space_owner(fid)
-        if not is_reserved:
-            continue
-        for claim in tree_ids[fid]:
-            vendor = claim.split("/", 1)[0]
-            if vendor == owner:
-                continue
-            if claim in snap_ids.get(fid, []):
-                continue  # grandfathered
-            space = reserved_space_desc(fid, owner)
-            print_error(
-                f'filament_id "{fid}" of "{claim}" is in a reserved id space '
-                f"({space}) and must not be claimed by system presets of other vendors")
-            errors += 1
-
-    # -- 6. structure ratchet -------------------------------------------------
-    grandfathered = set(snapshot["instantiated_with_id"])
-    for key in analysis["instantiated_with_id"]:
-        if key not in grandfathered:
-            print_error(
-                f'instantiated preset "{key}" declares its own filament_id key; the key '
-                f"belongs on the family root preset only (variants inherit it)")
-            errors += 1
-    grandfathered = set(snapshot["id_overrides"])
-    for vendor, name, declared, inherited, file in analysis["overrides"]:
-        if f"{vendor}/{name}" in grandfathered:
-            continue
+    for vendor, rec, eff, triple in sorted(
+            analysis["id_mismatches"], key=lambda x: (x[0], x[1]["file"])):
         print_error(
-            f'preset "{name}" ({file}) declares filament_id "{declared}" but its '
-            f'inherits chain resolves "{inherited}"; a preset must not override its '
-            f"family's id")
+            f'preset "{rec["name"]}" ({rec["file"]}) inherits filament_id "{eff}" but '
+            f'its own triple "{"/".join(triple)}" mints "{generate_filament_id(*triple)}"; '
+            f"a preset carries the id of its own product: inherit a preset of the "
+            f"same filament, or declare its own key")
         errors += 1
     ofl_map = analysis["vendors"].get(OFL, {})
     for vendor, name, file in analysis["missing_effective"]:
@@ -689,11 +611,26 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
         print_error(
             f'instantiated filament "{name}" ({file}) resolves no filament_id anywhere '
             f"in its inherits chain — this is a hard load error in the C++ loader; "
-            f'run "python scripts/assign_filament_ids.py" (expected id for family '
+            f'run "python scripts/assign_filament_ids.py" (expected id for filament '
             f'"{vendor}/{base_name(name)}": "{expected}", salted if taken)')
         errors += 1
 
-    # -- 7. triple integrity ---------------------------------------------------
+    # -- 4. reserved namespaces ----------------------------------------------
+    for fid in sorted(tree_ids):
+        is_reserved, owner = reserved_space_owner(fid)
+        if not is_reserved:
+            continue
+        for claim in tree_ids[fid]:
+            vendor = claim.split("/", 1)[0]
+            if vendor == owner:
+                continue
+            space = reserved_space_desc(fid, owner)
+            print_error(
+                f'filament_id "{fid}" of "{claim}" is in a reserved id space '
+                f"({space}) and must not be claimed by system presets of other vendors")
+            errors += 1
+
+    # -- 5. triple integrity ---------------------------------------------------
     for vendor, rec, fid, triple in sorted(
             analysis["declarer_triples"], key=lambda x: (x[0], x[1]["file"])):
         if triple[0] and triple[1]:
@@ -706,27 +643,27 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"resolves empty {missing}; the mint key needs both (generic materials "
             f'use filament_vendor "Generic")')
         errors += 1
-    triple_exceptions = set(snapshot["triple_exceptions"])
-    for (vendor, family), tmap in sorted(analysis["family_triples"].items()):
-        if len(tmap) < 2 or f"{vendor}/{family}" in triple_exceptions:
+    for (vendor, filament_name), tmap in sorted(analysis["filament_triples"].items()):
+        if len(tmap) < 2:
             continue
         detail = "; ".join(
             f'"{"/".join(t)}" ({", ".join(sorted(names))})'
             for t, names in sorted(tmap.items()))
         print_error(
-            f'family "{vendor}/{family}" declarers resolve divergent triples: {detail}; '
-            f"declarers of one family must agree on (filament_vendor, filament_type)")
+            f'filament "{vendor}/{filament_name}" declarers resolve divergent triples: '
+            f"{detail}; declarers of one filament must agree on "
+            f"(filament_vendor, filament_type)")
         errors += 1
-    for family, per_vendor in analysis["cross_bundle_triples"]:
+    for filament_name, per_vendor in analysis["cross_bundle_triples"]:
         detail = "; ".join(
             f'{v}: {", ".join("/".join(t) for t in ts)}'
             for v, ts in sorted(per_vendor.items()))
         print_warning(
-            f'family name "{family}" resolves different triples across bundles '
+            f'filament name "{filament_name}" resolves different triples across bundles '
             f"({detail}); bundles of one product converge on one id only once "
             f"their triples agree")
 
-    # -- 8. Bambu catalog map --------------------------------------------------
+    # -- 6. Bambu catalog map --------------------------------------------------
     try:
         bambu_map = load_json(map_path)
         if not isinstance(bambu_map, dict):
@@ -785,61 +722,52 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
 # --update-snapshot
 # ---------------------------------------------------------------------------
 
-def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                    allow_shared_catalog=False):
+def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
     """Regenerate the snapshot from the tree.
 
-    Refuses to sanction NEW reserved-namespace ids (or new claims on them) for
-    non-owner vendors unless --allow-shared-catalog is passed. Idempotent: a
-    second run over an unchanged tree changes nothing. Returns 0 on success.
+    Refuses to sanction a reserved-namespace id (or a claim on one) and an id
+    declared under more than one triple: neither can ever pass --check, so
+    writing it into the snapshot would only hide the mistake until CI.
+    Idempotent: a second run over an unchanged tree changes nothing. Returns 0
+    on success.
     """
     analysis = analyze_tree(profiles_dir)
     for msg in analysis["read_errors"]:
         print_error(msg)
+
+    refusals = 0
+    for vendor in sorted(analysis["vendor_ids"]):
+        for fid in sorted(analysis["vendor_ids"][vendor]):
+            is_reserved, owner = reserved_space_owner(fid)
+            if is_reserved and vendor != owner:
+                print_error(
+                    f'refusing to sanction filament_id "{fid}" ({vendor}): reserved id '
+                    f"space, {reserved_space_desc(fid, owner)}")
+                refusals += 1
+    for fid, ts in sorted(analysis["triples"].items()):
+        if len(ts) > 1:
+            print_error(
+                f'refusing to sanction filament_id "{fid}": declared under {len(ts)} '
+                f'triples ({"; ".join("/".join(t) for t in ts)}); one id names one '
+                f"product (check 3)")
+            refusals += 1
+    if refusals:
+        return 1
+
     new_snap = snapshot_from_analysis(analysis)
     old_snap = load_snapshot(snapshot_path)
     old_ids = old_snap["ids"] if old_snap else {}
-
-    # Gate: new reserved-namespace ids / claims for non-owner vendors.
-    refusals = []
-    for fid, claims in sorted(new_snap["ids"].items()):
-        is_reserved, owner = reserved_space_owner(fid)
-        if not is_reserved:
-            continue
-        for claim in claims:
-            if claim in old_ids.get(fid, []):
-                continue
-            vendor = claim.split("/", 1)[0]
-            if vendor == owner:
-                continue
-            refusals.append((fid, claim, owner))
-        if not claims and fid not in old_ids:
-            # Declared-only new id: attribute it to its declaring vendor(s).
-            for vendor in sorted(analysis["vendor_ids"]):
-                if fid in analysis["vendor_ids"][vendor] and vendor != owner:
-                    refusals.append((fid, f"{vendor}/(declared only)", owner))
-    if refusals and not allow_shared_catalog:
-        for fid, claim, owner in refusals:
-            space = reserved_space_desc(fid, owner)
-            print_error(
-                f'refusing to sanction new claim "{claim}" on reserved-namespace id '
-                f'"{fid}" ({space}); pass --allow-shared-catalog only for '
-                f"maintainer-approved shared-catalog families")
-        return 1
 
     # Diff summary.
     added_ids = sorted(set(new_snap["ids"]) - set(old_ids))
     removed_ids = sorted(set(old_ids) - set(new_snap["ids"]))
     added_claims = sum(
-        len(set(claims) - set(old_ids.get(fid, [])))
-        for fid, claims in new_snap["ids"].items())
+        len(set(entry["filaments"]) - set(old_ids.get(fid, {}).get("filaments", [])))
+        for fid, entry in new_snap["ids"].items())
     removed_claims = sum(
-        len(set(claims) - set(new_snap["ids"].get(fid, [])))
-        for fid, claims in old_ids.items())
-    old_snap = old_snap or {"ids": {}, "instantiated_with_id": [], "id_overrides": [],
-                            "alias_exceptions": [], "triples": {},
-                            "triple_exceptions": []}
-    changed = new_snap != old_snap
+        len(set(entry["filaments"]) - set(new_snap["ids"].get(fid, {}).get("filaments", [])))
+        for fid, entry in old_ids.items())
+    changed = new_snap != (old_snap or {"ids": {}})
 
     if changed:
         write_snapshot(snapshot_path, new_snap)
@@ -847,11 +775,6 @@ def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
     print_info(f"snapshot ids      : {len(new_snap['ids'])} (+{len(added_ids)} / -{len(removed_ids)})")
     print_info(f"claims added      : {added_claims}")
     print_info(f"claims removed    : {removed_claims}")
-    print_info(f"declared triples  : {len(new_snap['triples'])}")
-    for section in ("instantiated_with_id", "id_overrides", "alias_exceptions",
-                    "triple_exceptions"):
-        before, after = len(old_snap.get(section, [])), len(new_snap[section])
-        print_info(f"{section:<18}: {after} ({after - before:+d})")
     if changed:
         print_success(f"snapshot written to {snapshot_path}")
     else:
@@ -952,25 +875,26 @@ def remove_filament_id(path, old_id):
 
 
 # ---------------------------------------------------------------------------
-# Default run: mint + insert ids for id-less families
+# Default run: mint + insert ids for id-less filaments
 # ---------------------------------------------------------------------------
 
 def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
-    """Mint + insert ids for id-less families; mint + replace non-OF-format
+    """Mint + insert ids for id-less filaments; mint + replace non-OF-format
     declarations. Never rewrites a valid (OF-format) existing id.
 
-    A family = (vendor, base name) group over instantiated filaments with no
-    effective id. The minted id is a pure function of the family's triple —
-    (filament_vendor, filament_type) resolved on the root(s), family name — and
-    is inserted into the family's root(s): the presets its members inherit that
-    carry no id, or the member itself when it has no vendor-side parent.
+    A filament = (vendor, base name) group over instantiated presets with no
+    effective id. The minted id is a pure function of the filament's triple —
+    (filament_vendor, filament_type) resolved on the root(s), filament name —
+    and is inserted into the filament's root(s): the id-less presets of the
+    SAME filament its members inherit, or the member itself otherwise (a parent
+    of another filament cannot carry this filament's id — check 3).
 
     A declaration whose value is not OF-format (e.g. a vendor bundle synced
     from an upstream source that ships its own catalog ids, such as BBL's GF*)
-    is treated the same as a missing family: a fresh id is minted for the
+    is treated the same as a missing filament: a fresh id is minted for the
     declarer's triple and the value is replaced in place (declarers that share
     one triple across several per-printer roots converge on the same id, same
-    as the multi-root families above). This is what makes a future BBL sync
+    as the multi-root filaments above). This is what makes a future BBL sync
     self-healing: upstream files arrive with GF ids, this pass replaces them,
     and the generated Bambu catalog map (keyed by the ids this mints) already
     knows the resulting rows.
@@ -983,8 +907,8 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
         print_error(msg)
         errors += 1
 
-    # Group id-less instantiated presets into families.
-    families = {}  # (vendor, family) -> [rec]
+    # Group id-less instantiated presets by filament.
+    filaments = {}  # (vendor, filament_name) -> [rec]
     for vendor, name, _file in analysis["missing_effective"]:
         rec = analysis["vendors"][vendor][name]
         if rec["id_source"] in ("cycle", "dangling"):
@@ -992,17 +916,17 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
                         f'({rec["id_source"]})')
             errors += 1
             continue
-        families.setdefault((vendor, base_name(name)), []).append(rec)
+        filaments.setdefault((vendor, base_name(name)), []).append(rec)
 
     # Declarations whose value is not OF-format: treated as missing too (see
-    # docstring). Grouped by triple, not by (vendor, family), so declarers
+    # docstring). Grouped by triple, not by (vendor, filament), so declarers
     # that legitimately share one triple across several files converge on one
     # freshly minted id instead of each getting their own.
     non_of_declarers = [
         (vendor, rec, fid, triple) for vendor, rec, fid, triple in analysis["declarer_triples"]
         if not OF_ID_RE.match(fid)]
 
-    if not families and not non_of_declarers:
+    if not filaments and not non_of_declarers:
         print_success("every instantiated filament already resolves an OF-format "
                       "filament_id; nothing to do (0 files changed)")
         return 0, errors
@@ -1013,46 +937,34 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
     for occurring in analysis["vendor_ids"].values():
         taken |= occurring
 
-    # Family root(s): the direct vendor-side parents of the members (id-less by
-    # construction), or the member itself when it has none.
-    roots = {}  # (vendor, family) -> {preset name: rec}
-    root_claims = {}  # (vendor, root name) -> set of families wanting to write it
-    for key, members in sorted(families.items()):
-        vendor = key[0]
+    # Root preset(s): the direct vendor-side parents of the members (id-less by
+    # construction) that belong to the same filament, or the member itself.
+    roots = {}  # (vendor, filament_name) -> {preset name: rec}
+    for key, members in sorted(filaments.items()):
+        vendor, filament_name = key
         vendor_map = analysis["vendors"][vendor]
-        family_roots = {}
+        filament_roots = {}
         for rec in members:
             parent = rec.get("inherits")
             root = vendor_map.get(parent) if parent else None
-            if root is None or root.get("filament_id"):
+            if (root is None or root.get("filament_id")
+                    or base_name(root["name"]) != filament_name):
                 root = rec  # root-less member carries the id itself
-            family_roots[root["name"]] = root
-            root_claims.setdefault((vendor, root["name"]), set()).add(key)
-        roots[key] = family_roots
+            filament_roots[root["name"]] = root
+        roots[key] = filament_roots
 
     ofl_map = analysis["vendors"].get(OFL, {})
     files_changed = 0
-    families_minted = 0
-    for key, family_roots in sorted(roots.items()):
-        vendor, family = key
-        shared = [n for n in family_roots
-                  if len(root_claims[(vendor, n)]) > 1]
-        if shared:
-            others = sorted({f"{v}/{f}" for n in shared
-                             for (v, f) in root_claims[(vendor, n)] if (v, f) != key})
-            print_error(
-                f'cannot mint for family "{vendor}/{family}": root(s) '
-                f"{sorted(shared)} are shared with famil(ies) {others}; split the "
-                f"roots so each family has its own")
-            errors += 1
-            continue
+    filaments_minted = 0
+    for key, filament_roots in sorted(roots.items()):
+        vendor, filament_name = key
         vendor_map = analysis["vendors"][vendor]
         fields = {(resolve_filament_field(n, "filament_vendor", vendor_map, ofl_map),
                    resolve_filament_field(n, "filament_type", vendor_map, ofl_map))
-                  for n in family_roots}
+                  for n in filament_roots}
         if len(fields) > 1:
             print_error(
-                f'cannot mint for family "{vendor}/{family}": its roots resolve '
+                f'cannot mint for filament "{vendor}/{filament_name}": its roots resolve '
                 f"divergent (filament_vendor, filament_type) pairs {sorted(fields)}; "
                 f"align the fields first")
             errors += 1
@@ -1063,26 +975,27 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
                 k for k, v in (("filament_vendor", fvendor),
                                ("filament_type", ftype)) if not v)
             print_error(
-                f'cannot mint for family "{vendor}/{family}": it resolves empty '
+                f'cannot mint for filament "{vendor}/{filament_name}": it resolves empty '
                 f'{missing}; the mint key needs both (generic materials use '
                 f'filament_vendor "Generic")')
             errors += 1
             continue
-        new_id = mint_filament_id(fvendor, ftype, family, taken)
+        new_id = mint_filament_id(fvendor, ftype, filament_name, taken)
         taken.add(new_id)
-        families_minted += 1
-        for name in sorted(family_roots):
-            root = family_roots[name]
+        filaments_minted += 1
+        for name in sorted(filament_roots):
+            root = filament_roots[name]
             write_filament_id(root["path"], new_id)
             files_changed += 1
-            print_info(f'family "{vendor}/{family}": filament_id "{new_id}" -> {root["file"]}')
+            print_info(f'filament "{vendor}/{filament_name}": filament_id "{new_id}" '
+                       f'-> {root["file"]}')
 
     # Non-OF-format declarations: mint once per triple, rewrite every declarer
     # that shares it (see docstring).
     declarations_reminted = 0
     assigned = {}  # triple -> id chosen this run
     for vendor, rec, fid, triple in sorted(non_of_declarers, key=lambda x: (x[0], x[1]["file"])):
-        fvendor, ftype, family = triple
+        fvendor, ftype, filament_name = triple
         if not fvendor or not ftype:
             missing = " and ".join(
                 k for k, v in (("filament_vendor", fvendor),
@@ -1094,16 +1007,16 @@ def assign_missing_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH):
             errors += 1
             continue
         if triple not in assigned:
-            assigned[triple] = mint_filament_id(fvendor, ftype, family, taken)
+            assigned[triple] = mint_filament_id(fvendor, ftype, filament_name, taken)
             taken.add(assigned[triple])
         new_id = assigned[triple]
         rewrite_filament_id(rec["path"], fid, new_id)
         files_changed += 1
         declarations_reminted += 1
-        print_info(f'family "{vendor}/{family}": non-OF filament_id "{fid}" -> "{new_id}" '
-                   f'({rec["file"]})')
+        print_info(f'filament "{vendor}/{filament_name}": non-OF filament_id "{fid}" '
+                   f'-> "{new_id}" ({rec["file"]})')
 
-    print_info(f"families minted  : {families_minted}")
+    print_info(f"filaments minted : {filaments_minted}")
     print_info(f"non-OF reminted  : {declarations_reminted}")
     print_info(f"files changed    : {files_changed}")
     if files_changed:
@@ -1178,8 +1091,7 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
             # mint-conformant (check 3) — leave it. This keeps deliberate salt
             # splits (two presets of one product that must stay distinct for
             # per-printer AMS matching, validator -f) stable across re-mints.
-            if fid in {generate_filament_id(*rec["triple"], salt=s)
-                       for s in range(MAX_CHECK_SALT + 1)}:
+            if fid in mint_iterations(rec["triple"]):
                 continue
             want = want_id(rec["triple"])
             if fid == want:
@@ -1197,8 +1109,8 @@ def remint_vendors(vendor_list, profiles_dir=PROFILES_DIR):
 
 def drop_redundant_ids(vendor, profiles_dir=PROFILES_DIR):
     """Delete filament_id declarations in `vendor` that merely re-declare an OFL
-    family's id path: ignoring its own key, the preset's inherits chain enters
-    OFL and resolves an OFL-declared id, and the preset keeps the OFL family's
+    filament's id path: ignoring its own key, the preset's inherits chain enters
+    OFL and resolves an OFL-declared id, and the preset keeps the OFL filament's
     base name. Such a preset is a specialization and rides the OFL id (v3.2(b)).
     Never touches the snapshot. Returns (dropped, errors).
     """
@@ -1246,25 +1158,22 @@ def drop_redundant_ids(vendor, profiles_dir=PROFILES_DIR):
 def main(argv=None):
     _utf8_console()
     parser = argparse.ArgumentParser(
-        description="Mint deterministic filament_id values for id-less filament "
-                    "families and validate the tree against the sanctioned snapshot.")
-    parser.add_argument("--mint", metavar='"Vendor/Type/Family"',
+        description="Mint deterministic filament_id values for id-less filaments "
+                    "and validate the tree against the sanctioned snapshot.")
+    parser.add_argument("--mint", metavar='"Vendor/Type/Filament"',
                         help="print the id the (filament_vendor, filament_type, "
-                             "family name) triple would mint; touches nothing")
+                             "filament name) triple would mint; touches nothing")
     parser.add_argument("--update-snapshot", action="store_true",
                         help="regenerate scripts/filament_id_snapshot.json from "
                              "the tree")
     parser.add_argument("--check", action="store_true",
                         help="run the filament_id checks; exit nonzero on errors")
-    parser.add_argument("--allow-shared-catalog", action="store_true",
-                        help="with --update-snapshot: allow sanctioning new claims "
-                             "on reserved-namespace ids for non-owner vendors")
     parser.add_argument("--remint", metavar="VENDOR", action="append",
                         help="re-derive VENDOR's declared filament_ids from their "
                              "triples and rewrite mismatches in place; repeatable")
     parser.add_argument("--drop-redundant-ids", metavar="VENDOR",
                         help="delete filament_id declarations in VENDOR that "
-                             "re-declare the OFL family id they already resolve "
+                             "re-declare the OFL filament id they already resolve "
                              "through inherits")
     parser.add_argument("--profiles", default=PROFILES_DIR,
                         help="profiles directory (default: resources/profiles)")
@@ -1274,8 +1183,8 @@ def main(argv=None):
     if args.mint:
         parts = args.mint.split("/", 2)
         if len(parts) != 3 or not all(parts):
-            parser.error('--mint expects "filament_vendor/filament_type/family_name" '
-                         "with all three components non-empty (check 7 rejects empty "
+            parser.error('--mint expects "filament_vendor/filament_type/filament_name" '
+                         "with all three components non-empty (check 5 rejects empty "
                          "vendor/type in the tree)")
         snapshot = load_snapshot(SNAPSHOT_PATH) or {"ids": {}}
         taken = set(snapshot["ids"])
@@ -1295,8 +1204,7 @@ def main(argv=None):
         return 1 if errors else 0
 
     if args.update_snapshot:
-        return update_snapshot(args.profiles, SNAPSHOT_PATH,
-                               allow_shared_catalog=args.allow_shared_catalog)
+        return update_snapshot(args.profiles, SNAPSHOT_PATH)
 
     if args.check:
         errors = check_filament_ids(args.profiles, SNAPSHOT_PATH)

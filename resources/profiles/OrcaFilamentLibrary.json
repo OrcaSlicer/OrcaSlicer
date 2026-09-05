@@ -525,8 +525,8 @@
 			"sub_path": "filament/DREMC/DREMC PA6-CF @base.json"
 		},
 		{
-			"name": "Elegoo PAHT @base",
-			"sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
+			"name": "Elegoo PAHT-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo PAHT-CF @base.json"
 		},
 		{
 			"name": "FILL3D PA @base",
@@ -1169,8 +1169,8 @@
 			"sub_path": "filament/DREMC/DREMC TPU 95A @base.json"
 		},
 		{
-			"name": "Elegoo TPU @base",
-			"sub_path": "filament/Elegoo/Elegoo TPU @base.json"
+			"name": "Elegoo TPU 95A @base",
+			"sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
 		},
 		{
 			"name": "Eolas Prints TPU D60 UV Resistant @System",

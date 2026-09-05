@@ -12,11 +12,11 @@ src/slic3r/Utils/BBLPrinterAgent.cpp loads it at runtime and translates an id
 only where it crosses to or from a Bambu printer, so the correspondence never
 has to be hand-maintained. See docs/HLSD/filament_id.md.
 
-One row per BambuStudio filament PRODUCT: one commercial line = one
+One row per BambuStudio filament PRODUCT: one named spool product = one
 "@base"-declared filament_id, shared by every per-printer/per-nozzle
 instantiation of it (BambuStudio follows the same one-product-one-id shape
 Orca's own filament_id policy does). A row's key reuses whatever OF id Orca
-already ships for that same (filament_vendor, filament_type, family) triple;
+already ships for that same (filament_vendor, filament_type, filament) triple;
 a triple Orca does not ship anywhere yet gets a freshly generated one.
 
 Map format:
@@ -38,9 +38,9 @@ Run from anywhere:  python3 scripts/update_bambu_filament_ids.py
   --ref REF          clone this BambuStudio ref instead of master
   --output PATH      write here instead of resources/printers/bambu_filament_ids.json
 
-After writing, an informational drift report is printed: BambuStudio families
+After writing, an informational drift report is printed: BambuStudio filaments
 Orca ships nothing with the same identity for, and a count of Orca's own BBL
-families that matched no BambuStudio row. Neither blocks the write; both are
+filaments that matched no BambuStudio row. Neither blocks the write; both are
 for a human to read.
 """
 
@@ -78,32 +78,34 @@ BAMBUSTUDIO_REPO = "https://github.com/bambulab/BambuStudio"
 # ---------------------------------------------------------------------------
 
 def derive_rows(bs_filaments, orca_triples):
-    """orca_triples: {(vendor, type, family): orca_id} built from analyze_tree()["triples"]."""
-    by_family = {}                       # family -> (bambu_id, triple)
+    """orca_triples: {(vendor, type, name): orca_id} from analyze_tree()["triples"]."""
+    by_filament = {}                       # filament_name -> (bambu_id, triple)
     for rec in bs_filaments.values():
         if not rec["instantiation"]:
             continue
         bambu_id, _src, _entry = resolve_filament_id(rec["name"], bs_filaments, {})
         if not bambu_id:
             continue
-        family = base_name(rec["name"])
+        filament_name = base_name(rec["name"])
         triple = resolve_triple(rec["name"], bs_filaments, {})
-        prev = by_family.setdefault(family, (bambu_id, triple))
+        prev = by_filament.setdefault(filament_name, (bambu_id, triple))
         if prev != (bambu_id, triple):
-            raise SystemExit(f"BambuStudio family {family!r} is not one product: {prev} vs {(bambu_id, triple)}")
+            raise SystemExit(f"BambuStudio filament {filament_name!r} is not one "
+                             f"product: {prev} vs {(bambu_id, triple)}")
     rows, seen = {}, {}
-    for family, (bambu_id, triple) in sorted(by_family.items()):
+    for filament_name, (bambu_id, triple) in sorted(by_filament.items()):
         if bambu_id in seen:
-            raise SystemExit(f"Bambu id {bambu_id} is shared by {seen[bambu_id]!r} and {family!r}")
-        seen[bambu_id] = family
+            raise SystemExit(f"Bambu id {bambu_id} is shared by "
+                             f"{seen[bambu_id]!r} and {filament_name!r}")
+        seen[bambu_id] = filament_name
         orca_id = orca_triples.get(triple) or generate_filament_id(*triple)   # reuse a salted id if we ship one
         rows[orca_id] = {"bambu_id": bambu_id, "vendor": triple[0], "type": triple[1], "name": triple[2]}
     return rows
 
 
 def orca_triples_from_analysis(orca_analysis, needed_triples):
-    """{(vendor, type, family): orca_id}, inverted from analyze_tree()["triples"]
-    (id -> [[vendor, type, family], ...]) and restricted to `needed_triples`
+    """{(vendor, type, name): orca_id}, inverted from analyze_tree()["triples"]
+    (id -> [[vendor, type, name], ...]) and restricted to `needed_triples`
     (the triples BambuStudio's own bundle ships, i.e. the only ones derive_rows
     will ever look up).
 
@@ -118,7 +120,7 @@ def orca_triples_from_analysis(orca_analysis, needed_triples):
     Restricting the scan to needed_triples matters for that check: elsewhere
     in the tree one triple legitimately resolves two different ids on purpose
     (e.g. Cubicon's xCeler line declares its own id per printer instead of
-    inheriting its family's, sanctioned in scripts/filament_id_snapshot.json)
+    inheriting its root's, sanctioned in scripts/filament_id_snapshot.json)
     and that pre-existing, Bambu-unrelated divergence must not block a map
     that never reads it.
     """
@@ -150,9 +152,9 @@ def drift_report(rows, orca_analysis):
     independently, so only the (vendor, type, name) identity is comparable).
 
     Returns print-ready lines: one per BambuStudio row triple with no
-    same-triple family in Orca's BBL bundle (upstream ships it, we ship
+    same-triple filament in Orca's BBL bundle (upstream ships it, we ship
     nothing with that identity there — sometimes a genuinely missing product,
-    sometimes a renamed one), then a count of Orca's own BBL families that
+    sometimes a renamed one), then a count of Orca's own BBL filaments that
     matched no BambuStudio row (Orca-only products, e.g. a name-drifted
     duplicate of one already counted in the first list).
     """
@@ -160,19 +162,20 @@ def drift_report(rows, orca_analysis):
 
     bbl_filaments = orca_analysis["vendors"].get("BBL", {})
     ofl_filaments = orca_analysis["vendors"].get(OFL, {})
-    orca_families = {}
+    orca_filaments = {}
     for rec in bbl_filaments.values():
         if not rec["instantiation"]:
             continue
         triple = resolve_triple(rec["name"], bbl_filaments, ofl_filaments)
-        orca_families.setdefault(base_name(rec["name"]), triple)
+        orca_filaments.setdefault(base_name(rec["name"]), triple)
 
     lines = []
-    for triple in sorted(row_triples - set(orca_families.values())):
+    for triple in sorted(row_triples - set(orca_filaments.values())):
         lines.append(f'upstream ships {triple[2]!r} ({triple[0]}/{triple[1]}), '
                      "we ship nothing with that identity")
-    orca_only = [family for family, triple in orca_families.items() if triple not in row_triples]
-    lines.append(f"Orca BBL families with no row: {len(orca_only)} Orca-only product(s)")
+    orca_only = [name for name, triple in orca_filaments.items()
+                 if triple not in row_triples]
+    lines.append(f"Orca BBL filaments with no row: {len(orca_only)} Orca-only product(s)")
     return lines
 
 

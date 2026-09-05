@@ -3,6 +3,9 @@
 	"name": "Elegoo PET-CF @base",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"filament_id": "OFV5tNw6",
-	"instantiation": "false"
+	"filament_id": "OFe98A1y",
+	"instantiation": "false",
+	"filament_type": [
+		"PET-CF"
+	]
 }

@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Elegoo PAHT @base",
+	"name": "Elegoo PAHT-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OF0h7ERL",
+	"filament_id": "OF20kXr5",
 	"instantiation": "false",
 	"filament_density": [
 		"1.25"
