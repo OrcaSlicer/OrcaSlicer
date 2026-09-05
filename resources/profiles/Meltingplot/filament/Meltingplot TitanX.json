@@ -1,0 +1,61 @@
+{
+	"type": "filament",
+	"name": "Meltingplot TitanX",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"setting_id": "LDPRmxlvX97NXF0F",
+	"filament_id": "MPFTIX0",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Meltingplot"
+	],
+	"filament_flow_ratio": [
+		"0.93"
+	],
+	"filament_shrink": [
+		"99.75%"
+	],
+	"filament_density": [
+		"1.07"
+	],
+	"slow_down_layer_time": [
+		"33"
+	],
+	"cool_plate_temp": [
+		"110"
+	],
+	"eng_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"cool_plate_temp_initial_layer": [
+		"110"
+	],
+	"eng_plate_temp_initial_layer": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"33"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.2 nozzle",
+		"Meltingplot MBL 136 1.2 nozzle",
+		"Meltingplot MBL 308 1.2 nozzle",
+		"Meltingplot MBL 480 1.2 nozzle",
+		"Meltingplot CHX 350 1.2 nozzle"
+	]
+}

@@ -1,0 +1,94 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PA6 CF HT",
+	"inherits": "Generic PA-CF @System",
+	"from": "system",
+	"setting_id": "kzlYLTM6H5CgpQ8y",
+	"filament_id": "MPFPA6C",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Meltingplot"
+	],
+	"nozzle_temperature": [
+		"275"
+	],
+	"nozzle_temperature_initial_layer": [
+		"275"
+	],
+	"filament_max_volumetric_speed": [
+		"22"
+	],
+	"filament_density": [
+		"1.25"
+	],
+	"filament_cost": [
+		"89"
+	],
+	"default_filament_colour": [
+		"#858078"
+	],
+	"filament_shrink": [
+		"99.9%"
+	],
+	"filament_shrinkage_compensation_z": [
+		"99.9%"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"additional_cooling_fan_speed": [
+		"40"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"33"
+	],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.2 nozzle",
+		"Meltingplot MBL 136 1.2 nozzle",
+		"Meltingplot MBL 308 1.2 nozzle",
+		"Meltingplot MBL 480 1.2 nozzle",
+		"Meltingplot CHX 350 1.2 nozzle"
+	]
+}

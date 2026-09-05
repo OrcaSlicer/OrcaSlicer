@@ -1,0 +1,91 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PET-CF15",
+	"inherits": "Generic PETG-CF @System",
+	"from": "system",
+	"setting_id": "IdqfEh7xRXKTYmV3",
+	"filament_id": "MPFPETC",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Meltingplot"
+	],
+	"filament_type": [
+		"PET-CF"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"filament_max_volumetric_speed": [
+		"31"
+	],
+	"filament_density": [
+		"1.4"
+	],
+	"filament_cost": [
+		"77.5"
+	],
+	"filament_shrink": [
+		"99.9%"
+	],
+	"filament_shrinkage_compensation_z": [
+		"99.9%"
+	],
+	"temperature_vitrification": [
+		"125"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"slow_down_layer_time": [
+		"11"
+	],
+	"cool_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"cool_plate_temp_initial_layer": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.2 nozzle",
+		"Meltingplot MBL 136 1.2 nozzle",
+		"Meltingplot MBL 308 1.2 nozzle",
+		"Meltingplot MBL 480 1.2 nozzle",
+		"Meltingplot CHX 350 1.2 nozzle"
+	]
+}

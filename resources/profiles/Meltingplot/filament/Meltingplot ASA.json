@@ -1,0 +1,70 @@
+{
+	"type": "filament",
+	"name": "Meltingplot ASA",
+	"inherits": "Generic ASA @System",
+	"from": "system",
+	"setting_id": "5VuPxdOXfTIidM4X",
+	"filament_id": "MPFASA0",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Meltingplot"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"filament_max_volumetric_speed": [
+		"33"
+	],
+	"filament_density": [
+		"1.11"
+	],
+	"filament_cost": [
+		"46.65"
+	],
+	"default_filament_colour": [
+		"#123123"
+	],
+	"slow_down_layer_time": [
+		"22"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"cool_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"cool_plate_temp_initial_layer": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.2 nozzle",
+		"Meltingplot MBL 136 1.2 nozzle",
+		"Meltingplot MBL 308 1.2 nozzle",
+		"Meltingplot MBL 480 1.2 nozzle",
+		"Meltingplot CHX 350 1.2 nozzle"
+	]
+}

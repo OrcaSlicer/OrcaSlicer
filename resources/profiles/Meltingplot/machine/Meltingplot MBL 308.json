@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Meltingplot MBL 308",
+	"model_id": "Meltingplot-MBL-308",
+	"nozzle_diameter": "0.8;0.4;0.6;1.0;1.2",
+	"machine_tech": "FFF",
+	"family": "Meltingplot",
+	"bed_model": "mbl308-printbed.stl",
+	"bed_texture": "mbl-308-texture.svg",
+	"hotend_model": "",
+	"default_materials": "Meltingplot PLA;Meltingplot PETG;Meltingplot ABS;Meltingplot ASA"
+}

@@ -1,0 +1,70 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PETG",
+	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "dsW7JrzWhKAY1fey",
+	"filament_id": "MPFPTG0",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Meltingplot"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"filament_max_volumetric_speed": [
+		"27"
+	],
+	"filament_cost": [
+		"35"
+	],
+	"default_filament_colour": [
+		"#123123"
+	],
+	"fan_min_speed": [
+		"50"
+	],
+	"fan_cooling_layer_time": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"33"
+	],
+	"cool_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"cool_plate_temp_initial_layer": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.2 nozzle",
+		"Meltingplot MBL 136 1.2 nozzle",
+		"Meltingplot MBL 308 1.2 nozzle",
+		"Meltingplot MBL 480 1.2 nozzle",
+		"Meltingplot CHX 350 1.2 nozzle"
+	]
+}
