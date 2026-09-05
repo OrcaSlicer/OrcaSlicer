@@ -736,9 +736,6 @@ void GLGizmoCut3D::render_move_center_input(int axis)
     }
 }
 
-// -0.0 and tiny negatives print as "-0.00" with "%.2f"; collapse them for display.
-static double norm_zero_display(double v) { return std::fabs(v) < 5e-4 ? 0. : v; }
-
 // Rotation block styled after GizmoObjectManipulation::do_render_rotate_window:
 // a header row with colored axis names, plus Relative (pending deltas applied
 // on commit) and Absolute (plane orientation) rows.
@@ -782,10 +779,10 @@ void GLGizmoCut3D::render_cut_rotation_input()
     // Relative row: pending deltas, applied on commit (Enter / focus loss), then cleared.
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Relative"));
+    delete_negative_sign(m_cut_relative_deg);
     for (int axis = X; axis <= Z; ++axis) {
         ImGui::SameLine(col_x[axis]);
         ImGui::PushItemWidth(unit_size);
-        m_cut_relative_deg[axis] = norm_zero_display(m_cut_relative_deg[axis]);
         ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0, 0.0, "%.2f");
         ImGui::PopItemWidth();
         if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -834,11 +831,12 @@ void GLGizmoCut3D::render_cut_rotation_input()
         // Refresh the display buffer when the user is not editing it, so drags
         // and relative commits show up immediately without clobbering typing.
         for (int axis = X; axis <= Z; ++axis) {
-            double value = norm_zero_display(rad2deg(m_cut_rotation[axis]));
+            double value = rad2deg(m_cut_rotation[axis]);
             while (value > 180.) value -= 360.;
             while (value <= -180.) value += 360.;
             m_cut_absolute_deg[axis] = value;
         }
+        delete_negative_sign(m_cut_absolute_deg);
     }
 }
 
