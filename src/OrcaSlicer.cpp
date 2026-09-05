@@ -1793,8 +1793,9 @@ int CLI::run(int argc, char **argv)
                     old_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                     old_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
                     if (old_printable_area.size() >= 4) {
-                        old_printable_width = (int)(old_printable_area[2].x() - old_printable_area[0].x());
-                        old_printable_depth = (int)(old_printable_area[2].y() - old_printable_area[0].y());
+                        BoundingBoxf old_printable_bbox(old_printable_area);
+                        old_printable_width = static_cast<int>(old_printable_bbox.size().x());
+                        old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
                     old_printable_height = (int)(config.opt_float("printable_height"));
 
@@ -2343,8 +2344,9 @@ int CLI::run(int argc, char **argv)
                         Pointfs orig_printable_area;
                         orig_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                         if (orig_printable_area.size() >= 4) {
-                            orig_printable_width = (int)(orig_printable_area[2].x() - orig_printable_area[0].x());
-                            orig_printable_depth = (int)(orig_printable_area[2].y() - orig_printable_area[0].y());
+                            BoundingBoxf orig_printable_bbox(orig_printable_area);
+                            orig_printable_width = static_cast<int>(orig_printable_bbox.size().x());
+                            orig_printable_depth = static_cast<int>(orig_printable_bbox.size().y());
                         }
                         orig_printable_height = (int)(config.opt_float("printable_height"));
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(":%1%, check printable size: old_printable_width=%2%, orig_printable_width=%3%, old_printable_depth=%4%, orig_printable_depth=%5%, old_printable_height=%6%, orig_printable_height=%7%")
@@ -3138,7 +3140,25 @@ int CLI::run(int argc, char **argv)
         std::vector<int> old_variant_counts(filament_count, 1), new_variant_counts;
 
         ConfigOptionInts* filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index");
-        if (!filament_self_index_opt) {
+        bool need_regenerate_self_index = !filament_self_index_opt;
+        if (filament_self_index_opt) {
+            // a filament_self_index carried over from a stale project can disagree with the
+            // current filament_count. old_start_indice/old_variant_counts below are sized to
+            // filament_count and walked with 1-based group indices, so an index above
+            // filament_count overruns old_start_indice[++k], and a non-positive first index
+            // writes old_variant_counts[-1] - both heap corruption.
+            int max_self_index = 0, min_self_index = 1;
+            for (int v : filament_self_index_opt->values) {
+                max_self_index = std::max(max_self_index, v);
+                min_self_index = std::min(min_self_index, v);
+            }
+            if (max_self_index > filament_count || min_self_index < 1) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] is invalid for filament_count %3%, regenerating")
+                        % min_self_index % max_self_index % filament_count;
+                need_regenerate_self_index = true;
+            }
+        }
+        if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
             filament_self_indice.resize(filament_count);
@@ -3732,6 +3752,8 @@ int CLI::run(int argc, char **argv)
     double height_to_lid = m_print_config.opt_float("extruder_clearance_height_to_lid");
     double height_to_rod = m_print_config.opt_float("extruder_clearance_height_to_rod");
     double clearance_radius = m_print_config.opt_float("extruder_clearance_radius");
+    double nozzle_height = m_print_config.opt_float("nozzle_height");
+    Vec2d align_center = m_print_config.option<ConfigOptionPoint>("best_object_pos")->value;
     int shared_printable_width = 0, shared_printable_depth = 0, shared_printable_height = 0, shared_center_x = 0, shared_center_y = 0;
     //double plate_stride;
     std::string bed_texture;
@@ -3742,8 +3764,11 @@ int CLI::run(int argc, char **argv)
     if (m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")) {
         current_extruder_print_heights = m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")->values;
     }
-    current_printable_width = current_printable_area[2].x() - current_printable_area[0].x();
-    current_printable_depth = current_printable_area[2].y() - current_printable_area[0].y();
+    {
+        BoundingBoxf current_printable_bbox(current_printable_area);
+        current_printable_width = static_cast<int>(current_printable_bbox.size().x());
+        current_printable_depth = static_cast<int>(current_printable_bbox.size().y());
+    }
     current_printable_height = print_height;
     if (old_printable_width == 0)
         old_printable_width = current_printable_width;
@@ -3944,6 +3969,11 @@ int CLI::run(int argc, char **argv)
         ConfigOptionFloats *wipe_x_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_x"));
         ConfigOptionFloats *wipe_y_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_y"));
 
+        // get_at() silently clamps an out-of-range index to entry 0 - make the reuse visible
+        if (static_cast<size_t>(plate_index) >= wipe_x_option->values.size() || static_cast<size_t>(plate_index) >= wipe_y_option->values.size()) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: wipe_tower_x/y only has %2%/%3% entries, reusing entry 0's position")
+                    %(plate_index+1) %wipe_x_option->values.size() %wipe_y_option->values.size();
+        }
         plate_obj_size_info.wipe_x = wipe_x_option->get_at(plate_index);
         plate_obj_size_info.wipe_y = wipe_y_option->get_at(plate_index);
 
@@ -4139,8 +4169,9 @@ int CLI::run(int argc, char **argv)
             temp_extruder_print_heights = config.option<ConfigOptionFloatsNullable>("extruder_printable_height", true)->values;
 
             if (temp_printable_area.size() >= 4) {
-                printer_plate.printable_width = (int)(temp_printable_area[2].x() - temp_printable_area[0].x());
-                printer_plate.printable_depth = (int)(temp_printable_area[2].y() - temp_printable_area[0].y());
+                BoundingBoxf temp_printable_bbox(temp_printable_area);
+                printer_plate.printable_width = static_cast<int>(temp_printable_bbox.size().x());
+                printer_plate.printable_depth = static_cast<int>(temp_printable_bbox.size().y());
                 printer_plate.printable_height = (int)(config.opt_float("printable_height"));
             }
             if (temp_exclude_area.size() >= 4) {
@@ -4788,6 +4819,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod = height_to_rod;
                 arrange_cfg.clearance_height_to_lid = height_to_lid;
                 arrange_cfg.clearance_radius = clearance_radius;
+                arrange_cfg.nozzle_height = nozzle_height;
+                arrange_cfg.align_center = align_center;
                 arrange_cfg.printable_height = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
@@ -5166,7 +5199,8 @@ int CLI::run(int argc, char **argv)
 
                             Vec3d wipe_tower_size = cur_plate->estimate_wipe_tower_size(m_print_config, w, v, new_extruder_count, filaments_cnt, false, enable_wrapping);
                             Vec3d plate_origin = cur_plate->get_origin();
-                            int plate_width, plate_depth, plate_height;
+                            int plate_width, plate_depth;
+                            double plate_height;
                             partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
                             float depth = wipe_tower_size(1);
                             float margin = 15.f, wp_brim_width = 0.f;
@@ -5238,6 +5272,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod             = height_to_rod;
                 arrange_cfg.clearance_height_to_lid             = height_to_lid;
                 arrange_cfg.clearance_radius                   = clearance_radius;
+                arrange_cfg.nozzle_height                       = nozzle_height;
+                arrange_cfg.align_center                        = align_center;
                 arrange_cfg.printable_height                    = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
@@ -6497,7 +6533,6 @@ int CLI::run(int argc, char **argv)
         bool need_create_thumbnail_group = false, need_create_no_light_group = false, need_create_top_group = false;
 
         // get type and color for platedata
-        auto* filament_types = dynamic_cast<const ConfigOptionStrings*>(m_print_config.option("filament_type"));
         const ConfigOptionStrings* filament_color = dynamic_cast<const ConfigOptionStrings *>(m_print_config.option("filament_colour"));
         auto* filament_id = dynamic_cast<const ConfigOptionStrings*>(m_print_config.option("filament_ids"));
         const ConfigOptionFloats* nozzle_diameter_option = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("nozzle_diameter"));
@@ -6516,10 +6551,11 @@ int CLI::run(int argc, char **argv)
                 plate_data->nozzle_diameters = nozzle_diameter_str;
 
             for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+                // get_at() on an empty vector option is UB - these can be unpopulated on a from-scratch slice
                 std::string display_filament_type;
                 it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
-                it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-                it->filament_id = filament_id?filament_id->get_at(it->id):"";
+                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
+                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
             }
 
             if (!plate_data->plate_thumbnail.is_valid()) {
@@ -7311,6 +7347,10 @@ bool CLI::setup(int argc, char **argv)
             m_config.option(optdef.first, true);
 
     set_data_dir(m_config.opt_string("datadir"));
+    if (!data_dir().empty() && !boost::filesystem::exists(data_dir())) {
+        boost::nowide::cerr << "Could not create data directory: " << data_dir() << std::endl;
+        return false;
+    }
 
     //FIXME Validating at this stage most likely does not make sense, as the config is not fully initialized yet.
     if (!validity.empty()) {
@@ -7384,7 +7424,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
         << std::endl
         << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
-        << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
+        << "\t2) setting values loaded with --load-settings and --load-filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;
 
     /*if (include_print_options) {
@@ -7423,6 +7463,10 @@ bool CLI::export_models(IO::ExportFormat format, std::string path_dir)
                 for (ModelObject* model_object : model.objects)
                 {
                     const std::string path = this->output_filepath(*model_object, index++, format, path_dir);
+                    if (path.empty()) {
+                        boost::nowide::cerr << "Could not create output directory for STL export" << std::endl;
+                        return false;
+                    }
                     success = Slic3r::store_stl(path.c_str(), model_object, true);
                     if (success)
                         BOOST_LOG_TRIVIAL(info) << "Model successfully exported to " << path << std::endl;
@@ -7548,8 +7592,19 @@ std::string CLI::output_filepath(const ModelObject &object, unsigned int index, 
     output_path = subdir + "/"+file_name;
 
     boost::filesystem::path subdir_path(subdir);
-    if (!boost::filesystem::exists(subdir_path))
-        boost::filesystem::create_directory(subdir_path);
+    if (!boost::filesystem::exists(subdir_path)) {
+        try {
+            boost::filesystem::create_directories(subdir_path);
+        } catch (const boost::filesystem::filesystem_error &ex) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create output directory " << subdir_path.string() << ": " << ex.what();
+        }
+        if (!boost::filesystem::exists(subdir_path)) {
+            // Directory creation failed and won't succeed on a retry (same path, same cause) -
+            // signal failure now instead of letting every object in the model repeat the same
+            // doomed attempt and fail with a less specific "export failed" error later.
+            return std::string();
+        }
+    }
     return output_path;
 }
 

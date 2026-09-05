@@ -9865,7 +9865,15 @@ std::string DynamicPrintConfig::get_filament_type(std::string &displayed_filamen
     auto* filament_type = dynamic_cast<const ConfigOptionStrings*>(this->option("filament_type"));
     auto* filament_is_support = dynamic_cast<const ConfigOptionBools*>(this->option("filament_is_support"));
 
-    if (!filament_type)
+    // get_at() on an empty vector option is undefined behavior (.front() of an empty vector),
+    // and e.g. filament_id is never populated on a CLI from-scratch slice - treat an empty
+    // option the same as a missing one.
+    if (filament_id && filament_id->values.empty())
+        filament_id = nullptr;
+    if (filament_is_support && filament_is_support->values.empty())
+        filament_is_support = nullptr;
+
+    if (!filament_type || filament_type->values.empty())
         return "";
 
     if (!filament_is_support) {
@@ -11990,13 +11998,11 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def = this->add("load_defaultfila", coBool);
     def->label = L("Load default filaments");
     def->tooltip = L("Load first filament as default for those not loaded.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("min_save", coBool);
     def->label = L("Minimum save");
     def->tooltip = L("Export 3MF with minimum size.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("mtcpp", coInt);
@@ -12022,7 +12028,6 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def = this->add("normative_check", coBool);
     def->label = L("Normative check");
     def->tooltip = L("Check the normative items.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(true));
 
     /*def = this->add("help_fff", coBool);
@@ -12289,7 +12294,7 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->cli_params = "level";
     def->set_default_value(new ConfigOptionInt(1));
 
-    def = this->add("logfile", coInt);
+    def = this->add("logfile", coString);
     def->label = L("Log file");
     def->tooltip = L("Redirects debug logging to file.\n");
     def->cli_params = "file";
@@ -12337,7 +12342,6 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def = this->add("skip_modified_gcodes", coBool);
     def->label = L("Skip modified G-code in 3MF");
     def->tooltip = L("Skip the modified G-code in 3MF from printer or filament presets.");
-    def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("makerlab_name", coString);
@@ -12367,14 +12371,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def = this->add("allow_newer_file", coBool);
     def->label = L("Allow 3MF with newer version to be sliced");
     def->tooltip = L("Allow 3MF with newer version to be sliced.");
-    def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 
     def = this->add("allow_mix_temp", coBool);
     // internal use only, don't need translation
     def->label = "Allow filaments with high/low temperature to be printed together";
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
-    def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 }
 
