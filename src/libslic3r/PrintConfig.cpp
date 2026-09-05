@@ -7,7 +7,9 @@
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include <charconv>
 #include <set>
+#include <system_error>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -8223,10 +8225,18 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         }
     }
     else if(opt_key == "ensure_vertical_shell_thickness") {
-        if(value == "1") {
+        // Keep numeric legacy: "1" → All, "0" → Moderate (not None).
+        // Bambu Studio / MakerWorld aliases: enabled/disabled/partial (case-insensitive).
+        if(value == "1" || boost::iequals(value, "enabled") || boost::iequals(value, "true")) {
             value = "ensure_all";
         }
         else if (value == "0"){
+            value = "ensure_moderate";
+        }
+        else if (boost::iequals(value, "disabled") || boost::iequals(value, "false")) {
+            value = "none";
+        }
+        else if (boost::iequals(value, "partial")) {
             value = "ensure_moderate";
         }
     } else if (opt_key == "rotate_solid_infill_direction") {
@@ -8253,6 +8263,23 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "ironing_angle";
     } else if (opt_key == "ironing_angle" && boost::starts_with(value, "-")) {
         value = "0";
+    } else if (opt_key == "raft_first_layer_expansion") {
+        // Bambu Studio min=-1 default -1 ("auto"). This pin min=0 default 2.0.
+        // handle_legacy must not throw (set_deserialize_nothrow).
+        if (boost::starts_with(value, "-"))
+            value = "2";
+    } else if (opt_key == "tree_support_wall_count") {
+        // Belt-and-braces: Bambu range is already [0,2]. Nothrow parse.
+        if (boost::starts_with(value, "-")) {
+            value = "0";
+        } else if (!value.empty()) {
+            int         n     = 0;
+            const char *first = value.data();
+            const char *last  = first + value.size();
+            const auto  r     = std::from_chars(first, last, n);
+            if (r.ec == std::errc{} && r.ptr == last && n > 2)
+                value = "2";
+        }
     } else if (opt_key == "counterbole_hole_bridging") {
         opt_key = "counterbore_hole_bridging";
     } else if (opt_key == "draft_shield" && value == "limited") {
