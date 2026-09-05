@@ -137,6 +137,7 @@ static const wxColour kTitleErr(232, 106, 106);
 
 SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
 {
+    m_parent = parent_canvas;   // where the keyboard goes back to when this field lets go
     wxWindow* top = parent_canvas ? wxGetTopLevelParent(parent_canvas) : nullptr;
     // Borderless floating frame: a top-level window so the WM composites it above the
     // GL canvas (a child widget would be hidden by the GL surface). Floats on its
@@ -163,7 +164,11 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
     // outlives the input it was about is just noise on the next attempt.
     m_ctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { clear_invalid(); e.Skip(); });
     m_ctrl->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& e) {
-        if (e.GetKeyCode() == WXK_ESCAPE) do_cancel();
+        // Esc on an ORPHAN (mapped, m_open already false) must still take the field off the
+        // screen. do_cancel() returns early there, and while the frame holds the X input focus
+        // this handler is the ONLY code the keyboard can still reach — so if it refuses, nothing
+        // else gets a turn and the application looks frozen.
+        if (e.GetKeyCode() == WXK_ESCAPE) { if (m_open) do_cancel(); else dismiss(); }
         // Tab commits, exactly like Enter — the caller's on_commit is what walks to the next
         // dimension. Left to wx's default handling it navigated within this one-control popup,
         // i.e. back to the same field with the text re-selected: typing 60, Tab, 40 looked like
@@ -250,19 +255,53 @@ void SketchInlineEditor::do_commit()
     // CallAfter, queued during cb(v), therefore BEFORE the one below) or it does not. Hiding
     // here would unmap the window and mutter would refuse to focus the re-map; so hide only
     // after the reopen has had its turn. Harmless on the unmapped path — already hidden.
-    m_frame->CallAfter([this] { if (!m_open && m_frame) m_frame->Hide(); });
+    m_frame->CallAfter([this] {
+        if (m_open || m_frame == nullptr) return;
+        m_frame->Hide();
+        return_focus();   // the chain is over; the keyboard belongs to the canvas again
+    });
 }
 
 void SketchInlineEditor::cancel()
 {
-    if (m_open) do_cancel();
+    if (m_open)      do_cancel();
+    else if (is_mapped()) dismiss();   // orphan: logically gone, still on screen, still eating keys
+}
+
+bool SketchInlineEditor::is_mapped() const
+{
+    return m_frame != nullptr && m_frame->IsShown();
+}
+
+// Everything the frame can hold onto, released — with no m_open guard, because the state this
+// exists for is precisely the one where m_open lies.
+void SketchInlineEditor::dismiss()
+{
+    if (m_frame == nullptr) return;
+    m_open   = false;
+    m_commit = nullptr;
+    m_cancel = nullptr;
+    if (m_frame->IsShown()) m_frame->Hide();
+    return_focus();
+}
+
+// Hiding the frame is not enough: X keeps the input focus pointed at the window that had it, so
+// an unmapped field keeps swallowing keys. The canvas has to ask for it back explicitly.
+void SketchInlineEditor::return_focus()
+{
+    if (m_parent == nullptr) return;
+    if (wxWindow* top = wxGetTopLevelParent(m_parent))
+        top->Raise();
+    m_parent->SetFocus();
 }
 
 // Accept what is typed and close. Leaving a tool must not silently discard the value the user
 // just entered — the same rule set_tool already follows for a ready edit-op.
 void SketchInlineEditor::commit()
 {
-    if (!m_open) return;
+    // Same orphan case as cancel(): Enter or Tab forwarded by the panel must not be the one
+    // gesture that leaves the field on screen.
+    if (!m_open) { if (is_mapped()) dismiss(); return; }
     do_commit();
     // do_commit REFUSES to close on unparseable text, which is right while the user is still
     // typing — but this entry point is "we are leaving", and the caller (set_tool) unfreezes
@@ -323,6 +362,7 @@ void SketchInlineEditor::close()
     m_commit = nullptr;
     m_cancel = nullptr;
     m_closing = false;
+    return_focus();
 }
 
 }} // namespace Slic3r::GUI

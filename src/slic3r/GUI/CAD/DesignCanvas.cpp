@@ -1305,7 +1305,12 @@ void DesignCanvas::delete_selected_sketch_entities()
 
 bool DesignCanvas::inline_busy() const
 {
-    return m_sketch_tool.inline_busy();
+    // The TOOL's flag says a value is pending; the FRAME being mapped says a window is on screen
+    // holding the keyboard. Either one means "a field is up", and only the union of the two is
+    // safe to route Esc by: the flag alone went false while the frame was still mapped, which is
+    // the orphan that swallowed every key with nothing able to close it.
+    return m_sketch_tool.inline_busy()
+           || (m_inline_editor && m_inline_editor->is_mapped());
 }
 
 bool DesignCanvas::inline_has_focus() const
