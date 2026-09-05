@@ -16268,6 +16268,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     obj->config.set_key_value("wall_sequence", new ConfigOptionEnum<WallSequence>(WallSequence::InnerOuter));
     obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     obj->config.set_key_value("precise_z_height", new ConfigOptionBool(false));
+    obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
 
 
     changed_objects({ 0 });
