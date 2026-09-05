@@ -319,6 +319,8 @@ public:
     void map_painted_colors_to_cmyk_mixes();
     void picprint();
     void picprint_on_selected();
+    void print_mix_swatch_sheet();
+    void import_mix_swatch_lut();
     void apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &pre,
                                           const SpectrumMixDialogUndoKeys &post);
     //BBS download project by project id

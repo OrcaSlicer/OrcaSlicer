@@ -2766,6 +2766,16 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->picprint_on_selected(); }, "", nullptr,
             [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
+        append_menu_item(fileMenu, wxID_ANY, _L("Print Mix Swatch Sheet") + dots,
+            _L("Add a printable pad per 0010 lattice recipe (volume Mix/Physical; not Color Painting)"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->print_mix_swatch_sheet(); }, "", nullptr,
+            [this]() { return m_plater != nullptr; }, this);
+
+        append_menu_item(fileMenu, wxID_ANY, _L("Import Mix Swatch LUT") + dots,
+            _L("Import measured Lab for the mix swatch lattice (JSON or CSV). Ranks Match/PicPrint when the filament batch matches"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->import_mix_swatch_lut(); }, "", nullptr,
+            [this]() { return m_plater != nullptr; }, this);
+
         fileMenu->AppendSeparator();
 
         // BBS

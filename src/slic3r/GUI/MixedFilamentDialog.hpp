@@ -101,6 +101,7 @@ private:
     wxListBox          *m_candidate_list{nullptr};
     wxSlider           *m_min_mix_slider{nullptr};
     wxStaticText       *m_min_mix_label{nullptr};
+    wxStaticText       *m_lut_status{nullptr};
 };
 
 } // namespace GUI

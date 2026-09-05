@@ -29,12 +29,15 @@ struct SpectrumPicPrintPlan
 // rgb: packed RGB bytes, length w*h*3. max_clusters default SPECTRUM_PAINT_ID_PERSIST_CAP (32).
 // existing_mix_defs: project mix rows to keep (append unique PicPrint recipes; do not
 // reassign Mix IDs already used by other objects). Fails if mix_base + merged > persist 32.
+struct SwatchLUT;
+
 SpectrumPicPrintPlan plan_spectrum_picprint(
     const std::uint8_t *rgb, int w, int h,
     const std::vector<ColorRGB> &physicals,
     size_t mix_base,
     size_t max_clusters = SPECTRUM_PAINT_ID_PERSIST_CAP,
-    const std::string &existing_mix_defs = {});
+    const std::string &existing_mix_defs = {},
+    const SwatchLUT *lut = nullptr);
 
 // u,v in [0,1]. pixel_x = clamp(int(u*(w-1))); pixel_y = clamp(int((1.0-v)*(h-1))).
 unsigned spectrum_picprint_sample_facet(const SpectrumPicPrintPlan &plan, double u, double v);

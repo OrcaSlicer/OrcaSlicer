@@ -73,6 +73,7 @@
 #include "libslic3r/SpectrumAutoGraft.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/MixedFilamentPicPrint.hpp"
+#include "libslic3r/MixedFilamentSwatch.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -13343,8 +13344,14 @@ void Plater::picprint()
             bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
         existing_mix = mix_opt->value;
 
+    const std::string live_batch = spectrum_compute_batch_key(physicals, bundle->filament_presets);
+    const SwatchLUT  *lut        = spectrum_lut_for_batch(live_batch);
+    if (spectrum_lut_is_stale(live_batch))
+        get_notification_manager()->push_notification(_u8L("stale — filament batch changed"));
+    else if (lut != nullptr)
+        get_notification_manager()->push_notification(_u8L("measured"));
     const SpectrumPicPrintPlan plan = plan_spectrum_picprint(rgb.data(), img_w, img_h, physicals, mix_base,
-                                                              SPECTRUM_PAINT_ID_PERSIST_CAP, existing_mix);
+                                                              SPECTRUM_PAINT_ID_PERSIST_CAP, existing_mix, lut);
     if (!plan.valid) {
         const wxString err = plan.error.empty()
             ? _L("PicPrint failed.")
@@ -13515,8 +13522,14 @@ void Plater::picprint_on_selected()
             bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
         existing_mix = mix_opt->value;
 
+    const std::string live_batch = spectrum_compute_batch_key(physicals, bundle->filament_presets);
+    const SwatchLUT  *lut        = spectrum_lut_for_batch(live_batch);
+    if (spectrum_lut_is_stale(live_batch))
+        get_notification_manager()->push_notification(_u8L("stale — filament batch changed"));
+    else if (lut != nullptr)
+        get_notification_manager()->push_notification(_u8L("measured"));
     const SpectrumPicPrintPlan plan = plan_spectrum_picprint(rgb.data(), img_w, img_h, physicals, mix_base,
-                                                              SPECTRUM_PAINT_ID_PERSIST_CAP, existing_mix);
+                                                              SPECTRUM_PAINT_ID_PERSIST_CAP, existing_mix, lut);
     if (!plan.valid) {
         const wxString err = plan.error.empty()
             ? _L("PicPrint failed.")
@@ -13590,6 +13603,187 @@ void Plater::picprint_on_selected()
     on_config_change(bundle->full_config());
     schedule_background_process();
     sidebar().refresh_color_mixing_list();
+}
+
+void Plater::print_mix_swatch_sheet()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    size_t mix_base = 0;
+    std::vector<ColorRGB> physicals;
+    if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        mix_base = fc->values.size();
+        for (const std::string &hex : fc->values) {
+            if (physicals.size() >= 4)
+                break;
+            const std::string normalized = normalize_mix_match_hex(hex);
+            ColorRGB          c;
+            if (!normalized.empty() && decode_color(normalized, c))
+                physicals.push_back(c);
+        }
+    }
+    if (mix_base == 0)
+        mix_base = size_t(std::max(0, wxGetApp().filaments_cnt()));
+    if (mix_base == 0)
+        mix_base = 1;
+    if (physicals.empty()) {
+        MessageDialog(this,
+            _L("Need at least one physical filament colour (prefer C/M/Y/K on slots 1–4)."),
+            _L("Print Mix Swatch Sheet"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    const std::vector<MixMatchResult> lattice = spectrum_swatch_lattice(physicals);
+    if (lattice.empty()) {
+        MessageDialog(this,
+            _L("Could not build a mix swatch lattice."),
+            _L("Print Mix Swatch Sheet"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    const std::string batch_key = spectrum_compute_batch_key(physicals, bundle->filament_presets);
+    if (spectrum_lut_is_stale(batch_key))
+        get_notification_manager()->push_notification(_u8L("stale — filament batch changed"));
+
+    SpectrumMapUndoKeys pre_keys;
+    if (const ConfigOptionBool *mapped = bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped"))
+        pre_keys.mapped = mapped->value;
+    if (const ConfigOptionString *mix_opt =
+            bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        pre_keys.mixed_filament_definitions = mix_opt->value;
+
+    const size_t ts_before = p->undo_redo_stack().active_snapshot_time();
+    take_snapshot("Print Mix Swatch Sheet");
+    const size_t ts_after = p->undo_redo_stack().active_snapshot_time();
+
+    SwatchPlateBuild built = build_swatch_plate(model(), lattice, mix_base, batch_key, 270.0);
+    if (!built.valid || built.object == nullptr) {
+        const wxString err = built.error.empty()
+            ? _L("Could not build a mix swatch plate.")
+            : wxString::FromUTF8(built.error.c_str());
+        MessageDialog(this, err, _L("Print Mix Swatch Sheet"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    ModelObject *obj = built.object;
+    if (obj->instances.empty())
+        obj->add_instance();
+    Slic3r::save_object_mesh(*obj);
+
+    auto start_point = build_volume().bounding_volume2d().center();
+    auto empty_cell  = canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)});
+    obj->instances[0]->set_offset(to_3d(Vec2d(empty_cell(0), empty_cell(1)), -obj->origin_translation.z()));
+    obj->ensure_on_bed();
+    Geometry::Transformation t = obj->instances[0]->get_transformation();
+    obj->instances[0]->set_assemble_transformation(t);
+
+    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+    print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(built.mixed_filament_definitions));
+    bundle->project_config.set_key_value("mixed_filament_definitions",
+                                         new ConfigOptionString(built.mixed_filament_definitions));
+
+    if (ts_after != ts_before) {
+        SpectrumMapUndoRecord rec;
+        rec.active                 = true;
+        rec.map_snapshot_timestamp = spectrum_map_undo_named_time(ts_before, ts_after);
+        rec.pre                    = std::move(pre_keys);
+        rec.post.mapped            = rec.pre.mapped;
+        rec.post.mixed_filament_definitions = built.mixed_filament_definitions;
+        p->m_spectrum_map_undo     = std::move(rec);
+    } else {
+        p->m_spectrum_map_undo = SpectrumMapUndoRecord{};
+    }
+
+    std::string manifest_err;
+    if (!batch_key.empty() && !save_swatch_manifest(built.manifest, manifest_err))
+        BOOST_LOG_TRIVIAL(warning) << "Print Mix Swatch Sheet: manifest save failed: " << manifest_err;
+
+    sidebar().obj_list()->paste_objects_into_list({model().objects.size() - 1});
+    if (p->view3D)
+        p->view3D->reload_scene(true);
+
+    on_config_change(bundle->full_config());
+    schedule_background_process();
+    sidebar().refresh_color_mixing_list();
+}
+
+void Plater::import_mix_swatch_lut()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    std::vector<ColorRGB> physicals;
+    if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        for (const std::string &hex : fc->values) {
+            if (physicals.size() >= 4)
+                break;
+            const std::string normalized = normalize_mix_match_hex(hex);
+            ColorRGB          c;
+            if (!normalized.empty() && decode_color(normalized, c))
+                physicals.push_back(c);
+        }
+    }
+    if (physicals.empty()) {
+        MessageDialog(this,
+            _L("Need at least one physical filament colour before importing a mix swatch LUT."),
+            _L("Import Mix Swatch LUT"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    wxFileDialog file_dlg(this, _L("Import Mix Swatch LUT"), "", "",
+        "LUT files (*.json;*.csv)|*.json;*.csv|JSON files (*.json)|*.json|CSV files (*.csv)|*.csv",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (file_dlg.ShowModal() != wxID_OK)
+        return;
+
+    const wxString path = file_dlg.GetPath();
+    std::string    text;
+    try {
+        load_string_file(boost::filesystem::path(into_u8(path)), text);
+    } catch (...) {
+        MessageDialog(this, _L("Could not read the LUT file."), _L("Import Mix Swatch LUT"),
+                      wxOK | wxICON_ERROR)
+            .ShowModal();
+        return;
+    }
+
+    const auto                    lattice = spectrum_swatch_lattice(physicals);
+    const std::vector<std::string> allowed = spectrum_swatch_recipe_keys(lattice);
+    SwatchLUT                      lut;
+    std::string                    error;
+    const std::string              path_u8 = into_u8(path);
+    const bool                     as_csv  = boost::algorithm::iends_with(path_u8, ".csv");
+    const bool                     ok      = as_csv ? parse_swatch_lut_csv(text, allowed, lut, error)
+                                                    : parse_swatch_lut_json(text, allowed, lut, error);
+    if (!ok) {
+        const wxString err = error.empty() ? _L("LUT import refused.") : wxString::FromUTF8(error.c_str());
+        MessageDialog(this, err, _L("Import Mix Swatch LUT"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    const std::string live_batch = spectrum_compute_batch_key(physicals, bundle->filament_presets);
+    if (lut.batch_key.empty())
+        lut.batch_key = live_batch;
+
+    std::string save_err;
+    if (!save_swatch_lut(lut, save_err)) {
+        const wxString err = save_err.empty() ? _L("Could not persist the LUT.")
+                                              : wxString::FromUTF8(save_err.c_str());
+        MessageDialog(this, err, _L("Import Mix Swatch LUT"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+    spectrum_store_loaded_lut(std::move(lut));
+
+    if (spectrum_lut_is_stale(live_batch)) {
+        MessageDialog(this, _L("stale — filament batch changed"), _L("Import Mix Swatch LUT"),
+                      wxOK | wxICON_WARNING)
+            .ShowModal();
+    } else {
+        get_notification_manager()->push_notification(_u8L("measured"));
+    }
 }
 
 void Plater::apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &pre,

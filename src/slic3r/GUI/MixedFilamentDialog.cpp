@@ -13,6 +13,7 @@
 #include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/MixedFilamentCookbook.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/MixedFilamentSwatch.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
@@ -203,6 +204,8 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent, int initial_row)
     match_sizer->Add(match_row, 0, wxEXPAND | wxALL, FromDIP(12));
     match_sizer->Add(m_candidate_list, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     match_sizer->Add(min_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    m_lut_status = new wxStaticText(page_match, wxID_ANY, wxEmptyString);
+    match_sizer->Add(m_lut_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     page_match->SetSizer(match_sizer);
 
     m_gradient = new wxCheckBox(page_grad, wxID_ANY, _L("Height gradient (A bottom → B top)"));
@@ -428,11 +431,13 @@ wxString MixedFilamentDialog::candidate_label(const MixMatchResult &r,
     if (r.kind == MixMatchResult::Kind::Physical) {
         if (slot_names != nullptr && r.physical_id >= 1 &&
             size_t(r.physical_id - 1) < slot_names->size()) {
-            return wxString::Format("%s (filament %u)  ΔE %.1f",
+            return wxString::Format("%s (filament %u)  ΔE %.1f%s",
                                     wxString::FromUTF8((*slot_names)[size_t(r.physical_id - 1)].c_str()),
-                                    r.physical_id, double(r.distance));
+                                    r.physical_id, double(r.distance),
+                                    r.measured ? "  measured" : "");
         }
-        return wxString::Format("filament %u  ΔE %.1f", r.physical_id, double(r.distance));
+        return wxString::Format("filament %u  ΔE %.1f%s", r.physical_id, double(r.distance),
+                                r.measured ? "  measured" : "");
     }
 
     int period = r.mix.ratio_a + r.mix.ratio_b;
@@ -443,8 +448,8 @@ wxString MixedFilamentDialog::candidate_label(const MixMatchResult &r,
     }
     const int min_share = period > 0 ? (mn * 100) / period : 0;
     const std::string recipe = mix_recipe_label(r.mix, slot_names);
-    return wxString::Format("%s  ΔE %.1f  min %d%%", wxString::FromUTF8(recipe.c_str()),
-                            double(r.distance), min_share);
+    return wxString::Format("%s  ΔE %.1f  min %d%%%s", wxString::FromUTF8(recipe.c_str()),
+                            double(r.distance), min_share, r.measured ? "  measured" : "");
 }
 
 void MixedFilamentDialog::refresh_candidates(bool preserve_selection)
@@ -470,7 +475,24 @@ void MixedFilamentDialog::refresh_candidates(bool preserve_selection)
 
     const std::vector<ColorRGB> physicals = live_physical_colors();
     const int                   min_pct   = m_min_mix_slider->GetValue();
-    m_candidates = match_printable_candidates(target, physicals, nullptr, 4, min_pct, 12);
+    std::vector<std::string>    names;
+    const SwatchLUT            *lut = nullptr;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        names = bundle->filament_presets;
+        const std::string live_batch = spectrum_compute_batch_key(physicals, names);
+        if (m_lut_status != nullptr) {
+            if (spectrum_lut_is_stale(live_batch))
+                m_lut_status->SetLabel(_L("stale — filament batch changed"));
+            else if (spectrum_lut_for_batch(live_batch) != nullptr)
+                m_lut_status->SetLabel(_L("measured"));
+            else
+                m_lut_status->SetLabel(wxEmptyString);
+        }
+        lut = spectrum_lut_for_batch(live_batch);
+    } else if (m_lut_status != nullptr) {
+        m_lut_status->SetLabel(wxEmptyString);
+    }
+    m_candidates = match_printable_candidates(target, physicals, nullptr, 4, min_pct, 12, 100, lut);
     m_candidates_target       = target;
     m_candidates_target_valid = true;
 

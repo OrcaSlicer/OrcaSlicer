@@ -1,5 +1,6 @@
 #include "MixedFilamentMatch.hpp"
 
+#include "MixedFilamentSwatch.hpp"
 #include "prusa_fdm_mixer.hpp"
 
 #include <algorithm>
@@ -119,21 +120,6 @@ void gcd_reduce_ratios(int &ra, int &rb, int &rc)
     }
 }
 
-std::string serialize_mix_recipe(const MixedFilament &mf)
-{
-    std::ostringstream oss;
-    oss << mf.component_a << ',' << mf.component_b << ',' << (mf.enabled ? 1 : 0)
-        << ',' << mf.ratio_a << ',' << mf.ratio_b;
-    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
-    if (!pattern.empty())
-        oss << ',' << pattern;
-    if (mf.component_c != 0)
-        oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
-    MixedFilamentManager mgr;
-    mgr.load_definitions(oss.str());
-    return mgr.serialize_definitions();
-}
-
 int result_period(const MixMatchResult &r)
 {
     if (!r.valid)
@@ -155,6 +141,21 @@ int result_period_key(const MixMatchResult &r)
 }
 
 } // namespace
+
+std::string serialize_mix_recipe(const MixedFilament &mf)
+{
+    std::ostringstream oss;
+    oss << mf.component_a << ',' << mf.component_b << ',' << (mf.enabled ? 1 : 0)
+        << ',' << mf.ratio_a << ',' << mf.ratio_b;
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+    if (!pattern.empty())
+        oss << ',' << pattern;
+    if (mf.component_c != 0)
+        oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
+    MixedFilamentManager mgr;
+    mgr.load_definitions(oss.str());
+    return mgr.serialize_definitions();
+}
 
 // Mixer Lab ΔE00. Do not pipe Match's float rgb_to_lab into mixer delta_e_2000.
 float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v)
@@ -498,33 +499,17 @@ bool passes_max_component_percent(const MixMatchResult &r, int max_component_per
 
 } // namespace
 
-std::vector<MixMatchResult> match_printable_candidates(const ColorRGB              &target,
-                                                       const std::vector<ColorRGB> &physicals,
-                                                       const std::vector<float>    *td,
-                                                       int                          period_cap,
-                                                       int                          min_component_percent,
-                                                       size_t                       max_results,
-                                                       int                          max_component_percent)
-{
-    std::vector<MixMatchResult> out;
-    // Printable lattice uses the first four physicals. Extra physicals are ignored.
-    const size_t n = std::min(physicals.size(), size_t(4));
-    if (n == 0 || max_results == 0)
-        return out;
-    const std::vector<ColorRGB> slots(physicals.begin(), physicals.begin() + int(n));
-    std::vector<float>          td_prefix;
-    const std::vector<float>   *td_use = td;
-    if (td != nullptr && td->size() != n) {
-        if (td->size() >= n) {
-            td_prefix.assign(td->begin(), td->begin() + int(n));
-            td_use = &td_prefix;
-        } else {
-            td_use = nullptr;
-        }
-    }
+namespace {
 
-    const int cap = std::max(0, period_cap);
+std::vector<MixMatchResult> generate_printable_lattice(const std::vector<ColorRGB> &physicals,
+                                                       int                          period_cap)
+{
     std::vector<MixMatchResult> all;
+    const size_t n = std::min(physicals.size(), size_t(4));
+    if (n == 0)
+        return all;
+    const std::vector<ColorRGB> slots(physicals.begin(), physicals.begin() + int(n));
+    const int cap = std::max(0, period_cap);
 
     auto push_physical = [&](unsigned id_1based) {
         MixMatchResult cand;
@@ -532,7 +517,6 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         cand.kind        = MixMatchResult::Kind::Physical;
         cand.physical_id = id_1based;
         cand.predicted   = slots[size_t(id_1based - 1)];
-        cand.distance    = mixer_delta_e00(cand.predicted, target);
         all.push_back(std::move(cand));
     };
 
@@ -542,8 +526,7 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         cand.kind       = MixMatchResult::Kind::Mix;
         cand.mix        = mf;
         cand.recipe_row = serialize_mix_recipe(mf);
-        cand.predicted  = predicted_swatch_for_mix(mf, slots, td_use);
-        cand.distance   = mixer_delta_e00(cand.predicted, target);
+        cand.predicted  = predicted_swatch_for_mix(mf, slots, nullptr);
         all.push_back(std::move(cand));
     };
 
@@ -626,6 +609,71 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         mf.manual_pattern = "1234";
         push_mix(mf);
     }
+    return all;
+}
+
+void apply_candidate_distances(std::vector<MixMatchResult> &all,
+                               const ColorRGB              &target,
+                               const std::vector<ColorRGB> &slots,
+                               const std::vector<float>    *td_use,
+                               const SwatchLUT             *lut)
+{
+    const prusa_fdm_mixer::LAB target_lab =
+        prusa_fdm_mixer::rgb_to_lab(prusa_fdm_mixer::RGB{target.r_uchar(), target.g_uchar(), target.b_uchar()});
+    for (MixMatchResult &cand : all) {
+        if (cand.kind == MixMatchResult::Kind::Physical)
+            cand.predicted = slots[size_t(std::max(1u, cand.physical_id) - 1)];
+        else
+            cand.predicted = predicted_swatch_for_mix(cand.mix, slots, td_use);
+        const float pred_d = mixer_delta_e00(cand.predicted, target);
+        cand.measured      = false;
+        cand.distance      = pred_d;
+        if (lut == nullptr)
+            continue;
+        const SwatchLUTEntry *entry = lut->find_recipe(spectrum_swatch_recipe_key(cand));
+        if (entry == nullptr)
+            continue;
+        const prusa_fdm_mixer::LAB meas{entry->L, entry->a, entry->b};
+        cand.distance = float(prusa_fdm_mixer::delta_e_2000(target_lab, meas));
+        cand.measured = true;
+    }
+}
+
+} // namespace
+
+std::vector<MixMatchResult> spectrum_swatch_lattice(const std::vector<ColorRGB> &physicals)
+{
+    return generate_printable_lattice(physicals, 4);
+}
+
+std::vector<MixMatchResult> match_printable_candidates(const ColorRGB              &target,
+                                                       const std::vector<ColorRGB> &physicals,
+                                                       const std::vector<float>    *td,
+                                                       int                          period_cap,
+                                                       int                          min_component_percent,
+                                                       size_t                       max_results,
+                                                       int                          max_component_percent,
+                                                       const SwatchLUT             *lut)
+{
+    std::vector<MixMatchResult> out;
+    // Printable lattice uses the first four physicals. Extra physicals are ignored.
+    const size_t n = std::min(physicals.size(), size_t(4));
+    if (n == 0 || max_results == 0)
+        return out;
+    const std::vector<ColorRGB> slots(physicals.begin(), physicals.begin() + int(n));
+    std::vector<float>          td_prefix;
+    const std::vector<float>   *td_use = td;
+    if (td != nullptr && td->size() != n) {
+        if (td->size() >= n) {
+            td_prefix.assign(td->begin(), td->begin() + int(n));
+            td_use = &td_prefix;
+        } else {
+            td_use = nullptr;
+        }
+    }
+
+    std::vector<MixMatchResult> all = generate_printable_lattice(slots, period_cap);
+    apply_candidate_distances(all, target, slots, td_use, lut);
 
     for (MixMatchResult &cand : all) {
         if (passes_min_component_percent(cand, min_component_percent) &&
@@ -638,11 +686,35 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
             return a.distance < b.distance;
         return result_period_key(a) < result_period_key(b);
     });
+    if (lut != nullptr && out.size() > 1) {
+        // Near-tie groups vs a fixed anchor (not pairwise |Δ|<0.5) so std::sort stays a
+        // strict weak ordering. Each group is reordered by predicted-RGB ΔE00.
+        std::vector<MixMatchResult> grouped;
+        grouped.reserve(out.size());
+        size_t i = 0;
+        while (i < out.size()) {
+            const float anchor = out[i].distance;
+            size_t      j      = i + 1;
+            while (j < out.size() && (out[j].distance - anchor) < 0.5f)
+                ++j;
+            std::sort(out.begin() + int(i), out.begin() + int(j),
+                      [&](const MixMatchResult &a, const MixMatchResult &b) {
+                          const float pa = mixer_delta_e00(a.predicted, target);
+                          const float pb = mixer_delta_e00(b.predicted, target);
+                          if (pa != pb)
+                              return pa < pb;
+                          if (a.distance != b.distance)
+                              return a.distance < b.distance;
+                          return result_period_key(a) < result_period_key(b);
+                      });
+            i = j;
+        }
+    }
 
     // Neutral targets darker than every physical: a short CMY mud can beat Grey
-    // on CIE76 for #000000. Spec still requires the nearest physical (Grey) at [0].
-    // Ranking distance is mixer ΔE00; this override keeps CIE76 for Physical pick.
-    if (!out.empty() && n > 0) {
+    // on CIE76 for #000000. Spec still requires the nearest physical (Grey) at [0]
+    // on the predicted (nullptr LUT) path. Measured LUT ranking stays mixer ΔE00.
+    if (lut == nullptr && !out.empty() && n > 0) {
         float tL = 0.f, ta = 0.f, tb = 0.f;
         rgb_to_lab(target, &tL, &ta, &tb);
         const float tchroma = std::sqrt(ta * ta + tb * tb);
@@ -699,10 +771,11 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
                                    const std::vector<ColorRGB> &physicals,
                                    const std::vector<float>    *td,
                                    int                          period_cap,
-                                   int                          max_component_percent)
+                                   int                          max_component_percent,
+                                   const SwatchLUT             *lut)
 {
     const std::vector<MixMatchResult> cands =
-        match_printable_candidates(target, physicals, td, period_cap, 25, 1, max_component_percent);
+        match_printable_candidates(target, physicals, td, period_cap, 25, 1, max_component_percent, lut);
     if (cands.empty())
         return {};
     return cands.front();

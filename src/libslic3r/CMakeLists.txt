@@ -363,6 +363,8 @@ set(lisbslic3r_sources
     MixedFilamentCookbook.hpp
     MixedFilamentMatch.cpp
     MixedFilamentMatch.hpp
+    MixedFilamentSwatch.cpp
+    MixedFilamentSwatch.hpp
     SpectrumAutoGraft.cpp
     SpectrumAutoGraft.hpp
     # Vendored from prusa3d/prusa-fdm-mixer @ 181708486468543defe0b6505c231dd2ab6223bc

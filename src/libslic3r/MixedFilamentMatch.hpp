@@ -18,7 +18,10 @@ struct MixMatchResult
     std::string   recipe_row;  // manager-serializable row, or empty if Physical
     ColorRGB      predicted;   // honesty swatch
     float         distance    = 1e30f; // mixer ΔE00 (CIEDE2000); smaller = closer
+    bool          measured    = false; // LUT Lab used for distance
 };
+
+struct SwatchLUT;
 
 // Mixer Lab ΔE00 (CIEDE2000). Shared by Match ranking, paint-bake collapse, and Match UI.
 float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v);
@@ -52,19 +55,29 @@ bool spectrum_stamp_slot_hexes(std::vector<std::string>        &filament_colour,
 bool spectrum_stamp_multi_heads(std::vector<std::string>       &multi,
                                 const std::vector<std::string> &colour);
 
+// Manager-canonical Mix recipe row (same string as MixMatchResult::recipe_row).
+std::string serialize_mix_recipe(const MixedFilament &mf);
+
+// 0010 printable lattice: physicals + pair/triple generators + "1234".
+// period_cap=4, no min-share / max-share / max_results. Physicals always included.
+std::vector<MixMatchResult> spectrum_swatch_lattice(const std::vector<ColorRGB> &physicals);
+
 // Nearest printable short-stack (period <= period_cap, no 4th component) on the given physicals.
 // Mix rows whose largest component share * 100 > max_component_percent are dropped; Physicals always pass.
+// lut nullptr → predicted-RGB mixer ΔE00 (HEAD path). LUT hit → mixer ΔE00 on measured Lab vs target Lab.
 MixMatchResult match_printable_mix(
     const ColorRGB              &target,
     const std::vector<ColorRGB> &physicals,     // first four physicals; extras beyond 4 ignored
     const std::vector<float>    *td = nullptr,  // optional; else CMYK/RGBW card TDs when hexes match
     int                          period_cap = 4,
-    int                          max_component_percent = 100);
+    int                          max_component_percent = 100,
+    const SwatchLUT             *lut = nullptr);
 
 // Ranked lattice matches (mixer ΔE00, then shorter max(period, pattern_len)).
 // Dark-neutral override runs before truncate and keeps CIE76 for Physical distance.
 // Mix rows with integer min-share < min_component_percent are dropped; Physicals always pass.
 // Mix rows whose largest component share * 100 > max_component_percent are dropped.
+// lut nullptr → byte-identical to ranking without a lut pointer.
 std::vector<MixMatchResult> match_printable_candidates(
     const ColorRGB              &target,
     const std::vector<ColorRGB> &physicals,
@@ -72,7 +85,8 @@ std::vector<MixMatchResult> match_printable_candidates(
     int                          period_cap = 4,
     int                          min_component_percent = 25,
     size_t                       max_results = 12,
-    int                          max_component_percent = 100);
+    int                          max_component_percent = 100,
+    const SwatchLUT             *lut = nullptr);
 
 // Pair "A+B ra:rb" / triple "A+B+C ra:rb:rc". Names by 1-based id when provided; else digits.
 std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::string> *slot_names = nullptr);

@@ -315,7 +315,8 @@ SpectrumPicPrintPlan plan_spectrum_picprint(
     const std::vector<ColorRGB> &physicals,
     size_t mix_base,
     size_t max_clusters,
-    const std::string &existing_mix_defs)
+    const std::string &existing_mix_defs,
+    const SwatchLUT *lut)
 {
     SpectrumPicPrintPlan plan;
     if (rgb == nullptr || w <= 0 || h <= 0 || physicals.size() < 2) {
@@ -348,7 +349,7 @@ SpectrumPicPrintPlan plan_spectrum_picprint(
     recipe_sources.reserve(centroids.size());
 
     for (size_t c = 0; c < centroids.size(); ++c) {
-        const MixMatchResult match = match_printable_mix(centroids[c], slots, nullptr, 4, 70);
+        const MixMatchResult match = match_printable_mix(centroids[c], slots, nullptr, 4, 70, lut);
         if (!match.valid || (match.kind == MixMatchResult::Kind::Mix && match.recipe_row.empty())) {
             cluster_dest[c] = 1;
             continue;
