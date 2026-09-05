@@ -27,7 +27,6 @@
     "filament_type": [
         "ABS"
     ],
-    "from": "User",
     "hot_plate_temp": [
         "110"
     ],
@@ -53,5 +52,5 @@
     "compatible_printers": [
         "Vivedino Troodon 2.0 350 0.4 nozzle",
         "Vivedino Troodon 1.0 300 0.4 nozzle"
-      ]
+    ]
 }
