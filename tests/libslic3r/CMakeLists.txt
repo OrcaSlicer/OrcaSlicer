@@ -31,6 +31,7 @@ add_executable(${_TEST_NAME}_tests
     test_spectrum_paint_bake.cpp
     test_spectrum_picprint.cpp
     test_spectrum_swatch.cpp
+    test_spectrum_opaque.cpp
     test_spectrum_auto_graft.cpp
     test_spectrum_remap_painting.cpp
     test_triangle_selector.cpp

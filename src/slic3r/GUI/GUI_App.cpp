@@ -76,6 +76,9 @@
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/MixedFilamentSwatch.hpp"
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
@@ -107,6 +110,7 @@
 #include "DeepLinkHandlerMac.h"
 #endif
 #include "NotificationManager.hpp"
+#include "MsgDialog.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "PrintHostDialogs.hpp"
@@ -9419,6 +9423,61 @@ void GUI_App::start_download(std::string url)
     m_downloader->init(dest_folder);
     m_downloader->start_download(url);
 
+}
+
+std::vector<bool> GUI_App::filament_opaque_flags() const
+{
+    std::vector<bool> flags;
+    if (preset_bundle == nullptr)
+        return flags;
+    const auto &names = preset_bundle->filament_presets;
+    flags.assign(names.size(), false);
+    for (size_t i = 0; i < names.size(); ++i) {
+        const Preset *filament = preset_bundle->filaments.find_preset(names[i]);
+        if (filament == nullptr)
+            continue;
+        const auto *opt = dynamic_cast<const ConfigOptionBools *>(filament->config.option("filament_opaque"));
+        if (opt == nullptr || opt->values.empty())
+            continue;
+        flags[i] = opt->get_at(0);
+    }
+    return flags;
+}
+
+bool GUI_App::spectrum_lut_loaded_for_live_batch() const
+{
+    if (preset_bundle == nullptr)
+        return false;
+    std::vector<ColorRGB> physicals;
+    if (const ConfigOptionStrings *fc = preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        for (const std::string &hex : fc->values) {
+            if (physicals.size() >= 4)
+                break;
+            const std::string normalized = normalize_mix_match_hex(hex);
+            ColorRGB          c;
+            if (!normalized.empty() && decode_color(normalized, c))
+                physicals.push_back(c);
+        }
+    }
+    const std::string batch = spectrum_compute_batch_key(physicals, preset_bundle->filament_presets);
+    return spectrum_lut_for_batch(batch) != nullptr;
+}
+
+void GUI_App::maybe_warn_opaque_blend(wxWindow *parent, const std::string &mix_defs)
+{
+    if (m_opaque_blend_warning_shown)
+        return;
+    if (!spectrum_has_opaque_blend(filament_opaque_flags(), mix_defs))
+        return;
+
+    wxString body =
+        _L("Layers still alternate as written, but opaque filament does not blend — you will see stripes, not an intermediate hue. Predicted swatches overstate blending. Measured calibration (if loaded) ranks printed stripes, not a blended color.");
+    if (spectrum_lut_loaded_for_live_batch()) {
+        body += "\n\n";
+        body += _L("Measured calibration is loaded (stripe readings).");
+    }
+    MessageDialog(parent, body, _L("Opaque filament in a mix"), wxOK | wxICON_INFORMATION).ShowModal();
+    m_opaque_blend_warning_shown = true;
 }
 
 bool is_soluble_filament(int extruder_id)

@@ -48,8 +48,12 @@ wxString dest_label_for(size_t dest, size_t mix_base, const MixedFilamentManager
         return wxString::Format(_L("Physical %d"), int(dest));
     const size_t mix_idx = dest - mix_base - 1;
     const auto  &mixes   = mgr.mixed_filaments();
-    if (mix_idx < mixes.size())
-        return wxString::FromUTF8(mix_surface_label(int(dest), mixes[mix_idx]).c_str());
+    if (mix_idx < mixes.size()) {
+        const std::string lab = spectrum_with_opaque_blend_marker(
+            mix_surface_label(int(dest), mixes[mix_idx]), wxGetApp().filament_opaque_flags(),
+            mixes[mix_idx], wxGetApp().spectrum_lut_loaded_for_live_batch());
+        return wxString::FromUTF8(lab.c_str());
+    }
     return wxString::Format(_L("Mix %d"), int(dest));
 }
 

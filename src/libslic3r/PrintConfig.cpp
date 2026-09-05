@@ -2889,6 +2889,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools { false });
 
+    // Guidance-only: no wipe-tower/support invalidate. Mixes with this slot stripe.
+    def = this->add("filament_opaque", coBools);
+    def->label = L("Opaque filament");
+    def->tooltip = L("Opaque filament (low TD) does not optically blend. Mixes with this slot stripe instead of forming an intermediate hue. True-black opaque K is not the same as translucent Grey.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBools { false });
+
     def           = this->add("filament_change_length", coFloats);
     def->label    = L("Filament ramming length");
     def->tooltip  = L("When changing the extruder, it is recommended to extrude a certain length of filament from the original extruder. This helps minimize nozzle oozing.");

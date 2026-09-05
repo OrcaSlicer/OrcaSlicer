@@ -3900,6 +3900,7 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_type", "material_basic_information#type"); // ORCA use same width with other elements
         optgroup->append_single_option_line("filament_vendor", "material_basic_information#vendor");
         optgroup->append_single_option_line("filament_soluble", "material_basic_information#soluble-material");
+        optgroup->append_single_option_line("filament_opaque", "material_basic_information#opaque-filament");
         // BBS
         optgroup->append_single_option_line("filament_is_support", "material_basic_information#support-material");
         optgroup->append_single_option_line("filament_change_length", "material_basic_information#filament-ramming-length");

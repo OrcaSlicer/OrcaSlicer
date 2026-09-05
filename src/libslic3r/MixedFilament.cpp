@@ -807,4 +807,132 @@ float spectrum_perimeter_mod_offset(const MixedFilament &mf, unsigned int physic
     return 0.f;
 }
 
+namespace {
+
+void consider_opaque_slot(unsigned int id, const std::vector<bool> &opaque_flags, std::vector<unsigned int> &slots)
+{
+    if (id == 0 || id > opaque_flags.size())
+        return;
+    if (std::find(slots.begin(), slots.end(), id) == slots.end())
+        slots.push_back(id);
+}
+
+unsigned int pattern_token_physical_unguarded(char token, const MixedFilament &mf)
+{
+    if (token == '1')
+        return mf.component_a;
+    if (token == '2')
+        return mf.component_b;
+    if (token == '3' && mf.component_c != 0)
+        return mf.component_c;
+    if (token >= '3' && token <= '9')
+        return unsigned(token - '0');
+    return 0;
+}
+
+std::vector<unsigned int> opaque_blend_slots(const std::vector<bool> &opaque_flags, const MixedFilament &mix)
+{
+    std::vector<unsigned int> slots;
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mix.manual_pattern);
+    if (!pattern.empty()) {
+        for (char token : pattern)
+            consider_opaque_slot(pattern_token_physical_unguarded(token, mix), opaque_flags, slots);
+        return slots;
+    }
+    if (mix.ratio_a > 0)
+        consider_opaque_slot(mix.component_a, opaque_flags, slots);
+    if (mix.ratio_b > 0)
+        consider_opaque_slot(mix.component_b, opaque_flags, slots);
+    if (mix.component_c != 0 && mix.ratio_c > 0)
+        consider_opaque_slot(mix.component_c, opaque_flags, slots);
+    return slots;
+}
+
+bool parse_pattern_only_recipe(const std::string &recipe_row, MixedFilament &mix)
+{
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(recipe_row);
+    if (pattern.empty())
+        return false;
+    mix               = MixedFilament{};
+    mix.component_a   = 1;
+    mix.component_b   = 2;
+    mix.manual_pattern = pattern;
+    return true;
+}
+
+} // namespace
+
+bool spectrum_has_opaque_blend(const std::vector<bool> &opaque_flags, const MixedFilament &mix)
+{
+    const std::vector<unsigned int> slots = opaque_blend_slots(opaque_flags, mix);
+    if (slots.size() < 2)
+        return false;
+    for (unsigned int id : slots) {
+        if (opaque_flags[size_t(id) - 1])
+            return true;
+    }
+    return false;
+}
+
+bool spectrum_has_opaque_blend(const std::vector<bool> &opaque_flags, const std::string &recipe_row)
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions(recipe_row);
+    if (!mgr.mixed_filaments().empty()) {
+        for (const MixedFilament &mf : mgr.mixed_filaments()) {
+            if (spectrum_has_opaque_blend(opaque_flags, mf))
+                return true;
+        }
+        return false;
+    }
+    MixedFilament mix;
+    if (!parse_pattern_only_recipe(recipe_row, mix))
+        return false;
+    return spectrum_has_opaque_blend(opaque_flags, mix);
+}
+
+std::string spectrum_opaque_blend_marker(const std::vector<bool> &opaque_flags,
+                                         const MixedFilament     &mix,
+                                         bool                     lut_loaded)
+{
+    if (!spectrum_has_opaque_blend(opaque_flags, mix))
+        return {};
+    if (lut_loaded)
+        return std::string("measured ") + SPECTRUM_OPAQUE_BLEND_MARKER;
+    return SPECTRUM_OPAQUE_BLEND_MARKER;
+}
+
+std::string spectrum_opaque_blend_marker(const std::vector<bool> &opaque_flags,
+                                         const std::string       &recipe_row,
+                                         bool                     lut_loaded)
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions(recipe_row);
+    if (!mgr.mixed_filaments().empty()) {
+        for (const MixedFilament &mf : mgr.mixed_filaments()) {
+            std::string marker = spectrum_opaque_blend_marker(opaque_flags, mf, lut_loaded);
+            if (!marker.empty())
+                return marker;
+        }
+        return {};
+    }
+    MixedFilament mix;
+    if (!parse_pattern_only_recipe(recipe_row, mix))
+        return {};
+    return spectrum_opaque_blend_marker(opaque_flags, mix, lut_loaded);
+}
+
+std::string spectrum_with_opaque_blend_marker(const std::string       &label,
+                                              const std::vector<bool> &opaque_flags,
+                                              const MixedFilament     &mix,
+                                              bool                     lut_loaded)
+{
+    const std::string marker = spectrum_opaque_blend_marker(opaque_flags, mix, lut_loaded);
+    if (marker.empty())
+        return label;
+    if (label.empty())
+        return marker;
+    return label + "  " + marker;
+}
+
 } // namespace Slic3r

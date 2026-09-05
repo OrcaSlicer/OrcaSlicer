@@ -447,7 +447,9 @@ wxString MixedFilamentDialog::candidate_label(const MixMatchResult &r,
         mn = std::min(mn, r.mix.ratio_c);
     }
     const int min_share = period > 0 ? (mn * 100) / period : 0;
-    const std::string recipe = mix_recipe_label(r.mix, slot_names);
+    const std::string recipe = spectrum_with_opaque_blend_marker(
+        mix_recipe_label(r.mix, slot_names), wxGetApp().filament_opaque_flags(), r.mix,
+        wxGetApp().spectrum_lut_loaded_for_live_batch());
     return wxString::Format("%s  ΔE %.1f  min %d%%%s", wxString::FromUTF8(recipe.c_str()),
                             double(r.distance), min_share, r.measured ? "  measured" : "");
 }
@@ -659,6 +661,7 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
 
     m_rows.push_back(mix_to_add->mix);
     m_selected_row = int(m_rows.size()) - 1;
+    wxGetApp().maybe_warn_opaque_blend(this, serialize_mix_row(mix_to_add->mix));
     refresh_list();
     load_selected_row_into_editors();
 }
@@ -671,7 +674,10 @@ wxString MixedFilamentDialog::row_label(size_t idx, size_t num_physical) const
     const std::vector<std::string> names_cmik{"C", "M", "Y", "K"};
     const std::vector<std::string> *slot_names =
         (live_physical_colors().size() == 4) ? &names_cmik : nullptr;
-    const wxString pair = wxString::FromUTF8(mix_recipe_label(mf, slot_names).c_str());
+    const std::string recipe = spectrum_with_opaque_blend_marker(
+        mix_recipe_label(mf, slot_names), wxGetApp().filament_opaque_flags(), mf,
+        wxGetApp().spectrum_lut_loaded_for_live_batch());
+    const wxString pair = wxString::FromUTF8(recipe.c_str());
     const int      vid  = virtual_id_for_row(idx, num_physical);
     if (vid > 0)
         return wxString::Format(_L("Mix %d  %s"), vid, pair);
@@ -963,6 +969,7 @@ bool MixedFilamentDialog::apply_to_project()
         }
     }
     const std::string serialized = serialize_enabled_rows(m_rows);
+    wxGetApp().maybe_warn_opaque_blend(this, serialized);
 
     std::string old_serialized;
     if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
@@ -789,6 +790,17 @@ private:
     boost::optional<Semver> m_last_config_version;
     bool                    m_config_corrupted { false };
     std::string             m_open_method;
+
+public:
+    bool opaque_blend_warning_shown() const { return m_opaque_blend_warning_shown; }
+    void set_opaque_blend_warning_shown(bool shown) { m_opaque_blend_warning_shown = shown; }
+    std::vector<bool> filament_opaque_flags() const;
+    bool              spectrum_lut_loaded_for_live_batch() const;
+    // Process-lifetime, OK-only, never blocks apply. mix_defs may be one or more mix rows.
+    void maybe_warn_opaque_blend(wxWindow *parent, const std::string &mix_defs);
+
+private:
+    bool m_opaque_blend_warning_shown { false };
 };
 
 DECLARE_APP(GUI_App)

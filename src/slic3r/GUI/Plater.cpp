@@ -3401,7 +3401,12 @@ void Sidebar::refresh_color_mixing_list()
             swatch = predicted_swatch_for_mix(mgr.mixed_filaments()[i], physicals);
         auto *color = new wxPanel(row, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
         color->SetBackgroundColour(wxColour(swatch.r_uchar(), swatch.g_uchar(), swatch.b_uchar()));
-        auto *label = new Label(row, wxString::FromUTF8(rows[i].surface_label.c_str()));
+        std::string surface = rows[i].surface_label;
+        if (i < mgr.mixed_filaments().size())
+            surface = spectrum_with_opaque_blend_marker(surface, wxGetApp().filament_opaque_flags(),
+                                                        mgr.mixed_filaments()[i],
+                                                        wxGetApp().spectrum_lut_loaded_for_live_batch());
+        auto *label = new Label(row, wxString::FromUTF8(surface.c_str()));
         hs->Add(color, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(8));
         hs->Add(label, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
         row->SetSizer(hs);
@@ -13212,6 +13217,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
     SpectrumMatchConfirmDialog confirm_dlg(this, plan, source_opt->values, physicals, mix_base);
     if (confirm_dlg.ShowModal() != wxID_OK)
         return;
+    wxGetApp().maybe_warn_opaque_blend(this, plan.mixed_filament_definitions);
 
     SpectrumMapUndoKeys pre_keys;
     if (const ConfigOptionBool *mapped = bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped"))
@@ -13359,6 +13365,7 @@ void Plater::picprint()
         MessageDialog(this, err, _L("PicPrint"), wxOK | wxICON_ERROR).ShowModal();
         return;
     }
+    wxGetApp().maybe_warn_opaque_blend(this, plan.mixed_filament_definitions);
 
     double bed_w = 220.;
     double bed_d = 220.;
@@ -13434,10 +13441,27 @@ void Plater::picprint()
     if (p->view3D)
         p->view3D->reload_scene(true);
 
-    BOOST_LOG_TRIVIAL(info) << "PicPrint: mix_base=" << mix_base
-                            << " mix_count=" << plan.mix_count
-                            << " cluster_count=" << plan.cluster_count
-                            << " size=" << plan.width << "x" << plan.height;
+    {
+        MixedFilamentManager cluster_mgr;
+        cluster_mgr.load_definitions(plan.mixed_filament_definitions);
+        const std::vector<bool> flags = wxGetApp().filament_opaque_flags();
+        const bool              lut_on = wxGetApp().spectrum_lut_loaded_for_live_batch();
+        std::string             cluster_list;
+        for (const MixedFilament &mf : cluster_mgr.mixed_filaments()) {
+            if (!cluster_list.empty())
+                cluster_list += "; ";
+            cluster_list += spectrum_with_opaque_blend_marker(mix_recipe_label(mf), flags, mf, lut_on);
+        }
+        BOOST_LOG_TRIVIAL(info) << "PicPrint: mix_base=" << mix_base
+                                << " mix_count=" << plan.mix_count
+                                << " cluster_count=" << plan.cluster_count
+                                << " size=" << plan.width << "x" << plan.height
+                                << " clusters=" << cluster_list;
+        if (cluster_list.find(SPECTRUM_OPAQUE_BLEND_MARKER) != std::string::npos)
+            MessageDialog(this, wxString::FromUTF8(cluster_list.c_str()), _L("PicPrint mixes"),
+                          wxOK | wxICON_INFORMATION)
+                .ShowModal();
+    }
 
     on_config_change(bundle->full_config());
     schedule_background_process();
@@ -13537,6 +13561,7 @@ void Plater::picprint_on_selected()
         MessageDialog(this, err, _L("PicPrint on Selected"), wxOK | wxICON_ERROR).ShowModal();
         return;
     }
+    wxGetApp().maybe_warn_opaque_blend(this, plan.mixed_filament_definitions);
 
     ModelObject *obj = model().objects[size_t(obj_idx)];
     if (obj == nullptr || obj->instances.empty()) {
@@ -13595,10 +13620,27 @@ void Plater::picprint_on_selected()
     if (p->view3D)
         p->view3D->reload_scene(true);
 
-    BOOST_LOG_TRIVIAL(info) << "PicPrint on Selected: mix_base=" << mix_base
-                            << " mix_count=" << plan.mix_count
-                            << " cluster_count=" << plan.cluster_count
-                            << " size=" << plan.width << "x" << plan.height;
+    {
+        MixedFilamentManager cluster_mgr;
+        cluster_mgr.load_definitions(plan.mixed_filament_definitions);
+        const std::vector<bool> flags = wxGetApp().filament_opaque_flags();
+        const bool              lut_on = wxGetApp().spectrum_lut_loaded_for_live_batch();
+        std::string             cluster_list;
+        for (const MixedFilament &mf : cluster_mgr.mixed_filaments()) {
+            if (!cluster_list.empty())
+                cluster_list += "; ";
+            cluster_list += spectrum_with_opaque_blend_marker(mix_recipe_label(mf), flags, mf, lut_on);
+        }
+        BOOST_LOG_TRIVIAL(info) << "PicPrint on Selected: mix_base=" << mix_base
+                                << " mix_count=" << plan.mix_count
+                                << " cluster_count=" << plan.cluster_count
+                                << " size=" << plan.width << "x" << plan.height
+                                << " clusters=" << cluster_list;
+        if (cluster_list.find(SPECTRUM_OPAQUE_BLEND_MARKER) != std::string::npos)
+            MessageDialog(this, wxString::FromUTF8(cluster_list.c_str()), _L("PicPrint mixes"),
+                          wxOK | wxICON_INFORMATION)
+                .ShowModal();
+    }
 
     on_config_change(bundle->full_config());
     schedule_background_process();

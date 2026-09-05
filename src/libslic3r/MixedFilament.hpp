@@ -174,4 +174,26 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
                                             const std::vector<int> &painted_filament_ids,
                                             bool                   process_gradient = false);
 
+// Opaque-blend honesty (0056). Guidance only — does not change cadence or ColorMix.
+// Out-of-range 1-based ids are ignored (never indexed). Same-slot / "1111" is false.
+bool spectrum_has_opaque_blend(const std::vector<bool> &opaque_flags, const MixedFilament &mix);
+// Dialog / PicPrint rows: manager grammar, or a digit-only pattern such as "1111".
+bool spectrum_has_opaque_blend(const std::vector<bool> &opaque_flags, const std::string &recipe_row);
+
+constexpr const char *SPECTRUM_OPAQUE_BLEND_MARKER = "stripes - no blend";
+
+// Empty if predicate false. Else "stripes - no blend" (lut: "measured stripes - no blend").
+std::string spectrum_opaque_blend_marker(const std::vector<bool> &opaque_flags,
+                                         const MixedFilament     &mix,
+                                         bool                     lut_loaded = false);
+std::string spectrum_opaque_blend_marker(const std::vector<bool> &opaque_flags,
+                                         const std::string       &recipe_row,
+                                         bool                     lut_loaded = false);
+
+// Append "  <marker>" when predicate true; otherwise return label unchanged.
+std::string spectrum_with_opaque_blend_marker(const std::string       &label,
+                                              const std::vector<bool> &opaque_flags,
+                                              const MixedFilament     &mix,
+                                              bool                     lut_loaded = false);
+
 } // namespace Slic3r
