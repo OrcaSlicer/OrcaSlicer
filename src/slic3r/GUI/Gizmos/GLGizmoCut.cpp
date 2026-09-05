@@ -440,15 +440,20 @@ void GLGizmoCut3D::apply_relative_cut_rotation(int axis, double delta_deg)
 {
     if (is_approx(delta_deg, 0.))
         return;
-    // Adjust the euler triplet directly so typed values land exactly: after
-    // applying Relative X 45 and Y 45, Absolute reads (45, 45, 0) regardless
-    // of order. (Freehand drags still compose about the plane's local axes;
-    // Absolute always shows the true orientation either way.)
-    Vec3d euler_rad = m_cut_rotation;
-    euler_rad[axis] += deg2rad(delta_deg);
-    apply_cut_rotation(euler_rad);
-    // Re-canonicalize (display wraps to +/-180 deg; same plane matrix).
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
+    // World-frame (extrinsic) composition, mirroring Selection::rotate in the
+    // default World mode (Selection.cpp transform_volume_relative):
+    // pre-multiply so each typed axis acts about the fixed world axes, and
+    // the Relative field stays a pure delta entry like the object Rotate
+    // overlay (m_new_rotation is always zero there too). m_rotation_m carries
+    // no translation, so no pivot handling is needed. Absolute keeps showing
+    // the extracted true orientation, exactly like their Absolute row.
+    Vec3d delta = Vec3d::Zero();
+    delta[axis] = deg2rad(delta_deg);
+    m_rotation_m = rotation_transform(delta) * m_rotation_m;
+    m_start_dragging_m = m_rotation_m;
     sync_cut_rotation_from_matrix();
+    cut_rotation_changed();
 }
 
 void GLGizmoCut3D::cut_rotation_changed()
