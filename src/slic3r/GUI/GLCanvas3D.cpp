@@ -9345,8 +9345,8 @@ void GLCanvas3D::_render_return_toolbar() const
     auto canvas_h = float(cnv_size.get_height());
     float window_width = real_size.x + button_icon_size.x + imgui.scaled(2.0f);
     float window_height = button_icon_size.y + imgui.scaled(2.0f);
-    float window_pos_x = 30.0f + (is_collapse_toolbar_on_left() ? (get_collapse_toolbar_width() + 5.f) : 0);
-    float window_pos_y = 14.0f;
+    float window_pos_x = get_assemble_view_toolbar_margin() + (is_collapse_toolbar_on_left() ? get_collapse_toolbar_width() : 0.f); // ORCA place return button closer to corner
+    float window_pos_y = 0.0f; // ORCA
 
     imgui.set_next_window_pos(window_pos_x, window_pos_y, ImGuiCond_Always, 0, 0);
 #ifdef __WINDOWS__
@@ -9375,7 +9375,7 @@ void GLCanvas3D::_render_return_toolbar() const
 
     ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     ImVec4 tint_col = fg_color; // icon color
-    ImVec2 margin = ImVec2(10.0f, 5.0f);
+    ImVec2 margin = ImVec2(10.0f, 0.0f);
 
     if (ImGui::ImageTextButton(real_size,_utf8(L("Return")).c_str(), m_return_toolbar.get_return_texture_id(), button_icon_size, uv0, uv1, -1, bg_col, tint_col, margin)) {
         const_cast<GLGizmosManager*>(&m_gizmos)->reset_all_states();
@@ -9402,6 +9402,8 @@ void GLCanvas3D::_render_return_toolbar() const
     }
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(1);
+
+    m_return_toolbar_width = (ImGui::GetWindowWidth() + window_pos_x);
 
     imgui.end();
 }
@@ -9650,11 +9652,11 @@ void GLCanvas3D::_render_paint_toolbar() const
 {
     if (m_canvas_type != ECanvasType::CanvasAssembleView)
         return;
-#if ENABLE_RETINA_GL
-    float f_scale = m_retina_helper->get_scale_factor();
-#else
-    float f_scale = 1.0f;
-#endif
+    float f_scale = get_scale();
+    #ifdef WIN32
+        const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        f_scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     int em_unit = wxGetApp().em_unit() / 10;
 
     std::vector<std::string> colors = wxGetApp().plater()->get_extruder_colors_from_plater_config();
@@ -9674,8 +9676,15 @@ void GLCanvas3D::_render_paint_toolbar() const
                         filament_text_second_line.push_back(display_filament_type.substr(pos + 1));
                     }
                     else {
-                        filament_text_first_line.push_back(display_filament_type);
-                        filament_text_second_line.push_back("");
+                        // ORCA also try to split with "-". it saves space for -AERO, -CF
+                        pos = display_filament_type.find('-');
+                        if (pos != std::string::npos) {
+                            filament_text_first_line.push_back(display_filament_type.substr(0, pos));
+                            filament_text_second_line.push_back(display_filament_type.substr(pos + 1));
+                        } else {
+                            filament_text_first_line.push_back(display_filament_type);
+                            filament_text_second_line.push_back("");
+                        }
                     }
                 }
             }
@@ -9691,27 +9700,35 @@ void GLCanvas3D::_render_paint_toolbar() const
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float canvas_w = float(get_canvas_size().get_width());
-    const ImVec2 button_size = ImVec2(64.0f, 48.0f) * f_scale * em_unit;
-    const float spacing = 4.0f * em_unit * f_scale;
-    const float return_button_margin = 130.0f * em_unit * f_scale;
+    const float assembly_icon_h = m_assemble_view_toolbar.get_scaled_icon_size();
+    const ImVec2 button_size = ImVec2(assembly_icon_h * 1.2f, assembly_icon_h); // ORCA match button size with toolbar height
+    const float spacing = 4.f * f_scale;
+    const float toolbar_margin = get_assemble_view_toolbar_margin(); // margin between assembly button / filament bar / toolbar
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(spacing, spacing));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, 0));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG); // ORCA Toolbar color
-
-    imgui.set_next_window_pos(0.5f * canvas_w, 0, ImGuiCond_Always, 0.5f, 0.0f);
-    float constraint_window_width = canvas_w - 2 * return_button_margin;
-    ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { constraint_window_width, FLT_MAX });
+    // ORCA fixed window width calculation.
+    float collapse_w  = get_collapse_toolbar_width();
+    float min_pos_x = m_return_toolbar_width;
+    float max_pos_x = canvas_w - m_gizmos.get_scaled_total_width() - get_assemble_view_toolbar_width() - toolbar_margin * 2.f - (!is_collapse_toolbar_on_left() && collapse_w > 0.f ? collapse_w : 0.f);
+    float win_height = assembly_icon_h + spacing * 2.f;
+    float constraint_window_width = max_pos_x - min_pos_x;
+    imgui.set_next_window_pos(min_pos_x + constraint_window_width * .5f, 0, ImGuiCond_Always, .5f, 0.0f); // ORCA align it to left for best optimized layout
+    ImGui::SetNextWindowSizeConstraints({ 0, 0 }, {constraint_window_width, win_height}); // ORCA
     imgui.begin(_L("Paint Toolbar"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
     const float cursor_y = ImGui::GetCursorPosY();
     const ImVec2 arrow_button_size = ImVec2(0.375f * button_size.x, ImGui::GetWindowHeight());
     const ImRect left_arrow_button = ImRect(ImGui::GetCurrentWindow()->Pos, ImGui::GetCurrentWindow()->Pos + arrow_button_size);
     const ImRect right_arrow_button = ImRect(ImGui::GetCurrentWindow()->Pos + ImGui::GetWindowSize() - arrow_button_size, ImGui::GetCurrentWindow()->Pos + ImGui::GetWindowSize());
-    ImU32 left_arrow_button_color = IM_COL32(0, 0, 0, 0.4f * 255);
-    ImU32 right_arrow_button_color = IM_COL32(0, 0, 0, 0.4f * 255);
-    ImU32 arrow_color = IM_COL32(255, 255, 255, 255);
+
+    ImU32 arrow_bg = imgui.to_ImU32(imgui.from_ImVec4(m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG)); // ORCA match background with toolbar
+    arrow_bg = (arrow_bg & 0x00FFFFFF) | (static_cast<ImU32>(0.7f * 255) << 24); // ORCA use arrows with more transparancy to show color under it
+    ImU32 left_arrow_button_color  = arrow_bg;
+    ImU32 right_arrow_button_color = arrow_bg;
+    ImU32 arrow_color = imgui.to_ImU32(imgui.from_ImVec4(!m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG)); // ORCA
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImGuiContext& context = *GImGui;
     bool disabled = !wxGetApp().plater()->can_fillcolor();
@@ -9749,7 +9766,7 @@ void GLCanvas3D::_render_paint_toolbar() const
             ImGui::PopItemFlag();
     }
 
-    const float text_offset_y = 4.0f * em_unit * f_scale;
+    const float text_offset_y = 2.f * f_scale;
     for (int i = 0; i < extruder_num; i++) {
         // A gradient slot's swatch shows its fade instead of the blended colour in `colors`, so the
         // labels take their contrast from the colour printed at the middle of the fade they sit on.
@@ -9768,40 +9785,47 @@ void GLCanvas3D::_render_paint_toolbar() const
         ImGui::TextColored(text_color, std::to_string(i + 1).c_str());
         imgui.pop_bold_font();
 
+        bool is_single_line = filament_text_second_line[i].empty();
+
         ImVec2 filament_first_line_label_size = ImGui::CalcTextSize(filament_text_first_line[i].c_str());
-        ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y);
+        ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y * .8f * (is_single_line ? 1.5f : 1.f));
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_first_line_label_size.x) / 2);
         ImGui::TextColored(text_color, filament_text_first_line[i].c_str());
 
-        ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
-        ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y + filament_first_line_label_size.y);
-        ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        if(!is_single_line){
+            ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
+            ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y * .6f + filament_first_line_label_size.y);
+            ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
+            ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        }
     }
 
-    if (ImGui::GetWindowWidth() == constraint_window_width) {
+    //if (ImGui::GetWindowWidth() == constraint_window_width) { // ORCA does not work on scaled screens
+    if (ImGui::GetScrollX() != 0.0f){ // ORCA dont show if no scrolling to left. also shows when it needed
         if (ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max)) {
-            left_arrow_button_color = IM_COL32(0, 0, 0, 0.64f * 255);
+            left_arrow_button_color = (left_arrow_button_color & 0x00FFFFFF) | (static_cast<ImU32>(.9f * 255) << 24); // ORCA use color with more opaque on hover
             if (context.IO.MouseClicked[ImGuiMouseButton_Left]) {
                 ImGui::SetScrollX(ImGui::GetScrollX() - button_size.x);
                 imgui.set_requires_extra_frame();
             }
         }
         draw_list->AddRectFilled(left_arrow_button.Min, left_arrow_button.Max, left_arrow_button_color);
-        ImGui::BBLRenderArrow(draw_list, left_arrow_button.GetCenter() - ImVec2(draw_list->_Data->FontSize, draw_list->_Data->FontSize) * 0.5f, arrow_color, ImGuiDir_Left, 2.0f);
-
+        ImGui::BBLRenderArrow(draw_list, left_arrow_button.GetCenter() - ImVec2(draw_list->_Data->FontSize, draw_list->_Data->FontSize) * 0.5f, arrow_color, ImGuiDir_Left, 2.f * f_scale);
+    }
+    if (ImGui::GetScrollX() < ImGui::GetScrollMaxX()){ // ORCA dont show if no scrolling to right. also shows when it needed
         if (ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max)) {
-            right_arrow_button_color = IM_COL32(0, 0, 0, 0.64f * 255);
+            right_arrow_button_color = (right_arrow_button_color & 0x00FFFFFF) | (static_cast<ImU32>(.9f * 255) << 24); // ORCA use color with more opaque on hover
             if (context.IO.MouseClicked[ImGuiMouseButton_Left]) {
                 ImGui::SetScrollX(ImGui::GetScrollX() + button_size.x);
                 imgui.set_requires_extra_frame();
             }
         }
         draw_list->AddRectFilled(right_arrow_button.Min, right_arrow_button.Max, right_arrow_button_color);
-        ImGui::BBLRenderArrow(draw_list, right_arrow_button.GetCenter() - ImVec2(draw_list->_Data->FontSize, draw_list->_Data->FontSize) * 0.5f, arrow_color, ImGuiDir_Right, 2.0f);
+        ImGui::BBLRenderArrow(draw_list, right_arrow_button.GetCenter() - ImVec2(draw_list->_Data->FontSize, draw_list->_Data->FontSize) * 0.5f, arrow_color, ImGuiDir_Right, 2.f * f_scale);
     }
+    //}
 
-    m_paint_toolbar_width = (ImGui::GetWindowWidth() + 50.0f * em_unit * f_scale);
+    m_paint_toolbar_width = ImGui::GetWindowWidth();
     imgui.end();
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor();
@@ -9982,8 +10006,8 @@ void GLCanvas3D::_render_assemble_info() const
     ImGuiWrapper* imgui = wxGetApp().imgui();
     auto canvas_w = float(get_canvas_size().get_width());
     auto canvas_h = float(get_canvas_size().get_height());
-    float space_size = imgui->get_style_scaling() * 8.0f;
-    float caption_max = imgui->calc_text_size(_L("Total Volume:")).x + 3 * space_size;
+    //float space_size = imgui->get_style_scaling() * 8.0f;
+    //float caption_max = imgui->calc_text_size(_L("Total Volume:")).x + 3 * space_size;
 
     ImGuiIO& io = ImGui::GetIO();
     ImFont* font = io.Fonts->Fonts[0];
@@ -9994,6 +10018,9 @@ void GLCanvas3D::_render_assemble_info() const
     float margin = 10.0f * get_scale();
     imgui->set_next_window_pos(canvas_w - margin, canvas_h - margin, ImGuiCond_Always, 1.0f, 1.0f);
     ImGuiWrapper::push_common_window_style(get_scale()); // ORCA use window style for popups with title
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding   , ImVec2(margin, margin)); // Use less horizontal padding
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, ImVec2(.5f, .5f)); // Use centered title
+    
     imgui->begin(_L("Assembly Info"), ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     font->Scale = origScale;
     ImGui::PushFont(font);
@@ -10003,12 +10030,13 @@ void GLCanvas3D::_render_assemble_info() const
     double size1 = m_selection.get_bounding_box().size()(1);
     double size2 = m_selection.get_bounding_box().size()(2);
     if (!m_selection.is_empty()) {
-        ImGui::Text(_L("Volume:").ToUTF8()); ImGui::SameLine(caption_max);
+        imgui->bold_text(_L("Volume:").utf8_string()); // ORCA draw on new line to make modal smaller
         ImGui::Text("%.2f", size0 * size1 * size2);
-        ImGui::Text(_L("Size:").ToUTF8()); ImGui::SameLine(caption_max);
+        imgui->bold_text(_L("Size:").utf8_string());   // ORCA draw on new line to make modal smaller
         ImGui::Text("%.2f x %.2f x %.2f", size0, size1, size2);
     }
     imgui->end();
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_common_window_style();
 }
 

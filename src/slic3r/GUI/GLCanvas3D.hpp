@@ -544,6 +544,7 @@ private:
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
+    mutable float m_return_toolbar_width;
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
@@ -908,6 +909,7 @@ public:
     int get_main_toolbar_width() const { return m_main_toolbar.get_width(); }
     float get_assemble_view_toolbar_width() const { return m_assemble_view_toolbar.get_width(); }
     float get_assemble_view_toolbar_height() const { return m_assemble_view_toolbar.get_height(); }
+    float get_assemble_view_toolbar_margin() const { return m_assemble_view_toolbar.get_scaled_icon_size() * .2f; }
     float get_assembly_paint_toolbar_width() const { return m_paint_toolbar_width; }
     float get_separator_toolbar_width() const { return m_separator_toolbar.get_width(); }
     float get_separator_toolbar_height() const { return m_separator_toolbar.get_height(); }
