@@ -450,6 +450,24 @@ boost::filesystem::path get_log_file_name()
     return {};
 }
 
+void set_error_file(const std::string &file)
+{
+	static boost::nowide::ofstream *error_file = nullptr;
+	static std::streambuf *old_buf = nullptr;
+
+	if (error_file) {
+		error_file->close();
+		error_file = nullptr;
+		boost::nowide::cerr.rdbuf(old_buf);
+		old_buf = nullptr;
+	}
+
+	if (!file.empty()) {
+		error_file = new boost::nowide::ofstream(file);
+		old_buf = boost::nowide::cerr.rdbuf(error_file->rdbuf());
+	}
+}
+
 #ifdef _WIN32
 // The following helpers are borrowed from the LLVM project https://github.com/llvm
 namespace WindowsSupport

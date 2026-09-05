@@ -12300,6 +12300,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->cli_params = "file";
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("errorfile", coInt);
+    def->label = L("Error file");
+    def->tooltip = L("Redirects error messages to file.\n");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
+
     def = this->add("enable_timelapse", coBool);
     def->label = L("Enable timelapse for print");
     def->tooltip = L("If enabled, this slicing will be considered using timelapse.");
