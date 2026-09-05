@@ -42,6 +42,35 @@ SCENARIO("Generic config validation performs as expected.", "[Config]") {
     }
 }
 
+SCENARIO("Seam position random internal and external config options round-trip correctly.", "[Config]") {
+    GIVEN("A config generated from default options") {
+        Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+
+        THEN("The random seam filters are disabled by default") {
+            REQUIRE(config.opt_float("random_seam_corner_clearance") == 0.0);
+            REQUIRE(config.opt_float("random_seam_min_wall_depth") == 0.0);
+            REQUIRE(config.opt_float("random_seam_min_distance") == 0.0);
+            REQUIRE(config.opt_float("random_seam_corner_angle") == 50.0);
+        }
+
+        WHEN("seam_position is set to random_internal") {
+            config.set_deserialize_strict("seam_position", "random_internal");
+            THEN("The internal random enum is selected") {
+                REQUIRE(config.opt_enum<SeamPosition>("seam_position") == spRandomInternal);
+                REQUIRE(config.opt_serialize("seam_position") == "random_internal");
+            }
+        }
+
+        WHEN("seam_position is set to random_external") {
+            config.set_deserialize_strict("seam_position", "random_external");
+            THEN("The external random enum is selected") {
+                REQUIRE(config.opt_enum<SeamPosition>("seam_position") == spRandomExternal);
+                REQUIRE(config.opt_serialize("seam_position") == "random_external");
+            }
+        }
+    }
+}
+
 SCENARIO("Config accessor functions perform as expected.", "[Config]") {
     GIVEN("A config generated from default options") {
         Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();

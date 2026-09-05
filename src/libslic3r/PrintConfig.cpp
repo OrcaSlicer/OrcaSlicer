@@ -389,7 +389,9 @@ static t_config_enum_values s_keys_map_SeamPosition {
     { "aligned",        spAligned },
     { "aligned_back",   spAlignedBack },
     { "back",           spRear },
-    { "random",         spRandom }
+    { "random",          spRandom },
+    { "random_internal", spRandomInternal },
+    { "random_external", spRandomExternal }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
 
@@ -6113,13 +6115,58 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("aligned_back");
     def->enum_values.push_back("back");
     def->enum_values.push_back("random");
+    def->enum_values.push_back("random_internal");
+    def->enum_values.push_back("random_external");
     def->enum_labels.push_back(L("Nearest"));
     def->enum_labels.push_back(L("Aligned"));
     def->enum_labels.push_back(L("Aligned back"));
     def->enum_labels.push_back(L("Back"));
     def->enum_labels.push_back(L("Random"));
+    def->enum_labels.push_back(L("Random, internal"));
+    def->enum_labels.push_back(L("Random, external"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
+
+    def = this->add("random_seam_corner_clearance", coFloat);
+    def->label = L("Corner clearance");
+    def->full_label = L("Random seam corner clearance");
+    def->category = L("Quality");
+    def->tooltip = L("Reject random seam candidates that are closer than this distance to a qualifying corner. Zero disables this filter.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("random_seam_corner_angle", coFloat);
+    def->label = L("Corner threshold");
+    def->full_label = L("Random seam corner threshold");
+    def->category = L("Quality");
+    def->tooltip = L("Minimum perimeter angle change that is treated as a corner by the random seam corner clearance filter.");
+    def->sidetext = u8"°"; // degrees, don't need translation
+    def->min = 0;
+    def->max = 180;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(50.0));
+
+    def = this->add("random_seam_min_wall_depth", coFloat);
+    def->label = L("Min wall depth");
+    def->full_label = L("Random seam minimum wall depth");
+    def->category = L("Quality");
+    def->tooltip = L("Reject random seam candidates where the material depth perpendicular to this perimeter is below this value. Zero disables this filter.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("random_seam_min_distance", coFloat);
+    def->label = L("Min previous seam distance");
+    def->full_label = L("Random seam minimum previous layer distance");
+    def->category = L("Quality");
+    def->tooltip = L("Reject random seam candidates that are closer than this distance to any seam on the previous layer. Zero disables this filter.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(0.0));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");

@@ -2653,6 +2653,10 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Seam"), L"param_seam");
         optgroup->append_single_option_line("seam_position", "quality_settings_seam#seam-position");
         optgroup->append_single_option_line("staggered_inner_seams", "quality_settings_seam#staggered-inner-seams");
+        optgroup->append_single_option_line("random_seam_corner_clearance", "quality_settings_seam#random-seam-corner-clearance");
+        optgroup->append_single_option_line("random_seam_corner_angle", "quality_settings_seam#random-seam-corner-angle");
+        optgroup->append_single_option_line("random_seam_min_wall_depth", "quality_settings_seam#random-seam-min-wall-depth");
+        optgroup->append_single_option_line("random_seam_min_distance", "quality_settings_seam#random-seam-min-distance");
         optgroup->append_single_option_line("seam_gap","quality_settings_seam#seam-gap");
         optgroup->append_single_option_line("seam_slope_type", "quality_settings_seam#scarf-joint-seam");
         optgroup->append_single_option_line("seam_slope_conditional", "quality_settings_seam#scarf-joint-seam");

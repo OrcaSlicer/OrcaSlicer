@@ -738,6 +738,20 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
         toggle_field(el, have_perimeters, variant_index);
 
+    const SeamPosition seam_position = config->opt_enum<SeamPosition>("seam_position");
+    const bool has_random_seam = have_perimeters &&
+        (seam_position == spRandom || seam_position == spRandomInternal || seam_position == spRandomExternal);
+    const bool have_random_seam_corner_filter = has_random_seam &&
+        config->opt_float("random_seam_corner_clearance") > 0.0;
+    toggle_field("random_seam_corner_clearance", has_random_seam);
+    toggle_line("random_seam_corner_clearance", has_random_seam);
+    toggle_field("random_seam_corner_angle", have_random_seam_corner_filter);
+    toggle_line("random_seam_corner_angle", have_random_seam_corner_filter);
+    toggle_field("random_seam_min_wall_depth", has_random_seam);
+    toggle_line("random_seam_min_wall_depth", has_random_seam);
+    toggle_field("random_seam_min_distance", has_random_seam);
+    toggle_line("random_seam_min_distance", has_random_seam);
+
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",

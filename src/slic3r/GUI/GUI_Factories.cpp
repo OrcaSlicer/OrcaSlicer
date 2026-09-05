@@ -80,10 +80,12 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
     { L("Quality"), {{"layer_height", "",1},
                     //{"initial_layer_print_height", "",2},
                     {"seam_position", "",2},
-                    {"slice_closing_radius", "",3}, {"resolution", "",4},
-                    {"xy_hole_compensation", "",5}, {"xy_contour_compensation", "",6}, {"elefant_foot_compensation", "",7},
-                    {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
-                    {"precise_z_height", "",10}
+                    {"random_seam_corner_clearance", "",3}, {"random_seam_corner_angle", "",4},
+                    {"random_seam_min_wall_depth", "",5}, {"random_seam_min_distance", "",6},
+                    {"slice_closing_radius", "",7}, {"resolution", "",8},
+                    {"xy_hole_compensation", "",9}, {"xy_contour_compensation", "",10}, {"elefant_foot_compensation", "",11},
+                    {"make_overhang_printable_angle","", 12},{"make_overhang_printable_hole_size","",13}, {"wall_sequence","",14},
+                    {"precise_z_height", "",15}
                     }},
     { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_flow_ratio", "",4},{"brim_use_efc_outline", "",5},
                     {"enable_support", "",6},{"support_type", "",7},{"support_threshold_angle", "",8}, {"support_threshold_overlap", "",9}, {"support_on_build_plate_only", "",10},

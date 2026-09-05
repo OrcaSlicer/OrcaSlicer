@@ -8,6 +8,10 @@
 #include <boost/log/trivial.hpp>
 #include <random>
 #include <algorithm>
+#include <cmath>
+#include <limits>
+#include <numeric>
+#include <optional>
 #include <queue>
 
 #include "libslic3r/AABBTreeLines.hpp"
@@ -37,6 +41,24 @@ namespace SeamPlacerImpl {
 
 template<typename T> int sgn(T val) {
   return int(T(0) < val) - int(val < T(0));
+}
+
+bool is_random_seam_position(SeamPosition seam_position) {
+  return seam_position == spRandom || seam_position == spRandomInternal || seam_position == spRandomExternal;
+}
+
+enum class RandomSeamPreference {
+  None,
+  Internal,
+  External
+};
+
+RandomSeamPreference random_seam_preference(SeamPosition seam_position) {
+  if (seam_position == spRandomInternal)
+    return RandomSeamPreference::Internal;
+  if (seam_position == spRandomExternal)
+    return RandomSeamPreference::External;
+  return RandomSeamPreference::None;
 }
 
 // base function: ((e^(((1)/(x^(2)+1)))-1)/(e-1))
@@ -832,7 +854,7 @@ struct SeamComparator {
       return false;
     }
 
-    if (setup == SeamPosition::spRandom) {
+    if (is_random_seam_position(setup)) {
       return true;
     }
 
@@ -941,69 +963,632 @@ size_t pick_nearest_seam_point_index(const std::vector<SeamCandidate> &perimeter
   return seam_index;
 }
 
-// picks random seam point uniformly, respecting enforcers blockers and overhang avoidance.
-void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, size_t start_index) {
+struct RandomSeamViable {
+  // Candidate seam point index.
+  size_t index;
+  float edge_length;
+  Vec3f edge;
+};
+
+struct RandomSeamViables {
+  std::vector<RandomSeamViable> choices;
+  Vec3f seed_position;
+  float total_length = 0.0f;
+};
+
+struct RandomSeamChoice {
+  size_t index;
+  Vec3f position;
+};
+
+using RandomSeamBoundary = AABBTreeLines::LinesDistancer<Linef>;
+
+struct RandomSeamSection {
+  const ExPolygon *expolygon;
+  std::vector<RandomSeamBoundary> boundaries;
+};
+
+struct RandomSeamLayerSections {
+  std::vector<RandomSeamSection> sections;
+  // Intentionally layer-wide. Internal/external random seams are classified against the
+  // layer's overall section center so side selection remains consistent across islands.
+  Vec2d center = Vec2d::Zero();
+};
+
+struct RandomSeamSourceSection {
+  const RandomSeamLayerSections *layer_sections;
+  size_t section_id;
+};
+
+struct RandomSeamSourceBoundaryInfo {
+  size_t section_id;
+  size_t boundary_id;
+  size_t line_id;
+  Vec2d nearest_point;
+};
+
+bool random_seam_source_is_valid(const RandomSeamSourceSection &source) {
+  return source.layer_sections != nullptr &&
+         source.section_id < source.layer_sections->sections.size();
+}
+
+struct RandomSeamFilterParams {
+  float corner_clearance = 0.0f;
+  float corner_angle_threshold = float(50.0 * PI / 180.0);
+  double min_wall_depth = 0.0;
+  float min_distance = 0.0f;
+};
+
+RandomSeamFilterParams random_seam_filter_params(const PrintObjectConfig &config) {
+  return {
+    std::max(0.0f, float(config.random_seam_corner_clearance.value)),
+    float(std::clamp(config.random_seam_corner_angle.value, 0.0, 180.0) * PI / 180.0),
+    std::max(0.0, config.random_seam_min_wall_depth.value),
+    std::max(0.0f, float(config.random_seam_min_distance.value))
+  };
+}
+
+bool random_seam_filters_are_active(RandomSeamPreference preference,
+                                    const RandomSeamFilterParams &filters,
+                                    const PrintObjectSeamData::LayerSeams *previous_layer) {
+  return preference != RandomSeamPreference::None ||
+         filters.corner_clearance > float(EPSILON) ||
+         filters.min_wall_depth > EPSILON ||
+         (previous_layer != nullptr && filters.min_distance > float(EPSILON));
+}
+
+bool random_seam_uses_layer_sections(RandomSeamPreference preference,
+                                     const RandomSeamFilterParams &filters) {
+  return preference != RandomSeamPreference::None || filters.min_wall_depth > EPSILON;
+}
+
+RandomSeamViables collect_random_seam_viables(const std::vector<SeamCandidate> &perimeter_points,
+                                              size_t start_index) {
   SeamComparator comparator { spRandom };
 
-  // algorithm keeps a list of viable points and their lengths. If it finds a point
+  // Algorithm keeps a list of viable points and their lengths. If it finds a point
   // that is much better than the viable_example_index (e.g. better type, no overhang; see is_first_not_much_worse)
-  // then it throws away stored lists and starts from start
-  // in the end, the list should contain points with same type (Enforced > Neutral > Blocked) and also only those which are not
+  // then it throws away stored lists and starts from start.
+  // In the end, the list should contain points with same type (Enforced > Neutral > Blocked) and also only those which are not
   // big overhang.
   size_t viable_example_index = start_index;
   size_t end_index = perimeter_points[start_index].perimeter.end_index;
-  struct Viable {
-    // Candidate seam point index.
-    size_t index;
-    float edge_length;
-    Vec3f edge;
-  };
-  std::vector<Viable> viables;
+  const Vec3f seed_position = perimeter_points[start_index].position;
+  std::vector<RandomSeamViable> viables;
+  float total_length = 0.0f;
 
-  const Vec3f pseudornd_seed = perimeter_points[viable_example_index].position;
-  float rand = std::abs(sin(pseudornd_seed.dot(Vec3f(12.9898f,78.233f, 133.3333f))) * 43758.5453f);
-  rand = rand - (int) rand;
+  auto add_viable = [&perimeter_points, start_index, end_index, &viables, &total_length](size_t index) {
+    Vec3f edge_to_next { perimeter_points[index == end_index - 1 ? start_index : index + 1].position
+                       - perimeter_points[index].position };
+    float dist_to_next = edge_to_next.norm();
+    viables.push_back( { index, dist_to_next, edge_to_next });
+    total_length += dist_to_next;
+  };
 
   for (size_t index = start_index; index < end_index; ++index) {
     if (comparator.are_similar(perimeter_points[index], perimeter_points[viable_example_index])) {
       // index ok, push info into viables
-      Vec3f edge_to_next { perimeter_points[index == end_index - 1 ? start_index : index + 1].position
-                         - perimeter_points[index].position };
-      float dist_to_next = edge_to_next.norm();
-      viables.push_back( { index, dist_to_next, edge_to_next });
+      add_viable(index);
     } else if (comparator.is_first_not_much_worse(perimeter_points[viable_example_index],
                                                   perimeter_points[index])) {
-      // index is worse then viable_example_index, skip this point
+      // index is worse than viable_example_index, skip this point
     } else {
       // index is better than viable example index, update example, clear gathered info, start again
-      // clear up all gathered info, start from scratch, update example index
       viable_example_index = index;
       viables.clear();
-
-      Vec3f edge_to_next = (perimeter_points[index == end_index - 1 ? start_index : index + 1].position
-                            - perimeter_points[index].position);
-      float dist_to_next = edge_to_next.norm();
-      viables.push_back( { index, dist_to_next, edge_to_next });
+      total_length = 0.0f;
+      add_viable(index);
     }
   }
 
-  // now pick random point from the stored options
-  float len_sum = std::accumulate(viables.begin(), viables.end(), 0.0f, [](const float acc, const Viable &v) {
-    return acc + v.edge_length;
-  });
-  float picked_len = len_sum * rand;
+  return { std::move(viables), seed_position, total_length };
+}
+
+float random_seam_value(const Vec3f &seed_position, size_t attempt) {
+  float seed = seed_position.dot(Vec3f(12.9898f, 78.233f, 133.3333f));
+  if (attempt > 0)
+    seed += static_cast<float>(attempt) * 78.233f;
+
+  float rand = std::abs(sin(seed) * 43758.5453f);
+  return rand - std::floor(rand);
+}
+
+RandomSeamChoice sample_random_seam_choice(const std::vector<SeamCandidate> &perimeter_points,
+                                           size_t start_index,
+                                           const RandomSeamViables &random_viables,
+                                           size_t attempt) {
+  const std::vector<RandomSeamViable> &viables = random_viables.choices;
+  if (viables.empty())
+    return { start_index, perimeter_points[start_index].position };
+
+  if (random_viables.total_length <= float(EPSILON))
+    return { viables.front().index, perimeter_points[viables.front().index].position };
+
+  float picked_len = random_viables.total_length * random_seam_value(random_viables.seed_position, attempt);
 
   size_t point_idx = 0;
-  while (picked_len - viables[point_idx].edge_length > 0) {
+  while (point_idx + 1 < viables.size() && picked_len - viables[point_idx].edge_length > 0) {
     picked_len = picked_len - viables[point_idx].edge_length;
     point_idx++;
   }
 
+  const RandomSeamViable &viable = viables[point_idx];
+  Vec3f position = perimeter_points[viable.index].position;
+  if (viable.edge_length > float(EPSILON))
+    position += viable.edge * (picked_len / viable.edge_length);
+  return { viable.index, position };
+}
+
+void random_seam_add_polygon_centroid_part(const Polygon &polygon,
+                                           Vec2d &centroid,
+                                           Vec2d &average,
+                                           double &area_sum,
+                                           size_t &count) {
+  for (size_t index = 0; index < polygon.points.size(); ++index) {
+    const size_t next_index = index == polygon.points.size() - 1 ? 0 : index + 1;
+    const Vec2d p1 = unscaled(polygon.points[index]);
+    const Vec2d p2 = unscaled(polygon.points[next_index]);
+    const double a = cross2(p1, p2);
+    area_sum += a;
+    centroid += (p1 + p2) * a;
+    average += p1;
+    ++count;
+  }
+}
+
+Vec2d random_seam_sections_center(const ExPolygons &sections) {
+  Vec2d centroid = Vec2d::Zero();
+  Vec2d average = Vec2d::Zero();
+  double area_sum = 0.0;
+  size_t count = 0;
+
+  for (const ExPolygon &section : sections) {
+    random_seam_add_polygon_centroid_part(section.contour, centroid, average, area_sum, count);
+    for (const Polygon &hole : section.holes)
+      random_seam_add_polygon_centroid_part(hole, centroid, average, area_sum, count);
+  }
+
+  if (std::abs(area_sum) > EPSILON)
+    return centroid / (3.0 * area_sum);
+
+  if (count > 0)
+    return average / double(count);
+  return Vec2d::Zero();
+}
+
+RandomSeamBoundary random_seam_boundary(const Polygon &polygon) {
+  return RandomSeamBoundary(to_unscaled_linesf(ExPolygons{ ExPolygon{ polygon } }));
+}
+
+RandomSeamLayerSections random_seam_sections(const ExPolygons &sections) {
+  RandomSeamLayerSections result { {}, random_seam_sections_center(sections) };
+  result.sections.reserve(sections.size());
+  for (const ExPolygon &section : sections) {
+    RandomSeamSection random_section { &section, {} };
+    random_section.boundaries.reserve(section.holes.size() + 1);
+    random_section.boundaries.push_back(random_seam_boundary(section.contour));
+    for (const Polygon &hole : section.holes)
+      random_section.boundaries.push_back(random_seam_boundary(hole));
+    result.sections.push_back(std::move(random_section));
+  }
+  return result;
+}
+
+RandomSeamSourceSection random_seam_section_for_perimeter(const std::vector<SeamCandidate> &perimeter_points,
+                                                          size_t start_index,
+                                                          const RandomSeamLayerSections &layer_sections) {
+  const Vec3f &position = perimeter_points[start_index].position;
+  const Point point = Point::new_scale(position.x(), position.y());
+  for (size_t section_id = 0; section_id < layer_sections.sections.size(); ++section_id)
+    if (layer_sections.sections[section_id].expolygon->contains(point, true))
+      return { &layer_sections, section_id };
+
+  return { nullptr, size_t(-1) };
+}
+
+bool random_seam_same_point(const Vec2d &a, const Vec2d &b) {
+  return (a - b).squaredNorm() <= EPSILON * EPSILON;
+}
+
+double random_seam_boundary_distance_sqr(const RandomSeamBoundary &boundary,
+                                         const Vec2d &point) {
+  return boundary.squared_distance_from_lines(point);
+}
+
+size_t random_seam_source_boundary_id(const std::vector<SeamCandidate> &perimeter_points,
+                                      size_t start_index,
+                                      const RandomSeamSection &section) {
+  if (section.boundaries.empty())
+    return 0;
+
+  // Seam candidates are offset from the STL boundary. Identify which original boundary generated this
+  // perimeter so the first source-boundary hit can be ignored without using an intersection distance cutoff.
+  const size_t end_index = perimeter_points[start_index].perimeter.end_index;
+  size_t best_boundary_id = 0;
+  double best_distance = std::numeric_limits<double>::max();
+
+  for (size_t boundary_id = 0; boundary_id < section.boundaries.size(); ++boundary_id) {
+    double distance = 0.0;
+    for (size_t point_index = start_index; point_index < end_index; ++point_index) {
+      distance += random_seam_boundary_distance_sqr(section.boundaries[boundary_id],
+                                                    perimeter_points[point_index].position.head<2>().cast<double>());
+      if (distance >= best_distance)
+        break;
+    }
+    if (distance < best_distance) {
+      best_distance = distance;
+      best_boundary_id = boundary_id;
+    }
+  }
+
+  return best_boundary_id;
+}
+
+std::optional<RandomSeamSourceBoundaryInfo> random_seam_source_boundary_info(const RandomSeamSection &source_section,
+                                                                             size_t source_section_id,
+                                                                             size_t source_boundary_id,
+                                                                             const Vec2d &seam) {
+  if (source_boundary_id >= source_section.boundaries.size())
+    return std::nullopt;
+
+  const auto [distance, line_id, nearest_point] =
+      source_section.boundaries[source_boundary_id].distance_from_lines_extra<false>(seam);
+  return RandomSeamSourceBoundaryInfo {
+    source_section_id,
+    source_boundary_id,
+    line_id,
+    nearest_point
+  };
+}
+
+bool random_seam_is_same_or_adjacent_line(size_t line_id,
+                                          size_t source_line_id,
+                                          size_t line_count) {
+  if (source_line_id == size_t(-1) || line_count == 0)
+    return false;
+
+  return line_id == source_line_id ||
+         line_id == (source_line_id == 0 ? line_count - 1 : source_line_id - 1) ||
+         line_id == (source_line_id + 1 == line_count ? 0 : source_line_id + 1);
+}
+
+bool random_seam_is_source_boundary_line(size_t section_id,
+                                         size_t boundary_id,
+                                         size_t line_id,
+                                         const std::optional<RandomSeamSourceBoundaryInfo> &source_boundary,
+                                         size_t line_count) {
+  if (!source_boundary)
+    return false;
+
+  return section_id == source_boundary->section_id &&
+         boundary_id == source_boundary->boundary_id &&
+         random_seam_is_same_or_adjacent_line(line_id, source_boundary->line_id, line_count);
+}
+
+size_t random_seam_next_perimeter_index(size_t index, size_t start_index, size_t end_index) {
+  return index + 1 == end_index ? start_index : index + 1;
+}
+
+size_t random_seam_prev_perimeter_index(size_t index, size_t start_index, size_t end_index) {
+  return index == start_index ? end_index - 1 : index - 1;
+}
+
+bool random_seam_is_sharp_angle(const SeamCandidate &candidate,
+                                const RandomSeamFilterParams &filters) {
+  return std::abs(candidate.local_ccw_angle) > filters.corner_angle_threshold;
+}
+
+bool random_seam_has_nearby_sharp_angle_in_direction(const std::vector<SeamCandidate> &perimeter_points,
+                                                     size_t start_index,
+                                                     size_t vertex_index,
+                                                     float distance,
+                                                     const RandomSeamFilterParams &filters,
+                                                     bool forward) {
+  const size_t end_index = perimeter_points[start_index].perimeter.end_index;
+  const size_t perimeter_size = end_index - start_index;
+  if (perimeter_size == 0)
+    return false;
+
+  for (size_t i = 0; i < perimeter_size && distance < filters.corner_clearance; ++i) {
+    if (random_seam_is_sharp_angle(perimeter_points[vertex_index], filters))
+      return true;
+
+    const size_t next_index = forward ?
+        random_seam_next_perimeter_index(vertex_index, start_index, end_index) :
+        random_seam_prev_perimeter_index(vertex_index, start_index, end_index);
+    distance += (perimeter_points[vertex_index].position.head<2>() -
+                 perimeter_points[next_index].position.head<2>()).norm();
+    vertex_index = next_index;
+  }
+
+  return false;
+}
+
+bool random_seam_is_close_to_sharp_angle(const std::vector<SeamCandidate> &perimeter_points,
+                                         size_t start_index,
+                                         const RandomSeamChoice &choice,
+                                         const RandomSeamFilterParams &filters) {
+  if (filters.corner_clearance <= float(EPSILON))
+    return false;
+
+  const size_t end_index = perimeter_points[start_index].perimeter.end_index;
+  if (end_index <= start_index)
+    return false;
+
+  const size_t next_index = choice.index == end_index - 1 ? start_index : choice.index + 1;
+  const Vec2f seam = choice.position.head<2>();
+  const float distance_to_previous = (seam - perimeter_points[choice.index].position.head<2>()).norm();
+  const float distance_to_next = (seam - perimeter_points[next_index].position.head<2>()).norm();
+
+  return random_seam_has_nearby_sharp_angle_in_direction(perimeter_points, start_index, choice.index,
+                                                         distance_to_previous, filters, false) ||
+         random_seam_has_nearby_sharp_angle_in_direction(perimeter_points, start_index, next_index,
+                                                         distance_to_next, filters, true);
+}
+
+bool random_seam_is_close_to_previous_layer(const RandomSeamChoice &choice,
+                                            const PrintObjectSeamData::LayerSeams *previous_layer,
+                                            const RandomSeamFilterParams &filters) {
+  if (previous_layer == nullptr || filters.min_distance <= float(EPSILON))
+    return false;
+
+  const Vec2d seam = choice.position.head<2>().cast<double>();
+  const double min_distance_sqr = sqr(double(filters.min_distance));
+  for (const Perimeter &perimeter : previous_layer->perimeters)
+    if (perimeter.finalized &&
+        (seam - perimeter.final_seam_position.head<2>().cast<double>()).squaredNorm() < min_distance_sqr)
+      return true;
+
+  return false;
+}
+
+bool random_seam_material_depth_direction(const std::vector<SeamCandidate> &perimeter_points,
+                                          size_t start_index,
+                                          const RandomSeamChoice &choice,
+                                          const Vec2d &seam,
+                                          const RandomSeamSourceBoundaryInfo &source_boundary,
+                                          Vec2d *direction) {
+  const size_t end_index = perimeter_points[start_index].perimeter.end_index;
+  const size_t next_index = choice.index == end_index - 1 ? start_index : choice.index + 1;
+  const Vec2d edge = (perimeter_points[next_index].position - perimeter_points[choice.index].position).head<2>().cast<double>();
+  if (edge.squaredNorm() <= EPSILON * EPSILON)
+    return false;
+
+  const Vec2d material_vector = seam - source_boundary.nearest_point;
+  if (material_vector.squaredNorm() <= EPSILON * EPSILON)
+    return false;
+
+  const Vec2d edge_unit = edge.normalized();
+  const Vec2d normal(-edge_unit.y(), edge_unit.x());
+  *direction = normal.dot(material_vector) >= 0.0 ? normal : -normal;
+  return true;
+}
+
+bool random_seam_collinear_overlap_after_probe_start(const Linef &probe,
+                                                     const Linef &section_line) {
+  const Vec2d probe_vector = probe.vector();
+  const Vec2d section_vector = section_line.vector();
+  const double probe_len = probe_vector.norm();
+  const double section_len = section_vector.norm();
+  if (probe_len < EPSILON || section_len < EPSILON)
+    return false;
+
+  const double denom = cross2(probe_vector, section_vector);
+  if (std::abs(denom) > EPSILON * probe_len * section_len)
+    return false;
+
+  if (std::abs(cross2(section_line.a - probe.a, probe_vector)) > EPSILON * probe_len)
+    return false;
+
+  const double probe_len_sq = probe_vector.squaredNorm();
+  const double t1 = (section_line.a - probe.a).dot(probe_vector) / probe_len_sq;
+  const double t2 = (section_line.b - probe.a).dot(probe_vector) / probe_len_sq;
+  const double overlap_min = std::max(0.0, std::min(t1, t2));
+  const double overlap_max = std::min(1.0, std::max(t1, t2));
+  return overlap_max >= overlap_min && overlap_max > EPSILON;
+}
+
+bool random_seam_boundary_intersects_probe(const Linef &probe,
+                                           const RandomSeamBoundary &boundary,
+                                           size_t section_id,
+                                           size_t boundary_id,
+                                           const std::optional<RandomSeamSourceBoundaryInfo> &source_boundary) {
+  const Linesf &section_lines = boundary.get_lines();
+  return !boundary.visit_line_ids_intersecting_line_bbox(probe, [&](size_t line_id) {
+    if (random_seam_is_source_boundary_line(section_id, boundary_id, line_id,
+                                            source_boundary, section_lines.size()))
+      return true;
+
+    Vec2d intersection = Vec2d::Zero();
+    if (line_alg::intersection(probe, section_lines[line_id], &intersection) &&
+        !random_seam_same_point(intersection, probe.a))
+      return false;
+
+    if (random_seam_collinear_overlap_after_probe_start(probe, section_lines[line_id]))
+      return false;
+
+    return true;
+  });
+}
+
+bool random_seam_probe_intersects_section(const RandomSeamSection &section,
+                                          size_t section_id,
+                                          const Linef &probe,
+                                          const std::optional<RandomSeamSourceBoundaryInfo> &source_boundary) {
+  for (size_t boundary_id = 0; boundary_id < section.boundaries.size(); ++boundary_id)
+    if (random_seam_boundary_intersects_probe(probe, section.boundaries[boundary_id],
+                                              section_id, boundary_id,
+                                              source_boundary))
+      return true;
+
+  return false;
+}
+
+bool random_seam_is_in_thin_section(const std::vector<SeamCandidate> &perimeter_points,
+                                    size_t start_index,
+                                    const RandomSeamChoice &choice,
+                                    const RandomSeamSection &source_section,
+                                    const RandomSeamSourceBoundaryInfo &source_boundary,
+                                    const RandomSeamFilterParams &filters) {
+  if (filters.min_wall_depth <= EPSILON)
+    return false;
+
+  const Vec2d seam = choice.position.head<2>().cast<double>();
+  Vec2d direction = Vec2d::Zero();
+  if (!random_seam_material_depth_direction(perimeter_points, start_index, choice, seam, source_boundary, &direction))
+    return false;
+
+  const Linef thickness_probe(seam, seam + direction * filters.min_wall_depth);
+  // Wall-depth filtering intentionally uses STL slice sections, not generated perimeter offsets.
+  return random_seam_probe_intersects_section(source_section, source_boundary.section_id,
+                                              thickness_probe,
+                                              source_boundary);
+}
+
+bool random_seam_intersects_model_section(const Vec2d &seam,
+                                          const RandomSeamLayerSections &layer_sections,
+                                          const std::optional<RandomSeamSourceBoundaryInfo> &source_boundary) {
+  const Vec2d &center = layer_sections.center;
+  const Linef seam_to_center(seam, center);
+  for (size_t section_id = 0; section_id < layer_sections.sections.size(); ++section_id)
+    if (random_seam_probe_intersects_section(layer_sections.sections[section_id], section_id,
+                                             seam_to_center,
+                                             source_boundary))
+      return true;
+
+  return false;
+}
+
+bool random_seam_choice_matches_filters(const std::vector<SeamCandidate> &perimeter_points,
+                                        size_t start_index,
+                                        const RandomSeamChoice &choice,
+                                        const RandomSeamSourceSection &source,
+                                        size_t source_boundary_id,
+                                        RandomSeamPreference preference,
+                                        const RandomSeamFilterParams &filters,
+                                        const PrintObjectSeamData::LayerSeams *previous_layer) {
+  if (random_seam_is_close_to_sharp_angle(perimeter_points, start_index, choice, filters))
+    return false;
+
+  if (random_seam_is_close_to_previous_layer(choice, previous_layer, filters))
+    return false;
+
+  if (!random_seam_source_is_valid(source))
+    return preference == RandomSeamPreference::None;
+
+  const RandomSeamLayerSections &layer_sections = *source.layer_sections;
+  const size_t source_section_id = source.section_id;
+  const RandomSeamSection &source_section = layer_sections.sections[source_section_id];
+  const Vec2d seam = choice.position.head<2>().cast<double>();
+  const std::optional<RandomSeamSourceBoundaryInfo> source_boundary =
+      random_seam_source_boundary_info(source_section, source_section_id, source_boundary_id, seam);
+
+  if (source_boundary &&
+      random_seam_is_in_thin_section(perimeter_points, start_index, choice, source_section,
+                                     *source_boundary, filters))
+    return false;
+
+  if (preference == RandomSeamPreference::None)
+    return true;
+
+  const bool intersects = random_seam_intersects_model_section(seam, layer_sections, source_boundary);
+  return preference == RandomSeamPreference::Internal ? !intersects : intersects;
+}
+
+std::vector<RandomSeamChoice> collect_matching_random_seam_choices(const std::vector<SeamCandidate> &perimeter_points,
+                                                                   size_t start_index,
+                                                                   const RandomSeamViables &viables,
+                                                                   const RandomSeamSourceSection &source,
+                                                                   size_t source_boundary_id,
+                                                                   RandomSeamPreference preference,
+                                                                   const RandomSeamFilterParams &filters,
+                                                                   const PrintObjectSeamData::LayerSeams *previous_layer) {
+  std::vector<RandomSeamChoice> matches;
+  matches.reserve(viables.choices.size() * 2);
+
+  size_t sample_id = 0;
+  for (const RandomSeamViable &viable : viables.choices) {
+    if (viable.edge_length <= float(EPSILON))
+      continue;
+
+    const Vec3f start_position = perimeter_points[viable.index].position;
+    auto add_matching_sample = [&](float offset, float scale) {
+      const float t = offset + scale * random_seam_value(viables.seed_position, 100 + sample_id++);
+      const RandomSeamChoice choice { viable.index, start_position + viable.edge * t };
+      if (random_seam_choice_matches_filters(perimeter_points, start_index,
+                                             choice, source, source_boundary_id, preference, filters,
+                                             previous_layer))
+        matches.push_back(choice);
+    };
+
+    add_matching_sample(0.10f, 0.40f);
+    add_matching_sample(0.51f, 0.39f);
+  }
+
+  return matches;
+}
+
+RandomSeamChoice sample_matching_random_seam_choice(const std::vector<RandomSeamChoice> &matches,
+                                                    const Vec3f &seed_position) {
+  const size_t choice_index = std::min<size_t>(
+      size_t(random_seam_value(seed_position, 0) * float(matches.size())),
+      matches.size() - 1);
+  return matches[choice_index];
+}
+
+void apply_random_seam_choice(const std::vector<SeamCandidate> &perimeter_points,
+                              size_t start_index,
+                              const RandomSeamChoice &choice) {
   Perimeter &perimeter = perimeter_points[start_index].perimeter;
-  perimeter.seam_index = viables[point_idx].index;
-  perimeter.final_seam_position = perimeter_points[perimeter.seam_index].position
-                                  + viables[point_idx].edge.normalized() * picked_len;
+  perimeter.seam_index = choice.index;
+  perimeter.final_seam_position = choice.position;
   perimeter.finalized = true;
+}
+
+// Picks random seam point uniformly, respecting enforcers blockers and overhang avoidance.
+// Active filters first retry full random choices, then fall back to deterministic segment samples.
+void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points,
+                            size_t start_index,
+                            const RandomSeamSourceSection &source,
+                            RandomSeamPreference preference = RandomSeamPreference::None,
+                            const RandomSeamFilterParams &filters = RandomSeamFilterParams{},
+                            const PrintObjectSeamData::LayerSeams *previous_layer = nullptr) {
+  static constexpr size_t filter_attempts = 100;
+
+  const RandomSeamViables viables = collect_random_seam_viables(perimeter_points, start_index);
+  const RandomSeamChoice fallback = sample_random_seam_choice(perimeter_points, start_index, viables, 0);
+  RandomSeamChoice selected = fallback;
+  bool selected_by_filters = false;
+
+  if (random_seam_filters_are_active(preference, filters, previous_layer)) {
+    const bool has_source = random_seam_source_is_valid(source);
+    const size_t source_boundary_id = has_source ?
+        random_seam_source_boundary_id(perimeter_points, start_index,
+                                       source.layer_sections->sections[source.section_id]) :
+        size_t(-1);
+    for (size_t attempt = 0; attempt < filter_attempts; ++attempt) {
+      const RandomSeamChoice candidate = attempt == 0 ? fallback :
+                                         sample_random_seam_choice(perimeter_points, start_index, viables, attempt);
+      if (random_seam_choice_matches_filters(perimeter_points, start_index,
+                                             candidate, source, source_boundary_id,
+                                             preference, filters, previous_layer)) {
+        selected = candidate;
+        selected_by_filters = true;
+        break;
+      }
+    }
+
+    if (!selected_by_filters) {
+      const std::vector<RandomSeamChoice> matches =
+          collect_matching_random_seam_choices(perimeter_points, start_index, viables,
+                                               source, source_boundary_id, preference, filters,
+                                               previous_layer);
+      if (!matches.empty())
+        selected = sample_matching_random_seam_choice(matches, viables.seed_position);
+    }
+  }
+
+  apply_random_seam_choice(perimeter_points, start_index, selected);
 }
 
 } // namespace SeamPlacerImpl
@@ -1431,6 +2016,8 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
   for (const PrintObject *po : print.objects()) {
     throw_if_canceled_func();
     SeamPosition configured_seam_preference = po->config().seam_position.value;
+    RandomSeamPreference configured_random_preference = random_seam_preference(configured_seam_preference);
+    RandomSeamFilterParams configured_random_filters = random_seam_filter_params(po->config());
     SeamComparator comparator { configured_seam_preference };
 
     {
@@ -1467,18 +2054,43 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
           << "SeamPlacer: pick_seam_point : start";
       //pick seam point
       std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
-                        [&layers, configured_seam_preference, comparator](tbb::blocked_range<size_t> r) {
-                          for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
-                            std::vector<SeamCandidate> &layer_perimeter_points = layers[layer_idx].points;
-                            for (size_t current = 0; current < layer_perimeter_points.size();
-                                 current = layer_perimeter_points[current].perimeter.end_index)
-                              if (configured_seam_preference == spRandom)
-                                pick_random_seam_point(layer_perimeter_points, current);
-                              else
-                                pick_seam_point(layer_perimeter_points, current, comparator);
-                          }
-                        });
+      const bool configured_random_seam = is_random_seam_position(configured_seam_preference);
+      auto pick_layer_seams = [po, &layers, configured_seam_preference, configured_random_preference,
+                               configured_random_filters, comparator, configured_random_seam](size_t layer_idx) {
+        std::vector<SeamCandidate> &layer_perimeter_points = layers[layer_idx].points;
+        RandomSeamLayerSections sections;
+        const bool use_layer_sections = configured_random_seam &&
+            random_seam_uses_layer_sections(configured_random_preference, configured_random_filters);
+        if (use_layer_sections)
+          sections = random_seam_sections(po->layers()[layer_idx]->lslices);
+
+        const PrintObjectSeamData::LayerSeams *previous_layer =
+            configured_random_filters.min_distance > float(EPSILON) && layer_idx > 0 ? &layers[layer_idx - 1] : nullptr;
+        for (size_t current = 0; current < layer_perimeter_points.size();
+             current = layer_perimeter_points[current].perimeter.end_index) {
+          if (configured_random_seam) {
+            const RandomSeamSourceSection source =
+                use_layer_sections ?
+                random_seam_section_for_perimeter(layer_perimeter_points, current, sections) :
+                RandomSeamSourceSection { nullptr, size_t(-1) };
+            pick_random_seam_point(layer_perimeter_points, current, source,
+                                   configured_random_preference, configured_random_filters,
+                                   previous_layer);
+          } else
+            pick_seam_point(layer_perimeter_points, current, comparator);
+        }
+      };
+
+      if (configured_random_seam && configured_random_filters.min_distance > float(EPSILON)) {
+        for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx)
+          pick_layer_seams(layer_idx);
+      } else {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
+                          [&pick_layer_seams](tbb::blocked_range<size_t> r) {
+                            for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx)
+                              pick_layer_seams(layer_idx);
+                          });
+      }
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: pick_seam_point : end";
     }
