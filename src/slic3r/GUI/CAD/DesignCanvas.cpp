@@ -5,6 +5,7 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/3DBed.hpp"
+#include "slic3r/GUI/Camera.hpp"   // N: look down the sketch plane normal
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/Model.hpp"
@@ -1484,6 +1485,20 @@ bool DesignCanvas::is_constraining_entities() const
 int DesignCanvas::sketch_selection_count() const
 {
     return int(m_sketch_tool.selection().size());
+}
+
+bool DesignCanvas::view_normal_to_sketch()
+{
+    if (m_canvas == nullptr) return false;
+    const SketchPlane& pl = m_sketch_tool.plane();
+    Camera& cam = wxGetApp().plater()->get_camera();
+    // Keep the distance: this is an orientation change, not a zoom. The plane's own y axis is
+    // the up vector, so "up" on screen is up in sketch coordinates — which is what makes a
+    // dimension typed after pressing N land where the eye expects it.
+    const double dist = cam.get_distance();
+    cam.look_at(pl.origin + pl.normal * dist, pl.origin, pl.y_axis);
+    request_repaint();
+    return true;
 }
 
 bool DesignCanvas::sketch_abort_gesture()

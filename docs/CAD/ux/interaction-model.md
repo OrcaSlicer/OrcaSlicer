@@ -109,3 +109,36 @@ also mean "open a menu".
 
 Right-hold-and-drag is not in the table on purpose: past 3 px or 200 ms it is navigation, and
 navigation does not transition the state machine.
+
+## 4. Visual scaffolding
+
+Entering a sketch changes three things at once, so the state is legible from across the room:
+
+- **Banner.** A teal strip across the top of the viewport: `Editing: Sketch N · N = look normal to
+  the plane · Finish or Cancel in the toolbar`. Indicator only — Confirm and Cancel stay on the one
+  ribbon action bar, per the Design UX contract. It is a sibling above the canvas, not a floating
+  child over it: a child window over a `wxGLCanvas` is a native window on GTK and does not reliably
+  stack over GL, and this banner's job is to be unmissable rather than clever.
+- **The printer bed is muted.** A plate grid and a sketch grid are the same visual language, and
+  reading one as the other is how a sketch gets drawn against the wrong reference. The view
+  checkbox remains the stored preference and is restored on the way out; ticking it mid-sketch
+  still shows the bed, because that is a deliberate act and this is only a default.
+- **`N` looks normal to the plane**, keeping the current zoom, with the plane's own y axis as up.
+  Sketch key map only — in Feature mode the navigator orb owns orientation.
+
+## 5. Context menu content
+
+The offer is generated from `docs/CAD/ux/tool_atlas.json`; its 8-row shape and permanent row
+indices are ratified and are not changed here. Checked against the per-context vocabularies asked
+for in the 2026-09-05 interaction brief, the atlas already carries all of them except two, both on
+a planar face:
+
+| Asked for | Status |
+|---|---|
+| Revolve on a planar face | **not offered, and should not be**: `revolve` accepts `sk_loop` only, because the kernel takes a sketch profile — a face is not one |
+| Offset Face | offered as **Thicken** (`thicken`, accepts `face_planar`); `surf_offset` is the sheet-body verb and accepts `body_sheet` |
+
+View and document actions — Zoom to Fit, View Isometric, Clear Selection, Finish Sketch, Normal to
+Sketch — stay in chrome by the atlas's own rule: the offer describes verbs that consume a
+*selection*, and these act on the document or the camera. Esc covers Clear Selection, `N` covers
+Normal to Sketch, and the ribbon covers Finish.

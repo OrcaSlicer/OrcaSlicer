@@ -80,6 +80,9 @@ public:
     void unbind_canvas_event_handlers();   // app close / language switch, from the plater's teardown
     void reset_canvas_volumes();
     void set_show_bed(bool b);   // view option: draw the printer bed + plate grid, or not
+    // N: look straight down the sketch plane's normal, keeping the current zoom. A sketch drawn
+    // at an angle is a sketch drawn wrong, and no amount of orbiting by hand lands exactly square.
+    bool view_normal_to_sketch();
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
     void set_on_sketch_entities_commit(

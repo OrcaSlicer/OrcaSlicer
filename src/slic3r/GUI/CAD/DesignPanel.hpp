@@ -451,6 +451,13 @@ private:
 
     // Top contextual toolbar (parented to the panel, above the form/viewport row).
     UiMode    m_ui_mode{UiMode::Feature};
+    // Sketch environment banner: a strip across the top of the viewport saying, in words, that
+    // this is a sketch and which one. The mode used to be legible only from the toolbar and the
+    // left card — both of which look like the rest of the app — so a sketch session and plate
+    // preparation were one glance apart. Indicator only: Finish/Cancel stay on the ONE ribbon
+    // action bar (the Design UX contract), and the banner never grows a second pair.
+    wxPanel*      m_sketch_banner{nullptr};
+    wxStaticText* m_sketch_banner_txt{nullptr};
     wxScrolledWindow* m_toolbar{nullptr};   // horizontally scrollable so the action bar stays reachable on narrow windows
     wxSizer*  m_tb_feature{nullptr};
     wxSizer*  m_tb_sketch{nullptr};

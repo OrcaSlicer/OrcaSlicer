@@ -441,6 +441,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
             set_status(_L("Nothing here has a value to type — pick a line, an arc, a circle, or two entities"));
     };
     m_keys_sketch['K'] = [this] { enter_constrain_inline(); };
+    // N: square up to the plane. Not a view preference but part of drawing — a sketch read at an
+    // angle is a sketch whose right angles do not look like right angles, and no hand-orbit lands
+    // exactly normal. Sketch map only: in Feature mode the navigator orb owns orientation.
+    m_keys_sketch['N'] = [this] {
+        if (m_viewport && m_viewport->view_normal_to_sketch()) {
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(_L("Normal to the sketch plane"));
+            m_status->Refresh();
+        }
+    };
     m_keys_sketch['Q'] = [this] {
         // With geometry selected, Q converts THAT geometry (snaporca-6zic) — the reading
         // everyone arrives with from other sketchers. With nothing selected it keeps its
@@ -4316,6 +4326,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
     });
 
     auto* vcol = new wxBoxSizer(wxVERTICAL);
+    // The sketch banner sits ABOVE the viewport rather than floating inside it: a child window
+    // over a wxGLCanvas is a platform argument (it is a native window on GTK and does not
+    // reliably stack over GL), and the banner's job is to be unmissable, not to be clever.
+    m_sketch_banner = new wxPanel(this, wxID_ANY);
+    m_sketch_banner->SetBackgroundColour(wxColour(0, 122, 116));   // Orca teal: not a plate colour
+    m_sketch_banner_txt = new wxStaticText(m_sketch_banner, wxID_ANY, wxString());
+    m_sketch_banner_txt->SetForegroundColour(*wxWHITE);
+    {
+        wxFont f = m_sketch_banner_txt->GetFont();
+        f.SetWeight(wxFONTWEIGHT_BOLD);
+        m_sketch_banner_txt->SetFont(f);
+        auto* bs = new wxBoxSizer(wxHORIZONTAL);
+        bs->Add(m_sketch_banner_txt, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(6));
+        m_sketch_banner->SetSizer(bs);
+    }
+    m_sketch_banner->Hide();
+    vcol->Add(m_sketch_banner, 0, wxEXPAND);
     // The bottom 3D-navigator orb handles all view orientation, so no separate view buttons.
     // Fit view is a double-click on the viewport (the tool intercepts it -> zoom_to_volumes).
     vcol->Add(m_viewport, 1, wxEXPAND);
@@ -4455,6 +4482,24 @@ void DesignPanel::set_ui_mode(UiMode m)
     // leaving it takes them back. Without this they would only refresh on the next tree
     // rebuild, which is not an event that happens when you merely press Sketch.
     update_reference_planes();
+
+    // Say where you are, in words, across the top of the viewport — and mute the printer bed
+    // while you are there. The plate grid and a sketch grid are the same visual language, and
+    // reading one as the other is how a sketch gets drawn against the wrong reference. The bed
+    // checkbox stays the stored preference and is restored on the way out; ticking it mid-sketch
+    // still shows the bed, because that is a deliberate act and this is only a default.
+    if (m_sketch_banner != nullptr) {
+        const bool sketching = (m == UiMode::Sketch);
+        if (sketching && m_sketch_banner_txt != nullptr)
+            m_sketch_banner_txt->SetLabel(
+                wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
+                                    "Finish or Cancel in the toolbar"),
+                                 m_feature_counter + 1));
+        m_sketch_banner->Show(sketching);
+        m_sketch_banner->GetParent()->Layout();
+        if (m_viewport != nullptr)
+            m_viewport->set_show_bed(!sketching && (m_show_bed == nullptr || m_show_bed->GetValue()));
+    }
 }
 
 void DesignPanel::on_shape_changed()
