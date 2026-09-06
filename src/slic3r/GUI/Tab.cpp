@@ -3072,6 +3072,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("fuzzy_skin", "others_settings_fuzzy_skin");
         optgroup->append_single_option_line("fuzzy_skin_mode", "others_settings_fuzzy_skin#fuzzy-skin-mode");
         optgroup->append_single_option_line("fuzzy_skin_noise_type", "others_settings_fuzzy_skin#noise-type");
+        optgroup->append_single_option_line("corner_type", "others_settings_fuzzy_skin");
         optgroup->append_single_option_line("fuzzy_skin_point_distance", "others_settings_fuzzy_skin#point-distance");
         optgroup->append_single_option_line("fuzzy_skin_thickness", "others_settings_fuzzy_skin#skin-thickness");
         optgroup->append_single_option_line("fuzzy_skin_scale", "others_settings_fuzzy_skin#skin-feature-size");

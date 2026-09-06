@@ -192,6 +192,7 @@
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ClipperTools.hpp"
 #include "libslic3r/libslic3r.h"
 
 #ifdef _WIN32

@@ -114,6 +114,7 @@
 #include "clipper.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "ClipperTools.hpp"
 #include "Config.hpp"
 #include "enum_bitmask.hpp"
 #include "format.hpp"

@@ -66,8 +66,10 @@ enum class FuzzySkinType {
 
 enum class FuzzySkinMode {
     Displacement,
+    Displacement_plus,
     Extrusion,
     Combined,
+    Fur,
 };
 
 // ORCA: direction in which top_surface_expansion grows the top surfaces.
@@ -92,6 +94,17 @@ enum class NoiseType {
     Ripple,
 };
 
+enum class CornerType {
+    Auto,
+    Groove,
+    Cut,
+    Trapezoid,
+    Spike,
+    Full,
+    Round,
+    None,
+};
+    
 enum class WipeTowerType {
     Type1,
     Type2,
@@ -667,6 +680,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(CornerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
@@ -1307,6 +1321,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                fuzzy_skin_point_distance))
     ((ConfigOptionBool,                 fuzzy_skin_first_layer))
     ((ConfigOptionEnum<NoiseType>,      fuzzy_skin_noise_type))
+    ((ConfigOptionEnum<CornerType>,     corner_type))
     ((ConfigOptionEnum<FuzzySkinMode>,  fuzzy_skin_mode))
     ((ConfigOptionFloat,                fuzzy_skin_scale))
     ((ConfigOptionInt,                  fuzzy_skin_octaves))

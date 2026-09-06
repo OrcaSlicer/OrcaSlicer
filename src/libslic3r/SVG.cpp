@@ -1,5 +1,6 @@
 #include "SVG.hpp"
 #include <iostream>
+#include "ClipperTools.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -195,10 +196,54 @@ void SVG::draw(const Polylines &polylines, std::string stroke, coordf_t stroke_w
         this->draw(*it, stroke, stroke_width);
 }
 
-void SVG::draw(const ThickLines &thicklines, const std::string &fill, const std::string &stroke, coordf_t stroke_width)
+void SVG::draw(const ThickLines& thicklines, const std::string& fill, const std::string& stroke, coordf_t stroke_width, bool hollow)
 {
-    for (ThickLines::const_iterator it = thicklines.begin(); it != thicklines.end(); ++it)
-        this->draw(*it, fill, stroke, stroke_width);
+    if (!hollow) {
+        for (ThickLines::const_iterator it = thicklines.begin(); it != thicklines.end(); ++it)
+            this->draw(*it, fill, stroke, stroke_width);
+    } else {
+        int cnt(thicklines.size() * 2 + 1);
+        Polyline outer, inner;
+        outer.points.reserve(cnt);
+        inner.points.reserve(cnt);
+        ThickLine last_line;
+        for (ThickLine line : thicklines) {
+            if (last_line.length() && last_line.b != line.a) {
+                outer.points.push_back(Point(last_line.b));
+                outer.points.push_back(Point(line.a));
+                inner.points.push_back(Point(last_line.b));
+                inner.points.push_back(Point(line.a));
+            }
+            Point dir{line.b(0) - line.a(0), line.b(1) - line.a(1)};
+            Vec2d perp{-dir(1), dir(0)};
+            double len = perp.norm() * 2.;
+            if (len > SCALED_EPSILON) {
+                Point da   = (perp * line.a_width / len).cast<coord_t>();
+                Point db   = (perp * line.b_width / len).cast<coord_t>();
+                outer.points.push_back(Point(line.a + da));
+                outer.points.push_back(Point(line.b + db));
+                inner.points.push_back(Point(line.a - da));
+                inner.points.push_back(Point(line.b - db));
+            }
+            last_line = line;
+        }
+        Polygon pg;
+        pg.points = outer.points;
+        pg.points.reserve(outer.size() + inner.size());
+        for (coord_t i = inner.size() - 1; i >= 0; i--)
+            pg.points.push_back(inner[i]);
+        pg.make_counter_clockwise();
+        if (pg.length()) {
+            pg.simplify(SCALED_EPSILON);
+            this->draw(pg, stroke);
+        }
+    }
+}
+
+void SVG::draw(const ThickPolyline &thickpolyline, const std::string &stroke, coordf_t stroke_width, bool hollow)
+{
+    ThickLines lines(thickpolyline.thicklines());
+    this->draw(lines, stroke, stroke, stroke_width, hollow);
 }
 
 void SVG::draw(const ThickPolylines &polylines, const std::string &stroke, coordf_t stroke_width)
@@ -430,4 +475,71 @@ void SVG::export_expolygons(const char *path, const std::vector<std::pair<Slic3r
     svg.Close();
 }
 
+// Common functions for drawing SVG shapes with direction arrows
+void draw(SVG& svg, const ThickLines& lines, std::string stroke, double stroke_width, bool hollow, bool arrow) 
+{
+    if (!lines.size())
+        return;
+    ThickLine ftl;
+    for (const ThickLine& fl2 : lines) {
+        ftl = fl2;
+        if (ftl.length() > SCALED_EPSILON)
+            break;
+    }
+    if (!ftl.length())
+        return;
+    Vec2crd _v((ftl.vector().cast<double>().normalized() * stroke_width).cast<coord_t>());
+    if (hollow) {
+        ThickLines tls(lines);
+        if (arrow)
+            tls.insert(tls.begin(), ThickLine(ftl.a, ftl.a + _v * 3, std::max(stroke_width, ftl.a_width) * 2, 0));
+        if (tls.size())
+            svg.draw(tls, stroke, stroke, stroke_width, true);
+    } else {
+        Polyline pl(::Slic3r::to_polyline(lines));
+        if (arrow) {
+            Point a(lines[0].a);
+            Points points{a, a + perp(_v), a + _v * 3, a - perp(_v)};
+            pl.points.insert(pl.begin(), points.begin(), points.end());
+        }
+        svg.draw(pl, stroke, stroke_width);
+    }
 }
+
+void draw(SVG& svg, const ThickPolyline& polyline, std::string stroke,double stroke_width,bool hollow,bool arrow) 
+{
+    if (polyline.points.size() > 1)
+        draw(svg, polyline.thicklines(), stroke, stroke_width, hollow, arrow);
+}
+
+void draw(SVG& svg, const ThickPolylines& thickpolylines, std::string stroke, double stroke_width, bool hollow, bool arrow) 
+{
+    for (const ThickPolyline& tpl : thickpolylines)
+        if (tpl.points.size())
+            draw(svg, tpl, stroke, stroke_width, hollow, arrow);
+}
+
+void draw(SVG& svg, const Polyline& polyline, std::string stroke, double stroke_width, bool hollow, bool arrow) 
+{
+    if (polyline.size() > 1)
+        draw(svg, ::Slic3r::to_thick_lines(polyline, stroke_width), stroke, stroke_width, hollow, arrow);
+}
+
+void draw(SVG& svg, const Polylines& polylines, std::string stroke, double stroke_width, bool hollow, bool arrow) 
+{
+    for (const Polyline& pl : polylines)
+        if (pl.size())
+            draw(svg, pl, stroke, stroke_width, hollow, arrow);
+}
+
+void draw(SVG& svg, const Polygon& polygon, std::string stroke, double stroke_width, bool hollow, bool arrow)
+{   draw(svg, ::Slic3r::to_thick_polylines({Polyline(polygon.points)}, stroke_width), stroke, stroke_width, hollow, arrow); }
+
+void draw(SVG& svg, const Polygons& polygons, std::string stroke, double stroke_width, bool hollow, bool arrow) 
+{
+    for (const Polygon& pg : polygons)
+        if (pg.length())
+            draw(svg, pg, stroke, stroke_width, hollow, arrow);
+}
+
+} // namespace Slic3r
