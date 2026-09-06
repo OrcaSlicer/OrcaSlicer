@@ -118,7 +118,7 @@ DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
     m_ams_id = ams_id;
     m_ext_id = nozzle_id;
     m_ams_type = (AmsType)type;
-    assert(EXT_SPOOL < type && m_ams_type <= AMS_LITE_MIXED);
+    assert(EXT_SPOOL < type && m_ams_type <= TOOLCHANGER);
 }
 
 DevAms::~DevAms()
@@ -135,10 +135,13 @@ DevAms::~DevAms()
 }
 
 static unordered_map<int, wxString> s_ams_display_formats = {
-    {DevAms::AMS,      "AMS-%d"},
-    {DevAms::AMS_LITE, "AMS Lite-%d"},
-    {DevAms::N3F,      "AMS 2 PRO-%d"},
-    {DevAms::N3S,      "AMS HT-%d"}
+    {DevAms::AMS,         "AMS-%d"},
+    {DevAms::AMS_LITE,    "AMS Lite-%d"},
+    {DevAms::N3F,         "AMS 2 PRO-%d"},
+    {DevAms::N3S,         "AMS HT-%d"},
+    // Orca: Moonraker toolchanger units (Snapmaker U1 and similar) -- one unit per tool.
+    // Left unlocalized like the other device-model formats in this table.
+    {DevAms::TOOLCHANGER, "Tool %d"}
 };
 
 wxString DevAms::GetDisplayName() const
@@ -180,7 +183,7 @@ int DevAms::GetSlotCount() const
     {
         return 4;
     }
-    else if (ams_type == N3S)
+    else if (ams_type == N3S || ams_type == TOOLCHANGER)
     {
         return 1;
     }
@@ -309,7 +312,8 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
                     int ams_id_int  = stoi(ams_id);
                     int slot_id_int = stoi(slot_id);
                     int tray_index  = -1;
-                    if (ams_item->GetAmsType() == DevAms::N3S) {
+                    if (ams_item->GetAmsType() == DevAms::N3S || ams_item->GetAmsType() == DevAms::TOOLCHANGER) {
+                        // One slot per unit for both: global tray index == unit index.
                         tray_index = ams_id_int;
                     } else if(ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
                         tray_index = 24 + slot_id_int;
@@ -336,6 +340,15 @@ bool DevFilaSystem::IsAmsSettingUp() const
     }
 
     return false;
+}
+
+bool DevFilaSystem::IsAllToolchanger() const
+{
+    if (amsList.empty()) return false;
+    for (const auto& [id, ams] : amsList) {
+        if (!ams || ams->GetAmsType() != DevAms::TOOLCHANGER) return false;
+    }
+    return true;
 }
 
 bool DevFilaSystem::IsBBL_Filament(std::string tag_uid)
@@ -530,6 +543,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 // Mixed AMS-Lite (A2L / N9) exist flag lives at bit 12.
                                 curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, 12);
+                            }
+                            else if (type_id == DevAms::TOOLCHANGER)
+                            {
+                                // Orca: MoonrakerPrinterAgent::build_ams_payload publishes 0-based bits
+                                // (`ams_exist_bits |= 1 << ams_id`) rather than real N3S hardware's
+                                // ams_id-128 scheme handled below. One toolchanger unit per physical
+                                // tool, so bit ams_id_int marks that unit directly.
+                                curr_ams->m_exist = (obj->ams_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
                             }
                             else
                             {
@@ -772,6 +793,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                     {
                                         // Mixed AMS-Lite (A2L / N9) trays occupy tray-exist bits 24..27.
                                         curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int);
+                                    }
+                                    else if (type_id == DevAms::TOOLCHANGER)
+                                    {
+                                        // Orca: build_ams_payload publishes 0-based bits
+                                        // (`tray_exist_bits |= 1 << slot_index`, slot_index == ams_id, one
+                                        // slot per unit), rather than real N3S hardware's ams_id-128 scheme
+                                        // handled below.
+                                        curr_tray->is_exists = (obj->tray_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
                                     }
                                     else
                                     {

@@ -2,6 +2,7 @@
 #include "Http.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/ActivePrinterSession.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -458,7 +459,8 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
     return BAMBU_NETWORK_SUCCESS;
 }
 
-void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays)
+void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                                               AmsUnitShape shape)
 {
 
     // Look up MachineObject via DeviceManager
@@ -479,17 +481,31 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     unsigned long ams_exist_bits = 0;
     unsigned long tray_exist_bits = 0;
 
+    // Orca: honest per-tool presentation. Each physical tool becomes its own 1-slot AMS unit
+    // typed TOOLCHANGER, instead of being faked as AMS_LITE units chunked in groups of 4.
+    // ams_count is the tool count here (== max_lane_index + 1, see callers). Index identity is
+    // preserved: unit `ams_id` has exactly one slot (id "0"), so tool n == unit n slot 0 ==
+    // global tray index n, same as slot_index below and in DevFilaSystem::GetTrayIndexMap.
+    char toolchanger_info[5];
+    snprintf(toolchanger_info, sizeof(toolchanger_info), "%04X", static_cast<unsigned>(DevAms::TOOLCHANGER));
+
     for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
         ams_exist_bits |= (1 << ams_id);
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        ams_unit["info"] = (shape == AmsUnitShape::Toolchanger) ? std::string(toolchanger_info) : std::string("0002"); // 0002: treat as AMS_LITE
 
         nlohmann::json tray_array = nlohmann::json::array();
-        int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
-        for (int slot_id = 0; slot_id <= max_slot_in_this_ams; ++slot_id) {
-            int slot_index = ams_id * 4 + slot_id;
+
+        // Toolchanger: exactly one slot per unit (unit index == tool index).
+        // Box4: up to 4 slots per unit, chunked (legacy MMU-box presentation).
+        int first_slot = (shape == AmsUnitShape::Toolchanger) ? ams_id : ams_id * 4;
+        int last_slot = (shape == AmsUnitShape::Toolchanger) ? ams_id
+                                                              : ams_id * 4 + std::min(3, max_lane_index - ams_id * 4);
+
+        for (int slot_index = first_slot; slot_index <= last_slot; ++slot_index) {
+            int slot_id = (shape == AmsUnitShape::Toolchanger) ? 0 : (slot_index - ams_id * 4);
 
             // Find tray with matching slot_index
             const AmsTrayData* tray = nullptr;
@@ -502,7 +518,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
             nlohmann::json tray_json = nlohmann::json::object();
             tray_json["id"] = std::to_string(slot_id);
-            tray_json["tag_uid"] = "0000000000000000";
+            tray_json["tag_uid"] = (tray && !tray->tag_uid.empty()) ? tray->tag_uid : "0000000000000000";
 
             if (tray && tray->has_filament) {
                 tray_exist_bits |= (1 << slot_index);
@@ -576,8 +592,62 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 }
 
+bool MoonrakerPrinterAgent::bind_device_connection(const std::string& dev_id, const std::string& address,
+                                                   const std::string& access_code, bool use_ssl)
+{
+    if (dev_id.empty() || address.empty())
+        return false;
+    // No-op only when the existing binding agrees with the requested one IN FULL: matching on
+    // dev_id alone would keep a stale binding whose scheme disagrees with the profile (e.g.
+    // MachineObject::local_use_ssl defaults to true, which is wrong for a plain-HTTP Moonraker
+    // printer). The caller owns the connection; a disagreeing binding gets replaced, not kept.
+    const std::string expected_base_url = (use_ssl ? "https://" : "http://") + address;
+    if (device_info.base_url == expected_base_url && device_info.dev_id == dev_id)
+        return true;
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::bind_device_connection: device_info for dev_id=" << dev_id
+                            << " bound to address=" << address << " ssl=" << use_ssl;
+    // username is unused by init_device_info; the access code is what authenticates the REST calls.
+    return init_device_info(dev_id, address, "bblp", access_code, use_ssl);
+}
+
+bool MoonrakerPrinterAgent::ensure_device_info(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return false;
+    if (!device_info.base_url.empty() && device_info.dev_id == dev_id)
+        return true;
+
+    // Last-resort fallback for a dev_id that was never bound through bind_device_connection() --
+    // e.g. a REST call for a background machine that isn't the one the user is working with. A
+    // MachineObject's dev_ip is a weaker source than the address the caller would have bound:
+    // load_local_machines_from_config() can restore it from a *previous* session's AppConfig entry
+    // and insert_local_device() never overwrites it for an existing dev_id, so it can name a real
+    // but wrong address (host moved / port changed) with nothing to refresh it.
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no DeviceManager, dev_id=" << dev_id;
+        return false;
+    }
+    MachineObject* obj = dev_manager->get_my_machine(dev_id);
+    if (!obj || obj->get_dev_ip().empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no known IP for dev_id=" << dev_id;
+        return false;
+    }
+
+    // Same source connect_printer's caller uses (MachineObject::connect() in DeviceManager.cpp):
+    // username is unused by init_device_info, the access code is the printer's stored API key.
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::ensure_device_info: rebuilding device_info for dev_id=" << dev_id
+                             << " from MachineObject::get_dev_ip()=" << obj->get_dev_ip()
+                             << " (this dev_id was never bound from a printer profile)";
+    return init_device_info(dev_id, obj->get_dev_ip(), "bblp", obj->get_access_code(), obj->local_use_ssl);
+}
+
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
@@ -587,8 +657,9 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     if (fetch_moonraker_filament_data(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        // Orca: one unit per physical tool now (see build_ams_payload), so ams_count is the tool count.
+        int ams_count = max_lane_index + 1;
+        build_ams_payload(ams_count, max_lane_index, trays, AmsUnitShape::Toolchanger);
         return true;
     }
 
@@ -596,8 +667,9 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        // Orca: one unit per physical tool now (see build_ams_payload), so ams_count is the tool count.
+        int ams_count = max_lane_index + 1;
+        build_ams_payload(ams_count, max_lane_index, trays, AmsUnitShape::Toolchanger);
         return true;
     }
 
@@ -766,7 +838,8 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: "
+                                   << http_error << " url=" << url << " dev_ip=" << device_info.dev_ip;
         return false;
     }
 
@@ -1076,13 +1149,14 @@ bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev
         return false;
     }
 
-    auto&       preset      = preset_bundle->printers.get_edited_preset();
-    const auto& printer_cfg = preset.config;
-    device_info.dev_ip      = dev_ip;
+    // The model fields describe the same profile the caller's address came from, so they are read
+    // through the one accessor for it rather than resolving the active preset a second way here.
+    const GUI::ActivePrinterSession& session = GUI::active_printer_session();
+    device_info.dev_ip     = dev_ip;
 
     device_info.api_key    = password;
-    device_info.model_name = printer_cfg.opt_string("printer_model");
-    device_info.model_id   = preset.get_printer_type(preset_bundle);
+    device_info.model_name = session.profile().config.opt_string("printer_model");
+    device_info.model_id   = session.printer_type();
     device_info.base_url   = use_ssl ? "https://" + dev_ip : "http://" + dev_ip;
     device_info.dev_id     = dev_id;
     device_info.version    = "";

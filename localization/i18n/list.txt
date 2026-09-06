@@ -258,6 +258,8 @@ src/slic3r/GUI/MultiMachine.cpp
 src/slic3r/GUI/FilamentMapDialog.cpp
 src/slic3r/GUI/FilamentGroupPopup.cpp
 src/slic3r/GUI/FilamentMapPanel.cpp
+src/slic3r/GUI/FilamentInventoryEditor.cpp
+src/slic3r/GUI/FilamentInventoryEditor.hpp
 src/slic3r/Utils/Obico.cpp
 src/slic3r/Utils/SimplyPrint.cpp
 src/slic3r/Utils/Flashforge.cpp

@@ -929,6 +929,25 @@ bool NetworkAgent::fetch_filament_info(std::string dev_id)
     return false;
 }
 
+bool NetworkAgent::supports_filament_push() const
+{
+    return m_printer_agent && m_printer_agent->supports_filament_push();
+}
+
+bool NetworkAgent::push_filament_info(std::string dev_id, const IPrinterAgent::FilamentSlotInfo& info)
+{
+    if (m_printer_agent)
+        return m_printer_agent->push_filament_info(dev_id, info);
+    return false;
+}
+
+bool NetworkAgent::bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl)
+{
+    if (m_printer_agent)
+        return m_printer_agent->bind_device_connection(dev_id, address, access_code, use_ssl);
+    return false;
+}
+
 int NetworkAgent::request_bind_ticket(std::string* ticket)
 {
     if (m_printer_agent)

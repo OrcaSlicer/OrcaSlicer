@@ -369,8 +369,6 @@ public:
     void switch_printer_agent();
 
     std::string resolve_printer_agent_id(const std::string& stored_id);
-    // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
-    // then, all resolve and canonical would just be ORCA<->""
     std::string canonical_printer_agent_id(const std::string& picked_id);
 
     FilamentColorCodeQuery* get_filament_color_code_query();

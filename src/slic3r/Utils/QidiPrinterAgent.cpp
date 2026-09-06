@@ -40,6 +40,9 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+
     std::string error;
 
     // 1. Fetch device info and infer series_id
@@ -70,6 +73,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
     }
 
     // 4. Build the AMS payload
+    // Qidi boxes are 4-slot MMU units, chunked like AMS_LITE.
     build_ams_payload(box_count, box_count * 4 - 1, trays);
     return true;
 }
