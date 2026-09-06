@@ -130,6 +130,12 @@ TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a 
     }
 }
 
+TEST_CASE("support interface pattern registry includes spiral inset", "[Config]")
+{
+    const auto &values = ConfigOptionEnum<SupportMaterialInterfacePattern>::get_enum_values();
+    REQUIRE(values.at("spiralinset") == SupportMaterialInterfacePattern::smipSpiralInset);
+}
+
 TEST_CASE("get_extruder_nozzle_volume_count reads the per-extruder volume-type layout", "[Config]")
 {
     std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;

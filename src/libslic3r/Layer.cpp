@@ -419,6 +419,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         double spacing = flow.scaled_spacing() * (100 - density) / density;
         switch (pattern) {
             case ipConcentric:
+            case ipSpiralInset:
             case ipRectilinear:
             case ipLine:
             case ipGyroid:

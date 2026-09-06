@@ -600,7 +600,7 @@ StaticBox* HotEndTable::CreateNozzleBox(const std::vector<int>& nozzle_indices)
 void HotEndTable::UpdateNozzleItems(const std::unordered_map<int, wgtDeviceNozzleRackNozzleItem*>& nozzle_items, std::shared_ptr<DevNozzleRack> nozzle_rack)
 {
     for (auto& item : nozzle_items)
-        item.second->Update(nozzle_rack);
+        item.second->UpdateInfo(nozzle_rack);
 }
 
 void HotEndTable::OnPaint(wxPaintEvent& evt)

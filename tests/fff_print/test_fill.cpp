@@ -699,6 +699,213 @@ TEST_CASE("Solid infill direction offsets every layer when no template is set", 
     }
 }
 
+// Orca: the spiral inset pattern chains the concentric loops into a single continuous path per
+// island, so it has to cope with the degenerate loops offsetting leaves behind and it must not join
+// loops that only look adjacent.
+namespace {
+
+Slic3r::Polylines spiral_inset_fill(const Slic3r::ExPolygon &surface_shape, double spacing)
+{
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+    filler->spacing = spacing;
+    // Cancel the half-spacing contraction fill_surface() applies, so the filler sees the shape as given.
+    filler->overlap = 0.5 * spacing;
+
+    Slic3r::FillParams fill_params;
+    fill_params.density     = 1.f;
+    fill_params.dont_adjust = true;
+
+    Slic3r::Surface surface(Slic3r::stBottom, surface_shape);
+    return filler->fill_surface(&surface, fill_params);
+}
+
+Slic3r::ExPolygon rectangle(double x, double y, double w, double h)
+{
+    return Slic3r::ExPolygon({Slic3r::Point::new_scale(x, y), Slic3r::Point::new_scale(x + w, y),
+                              Slic3r::Point::new_scale(x + w, y + h), Slic3r::Point::new_scale(x, y + h)});
+}
+
+// Area of the surface the toolpaths fail to cover, and the largest single patch of it, in mm2. Each
+// bead is measured at its own width so the variable width walls are not sold short.
+std::pair<double, double> uncovered_area(const Slic3r::ExPolygon &surface_shape, const Slic3r::Polygons &covered)
+{
+    double total = 0, biggest = 0;
+    for (const Slic3r::ExPolygon &gap : Slic3r::diff_ex(Slic3r::ExPolygons{surface_shape}, Slic3r::union_(covered))) {
+        const double area = unscale<double>(unscale<double>(gap.area()));
+        total += area;
+        biggest = std::max(biggest, area);
+    }
+    return {total, biggest};
+}
+
+Slic3r::Polygons beads_of(const Slic3r::Polylines &paths, double width)
+{
+    return Slic3r::offset(paths, float(scale_(0.5 * width)));
+}
+
+Slic3r::Polygons beads_of(const Slic3r::ThickPolylines &paths)
+{
+    Slic3r::Polygons covered;
+    for (const Slic3r::ThickPolyline &path : paths)
+        for (size_t i = 0; i + 1 < path.points.size(); ++i) {
+            Slic3r::Polyline segment;
+            segment.points = {path.points[i], path.points[i + 1]};
+            Slic3r::append(covered, Slic3r::offset(Slic3r::Polylines{segment},
+                                                  float(0.5 * std::max(path.width[2 * i], path.width[2 * i + 1]))));
+        }
+    return covered;
+}
+
+} // namespace
+
+TEST_CASE("Spiral inset fill drops loops shorter than the end clipping", "[Fill][Regression]")
+{
+    // A sliver whose whole perimeter is shorter than the length clipped off the end of a loop, so the
+    // clipping consumes the path entirely. Such a loop carries no extrusion and must be dropped
+    // rather than kept as an empty path and read back from.
+    const double spacing = 0.45;
+
+    Slic3r::Polylines paths;
+    REQUIRE_NOTHROW(paths = spiral_inset_fill(rectangle(0, 0, 0.05, 0.05), spacing));
+    for (const Slic3r::Polyline &path : paths)
+        CHECK(path.size() >= 2);
+
+    // The same surface at a size the clipping cannot swallow still gets filled.
+    REQUIRE_NOTHROW(paths = spiral_inset_fill(rectangle(0, 0, 5, 5), spacing));
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front().size() >= 2);
+}
+
+TEST_CASE("Spiral inset fill keeps separate islands on separate paths", "[Fill]")
+{
+    // Two lobes joined by a neck narrower than the loop spacing: the inward offsets break the surface
+    // into two islands, which cannot share one spiral, and no path may leave the surface.
+    const double spacing = 0.45;
+    Slic3r::ExPolygon dumbbell = rectangle(0, 0, 6, 6);
+    dumbbell = Slic3r::union_ex(Slic3r::ExPolygons{dumbbell, rectangle(6, 2.9, 4, 0.2), rectangle(10, 0, 6, 6)}).front();
+
+    const Slic3r::Polylines paths = spiral_inset_fill(dumbbell, spacing);
+    REQUIRE(paths.size() >= 2);
+
+    // Inflate by a hair so that loops sitting exactly on the outline still count as contained.
+    const Slic3r::ExPolygons within = Slic3r::offset_ex(dumbbell, float(SCALED_EPSILON));
+    REQUIRE(within.size() == 1);
+    for (const Slic3r::Polyline &path : paths) {
+        CHECK(path.size() >= 2);
+        CHECK(within.front().contains(path));
+    }
+}
+
+
+TEST_CASE("Spiral inset fill stays connected across sharp corners", "[Fill][Regression]")
+{
+    // At a corner of half-angle a, the next ring inward retreats along the bisector by spacing/sin(a),
+    // which leaves it several spacings from the end of the ring it continues. Judging the break by
+    // distance broke the spiral into loose rings at every spike; nesting is what decides the island.
+    const double spacing = 0.45;
+    const Slic3r::ExPolygon spike({Slic3r::Point::new_scale(0, 0), Slic3r::Point::new_scale(30, 0),
+                                   Slic3r::Point::new_scale(15, 4)});
+
+    const Slic3r::Polylines paths = spiral_inset_fill(spike, spacing);
+    CHECK(paths.size() == 1);
+
+    const Slic3r::ExPolygons within = Slic3r::offset_ex(spike, float(SCALED_EPSILON));
+    REQUIRE(within.size() == 1);
+    for (const Slic3r::Polyline &path : paths)
+        CHECK(within.front().contains(path));
+}
+
+TEST_CASE("Spiral inset fill starts on a convex corner", "[Fill][Regression]")
+{
+    // The only right angle on this outline is the reflex one: the two edges meeting at the origin
+    // span 90 degrees exactly as a square corner would, but the material lies outside them. The next
+    // ring in steps away from a reflex corner along the bisector instead of hugging it, so starting
+    // the spiral there sent it across a long diagonal on every single ring.
+    const double spacing = 0.45;
+    const Slic3r::ExPolygon notched({Slic3r::Point::new_scale(0, 0), Slic3r::Point::new_scale(0, 10),
+                                     Slic3r::Point::new_scale(-16, 18), Slic3r::Point::new_scale(-16, -2),
+                                     Slic3r::Point::new_scale(-8, -16), Slic3r::Point::new_scale(18, -16),
+                                     Slic3r::Point::new_scale(10, 0)});
+
+    const Slic3r::Polylines paths = spiral_inset_fill(notched, spacing);
+    REQUIRE(paths.size() >= 1);
+
+    // Every edge of the outline is at least 45 degrees off the bisector of that reflex corner, and
+    // so is every ring offset from it. A long segment running along the bisector can therefore only
+    // be the spiral striking out across the rings to reach the next one.
+    for (const Slic3r::Polyline &path : paths)
+        for (const Slic3r::Line &segment : path.lines()) {
+            const Vec2d  v         = (segment.b - segment.a).cast<double>();
+            const double direction = std::fmod(std::atan2(v.y(), v.x()) * 180.0 / M_PI + 180.0, 180.0);
+            if (std::abs(direction - 45.0) > 25.0)
+                continue;
+            CAPTURE(direction, unscale<double>(segment.length()));
+            CHECK(segment.length() <= scale_(1.5 * spacing));
+        }
+}
+
+TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]")
+{
+    // Fixed width loops cannot fill a region that is not a whole number of lines across and leave the
+    // remainder open, which on a ring shows up as a wedge several lines wide. Plain concentric avoids
+    // that by building solid surfaces out of Arachne's variable width walls, and so must this pattern.
+    const double spacing = 0.45;
+    Slic3r::ExPolygon ring = rectangle(0, 0, 24, 24);
+    Slic3r::Polygon   hole;
+    for (int i = 0; i < 64; ++i) {
+        const double angle = -2.0 * PI * i / 64.0; // clockwise, so it reads as a hole
+        hole.points.emplace_back(Slic3r::Point::new_scale(12 + 7.3 * std::cos(angle), 12 + 7.3 * std::sin(angle)));
+    }
+    ring.holes.emplace_back(hole);
+
+    Slic3r::PrintConfig       print_config;
+    Slic3r::PrintObjectConfig object_config;
+    auto make_filler = [&]() {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+        filler->spacing             = spacing;
+        filler->overlap             = 0.5 * spacing; // cancel the contraction, so both see the same surface
+        filler->print_config        = &print_config;
+        filler->print_object_config = &object_config;
+        return filler;
+    };
+
+    Slic3r::FillParams params;
+    params.density      = 1.f;
+    params.dont_adjust  = false;
+    params.layer_height = 0.2;
+
+    const Slic3r::Surface surface(Slic3r::stTop, ring);
+
+    std::unique_ptr<Slic3r::Fill> fixed = make_filler();
+    const Slic3r::Polylines fixed_width = fixed->fill_surface(&surface, params);
+    REQUIRE(!fixed_width.empty());
+    const auto fixed_gaps = uncovered_area(ring, beads_of(fixed_width, fixed->spacing));
+
+    params.use_arachne = true;
+    std::unique_ptr<Slic3r::Fill> variable = make_filler();
+    const Slic3r::ThickPolylines variable_width = variable->fill_surface_arachne(&surface, params);
+    REQUIRE(!variable_width.empty());
+    const auto variable_gaps = uncovered_area(ring, beads_of(variable_width));
+
+    CAPTURE(fixed_gaps.first, fixed_gaps.second, variable_gaps.first, variable_gaps.second);
+    // The wedges the fixed width loops leave behind are what the variable width walls take up.
+    CHECK(variable_gaps.second < 0.5 * fixed_gaps.second);
+    CHECK(variable_gaps.first < fixed_gaps.first);
+
+    // And it is still a spiral: far fewer paths than the ring has loops.
+    // And the walls are still chained into spirals rather than printed one path per wall. The ring is
+    // at its narrowest (12 - 7.3) mm across and is filled from both sides, so it is at least this many
+    // walls thick there and thicker elsewhere. Arachne's short thin feature walls cannot join a spiral,
+    // so only the substantial paths count towards this.
+    const size_t walls_across = size_t(2.0 * (12.0 - 7.3) / spacing);
+    size_t       spirals      = 0;
+    for (const Slic3r::ThickPolyline &path : variable_width)
+        if (path.length() > scale_(10.0 * spacing))
+            ++spirals;
+    CAPTURE(spirals, walls_across, variable_width.size(), fixed_width.size());
+    CHECK(2 * spirals < walls_across);
+}
+
 TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[Fill]")
 {
     // A cell whose sides are several times the line width, so that the corners have room to be rounded.

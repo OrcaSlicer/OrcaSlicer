@@ -38,14 +38,14 @@ public:
     ~uiAmsPercentHumidityDryPopup() = default;
 
 public:
-    void Update(uiAmsHumidityInfo *info) { m_ams_id = info->ams_id; Update(info->humidity_display_idx, info->humidity_percent, info->left_dry_time, info->current_temperature); };
+    void UpdateInfo(uiAmsHumidityInfo *info) { m_ams_id = info->ams_id; UpdateInfo(info->humidity_display_idx, info->humidity_percent, info->left_dry_time, info->current_temperature); };
 
     std::string get_owner_ams_id() const { return m_ams_id; }
 
     void msw_rescale();
 
 private:
-    void Update(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature);
+    void UpdateInfo(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature);
     void UpdateContents();
 
     void Create();
