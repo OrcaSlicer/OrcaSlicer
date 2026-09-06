@@ -320,6 +320,11 @@ class Print;
 
         BedType bed_type = BedType::btCount;
         void reset();
+        // Re-scan this->filename and rebuild lines_ends from it. Needed whenever the exported G-code is
+        // modified in place after export (post-processing scripts), which shifts the byte offsets the
+        // G-code viewer uses to slice lines out of the memory-mapped file. Returns false and leaves
+        // lines_ends empty if the file cannot be read.
+        bool rebuild_lines_ends();
 
         //BBS: add mutex for protection of gcode result
         mutable std::mutex result_mutex;

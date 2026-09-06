@@ -2564,6 +2564,43 @@ void GCodeProcessorResult::reset() {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: this=%2% reset finished")%__LINE__%this;
 }
 
+bool GCodeProcessorResult::rebuild_lines_ends()
+{
+    // lock_guard rather than the lock()/unlock() pair reset() uses: this reads a file and grows a
+    // vector, so a throw between the two would leave the mutex held forever.
+    std::lock_guard<std::mutex> lock(result_mutex);
+    // A partially rebuilt map would have the G-code window slicing lines at wrong offsets all over
+    // again, so every failure below leaves lines_ends empty, which just hides the window.
+    lines_ends.clear();
+
+    FilePtr in{ boost::nowide::fopen(filename.c_str(), "rb") };
+    if (in.f == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": cannot open " << filename << " to rebuild the G-code line offsets.";
+        return false;
+    }
+
+    // Record the offset one past each '\n', matching what ExportLines emits during the export pass.
+    std::vector<char> buffer(65536, 0);
+    size_t            file_pos = 0;
+    for (;;) {
+        const size_t cnt_read = ::fread(buffer.data(), 1, buffer.size(), in.f);
+        if (::ferror(in.f)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": error while reading " << filename
+                                     << " to rebuild the G-code line offsets.";
+            lines_ends.clear();
+            return false;
+        }
+        for (size_t i = 0; i < cnt_read; ++i) {
+            if (buffer[i] == '\n')
+                lines_ends.emplace_back(file_pos + i + 1);
+        }
+        file_pos += cnt_read;
+        if (cnt_read < buffer.size())
+            break;
+    }
+    return true;
+}
+
 const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProcessor::Producers = {
     //BBS: OrcaSlicer is also "bambu". Otherwise the time estimation didn't work.
     //FIXME: Workaround and should be handled when do removing-bambu

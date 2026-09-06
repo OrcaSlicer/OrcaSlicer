@@ -261,7 +261,13 @@ void BackgroundSlicingProcess::process_fff()
         // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
         // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
         if (m_fff_print->is_BBL_printer()) {
-            run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+            if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
+                // The scripts/plugins rewrote the very file the G-code viewer memory-maps, so every byte
+                // offset in m_gcode_result->lines_ends (built while exporting the pre-processed G-code) is
+                // now stale and GCodeWindow would slice the file mid-line. Re-scan it. Note this only
+                // realigns the line framing: if a script inserts or removes lines, the moves' gcode_id
+                // still refers to the pre-processed numbering and the highlighted line stays shifted.
+                m_gcode_result->rebuild_lines_ends();
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");

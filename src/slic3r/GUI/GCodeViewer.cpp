@@ -792,10 +792,16 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
         std::vector<Line> ret;
         ret.reserve(end_id - start_id + 1);
+        // Orca: m_lines_ends indexes into a memory mapping, so it must be clamped to the mapping. If the
+        // file was modified behind our back (an in-place post-processing script that shrank it), an
+        // unchecked read is an access violation, which the caller's try/catch cannot catch on Windows.
+        const size_t file_size = m_file.size();
         for (uint64_t id = start_id; id <= end_id; ++id) {
             // read line from file
-            const size_t start        = id == 1 ? 0 : m_lines_ends[id - 2];
-            const size_t original_len = m_lines_ends[id - 1] - start;
+            // Keep one entry per id: render() indexes m_lines by (id - start_id).
+            const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
+            const size_t end   = std::min(m_lines_ends[id - 1], file_size);
+            const size_t original_len = end > start ? end - start : 0;
             const size_t len          = std::min(original_len, (size_t) 55);
             std::string  gline(m_file.data() + start, len);
 
