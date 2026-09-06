@@ -1127,7 +1127,7 @@ namespace SupportMaterialInternal {
     static inline bool has_bridging_perimeters(const ExtrusionLoop &loop)
     {
         for (const ExtrusionPath &ep : loop.paths)
-            if (ep.role() == erOverhangPerimeter && ! ep.polyline.empty())
+            if ((ep.role() == erOverhangPerimeter || ep.role() == erBridgePerimeter) && ! ep.polyline.empty())
                 return int(ep.size()) >= (ep.is_closed() ? 3 : 2);
         return false;
     }
@@ -1174,7 +1174,7 @@ namespace SupportMaterialInternal {
     {
         assert(expansion_scaled >= 0.f);
         for (const ExtrusionPath &ep : loop.paths)
-            if (ep.role() == erOverhangPerimeter && ! ep.polyline.empty()) {
+            if ((ep.role() == erOverhangPerimeter || ep.role() == erBridgePerimeter) && ! ep.polyline.empty()) {
                 float exp = 0.5f * (float)scale_(ep.width) + expansion_scaled;
                 if (ep.is_closed()) {
                     if (ep.size() >= 3) {

@@ -63,7 +63,7 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
         }
 
         const double w        = fmax(line.a_width, line.b_width);
-        const Flow   new_flow = (role == erOverhangPerimeter && flow.bridge()) ? flow : flow.with_width(unscale<float>(w) + flow.height() * float(1. - 0.25 * PI));
+        const Flow   new_flow = ((role == erOverhangPerimeter || role == erBridgePerimeter) && flow.bridge()) ? flow : flow.with_width(unscale<float>(w) + flow.height() * float(1. - 0.25 * PI));
         if (path.polyline.points.empty()) {
             path.polyline.append(Point3(line.a));
             path.polyline.append(Point3(line.b));
