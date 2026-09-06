@@ -339,8 +339,10 @@ public:
 
     Vec3d get_origin() { return m_origin; }
     //Vec3d calculate_wipe_tower_size(const DynamicPrintConfig &config, const double w, const double wipe_volume, int plate_extruder_size = 0, bool use_global_objects = false) const;
-    Vec3d estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false, bool enable_wrapping_detection = false) const;
-    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false) const;
+    // plate_filament_ids: the plate's 1-based filament ids — the CLI must pass them, since
+    // get_extruders() is GUI-only and the Type1 estimate reads per-filament settings by id.
+    Vec3d estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false, bool enable_wrapping_detection = false, const std::vector<int>* plate_filament_ids = nullptr) const;
+    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false, const std::vector<int>* plate_filament_ids = nullptr) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
     std::vector<int> get_extruders(bool conside_custom_gcode = false) const;

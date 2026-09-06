@@ -20,6 +20,8 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -919,6 +921,34 @@ int GLVolumeCollection::load_wipe_tower_preview(
     GUI::PartPlateList& ppl = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
     TriangleMesh wipe_tower_shell = make_cube(width, depth, height);
+    // The brim is part of the printed footprint: draw it and fold it into the shell so the
+    // outside-bed shader and the drag clamp react to the true first-layer extent.
+    const bool   show_brim   = brim_width > 0.f;
+    const float  brim_height = 0.2f; // one first layer, visual only
+    TriangleMesh brim_slab;
+    if (show_brim) {
+        // A Type2 cone-wall tower's base bulges past the body box — follow the real base
+        // outline instead of the rectangle. Type1 ignores the cone option.
+        Polygon cone_base;
+        {
+            const DynamicPrintConfig &print_cfg   = GUI::wxGetApp().preset_bundle->prints.get_edited_preset().config;
+            const DynamicPrintConfig &printer_cfg = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            const auto *wall_opt  = print_cfg.option<ConfigOptionEnum<WipeTowerWallType>>("wipe_tower_wall_type");
+            const auto *type_opt  = printer_cfg.option<ConfigOptionEnum<WipeTowerType>>("wipe_tower_type");
+            const bool  type1     = GUI::wxGetApp().preset_bundle->is_bbl_vendor() ||
+                                    (type_opt != nullptr && type_opt->value == WipeTowerType::Type1);
+            if (!type1 && wall_opt != nullptr && wall_opt->value == WipeTowerWallType::wtwCone)
+                cone_base = WipeTower2::cone_base_polygon(width, depth, height, print_cfg.opt_float("wipe_tower_cone_angle"));
+        }
+        if (!cone_base.empty()) {
+            Polygons brim_outline = offset(cone_base, scaled(brim_width));
+            brim_slab = WipeTower::its_make_rib_brim(brim_outline.empty() ? cone_base : brim_outline.front(), brim_height);
+        } else {
+            brim_slab = make_cube(width + 2.f * brim_width, depth + 2.f * brim_width, brim_height);
+            brim_slab.translate({-brim_width, -brim_width, 0.f});
+        }
+        wipe_tower_shell.merge(brim_slab);
+    }
     for (int extruder_id : plate_extruders) {
         if (extruder_id <= extruder_colors.size())
             colors.push_back(extruder_colors[extruder_id - 1]);
@@ -929,14 +959,19 @@ int GLVolumeCollection::load_wipe_tower_preview(
     // Orca: make it transparent
     for(auto& color : colors)
         color.a(0.66f);
+    const size_t slab_count = colors.size(); // per-filament body slabs; the brim part comes after
+    if (show_brim && !colors.empty())
+        colors.push_back(colors.front());
     volumes.emplace_back(new GLWipeTowerVolume(colors));
     GLWipeTowerVolume& v = *dynamic_cast<GLWipeTowerVolume*>(volumes.back());
     v.model_per_colors.resize(colors.size());
-    for (int i = 0; i < colors.size(); i++) {
-        TriangleMesh color_part = make_cube(width, depth / colors.size(), height);
-        color_part.translate({ 0.f, depth * i / colors.size(), 0. });
+    for (size_t i = 0; i < slab_count; i++) {
+        TriangleMesh color_part = make_cube(width, depth / slab_count, height);
+        color_part.translate({ 0.f, depth * i / slab_count, 0. });
         v.model_per_colors[i].init_from(color_part);
     }
+    if (show_brim && !colors.empty())
+        v.model_per_colors[slab_count].init_from(brim_slab);
     v.model.init_from(wipe_tower_shell);
     v.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<const TriangleMesh>(wipe_tower_shell));
     v.set_convex_hull(wipe_tower_shell);

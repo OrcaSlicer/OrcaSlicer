@@ -1041,7 +1041,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     //float               v            = config.wiping_volume.value;
 
     float        depth                     = print.wipe_tower_data(filaments_count).depth;
-    //float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
+    float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
 
     if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib)
         width = depth;
@@ -1066,34 +1066,37 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             convex_hulls_temp.push_back(wipe_tower_polygon);
         }
     }
+    // Post-generation the mesh bottom already carries the brim; pre-generation grow the body
+    // by the brim only when its width is explicit — the auto estimate is sized by the tallest
+    // object and can overshoot (the exact footprint is re-checked in _make_wipe_tower).
+    const bool exact_footprint     = print.is_step_done(psWipeTower);
+    Polygons   tower_polys_checked = (!exact_footprint && config.prime_tower_brim_width.value >= 0) ?
+                                         offset(convex_hulls_temp, float(scale_(brim_width))) :
+                                         convex_hulls_temp;
+    // Object proximity stays a body-only warning: brim near-misses would newly warn on
+    // many setups that print fine.
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
             warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
         }
     }
-    if (!intersection(exclude_polys, convex_hulls_temp).empty()) {
+    if (!intersection(exclude_polys, tower_polys_checked).empty()) {
         /*if (warning) {
             warning->string += L("Prime Tower is too close to exclusion area, there may be collisions when printing.\n");
         }*/
         return {L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n")};
     }
-    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
+    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_checked).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
     }
-    // Skip the containment check for towers that will never be printed (single-filament
-    // prints without smooth timelapse keep the config's tower position but emit nothing).
-    // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
-    // the generated brim by several mm and must not hard-fail a print that physically fits.
-    // Post-generation the mesh bottom already includes the real brim, so the exact
-    // footprint is tested.
+    // Single-filament prints without smooth timelapse keep the config's tower position but
+    // never emit one, so skip the check for them.
     if (filaments_count > 1 || print.enable_timelapse_print()) {
-        // The shared printable polygon is plate-local, while the tower polygons above are
-        // already shifted by the plate origin.
         Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
         const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
         for (Polygon &p : printable_polys)
             p.translate(plate_shift);
-        if (!diff(convex_hulls_temp, printable_polys).empty())
+        if (!diff(tower_polys_checked, printable_polys).empty())
             return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     }
     return {};
@@ -4011,6 +4014,10 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
     auto   timelapse_type  = config().option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
     bool   need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib);
     double extra_spacing = config().option("prime_tower_infill_gap")->getFloat() / 100.;
+    // Type2 (WipeTower2) spaces its purge lines by wipe_tower_extra_spacing x extra flow,
+    // not by the Type1-only prime_tower_infill_gap.
+    double type2_spacing = config().option("wipe_tower_extra_spacing")->getFloat() / 100. *
+                           config().option("wipe_tower_extra_flow")->getFloat() / 100.;
     double rib_width     = config().option("wipe_tower_rib_width")->getFloat();
 
     double filament_change_volume = 0.;
@@ -4041,12 +4048,37 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
         const bool semm_flush = m_config.purge_in_prime_tower && m_config.single_extruder_multi_material;
         if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(m_config, filaments_cnt);
 
+        // Per-filament prime volumes + adhesiveness categories feed the Type1
+        // planner-mirrored estimators in both wall-type branches below.
+        auto build_type1_prime_volumes = [&](std::vector<float> &prime_vols, std::vector<int> &categories) {
+            for (unsigned int filament_id : this->extruders()) {
+                float prime_vol = (float) m_config.filament_prime_volume.get_at(filament_id);
+                if (m_config.nozzle_diameter.values.size() == 2) prime_vol += (float) filament_change_volume / 2.f;
+                prime_vols.push_back(prime_vol);
+                categories.push_back(m_config.filament_adhesiveness_category.get_at(filament_id));
+            }
+            if (prime_vols.empty()) { prime_vols.push_back((float) wipe_volume); categories.push_back(0); }
+        };
+
         if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
-            double depth = std::sqrt(volume / layer_height * extra_spacing);
+            double depth = std::sqrt(volume / layer_height * type2_spacing);
             if (need_wipe_tower || filaments_cnt > 1) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth  = std::max((double) min_wipe_tower_depth, depth);
-                depth += rib_width / std::sqrt(2) + config().wipe_tower_extra_rib_length.value;
+                if (this->wipe_tower_type() == WipeTowerType::Type1) {
+                    // The volume-only formula undershoots the Type1 planner (category blocks,
+                    // line quantization, rib bulge); mirror it instead.
+                    std::vector<float> prime_vols;
+                    std::vector<int>   categories;
+                    build_type1_prime_volumes(prime_vols, categories);
+                    depth = WipeTower::estimate_rib_tower_bbox_side(prime_vols, categories,
+                                (float) m_config.prime_tower_width.value, (float) layer_height,
+                                (float) m_config.nozzle_diameter.get_at(0), (float) extra_spacing,
+                                (float) rib_width, (float) config().wipe_tower_extra_rib_length.value,
+                                (float) max_height);
+                } else {
+                    float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
+                    depth  = std::max((double) min_wipe_tower_depth, depth);
+                    depth += rib_width / std::sqrt(2) + config().wipe_tower_extra_rib_length.value;
+                }
                 const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
                 const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
             }
@@ -4055,8 +4087,18 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
             double width = m_config.prime_tower_width;
             double depth = volume / (layer_height * width);
             // The flush volumes already hold the spacing between wipes.
-            if (!semm_flush) depth *= extra_spacing;
+            if (!semm_flush) depth *= type2_spacing;
             if (need_wipe_tower || depth > EPSILON) {
+                if (this->wipe_tower_type() == WipeTowerType::Type1) {
+                    // The volume-only depth misses Type1's stacked category blocks and line
+                    // quantization; floor it with the planner-mirrored block stack.
+                    std::vector<float> prime_vols;
+                    std::vector<int>   categories;
+                    build_type1_prime_volumes(prime_vols, categories);
+                    depth = std::max(depth, (double) WipeTower::estimate_tower_blocks_depth(prime_vols, categories,
+                                (float) width, (float) layer_height, (float) m_config.nozzle_diameter.get_at(0),
+                                (float) extra_spacing));
+                }
                 float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
                 depth = std::max((double) min_wipe_tower_depth, depth);
             }
@@ -4064,6 +4106,10 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
             const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
         }
         if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
+        const_cast<Print *>(this)->m_wipe_tower_data.brim_width =
+            WipeTower::estimate_brim_real_width((float) m_wipe_tower_data.brim_width,
+                                                (float) m_config.nozzle_diameter.get_at(0),
+                                                (float) m_config.initial_layer_print_height.value);
     }
     return m_wipe_tower_data;
 }
@@ -4438,7 +4484,9 @@ void Print::_make_wipe_tower()
                                          wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
                                          config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value);
+                                         config().wipe_tower_fillet_wall.value,
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
+                                             (float) config().wipe_tower_cone_angle.value : 0.f);
         const Vec3d origin                      = Vec3d::Zero();
         // FakeWipeTower::pos is a bed-frame translation applied after rotation
         // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
@@ -4450,6 +4498,28 @@ void Print::_make_wipe_tower()
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
                                                   config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,
                                                   {scale_(origin.x()), scale_(origin.y())});
+    }
+
+    // The clamps and checks above work from estimates; re-test the exact generated footprint
+    // so an off-plate tower fails with a clear error instead of exporting unprintable G-code
+    // (validate() only sees the mesh on its next run).
+    if (m_wipe_tower_data.wipe_tower_mesh_data) {
+        Polygon footprint = m_wipe_tower_data.wipe_tower_mesh_data->bottom; // includes brim and rib offset
+        footprint.rotate(Geometry::deg2rad(m_config.wipe_tower_rotation_angle.value));
+        footprint.translate(Point(scale_(m_config.wipe_tower_x.get_at(m_plate_index)),
+                                  scale_(m_config.wipe_tower_y.get_at(m_plate_index))));
+        const Polygons printable_polys = this->get_extruder_shared_printable_polygon();
+        if (!printable_polys.empty() && !diff(Polygons{footprint}, printable_polys).empty()) {
+            const BoundingBox fp = get_extents(footprint);
+            const BoundingBox pr = get_extents(printable_polys);
+            BOOST_LOG_TRIVIAL(error) << boost::format("wipe tower footprint [%1%,%2%]-[%3%,%4%] leaves printable [%5%,%6%]-[%7%,%8%]") %
+                unscaled(fp.min.x()) % unscaled(fp.min.y()) % unscaled(fp.max.x()) % unscaled(fp.max.y()) %
+                unscaled(pr.min.x()) % unscaled(pr.min.y()) % unscaled(pr.max.x()) % unscaled(pr.max.y());
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n"));
+        }
+        // The cutter/purge corner is a physical obstacle — the brim must stay out like the body.
+        if (!intersection(get_bed_excluded_area(m_config), Polygons{footprint}).empty())
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n"));
     }
 }
 
@@ -5999,12 +6069,21 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
     }
     return wtels;
 }
-void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall)
+void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall, float cone_angle)
 {
     wipe_tower_mesh_data = WipeTowerMeshData{};
     float first_layer_height=0.08; //brim height
     if (width < EPSILON || depth < EPSILON || height < EPSILON) return;
-    if (!is_rib_wipe_tower || rib_length < EPSILON) {
+    if (cone_angle > EPSILON && (!is_rib_wipe_tower || rib_length < EPSILON)) {
+        // Cone tower: the base bulges past the body box; this bottom polygon feeds the
+        // containment checks, so it must carry the bulge and the brim (cone not lofted).
+        wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
+        wipe_tower_mesh_data->bottom               = WipeTower2::cone_base_polygon(width, depth, height, cone_angle);
+        auto brim_bottom                           = offset(wipe_tower_mesh_data->bottom, scaled(brim_width));
+        if (!brim_bottom.empty())
+            wipe_tower_mesh_data->bottom = brim_bottom.front();
+        wipe_tower_mesh_data->real_brim_mesh = WipeTower::its_make_rib_brim(wipe_tower_mesh_data->bottom, first_layer_height);
+    } else if (!is_rib_wipe_tower || rib_length < EPSILON) {
         wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
         wipe_tower_mesh_data->real_brim_mesh       = make_cube(width + 2 * brim_width, depth + 2 * brim_width, first_layer_height);
         wipe_tower_mesh_data->real_brim_mesh.translate({-brim_width, -brim_width, 0});
