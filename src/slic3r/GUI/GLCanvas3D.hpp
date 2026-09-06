@@ -333,6 +333,9 @@ class GLCanvas3D
             int move_volume_idx{ -1 };
             bool move_requires_threshold{ false };
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
+            // Orca: set when the pointer has been teleported to the opposite canvas border
+            // by the infinite camera drag, see GLCanvas3D::_wrap_mouse_pointer_on_canvas_border()
+            bool pointer_wrapped{ false };
         };
 
         bool dragging{ false };
@@ -1227,6 +1230,10 @@ public:
 
 private:
     bool _is_shown_on_screen() const;
+
+    // Orca: teleports the pointer to the opposite canvas border when a camera drag pushes it
+    // into one, so that panning/orbiting is not limited by the window bounds.
+    void _wrap_mouse_pointer_on_canvas_border(const Point& mouse_pos, const Point& prev_pos);
 
     void _update_slice_error_status();
 
