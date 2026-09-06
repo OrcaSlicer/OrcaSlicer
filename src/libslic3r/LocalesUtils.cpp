@@ -4,11 +4,29 @@
     #include <charconv>
 #endif
 #include <stdexcept>
+#include <cstdio>
+
+#include <boost/nowide/filesystem.hpp>
 
 #include <fast_float/fast_float.h>
 
 
 namespace Slic3r {
+
+void init_utf8_filesystem()
+{
+    try {
+        boost::nowide::nowide_filesystem();
+    } catch (const std::runtime_error& ex) {
+        // Boost.Filesystem installs the UTF-8 locale before constructing the
+        // previous locale to return. On Linux that return value can throw if
+        // an LC_* locale is missing (e.g. a partial Flatpak Locale extension).
+        // Retry with the now-installed locale so other failures still propagate.
+        boost::nowide::nowide_filesystem();
+        std::fprintf(stderr, "Warning: could not load the environment filesystem locale: %s. "
+                             "Using UTF-8 filesystem paths.\n", ex.what());
+    }
+}
 
 
 CNumericLocalesSetter::CNumericLocalesSetter()
