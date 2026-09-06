@@ -36,6 +36,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/spin_mutex.h>
+#include <vector>
 
 #if defined(TREE_SUPPORT_SHOW_ERRORS) && defined(_WIN32)
     #define TREE_SUPPORT_SHOW_ERRORS_WIN32
@@ -1789,7 +1790,9 @@ static void increase_areas_one_layer(
     SupportElements                     &layer_elements,
     // If false, the merging_areas will not be merged for performance reasons.
     const bool                           mergelayer,
-    std::function<void()>                throw_on_cancel)
+    std::function<void()>                throw_on_cancel,
+    std::vector<int>                     &touch_counts
+)
 {
     using AvoidanceType = TreeModelVolumes::AvoidanceType;
 
@@ -1873,6 +1876,10 @@ static void increase_areas_one_layer(
                         order.insert(order.begin(), settings);
                 }
             };
+
+            if (touch_counts[merging_area.parents.front()] > 1) {
+                insertSetting({ AvoidanceType::Slow, slow_speed, !increase_radius, no_error, !use_min_radius, move }, false);
+            } 
 
             const bool parent_moved_slow = elem.last_area_increase.increase_speed < config.maximum_move_distance;
             const bool avoidance_speed_mismatch = parent_moved_slow && elem.last_area_increase.type != AvoidanceType::Slow;
@@ -2481,7 +2488,22 @@ static void create_layer_pathing(const TreeModelVolumes &volumes, const TreeSupp
                 parents.emplace_back(element_idx);
                 influence_areas.push_back({ el.state, parents });
             }
-            increase_areas_one_layer(volumes, config, influence_areas, layer_idx, prev_layer, merge_this_layer, throw_on_cancel);
+            
+
+            std::vector<int> touch_counts(prev_layer.size(), 0);  
+            for (size_t i = 0; i < prev_layer.size(); ++i) {  
+                const coord_t radius_i = support_element_collision_radius(config, prev_layer[i].state);  
+                BoundingBox bbox_i = get_extents(prev_layer[i].influence_area);  
+                bbox_i.offset(radius_i); // expand by own radius as a touch-distance proxy  
+                for (size_t j = 0; j < prev_layer.size(); ++j) {  
+                    if (i == j) continue;  
+                    BoundingBox bbox_j = get_extents(prev_layer[j].influence_area);  
+                    if (bbox_i.overlap(bbox_j))  
+                        ++touch_counts[i];  
+                }  
+            }
+
+            increase_areas_one_layer(volumes, config, influence_areas, layer_idx, prev_layer, merge_this_layer, throw_on_cancel, touch_counts);
 
             // Place already fully constructed elements to the output, remove them from influence_areas.
             SupportElements &this_layer = move_bounds[layer_idx - 1];
