@@ -443,7 +443,7 @@ void HistoryWindow::sync_history_data() {
 
         auto edit_button = new Button(m_history_data_panel, _L("Edit"));
         edit_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
-        edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value, edit_button](auto& e) {
+        edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value](auto& e) {
             if (m_ui_op_lock) return;
 
             PACalibResult result_buffer = result;
@@ -632,9 +632,8 @@ EditCalibrationHistoryDialog::EditCalibrationHistoryDialog(wxWindow             
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 
-    SetSizer(main_sizer);
+    SetSizerAndFit(main_sizer);
     Layout();
-    Fit();
     CenterOnParent();
 
     wxGetApp().UpdateDlgDarkUI(this);
@@ -910,9 +909,8 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 
-    SetSizer(main_sizer);
+    SetSizerAndFit(main_sizer);
     Layout();
-    Fit();
     CenterOnParent();
 
     wxGetApp().UpdateDlgDarkUI(this);

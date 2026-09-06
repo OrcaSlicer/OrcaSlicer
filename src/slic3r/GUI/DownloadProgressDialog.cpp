@@ -26,8 +26,6 @@
 
 #include "Widgets/HyperLink.hpp" // ORCA
 
-#define DESIGN_INPUT_SIZE wxSize(FromDIP(100), -1)
-
 namespace Slic3r {
 namespace GUI {
 
@@ -112,9 +110,8 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     m_simplebook_status->AddPage(m_panel_download_failed, wxEmptyString, false);
     m_simplebook_status->AddPage(m_panel_install_failed, wxEmptyString, false);
 
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
-    Fit();
     CentreOnParent();
 
     Bind(wxEVT_CLOSE_WINDOW, &DownloadProgressDialog::on_close, this);

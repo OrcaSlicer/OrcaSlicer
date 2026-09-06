@@ -773,7 +773,7 @@ std::vector<std::string> DiffViewCtrl::selected_options()
 
 static std::string none{"none"};
 #define UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE wxSize(FromDIP(490), FromDIP(374))
-#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), FromDIP(60))
+#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), -1)
 #define UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH FromDIP(190)
 #define UNSAVE_CHANGE_DIALOG_VALUE_WIDTH FromDIP(150)
 #define UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT FromDIP(24)
@@ -1075,11 +1075,6 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_main->Add(m_sizer_button, 0, wxEXPAND | wxTOP, 6);
     m_sizer_main->Add(0, 0, 1, wxTOP, 18);
 
-    SetSizer(m_sizer_main);
-    Layout();
-    Fit();
-    Centre(wxBOTH);
-
     if (params) {
         if (params->left_to_right)
             update_tree(type, params->config, params->from, params->to);
@@ -1095,6 +1090,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     //topSizer->SetSizeHints(this);
 
     show_info_line(Action::Undef);
+
+    SetSizerAndFit(m_sizer_main);
+    Layout();
+    Fit();
+    // Centre(wxBOTH);
 }
 
 void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name)
@@ -1499,6 +1499,7 @@ void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent
     }
 
     m_action_line->SetLabel(action_msg);
+    m_action_line->Wrap(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x);
 
     update_tree(type, presets);
     update_list();

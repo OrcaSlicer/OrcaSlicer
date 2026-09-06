@@ -47,7 +47,7 @@ NetworkTestDialog::NetworkTestDialog(wxWindow* parent, wxWindowID id, const wxSt
 
 	init_bind();
 
-	this->SetSizer(main_sizer);
+	this->SetSizerAndFit(main_sizer);
 	this->Layout();
 
 	this->Centre(wxBOTH);
@@ -268,7 +268,7 @@ void NetworkTestDialog::start_test_url(TestJob job, wxString name, wxString url)
 
     int result = -1;
 	http.timeout_max(10)
-		.on_complete([this, &result](std::string body, unsigned status) {
+		.on_complete([&result](std::string body, unsigned status) {
 			try {
 				if (status == 200) {
 					result = 0;

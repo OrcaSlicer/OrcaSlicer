@@ -124,7 +124,7 @@ void AxisCtrlButton::SetInnerBackgroundColor(StateColor const& color)
 
 void AxisCtrlButton::SetBitmap(ScalableBitmap &bmp)
 {
-    if (&bmp  && (& bmp.bmp()) && (bmp.bmp().IsOk())) {
+    if (bmp.bmp().IsOk()) {
         m_icon = bmp;
     }
 }

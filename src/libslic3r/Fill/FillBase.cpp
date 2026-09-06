@@ -15,6 +15,7 @@
 
 #include "FillBase.hpp"
 #include "FillConcentric.hpp"
+#include "FillSpiralInset.hpp"
 #include "FillHoneycomb.hpp"
 #include "Fill3DHoneycomb.hpp"
 #include "FillGyroid.hpp"
@@ -41,6 +42,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
+    case ipSpiralInset:    return new FillSpiralInset();
     case ipHoneycomb:           return new FillHoneycomb();
     case ipLateralHoneycomb:         return new FillLateralHoneycomb();
     case ip3DHoneycomb:         return new Fill3DHoneycomb();
@@ -1857,12 +1859,12 @@ static inline void base_support_extend_infill_lines(Polylines &infill, BoundaryI
         const bool                   first           = graph.first(cp);
         int                          extend_next_idx = -1;
         int                          extend_prev_idx = -1;
-        coord_t                      dist_y_prev;
-        coord_t                      dist_y_next;
-        double                       arc_len_prev;
-        double                       arc_len_next;
+        coord_t                      dist_y_prev     = 0;
+        coord_t                      dist_y_next     = 0;
+        double                       arc_len_prev    = 0;
+        double                       arc_len_next    = 0;
 
-        if (! graph.next_vertical(cp)){
+        if (! graph.next_vertical(cp)) {
             size_t i = cp.point_idx;
             size_t j = next_idx_modulo(i, contour);
             while (j != cp.next_on_contour->point_idx) {

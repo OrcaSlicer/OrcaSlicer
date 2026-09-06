@@ -9,6 +9,10 @@
 
 class Button;
 
+// Fired on every keystroke that leaves a parseable integer in the field, so callers can
+// react live rather than only on commit (wxEVT_SPINCTRL) or Enter. Ported from BambuStudio.
+wxDECLARE_EVENT(EVT_SPINCTRL_TEXT, wxCommandEvent);
+
 class SpinInput : public wxNavigationEnabled<StaticBox>
 {
     wxSize labelSize;
@@ -98,6 +102,7 @@ private:
     void keyPressed(wxKeyEvent& event);
     void onTimer(wxTimerEvent &evnet);
     void onTextLostFocus(wxEvent &event);
+    void onTextChanged(wxCommandEvent &event);
     void onTextEnter(wxCommandEvent &event);
 
     void sendSpinEvent();

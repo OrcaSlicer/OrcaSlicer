@@ -12,7 +12,7 @@
 #include "libslic3r/MacUtils.hpp"
 #endif
 
-#ifdef __WXGTK3__
+#ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
 #endif
 
@@ -37,7 +37,7 @@ SwitchButton::SwitchButton(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
 	SetFont(Label::Body_12);
 
-#ifdef __WXGTK3__
+#ifdef __WXGTK__
     Slic3r::GUI::RemoveButtonBorder(this);
 #endif
 

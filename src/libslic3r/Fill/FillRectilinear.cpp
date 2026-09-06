@@ -18,6 +18,7 @@
 #include "../ShortestPath.hpp"
 #include "../VariableWidth.hpp"
 
+#include "FillCornerSmoothing.hpp"
 #include "FillRectilinear.hpp"
 
 // #define SLIC3R_DEBUG
@@ -2394,12 +2395,7 @@ static std::vector<MonotonicRegionLink> chain_monotonic_regions(
     }
 
     // Probability (unnormalized) of traversing a link between two monotonic regions.
-	auto path_probability = [
-#ifndef __APPLE__
-        // clang complains when capturing constexpr constants.
-        pheromone_alpha, pheromone_beta
-#endif // __APPLE__
-        ](AntPath &path) {
+	auto path_probability = [](AntPath &path) {
 		return pow(path.pheromone, pheromone_alpha) * pow(path.visibility, pheromone_beta);
 	};
 
@@ -3364,6 +3360,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         for (Polyline &pl : polylines)
             pl.translate(rotate_vector.second);
 
+    // Orca: round the corners of the trapezoids. The straight base lines of the triangular family
+    // have no corner to round.
+    smooth_polylines_corners(polylines, params.smooth_factor, scaled<double>(params.resolution));
+
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);
 
@@ -3576,7 +3576,7 @@ Polylines FillLateralHoneycomb::fill_surface(const Surface *surface, const FillP
     //     |
     //     |
     // 0 --+--
-    //    / \
+    //    ⟋ ⟍
     // why inverted?
     // it makes determining some of the properties easier
     // and the two angled legs provide additional horizontal stiffness
