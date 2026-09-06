@@ -1,7 +1,9 @@
 #ifndef __QIDI_PRINTER_AGENT_HPP__
 #define __QIDI_PRINTER_AGENT_HPP__
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 #include <map>
 #include <string>
@@ -19,9 +21,25 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     // Override filament sync (Qidi-specific implementation)
-    bool fetch_filament_info(std::string dev_id) override;
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+
+    static bool parse_slot_response(const std::string& response_body,
+                                    nlohmann::json&    status,
+                                    nlohmann::json&    variables,
+                                    std::string&       error);
+
+    // Print operations — emit QiDi multi-color box config, then delegate to base.
+    int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
+    int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
+
+    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::subscription; }
 
 private:
+    // Push enable_box + value_t<tool> SAVE_VARIABLEs before a print starts.
+    // Returns false if any command fails (caller should abort the print).
+    bool apply_box_mapping(const PrintParams& params) const;
     struct QidiFilamentDict
     {
         std::map<int, std::string> colors;

@@ -12,6 +12,7 @@
 
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/Http.hpp"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 #include "libslic3r/Thread.hpp"
 #include "DeviceErrorDialog.hpp"
 
@@ -1493,27 +1494,26 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_setting_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_setting_button->SetBackgroundColour(STATUS_TITLE_BG);
 
-    m_camera_switch_button = new wxStaticBitmap(m_panel_monitoring_title, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(38), FromDIP(24)), 0);
-    m_camera_switch_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
-    m_camera_switch_button->SetBackgroundColour(STATUS_TITLE_BG);
-    m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
-    m_camera_switch_button->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::on_camera_switch_toggled, this);
-    m_camera_switch_button->Bind(wxEVT_RIGHT_DOWN, [this](auto& e) {
-        const std::string js_request_pip = R"(
-            document.querySelector('video').requestPictureInPicture();
-        )";
-        m_custom_camera_view->RunScript(js_request_pip);
-    });
-    m_camera_switch_button->Hide();
+    // m_camera_switch_button = new wxStaticBitmap(m_panel_monitoring_title, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(38), FromDIP(24)), 0);
+    // m_camera_switch_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
+    // m_camera_switch_button->SetBackgroundColour(STATUS_TITLE_BG);
+    // m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
+    // m_camera_switch_button->Bind(wxEVT_RIGHT_DOWN, [this](auto& e) {
+    //     const std::string js_request_pip = R"(
+    //         document.querySelector('video').requestPictureInPicture();
+    //     )";
+    //     m_custom_camera_view->RunScript(js_request_pip);
+    // });
+    // m_camera_switch_button->Hide();
 
     m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
     m_bitmap_timelapse_img->SetToolTip(_L("Timelapse"));
     m_bitmap_recording_img->SetToolTip(_L("Video"));
     m_bitmap_vcamera_img->SetToolTip(_L("Go Live"));
     m_setting_button->SetToolTip(_L("Camera Setting"));
-    m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
+    // m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
 
-    bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    // bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_sdcard_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_timelapse_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_recording_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
@@ -1536,19 +1536,18 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_custom_camera_view = WebView::CreateWebView(this, wxEmptyString);
     m_custom_camera_view->EnableContextMenu(false);
     Bind(wxEVT_WEBVIEW_NAVIGATING, &StatusBasePanel::on_webview_navigating, this, m_custom_camera_view->GetId());
+    m_web_media_controller = std::make_unique<WebMediaController>(m_custom_camera_view);
 
     m_media_play_ctrl = new MediaPlayCtrl(this, m_media_ctrl, wxDefaultPosition, wxSize(-1, FromDIP(40)));
+    m_media_play_ctrl->SetWebMediaController(m_web_media_controller.get());
     m_custom_camera_view->Hide();
-    m_custom_camera_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
-        if (evt.GetString() == "leavepictureinpicture") {
-            // When leaving PiP, video gets paused in some cases and toggling play
-            // programmatically does not work.
-            m_custom_camera_view->Reload();
-        }
-        else if (evt.GetString() == "enterpictureinpicture") {
-            toggle_builtin_camera();
-        }
-    });
+    // m_custom_camera_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
+    //     if (evt.GetString() == "leavepictureinpicture") {
+    //         // When leaving PiP, video gets paused in some cases and toggling play
+    //         // programmatically does not work.
+    //         m_custom_camera_view->Reload();
+    //     }
+    // });
 
     sizer->Add(m_media_ctrl, 1, wxEXPAND | wxALL, 0);
     sizer->Add(m_custom_camera_view, 1, wxEXPAND | wxALL, 0);
@@ -1557,10 +1556,6 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 //    media_ctrl_panel->Layout();
 //
 //    sizer->Add(media_ctrl_panel, 1, wxEXPAND | wxALL, 1);
-
-    if (wxGetApp().app_config->get("camera", "enable_custom_source") == "true") {
-        handle_camera_source_change();
-    }
 
     return sizer;
 }
@@ -2311,6 +2306,23 @@ void StatusPanel::update_camera_state(MachineObject* obj)
 {
     if (!obj) return;
 
+    auto agent = wxGetApp().getAgent();
+    const auto camera_mode = agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
+    const bool has_printer_webcam = camera_mode == CameraStreamMode::http || camera_mode == CameraStreamMode::http_snapshot;
+    if (has_printer_webcam) {
+        //m_camera_switch_button->Hide();
+        if (!m_custom_camera_view->IsShown()) {
+            // why: do not reload the WebView URL per tick, or redirects can cause a reload loop.
+            // MediaPlayCtrl (via its WebMediaController) owns loading/playing the stream itself.
+            m_custom_camera_view->Show();
+            m_media_ctrl->Hide();
+        }
+    } else if (m_custom_camera_view->IsShown()) {
+        m_custom_camera_view->Hide();
+        m_media_ctrl->Show();
+        m_media_play_ctrl->StopWebStream();
+    }
+
     //sdcard
     auto sdcard_state = obj->GetStorage()->get_sdcard_state();
     if (m_last_sdcard != sdcard_state) {
@@ -2342,7 +2354,12 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_last_recording = obj->is_recording() ? 1 : 0;
     }
 
-    if (!m_bitmap_recording_img->IsShown()) {
+    if (has_printer_webcam) {
+        if (m_bitmap_recording_img->IsShown()) {
+            m_bitmap_recording_img->Hide();
+            m_panel_monitoring_title->Layout();
+        }
+    } else if (!m_bitmap_recording_img->IsShown()) {
         m_bitmap_recording_img->Show();
         m_panel_monitoring_title->Layout();
     }
@@ -2399,6 +2416,8 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         bool show_vcamera = m_media_play_ctrl->IsStreaming();
         m_camera_popup->update(show_vcamera);
     }
+
+    m_setting_button->Show(!has_printer_webcam);
 }
 
 StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
@@ -2686,13 +2705,21 @@ void StatusPanel::on_subtask_partskip(wxCommandEvent &event)
 void StatusPanel::on_subtask_pause_resume(wxCommandEvent &event)
 {
     if (obj) {
-        if (obj->can_resume()) {
+        const bool was_resume = obj->can_resume();
+        if (was_resume) {
             BOOST_LOG_TRIVIAL(info) << "monitor: resume current print task dev_id =" << obj->get_dev_id();
             obj->command_task_resume();
         }
         else {
             BOOST_LOG_TRIVIAL(info) << "monitor: pause current print task dev_id =" << obj->get_dev_id();
             obj->command_task_pause();
+        }
+        if (is_moonraker_agent()) {
+            m_pause_resume_pending = true;
+            m_pause_resume_was_resume = was_resume;
+            m_pause_resume_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+            m_pause_resume_machine_id = obj->get_dev_id();
+            m_project_task_panel->enable_pause_resume_button(false, was_resume ? "resume_disable" : "pause_disable");
         }
     }
 }
@@ -2705,6 +2732,12 @@ void StatusPanel::on_subtask_abort(wxCommandEvent &event)
             if (obj) {
                 BOOST_LOG_TRIVIAL(info) << "monitor: stop current print task dev_id =" << obj->get_dev_id();
                 obj->command_task_abort();
+                if (is_moonraker_agent()) {
+                    m_abort_pending = true;
+                    m_abort_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+                    m_abort_machine_id = obj->get_dev_id();
+                    m_project_task_panel->enable_abort_button(false);
+                }
             }
         });
     }
@@ -3678,6 +3711,25 @@ void StatusPanel::update_model_info()
 void StatusPanel::update_subtask(MachineObject *obj)
 {
     if (!obj) return;
+    const auto now = std::chrono::steady_clock::now();
+    if (m_pause_resume_pending) {
+        if (!is_moonraker_agent() || m_pause_resume_machine_id != obj->get_dev_id() ||
+            obj->can_resume() != m_pause_resume_was_resume) {
+            m_pause_resume_pending = false;
+        } else if (now >= m_pause_resume_deadline) {
+            BOOST_LOG_TRIVIAL(warning) << "StatusPanel: Moonraker pause/resume command did not change printer state";
+            m_pause_resume_pending = false;
+        }
+    }
+    if (m_abort_pending) {
+        if (!is_moonraker_agent() || m_abort_machine_id != obj->get_dev_id() || obj->print_status == "FAILED" ||
+            obj->print_status == "FINISH" || obj->print_status == "IDLE") {
+            m_abort_pending = false;
+        } else if (now >= m_abort_deadline) {
+            BOOST_LOG_TRIVIAL(warning) << "StatusPanel: Moonraker abort command did not change printer state";
+            m_abort_pending = false;
+        }
+    }
     if (m_current_print_mode != PRINGINT) {
         if (calib_bitmap == nullptr) {
             m_calib_mode = get_obj_calibration_mode(obj, m_calib_method, cali_stage);
@@ -3785,10 +3837,12 @@ void StatusPanel::update_subtask(MachineObject *obj)
             }
             update_basic_print_data(false);
         } else {
-            if (obj->can_resume()) {
-                m_project_task_panel->enable_pause_resume_button(true, "resume");
-            } else {
-                 m_project_task_panel->enable_pause_resume_button(true, "pause");
+            if (!m_pause_resume_pending) {
+                if (obj->can_resume()) {
+                    m_project_task_panel->enable_pause_resume_button(true, "resume");
+                } else {
+                     m_project_task_panel->enable_pause_resume_button(true, "pause");
+                }
             }
             m_project_task_panel->enable_partskip_button(obj, true);
             // update printing stage
@@ -3845,7 +3899,9 @@ void StatusPanel::update_subtask(MachineObject *obj)
                     m_project_task_panel->market_scoring_hide();
                 }
             } else { // model printing is not finished, hide scoring page
-                m_project_task_panel->enable_abort_button(true);
+                if (!m_abort_pending) {
+                    m_project_task_panel->enable_abort_button(true);
+                }
                 m_project_task_panel->market_scoring_hide();
                 m_project_task_panel->get_request_failed_panel()->Hide();
             }
@@ -3920,39 +3976,61 @@ void StatusPanel::update_cloud_subtask(MachineObject *obj)
         update_calib_bitmap();
         if (obj->slice_info) {
             m_request_url = wxString(obj->slice_info->thumbnail_url);
-            if (!m_request_url.IsEmpty()) {
-                wxImage                               img;
-                std::map<wxString, wxImage>::iterator it = img_list.find(m_request_url);
-                if (it != img_list.end()) {
-                    if (m_current_print_mode != PrintingTaskType::CALIBRATION  ||(m_calib_mode == CalibMode::Calib_Flow_Rate && m_calib_method == CalibrationMethod::CALI_METHOD_MANUAL)) {
-                        img = it->second;
-                        wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y);
-                        m_project_task_panel->set_thumbnail_img(resize_img, "");
-                        m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
-                    }
-                    if (this->obj) {
-                        m_project_task_panel->set_plate_index(obj->m_plate_index);
-                    } else {
-                        m_project_task_panel->set_plate_index(-1);
-                    }
-                    task_thumbnail_state = ThumbnailState::TASK_THUMBNAIL;
-                    BOOST_LOG_TRIVIAL(trace) << "web_request: use cache image";
-                } else {
-                    web_request = wxWebSession::GetDefault().CreateRequest(this, m_request_url);
-                    BOOST_LOG_TRIVIAL(trace) << "monitor: start request thumbnail, url = " << m_request_url;
-                    web_request.Start();
-                    m_start_loading_thumbnail = false;
-                }
-            }
+            load_thumbnail_from_url(m_request_url, obj);
         }
     }
+}
+
+bool StatusPanel::load_thumbnail_from_url(const wxString &url, MachineObject *obj)
+{
+    if (url.IsEmpty())
+        return false;
+
+    wxImage                               img;
+    std::map<wxString, wxImage>::iterator it = img_list.find(url);
+    if (it != img_list.end()) {
+        if (m_current_print_mode != PrintingTaskType::CALIBRATION  ||(m_calib_mode == CalibMode::Calib_Flow_Rate && m_calib_method == CalibrationMethod::CALI_METHOD_MANUAL)) {
+            img = it->second;
+            wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y);
+            m_project_task_panel->set_thumbnail_img(resize_img, "");
+            m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
+        }
+        if (this->obj) {
+            m_project_task_panel->set_plate_index(obj->m_plate_index);
+        } else {
+            m_project_task_panel->set_plate_index(-1);
+        }
+        task_thumbnail_state = ThumbnailState::TASK_THUMBNAIL;
+        BOOST_LOG_TRIVIAL(trace) << "web_request: use cache image";
+    } else {
+        m_request_url = url;
+        web_request = wxWebSession::GetDefault().CreateRequest(this, m_request_url);
+        BOOST_LOG_TRIVIAL(trace) << "monitor: start request thumbnail, url = " << m_request_url;
+        web_request.Start();
+        m_start_loading_thumbnail = false;
+    }
+    return true;
 }
 
 void StatusPanel::update_sdcard_subtask(MachineObject *obj)
 {
     if (!obj) return;
 
-    if (!m_load_sdcard_thumbnail) {
+    const wxString thumbnail_url = wxString(obj->m_agent_thumbnail_url);
+    if (!thumbnail_url.IsEmpty()) {
+        // why: Moonraker has no prediction or weight data, so keep it on the sdcard path.
+        if (m_request_url != thumbnail_url || !m_load_sdcard_thumbnail) {
+            if (web_request.IsOk() && web_request.GetState() == wxWebRequest::State_Active)
+                web_request.Cancel();
+            update_calib_bitmap();
+            m_request_url = thumbnail_url;
+            load_thumbnail_from_url(thumbnail_url, obj);
+            m_load_sdcard_thumbnail = true;
+        }
+        return;
+    }
+
+    if (!m_load_sdcard_thumbnail || !m_request_url.IsEmpty()) {
         update_calib_bitmap();
         if (m_current_print_mode != PrintingTaskType::CALIBRATION) {
             m_project_task_panel->get_bitmap_thumbnail()->SetBitmap(m_thumbnail_sdcard.bmp());
@@ -3960,11 +4038,14 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
         }
         task_thumbnail_state = ThumbnailState::SDCARD_THUMBNAIL;
         m_load_sdcard_thumbnail = true;
+        m_request_url.clear();
     }
 }
 
 void StatusPanel::reset_printing_values()
 {
+    m_pause_resume_pending = false;
+    m_abort_pending = false;
     m_project_task_panel->enable_partskip_button(nullptr, false);
     m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
     m_project_task_panel->enable_abort_button(false);
@@ -3988,6 +4069,12 @@ void StatusPanel::reset_printing_values()
     m_load_sdcard_thumbnail   = false;
     skip_print_error = 0;
     this->Layout();
+}
+
+bool StatusPanel::is_moonraker_agent() const
+{
+    auto* agent = wxGetApp().getAgent();
+    return agent && std::dynamic_pointer_cast<Slic3r::MoonrakerPrinterAgent>(agent->get_printer_agent()) != nullptr;
 }
 
 void StatusPanel::on_axis_ctrl_xy(wxCommandEvent &event)
@@ -4959,7 +5046,6 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
             }
             sdcard_hint_dlg->on_show();
             });
-        m_camera_popup->Bind(EVT_CAM_SOURCE_CHANGE, &StatusPanel::on_camera_source_change, this);
         wxWindow* ctrl = (wxWindow*)event.GetEventObject();
         wxPoint   pos = ctrl->ClientToScreen(wxPoint(0, 0));
         wxSize        sz   = ctrl->GetSize();
@@ -4968,54 +5054,6 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
         m_camera_popup->SetPosition(pos);
         m_camera_popup->update(m_media_play_ctrl->IsStreaming());
         m_camera_popup->Popup();
-    }
-}
-
-void StatusBasePanel::on_camera_source_change(wxCommandEvent& event)
-{
-    handle_camera_source_change();
-}
-
-void StatusBasePanel::handle_camera_source_change()
-{
-    const auto new_cam_url = wxGetApp().app_config->get("camera", "custom_source");
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
-
-    if (enabled && !new_cam_url.empty()) {
-        m_custom_camera_view->LoadURL(new_cam_url);
-        toggle_custom_camera();
-        m_camera_switch_button->Show();
-    } else {
-        toggle_builtin_camera();
-        m_camera_switch_button->Hide();
-    }
-}
-
-void StatusBasePanel::toggle_builtin_camera()
-{
-    m_custom_camera_view->Hide();
-    m_media_ctrl->Show();
-    m_media_play_ctrl->Show();
-}
-
-void StatusBasePanel::toggle_custom_camera()
-{
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
-
-    if (enabled) {
-        m_custom_camera_view->Show();
-        m_media_ctrl->Hide();
-        m_media_play_ctrl->Hide();
-    }
-}
-
-void StatusBasePanel::on_camera_switch_toggled(wxMouseEvent& event)
-{
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
-    if (enabled && m_media_ctrl->IsShown()) {
-        toggle_custom_camera();
-    } else {
-        toggle_builtin_camera();
     }
 }
 
@@ -5171,6 +5209,11 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
+    if (m_custom_camera_view->IsShown()) {
+        m_custom_camera_view->Hide();
+        m_media_ctrl->Show();
+        m_media_play_ctrl->StopWebStream();
+    }
     obj                  = nullptr;
     last_subtask         = nullptr;
     last_tray_exist_bits = -1;
