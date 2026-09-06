@@ -6507,7 +6507,7 @@ void PrintConfigDef::init_fff_params()
     // taken at the extrusion point farthest from the camera (0,0) instead of traveling to a safe/chute
     // position. Gated in GCode::process_layer by timelapse_type==tlTraditional && printer_structure!=psI3,
     // so it is inert for i3 (A1/A2L) printers and whenever the toggle is off (default false → every
-    // existing printer's g-code is byte-identical). Only H2C/H2D machine profiles set it =1.
+    // existing printer's g-code is byte-identical). Only H2C/H2D/X2D machine profiles set it =1.
     def = this->add("farthest_point_timelapse", coBool);
     def->label = L("Farthest point timelapse");
     def->tooltip = L("When enabled, the timelapse snapshot is taken at the farthest point from camera "

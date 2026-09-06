@@ -16,6 +16,7 @@
 	],
 	"printer_model": "Bambu Lab X2D",
 	"printer_variant": "0.4",
+	"farthest_point_timelapse": "1",
 	"default_filament_profile": [
 		"Bambu PLA Basic @BBL X2D 0.4 nozzle"
 	],
