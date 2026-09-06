@@ -7124,6 +7124,29 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
     if (m_dragging_point && m_drag_ei >= 0)  ei = m_drag_ei;
     else if (m_dragging_handle)              ei = m_drag_handle.ei;
     else if (m_selection.size() == 1)        ei = m_selection[0];
+    else if (!m_selection.empty()) {
+        // A GROUPED FEATURE SELECTS EVERY MEMBER, so "exactly one entity" hid the characteristic
+        // quotes for precisely the shapes that have nothing else. A rounded rectangle is eight
+        // entities — four lines and four arcs — so picking it makes m_selection.size() == 8, this
+        // pass returned here, and its Width / Height / Radius labels were never drawn. With no
+        // label on screen there is nothing to click, which is the whole of "cannot edit labels in
+        // rounded rectangles": not a value that refuses to change, a label that does not exist.
+        //
+        // A plain rectangle looked fine only by accident: typing into its auto-edit chain creates
+        // a DRIVEN dimension, and render_dimensions draws that one from the annotation list. The
+        // rounded rect's W/H/R go through set_rounded_rect, which rebuilds the geometry and leaves
+        // no annotation behind — so the live label was the only affordance it ever had.
+        //
+        // Accept a selection that is entirely ONE feature and let any member speak for it; the
+        // switch below already keys off feature_of(ei) rather than the entity itself.
+        const int f0 = feature_of(m_selection.front());
+        if (f0 >= 0) {
+            bool same_feature = true;
+            for (int s : m_selection)
+                if (feature_of(s) != f0) { same_feature = false; break; }
+            if (same_feature) ei = m_selection.front();
+        }
+    }
     if (ei < 0 || ei >= int(m_entities.size())) return;
     const SketchEntity& e = m_entities[ei];
 
