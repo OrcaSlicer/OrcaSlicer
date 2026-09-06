@@ -1569,6 +1569,9 @@ private:
     // Upper brim layers create ear circles at these positions; diff_ex clips overlapping ones.
     std::map<ObjectInstanceID, Points>                    m_ear_brim_centroids_outer;
     std::map<ObjectInstanceID, Points>                    m_ear_brim_centroids_inner;
+    // Orca: Layer-0 painted brim ear centers (center, radius) keyed by instance (btPainted only).
+    // Stored in plate coordinates so upper brim layers keep a vertical outer edge.
+    std::map<ObjectInstanceID, std::vector<std::pair<Point, coord_t>>> m_painted_brim_ears;
 
     // Convex hull of the 1st layer extrusions.
     // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
@@ -1653,6 +1656,9 @@ public:
     const std::map<ObjectInstanceID, Points>&             ear_brim_centroids_outer() const { return m_ear_brim_centroids_outer; }
     std::map<ObjectInstanceID, Points>&                   ear_brim_centroids_inner() { return m_ear_brim_centroids_inner; }
     const std::map<ObjectInstanceID, Points>&             ear_brim_centroids_inner() const { return m_ear_brim_centroids_inner; }
+    // Orca: Layer-0 painted brim ear centers (btPainted), accessed by upper brim layer code.
+    std::map<ObjectInstanceID, std::vector<std::pair<Point, coord_t>>>&                   painted_brim_ears() { return m_painted_brim_ears; }
+    const std::map<ObjectInstanceID, std::vector<std::pair<Point, coord_t>>>&             painted_brim_ears() const { return m_painted_brim_ears; }
 };
 
 

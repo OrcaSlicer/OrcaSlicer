@@ -585,7 +585,80 @@ TEST_CASE("Mouse ears stay on the same corners when the object rotates", "[Skirt
             REQUIRE(distances.size() == base_distances.size());
             for (size_t i = 0; i < distances.size(); ++ i)
                 CHECK_THAT(distances[i], Catch::Matchers::WithinAbs(base_distances[i], scaled(0.5)));
+            }
         }
+}
+
+// btPainted: like btEar, the outer edge of a painted ear must stay at its
+// layer-0 position on upper brim layers (vertical) instead of following the
+// tapering object outline inward.
+TEST_CASE("Painted brim outer edge stays vertical on upper brim layers", "[SkirtBrim]")
+{
+    constexpr double ear_radius = 5.0;
+
+    // A steep cone tapers by 1mm per 0.4mm of height, so re-projecting the
+    // ear centers to each layer's outline would pull the outer edge inward.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                0 },
+        { "brim_type",                  "painted" },
+        { "brim_ears_outer_only",       true },
+        { "brim_layers",                3 },
+        { "layer_height",               0.2 },
+        { "initial_layer_line_width",   0.5 },
+    });
+
+    Print print;
+    Model model;
+    init_print({ make_cone(10.0, 4.0) }, print, model, config);
+    print.process();
+
+    const PrintObject *object = print.get_object(0);
+    REQUIRE(!object->layers().front()->lslices.empty());
+    const Point ear_center = object->layers().front()->lslices.front().contour.points.front();
+
+    Transform3d model_transform = model.objects.front()->instances.front()->get_transformation().get_matrix_no_offset();
+    const Point &center_offset = object->center_offset();
+    model_transform = model_transform.pretranslate(
+        Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+    Vec3d model_pos = model_transform.inverse() *
+        Vec3d(unscale<double>(ear_center.x()), unscale<double>(ear_center.y()), 0);
+    model_pos.z() = model.objects.front()->raw_mesh_bounding_box().min.z() - 0.0001;
+    model.objects.front()->brim_points = {
+        BrimPoint(model_pos.cast<float>(), float(ear_radius)),
+    };
+
+    print.apply(model, config);
+    print.process();
+
+    const Vec3d plate_origin = print.get_plate_origin();
+    Point path_center = ear_center + object->instances().front().shift_without_plate_offset();
+    path_center += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
+
+    // Max distance of a brim path point from the (fixed, layer-0) ear center,
+    // per brim layer.
+    std::string gcode_str = Slic3r::Test::gcode(print);
+    std::map<double, double> max_radius_by_layer;
+    bool brim_active = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode_str, [&max_radius_by_layer, &path_center, &brim_active](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("TYPE:") != std::string_view::npos || comment.find("FEATURE:") != std::string_view::npos)
+            brim_active = comment.find("Brim") != std::string_view::npos;
+
+        if (brim_active && line.extruding(self) && line.dist_XY(self) > 0) {
+            double x = line.new_X(self) - unscale<double>(path_center.x());
+            double y = line.new_Y(self) - unscale<double>(path_center.y());
+            double r = std::sqrt(x * x + y * y);
+            max_radius_by_layer[self.z()] = std::max(max_radius_by_layer[self.z()], r);
+        }
+    });
+
+    REQUIRE(max_radius_by_layer.size() == 3);
+    for (const auto &[z, r] : max_radius_by_layer) {
+        INFO("z = " << z << " mm, max brim radius from ear center = " << r << " mm");
+        CHECK(r > ear_radius - 0.5);
+        CHECK(r < ear_radius);
     }
 }
 
