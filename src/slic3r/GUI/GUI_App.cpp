@@ -9,6 +9,7 @@
 #include "slic3r/GUI/TaskManager.hpp"
 #include "format.hpp"
 #include "libslic3r_version.h"
+#include "BuildCommit.hpp"
 #include "Downloader.hpp"
 #include <boost/chrono/duration.hpp>
 #include <boost/log/detail/native_typeof.hpp>
@@ -2580,7 +2581,7 @@ void GUI_App::init_app_config()
     set_log_path_and_level(log_filename, 3);
 #endif
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % GIT_COMMIT_HASH;
+    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % build_commit_label;
 
     //BBS: remove GCodeViewer as seperate APP logic
 	if (!app_config)
