@@ -3,9 +3,12 @@
 #include <vector>
 #include <thread>
 #include <exception>
+#include <sstream>
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <wx/string.h>
 #include <wx/app.h>
@@ -112,10 +115,55 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
     return webui_url;
 }
 
+namespace {
+
+// Moonraker (Klipper's API server) errors arrive as { "error": { "code", "message", "traceback" } } through
+// whichever host type fronts it. error.message is often just the generic phrase ("Forbidden"); the specific
+// cause is in the traceback's final line, rendered by Tornado as "HTTP <code>: <reason> (<detail>)". Take
+// everything after that marker, else message, else the raw body (empty return).
+std::string moonraker_error_reason(const std::string &body)
+{
+    namespace pt = boost::property_tree;
+    try {
+        std::stringstream ss(body);
+        pt::ptree root;
+        pt::read_json(ss, root);
+
+        const auto message = root.get_optional<std::string>("error.message");
+        if (!message || message->empty())
+            return {};
+        std::string reason = *message;
+
+        const auto code = root.get_optional<int>("error.code");
+        const auto traceback = root.get_optional<std::string>("error.traceback");
+        if (code && traceback) {
+            const std::string &tb = *traceback;
+            const auto line_end = tb.find_last_not_of(" \t\r\n");   // the raised exception's line
+            if (line_end != std::string::npos) {
+                const auto nl = tb.rfind('\n', line_end);
+                const auto line_begin = (nl == std::string::npos) ? 0 : nl + 1;
+                const std::string line = tb.substr(line_begin, line_end - line_begin + 1);
+
+                const std::string marker = "HTTP " + std::to_string(*code) + ": ";
+                const auto pos = line.find(marker);
+                if (pos != std::string::npos && pos + marker.size() < line.size())
+                    reason = line.substr(pos + marker.size());
+            }
+        }
+        return reason;
+    } catch (const std::exception &) {
+        return {};
+    }
+}
+
+} // namespace
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
-        auto wxbody = wxString::FromUTF8(body.data());
+        // Substitute a Moonraker backend's raw traceback body with its reason; other bodies pass through.
+        const std::string reason = moonraker_error_reason(body);
+        auto wxbody = wxString::FromUTF8(reason.empty() ? body : reason);
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {
