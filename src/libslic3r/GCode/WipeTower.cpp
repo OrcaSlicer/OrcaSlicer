@@ -1630,6 +1630,85 @@ float WipeTower::get_auto_brim_by_height(float max_height) {
     return 8.f;
 }
 
+float WipeTower::estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height)
+{
+    if (brim_width <= 0.f)
+        return brim_width;
+    const float spacing = nozzle_diameter * 1.25f - first_layer_height * float(1. - M_PI_4);
+    if (spacing <= EPSILON)
+        return brim_width;
+    const int loops_num = int((brim_width + spacing / 2.f) / spacing);
+    return std::max(brim_width, loops_num * spacing + spacing / 2.f);
+}
+
+float WipeTower::estimate_rib_tower_bbox_side(const std::vector<float> &prime_volumes,
+                                              const std::vector<int>   &adhesiveness_categories,
+                                              float width, float layer_height, float nozzle_diameter,
+                                              float extra_spacing, float rib_width, float extra_rib_length,
+                                              float max_height)
+{
+    if (prime_volumes.empty() || width < EPSILON || layer_height < EPSILON || nozzle_diameter < EPSILON)
+        return 0.f;
+    const float pw = nozzle_diameter * 1.25f; // Width_To_Nozzle_Ratio
+    auto planned_depth = [&](float w) {
+        return estimate_tower_blocks_depth(prime_volumes, adhesiveness_categories, w, layer_height, nozzle_diameter, extra_spacing);
+    };
+    // plan_tower_new squares the tower from the depth at the configured width, then re-plans
+    // the depths at the squared width (line quantization can push the final depth past it).
+    const float square = align_ceil(std::sqrt(planned_depth(width) * width), pw);
+    const float depth  = planned_depth(square);
+    const float side   = std::max(square, depth);
+    // Ribs run the diagonal, extended for stability when the body is shorter than the
+    // height-based minimum, and bulge past the body by half the rib width (fully so on
+    // the first layer; the extension tapers to zero at the top).
+    const float diagonal   = std::sqrt(square * square + depth * depth);
+    float       rib_length = diagonal;
+    const float min_depth  = get_limit_depth_by_height(max_height);
+    if (depth + EPSILON < min_depth)
+        rib_length = std::max(rib_length, min_depth * float(std::sqrt(2.)));
+    rib_length += std::max(0.f, extra_rib_length);
+    const float rib_w    = std::min(rib_width, std::min(square, depth) / 2.f);
+    const float per_side = ((rib_length - diagonal) / 2.f + rib_w / 2.f) / float(std::sqrt(2.));
+    return side + 2.f * per_side;
+}
+
+float WipeTower::estimate_tower_blocks_depth(const std::vector<float> &prime_volumes,
+                                             const std::vector<int>   &adhesiveness_categories,
+                                             float width, float layer_height, float nozzle_diameter,
+                                             float extra_spacing)
+{
+    if (prime_volumes.empty() || layer_height < EPSILON || nozzle_diameter < EPSILON)
+        return 0.f;
+    const float pw = nozzle_diameter * 1.25f; // Width_To_Nozzle_Ratio
+    if (width <= 2.f * pw + EPSILON)
+        return 0.f;
+    const float gap = pw * std::max(1.f, extra_spacing); // calc_block_infill_gap, no-ramming case
+    // Purges are quantized to whole lines at the block infill gap; one block per
+    // adhesiveness category, stacked, each sized by its worst layer.
+    struct Block { float depth = 0.f; float min_depth = 0.f; size_t filaments = 0; };
+    std::map<int, Block> blocks;
+    for (size_t i = 0; i < prime_volumes.size(); ++i) {
+        const float length = prime_volumes[i] / (pw * layer_height);
+        const int   cat    = i < adhesiveness_categories.size() ? adhesiveness_categories[i] : 0;
+        const float d      = std::ceil(length / (width - 2.f * pw)) * gap;
+        Block &block = blocks[cat];
+        block.depth += d;
+        block.min_depth = block.filaments == 0 ? d : std::min(block.min_depth, d);
+        ++block.filaments;
+    }
+    float depth = pw; // plan_tower_new adds one perimeter width on top of the blocks
+    for (const auto &[cat, block] : blocks) {
+        float block_depth = block.depth;
+        // A layer purges into at most (filaments used - 1) targets, so a category holding
+        // every filament never sees its smallest purge (the layer start) in its worst layer.
+        if (block.filaments == prime_volumes.size())
+            block_depth -= block.min_depth;
+        // Plus the block's finishing line (finish_depth in the planner).
+        depth += block_depth + gap;
+    }
+    return depth;
+}
+
 Vec2f WipeTower::move_box_inside_polygon(const BoundingBox &box, const Polygons &polygons, coord_t offset)
 {
     if (polygons.empty()) return Vec2f{0.f, 0.f};
