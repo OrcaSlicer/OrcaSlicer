@@ -815,9 +815,20 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        // Try to match preset by filament_id, then setting_id from lane_data (spoolman-lane-sync
+        // stores the OrcaSlicer preset name/id in setting_id; filament_id may be a raw Spoolman DB id).
+        // Falls back to material-type matching if no preset found.
+        std::string lane_filament_id = safe_json_string(lane_obj, "filament_id");
+        std::string lane_setting_id  = safe_json_string(lane_obj, "setting_id");
+        tray.tray_info_idx = "";
+        if (!lane_filament_id.empty() && bundle)
+            tray.tray_info_idx = bundle->filaments.filament_id_by_id_or_name(lane_filament_id);
+        if (tray.tray_info_idx.empty() && !lane_setting_id.empty() && bundle)
+            tray.tray_info_idx = bundle->filaments.filament_id_by_id_or_name(lane_setting_id);
+        if (tray.tray_info_idx.empty())
+            tray.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(tray.tray_type)
+                : map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
