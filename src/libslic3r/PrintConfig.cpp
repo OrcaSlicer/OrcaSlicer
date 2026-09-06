@@ -4477,6 +4477,13 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def           = this->add("infill_complete_top", coBool);
+    def->label    = L("Fill pattern tops");
+    def->category = L("Strength");
+    def->tooltip  = L("Choose this option if you want to completely fill in the tops of the infill pattern");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+    
     // Orca: max layer height for combined infill
     def = this->add("infill_combination_max_layer_height", coFloatOrPercent);
     def->label = L("Infill combination - Max layer height");
