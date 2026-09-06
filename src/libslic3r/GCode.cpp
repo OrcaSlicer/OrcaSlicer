@@ -3625,6 +3625,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     update_placeholder_parser_with_variant_params();
 
     std::string machine_start_gcode = this->placeholder_parser_process("machine_start_gcode", print.config().machine_start_gcode.value, initial_extruder_id);
+
+    auto emit_z_clearance = [this, &file, initial_extruder_id]() {
+        const double height = m_config.initial_z_clearance_height.value;
+        if (height <= 0.)
+            return;
+
+        const double z_travel_speed = m_config.travel_speed_z.get_at(initial_extruder_id);
+        const double speed = z_travel_speed > 0.
+            ? z_travel_speed
+            : m_config.travel_speed.get_at(initial_extruder_id);
+
+        file.write_format(
+            "; Raise Z for clearance\n"
+            "G91\n"
+            "G1 Z%.3f F%.0f\n"
+            "G90\n",
+            height,
+            speed * 60.
+        );
+    };
+
     if (print.config().gcode_flavor != gcfKlipper) {
         // Set bed temperature if the start G-code does not contain any bed temp control G-codes.
         this->_print_first_layer_bed_temperature(file, print, machine_start_gcode, initial_extruder_id, true);
@@ -3642,6 +3663,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             file.write(m_writer.set_chamber_temperature(max_chamber_temp, true)); // set chamber_temperature
     }
 
+    if (m_config.initial_z_clearance_placement.value == ZClearancePlacement::BeforeStartGCode ||
+        m_config.initial_z_clearance_placement.value == ZClearancePlacement::Both)
+        emit_z_clearance();
+
     // Write the custom start G-code
     file.writeln(machine_start_gcode);
     // Mark the end of the machine start g-code so the GCodeProcessor usage-block builder knows where user
@@ -3655,6 +3680,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //BBS: gcode writer doesn't know where the real position of extruder is after inserting custom gcode
     m_writer.set_current_position_clear(false);
     m_start_gcode_filament = GCodeProcessor::get_gcode_last_filament(machine_start_gcode);
+
+    if (m_config.initial_z_clearance_placement.value == ZClearancePlacement::AfterStartGCode ||
+        m_config.initial_z_clearance_placement.value == ZClearancePlacement::Both)
+        emit_z_clearance();
 
     if (is_bbl_printers) {
         m_writer.init_extruder(initial_non_support_extruder_id);

@@ -200,6 +200,13 @@ enum class PowerLossRecoveryMode {
     Disable,
 };
 
+// Orca
+enum class ZClearancePlacement {
+    BeforeStartGCode,
+    AfterStartGCode,
+    Both,
+};
+
 // BBS
 enum class WallSequence {
     InnerOuter,
@@ -673,6 +680,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ZClearancePlacement)
 // BBS
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamPosition)
@@ -1573,6 +1581,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     // BBS
     ((ConfigOptionBool,                scan_first_layer))
     ((ConfigOptionEnum<PowerLossRecoveryMode>, enable_power_loss_recovery))
+    ((ConfigOptionEnum<ZClearancePlacement>, initial_z_clearance_placement))
+    ((ConfigOptionFloat,               initial_z_clearance_height))
     ((ConfigOptionBool,                enable_wrapping_detection))
     ((ConfigOptionInt,                 wrapping_detection_layers))
     ((ConfigOptionPoints,              wrapping_exclude_area))

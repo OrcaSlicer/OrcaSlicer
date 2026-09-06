@@ -5123,6 +5123,10 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("extruder_clearance_height_to_rod", "printer_basic_information_extruder_clearance#height-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_lid", "printer_basic_information_extruder_clearance#height-to-lid");
 
+        optgroup = page->new_optgroup(L("Initial Z Clearance"), "param_extruder_clearance");
+        optgroup->append_single_option_line("initial_z_clearance_height");
+        optgroup->append_single_option_line("initial_z_clearance_placement");
+
         optgroup = page->new_optgroup(L("Adaptive bed mesh"), "param_adaptive_mesh");
         optgroup->append_single_option_line("bed_mesh_min", "printer_basic_information_adaptive_bed_mesh#bed-mesh");
         optgroup->append_single_option_line("bed_mesh_max", "printer_basic_information_adaptive_bed_mesh#bed-mesh");
@@ -6113,6 +6117,8 @@ void TabPrinter::toggle_options()
         // The cooling filter and air filtration are alternative accessories: show only the one the printer supports.
         toggle_line("support_air_filtration", !m_config->opt_bool("support_cooling_filter"));
         toggle_line("cooling_filter_enabled", m_config->opt_bool("support_cooling_filter"));
+
+        toggle_option("initial_z_clearance_placement", m_config->opt_float("initial_z_clearance_height") > 0.);
     }
 
 
