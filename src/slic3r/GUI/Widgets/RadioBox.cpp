@@ -42,6 +42,22 @@ bool RadioBox::GetValue()
 }
 
 
+void RadioBox::BindLabel(wxWindow *label)
+{
+    if (label == nullptr)
+        return;
+    label->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
+        if (!IsEnabled()) {
+            e.Skip();
+            return;
+        }
+        wxMouseEvent evt(wxEVT_LEFT_DOWN);
+        evt.SetEventObject(this);
+        evt.SetId(GetId());
+        GetEventHandler()->ProcessEvent(evt);
+    });
+}
+
 void RadioBox::Rescale()
 {
     m_on.msw_rescale();

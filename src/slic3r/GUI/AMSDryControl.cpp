@@ -709,6 +709,18 @@ wxBoxSizer* AMSDryCtrWin::create_guide_info_section(wxPanel* parent)
     Label* toggle_description = new Label(parent, _L("Rotate spool when drying"), LB_AUTO_WRAP);
     toggle_description->SetForegroundColour(*wxBLACK);
     toggle_description->SetFont(Label::Body_12);
+    // The check box is drawn without a label, so let the description act as one
+    toggle_description->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+        if (!m_rotate_spool_toggle->IsEnabled()) {
+            e.Skip();
+            return;
+        }
+        m_rotate_spool_toggle->SetValue(!m_rotate_spool_toggle->GetValue());
+        wxCommandEvent evt(wxEVT_CHECKBOX, m_rotate_spool_toggle->GetId());
+        evt.SetEventObject(m_rotate_spool_toggle);
+        evt.SetInt(m_rotate_spool_toggle->GetValue() ? 1 : 0);
+        m_rotate_spool_toggle->GetEventHandler()->ProcessEvent(evt);
+    });
     toggle_section->Add(toggle_description, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND, 0);
 
     info_section->Add(toggle_section, 0, wxEXPAND | wxALL, FromDIP(5));

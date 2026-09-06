@@ -849,6 +849,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow*
     auto size = checkbox_title->GetTextExtent(title);
     checkbox_title->SetMinSize(wxSize(size.x + FromDIP(5), -1));
     checkbox_title->Wrap(-1);
+    checkbox->BindLabel(checkbox_title);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
     // save
@@ -925,6 +926,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_radiobox(wxString title, wxWindow*
     m_radio_group.Append(rs);
 
     wxStaticText* text = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize);
+    radiobox->BindLabel(text);
     radiobox_sizer->Add(radiobox, 0, wxLEFT, FromDIP(23));
     radiobox_sizer->Add(text, 0, wxLEFT, FromDIP(10));
     radiobox->SetToolTip(tooltip);

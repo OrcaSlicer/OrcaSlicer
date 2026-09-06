@@ -17,6 +17,13 @@ public:
     void SetValue(bool value) override;
 	bool GetValue();
     void Rescale();
+    // Orca: Makes a left click anywhere on `label` select this radio button, the way the label
+    // of a native wxRadioButton does. The selection itself is left to the handler bound to the
+    // box, which receives the forwarded click.
+    // Prefer RadioGroup for new code, it draws its own clickable labels and handles the
+    // selection; this is for the few groups RadioGroup cannot express, such as a dynamic list
+    // or one with individually disabled entries.
+    void BindLabel(wxWindow *label);
     bool Disable() {
         return wxBitmapToggleButton::Disable();
     }

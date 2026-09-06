@@ -61,6 +61,7 @@ void AMSSetting::create()
     m_title_Insert_material_auto_read->SetFont(::Label::Head_13);
     m_title_Insert_material_auto_read->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_Insert_material_auto_read->Wrap(AMS_SETTING_BODY_WIDTH);
+    m_checkbox_Insert_material_auto_read->BindLabel(m_title_Insert_material_auto_read);
     m_sizer_Insert_material->Add(m_title_Insert_material_auto_read, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
     wxBoxSizer *m_sizer_Insert_material_tip = new wxBoxSizer(wxHORIZONTAL);
@@ -116,6 +117,7 @@ void AMSSetting::create()
     m_title_starting_auto_read->SetFont(::Label::Head_13);
     m_title_starting_auto_read->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_starting_auto_read->Wrap(AMS_SETTING_BODY_WIDTH);
+    m_checkbox_starting_auto_read->BindLabel(m_title_starting_auto_read);
     m_sizer_starting->Add(m_title_starting_auto_read, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
     wxBoxSizer *m_sizer_starting_tip = new wxBoxSizer(wxHORIZONTAL);
@@ -153,6 +155,7 @@ void AMSSetting::create()
     m_title_remain->SetFont(::Label::Head_13);
     m_title_remain->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_remain->Wrap(AMS_SETTING_BODY_WIDTH);
+    m_checkbox_remain->BindLabel(m_title_remain);
     m_sizer_remain->Add(m_title_remain, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
 
@@ -181,6 +184,7 @@ void AMSSetting::create()
     m_title_switch_filament->SetFont(::Label::Head_13);
     m_title_switch_filament->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_switch_filament->Wrap(AMS_SETTING_BODY_WIDTH);
+    m_checkbox_switch_filament->BindLabel(m_title_switch_filament);
     m_sizer_switch_filament->Add(m_title_switch_filament, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
 
@@ -213,6 +217,7 @@ void AMSSetting::create()
     m_title_air_print->SetFont(::Label::Head_13);
     m_title_air_print->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_air_print->Wrap(AMS_SETTING_BODY_WIDTH);
+    m_checkbox_air_print->BindLabel(m_title_air_print);
     m_sizer_air_print->Add(m_title_air_print, 1, wxEXPAND, 0);
 
     wxBoxSizer* m_sizer_air_print_tip = new wxBoxSizer(wxHORIZONTAL);
