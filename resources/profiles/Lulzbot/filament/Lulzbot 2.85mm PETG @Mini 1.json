@@ -1,0 +1,60 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm PETG @Mini 1",
+	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "L0sXPmtHrt5mBzsV",
+	"filament_id": "GFG99",
+	"filament_vendor": [
+		"Lulzbot"
+	],
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"235"
+	],
+	"cool_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"compatible_printers": [
+		"Lulzbot Mini 1 0.5 nozzle"
+	]
+}

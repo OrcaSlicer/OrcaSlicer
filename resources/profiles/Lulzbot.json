@@ -1,7 +1,7 @@
 {
 	"name": "Lulzbot",
 	"url": "https://ohai.lulzbot.com/group/taz-6/",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Lulzbot configurations",
 	"machine_model_list": [
@@ -20,6 +20,10 @@
 		{
 			"name": "Lulzbot Taz Pro S",
 			"sub_path": "machine/Lulzbot Taz Pro S.json"
+		},
+		{
+			"name": "Lulzbot Mini 1",
+			"sub_path": "machine/Lulzbot Mini 1.json"
 		}
 	],
 	"process_list": [
@@ -58,6 +62,14 @@
 		{
 			"name": "0.18mm High Detail @Lulzbot Taz Pro S",
 			"sub_path": "process/0.18mm High Detail @Lulzbot Taz Pro S.json"
+		},
+		{
+			"name": "0.25mm Standard @Lulzbot Mini 1",
+			"sub_path": "process/0.25mm Standard @Lulzbot Mini 1.json"
+		},
+		{
+			"name": "0.18mm High Detail @Lulzbot Mini 1",
+			"sub_path": "process/0.18mm High Detail @Lulzbot Mini 1.json"
 		}
 	],
 	"filament_list": [
@@ -72,6 +84,18 @@
 		{
 			"name": "Lulzbot 2.85mm PLA",
 			"sub_path": "filament/Lulzbot 2.85mm PLA.json"
+		},
+		{
+			"name": "Lulzbot 2.85mm ABS @Mini 1",
+			"sub_path": "filament/Lulzbot 2.85mm ABS @Mini 1.json"
+		},
+		{
+			"name": "Lulzbot 2.85mm PETG @Mini 1",
+			"sub_path": "filament/Lulzbot 2.85mm PETG @Mini 1.json"
+		},
+		{
+			"name": "Lulzbot 2.85mm PLA @Mini 1",
+			"sub_path": "filament/Lulzbot 2.85mm PLA @Mini 1.json"
 		}
 	],
 	"machine_list": [
@@ -98,6 +122,10 @@
 		{
 			"name": "Lulzbot Taz Pro S 0.5 nozzle",
 			"sub_path": "machine/Lulzbot Taz Pro S 0.5 nozzle.json"
+		},
+		{
+			"name": "Lulzbot Mini 1 0.5 nozzle",
+			"sub_path": "machine/Lulzbot Mini 1 0.5 nozzle.json"
 		}
 	]
 }

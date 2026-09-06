@@ -1,0 +1,57 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm PLA @Mini 1",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "Q2kTVW9irMNdURwT",
+	"filament_id": "GFL99",
+	"filament_vendor": [
+		"Lulzbot"
+	],
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_density": [
+		"1.25"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"205"
+	],
+	"nozzle_temperature_initial_layer": [
+		"210"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_min_speed": [
+		"75"
+	],
+	"compatible_printers": [
+		"Lulzbot Mini 1 0.5 nozzle"
+	]
+}

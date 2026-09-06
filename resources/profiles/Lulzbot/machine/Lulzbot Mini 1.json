@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Lulzbot Mini 1",
+	"model_id": "Lulzbot-Mini-1",
+	"nozzle_diameter": "0.5",
+	"machine_tech": "FFF",
+	"family": "Lulzbot",
+	"bed_model": "",
+	"bed_texture": "lulzbot_logo.svg",
+	"hotend_model": "",
+	"default_materials": "Lulzbot 2.85mm ABS @Mini 1;Lulzbot 2.85mm PETG @Mini 1;Lulzbot 2.85mm PLA @Mini 1"
+}
