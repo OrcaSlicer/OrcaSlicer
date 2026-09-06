@@ -2607,7 +2607,7 @@ bool GCodeProcessor::contains_reserved_tag(const std::string& gcode, std::string
     return ret;
 }
 
-bool GCodeProcessor::contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag)
+bool GCodeProcessor::contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag, bool is_bbl_printer)
 {
     max_count = std::max(max_count, 1U);
 
@@ -2616,7 +2616,7 @@ bool GCodeProcessor::contains_reserved_tags(const std::string& gcode, unsigned i
     CNumericLocalesSetter locales_setter;
 
     GCodeReader parser;
-    auto& _tags = s_IsBBLPrinter ? Reserved_Tags : Reserved_Tags_compatible;
+    auto& _tags = is_bbl_printer ? Reserved_Tags : Reserved_Tags_compatible;
     parser.parse_buffer(gcode, [&ret, &found_tag, max_count, _tags](GCodeReader& parser, const GCodeReader::GCodeLine& line) {
         std::string comment = line.raw();
         if (comment.length() > 2 && comment.front() == ';') {
