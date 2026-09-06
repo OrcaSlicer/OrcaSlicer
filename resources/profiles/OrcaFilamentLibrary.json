@@ -985,6 +985,10 @@
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @base.json"
 		},
 		{
+			"name": "Polymaker PLA Pro @base",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @base.json"
+		},
+		{
 			"name": "PolyTerra PLA @base",
 			"sub_path": "filament/Polymaker/PolyTerra PLA @base.json"
 		},
@@ -1771,6 +1775,10 @@
 		{
 			"name": "PolyLite PLA Pro @System",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @System.json"
+		},
+		{
+			"name": "Polymaker PLA Pro @System",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @System.json"
 		},
 		{
 			"name": "PolyTerra Dual PLA @System",
