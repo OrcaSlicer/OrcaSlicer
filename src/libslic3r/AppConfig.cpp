@@ -479,6 +479,10 @@ void AppConfig::set_defaults()
         set_bool("pop_up_filament_map_dialog", false);
     }
 
+    if (get("layers_slider_auto_switch_to_nearest").empty()) {
+        set_bool("layers_slider_auto_switch_to_nearest", false);
+    }
+
     if (get("prefered_filament_map_mode").empty()){
         set("prefered_filament_map_mode",ConfigOptionEnum<FilamentMapMode>::get_enum_names()[FilamentMapMode::fmmAutoForFlush]);
     }

@@ -1785,6 +1785,9 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    auto item_layers_slider_switch = create_item_checkbox(_L("Auto switch to nearest thumb on layers slider"), "", "layers_slider_auto_switch_to_nearest");
+    g_sizer->Add(item_layers_slider_switch);
+
     //// CONTROL > Slicing
     g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
 
