@@ -86,6 +86,12 @@
 	"support_material_interface_fan_speed": [
 		"90"
 	],
+	"supertack_plate_temp": [
+		"60"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"60"
+	],
 	"temperature_vitrification": [
 		"70"
 	]
