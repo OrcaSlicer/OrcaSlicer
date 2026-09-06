@@ -879,24 +879,23 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
             toggle_field(el, have_default_jerk, variant_index);
         }
     }
-
+    //Collapse the skirt settings if the user does not want a skirt
     bool have_skirt = config->opt_int("skirt_loops") > 0;
+    toggle_line("skirt_height", have_skirt);
     toggle_field("skirt_height", have_skirt && config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
-        toggle_field(el, have_skirt);
+        toggle_line(el, have_skirt);
 
+
+    //Toggle the brim settings if the user disables the brim
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
-    toggle_field("brim_object_gap", have_brim);
-    toggle_field("brim_use_efc_outline", have_brim);
-    toggle_field("combine_brims", have_brim);
-    bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
+    for (auto el : {"brim_object_gap", "brim_use_efc_outline", "combine_brims", "brim_flow_ratio"})
+        toggle_line(el, have_brim);
+    bool have_brim_width = have_brim && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
-    toggle_field("brim_width", have_brim_width);
-    toggle_field("brim_flow_ratio", have_brim);
-    // Wall filament selectors use the same logic as in Print::extruders().
-    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
-    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
+    toggle_line("brim_width", have_brim_width);
+
 
     const BrimType brim_type = config->opt_enum<BrimType>("brim_type");
     const bool have_auto_brim_ear = brim_type == btEar;
@@ -915,22 +914,31 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
+    // Toggle settings for outer and inner wall settings if perimeters and brims are disabled
+    // Wall filament selectors use the same logic as in Print::extruders().
+    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
+    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
+    //Toggle the inner wall line width if the user has perimeters, a skirt, or a brim
+    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
+
+    //
+    //Toggling support configurations section
+    //
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
 
     SupportType support_type = config->opt_enum<SupportType>("support_type");
-    bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
-    bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
+    
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
         "bridge_no_support", "max_bridge_length", "support_top_z_distance", "support_bottom_z_distance",
-        "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
+        "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_remove_small_overhang", "support_interface_not_for_body",
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
-        toggle_field(el, have_support_material);
-    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type));
-    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
+        toggle_line(el, have_support_material);
+    toggle_line("support_threshold_angle", have_support_material && is_auto(support_type));
+    toggle_line("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
@@ -955,9 +963,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("bridge_no_support", !support_is_tree);
     toggle_line("support_critical_regions_only", is_auto(support_type) && support_is_tree);
 
+    //Support interfaces and ironing
+    bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
     for (auto el : { "support_interface_filament",
         "support_interface_loop_pattern", "support_bottom_interface_spacing" })
-        toggle_field(el, have_support_material && have_support_interface);
+        toggle_line(el, have_support_material && have_support_interface);
 
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support);
@@ -965,9 +975,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
         toggle_line(el, has_support_ironing);
     // Orca: Force solid support interface when using support ironing
-    toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
+    toggle_line("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
-//    see issue #10915
+//    see issue #10915 - don't hide support speed settings based on settings in other tabs
+//    hiding settings based on other tabs makes it diffcult to find how to toggle them when creating profiles
 //    bool have_skirt_height = have_skirt &&
 //    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
 //    toggle_line("support_speed", have_support_material || have_skirt_height);
@@ -980,16 +991,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
 
-    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
-    toggle_field("support_filament", have_support_material || have_skirt);
-
+    
+    toggle_line("support_filament", have_support_material || have_skirt);
+    bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     toggle_line("raft_contact_distance", have_raft && !have_support_soluble);
 
     // Orca: First-layer density is available for supports broadly.
-    toggle_field("raft_first_layer_density", have_support_material);
+    toggle_line("raft_first_layer_density", have_support_material);
     // Orca: For regular tree (Slim/Strong) without raft, hide first-layer expansion.
     // Keep it enabled for non-tree supports, organic tree, hybrid tree, and any raft case.
-    toggle_field("raft_first_layer_expansion",
+    toggle_line("raft_first_layer_expansion",
                  have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
