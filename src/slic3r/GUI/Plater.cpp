@@ -78,12 +78,14 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Shape/TextShape.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 // For stl export
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
+#include "libslic3r/MeshBoolean.hpp"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -16060,17 +16062,227 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
 }
 
 
+namespace {
+
+struct TempLabelRegion
+{
+    Vec3d  surface{Vec3d::Zero()};
+    Vec3d  outward{Vec3d::UnitY()};
+    Vec3d  up{Vec3d::UnitZ()};
+    double width{0.};
+    double height{0.};
+    double depth{0.};
+};
+
+bool ray_aabb_enter(const Vec3d &orig, const Vec3d &dir, const BoundingBoxf3 &bb, Vec3d &hit)
+{
+    double tmin = -std::numeric_limits<double>::infinity();
+    double tmax =  std::numeric_limits<double>::infinity();
+    for (int i = 0; i < 3; ++i) {
+        if (std::abs(dir[i]) < 1e-12) {
+            if (orig[i] < bb.min[i] || orig[i] > bb.max[i])
+                return false;
+            continue;
+        }
+        double t1 = (bb.min[i] - orig[i]) / dir[i];
+        double t2 = (bb.max[i] - orig[i]) / dir[i];
+        if (t1 > t2)
+            std::swap(t1, t2);
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        if (tmin > tmax)
+            return false;
+    }
+    if (tmin < 0.)
+        return false;
+    hit = orig + tmin * dir;
+    return true;
+}
+
+std::string calib_occt_font()
+{
+    static std::string name;
+    if (!name.empty())
+        return name;
+
+    const auto fonts = init_occt_fonts();
+    static constexpr const char *preferred[] = {
+        "Arial", "Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Helvetica", "FreeSans"};
+    for (const char *p : preferred) {
+        if (std::find(fonts.begin(), fonts.end(), p) != fonts.end()) {
+            name = p;
+            break;
+        }
+    }
+    if (name.empty() && !fonts.empty())
+        name = fonts.front();
+    if (name.empty())
+        name = "Arial";
+    return name;
+}
+
+bool compute_temp_label_region(const ModelVolume &block, const ModelVolume &label, TempLabelRegion &out)
+{
+    const Transform3d   label_m     = label.get_matrix();
+    const BoundingBoxf3 local_bb    = label.mesh().bounding_box();
+    const Vec3d         local_size  = local_bb.size();
+    if (local_size.minCoeff() <= EPSILON)
+        return false;
+
+    Vec3d  axis_world[3];
+    double axis_len[3];
+    int    thin = 0;
+    for (int i = 0; i < 3; ++i) {
+        axis_world[i] = label_m.linear().col(i);
+        axis_len[i]   = axis_world[i].norm() * local_size[i];
+        if (axis_len[i] < axis_len[thin])
+            thin = i;
+    }
+
+    const BoundingBoxf3 label_bb = label.mesh().transformed_bounding_box(label_m);
+    const BoundingBoxf3 block_bb = block.mesh().transformed_bounding_box(block.get_matrix());
+    const Vec3d         label_c  = label_bb.center();
+    const Vec3d         block_c  = block_bb.center();
+
+    Vec3d inward = axis_world[thin].normalized();
+    if (inward.dot(block_c - label_c) < 0.)
+        inward = -inward;
+    Vec3d outward = -inward;
+
+    Vec3d up_hint = Vec3d::UnitZ();
+    if (std::abs(up_hint.dot(inward)) > 0.9)
+        up_hint = Vec3d::UnitY();
+    Vec3d up = up_hint - inward * inward.dot(up_hint);
+    if (up.squaredNorm() < EPSILON)
+        return false;
+    up.normalize();
+    if (up.dot(Vec3d::UnitZ()) < -EPSILON)
+        up = -up;
+
+    const int i1 = (thin + 1) % 3;
+    const int i2 = (thin + 2) % 3;
+    const Vec3d a1 = axis_world[i1].normalized();
+    const Vec3d a2 = axis_world[i2].normalized();
+    double width  = axis_len[i2];
+    double height = axis_len[i1];
+    if (std::abs(a1.dot(up)) < std::abs(a2.dot(up)))
+        std::swap(width, height);
+
+    Vec3d surface;
+    if (!ray_aabb_enter(label_c, inward, block_bb, surface)) {
+        surface = label_c.cwiseMax(block_bb.min).cwiseMin(block_bb.max);
+        if ((surface - label_c).squaredNorm() < EPSILON)
+            surface = label_c + inward * (0.5 * axis_len[thin]);
+    }
+
+    out.surface = surface;
+    out.outward = outward;
+    out.up      = up;
+    out.width   = width;
+    out.height  = height;
+    out.depth   = axis_len[thin];
+    return out.width > EPSILON && out.height > EPSILON && out.depth > EPSILON;
+}
+
+TriangleMesh make_temp_label_text_mesh(const std::string &text, const TempLabelRegion &region)
+{
+    TriangleMesh empty;
+    if (text.empty() || region.depth <= EPSILON)
+        return empty;
+
+    TextResult result;
+    load_text_shape(text.c_str(), calib_occt_font().c_str(), float(region.height), float(region.depth), true, false, result);
+    TriangleMesh mesh = std::move(result.text_mesh);
+    if (mesh.facets_count() == 0)
+        return empty;
+
+    const Vec3d mesh_c = mesh.bounding_box().center();
+    mesh.translate(float(-mesh_c.x()), float(-mesh_c.y()), float(-mesh_c.z()));
+
+    const Vec3d sz = mesh.bounding_box().size();
+    const double sx = 0.85 * region.width / std::max(sz.x(), EPSILON);
+    const double sy = 0.85 * region.height / std::max(sz.y(), EPSILON);
+    const double s  = std::min(sx, sy);
+    if (s > EPSILON && std::abs(s - 1.) > EPSILON)
+        mesh.scale(Vec3f(float(s), float(s), 1.f));
+
+    Vec3d    axis;
+    double   phi;
+    Matrix3d rotation;
+    Geometry::rotation_from_two_vectors(Vec3d::UnitZ(), region.outward, axis, phi, &rotation);
+    mesh.rotate(phi, axis);
+
+    Vec3d old_up = rotation * Vec3d::UnitY();
+    Vec3d new_up = region.up - region.outward * region.outward.dot(region.up);
+    if (new_up.squaredNorm() > EPSILON) {
+        new_up.normalize();
+        Geometry::rotation_from_two_vectors(old_up, new_up, axis, phi, &rotation);
+        if (std::abs(phi - PI) < EPSILON)
+            axis = region.outward;
+        mesh.rotate(phi, axis);
+    }
+
+    const Vec3d origin = region.surface - 0.5 * region.depth * region.outward;
+    mesh.translate(float(origin.x()), float(origin.y()), float(origin.z()));
+    return mesh;
+}
+
+bool mesh_geometry_changed(const TriangleMesh &a, const TriangleMesh &b)
+{
+    return a.facets_count() != b.facets_count() || a.its.vertices.size() != b.its.vertices.size();
+}
+
+// mcut splits both meshes and ignores do_boolean_single failures, so A_NOT_B on
+// OCCT glyph tessellations often returns the original block. CGAL/igl actually
+// fail or rewrite A.
+bool subtract_temp_label_mesh(const TriangleMesh &blank, const TriangleMesh &text, TriangleMesh &out)
+{
+    try {
+        TriangleMesh a = blank;
+        MeshBoolean::cgal::minus(a, text);
+        if (!a.empty() && mesh_geometry_changed(a, blank)) {
+            out = std::move(a);
+            return true;
+        }
+    } catch (const std::exception &) {}
+
+    try {
+        TriangleMesh a = blank;
+        MeshBoolean::minus(a, text);
+        if (!a.empty() && mesh_geometry_changed(a, blank)) {
+            out = std::move(a);
+            return true;
+        }
+    } catch (const std::exception &) {}
+
+    return false;
+}
+
+// text_mesh is in object space; map it into the original block's local frame before the boolean.
+bool engrave_temp_label(const TriangleMesh &blank, TriangleMesh text_mesh,
+                        const Transform3d &to_local, TriangleMesh &out)
+{
+    if (text_mesh.facets_count() == 0)
+        return false;
+
+    text_mesh.transform(to_local);
+    if (text_mesh.volume() < 0.f)
+        text_mesh.flip_triangles();
+
+    return subtract_temp_label_mesh(blank, text_mesh, out);
+}
+
+} // namespace
+
 void Plater::calib_temp(const Calib_Params& params) {
     constexpr double base_temp_tower_nozzle_diameter = 0.4;
-    constexpr double base_temp_tower_block_height = 10.0;
-    constexpr int base_temp_tower_temp_step = 5;
 
     const auto calib_temp_name = wxString::Format(L"Nozzle temperature test");
     new_project(false, false, calib_temp_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Temp_Tower) return;
     
-    if (!add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc"))
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temp_tower_block.3mf"))
         return;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -16086,33 +16298,97 @@ void Plater::calib_temp(const Calib_Params& params) {
         nozzle_diameter = base_temp_tower_nozzle_diameter;
 
     const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
-    const double block_height = base_temp_tower_block_height;
 
-    // cut upper
-    auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto block_count = lround((500 - params.end) / base_temp_tower_temp_step + 1);
-    if (block_count > 0) {
-        // subtract EPSILON offset to avoid cutting at the exact location where the flat surface is
-        auto new_height = block_count * block_height - EPSILON;
-        if (new_height < obj_bb.size().z()) {
-            cut_horizontal(0, 0, new_height, ModelObjectCutAttribute::KeepLower);
-        }
+    auto *obj = model().objects[0];
+    ModelVolume *block      = nullptr;
+    ModelVolume *temp_label = nullptr;
+    for (ModelVolume *v : obj->volumes) {
+        if (block == nullptr && v && v->name == "temp_tower_block")
+            block = v;
+        else if (temp_label == nullptr && v && (v->name == "temp_tower_block_2" || v->name == "temp_label"))
+            temp_label = v;
+    }
+    if (block == nullptr || temp_label == nullptr) {
+        show_error(this, _L("The temperature tower model must contain parts named temp_tower_block and temp_tower_block_2."));
+        return;
     }
 
-    // cut bottom
-    obj_bb = model().objects[0]->bounding_box_exact();
-    block_count = lround((500 - params.start) / base_temp_tower_temp_step);
-    if (block_count > 0) {
-        auto new_height = block_count * block_height + EPSILON;
-        if (new_height < obj_bb.size().z()) {
-            cut_horizontal(0, 0, new_height, ModelObjectCutAttribute::KeepUpper);
-        }
+    TempLabelRegion label_region;
+    if (!compute_temp_label_region(*block, *temp_label, label_region)) {
+        show_error(this, _L("Failed to read the temperature label region from the model."));
+        return;
     }
 
-    if (params.nozzle_based_resize && std::abs(nozzle_scale - 1.0) > EPSILON)
-        model().objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+    const double temp_step    = params.step > EPSILON ? params.step : 5.0;
+    const long   block_count  = std::max(1L, lround((params.start - params.end) / temp_step) + 1);
+    const double block_height = block->mesh().transformed_bounding_box(block->get_matrix()).size().z();
 
-    model().objects[0]->ensure_on_bed();
+    auto temp_name = [&](long i) {
+        return std::to_string(lround(params.start - i * temp_step));
+    };
+
+    const Geometry::Transformation block_trafo     = block->get_transformation();
+    const Vec3d                    block_offset    = block->get_offset();
+    const Transform3d              to_block_local  = block->get_matrix().inverse();
+    const TriangleMesh             blank_mesh      = block->mesh();
+    const long                     emit_count      = (block_count > 1 && block_height > EPSILON) ? block_count : 1;
+
+    // Clone each block and boolean-subtract its temperature label in one pass.
+    bool engraved = false;
+    bool had_text = false;
+    for (long i = 0; i < emit_count; ++i) {
+        const std::string name = temp_name(i);
+        TriangleMesh      text_mesh = make_temp_label_text_mesh(name, label_region);
+        if (text_mesh.facets_count() > 0)
+            had_text = true;
+
+        TriangleMesh engraved_mesh;
+        const bool   this_engraved = engrave_temp_label(blank_mesh, std::move(text_mesh), to_block_local, engraved_mesh);
+        if (this_engraved)
+            engraved = true;
+        else
+            engraved_mesh = blank_mesh;
+
+        if (i == 0) {
+            if (this_engraved) {
+                block->set_mesh(std::move(engraved_mesh));
+                block->calculate_convex_hull();
+                block->invalidate_convex_hull_2d();
+                block->set_new_unique_id();
+            }
+            block->name = name;
+            continue;
+        }
+
+        ModelVolume *vol = obj->add_volume(std::move(engraved_mesh), ModelVolumeType::MODEL_PART, false);
+        vol->set_transformation(block_trafo);
+        vol->set_offset(block_offset + Vec3d(0., 0., i * block_height));
+        vol->name = name;
+        vol->calculate_convex_hull();
+    }
+    obj->invalidate_bounding_box();
+
+    if (!engraved) {
+        show_error(this, had_text
+            ? _L("Failed to engrave temperature labels onto the tower blocks.")
+            : _L("Failed to generate temperature labels. Check that a system font such as Arial is installed."));
+        return;
+    }
+
+    auto label_it = std::find(obj->volumes.begin(), obj->volumes.end(), temp_label);
+    if (label_it != obj->volumes.end())
+        obj->delete_volume(size_t(label_it - obj->volumes.begin()));
+
+    // Instance scale keeps cloned block offsets proportional. ModelObject::scale
+    // would leave those Z offsets unscaled and open gaps or overlaps between blocks.
+    if (params.nozzle_based_resize && std::abs(nozzle_scale - 1.0) > EPSILON) {
+        for (ModelInstance *inst : obj->instances)
+            inst->set_scaling_factor(inst->get_scaling_factor() * nozzle_scale);
+        obj->invalidate_bounding_box();
+    }
+
+    wxGetApp().obj_list()->add_volumes_to_object_in_list(0);
+    obj->ensure_on_bed();
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     set_config_values<int, ConfigOptionInts>(filament_config, "nozzle_temperature_initial_layer", (int) start_temp);

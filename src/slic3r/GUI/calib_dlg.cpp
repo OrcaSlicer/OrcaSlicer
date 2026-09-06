@@ -416,7 +416,6 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto temp_step_text = new wxStaticText(this, wxID_ANY, temp_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(5), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
     m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiStep->Enable(false);
     temp_step_sizer->Add(temp_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     temp_step_sizer->Add(m_tiStep      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(temp_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -462,7 +461,6 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
             else
                 t = 155;
         }
-        t = (t / 5) * 5;
         ti->GetTextCtrl()->SetValue(std::to_string(t));
     };
 
@@ -485,13 +483,14 @@ Temp_Calibration_Dlg::~Temp_Calibration_Dlg() {
 }
 
 void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
-    bool read_long = false;
-    unsigned long start=0,end=0;
-    read_long = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
-    read_long = read_long && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
+    bool read_ok = false;
+    unsigned long start = 0, end = 0;
+    read_ok = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
+    read_ok = read_ok && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
+    read_ok = read_ok && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_long || start > 500 || end < 155  || end > (start - 5)) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
+    if (!read_ok || start > 500 || end < 155 || m_params.step <= 0 || end > start - m_params.step) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nTemp step: > 0\nStart temp >= End temp + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
