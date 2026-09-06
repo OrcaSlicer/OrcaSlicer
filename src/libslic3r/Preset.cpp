@@ -45,6 +45,8 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/locale.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/uuid/detail/md5.hpp>
+#include <boost/algorithm/hex.hpp>
 
 #include "libslic3r.h"
 #include "Utils.hpp"
@@ -743,7 +745,12 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
-        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        
+        if (!filament_id.empty()) {
+            temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
+        }
+        
+        temp_config.save_to_json(this->file, this->name, from_str, this->version.to_string());
     } else if (!filament_id.empty() && inherits().empty()) {
         DynamicPrintConfig temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
@@ -1971,9 +1978,9 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
         key_values[BBL_JSON_KEY_BASE_ID] = preset.base_id;
     } else {
         key_values.erase(BBL_JSON_KEY_BASE_ID);
-        if (get_preset_base(preset) == &preset && !preset.filament_id.empty()) {
-            key_values[BBL_JSON_KEY_FILAMENT_ID] = preset.filament_id;
-        }
+    }
+    if (!preset.filament_id.empty()) {
+        key_values[BBL_JSON_KEY_FILAMENT_ID] = preset.filament_id;
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " uploading user preset name is: " << preset.name << "and create filament_id is: " << preset.filament_id
                             << " and base_id is: " << preset.base_id;
@@ -2933,7 +2940,7 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
     std::map<std::string, std::vector<Preset const *>> filament_presets;
     for (auto &preset : m_presets) {
         if (preset.is_user()) {
-            if (preset.inherits() == "") { filament_presets[preset.filament_id].push_back(&preset); }
+            if (preset.inherits() == "" || !preset.filament_id.empty()) { filament_presets[preset.filament_id].push_back(&preset); }
             continue;
         }
         if (get_preset_base(preset) == &preset) { filament_presets[preset.filament_id].push_back(&preset); }
@@ -3030,8 +3037,18 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
             preset.is_project_embedded = false;
         if (m_type == Preset::TYPE_PRINT)
             preset.config.option<ConfigOptionString>("print_settings_id", true)->value = new_name;
-        else if (m_type == Preset::TYPE_FILAMENT)
+        else if (m_type == Preset::TYPE_FILAMENT) {
             preset.config.option<ConfigOptionStrings>("filament_settings_id", true)->values[0] = new_name;
+            
+            boost::uuids::detail::md5 hash;
+            boost::uuids::detail::md5::digest_type digest;
+            hash.process_bytes(new_name.data(), new_name.size());
+            hash.get_digest(digest);
+            const auto char_digest = reinterpret_cast<const char *>(&digest);
+            std::string result;
+            boost::algorithm::hex(char_digest, char_digest + sizeof(boost::uuids::detail::md5::digest_type), std::back_inserter(result));
+            preset.filament_id = "P" + result.substr(0, 7);
+        }
         else if (m_type == Preset::TYPE_PRINTER)
             preset.config.option<ConfigOptionString>("printer_settings_id", true)->value = new_name;
         //BBS: add lock logic for sync preset in background
