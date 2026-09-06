@@ -1,0 +1,11 @@
+{
+  "type": "process",
+  "name": "0.20mm Standard @UltiMaker 2+ 0.8 nozzle",
+  "inherits": "0.20mm Standard @UltiMaker 2 0.8 nozzle",
+  "from": "system",
+  "setting_id": "DPdijbiqpZNuZr58",
+  "instantiation": "true",
+  "compatible_printers": [
+    "UltiMaker 2+ 0.8 nozzle"
+  ]
+}

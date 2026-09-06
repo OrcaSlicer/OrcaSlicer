@@ -1,0 +1,9 @@
+{
+  "type": "filament",
+  "name": "Generic ABS @UltiMaker 2 extended+ 0.4 nozzle",
+  "inherits": "Generic ABS @UltiMaker 2+ 0.4 nozzle",
+  "from": "system",
+  "setting_id": "tVIm7URv58VeDdQw",
+  "instantiation": "true",
+  "compatible_printers": ["UltiMaker 2 extended+ 0.4 nozzle"]
+}

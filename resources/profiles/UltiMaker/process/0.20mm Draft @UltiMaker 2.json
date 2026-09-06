@@ -1,0 +1,12 @@
+{
+  "type": "process",
+  "name": "0.20mm Draft @UltiMaker 2",
+  "inherits": "fdm_process_common",
+  "from": "system",
+  "setting_id": "0ER4fay08CyW7RBE",
+  "instantiation": "true",
+  "layer_height": "0.2",
+  "compatible_printers": [
+    "UltiMaker 2 0.4 nozzle"
+  ]
+}

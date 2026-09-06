@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+  "name": "Generic PETG @UltiMaker 2 0.4 nozzle",
+	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "WR3y0y8gmWH40llb",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"hot_plate_temp": [
+		"85"
+	],
+	"hot_plate_temp_initial_layer": [
+		"85"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"compatible_printers": [
+    "UltiMaker 2 0.4 nozzle"
+	]
+}

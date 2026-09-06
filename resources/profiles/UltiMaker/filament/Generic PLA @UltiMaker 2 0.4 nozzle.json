@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+  "name": "Generic PLA @UltiMaker 2 0.4 nozzle",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "3i42yTge4Nm6R2Yo",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"200"
+	],
+	"nozzle_temperature_initial_layer": [
+		"200"
+	],
+	"compatible_printers": [
+    "UltiMaker 2 0.4 nozzle"
+	]
+}
