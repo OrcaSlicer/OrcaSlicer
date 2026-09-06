@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -1931,6 +1931,54 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+		},
+		{
+		    "name": "INSLOGIC PLA Pro @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
+		},
+		{
+		    "name": "INSLOGIC PLA Pro @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PLA Pro @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @base.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @base.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @BBL P2S.json"
 		}
 	],
 	"process_list": [],
