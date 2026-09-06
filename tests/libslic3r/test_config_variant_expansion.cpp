@@ -566,3 +566,47 @@ TEST_CASE("update_values_from_multi_to_multi_2 sizes the destination row to the 
         CHECK(object_config.update_values_from_multi_to_multi_2(src_variants, {}, dst, keys) == -1);
     }
 }
+
+TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the extruder", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    SECTION("the extruder that owns the column resolves to its slot") {
+        REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == 0);
+    }
+
+    SECTION("an extruder with no matching column resolves to -1") {
+        REQUIRE(config.get_index_for_extruder(2, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == -1);
+    }
+}
+
+// stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
+// Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
+// relies on this to copy the right slots on the Motion ability page.
+TEST_CASE("get_index_for_extruder scales the variant column by the requested stride", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("printer_extruder_id", true)->values = {1, 2};
+    config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values = {"Direct Drive Standard",
+                                                                                    "Direct Drive High Flow"};
+
+    // extruder 1 resolves to column 0, extruder 2 to column 1
+    const int col0_stride1 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 1);
+    const int col1_stride1 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 1);
+    REQUIRE(col0_stride1 == 0);
+    REQUIRE(col1_stride1 == 1);
+
+    // stride 2 returns exactly twice the stride-1 index (the pair's base slot)
+    const int col0_stride2 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 2);
+    const int col1_stride2 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 2);
+    REQUIRE(col0_stride2 == col0_stride1 * 2);
+    REQUIRE(col1_stride2 == col1_stride1 * 2);
+    REQUIRE(col0_stride2 == 0);
+    REQUIRE(col1_stride2 == 2);
+}

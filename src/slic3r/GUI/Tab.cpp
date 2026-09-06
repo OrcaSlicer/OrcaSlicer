@@ -8369,10 +8369,14 @@ void Tab::sync_excluder()
     };
     int active_index = get_current_active_extruder();
     auto active_nozzle = get_actual_nozzle_volume_type(active_index);
-    int from_index = get_index_for_extruder(active_index, active_nozzle);
-    int dest_index = get_index_for_extruder(1 - active_index, active_nozzle);
-    auto from_str = std::to_string(from_index);
-    auto dest_str = std::to_string(dest_index);
+
+    // Column of each extruder in the variant list, scaled by each option's stride below.
+    int from_col = get_index_for_extruder(active_index, active_nozzle);
+    int dest_col = get_index_for_extruder(1 - active_index, active_nozzle);
+    if (from_col < 0 || dest_col < 0) // no matching variant column; nothing safe to copy
+        return;
+    int from_index = 0, dest_index = 0; // dialog indices, set to the copied base below
+
     auto dirty_options = m_presets->current_dirty_options(true);
     DynamicConfig config_origin, config_to_apply;
     for (int i = 0; i < dirty_options.size(); ++i) {
@@ -8380,28 +8384,42 @@ void Tab::sync_excluder()
         auto n= opt.find('#');
         if (n == std::string::npos)
             continue;
-        auto field = m_active_page->get_field(opt.substr(0, n), from_index + 256);
-        auto line  = m_active_page->get_line(opt.substr(0, n), from_index + 256);
+
+        auto key = opt.substr(0, n);
+        int stride    = printer_options_with_variant_2.count(key) > 0 ? 2 : 1;
+        int from_base = from_col * stride;
+        int dest_base = dest_col * stride;
+
+        auto field = m_active_page->get_field(key, from_base + 256);
+        auto line  = m_active_page->get_line(key, from_base + 256);
         if (field == nullptr || line == nullptr)
             continue;
         ++n;
-        bool dirty  = opt.substr(n) == from_str;
-        while (i + 1 < dirty_options.size() && dirty_options[i + 1].compare(0, n, opt, 0, n) == 0) {
-            dirty |= dirty_options[i + 1].substr(n) == from_str;
-            ++i;
+
+        auto option  = dynamic_cast<ConfigOptionVectorBase*>(m_config->option(key));
+        // Skip options with no slot for the other extruder.
+        if (!option || from_base + stride > (int) option->size() || dest_base + stride > (int) option->size())
+            continue;
+        auto option2 = dynamic_cast<ConfigOptionVectorBase*>(option->clone());
+        // Copy only the edited slots of the active column to the matching slots of the other extruder.
+        auto copy_if_active = [&](const std::string &dirty_key) {
+            int slot = std::atoi(dirty_key.c_str() + n);
+            if (slot >= from_base && slot < from_base + stride)
+                option2->set_at(option, dest_base + (slot - from_base), slot);
+        };
+        copy_if_active(opt);
+        while (i + 1 < dirty_options.size() && dirty_options[i + 1].compare(0, n, opt, 0, n) == 0)
+            copy_if_active(dirty_options[++i]);
+
+        if (*option == *option2) {
+            delete option2;
+            continue;
         }
-        if (dirty) {
-            auto key = opt.substr(0, n - 1);
-            auto option = dynamic_cast<ConfigOptionVectorBase*>(m_config->option(key));
-            auto option2 = dynamic_cast<ConfigOptionVectorBase*>(option->clone());
-            option2->set_at(option, dest_index, from_index);
-            if (*option == *option2) {
-                delete option2;
-                continue;
-            }
-            config_origin.set_key_value(key, option->clone());
-            config_to_apply.set_key_value(key, option2);
-        }
+
+        from_index = from_base;
+        dest_index = dest_base;
+        config_origin.set_key_value(key, option->clone());
+        config_to_apply.set_key_value(key, option2);
     }
     if (config_to_apply.empty()) {
         MessageDialog md(wxGetApp().plater(), _L("No modifications need to be copied."), _L("Copy parameters"), wxICON_INFORMATION | wxOK);
