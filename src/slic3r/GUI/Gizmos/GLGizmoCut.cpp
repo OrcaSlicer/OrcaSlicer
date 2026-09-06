@@ -462,6 +462,7 @@ void GLGizmoCut3D::cut_rotation_changed()
     update_clipper();
     check_and_update_connectors_state();
     reset_cut_by_contours();
+    m_parent.request_extra_frame();
 }
 
 void GLGizmoCut3D::put_connectors_on_cut_plane(const Vec3d& cp_normal, double cp_offset)
@@ -759,113 +760,63 @@ void GLGizmoCut3D::render_cut_rotation_input()
 
     // Same field width basis as the overlay.
     float unit_size = m_imgui->calc_text_size(std::string_view("9999.99")).x + space_size;
-    int   index      = 1;
-    int   index_unit = 1;
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Rotation"));
     // Same centering as the overlay.
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
-    ImGui::SameLine(caption_max + index * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X");
-    ImGui::SameLine(caption_max + unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y");
-    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z");
+    static const ColorRGBA axis_colors[3] = { ColorRGBA::X(), ColorRGBA::Y(), ColorRGBA::Z() };
+    static const char* axis_labels[3] = { "X", "Y", "Z" };
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size + offset_to_center);
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(axis_colors[axis]), axis_labels[axis]);
+    }
 
     static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
     static const char* abs_ids[3] = { "##cut_rotation_abs_x", "##cut_rotation_abs_y", "##cut_rotation_abs_z" };
-
-    index      = 1;
-    index_unit = 1;
 
     // Relative row: pending deltas, applied on commit (Enter / focus loss), then cleared.
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Relative"));
     delete_negative_sign(m_cut_relative_deg);
-    ImGui::SameLine(caption_max + index * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(rel_ids[X], &m_cut_relative_deg[X], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        apply_relative_cut_rotation(X, m_cut_relative_deg[X]);
-        m_cut_relative_deg[X] = 0.;
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (std::isfinite(m_cut_relative_deg[axis]))
+                apply_relative_cut_rotation(axis, m_cut_relative_deg[axis]);
+            m_cut_relative_deg[axis] = 0.;
+        }
     }
-    ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(rel_ids[Y], &m_cut_relative_deg[Y], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        apply_relative_cut_rotation(Y, m_cut_relative_deg[Y]);
-        m_cut_relative_deg[Y] = 0.;
-    }
-    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(rel_ids[Z], &m_cut_relative_deg[Z], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        apply_relative_cut_rotation(Z, m_cut_relative_deg[Z]);
-        m_cut_relative_deg[Z] = 0.;
-    }
-    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + end_text_size);
+    ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size);
     m_imgui->text("°");
-    ImGui::SameLine();
-    m_imgui->disabled_begin(is_approx(m_cut_relative_deg.x(), 0.) &&
-                            is_approx(m_cut_relative_deg.y(), 0.) &&
-                            is_approx(m_cut_relative_deg.z(), 0.));
-    if (render_reset_button("cut_rotation_relative", _u8L("Clear relative rotation values")))
-        m_cut_relative_deg = Vec3d::Zero();
-    m_imgui->disabled_end();
-
-    index      = 1;
-    index_unit = 1;
 
     // Absolute row: plane orientation, applied on commit (Enter / focus loss).
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Absolute"));
     bool abs_editing = false;
-    ImGui::SameLine(caption_max + index * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(abs_ids[X], &m_cut_absolute_deg[X], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    abs_editing = abs_editing || ImGui::IsItemActive();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        double new_value = m_cut_absolute_deg[X];
-        while (new_value > 180.) new_value -= 360.;
-        while (new_value <= -180.) new_value += 360.;
-        Vec3d euler_rad = m_cut_rotation;
-        euler_rad[X] = deg2rad(new_value);
-        apply_cut_rotation(euler_rad);
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(abs_ids[axis], &m_cut_absolute_deg[axis], 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        abs_editing = abs_editing || ImGui::IsItemActive();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            double new_value = m_cut_absolute_deg[axis];
+            if (std::isfinite(new_value)) {
+                while (new_value > 180.) new_value -= 360.;
+                while (new_value <= -180.) new_value += 360.;
+                Vec3d euler_rad = m_cut_rotation;
+                euler_rad[axis] = deg2rad(new_value);
+                apply_cut_rotation(euler_rad);
+            }
+        }
     }
-    ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(abs_ids[Y], &m_cut_absolute_deg[Y], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    abs_editing = abs_editing || ImGui::IsItemActive();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        double new_value = m_cut_absolute_deg[Y];
-        while (new_value > 180.) new_value -= 360.;
-        while (new_value <= -180.) new_value += 360.;
-        Vec3d euler_rad = m_cut_rotation;
-        euler_rad[Y] = deg2rad(new_value);
-        apply_cut_rotation(euler_rad);
-    }
-    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
-    ImGui::PushItemWidth(unit_size);
-    ImGui::BBLInputDouble(abs_ids[Z], &m_cut_absolute_deg[Z], 0.0f, 0.0f, "%.2f");
-    ImGui::PopItemWidth();
-    abs_editing = abs_editing || ImGui::IsItemActive();
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        double new_value = m_cut_absolute_deg[Z];
-        while (new_value > 180.) new_value -= 360.;
-        while (new_value <= -180.) new_value += 360.;
-        Vec3d euler_rad = m_cut_rotation;
-        euler_rad[Z] = deg2rad(new_value);
-        apply_cut_rotation(euler_rad);
-    }
-    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + end_text_size);
+    ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size);
     m_imgui->text("°");
-    ImGui::SameLine();
+    ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
     m_imgui->disabled_begin(m_rotation_m.isApprox(Transform3d::Identity()));
     if (render_reset_button("cut_rotation_absolute", _u8L("Reset cut plane rotation")))
         apply_cut_rotation(Vec3d::Zero());
@@ -2694,13 +2645,15 @@ void GLGizmoCut3D::reset_cut_plane()
 
 void GLGizmoCut3D::invalidate_cut_plane()
 {
-    m_rotation_m    = Transform3d::Identity();
-    m_cut_rotation  = Vec3d::Zero();
-    m_plane_center  = Vec3d::Zero();
-    m_min_pos       = Vec3d::Zero();
-    m_max_pos       = Vec3d::Zero();
-    m_bb_center     = Vec3d::Zero();
-    m_center_offset = Vec3d::Zero();
+    m_rotation_m       = Transform3d::Identity();
+    m_cut_rotation     = Vec3d::Zero();
+    m_cut_relative_deg = Vec3d::Zero();
+    m_cut_absolute_deg = Vec3d::Zero();
+    m_plane_center     = Vec3d::Zero();
+    m_min_pos          = Vec3d::Zero();
+    m_max_pos          = Vec3d::Zero();
+    m_bb_center        = Vec3d::Zero();
+    m_center_offset    = Vec3d::Zero();
 }
 
 void GLGizmoCut3D::set_connectors_editing(bool connectors_editing)
@@ -4000,6 +3953,7 @@ bool GLGizmoCut3D::process_cut_line(SLAGizmoEventType action, const Vec2d& mouse
                 set_center(new_plane_center);
                 m_start_dragging_m = m_rotation_m = m;
                 m_ar_plane_center = m_plane_center;
+                sync_cut_rotation_from_matrix();
             }
 
             m_angle_arc.reset();
