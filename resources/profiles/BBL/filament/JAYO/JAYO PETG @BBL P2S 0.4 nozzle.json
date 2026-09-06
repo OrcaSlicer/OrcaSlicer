@@ -1,0 +1,101 @@
+{
+    "type": "filament",
+    "name": "JAYO PETG @BBL P2S 0.4 nozzle",
+    "inherits": "Generic PETG @BBL P2S",
+    "from": "system",
+    "instantiation": "true",
+    "filament_id": "JYPET01",
+    "filament_vendor": [
+        "JAYO"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12"
+    ],
+    "filament_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "260"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "55"
+    ],
+    "supertack_plate_temp": [
+        "70"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "70"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "25"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "overhang_fan_threshold": [
+        "95%"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.4 nozzle"
+    ]
+}

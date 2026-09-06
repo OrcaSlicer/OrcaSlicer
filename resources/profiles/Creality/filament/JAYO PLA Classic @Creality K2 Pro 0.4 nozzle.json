@@ -1,0 +1,108 @@
+{
+    "type": "filament",
+    "name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
+    "inherits": "Hyper PLA @Creality K2 Pro 0.4 nozzle",
+    "from": "system",
+    "setting_id": "5cRMCk2BACUUEhp0",
+    "instantiation": "true",
+    "filament_id": "JYPLC01",
+    "filament_vendor": [
+        "JAYO"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_density": [
+        "1.36"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "nozzle_temperature": [
+        "215"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "nozzle_temperature_range_low": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "260"
+    ],
+    "cool_plate_temp": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "55"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_retract_before_wipe": [
+        "90%"
+    ],
+    "filament_retraction_length": [
+        "1"
+    ],
+    "filament_z_hop_types": [
+        "Slope Lift"
+    ],
+    "compatible_printers": [
+        "Creality K2 Pro 0.4 nozzle"
+    ]
+}

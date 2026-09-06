@@ -1,7 +1,7 @@
 {
 	"name": "Bambulab",
 	"url": "http://www.bambulab.com/Parameters/vendor/BBL.json",
-	"version": "02.01.00.23",
+	"version": "02.01.00.24",
 	"force_update": "0",
 	"description": "BBL configurations",
 	"machine_model_list": [
@@ -1169,6 +1169,30 @@
 		}
 	],
 	"filament_list": [
+		{
+            "name": "JAYO PETG @BBL A1 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PETG @BBL A1 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA @BBL A1 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PLA @BBL A1 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PLA Classic @BBL A1 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PETG @BBL P2S 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PETG @BBL P2S 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA @BBL P2S 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PLA @BBL P2S 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA Classic @BBL P2S 0.4 nozzle",
+            "sub_path": "filament/JAYO/JAYO PLA Classic @BBL P2S 0.4 nozzle.json"
+        },
 		{
 			"name": "COEX PCTG PRIME @BBL X1C",
 			"sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C.json"

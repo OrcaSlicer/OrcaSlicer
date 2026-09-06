@@ -1,0 +1,73 @@
+{
+    "type": "filament",
+    "name": "JAYO PLA Classic @BBL P2S 0.4 nozzle",
+    "inherits": "Bambu PLA Basic @BBL P2S",
+    "from": "system",
+    "instantiation": "true",
+    "filament_id": "JYPLC01",
+    "filament_vendor": [
+        "JAYO"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_density": [
+        "1.36"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12"
+    ],
+    "filament_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "nozzle_temperature": [
+        "210",
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210",
+        "210"
+    ],
+    "nozzle_temperature_range_low": [
+        "200",
+        "200"
+    ],
+    "nozzle_temperature_range_high": [
+        "260",
+        "260"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "55"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "filament_retraction_length": [
+        "1",
+        "1"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.4 nozzle"
+    ]
+}
