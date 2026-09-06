@@ -71,6 +71,67 @@ SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {
                 REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("Z11"));
             }
         }
+        WHEN("G-code is queued to run after a lazy lift") {
+            writer.config.z_hop.values = { 1.0 };
+            writer.set_current_position_clear(true);
+            REQUIRE(writer.lazy_lift(LiftType::NormalLift).empty());
+            REQUIRE(writer.has_pending_lift());
+            writer.queue_gcode_after_lift("; injected\n", true);
+            const std::string gcode = writer.travel_to_xyz(Vec3d(20., 20., 10.));
+            THEN("it is emitted after the lift move and before the travel that follows it") {
+                const size_t lift = gcode.find("Z11");
+                const size_t injected = gcode.find("; injected");
+                const size_t travel = gcode.find("X20 Y20");
+                REQUIRE(lift != std::string::npos);
+                REQUIRE(injected != std::string::npos);
+                REQUIRE(travel != std::string::npos);
+                REQUIRE(lift < injected);
+                REQUIRE(injected < travel);
+            }
+            THEN("the queued G-code is emitted only once") {
+                REQUIRE(writer.take_gcode_after_lift().empty());
+            }
+        }
+        WHEN("the travel that would perform the lift does not move") {
+            writer.config.z_hop.values = { 1.0 };
+            writer.set_current_position_clear(true);
+            REQUIRE(writer.lazy_lift(LiftType::NormalLift).empty());
+            AND_WHEN("the queued G-code moves the toolhead") {
+                writer.queue_gcode_after_lift("; injected\n", true);
+                const std::string gcode = writer.travel_to_xyz(Vec3d(0., 0., 10.));
+                THEN("the nozzle is raised for it even though the lift was skipped") {
+                    const size_t lift = gcode.find("Z11");
+                    REQUIRE(lift != std::string::npos);
+                    REQUIRE(lift < gcode.find("; injected"));
+                }
+            }
+            AND_WHEN("the queued G-code does not move the toolhead") {
+                writer.queue_gcode_after_lift("; injected\n", false);
+                const std::string gcode = writer.travel_to_xyz(Vec3d(0., 0., 10.));
+                THEN("the skipped lift stays skipped") {
+                    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; injected"));
+                    REQUIRE_THAT(gcode, !Catch::Matchers::ContainsSubstring("Z11"));
+                }
+            }
+        }
+        WHEN("the lift is cancelled before it was performed") {
+            writer.config.z_hop.values = { 1.0 };
+            writer.set_current_position_clear(true);
+            REQUIRE(writer.lazy_lift(LiftType::NormalLift).empty());
+            writer.queue_gcode_after_lift("; injected\n", true);
+            const std::string gcode = writer.unlift();
+            THEN("the queued G-code runs lifted and the nozzle is put back down") {
+                const size_t lift = gcode.find("Z11");
+                const size_t injected = gcode.find("; injected");
+                const size_t restore = gcode.find("Z10");
+                REQUIRE(lift != std::string::npos);
+                REQUIRE(injected != std::string::npos);
+                REQUIRE(restore != std::string::npos);
+                REQUIRE(lift < injected);
+                REQUIRE(injected < restore);
+                REQUIRE(writer.get_position().z() == Catch::Approx(10.));
+            }
+        }
         WHEN("z_hop is 0") {
             writer.config.z_hop.values = { 0.0 };
             std::string gcode = writer.eager_lift(LiftType::NormalLift);
