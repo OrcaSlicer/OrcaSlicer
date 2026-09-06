@@ -64,6 +64,9 @@ TEST_CASE("ofd lookup fixture hex and missing name", "[spectrum_ofd]")
     const auto brand_in_name = spectrum_ofd_lookup(catalog, "", "polymaker");
     REQUIRE(brand_in_name.size() == 1);
     CHECK(brand_in_name[0].variant == "Teal");
+
+    const auto unfiltered = spectrum_ofd_lookup(catalog, "", "");
+    REQUIRE(unfiltered.size() == catalog.size());
 }
 
 TEST_CASE("ofd array color_hex keeps all hexes", "[spectrum_ofd]")

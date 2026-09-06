@@ -263,14 +263,28 @@ void OfdCatalogDialog::refresh_list()
     if (m_name)
         needle = m_name->GetValue().ToUTF8().data();
 
-    const auto matches = spectrum_ofd_lookup(m_catalog, brand_filter, needle);
+    wxSizer *sizer = m_list->GetSizer();
+    m_list->Freeze();
+    sizer->Clear(true);
     m_shown.clear();
+    m_sel = -1;
+
+    // Empty All-brands search would dump thousands of rows; wx cannot scroll that well,
+    // and the status "Showing 300 of N" does not match what the user can actually see.
+    if (brand_filter.empty() && needle.size() < 2) {
+        m_status->SetLabel(_L("Choose a brand or type at least 2 letters."));
+        m_list->Thaw();
+        m_list->SetVirtualSize(-1, FromDIP(28));
+        m_list->FitInside();
+        m_list->Layout();
+        Layout();
+        return;
+    }
+
+    const auto matches = spectrum_ofd_lookup(m_catalog, brand_filter, needle);
     const size_t nshow = std::min(matches.size(), size_t(k_list_cap));
     m_shown.assign(matches.begin(), matches.begin() + static_cast<std::ptrdiff_t>(nshow));
     m_sel = m_shown.empty() ? -1 : 0;
-
-    wxSizer *sizer = m_list->GetSizer();
-    sizer->Clear(true);
 
     const wxColour sel_bg(232, 240, 254);
     const wxColour uns_bg(255, 255, 255);
@@ -317,8 +331,12 @@ void OfdCatalogDialog::refresh_list()
         m_status->SetLabel(wxString::Format(_L("%d filaments"), int(m_shown.size())));
     }
 
+    sizer->Layout();
+    const int vh = std::max(row_h, int(m_shown.size()) * row_h);
+    m_list->SetVirtualSize(-1, vh);
     m_list->FitInside();
     m_list->Layout();
+    m_list->Thaw();
     Layout();
 }
 
