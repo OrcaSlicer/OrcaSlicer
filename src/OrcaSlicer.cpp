@@ -1970,7 +1970,79 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    std::unique_ptr<PresetBundle> cli_preset_bundle;
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle, config_substitution_rule](std::string &error) -> PresetBundle * {
+        if (cli_preset_bundle)
+            return cli_preset_bundle.get();
+        try {
+            AppConfig app_config;
+            const std::string app_config_error = app_config.load_if_exists();
+            if (!app_config_error.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI preset resolution: " << app_config_error;
+                app_config.reset();
+            }
+
+            auto bundle = std::make_unique<PresetBundle>();
+            std::string load_error;
+            bundle->load_presets(app_config, config_substitution_rule,
+                                 PresetBundle::PresetPreferences(), &load_error, true);
+            if (!load_error.empty()) {
+                error = "Failed to load presets for inheritance resolution: " + load_error;
+                return nullptr;
+            }
+            cli_preset_bundle = std::move(bundle);
+            return cli_preset_bundle.get();
+        } catch (const std::exception &ex) {
+            error = ex.what();
+            return nullptr;
+        }
+    };
+
+    auto resolve_preset = [&ensure_cli_preset_bundle, config_substitution_rule](const std::string &file, DynamicPrintConfig &config,
+                                                                               std::string &config_type, const std::string &config_from,
+                                                                               bool probe_type, std::string &error) {
+        const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
+        if (!probe_type && (inherits == nullptr || inherits->value.empty()))
+            return true;
+
+        std::unique_ptr<PresetBundle> source_bundle;
+        PresetBundle                 *bundle = nullptr;
+        bool                          allow_source_manifest = false;
+        if (config_from == "system") {
+            source_bundle         = std::make_unique<PresetBundle>();
+            bundle                = source_bundle.get();
+            allow_source_manifest = true;
+        } else {
+            bundle = ensure_cli_preset_bundle(error);
+            if (bundle == nullptr)
+                return false;
+        }
+
+        if (probe_type) {
+            Preset::Type preset_type;
+            if (!bundle->resolve_preset_config_type(config, preset_type, file, config_substitution_rule,
+                                                    error, allow_source_manifest))
+                return false;
+            config_type = Preset::get_type_string(preset_type);
+            return true;
+        }
+
+        Preset::Type preset_type;
+        if (config_type == "process")
+            preset_type = Preset::TYPE_PRINT;
+        else if (config_type == "filament")
+            preset_type = Preset::TYPE_FILAMENT;
+        else if (config_type == "machine")
+            preset_type = Preset::TYPE_PRINTER;
+        else {
+            error = "Unsupported preset type: " + config_type;
+            return false;
+        }
+        return bundle->resolve_preset_config(config, preset_type, file, config_substitution_rule,
+                                             error, allow_source_manifest);
+    };
+
+    auto load_config_file = [config_substitution_rule, &resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -1999,9 +2071,15 @@ int CLI::run(int argc, char **argv)
             }
 
             auto type_iter = key_values.find(BBL_JSON_KEY_TYPE);
-            if (type_iter != key_values.end()) {
+            const bool probe_type = type_iter == key_values.end();
+            if (!probe_type)
                 config_type = type_iter->second;
+
+            if (!resolve_preset(file, config, config_type, config_from, probe_type, reason)) {
+                boost::nowide::cerr << __FUNCTION__ << boost::format(": can not resolve preset %1%: %2%") % file % reason << std::endl;
+                return CLI_CONFIG_FILE_ERROR;
             }
+
             if (config_type == "machine") {
                 //config.set("printer_settings_id", config_name, true);
                 //printer_inherits = config.option<ConfigOptionString>("inherits", true)->value;
