@@ -11,6 +11,7 @@
 #include "Arachne/WallToolPaths.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
+#include "WaveOverhangs.hpp"
 #include "Geometry.hpp"
 #include "Line.hpp"
 #include <cmath>
@@ -1261,15 +1262,28 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
     return {extra_perims, diff(inset_overhang_area, inset_overhang_area_left_unfilled)};
 }
 
-void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
+void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &island_region)
 {
-    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
+    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && (this->config->extra_perimeters_on_overhangs || this->config->wo_enabled) &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
-        // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
-        auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
+        std::vector<ExtrusionPaths> extra_perimeters;
+        Polygons filled_area;
+        if (this->config->wo_enabled) {
+            const float inset = float(this->perimeter_flow.scaled_spacing()) * float(this->config->wall_loops);
+            ExPolygons wo_infill = offset_ex(ExPolygons{island_region}, -inset);
+            double wo_spacing = overhang_flow.nozzle_diameter() * 100 / this->config->wo_density;
+            std::tie(extra_perimeters, filled_area) = WaveOverhangs::generate(wo_infill, this->lower_slices_polygons(), this->config->wall_loops,
+                                                                           0, wo_spacing/2, 0.7, this->config->wo_pattern, wo_spacing,
+                                                                           overhang_flow.nozzle_diameter(), overhang_flow, overhang_flow.mm3_per_mm()*this->config->bridge_flow,
+                                                                           m_scaled_resolution, 0, 0.05, false, false,
+                                                                           0.0, 0.0, 90.0);
+        } else {
+            // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
+            std::tie(extra_perimeters, filled_area) = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
                                                                                         this->config->wall_loops, this->overhang_flow,
                                                                                         this->m_scaled_resolution, *this->object_config,
                                                                                         *this->print_config);
+        }
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
             ExtrusionEntityCollection  new_perimeters{};
@@ -1918,7 +1932,7 @@ void PerimeterGenerator::process_classic()
             infill_exp = union_ex(infill_exp, one_wall_top_reclaimed);
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {
@@ -2787,7 +2801,7 @@ void PerimeterGenerator::process_arachne()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {

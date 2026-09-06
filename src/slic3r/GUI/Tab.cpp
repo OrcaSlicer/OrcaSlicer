@@ -2767,6 +2767,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse", "quality_settings_overhangs#reverse-on-even");
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
+        optgroup->append_single_option_line("wo_enabled", "quality_settings_overhangs#wo_enabled");
+        optgroup->append_single_option_line("wo_density", "quality_settings_overhangs#wo_density");
+        optgroup->append_single_option_line("wo_pattern", "quality_settings_overhangs#wo_pattern");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");
@@ -2869,6 +2872,8 @@ void TabPrint::build()
         line.append_option(optgroup->get_option("overhang_3_4_speed", 0));
         line.append_option(optgroup->get_option("overhang_4_4_speed", 0));
         optgroup->append_line(line);
+        optgroup->append_separator();
+        optgroup->append_single_option_line("wo_bridge_speed", "", 0);
         optgroup->append_separator();
         line = { L("Bridge"), L("Set speed for external and internal bridges") };
         line.append_option(optgroup->get_option("bridge_speed", 0));

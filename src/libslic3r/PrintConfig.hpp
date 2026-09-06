@@ -544,6 +544,11 @@ enum PrimeVolumeMode {
     pvmFast
 };
 
+enum class WaveOverhangPattern : int {
+    Monotonic,
+    ZigZag,
+};
+
 extern std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 
 // Base slot lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
@@ -695,6 +700,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1445,6 +1451,12 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
     ((ConfigOptionFloat, zaa_min_z))
     ((ConfigOptionFloat, zaa_minimize_perimeter_height))
+
+    // Orca: Wave Overhangs
+    ((ConfigOptionBool, wo_enabled))
+    ((ConfigOptionPercent, wo_density))
+    ((ConfigOptionEnum<WaveOverhangPattern>, wo_pattern))
+    ((ConfigOptionFloatsNullable, wo_bridge_speed))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(
