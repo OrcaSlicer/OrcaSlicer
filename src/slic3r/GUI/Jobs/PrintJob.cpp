@@ -266,6 +266,12 @@ void PrintJob::process(Ctl &ctl)
     params.ams_mapping          = this->task_ams_mapping;
     params.ams_mapping2         = this->task_ams_mapping2;
     params.ams_mapping_info     = this->task_ams_mapping_info;
+    // Device-owned mapping protocol: delivered through the dedicated agent seam, not through
+    // PrintParams, so it never has to share a field with the Bambu AMS mapping above. Must
+    // happen before any start_*print call below since the mapping is meant to apply to the job
+    // that call is about to start.
+    if (!this->task_device_map_table.empty() && m_agent && m_agent->supports_print_time_mapping())
+        m_agent->send_filament_mapping(params.dev_id, this->task_device_map_table);
     params.nozzles_info         = this->task_nozzles_info;
     params.connection_type      = this->connection_type;
     params.task_use_ams         = this->task_use_ams;

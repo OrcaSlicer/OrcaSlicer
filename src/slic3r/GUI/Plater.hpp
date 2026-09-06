@@ -299,6 +299,7 @@ private:
     bool            m_need_auto_sync_after_connect_printer{false};
 };
 
+
 class Plater: public wxPanel
 {
 public:
@@ -557,7 +558,10 @@ public:
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    // Orca: upload_only skips the print-start dialog a printer's profile declares (mapping,
+    // bed leveling, ...) and offers a plain upload -- the user starts the job from the printer's
+    // own screen, so asking here would be asking for choices that never get sent.
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool upload_only = false);
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
@@ -769,6 +773,9 @@ public:
     // True when the active preset references plugins that are missing and not yet acknowledged, as
     // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
     bool plugins_block_slicing() const;
+    // Orca: applies `plate` (filament/volume/physical maps) to background_process. Shared by
+    // apply_background_progress, select_plate, and select_plate_by_hover_id.
+    PrintBase::ApplyStatus apply_plate_to_background_process(PartPlate* plate, PresetBundle& preset_bundle);
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
     //BBS: update progress result

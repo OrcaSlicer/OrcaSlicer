@@ -593,9 +593,11 @@ void MaterialSyncItem::render(wxDC &dc)
     } else {
         m_match = true;
         if (m_dropdown_allow_painted) {
-            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify"));
+            SetToolTip(m_is_toolchanger ? _L("Upper half area:  Original\nLower half area:  Filament on the tool\nAnd you can click it to modify")
+                                        : _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify"));
         } else {
-            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you cannot click it to modify"));
+            SetToolTip(m_is_toolchanger ? _L("Upper half area:  Original\nLower half area:  Filament on the tool\nAnd you cannot click it to modify")
+                                        : _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you cannot click it to modify"));
         }
     }
     dc.SetFont(::Label::Body_12);

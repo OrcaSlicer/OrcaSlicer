@@ -169,6 +169,7 @@ public:
     void     update_user_printer();
     void     reset_ams_material();
     void     reset_all_ams_info();
+    void     clear_all_ams_info();
     void     reset_one_ams_material(const std::string & index_str,bool reset_to_first =false);
     void     update_show_status();
     void     update_printer_combobox(wxCommandEvent &event);

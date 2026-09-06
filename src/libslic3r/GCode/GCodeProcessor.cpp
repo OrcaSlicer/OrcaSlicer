@@ -2051,6 +2051,16 @@ void GCodeProcessor::PreCoolingInjector::build_extruder_free_blocks(const std::v
         build_by_extruder_blocks(extruder_usage_blocks);
 }
 
+// Per-extruder/per-filament vectors copied from config can be shorter than the ids used below
+// (their PrintConfig defaults are a single element); index them the way ConfigOptionVector::get_at
+// does instead of reading past the end.
+template<class T> static T value_at_or_front(const std::vector<T>& v, int i, T fallback)
+{
+    if (v.empty())
+        return fallback;
+    return i >= 0 && i < (int) v.size() ? v[i] : v.front();
+}
+
 // The core injector. Measures the idle-window duration from move.time[valid_machine_id], bails if it is
 // below the threshold, and emits pre-cool M104 at the window start and pre-heat M104 (relocated out of
 // SKIPPABLE blocks) at the back-solved heating-start move.
@@ -2062,13 +2072,13 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
     };
 
     auto is_pre_cooling_valid = [&nozzle_temps = this->filament_nozzle_temps, &pre_cooling_temps = this->filament_pre_cooling_temps](int idx) -> bool {
-        if (idx < 0)
+        if (idx < 0 || idx >= (int) pre_cooling_temps.size() || idx >= (int) nozzle_temps.size())
             return false;
         return pre_cooling_temps[idx] > 0 && pre_cooling_temps[idx] < nozzle_temps[idx];
     };
 
     auto get_partial_free_cooling_thres = [&](int idx) -> float {
-        if (idx < 0)
+        if (idx < 0 || idx >= (int) filament_nozzle_temps.size() || idx >= (int) filament_pre_cooling_temps.size())
             return 30.f;
         float temp_in_tower = filament_nozzle_temps[idx];
         return temp_in_tower - (float) (filament_pre_cooling_temps[idx]);
@@ -2167,8 +2177,8 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
         return;
 
     int extruder_id = get_valid_extruder_id(block.last_nozzle_id);
-    float ext_heating_rate = heating_rate[extruder_id];
-    float ext_cooling_rate = cooling_rate[extruder_id];
+    float ext_heating_rate = value_at_or_front(heating_rate, extruder_id, 1.0);
+    float ext_cooling_rate = value_at_or_front(cooling_rate, extruder_id, 1.0);
 
     auto add_M104_lines = [&](int gcode_id, int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, TimeProcessor::InsertLineType type, const std::string& comment = std::string()) {
         auto format_line_M104 = [&](int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, const std::string& comment = std::string()) -> std::vector<std::string> {
@@ -2178,7 +2188,7 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
                 std::string m632_line = "M632 S" + std::to_string(next_filament_idx);
                 if (support_dynamic_nozzle_map)
                     m632_line += " H" + std::to_string(next_nozzle_id);
-                if (extruder_max_nozzle_count[target_extruder] > 1)
+                if (value_at_or_front(extruder_max_nozzle_count, target_extruder, 1) > 1)
                     m632_line += " N R";
                 m632_line += " W\n";
                 buffer.emplace_back(std::move(m632_line));
@@ -2188,7 +2198,9 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
             if (handle_hotend_as_extruder) {
                 M104_line += (" I" + std::to_string(target_filament == -1 ? next_filament_idx : target_filament));
             } else if (target_extruder != -1) {
-                M104_line += (" T" + std::to_string(physical_extruder_map[target_extruder]));
+                // physical_extruder_map defaults to a single element; fall back to the identity,
+                // the same guard GCodeWriter::toolchange and the tower writer apply to this map.
+                M104_line += (" T" + std::to_string(target_extruder < (int) physical_extruder_map.size() ? physical_extruder_map[target_extruder] : target_extruder));
             }
 
             M104_line += " S" + std::to_string(target_temp);

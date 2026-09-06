@@ -731,6 +731,10 @@ class FacetsAnnotation final : public ObjectWithTimestamp {
 public:
     // Assign the content if the timestamp differs, don't assign an ObjectID.
     void assign(const FacetsAnnotation &rhs) { if (! this->timestamp_matches(rhs)) { m_data = rhs.m_data; this->copy_timestamp(rhs); } }
+    // Orca: see ModelConfig::mirror_timestamp_of -- the same contract for painting data rebuilt
+    // by the filament-compaction transform. Painting is compared by TIMESTAMP during
+    // Print::apply, so a fresh stamp on identical re-derived data invalidates the slices.
+    void mirror_timestamp_of(const FacetsAnnotation &rhs) { this->copy_timestamp(rhs); }
     void assign(FacetsAnnotation &&rhs) { if (! this->timestamp_matches(rhs)) { m_data = std::move(rhs.m_data); this->copy_timestamp(rhs); } }
     const TriangleSelector::TriangleSplittingData &get_data() const noexcept { return m_data; }
     void set_data(TriangleSelector::TriangleSplittingData &&data) { m_data = std::move(data); this->touch(); }

@@ -62,6 +62,10 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
+    // Per-filament physical-tool assignment for the physical-filament merge/mapping feature;
+    // project-level like filament_map so the assignment survives preset switches and round-trips
+    // with a saved 3mf.
+    "filament_physical_map",
     // Per-filament nozzle-volume choice; project-level like filament_map so the per-filament
     // slot resolution survives preset switches.
     "filament_volume_map",
@@ -2788,9 +2792,33 @@ static void load_mixed_filament_settings(DynamicPrintConfig &project_config, App
     }
 }
 
+// The per-filament project state update_selections() rebuilds from the per-printer snapshot,
+// and therefore what has to travel with the project's filament list when that list is kept.
+static const char* s_per_filament_project_keys[] = {
+    "filament_colour", "filament_multi_colour", "filament_colour_type",
+    "filament_map", "filament_nozzle_map", "filament_volume_map",
+    "flush_volumes_matrix", "flush_volumes_vector",
+    "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient", "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+    "filament_mixed_gradient_per_part",
+};
+
 void PresetBundle::update_selections(AppConfig &config)
 {
     std::string initial_printer_profile_name    = printers.get_selected_preset_name();
+
+    // Orca: the list being replaced below is the PROJECT's. The per-printer snapshot it is
+    // replaced with is the last list used on the new printer -- one filament grown to the nozzle
+    // count for a printer never used before -- so switching a six-filament project to a
+    // toolchanger silently cut it to four and clamped every object past that, and a printer
+    // that remembered more replaced the project's presets, colours and mixes with its own.
+    // Remember the project's list so it can win where the printer doesn't bind its filament
+    // count to its nozzles (see filament_count_decoupled_from_nozzles).
+    const std::vector<std::string> project_filament_presets = this->filament_presets;
+    DynamicPrintConfig             project_filament_state;
+    for (const char* key : s_per_filament_project_keys)
+        if (const ConfigOption* opt = project_config.option(key))
+            project_filament_state.set_key_value(key, opt->clone());
     // Orca: load from orca_presets
     std::string initial_print_profile_name        = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
     std::string initial_filament_profile_name     = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
@@ -2827,8 +2855,19 @@ void PresetBundle::update_selections(AppConfig &config)
     if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
         boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
     }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+    // A persisted filament_multi_colors that doesn't match filament_presets.size() - stale from a
+    // different filament count, or never grown to match (e.g. a slot added without going through
+    // set_num_filaments) - must not stick around: several UI surfaces (paint gizmo palette,
+    // "Change Filament" menu, object-list filament dropdown) size themselves off this vector's
+    // length rather than filament_presets.size(), so a short filament_multi_colour silently caps
+    // those surfaces below the true slot count even though the sidebar (reading filament_presets
+    // directly) shows the correct count. Pad/truncate to match, same as filament_colour and
+    // filament_colour_type just above, filling any new slot from the corresponding single-colour value.
+    size_t old_multi_colors_size = multi_filament_colors.size();
+    multi_filament_colors.resize(filament_colors.size());
+    for (size_t i = old_multi_colors_size; i < multi_filament_colors.size(); ++i)
+        multi_filament_colors[i] = filament_colors[i];
+    project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -2871,6 +2910,21 @@ void PresetBundle::update_selections(AppConfig &config)
     // No global fallback here: on a printer change the legacy shared keys describe another
     // printer's filament list, so absent per-printer keys must clear the mixes, not revive them.
     load_mixed_filament_settings(project_config, config, initial_printer_profile_name, filament_presets.size(), false);
+
+    // Orca: on a printer that can take any number of filaments the project's list is the one
+    // being worked on, so it travels across the switch whole -- presets, colours and mixes --
+    // whatever the printer remembered. The per-printer memory still seeds the list at start-up
+    // (load_selections) and still governs every printer whose count is bound to its nozzles.
+    // Restored before the compatibility pass below, so a preset the new printer cannot use is
+    // swapped for its nearest compatible match, and before
+    // update_multi_material_filament_presets(), which re-sizes the flush matrix for the new
+    // printer's head count.
+    if (filament_count_decoupled_from_nozzles(printers.get_edited_preset().config)) {
+        this->filament_presets = project_filament_presets;
+        for (const char* key : s_per_filament_project_keys)
+            if (const ConfigOption* opt = project_filament_state.option(key))
+                project_config.set_key_value(key, opt->clone());
+    }
 
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
@@ -2990,8 +3044,19 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
         boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
     }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+    // A persisted filament_multi_colors that doesn't match filament_presets.size() - stale from a
+    // different filament count, or never grown to match (e.g. a slot added without going through
+    // set_num_filaments) - must not stick around: several UI surfaces (paint gizmo palette,
+    // "Change Filament" menu, object-list filament dropdown) size themselves off this vector's
+    // length rather than filament_presets.size(), so a short filament_multi_colour silently caps
+    // those surfaces below the true slot count even though the sidebar (reading filament_presets
+    // directly) shows the correct count. Pad/truncate to match, same as filament_colour and
+    // filament_colour_type just above, filling any new slot from the corresponding single-colour value.
+    size_t old_multi_colors_size = multi_filament_colors.size();
+    multi_filament_colors.resize(filament_colors.size());
+    for (size_t i = old_multi_colors_size; i < multi_filament_colors.size(); ++i)
+        multi_filament_colors[i] = filament_colors[i];
+    project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -3123,6 +3188,11 @@ void PresetBundle::export_selections(AppConfig &config)
         return;
     }
 
+    // The per-machine loaded-filament inventory (maintained by FilamentInventoryStore) is written
+    // independently of this function's selection rewrite; preserve it across the clear below so a
+    // filament/printer selection change doesn't silently wipe it.
+    std::string loaded_filaments = config.get_printer_setting(printer_name, "loaded_filaments");
+
     config.clear_printer_settings(printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINTER_NAME, printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINT_NAME, prints.get_selected_preset_name());
@@ -3131,8 +3201,14 @@ void PresetBundle::export_selections(AppConfig &config)
     for (unsigned i = 1; i < filament_presets.size(); ++i) {
         char name[64];
         assert(!filament_presets[i].empty());
+        // load_selections()/update_selections() read these back with a loop that stops at the
+        // first empty value (a persisted empty name has no distinguishable meaning otherwise), so
+        // persisting one here wouldn't just blank this slot on restore - it would also silently
+        // drop every later slot's name. Fall back to an existing selection instead, mirroring how
+        // PresetBundle::set_num_filaments fills a newly-grown slot.
+        const std::string &value = filament_presets[i].empty() ? filament_presets.front() : filament_presets[i];
         sprintf(name, "filament_%02u", i);
-        config.set_printer_setting(printer_name, name, filament_presets[i]);
+        config.set_printer_setting(printer_name, name, value);
     }
     // Load project config data into app config
     CNumericLocalesSetter locales_setter;
@@ -3191,6 +3267,9 @@ void PresetBundle::export_selections(AppConfig &config)
         config.set_printer_setting(printer_name, "filament_mixed_gradient_curve", escape_strings_cstyle(opt->values));
     if (auto *opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
         config.set_printer_setting(printer_name, "filament_mixed_gradient_per_part", join_bools(opt->values));
+
+    if (!loaded_filaments.empty())
+        config.set_printer_setting(printer_name, "loaded_filaments", loaded_filaments);
 
     // BBS
     //config.set("presets", "sla_print",    sla_prints.get_selected_preset_name());
@@ -4234,10 +4313,10 @@ std::vector<int> PresetBundle::get_default_nozzle_volume_types_for_filaments(std
     return result;
 }
 
-DynamicPrintConfig PresetBundle::full_config(bool apply_extruder, std::optional<std::vector<int>>filament_maps, std::optional<std::vector<int>> filament_volume_maps) const
+DynamicPrintConfig PresetBundle::full_config(bool apply_extruder, std::optional<std::vector<int>>filament_maps, std::optional<std::vector<int>> filament_volume_maps, std::optional<std::vector<int>> filament_physical_maps) const
 {
     return (this->printers.get_edited_preset().printer_technology() == ptFFF) ?
-        this->full_fff_config(apply_extruder, filament_maps, filament_volume_maps) :
+        this->full_fff_config(apply_extruder, filament_maps, filament_volume_maps, filament_physical_maps) :
         this->full_sla_config();
 }
 
@@ -4296,7 +4375,7 @@ const std::set<std::string> ignore_settings_list ={
     "print_settings_id", "filament_settings_id", "printer_settings_id"
 };
 
-DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps_new, std::optional<std::vector<int>> filament_volume_maps_new) const
+DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps_new, std::optional<std::vector<int>> filament_volume_maps_new, std::optional<std::vector<int>> filament_physical_maps_new) const
 {
     DynamicPrintConfig out;
     out.apply(FullPrintConfig::defaults());
@@ -4313,7 +4392,23 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
 
     ConfigOptionInts* filament_volume_map_opt = out.option<ConfigOptionInts>("filament_volume_map");
-    if (filament_maps_new.has_value())
+    // A device-owned mapping protocol means the printer routes logical tools itself: neither the
+    // plate's incoming map nor a stray project filament_map may select extruder-variant columns
+    // below. Force the same clamped identity map normalize_fdm_1 derives for the engine proper,
+    // via the shared helper -- a hand-rolled i+1 here would disagree once master_extruder_id != 1
+    // or a filament index exceeds the physical extruder count.
+    if (device_resolves_filament_mapping(out)) {
+        const ConfigOptionFloats* nozzle_diams   = out.option<ConfigOptionFloats>("nozzle_diameter");
+        const size_t              extruder_count = nozzle_diams ? nozzle_diams->size() : 0;
+        int master_extruder_id = 1;
+        if (auto* me = out.option<ConfigOptionInt>("master_extruder_id"))
+            master_extruder_id = me->value;
+        const std::vector<int> extruder_of_filament =
+            non_bbl_identity_filament_extruder_map(num_filaments, extruder_count, master_extruder_id - 1);
+        filament_maps.resize(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            filament_maps[i] = extruder_of_filament[i] + 1;
+    } else if (filament_maps_new.has_value())
         filament_maps = *filament_maps_new;
     if (filament_volume_maps_new.has_value()) {
         filament_volume_maps = *filament_volume_maps_new;
@@ -4331,6 +4426,12 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     if (filament_volume_maps.size() != num_filaments) {
         filament_volume_maps.resize(num_filaments, nvtStandard);
     }
+
+    // filament_physical_map: plate-supplied project-filament -> physical-filament-id map. Only
+    // overridden when the caller passes one explicitly (mirrors filament_volume_map above);
+    // otherwise the value already applied from project_config/printer defaults stands.
+    if (filament_physical_maps_new.has_value())
+        out.option<ConfigOptionInts>("filament_physical_map", true)->values = *filament_physical_maps_new;
 
     auto* extruder_diameter = dynamic_cast<const ConfigOptionFloats*>(out.option("nozzle_diameter"));
     // Collect the "compatible_printers_condition" and "inherits" values over all presets (print, filaments, printers) into a single vector.
@@ -5006,6 +5107,21 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 any_modified |= modified;
                 this->filament_presets[i] = loaded->name;
             }
+        }
+
+        // Self-heal: a slot that's still empty after the scatter loop above (a project's
+        // filament_settings_id is documented above as unreliable - "sometimes is not
+        // generated" - and a project saved during an earlier broken session could have
+        // carried a genuinely empty entry) must not reach the UI as a blank combo box.
+        // Fall back to the first non-empty selection, the same convention
+        // set_num_filaments/update_multi_material_filament_presets use when growing a
+        // filament list.
+        if (auto first_non_empty = std::find_if(this->filament_presets.begin(), this->filament_presets.end(),
+                                                  [](const std::string &s) { return !s.empty(); });
+            first_non_empty != this->filament_presets.end()) {
+            for (std::string &filament_preset : this->filament_presets)
+                if (filament_preset.empty())
+                    filament_preset = *first_non_empty;
         }
 
         // 4) Load the project config values (the per extruder wipe matrix etc).

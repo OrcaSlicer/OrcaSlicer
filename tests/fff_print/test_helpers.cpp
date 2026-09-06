@@ -221,6 +221,23 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 
 	if (extra.size() > 0)
 		config.set_deserialize_strict(extra);
+
+	// The g-code exporter slices flush_volumes_matrix into nozzle_diameter.size() per-head
+	// blocks of filaments^2 entries each (get_flush_volumes_matrix); the GUI maintains that
+	// heads x f^2 layout in update_multi_material_filament_presets, so real configs always
+	// satisfy it. The single-head matrix built above breaks the invariant the moment a test's
+	// `extra` overrides nozzle_diameter to a multi-nozzle printer: each sliced block is then
+	// f^2/heads entries and every toolchange reads past it (valgrind-caught out-of-bounds; the
+	// probable Windows-arm64 SEGFAULT). Replicate the block per head and size flush_multiplier
+	// to match, exactly as the GUI would have.
+	if (const auto *nozzles = config.option<ConfigOptionFloats>("nozzle_diameter"); nozzles != nullptr && nozzles->size() > 1) {
+		auto *matrix = config.option<ConfigOptionFloats>("flush_volumes_matrix", true);
+		const std::vector<double> one_head = matrix->values;
+		matrix->values.clear();
+		for (size_t head = 0; head < nozzles->size(); ++head)
+			matrix->values.insert(matrix->values.end(), one_head.begin(), one_head.end());
+		config.option<ConfigOptionFloats>("flush_multiplier", true)->values.assign(nozzles->size(), 1.);
+	}
 	return config;
 }
 

@@ -1,10 +1,12 @@
 #include "ClipperUtils.hpp"
+#include "FilamentCompaction.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
+#include <optional>
 
 namespace Slic3r {
 
@@ -1195,11 +1197,36 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
-Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
+Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
-    check_model_ids_validity(model);
+    check_model_ids_validity(model_in);
 #endif /* _DEBUG */
+
+    // Orca: printers whose firmware only accepts T0..T(tool_count-1) need the plate's filaments
+    // renumbered to a dense range before anything else looks at them -- config normalization and
+    // the per-extruder variant expansion below both size themselves from the filament count, and
+    // every consumer further downstream (toolchange commands, M104's T parameter, the vendor
+    // profile's [next_extruder]-indexed templates, CoolingBuffer, GCodeProcessor) indexes
+    // filaments by this same space. Renumbering here is what makes all of them dense at once.
+    // Inert for every printer that doesn't ask: no compaction is built, and a plate already using
+    // a dense prefix produces an identity compaction that copies nothing.
+    m_filament_compaction = printer_requires_dense_tool_numbering(new_full_config)
+                                ? build_filament_compaction(model_in, new_full_config)
+                                : FilamentCompaction();
+    const bool compacting = !m_filament_compaction.slot_of_tool.empty();
+    if (compacting) {
+        // Model::operator= is assign_copy, which preserves object IDs -- apply's model diffing
+        // below keys on them, so a copy must not look like a different model. The copy lives in
+        // m_compacted_model, NOT a local: the PrintObjects built below keep raw pointers into
+        // whichever model this function slices from (PrintInstance::model_instance), and those
+        // are dereferenced during validate() and export, long after this function returns.
+        m_compacted_model = model_in;
+        apply_filament_compaction(m_compacted_model, model_in, m_filament_compaction);
+        apply_filament_compaction(new_full_config, m_filament_compaction);
+    }
+    // Everything below reads `model`; it is the caller's model unless we renumbered it.
+    const Model &model = compacting ? m_compacted_model : model_in;
 
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
@@ -1222,6 +1249,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             used_filament_set.insert(expanded.begin(), expanded.end());
         }
     }
+
+    // Orca: capture the pristine, as-specified enable_prime_tower / independent_support_layer_
+    // height values before any normalize_fdm_2 pass below mutates them off using a used-filament
+    // count that, on this Print's very first apply, is not yet settled. Used by the end-of-apply
+    // self-correction pass further down.
+    std::optional<bool> pristine_enable_prime_tower;
+    if (const ConfigOptionBool *opt = new_full_config.option<ConfigOptionBool>("enable_prime_tower"))
+        pristine_enable_prime_tower = opt->value;
+    std::optional<bool> pristine_independent_support_layer_height;
+    if (const ConfigOptionBool *opt = new_full_config.option<ConfigOptionBool>("independent_support_layer_height"))
+        pristine_independent_support_layer_height = opt->value;
 
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
@@ -1327,6 +1365,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // for any multi-extruder printer and permanently invalidate fresh slice results.
     print_diff.erase(std::remove(print_diff.begin(), print_diff.end(), "filament_map_2"), print_diff.end());
     t_config_option_keys full_config_diff = full_print_config_diffs(m_full_print_config, new_full_config, this->m_plate_index);
+    // Orca: when an apply invalidates a finished slice, the differing keys ARE the diagnosis --
+    // a key that post-slice write-back and the next apply disagree on diffs forever, silently
+    // discarding every completed slice (seen with plate filament maps vs. compaction). Name them.
+    if (!print_diff.empty() || !full_config_diff.empty()) {
+        std::string keys;
+        for (const auto& k : print_diff) keys += k + " ";
+        if (!full_config_diff.empty()) {
+            keys += "| full: ";
+            for (const auto& k : full_config_diff) keys += k + " ";
+        }
+        BOOST_LOG_TRIVIAL(info) << "Print::apply: config diff keys: " << keys;
+    }
     // Collect changes to object and region configs.
     t_config_option_keys object_diff      = m_default_object_config.diff(new_full_config);
     t_config_option_keys region_diff      = m_default_region_config.diff(new_full_config);
@@ -1339,7 +1389,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if (is_auto_filament_map_mode(map_mode)) {
             if (print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
-                //full_config_diff.erase("filament_map");
+                // Orca: also drop it from full_config_diff - the value is adopted right below, so
+                // nothing that could change the exported g-code differs; leaving it in would force
+                // a psGCodeExport invalidation on every reapply of an unchanged config (see the
+                // filament_volume_map / filament_nozzle_map erases below for the same reasoning).
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_map", true);
                 old_opt->set(new_opt);
@@ -1347,7 +1401,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_volume_map");
-                //full_config_diff.erase("filament_volume_map");
+                // Orca: also drop it from full_config_diff - it's adopted below, so nothing that
+                // could change the exported g-code differs; leaving it in full_config_diff would
+                // still force a psGCodeExport invalidation on every reapply (see the
+                // filament_nozzle_map erase sites below for the same reasoning).
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_volume_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_volume_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_volume_map", true);
                 old_opt->set(new_opt);
@@ -1355,7 +1413,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_nozzle_map");
-                //full_config_diff.erase("filament_nozzle_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 old_opt->set(new_opt);
@@ -1367,6 +1425,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (map_mode == fmmManual) {
                 // filament_nozzle_map is an engine output, not a GUI input, in manual mode
                 print_diff_set.erase("filament_nozzle_map");
+                // Orca: also drop it from full_config_diff, or a reapply of an unchanged config
+                // would still force a psGCodeExport invalidation from full_config_diff alone.
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
             }
             std::vector<int> old_filament_map = m_config.filament_map.values;
             std::vector<int> new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map", true)->values;
@@ -2044,6 +2105,46 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 #ifdef _DEBUG
     check_model_ids_equal(m_model, model);
 #endif /* _DEBUG */
+
+    // End-of-apply self-correction: on this Print's very first apply, PrintObjects/regions are
+    // still being rebuilt when the LATE normalize_fdm_2 pass (above) runs, so it can undercount
+    // filaments actually used and wrongly force enable_prime_tower (and, transitively,
+    // independent_support_layer_height) off. normalize_fdm_2 never turns a forced-off setting back
+    // on, so a wrong value here would otherwise persist and surface as a spurious diff on a later,
+    // unrelated apply. Re-derive both from their pristine, as-specified values (captured before any
+    // normalize_fdm_2 mutation, above) using the now-settled filament count.
+    const size_t settled_used_filament_count = this->extruders(true).size();
+    if (pristine_enable_prime_tower) {
+        DynamicPrintConfig derived;
+        derived.set_key_value("enable_prime_tower", new ConfigOptionBool(*pristine_enable_prime_tower));
+        if (pristine_independent_support_layer_height)
+            derived.set_key_value("independent_support_layer_height", new ConfigOptionBool(*pristine_independent_support_layer_height));
+        for (const char *key : {"print_sequence", "timelapse_type", "enable_wrapping_detection"})
+            if (const ConfigOption *opt = m_full_print_config.option(key))
+                derived.set_key_value(key, opt->clone());
+        derived.normalize_fdm_2((int)objects().size(), (int)settled_used_filament_count);
+
+        t_config_option_keys correction_keys;
+        if (const ConfigOptionBool *cur = m_config.option<ConfigOptionBool>("enable_prime_tower");
+            cur != nullptr && cur->value != derived.option<ConfigOptionBool>("enable_prime_tower")->value)
+            correction_keys.push_back("enable_prime_tower");
+        if (pristine_independent_support_layer_height) {
+            if (const ConfigOptionBool *cur = m_config.option<ConfigOptionBool>("independent_support_layer_height");
+                cur != nullptr && cur->value != derived.option<ConfigOptionBool>("independent_support_layer_height")->value)
+                correction_keys.push_back("independent_support_layer_height");
+        }
+        if (! correction_keys.empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", end-of-apply self-correction, size=%1%") % correction_keys.size();
+            update_apply_status(false);
+            update_apply_status(this->invalidate_state_by_config_options(derived, correction_keys));
+            update_apply_status(this->invalidate_step(psGCodeExport));
+            m_config.apply_only(derived, correction_keys, true);
+            m_default_object_config.apply_only(derived, correction_keys, true);
+            m_default_region_config.apply_only(derived, correction_keys, true);
+            m_ori_full_print_config.apply_only(derived, correction_keys, true);
+            m_full_print_config.apply_only(derived, correction_keys, true);
+        }
+    }
 
 	//BBS: add timestamp logic
 	if (apply_status != APPLY_STATUS_UNCHANGED)

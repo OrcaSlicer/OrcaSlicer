@@ -29,6 +29,8 @@
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
+#include "SnapmakerPrinterAgent.hpp"
+#include "WonderMakerPrinterAgent.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -38,6 +40,63 @@ namespace Slic3r {
 
 
 PrintHost::~PrintHost() {}
+
+DevicePrintSpec device_print_spec(FilamentMappingProtocol protocol)
+{
+    DevicePrintSpec spec;
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        spec.supports_filament_mapping = true;
+        // Verbatim the three the printer's own screen offers (2026-08-10 capture). Bed leveling
+        // defaults on to match the screen; the other two default off so a send never silently
+        // spends time (flow calibration) or storage (time-lapse) the user didn't ask for.
+        // Labels match the vendor's own slicer word for word, so a user moving between the two
+        // sees the same option named the same way.
+        spec.options.push_back({"flow_calibrate", L("Extrusion Flow Calibration"),
+                                L("Calibrate flow on each tool this plate actually uses before printing."),
+                                DevicePrintOptionKind::Bool, "0", {}});
+        spec.options.push_back({"time_lapse", L("Time-lapse Camera"),
+                                L("Record a time-lapse video with the printer's camera."),
+                                DevicePrintOptionKind::Bool, "0", {}});
+        spec.options.push_back({"bed_leveling", L("Auto Leveling"),
+                                L("Probe the bed before printing, as the printer's own screen does."),
+                                DevicePrintOptionKind::Bool, "1", {}});
+        break;
+    case FilamentMappingProtocol::fmpWonderMaker:
+        spec.supports_filament_mapping = true;
+        // The ZR's start sequence probes (G30) before every print, so leveling defaults on to
+        // match it. Timelapse drives the stock moonraker-timelapse component (enable at start +
+        // per-layer TIMELAPSE_TAKE_FRAME from the profile's layer gcode); off by default so a
+        // send never silently spends storage. No flow-calibration hook on this firmware.
+        spec.options.push_back({"time_lapse", L("Time-lapse Camera"),
+                                L("Record a time-lapse video with the printer's camera."),
+                                DevicePrintOptionKind::Bool, "0", {}});
+        spec.options.push_back({"bed_leveling", L("Auto Leveling"),
+                                L("Probe the bed before printing, as the printer's own screen does."),
+                                DevicePrintOptionKind::Bool, "1", {}});
+        break;
+    default: break;
+    }
+    return spec;
+}
+
+std::string build_device_map_start_script(FilamentMappingProtocol protocol, const std::string& filename, const std::vector<int>& filament_map_1based)
+{
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, filament_map_1based);
+    case FilamentMappingProtocol::fmpWonderMaker: return WonderMakerProtocol::build_start_script(filename, filament_map_1based, /*bed_leveling=*/true, /*time_lapse=*/false);
+    default: return {};
+    }
+}
+
+std::string build_device_start_script(FilamentMappingProtocol protocol, const std::string& filename, const DevicePrintJobInfo& job)
+{
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, job);
+    case FilamentMappingProtocol::fmpWonderMaker: return WonderMakerProtocol::build_start_script(filename, job);
+    default: return {};
+    }
+}
 
 PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
 {

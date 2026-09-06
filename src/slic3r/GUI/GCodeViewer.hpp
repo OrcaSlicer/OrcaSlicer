@@ -40,6 +40,22 @@ static const float SLIDER_BOTTOM_MARGIN = 64.0f;
 class GCodeViewer
 {
 public:
+    // Orca: what to CALL each g-code tool in user-facing labels. On a printer whose protocol
+    // requires dense tool numbering (FilamentCompaction), the g-code's tool ids are a compacted
+    // renumbering of the PROJECT's filament slots: a plate using project filaments 1 and 4
+    // slices as T0/T1. Labels must speak the user's numbering -- "Filament 1, Filament 4" --
+    // not the wire's. Empty = identity (every printer without compaction).
+    void set_filament_display_ids(std::vector<int> ids) { m_filament_display_ids = std::move(ids); }
+    // 1-based display number for a 0-based g-code tool id.
+    int filament_display_number(size_t tool_id) const {
+        return tool_id < m_filament_display_ids.size() ? m_filament_display_ids[tool_id] + 1 : int(tool_id) + 1;
+    }
+
+private:
+    std::vector<int> m_filament_display_ids;
+
+public:
+
     enum class EViewType : unsigned char;
     struct SequentialView
     {

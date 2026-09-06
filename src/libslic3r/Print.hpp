@@ -2,6 +2,7 @@
 #define slic3r_Print_hpp_
 
 #include "PrintBase.hpp"
+#include "FilamentCompaction.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
 
@@ -602,8 +603,10 @@ private:
     
     // SoftFever
     // 
-    // object id
-    size_t               m_id;
+    // object id. Only assigned when the flavor emits object definitions (GCode::set_object_info),
+    // but the gcode_label_objects comment prints it unconditionally -- left uninitialized it put
+    // heap garbage in the g-code and differed between two slices of the same scene.
+    size_t               m_id{0};
     void apply_conical_overhang();
 
  public:
@@ -937,6 +940,12 @@ public:
     std::vector<ObjectID> print_object_ids() const override;
 
     ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
+
+    // Orca: the filament renumbering this Print was sliced with, on printers whose firmware only
+    // accepts T0..T(tool_count-1) (see FilamentCompaction.hpp). Identity -- and empty -- for
+    // every other printer. The send path needs it to say which project slot each emitted tool
+    // number actually prints.
+    const FilamentCompaction& filament_compaction() const { return m_filament_compaction; }
 
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
@@ -1302,6 +1311,16 @@ private:
     }
 
     PrintConfig                             m_config;
+    // Orca: the filament renumbering applied by the last apply(); empty unless the printer's
+    // protocol requires dense tool numbering. See filament_compaction().
+    FilamentCompaction                      m_filament_compaction;
+    // The renumbered copy of the caller's model that apply() slices from when a compaction is
+    // in effect. A MEMBER, never a local: apply() stores raw ModelInstance*/ModelObject*
+    // pointers from the model it was given into the PrintObjects (PrintInstance::model_instance),
+    // and validate()/G-code export dereference them long after apply() returns -- a local copy
+    // made every compacted slice a use-after-free (SEGFAULT on Windows arm64; sheer allocator
+    // luck elsewhere). Kept alive here until the next apply() rebuilds it.
+    Model                                   m_compacted_model;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;

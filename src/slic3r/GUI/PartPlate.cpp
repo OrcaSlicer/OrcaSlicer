@@ -332,6 +332,18 @@ std::vector<int> PartPlate::get_real_filament_volume_maps(const DynamicConfig& g
 	return g_maps;
 }
 
+std::vector<int> PartPlate::get_real_physical_filament_maps(const DynamicConfig& g_config, bool* use_global_param) const
+{
+	auto maps = get_physical_filament_maps();
+	if (!maps.empty()) {
+		if (use_global_param) { *use_global_param = false; }
+		return maps;
+	}
+	auto opt = g_config.option<ConfigOptionInts>("filament_physical_map");
+	if (use_global_param) { *use_global_param = true; }
+	return opt ? opt->values : std::vector<int>();
+}
+
 FilamentMapMode PartPlate::get_real_filament_map_mode(const DynamicConfig& g_config, bool* use_global_param) const
 {
 	auto mode = get_filament_map_mode();
@@ -2011,6 +2023,17 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
     FilamentMapMode mode = this->get_real_filament_map_mode(config);
     // only check printablity if we have explicit map result
     if (mode != fmmManual)
+        return true;
+
+    // filament_printable is a BBL-specific per-extruder bitmask modeling only a left/right
+    // dual-nozzle machine (see its definition in PrintConfig.cpp); its default value (3) only
+    // has bits 0/1 set, so on a mapped non-BBL toolchanger (3+ tools) any filament assigned to
+    // extruder index >= 2 would spuriously read as "not printable" here. fmmManual is also the
+    // mode opted-in filament-mapping printers use for their own (unrelated) row-based mapping,
+    // so gate this check to the BBL dual-nozzle context it actually models.
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    bool dual_bbl = preset_bundle && preset_bundle->is_bbl_vendor() && preset_bundle->get_printer_extruder_count() == 2;
+    if (!dual_bbl)
         return true;
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
@@ -3969,6 +3992,15 @@ void PartPlate::clear_filament_map()
         m_config.erase("filament_map");
 }
 
+std::vector<int> PartPlate::get_physical_filament_maps() const
+{
+    std::string key = "filament_physical_map";
+    if (m_config.has(key))
+        return m_config.option<ConfigOptionInts>(key)->values;
+
+    return {};
+}
+
 std::vector<int> PartPlate::get_filament_volume_maps() const
 {
     std::string key = "filament_volume_map";
@@ -4039,6 +4071,11 @@ void PartPlate::set_filament_count(int filament_count)
         std::vector<int>& filament_volume_map = m_config.option<ConfigOptionInts>("filament_volume_map")->values;
         filament_volume_map.resize(filament_count, static_cast<int>(NozzleVolumeType::nvtStandard));
     }
+
+    if (m_config.has("filament_physical_map")) {
+        std::vector<int>& filament_physical_map = m_config.option<ConfigOptionInts>("filament_physical_map")->values;
+        filament_physical_map.resize(filament_count, 0);
+    }
 }
 
 void PartPlate::on_filament_added()
@@ -4068,6 +4105,12 @@ void PartPlate::on_filament_added()
 
         filament_volume_map.push_back(volume_type);
     }
+
+    if (m_config.has("filament_physical_map")) {
+        std::vector<int>& filament_physical_map = m_config.option<ConfigOptionInts>("filament_physical_map")->values;
+        // 0 means "unassigned"; a new filament starts with no physical-tool merge claim.
+        filament_physical_map.push_back(0);
+    }
 }
 
 void PartPlate::on_filament_deleted(int filament_count, int filament_id)
@@ -4091,6 +4134,12 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
         std::vector<int>& filament_volume_map = m_config.option<ConfigOptionInts>("filament_volume_map")->values;
         if (filament_id >= 0 && filament_id < (int) filament_volume_map.size())
             filament_volume_map.erase(filament_volume_map.begin() + filament_id);
+    }
+
+    if (m_config.has("filament_physical_map")) {
+        std::vector<int>& filament_physical_map = m_config.option<ConfigOptionInts>("filament_physical_map")->values;
+        if (filament_id >= 0 && filament_id < (int) filament_physical_map.size())
+            filament_physical_map.erase(filament_physical_map.begin() + filament_id);
     }
 
     update_first_layer_print_sequence_when_delete_filament(filament_id);
@@ -6523,7 +6572,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 	return ret;
 }
 
-int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count)
+int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count, int nozzle_count)
 {
 	int ret = 0;
 
@@ -6534,11 +6583,43 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 	}
 	clear(true, true);
 	set_filament_count(filament_count);
+	// Fall back to the currently active printer preset only when the caller has no better
+	// (project-accurate) number to give us, e.g. non-3mf imports where no printer preset
+	// swap is pending. The CLI loads plates with the defaults and no wxApp at all: there is
+	// no preset bundle to ask, so leave the 3mf's maps untouched there -- the engine's own
+	// bounds guards apply downstream.
+	const bool have_authoritative_counts = nozzle_count >= 0 || wxApp::GetInstance() != nullptr;
+	if (nozzle_count < 0 && wxApp::GetInstance() != nullptr)
+		nozzle_count = (int) wxGetApp().preset_bundle->get_printer_extruder_count();
 	for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
 	{
 		int index = create_plate(false);
 		m_plate_list[index]->m_locked = plate_data_list[i]->locked;
 		m_plate_list[index]->config()->apply(plate_data_list[i]->config);
+
+		// A 3MF's per-plate filament_map can be longer or shorter than the project's
+		// filament count and may reference tools this printer lacks; normalize once here
+		// instead of relying on every reader's individual bounds guards.
+		if (have_authoritative_counts) {
+			if (ConfigOptionInts* plate_map = m_plate_list[index]->config()->option<ConfigOptionInts>("filament_map")) {
+				normalize_plate_filament_map(plate_map->values, (size_t) filament_count, (size_t) nozzle_count);
+			}
+		}
+
+		// filament_physical_map holds physical-filament ids, not tool indices: no tool-range
+		// clamp (an id outside the current inventory is re-matched at dialog time).
+		// Empty stays empty (falls back to the project's filament_physical_map, mirroring
+		// filament_map); a shorter map is padded with 0 (unassigned) and negative ids clamp to 0.
+		if (ConfigOptionInts* plate_physical_map = have_authoritative_counts ? m_plate_list[index]->config()->option<ConfigOptionInts>("filament_physical_map") : nullptr) {
+			std::vector<int>& values = plate_physical_map->values;
+			if (!values.empty()) {
+				if (values.size() < (size_t) filament_count)
+					values.resize((size_t) filament_count, 0);
+				for (int& v : values)
+					v = std::max(v, 0);
+			}
+		}
+
 		m_plate_list[index]->set_plate_name(plate_data_list[i]->plate_name);
 		if (plate_data_list[i]->plate_index != index)
 		{

@@ -2084,6 +2084,10 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_option_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
             SidePopup* p = new SidePopup(this);
+            // The edited printer preset's config, for the declaration lookups below.
+            auto printer_config_for_menu = []() -> const DynamicPrintConfig& {
+                return wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            };
 
             if (wxGetApp().preset_bundle
                 && !wxGetApp().preset_bundle->is_bbl_vendor()
@@ -2115,6 +2119,26 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
 
                 p->append_button(send_gcode_btn);
+
+                // Orca: a plain upload, for printers that declare print-start options (mapping,
+                // bed leveling, ...). "Print" collects those here; choosing "Upload" says the
+                // user will start the job from the printer's own screen instead, so it must not
+                // ask for any of them. Printers that declare nothing keep the plain send dialog
+                // under "Print", which already offers both actions -- their menu is unchanged.
+                if (!device_print_spec(filament_mapping_protocol_of(printer_config_for_menu())).empty()) {
+                    SideButton* upload_gcode_btn = new SideButton(p, _L("Upload"), "");
+                    upload_gcode_btn->SetCornerRadius(0);
+                    upload_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                        m_print_btn->SetLabel(_L("Upload"));
+                        m_print_select = eUploadGcode;
+                        m_print_enable = get_enable_print_status();
+                        m_print_btn->Enable(m_print_enable);
+                        this->Layout();
+                        fit_tab_labels(); // ORCA on label change
+                        p->Dismiss();
+                        });
+                    p->append_button(upload_gcode_btn);
+                }
 
                 // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
                 // also offer exporting the sliced .gcode.3mf bundle

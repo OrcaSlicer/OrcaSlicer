@@ -1,7 +1,7 @@
 {
 	"name": "WonderMaker",
 	"url": "",
-	"version": "02.04.00.01",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "WonderMaker configurations",
 	"machine_model_list": [
@@ -426,6 +426,10 @@
 		{
 			"name": "fdm_klipper_common",
 			"sub_path": "machine/fdm_klipper_common.json"
+		},
+		{
+			"name": "fdm_ultra_common",
+			"sub_path": "machine/fdm_ultra_common.json"
 		},
 		{
 			"name": "WonderMaker ZR 0.4 nozzle",

@@ -954,8 +954,26 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                 std::string value_str;
 
                 if (it.value().is_string()) {
-                    //bool test1 = (it.key() == std::string("end_gcode"));
-                    this->set_deserialize(opt_key, it.value(), substitution_context);
+                    // Orca: a bad VALUE for a known key must only cost that key, not the rest of
+                    // the file. This loop runs under the function-wide try, so an uncaught
+                    // BadOptionValueException abandons every key after the bad one (nlohmann
+                    // iterates alphabetically) -- a project_settings.config written by a fork
+                    // that types one option differently then loads truncated, and the caller
+                    // continues with a config missing keys it assumes are present (a scalar
+                    // bed_mesh_max from a WonderMaker-vendor export took the whole slicer down
+                    // that way). Mirrors load()'s per-key UnknownOptionException handling.
+                    try {
+                        this->set_deserialize(opt_key, it.value(), substitution_context);
+                    } catch (const BadOptionValueException& err) {
+                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": skipping bad value in " << file << ": " << err.what();
+                        // set_deserialize created the option (at its definition default) before
+                        // the value parse failed. A skipped key must be ABSENT, not defaulted:
+                        // in a project-config overlay a phantom default would override the
+                        // printer profile's real value on apply.
+                        if (auto* dyn = dynamic_cast<DynamicConfig*>(this))
+                            dyn->erase(opt_key);
+                        continue;
+                    }
                     //some logic for special values
                     if (opt_key == "support_type") {
                         //std::string new_value = dynamic_cast<ConfigOptionString*>(this->option(opt_key))->value;
@@ -1025,8 +1043,18 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file << " error, invalid json array for " << it.key();
                         break;
                     }
-                    if (valid)
-                        this->set_deserialize(opt_key, value_str, substitution_context);
+                    if (valid) {
+                        // Same per-key tolerance as the string branch above.
+                        try {
+                            this->set_deserialize(opt_key, value_str, substitution_context);
+                        } catch (const BadOptionValueException& err) {
+                            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": skipping bad value in " << file << ": " << err.what();
+                            // As above: a skipped key must not linger at its definition default.
+                            if (auto* dyn = dynamic_cast<DynamicConfig*>(this))
+                                dyn->erase(opt_key);
+                            continue;
+                        }
+                    }
                 }
                 else {
                     //should not happen

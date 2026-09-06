@@ -369,8 +369,6 @@ public:
     void switch_printer_agent();
 
     std::string resolve_printer_agent_id(const std::string& stored_id);
-    // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
-    // then, all resolve and canonical would just be ORCA<->""
     std::string canonical_printer_agent_id(const std::string& picked_id);
 
     FilamentColorCodeQuery* get_filament_color_code_query();
@@ -485,6 +483,11 @@ public:
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
 
     wxString        transition_tridid(int trid_id) const;
+    // Orca: shared toolchanger-vs-AMS tray label -- "T%d" for a toolchanger tray, else
+    // transition_tridid()'s "A1"/"B2" lettering. Callers must special-case the virtual ext-spool
+    // tray ids (VIRTUAL_TRAY_MAIN_ID/DEPUTY_ID) themselves before calling this, since their
+    // virtual-tray wording differs per view ("Ext", or "Ext-R"/"Ext-L" in the split view).
+    wxString        tray_display_label(int tray_id, bool is_toolchanger) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
     void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -797,10 +800,14 @@ private:
     bool            wait_for_network_idle(int timeout_ms);
     bool            check_older_app_config(Semver current_version, bool backup);
     void            copy_older_config();
+public:
+    // Saved-geometry helpers (app-config key "window_<name>"): the main frame's, and any dialog
+    // that should reopen where the user left it (the sidebar's Printer Material Settings).
     void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
     bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
     void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
+private:
     bool            select_language();
 
     // Dynamic printer agent selection - internal helpers for switch_printer_agent

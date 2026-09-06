@@ -1955,7 +1955,12 @@ void GLCanvas3D::render(bool only_init)
     }
 
     m_in_render = true;
-    Slic3r::ScopeGuard in_render_guard([this]() { m_in_render = false; });
+    const auto render_start = std::chrono::steady_clock::now();
+    Slic3r::ScopeGuard in_render_guard([this, render_start]() {
+        m_in_render = false;
+        m_last_render_duration_ms = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - render_start).count();
+    });
     (void)in_render_guard;
 
     if (m_canvas == nullptr)
@@ -3076,7 +3081,12 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
     if (m_initialized)
     {
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
-        m_gcode_viewer.update_shells_color_by_extruder(m_config);
+        // Orca: the shells were just built from the PRINT's model, whose extruder ids are the
+        // print's own -- compacted to dense tool numbers under a dense-numbering protocol. Their
+        // colours must come from the print's own config too: the GUI-side m_config is
+        // project-indexed, so on a compacted two-tool print it painted shell id 2 with project
+        // filament 2's colour instead of the project slot that tool actually prints.
+        m_gcode_viewer.update_shells_color_by_extruder(&print.full_print_config());
     }
 }
 
@@ -3156,7 +3166,14 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
         m_canvas->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
                 ImGui::SetWindowFocus(nullptr);
-                render();
+                // Orca: schedule the repaint instead of rendering synchronously. Focus flaps in
+                // and out of the canvas on every popup and window switch (near-continuously
+                // under WSLg), and a synchronous render() here costs a FULL frame per event with
+                // no coalescing -- ~0.5 s of llvmpipe CPU per flap on a 1.7M-segment preview,
+                // observed as a pegged, unresponsive slicer (stack: wxFocusEvent lambda ->
+                // GLCanvas3D::render -> SegmentTemplate::render(count=1763507)). A queued paint
+                // draws the same frame once per event-loop pass instead of once per event.
+                m_canvas->Refresh();
                 evt.Skip();
             });
         m_event_handlers_bound = true;
@@ -3237,20 +3254,34 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 
     const int fps_cap = _get_effective_fps_cap();
-    if (fps_cap > 0) {
+    double min_frame_seconds = fps_cap > 0 ? 1.0 / static_cast<double>(fps_cap) : 0.0;
+    // Orca: cost-based pacing for slow renderers, applied to EVERY dirty-driven idle render.
+    // The fps cap alone cannot throttle a renderer slower than its budget, and gating only the
+    // RequestMore tail cannot stop the loop either: each PAINT generates a fresh idle event, a
+    // perpetual animation (fading notification, pulsing hint) re-marks dirty at the top of every
+    // idle, and _refresh_if_shown_on_screen() below queues the next paint -- a self-sustaining
+    // paint->idle->paint cycle at full rate, ~0.4 s of software-GL per frame, five cores pegged
+    // and close clicks starved. A frame slower than 50 ms therefore buys a gap of twice its own
+    // cost before the next one, whatever set the dirty flag; input flows in the gap.
+    // Imperceptible on hardware GL, where frames cost single-digit milliseconds.
+    if (m_last_render_duration_ms > 50)
+        min_frame_seconds = std::max(min_frame_seconds, 2.0 * (double) m_last_render_duration_ms / 1000.0);
+    if (min_frame_seconds > 0.0) {
         const auto now = std::chrono::steady_clock::now();
-        const auto min_frame_time = std::chrono::duration<double>(1.0 / static_cast<double>(fps_cap));
+        const auto min_frame_time = std::chrono::duration<double>(min_frame_seconds);
         const auto elapsed = now - m_last_frame_start_time;
         if (elapsed < min_frame_time) {
             const int wait_ms = std::max(1, static_cast<int>(std::ceil(std::chrono::duration<double, std::milli>(min_frame_time - elapsed).count())));
+            // The scheduled timer guarantees the wake-up; RequestMore here would re-enter idle
+            // immediately and re-run the whole top-of-idle work once per event-loop pass.
             schedule_extra_frame(wait_ms);
-            evt.RequestMore();
             return;
         }
-
-        // Pace by frame-start interval so rendering time is part of the target budget.
-        m_last_frame_start_time = now;
     }
+
+    // Frame start is tracked unconditionally: the animation pacing below needs the frame's cost
+    // even when no fps cap is configured.
+    m_last_frame_start_time = std::chrono::steady_clock::now();
 
     _refresh_if_shown_on_screen();
 
@@ -3261,6 +3292,16 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_dirty = true;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
         m_extra_frame_requested = false;
+        // Orca: pace animation-driven frames by what the frame just cost. The fps cap above can
+        // only throttle a renderer FASTER than its budget; a software-GL frame slower than the
+        // budget always proceeds immediately, so a perpetual animation (a fading notification, a
+        // pulsing hint) rendered back-to-back at ~0.4 s/frame on llvmpipe -- five cores pegged
+        // and the event loop too starved to service a close click (captured live: main thread
+        // 105% busy in short bursts from the idle loop, llvmpipe fleet saturated). Giving the
+        // loop a gap equal to the frame's own cost bounds animation rendering at a ~50% duty
+        // cycle and keeps input flowing; on hardware GL the gap is a few ms and imperceptible.
+        // Extra-frame demand flows back through on_idle, where the cost-based pacing at the
+        // top is the single choke point for slow renderers.
         evt.RequestMore();
     }
     else
@@ -4162,12 +4203,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     Plater::SingleSnapshot single(wxGetApp().plater());
 
 #ifdef __WXMAC__
-    // On macOS, the mouse key state is only present for mouse btn related events such as wxEVT_LEFT_DOWN.
-    // For other events, all buttons are reported as non-pressed, such as window leaving event. This causes
-    // imgui stopped responding if cursor moved out of window, such as
-    // https://github.com/OrcaSlicer/OrcaSlicer/pull/14999#issuecomment-5151344759
-    // We solve this by correcting the state of the event from the actual mouse state querying with `wxGetMouseState()`
-    // so it works like on other platforms.
+    // On macOS, the mouse button state is only present for mouse-button events such as wxEVT_LEFT_DOWN;
+    // other events (e.g. window-leaving) report all buttons as unpressed, which stops ImGui responding
+    // once the cursor leaves the window. Correct it from the actual mouse state via wxGetMouseState().
     {
         const auto state = wxGetMouseState();
         evt.SetLeftDown(state.LeftIsDown());
@@ -4897,7 +4935,10 @@ void GLCanvas3D::force_set_focus() {
 void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
 {
     m_tooltip_enabled = false;
-    _refresh_if_shown_on_screen();
+    // Orca: queued repaint, not a synchronous render -- see the wxEVT_KILL_FOCUS binding for
+    // why (focus flap storms x software GL = a full frame per event).
+    if (m_canvas != nullptr && _is_shown_on_screen())
+        m_canvas->Refresh();
     m_tooltip_enabled = true;
     m_is_touchpad_navigation = wxGetApp().app_config->get_bool("camera_navigation_style");
 }
@@ -9218,9 +9259,10 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                 all_plates_stats_item->selected = false;
                 bool was_active = item->selected;
                 item->selected = true;
-                // begin to slicing plate
-                if (item->slice_state != IMToolbarItem::SliceState::SLICED)
-                    wxGetApp().plater()->update(true, true);
+                // ORCA: don't slice here -- the plate switch to i only happens once the queued
+                // EVT_GLTOOLBAR_SELECT_SLICED_PLATE below is dispatched, so slicing now would target
+                // the still-current (old) plate. select_plate(i, /*need_slice=*/true) switches and
+                // slices in the correct order.
                 wxCommandEvent* evt = new wxCommandEvent(EVT_GLTOOLBAR_SELECT_SLICED_PLATE);
                 // ORCA dont reset viewing angle if item was active and non sliced to allow making comparisons on parameter changes
                 if(!was_active || (was_active && item->slice_state == IMToolbarItem::SliceState::SLICED)) 

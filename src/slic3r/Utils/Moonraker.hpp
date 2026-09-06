@@ -14,6 +14,13 @@ namespace Slic3r {
 class DynamicPrintConfig;
 class Http;
 
+// Orca: the storage-root filtering rule Moonraker::get_storage applies, pulled out to a free
+// function so it can be pinned by a test without spinning up an HTTP mock. See get_storage's doc
+// for why writability alone isn't enough to offer a root as an upload destination.
+namespace MoonrakerStorage {
+bool is_gcode_destination_root(const std::string &root_name);
+} // namespace MoonrakerStorage
+
 // Moonraker is the JSON / WebSocket gateway that ships in front of Klipper
 // (and on Klipper-API-compatible firmwares like the Prusa-Firmware-Buddy
 // Buddy-Klipper fork). REST shape differs from OctoPrint: distinct paths,
@@ -56,6 +63,12 @@ protected:
     void set_auth(Http &http) const;
     std::string make_url(const std::string &path) const;
     bool start_print(wxString &error_msg, const std::string &filename) const;
+    // Orca: generic capability for a caller-supplied print-start script -- POSTs a fully-rendered
+    // gcode script to /printer/gcode/script instead of the plain /printer/print/start call. Any
+    // vendor dialect (which macro, how the mapping is embedded) is the GUI caller's business; this
+    // class only knows it's "a script to run instead of the default start". See upload()'s use of
+    // upload_data.extended("start_script").
+    bool start_print_with_script(wxString &error_msg, const std::string &script) const;
 };
 
 }
