@@ -309,6 +309,9 @@ extern unsigned get_current_pid();
 std::string per_user_temp_id();
 // Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
 std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
+// Completes a relative command line input path against the current working directory. Absolute
+// paths and custom open protocol URLs are returned unchanged.
+std::string resolve_cli_input_path(const std::string &path);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 

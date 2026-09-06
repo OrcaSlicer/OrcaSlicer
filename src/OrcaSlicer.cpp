@@ -7330,6 +7330,13 @@ bool CLI::setup(int argc, char **argv)
         this->print_help();
         return false;
     }
+
+    // Orca: resolve here, while the process is still in the directory the user invoked it from.
+    // GUI_App's constructor moves the working directory to <data_dir>/log, long before the GUI
+    // opens these files in post_init(), and a relative path would then resolve against that.
+    for (std::string &input_file : m_input_files)
+        input_file = resolve_cli_input_path(input_file);
+
     // Parse actions and transform options.
     for (auto const &opt_key : opt_order) {
         if (cli_actions_config_def.has(opt_key))

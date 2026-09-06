@@ -1315,6 +1315,19 @@ std::string per_user_temp_dir(const std::string &base, const std::string &user_i
     return base + "/orcaslicer_" + user_id;
 }
 
+std::string resolve_cli_input_path(const std::string &path)
+{
+    const boost::filesystem::path input(path);
+    if (path.empty() || is_supported_open_protocol(path) || input.is_absolute())
+        return path;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path resolved = boost::filesystem::system_complete(input, ec);
+    if (ec)
+        return path;
+    return resolved.lexically_normal().make_preferred().string();
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {
