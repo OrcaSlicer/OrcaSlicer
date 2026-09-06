@@ -10,7 +10,7 @@
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"
-#endif
+#endif //BBL_RELEASE_TO_PUBLIC
 
 #include "wx/webviewarchivehandler.h"
 #include "wx/webviewfshandler.h"
@@ -108,13 +108,16 @@ public:
 private:
 
     wxWebView* m_browser;
+    wxButton *  m_button_stop;
+    wxTextCtrl *m_url;
+#if !BBL_RELEASE_TO_PUBLIC
+    // Created only by the internal-build toolbar in the constructor.
     wxBoxSizer *bSizer_toolbar;
     wxButton *  m_button_back;
     wxButton *  m_button_forward;
-    wxButton *  m_button_stop;
     wxButton *  m_button_reload;
-    wxTextCtrl *m_url;
     wxButton *  m_button_tools;
+#endif
 
     wxMenu* m_tools_menu;
     wxMenuItem* m_tools_handle_navigation;
@@ -143,7 +146,6 @@ private:
     wxMenuItem* m_dev_tools;
 
     wxInfoBar *m_info;
-    wxStaticText* m_info_text;
 
     long m_zoomFactor;
 
