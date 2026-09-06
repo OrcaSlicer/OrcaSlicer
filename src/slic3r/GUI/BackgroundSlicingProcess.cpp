@@ -257,11 +257,37 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here and never re-parse it into a fresh
-        // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
-        // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
+        // Orca: BBL printers post-process the g-code in place here, so the file the G-code viewer
+        // memory-maps is the post-processed one, but m_gcode_result was produced inline during
+        // generation and still describes the pre-script toolpath. Re-parse so the preview matches
+        // what will actually be printed.
         if (m_fff_print->is_BBL_printer()) {
             run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+
+            const auto* post_process = m_fff_print->full_print_config().opt<ConfigOptionStrings>("post_process");
+            if (post_process && !post_process->values.empty() && m_gcode_result) {
+                m_print->set_status(97, _u8L("Updating preview with post-processed G-code"));
+                GCodeProcessor processor;
+                // Apply the plate origin so move coordinates are relative to the correct plate;
+                // without this, slicing any plate other than the first shifts the preview geometry
+                // by that plate's XY origin and the model appears off the bed.
+                const Vec3d origin = m_fff_print->get_plate_origin();
+                processor.set_xy_offset(origin(0), origin(1));
+                processor.process_file(m_temp_output_path);
+                // IMPORTANT: move ONLY the fields derived from the G-code text. GCodeProcessorResult
+                // also carries slicer-computed state (nozzle_group_result, filament_maps,
+                // filament_change_sequence, required_nozzle_HRC, extruder_colors, print_statistics,
+                // ...) derived from config during slicing, which cannot be rebuilt from G-code alone.
+                // Replacing the whole result breaks H2C/H2D send-to-printer nozzle auto-mapping -
+                // see BambuStudio #10528, the regression introduced by BBS PR #9920.
+                //
+                // extract_result() returns GCodeProcessorResult&&; a local by value is impossible
+                // because the copy constructor is implicitly deleted (mutable std::mutex member),
+                // so bind as an rvalue reference and move the two fields out directly.
+                GCodeProcessorResult&& reparsed = processor.extract_result();
+                m_gcode_result->moves      = std::move(reparsed.moves);
+                m_gcode_result->lines_ends = std::move(reparsed.lines_ends);
+            }
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
