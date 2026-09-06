@@ -632,6 +632,8 @@ wxString PlateSettingsDialog::to_print_sequence_name(PrintSequence print_seq) {
         return _L("By Layer");
     case PrintSequence::ByObject:
         return _L("By Object");
+    case PrintSequence::Islands:
+        return _L("Islands [experimental]");
     default:
         return _L("By Layer");
     }

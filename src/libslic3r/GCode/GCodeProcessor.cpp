@@ -7593,7 +7593,16 @@ void GCodeProcessor::update_slice_warnings()
         if (used_filaments[idx] < m_result.required_nozzle_HRC.size())
             filament_hrc = m_result.required_nozzle_HRC[used_filaments[idx]];
 
-        int filament_extruder_id = m_filament_maps[used_filaments[idx]];
+        // The filament ids are 1-based while both arrays below are 0-based.
+        // When the processor was fed from a file (process_file) without
+        // init_filament_maps_and_nozzle_type_when_import_only_gcode(), either
+        // may be undersized for the ids used by the file, so bounds-check both
+        // accesses (see the reprocess path of Islands).
+        int filament_extruder_id = -1;
+        if (used_filaments[idx] < m_filament_maps.size())
+            filament_extruder_id = m_filament_maps[used_filaments[idx]];
+        if (filament_extruder_id < 0 || filament_extruder_id >= static_cast<int>(nozzle_hrc_lists.size()))
+            continue;
         int extruder_hrc = nozzle_hrc_lists[filament_extruder_id];
 
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": Check HRC: filament:%1%, hrc=%2%, extruder:%3%, hrc:%4%") % used_filaments[idx] % filament_hrc % filament_extruder_id % extruder_hrc;

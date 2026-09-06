@@ -327,7 +327,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
-    { "by object",    int(PrintSequence::ByObject) }
+    { "by object",    int(PrintSequence::ByObject) },
+    { "islands",      int(PrintSequence::Islands) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 
@@ -1999,12 +2000,14 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_sequence", coEnum);
     def->label = L("Print sequence");
-    def->tooltip = L("This determines the print sequence, allowing you to print layer-by-layer or object-by-object.");
+    def->tooltip = L("This determines the print sequence, allowing you to print layer-by-layer, object-by-object or island-by-island.");
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
+    def->enum_values.push_back("islands");
     def->enum_labels.push_back(L("By layer"));
     def->enum_labels.push_back(L("By object"));
+    def->enum_labels.push_back(L("Islands [experimental]"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
 
@@ -2569,6 +2572,38 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(40));
+
+    // Orca: experimental "Islands" print sequencing. The exported G-code is
+    // regrouped so that within runs of consecutive layers that share the same
+    // set of islands (e.g. the two legs of a letter "H" standing upright),
+    // every layer of one island is printed before the next island is started;
+    // the bridging layers that join the islands are still printed layer by
+    // layer. Disabled automatically when two towers are closer than
+    // islands_clearance_radius (mm) horizontally while the height difference
+    // between them exceeds islands_clearance_height (mm), to keep the nozzle
+    // or gantry from colliding with the taller tower.
+    def = this->add("islands_clearance_radius", coFloat);
+    def->label = L("Clearance radius");
+    def->tooltip = L("Minimum horizontal distance (mm) between two towers (islands) for Islands "
+                     "sequencing to be applied. When two towers are closer than this distance and the height difference "
+                     "between them exceeds the clearance height, the nozzle or gantry could collide with the taller "
+                     "tower while the shorter one is being printed, so the feature is disabled for the whole print.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20.0));
+    def->min = 1.0;
+
+    def = this->add("islands_clearance_height", coFloat);
+    def->label = L("Clearance height");
+    def->tooltip = L("Maximum allowed height difference (mm) between two towers of the same composite object before "
+                     "Islands sequencing is disabled. While one tower is printed to its full height, "
+                     "the other one is still at the bottom of the run; if the resulting height difference exceeds the "
+                     "clearance height and the towers are closer than the clearance radius, the moving toolhead could "
+                     "hit the taller tower, so the feature is disabled for the whole print.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20.0));
+    def->min = 1.0;
 
     def = this->add("nozzle_height", coFloat);
     def->label = L("Nozzle height");
@@ -11754,6 +11789,14 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     }
     if (cfg.extruder_clearance_height_to_lid <= 0) {
         error_message.emplace("extruder_clearance_height_to_lid", L("invalid value ") + std::to_string(cfg.extruder_clearance_height_to_lid));
+    }
+
+    // islands clearance
+    if (cfg.islands_clearance_radius <= 0) {
+        error_message.emplace("islands_clearance_radius", L("invalid value ") + std::to_string(cfg.islands_clearance_radius));
+    }
+    if (cfg.islands_clearance_height <= 0) {
+        error_message.emplace("islands_clearance_height", L("invalid value ") + std::to_string(cfg.islands_clearance_height));
     }
     if (cfg.nozzle_height <= 0)
         error_message.emplace("nozzle_height", L("invalid value ") + std::to_string(cfg.nozzle_height));

@@ -230,6 +230,8 @@ set(lisbslic3r_sources
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
+    GCode/Islands.cpp
+    GCode/Islands.hpp
     GCode/TimelapsePosPicker.cpp
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
