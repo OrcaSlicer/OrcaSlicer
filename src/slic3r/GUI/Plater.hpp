@@ -685,6 +685,18 @@ public:
     //BBS: add clone logic
     void clone_selection();
     void center_selection();
+    void distribute_selection_x();
+    void distribute_selection_y();
+    void distribute_selection_z();
+    void align_selection_x_min();
+    void align_selection_x_center();
+    void align_selection_x_max();
+    void align_selection_y_min();
+    void align_selection_y_center();
+    void align_selection_y_max();
+    void align_selection_z_min();
+    void align_selection_z_center();
+    void align_selection_z_max();
     void drop_selection();
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);

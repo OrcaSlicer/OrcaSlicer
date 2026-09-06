@@ -160,6 +160,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoAssembly.hpp
     GUI/Gizmos/GLGizmoBase.cpp
     GUI/Gizmos/GLGizmoBase.hpp
+    GUI/Gizmos/GLGizmoAlignment.cpp
+    GUI/Gizmos/GLGizmoAlignment.hpp
     GUI/Gizmos/GLGizmoBrimEars.cpp
     GUI/Gizmos/GLGizmoBrimEars.hpp
     GUI/Gizmos/GLGizmoCut.cpp

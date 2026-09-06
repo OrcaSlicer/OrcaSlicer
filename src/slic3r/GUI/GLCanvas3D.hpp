@@ -1070,7 +1070,7 @@ public:
     void set_tooltip(const std::string& tooltip);
 
     // the following methods add a snapshot to the undo/redo stack, unless the given string is empty
-    void do_move(const std::string& snapshot_type);
+    void do_move(const std::string& snapshot_type, bool force_volume_move = false);
     void do_rotate(const std::string& snapshot_type);
     void do_scale(const std::string& snapshot_type);
     void do_center();

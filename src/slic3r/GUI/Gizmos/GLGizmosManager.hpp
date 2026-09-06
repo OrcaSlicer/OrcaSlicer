@@ -241,6 +241,7 @@ public:
     void reset_all_states();
     bool open_gizmo(EType type);
     bool check_gizmos_closed_except(EType) const;
+    void check_object_located_outside_plate(bool change_plate = true);
 
     void set_hover_id(int id);
 

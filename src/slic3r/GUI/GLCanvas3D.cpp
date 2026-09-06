@@ -4980,7 +4980,7 @@ void GLCanvas3D::set_tooltip(const std::string& tooltip)
         m_tooltip.set_text(tooltip);
 }
 
-void GLCanvas3D::do_move(const std::string& snapshot_type)
+void GLCanvas3D::do_move(const std::string& snapshot_type, bool force_volume_move)
 {
     if (m_model == nullptr)
         return;
@@ -5012,24 +5012,24 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
 
             // Move instances/volumes
             ModelObject* model_object = m_model->objects[object_idx];
-            if (model_object == nullptr) 
+            if (model_object == nullptr)
                 continue;
 
-            if (selection_mode == Selection::Instance) {
+            if (force_volume_move || selection_mode == Selection::Volume) {
+                auto cur_mv = model_object->volumes[volume_idx];
+                if (cur_mv->get_transformation() != v->get_volume_transformation()) {
+                    cur_mv->set_transformation(v->get_volume_transformation());
+                    // BBS: backup
+                    Slic3r::save_object_mesh(*model_object);
+                }
+            }
+            else if (selection_mode == Selection::Instance) {
                 if (m_canvas_type == GLCanvas3D::ECanvasType::CanvasAssembleView) {
                     if ((model_object->instances[instance_idx]->get_assemble_offset() - v->get_instance_offset()).norm() > 1e-2) {
                         model_object->instances[instance_idx]->set_assemble_transformation(v->get_instance_transformation());
                     }
                 } else {
                     model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-                }
-            }
-            else if (selection_mode == Selection::Volume) {
-                auto cur_mv = model_object->volumes[volume_idx];
-                if (cur_mv->get_transformation() != v->get_volume_transformation()) {
-                    cur_mv->set_transformation(v->get_volume_transformation());
-                    // BBS: backup
-                    Slic3r::save_object_mesh(*model_object);
                 }
             }
 

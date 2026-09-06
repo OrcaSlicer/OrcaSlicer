@@ -138,6 +138,7 @@
 #include "Widgets/MultiNozzleSync.hpp"           // NozzleOption, tryPopUpMultiNozzleDialog, setExtruderNozzleCount
 #include "DeviceCore/DevNozzleSystem.h"          // DevNozzle, GetExtNozzles / GetRackNozzles
 #include "ProjectDirtyStateManager.hpp"
+#include "Gizmos/GLGizmoAlignment.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
 #include "Gizmos/GizmoObjectManipulation.hpp"
@@ -6990,6 +6991,18 @@ struct Plater::priv
     void delete_all_objects_from_model();
     void reset(bool apply_presets_change = false);
     void center_selection();
+    void distribute_selection_x();
+    void distribute_selection_y();
+    void distribute_selection_z();
+    void align_selection_x_min();
+    void align_selection_x_center();
+    void align_selection_x_max();
+    void align_selection_y_min();
+    void align_selection_y_center();
+    void align_selection_y_max();
+    void align_selection_z_min();
+    void align_selection_z_center();
+    void align_selection_z_max();
     void drop_selection();
     void mirror(Axis axis);
     void split_object(bool auto_drop = true);
@@ -10066,6 +10079,78 @@ void Plater::priv::reset(bool apply_presets_change)
 void Plater::priv::center_selection()
 {
     view3D->center_selected();
+}
+
+void Plater::priv::distribute_selection_x()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.distribute_objects(GLGizmoAlignment::AlignType::DISTRIBUTE_X);
+}
+
+void Plater::priv::distribute_selection_y()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.distribute_objects(GLGizmoAlignment::AlignType::DISTRIBUTE_Y);
+}
+
+void Plater::priv::distribute_selection_z()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.distribute_objects(GLGizmoAlignment::AlignType::DISTRIBUTE_Z);
+}
+
+void Plater::priv::align_selection_x_min()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::X_MIN);
+}
+
+void Plater::priv::align_selection_x_center()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::CENTER_X);
+}
+
+void Plater::priv::align_selection_x_max()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::X_MAX);
+}
+
+void Plater::priv::align_selection_y_min()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::Y_MIN);
+}
+
+void Plater::priv::align_selection_y_center()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::CENTER_Y);
+}
+
+void Plater::priv::align_selection_y_max()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::Y_MAX);
+}
+
+void Plater::priv::align_selection_z_min()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::Z_MIN);
+}
+
+void Plater::priv::align_selection_z_center()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::CENTER_Z);
+}
+
+void Plater::priv::align_selection_z_max()
+{
+    GLGizmoAlignment alignment_helper(*view3D->get_canvas3d());
+    alignment_helper.align_objects(GLGizmoAlignment::AlignType::Z_MAX);
 }
 
 void Plater::priv::drop_selection()
@@ -20381,6 +20466,18 @@ void Plater::suppress_background_process(const bool stop_background_process)
 BackgroundSlicingProcess& Plater::background_process() { return p->background_process; }
 
 void Plater::center_selection()             { p->center_selection(); }
+void Plater::distribute_selection_x()       { p->distribute_selection_x(); }
+void Plater::distribute_selection_y()       { p->distribute_selection_y(); }
+void Plater::distribute_selection_z()       { p->distribute_selection_z(); }
+void Plater::align_selection_x_min()        { p->align_selection_x_min(); }
+void Plater::align_selection_x_center()     { p->align_selection_x_center(); }
+void Plater::align_selection_x_max()        { p->align_selection_x_max(); }
+void Plater::align_selection_y_min()        { p->align_selection_y_min(); }
+void Plater::align_selection_y_center()     { p->align_selection_y_center(); }
+void Plater::align_selection_y_max()        { p->align_selection_y_max(); }
+void Plater::align_selection_z_min()        { p->align_selection_z_min(); }
+void Plater::align_selection_z_center()     { p->align_selection_z_center(); }
+void Plater::align_selection_z_max()        { p->align_selection_z_max(); }
 void Plater::drop_selection()               { p->drop_selection(); }
 void Plater::mirror(Axis axis)              { p->mirror(axis); }
 void Plater::split_object(bool auto_drop)   { p->split_object(auto_drop); }
