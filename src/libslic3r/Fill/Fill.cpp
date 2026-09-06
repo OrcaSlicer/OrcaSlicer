@@ -950,7 +950,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.extruder = region_config.internal_solid_filament_id;
                 // Orca: forced fill order applies only to top/bottom surfaces filled with a
                 // center-based pattern; everything else stays at Default to keep batching together.
-                if (params.pattern == ipConcentric || params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral) {
+                if (params.pattern == ipConcentric || params.pattern == ipSpiralInset || params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral) {
                     if (params.extrusion_role == erTopSolidInfill)
                         params.fill_order = region_config.top_surface_fill_order.value;
                     else if (params.extrusion_role == erBottomSurface)
@@ -970,9 +970,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                                                    region_config.sparse_infill_rotate_template.value);
                     params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
 
-                    // Orca: special case; apply smoothing factor only for Hilbert Curve sparse infill.
-                    // FillHilbertCurve::generate clamps and validates the value itself.
-                    if (params.pattern == ipHilbertCurve)
+                    // Orca: the smoothing factor only applies to the sparse infill patterns that
+                    // implement it. The fills clamp and validate the value themselves.
+                    if (is_smoothable_infill_pattern(params.pattern, params.multiline))
                         params.smooth_factor = 0.01 * region_config.sparse_infill_smooth_factor.value;
                 } else {
                     const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;
@@ -1332,7 +1332,8 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.anchor_length     = surface_fill.params.anchor_length;
 		params.anchor_length_max = surface_fill.params.anchor_length_max;
 		params.resolution        = resolution;
-        params.use_arachne       = surface_fill.params.pattern == ipConcentric || surface_fill.params.pattern == ipConcentricInternal;
+        params.use_arachne       = surface_fill.params.pattern == ipConcentric || surface_fill.params.pattern == ipSpiralInset ||
+                                   surface_fill.params.pattern == ipConcentricInternal;
         params.layer_height      = layerm->layer()->height;
         params.lateral_lattice_angle_1   = surface_fill.params.lateral_lattice_angle_1;
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
@@ -1515,6 +1516,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         case ipCubic:
         case ipLine:
         case ipConcentric:
+        case ipSpiralInset:
         case ipHoneycomb:
         case ipLateralHoneycomb:
         case ip3DHoneycomb:

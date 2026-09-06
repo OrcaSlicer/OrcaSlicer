@@ -978,18 +978,16 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
         m_send_job->on_check_ip_address_fail([this, token = std::weak_ptr(m_token)](int result) {
              CallAfter([token, this] {
                 if (token.expired()) { return; }
-                if (this) {
-                    SendFailedConfirm sfcDlg;
-                    auto res = sfcDlg.ShowModal();
-                    m_status_bar->cancel();
+                SendFailedConfirm sfcDlg;
+                auto res = sfcDlg.ShowModal();
+                m_status_bar->cancel();
 
-                    if (res == wxYES) {
-                        wxQueueEvent(m_button_ensure, new wxCommandEvent(wxEVT_BUTTON));
-                    } else if (res == wxAPPLY) {
-                        wxCommandEvent *evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
-                        wxQueueEvent(this, evt);
-                        wxGetApp().show_ip_address_enter_dialog();
-                    }
+                if (res == wxYES) {
+                    wxQueueEvent(m_button_ensure, new wxCommandEvent(wxEVT_BUTTON));
+                } else if (res == wxAPPLY) {
+                    wxCommandEvent *evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
+                    wxQueueEvent(this, evt);
+                    wxGetApp().show_ip_address_enter_dialog();
                 }
             });
         });
@@ -1393,7 +1391,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
             update_print_status_msg(wxEmptyString, true, true);
             m_connecting_panel->Show();
             m_animaicon->Stop();
-            m_animaicon->Enable();
+            m_animaicon->ShowEnabledIcon();
 
             Layout();
             Enable_Send_Button(false);

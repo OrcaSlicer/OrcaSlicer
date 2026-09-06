@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -2843,6 +2843,10 @@ msgstr "编辑"
 msgid "Merge with"
 msgstr "与其合并"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "分解颜色"
+
 msgid "Delete this filament"
 msgstr "移除此耗材"
 
@@ -3123,6 +3127,10 @@ msgstr "组合体"
 
 msgid "Merge parts to an object"
 msgstr "合并零件到对象"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "同时使用可变层高与混色子层可能导致混色质量不佳。"
 
 msgid "Add layers"
 msgstr "添加层"
@@ -4575,6 +4583,23 @@ msgid "The minimal chamber temperature (%d℃) is higher than the target chamber
 msgstr "最低机箱温度(%d℃)高于目标机箱温度(%d℃)。最低值是开始打印的阈值，此时机箱会持续朝目标温度加热，因此它不应超过目标值。该值将被限制到目标值。"
 
 # AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "层高太小，将设置为最小值（%g mm）。"
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "层高超出了打印机设置 -> 挤出机 -> 层高限制中设置的范围，这可能导致打印质量问题。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "是否自动调整到限制值（%g mm）？"
+
+msgid "Adjust"
+msgstr "调整"
+
+# AI Translated
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4624,7 +4649,7 @@ msgstr ""
 "\n"
 "这个数值将被重置为0。"
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "“交替添加额外”与“确保垂直外壳厚度”的”全部“选项不兼容。"
 
 msgid ""
@@ -4670,7 +4695,7 @@ msgstr ""
 "否 - 选择保留支撑独立层高"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height需要小于layer_height。\n"
@@ -4678,7 +4703,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "锁定深度应小于表皮深度。\n"
@@ -4695,6 +4720,13 @@ msgstr ""
 "是否自动更改这些设置？\n"
 "是 - 启用Arachne墙生成器\n"
 "否  - 禁用Arachne墙生成器并将绒毛表面设置为[位移]模式"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "圆盘半径"
+
+msgid "Brim width"
+msgstr "Brim宽度"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "螺旋模式仅在壁环为 1、支撑被禁用、探测结块检测被禁用、顶部壳层为 0、稀疏填充密度为 0 且延时类型为传统时才起作用。"
@@ -4949,6 +4981,14 @@ msgstr "生成校准gcode失败"
 
 msgid "Calibration error"
 msgstr "校准错误"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "此打印机未配置该控件所需的硬件。"
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "此打印机不支持该控件。"
 
 # AI Translated
 msgid "Network unavailable"
@@ -5807,7 +5847,7 @@ msgstr "体积："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "发现G-code路径在层%d，高度为%.2lf mm处有冲突。请将有冲突的对象分离得更远(%s <-> %s)。"
 
@@ -5988,6 +6028,10 @@ msgstr "多设备"
 msgid "Project"
 msgstr "项目"
 
+# AI Translated
+msgid "Device (Web)"
+msgstr "设备（网页）"
+
 msgid "Yes"
 msgstr "是"
 
@@ -6121,10 +6165,10 @@ msgstr "导入 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "加载模型"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "导入 ZIP 压缩文件"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "从 ZIP 压缩文件中导入一个或多个模型"
 
 msgid "Import Configs"
@@ -7602,6 +7646,10 @@ msgstr "自定义当前盘"
 msgid "The %s nozzle can not print %s."
 msgstr "%s 喷嘴无法打印 %s。"
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "在单挤出机打印机上打印混色耗材丝需要频繁换料和冲刷，可能显著增加废料以及喷嘴/废料槽堵塞的风险。"
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "不建议在打印时将 %1% 与 %2% 混合。\n"
@@ -7727,11 +7775,43 @@ msgstr "从AMS同步材料列表"
 msgid "Set filaments to use"
 msgstr "配置可选择的材料"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "添加混合耗材丝"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "混合耗材丝"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "移除最后一个混合耗材丝"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "添加混合耗材丝"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "混合耗材丝的组分无效或不匹配。请重新编辑受影响的条目。"
+
 msgid "Search plate, object and part."
 msgstr "搜索盘、模型和零件。"
 
 msgid "Pellets"
 msgstr "颗粒"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "混合耗材丝的组分引用已失效"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "编辑 / 删除 / 合并"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "目标混合耗材丝将此物理耗材丝用作组分。合并将移除此物理耗材丝，并可能使该混合耗材丝失效。是否继续？"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -7869,8 +7949,8 @@ msgstr "请确认这些预设中的G-codes是否安全，以防止对机器造�
 msgid "Customized Preset"
 msgstr "自定义的预设"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "STEP 文件中的部件名称不是 UTF8 格式！"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "STEP 文件中的部件名称不是 UTF-8 格式！"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7892,7 +7972,7 @@ msgstr "对象的体积为零"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "文件 %s 中对象的尺寸过小，似乎是以米（m）或者英寸（inch）为单位定义的。\n"
 "OrcaSlicer的内部单位为毫米（mm）。是否要转换成毫米（mm）？"
@@ -7912,6 +7992,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "检测到多部分对象"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "正在将纹理匹配到耗材丝"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "纹理导入警告"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "将这些文件加载为一个多零件对象？\n"
@@ -8028,21 +8116,21 @@ msgstr "未选择替换目录"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "替换为目录中的 3D 文件：\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ 跳过 %1%：同一文件。\n"
+#, c-format, boost-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ 跳过 %s：同一文件。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ 跳过%1%：文件不存在。\n"
+#, c-format, boost-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ 跳过%s：文件不存在。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ 跳过%1%：替换失败。\n"
+#, c-format, boost-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ 跳过%s：替换失败。\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ 替换了 %1%。\n"
+#, c-format, boost-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ 替换了 %s。\n"
 
 msgid "Replaced volumes"
 msgstr "替换的卷"
@@ -8117,6 +8205,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "立即同步"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "纹理导入失败。模型中似乎包含纹理数据，但纹理导入过程未能完成。将仅导入模型的几何数据。"
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "正在应用纹理颜色..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "正在更新 3D 视图..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "纹理颜色已应用。"
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "您可以保留修改的预设到新项目中或者忽略这些修改"
@@ -8767,6 +8871,18 @@ msgstr "启用此选项后，您可以同时向多个设备发送任务并管理
 msgid "Pop up to select filament grouping mode"
 msgstr "弹出选择耗材丝分组模式"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "可见插件页数"
+
+# AI Translated
+msgid "pages"
+msgstr "页"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "作为固定标签显示的插件页数量，其余页面将折叠到最后一个标签的下拉菜单中。"
+
 msgid "Behaviour"
 msgstr "行为"
 
@@ -9122,6 +9238,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "在打印机和耗材下拉列表中显示不兼容/不受支持的预设。这些预设无法被选择。"
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "（实验性）使用打印机代理替代打印主机"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"非 Bambu 打印机的打印任务将通过打印机插件代理发送，而不是经典的打印主机上传流程。\n"
+"禁用时，OrcaSlicer 使用旧的打印主机行为。"
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "实验性功能"
 
@@ -9329,6 +9457,10 @@ msgstr "旋转花瓶"
 msgid "First layer filament sequence"
 msgstr "首层耗材打印顺序"
 
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "耗材丝列表中包含混合耗材丝。自定义耗材丝顺序将不会生效。"
+
 msgid "By Layer"
 msgstr "逐层"
 
@@ -9385,8 +9517,24 @@ msgstr "用户预设"
 msgid "Preset Inside Project"
 msgstr "项目预设"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "将父预设继承的所有数值复制到当前预设，并解除继承关系。仅与父预设兼容的预设可能会变为不受支持。"
+
 msgid "Detach from parent"
 msgstr "与父级分离"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "独立预设"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "父预设"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "此预设未继承自其它预设。"
 
 msgid "Name is unavailable."
 msgstr "名称不可用。"
@@ -10093,24 +10241,6 @@ msgstr "您确定要启用此选项吗？"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "填充图案通常设计为自动处理旋转，以确保正确打印并实现其预期效果（例如，Gyroid、Cubic）。旋转当前的稀疏填充图案可能会导致支撑不足。请谨慎操作并彻底检查是否存在任何潜在的打印问题。您确定要启用此选项吗？"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"层高太小。\n"
-"将设置为min_layer_height\n"
-"层高太小。\n"
-"将自动设置为min_layer_height的值\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "层高超出了打印机设置->挤出机->层高限制中的范围，这可能导致打印质量问题。"
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "是否自动调整到范围内？\n"
-
-msgid "Adjust"
-msgstr "调整"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "实验性选项。在更换耗材丝时，将耗材丝回抽一段距离后再切断以最小化冲刷。虽然这可以显著减少冲刷，但也可能增加喷嘴堵塞或其他打印问题的风险。"
 
@@ -10303,6 +10433,9 @@ msgstr "检测到保留的关键字"
 msgid "Setting Overrides"
 msgstr "参数覆盖"
 
+msgid "Retraction when switching material"
+msgstr "切换材料时的回抽量"
+
 msgid "Basic information"
 msgstr "基础信息"
 
@@ -10433,6 +10566,12 @@ msgstr "兼容的切片配置"
 msgid "Printable space"
 msgstr "可打印区域"
 
+msgid "Printer Agent"
+msgstr "打印机代理"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "为打印机通信选择网络代理。可用的代理将在启动时列出。"
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10558,9 +10697,6 @@ msgstr "层高限制"
 msgid "Z-Hop"
 msgstr "Z轴抬升"
 
-msgid "Retraction when switching material"
-msgstr "切换材料时的回抽量"
-
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
 "\n"
@@ -10674,12 +10810,12 @@ msgid "No modifications need to be copied."
 msgstr "没有需要复制的修改。"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "复制参数"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "修改 %s 的参数"
 
 # AI Translated
@@ -11193,27 +11329,6 @@ msgstr "耗材丝更换时的冲刷体积"
 
 msgid "Please choose the filament colour"
 msgstr "请选择耗材丝颜色"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "原生 Wayland 实时画面需要 GStreamer GTK 视频接收器。请安装 GStreamer 的 gtksink 插件，然后重启 OrcaSlicer。"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "原生 Wayland GStreamer 视频接收器初始化失败。请检查您的 GStreamer GTK 插件安装情况。"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "此任务需要 Windows Media Player！您是否要为您的操作系统启用'Windows Media Player'？"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource 未正确注册用于媒体播放！按是重新注册它。您将被提示两次"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "缺少用于媒体播放的已注册 BambuSource 组件！请重新安装 OrcaSlicer 或寻求社区帮助。"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "使用来自不同安装的 BambuSource，视频播放可能无法正常工作！按是修复它。"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "您的系统缺少 GStreamer 所需的 H.264 编解码器，这是播放视频所必需的。（尝试安装 gstreamer1.0-plugins-bad 或 gstreamer1.0-libav 软件包，然后重新启动 Orca Slicer？）"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "云代理不可用。请重启 OrcaSlicer 后重试。"
@@ -11911,6 +12026,10 @@ msgstr "离不可打印区域太近，会发生碰撞。\n"
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr "距离聚集检测区域太近，会引起碰撞。\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr "有部分超出可打印区域，无法打印。\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "所选的喷嘴温度不兼容。每种耗材的喷嘴温度都必须落在其他耗材的推荐喷嘴温度范围内。否则可能会发生喷嘴堵塞或打印机损坏。"
 
@@ -11922,6 +12041,10 @@ msgstr "如果您仍要打印，可以在 偏好设置 / 控制 / 切片 / 移�
 
 msgid "No extrusions under current settings."
 msgstr "根据当前设置，不会生成任何打印。"
+
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "使用了渐变混合耗材丝，但“混色子层”已关闭。渐变将不会被打印。"
 
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "平滑模式的延时摄影不支持在逐件打印模式下使用。"
@@ -11958,6 +12081,10 @@ msgstr "或许您想要缩小模型的尺寸，或者更改当前打印设置，
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Organic支撑不支持可变层高。"
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "擦拭塔耗材丝不能是混合耗材丝。"
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "当启用擦拭塔时，不同的喷嘴直径和不同的耗材丝直径可能无法很好地工作。这是非常实验性的，所以请谨慎操作。"
@@ -12224,9 +12351,6 @@ msgstr "使用 3MF 代替 G-code"
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "如果打印机接受 3MF 文件作为打印任务，请启用此选项。启用后，Orca Slicer 将以 .gcode.3mf 格式发送切片文件，而不是普通的 .gcode 文件。"
 
-msgid "Printer Agent"
-msgstr "打印机代理"
-
 msgid "Select the network agent implementation for printer communication."
 msgstr "选择打印机通信的网络代理实施。"
 
@@ -12309,7 +12433,7 @@ msgstr "mm 或 %"
 msgid "Other layers"
 msgstr "其它层"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "除首层外的其他层的热床温度。0值表示该耗材丝不支持在Cool Plate SuperTack上打印。"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -12861,9 +12985,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "内部桥接的速度。如果该值以百分比表示，将基于桥接速度计算。默认值为150%。"
 
-msgid "Brim width"
-msgstr "Brim宽度"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "从模型到最外圈brim走线的距离"
 
@@ -12943,6 +13064,14 @@ msgid ""
 msgstr ""
 "在检测尖锐角度之前，几何形状将被简化。此参数表示简化的最小偏差长度。\n"
 "设为0以停用"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "仅外轮廓生成圆盘"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "仅在模型的外轮廓上生成圆盘，不包括孔洞和封闭区域。"
 
 msgid "upward compatible machine"
 msgstr "向上兼容的机器"
@@ -13625,6 +13754,8 @@ msgstr "层时间"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "当层预估打印时间小于该数值时，部件冷却风扇将会被开启。风扇转速将根据层打印时间在最大和最小风扇转速之间插值获得"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -13943,6 +14074,62 @@ msgstr "支撑材料"
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "支撑材料通常用于打印支撑体和支撑接触面"
 
+# AI Translated
+msgid "Is mixed filament"
+msgstr "是否为混合耗材丝"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "该耗材丝槽位是否为由多种物理耗材丝组成的混合耗材丝"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "混合耗材丝组分"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "以逗号分隔的组分耗材丝序号（从 1 开始），例如 \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "混合耗材丝子层比例"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "以逗号分隔、总和为 1.0 的比例值，例如 \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "混合耗材丝渐变"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "为混合耗材丝的子层启用 Z 方向渐变模式。启用后，子层比例会随层数线性变化。"
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "混合耗材丝渐变范围"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "渐变模式下第一个组分的起始和结束比例。以逗号分隔的一对数值，例如 \"0.10,0.90\" 表示从 10% 到 90%。"
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "混合耗材丝渐变曲线"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "可选的 Photoshop 风格自定义曲线，将 Z 方向进度映射到第一个组分的比例。以竖线分隔的控制点进行编码，格式为 \"x,y\"（旧格式）或在需要覆盖切线时使用 \"x,y,m_in,m_out\"（留空或填 \"nan\" 表示使用 PCHIP 默认值）。x 取值范围为 [0,1]；y 会被限制在所配置的比例范围内，例如 \"0,0.15|0.5,0.50|1,0.85\"。留空时改用线性的 gradient_range。"
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "混合耗材丝逐零件渐变"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "启用渐变模式时，对组合体中的每个零件分别应用渐变，而不是将整个组合体视为一个 Z 范围。"
+
 msgid "Filament printable"
 msgstr "可打印耗材"
 
@@ -14118,6 +14305,14 @@ msgstr "TPMS-FK结构"
 
 msgid "Gyroid"
 msgstr "螺旋体"
+
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "稀疏填充平滑系数"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "控制稀疏填充拐角的圆滑程度。0% 保持原有的尖锐路径，100% 则在相邻填充线之间生成尽可能大的圆弧。"
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "顶面填充的加速度。使用较低值可能会改善顶面质量"
@@ -14659,6 +14854,14 @@ msgstr "打印机兼容的G-code风格'"
 msgid "Klipper"
 msgstr "Klipper固件"
 
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "跳过 G-code 配置块"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "不将 CONFIG_BLOCK（切片软件配置的键值对）写入 G-code 文件。这对固件在解析这些注释行时会崩溃的打印机（例如 Anycubic go-klipper）有帮助。注意：G-code 文件将不再包含切片设置，因此重新导入到 OrcaSlicer 时无法恢复配置。"
+
 msgid "Pellet Modded Printer"
 msgstr "颗粒改装打印机"
 
@@ -15178,6 +15381,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Y 轴允许的最大输出力"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15190,6 +15394,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Y 轴的机器热床质量负载"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -15497,7 +15702,7 @@ msgstr "从切割区域到垃圾桶的起始和结束点。"
 msgid "Reduce infill retraction"
 msgstr "减小填充回抽"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使漏料也是不可见的。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成G-code生成变慢"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -15668,7 +15873,7 @@ msgstr "擦拭后的回抽量"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "擦拭后快速回抽的长度，相对于回抽长度。\n"
@@ -15704,10 +15909,18 @@ msgstr "更换挤出机时长回缩"
 msgid "Retraction distance when extruder change"
 msgstr "更换挤出机时的回缩距离"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "回抽长度（换工具头）"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "在换工具头之前触发回抽时，耗材丝会按指定的长度回抽（长度是在耗材丝进入挤出机之前，以原始耗材丝测量的）。"
+
 msgid "Z-hop height"
 msgstr "Z抬升高度"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "回抽完成之后，喷嘴轻微抬升，和打印件之间产生一定间隙。这能够避免空驶时喷嘴和打印件剐蹭和碰撞。使用螺旋线抬升z能够减少拉丝。"
 
 msgid "Z-hop lower boundary"
@@ -15796,6 +16009,10 @@ msgstr "额外回填长度"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "每当空驶后回抽被补偿时，挤出机将推入额外数量的耗材丝。很少需要此设置。"
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "额外回填长度（换工具头）"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "当换色后回抽被补偿时，挤出机将推入额外数量的耗材丝。"
@@ -16210,6 +16427,14 @@ msgstr "在擦拭塔上换头"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "在发出换头命令 (Tx) 之前，强制打印头先移动到擦拭塔。仅与使用第 2 类擦拭塔的多挤出机（多打印头）打印机相关。默认情况下，Orca 会在多打印头机器上跳过此移动，因为固件会处理换头，这可能导致 Tx 命令在打印件上方发出。如果您希望换头命令始终在擦拭塔上方发出，请启用此选项。"
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "在擦拭塔上等待温度"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "拾取新工具头后不等待其达到打印温度，直接移动到擦拭塔，并在冲刷前于擦拭塔上等待温度。升温过程中渗出的耗材丝会落在擦拭塔上而不是模型上，且移动时间与加热过程重叠。仅适用于使用 2 型擦拭塔的多挤出机（多工具头）打印机。固件或换工具头宏本身不得等待温度。禁用时，等待温度的指令将在换工具头命令之后立即发出。"
 
 msgid "No sparse layers (beta)"
 msgstr "无稀疏层 （实验功能）"
@@ -16740,6 +16965,14 @@ msgstr ""
 "根据擦拭操作的距离以及挤出机/耗材丝回抽的速度和长度，可能需要执行额外的回抽动作以收回剩余的丝材。\n"
 "\n"
 "在下方的擦拭前回抽量设置中输入一个数值，将在擦拭动作之前执行任何超出部分的回抽，否则超出部分的回抽将在擦拭之后执行。"
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "混色子层"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "启用混色子层拆分。启用后，含有混色耗材丝的层将被拆分为子层，以实现混色效果。"
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "擦拭塔可以用来清理喷嘴上的残留料和让喷嘴内部的腔压达到稳定状态，以避免打印物体时出现外观瑕疵。"
@@ -17815,6 +18048,10 @@ msgstr "模型文件的网格划分失败，或缺少有效的形状。"
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "无法读取提供的文件，因为该文件内容为空。"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "文件格式不兼容，无法解析。"
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "未知的文件格式。输入文件的扩展名必须为 .stl、.obj 或 .amf（.xml）。"
@@ -19280,17 +19517,17 @@ msgstr "仅显示对打印机、耗材和工艺预设有改动的打印机名称
 msgid "Only display the filament names with changes to filament presets."
 msgstr "仅显示对耗材预设有改动的耗材名称。"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "只显示带有用户打印机预设的打印机名称，并且您选择的每个预设都将导出为一个 ZIP 文件。"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr "只显示带有用户耗材预设的耗材名称，您选择的每个耗材名称中的所有用户耗材预设都将导出为一个 ZIP 文件。"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr "只显示带有更改的工艺预设的打印机名称，您选择的每个打印机名称中的所有用户工艺预设都将导出为一个 ZIP 文件。"
 
 msgid "Please select at least one printer or filament."
@@ -19433,9 +19670,6 @@ msgstr "物理打印机"
 msgid "Print Host upload"
 msgstr "打印主机上传"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "为打印机通信选择网络代理。可用的代理将在启动时列出。"
-
 msgid "Select a Flashforge printer"
 msgstr "选择一台 Flashforge 打印机"
 
@@ -19532,7 +19766,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "我们需要相关信息来诊断问题的根源。请查看 wiki 页面获取详细指南。"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "“打包”按钮会将当前会话的项目文件和日志收集到一个 zip 文件中。"
 
 # AI Translated
@@ -19588,7 +19822,7 @@ msgid "Stored logs"
 msgstr "已存储的日志"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "将所有已存储的日志打包到一个 zip 文件中。"
 
 # AI Translated
@@ -19668,7 +19902,7 @@ msgstr "未找到打印机类型，请手动选择。"
 msgid "Authorizing..."
 msgstr "正在授权..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "错误。无法获取用于授权的 API 令牌"
 
 msgid "Could not parse server response."
@@ -20118,8 +20352,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "启用智能耗材分配：将一种耗材分配给多个喷嘴以最大化节省"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "耗材节省"
+msgid "File Saving"
+msgstr "文件保存"
 
 msgid "Don't remind me again"
 msgstr "不再提醒"
@@ -20325,9 +20559,6 @@ msgstr "在尝试登录时发生了异常，请重试。"
 msgid "User canceled."
 msgstr "用户已取消。"
 
-msgid "Head diameter"
-msgstr "Brim 直径"
-
 msgid "Max angle"
 msgstr "最大角度"
 
@@ -20486,6 +20717,9 @@ msgstr "立即重启"
 
 msgid "NO RAMMING AT ALL"
 msgstr "完全不挤压"
+
+msgid "s"
+msgstr "s"
 
 msgid "Volumetric speed"
 msgstr "体积流量"
@@ -21110,6 +21344,57 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "原生 Wayland 实时画面需要 GStreamer GTK 视频接收器。请安装 GStreamer 的 gtksink 插件，然后重启 OrcaSlicer。"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "原生 Wayland GStreamer 视频接收器初始化失败。请检查您的 GStreamer GTK 插件安装情况。"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "此任务需要 Windows Media Player！您是否要为您的操作系统启用'Windows Media Player'？"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource 未正确注册用于媒体播放！按是重新注册它。您将被提示两次"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "缺少用于媒体播放的已注册 BambuSource 组件！请重新安装 OrcaSlicer 或寻求社区帮助。"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "使用来自不同安装的 BambuSource，视频播放可能无法正常工作！按是修复它。"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "您的系统缺少 GStreamer 所需的 H.264 编解码器，这是播放视频所必需的。（尝试安装 gstreamer1.0-plugins-bad 或 gstreamer1.0-libav 软件包，然后重新启动 Orca Slicer？）"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "耗材节省"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "层高太小。\n"
+#~ "将设置为min_layer_height\n"
+#~ "层高太小。\n"
+#~ "将自动设置为min_layer_height的值\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "层高超出了打印机设置->挤出机->层高限制中的范围，这可能导致打印质量问题。"
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "是否自动调整到范围内？\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Brim 直径"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "同一层内的打印顺序"

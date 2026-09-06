@@ -906,7 +906,7 @@ void PrintObject::detect_overhangs_for_lift()
                     Layer& lower_layer = *layer.lower_layer;
 
                     ExPolygons overhangs = diff_ex(layer.lslices, offset_ex(lower_layer.lslices, scale_(min_overlap)));
-                    layer.loverhangs = std::move(offset2_ex(overhangs, -0.1f * scale_(line_width), 0.1f * scale_(line_width)));
+                    layer.loverhangs = offset2_ex(overhangs, -0.1f * scale_(line_width), 0.1f * scale_(line_width));
                     layer.loverhangs_bbox = get_extents(layer.loverhangs);
                 }
             });
@@ -2666,7 +2666,7 @@ void PrintObject::bridge_over_infill()
     // SECTION to gather and filter surfaces for expanding, and then cluster them by layer
     {
         tbb::concurrent_vector<CandidateSurface> candidate_surfaces;
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = static_cast<const PrintObject *>(this), &candidate_surfaces, has_lightning_infill](tbb::blocked_range<size_t> r) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = static_cast<const PrintObject *>(this), &candidate_surfaces](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
             for (size_t lidx = r.begin(); lidx < r.end(); lidx++) {
                 const Layer *layer = po->get_layer(lidx);
@@ -3812,7 +3812,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         else {
                             ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(my_opt);
                             const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(it->second.get());
-                            opt_vec_src->set_to_index(opt_vec_dest, variant_index, 1);
+                            set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index);
                         }
                     }
                 }

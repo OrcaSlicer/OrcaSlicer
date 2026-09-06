@@ -8,7 +8,9 @@
 
 #ifdef _MSC_VER
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
 #endif /* _MSC_VER */
 
@@ -147,6 +149,9 @@ Semver get_version_from_json(std::string file_path)
         return Semver();
         //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file_path, err.what()));
     }
+    catch(...) {
+        return Semver();
+    }
 }
 
 //BBS: add a function to load the key-values from xxx.json
@@ -261,18 +266,28 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
         }
     };
 
+    // The four variant sets are immutable after static init and probed for every
+    // key of every preset loaded; one merged map makes that a single lookup.
+    // emplace keeps the first insertion, preserving the first-set-wins priority
+    // of the else-if chain this replaces.
+    static const std::unordered_map<std::string, int> variant_class = [] {
+        std::unordered_map<std::string, int> m;
+        for (const std::string& k : print_options_with_variant)     m.emplace(k, 0);
+        for (const std::string& k : filament_options_with_variant)  m.emplace(k, 1);
+        for (const std::string& k : printer_options_with_variant_1) m.emplace(k, 2);
+        for (const std::string& k : printer_options_with_variant_2) m.emplace(k, 3);
+        return m;
+    }();
+
     for(auto& key :config.keys()){
-        if(auto iter = print_options_with_variant.find(key); iter != print_options_with_variant.end()){
-            replace_nil_and_resize(key, process_variant_length);
-        }
-        else if(auto iter = filament_options_with_variant.find(key); iter != filament_options_with_variant.end()){
-            replace_nil_and_resize(key, filament_variant_length);
-        }
-        else if(auto iter = printer_options_with_variant_1.find(key); iter != printer_options_with_variant_1.end()){
-            replace_nil_and_resize(key, machine_variant_length);
-        }
-        else if(auto iter = printer_options_with_variant_2.find(key); iter != printer_options_with_variant_2.end()){
-            replace_nil_and_resize(key, machine_variant_length * 2);
+        auto iter = variant_class.find(key);
+        if (iter == variant_class.end())
+            continue;
+        switch (iter->second) {
+        case 0: replace_nil_and_resize(key, process_variant_length); break;
+        case 1: replace_nil_and_resize(key, filament_variant_length); break;
+        case 2: replace_nil_and_resize(key, machine_variant_length); break;
+        case 3: replace_nil_and_resize(key, machine_variant_length * 2); break;
         }
     }
 }
@@ -968,15 +983,19 @@ BedType Preset::get_default_bed_type(PresetBundle* preset_bundle)
     if (config.has("default_bed_type") && !config.opt_string("default_bed_type").empty()) {
         try {
             std::string str_bed_type = config.opt_string("default_bed_type");
-            
-            // Try parsing as integer first (legacy format)
+            BedType bed_type;
+            if (ConfigOptionEnum<BedType>::from_string(str_bed_type, bed_type) &&
+                bed_type > btDefault && bed_type < btCount) {
+                return bed_type;
+            }
+
+            // Try parsing as integer (legacy format)
             int bed_type_value = atoi(str_bed_type.c_str());
-            if (bed_type_value > 0) {
+            if (bed_type_value > 0 && bed_type_value < BedType::btCount) {
                 return BedType(bed_type_value);
             }
-            else {
-                BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
-            }
+
+            BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
             return BedType::btPEI;
 
         } catch(...) {
@@ -1170,6 +1189,7 @@ static std::vector<std::string> s_Preset_print_options{
     "flush_into_infill",
     "flush_into_objects",
     "flush_into_support",
+    "enable_mixed_color_sublayer",
     "tree_support_branch_angle",
     "tree_support_angle_slow",
     "tree_support_wall_count",
@@ -1423,7 +1443,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "use_relative_e_distances", "extruder_type", "use_firmware_retraction", "printer_notes",
     "grab_length", "support_object_skip_flush", "physical_extruder_map",
     "cooling_tube_retraction",
-    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
+    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower", "wait_for_temp_on_wipe_tower",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset",

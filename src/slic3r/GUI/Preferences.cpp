@@ -79,7 +79,7 @@ public:
         Bind(wxEVT_LEFT_DOWN,    &WikiLabel::OnLeftDown, this);
     }
 
-    void SetLabel(const wxString& label)
+    void SetLabel(const wxString& label) override
     {
         m_label = label;
         m_last_wrap_width = -1; // force re-wrap
@@ -519,7 +519,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                 }
             }
 
-            auto check = [this](bool yes_or_no) {
+            auto check = [](bool yes_or_no) {
                 // if (yes_or_no)
                 //    return true;
                 int act_btns = ActionButtons::SAVE;
@@ -1200,7 +1200,7 @@ wxBoxSizer* PreferencesDialog::create_item_button(wxString title, wxString title
     m_button_download->SetStyle(title2 == _L("Clear") ? ButtonStyle::Alert : ButtonStyle::Regular, ButtonType::Parameter);
     m_button_download->SetToolTip(tooltip2.IsEmpty() ? tooltip : tooltip2); // use label tooltip if button tooltip empty
 
-    m_button_download->Bind(wxEVT_BUTTON, [this, onclick](auto &e) { onclick(); });
+    m_button_download->Bind(wxEVT_BUTTON, [onclick](auto &e) { onclick(); });
 
     m_sizer->Add(m_button_download, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -1490,7 +1490,7 @@ void PreferencesDialog::create()
     m_sizer_body = new wxBoxSizer(wxVERTICAL);
 
     m_pref_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
-    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
+    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable right select
     m_pref_tabs->SetFont(Label::Body_14);
 
     create_items();
@@ -1748,11 +1748,26 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
+    //// GENERAL > Plugins
+    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
+
+    auto item_plugin_pages_visible_count = create_item_spinctrl(
+        _L("Visible plugin pages"),
+        "",
+        _L("pages"),
+        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
+        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
+        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
+        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
+        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
+    );
+    g_sizer->Add(item_plugin_pages_visible_count);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
-    //// CONTROL TAB 
+    //// CONTROL TAB
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));

@@ -501,6 +501,7 @@ void SelectMachinePopup::update_other_devices()
     DeviceManager* dev = wxGetApp().getDeviceManager();
     if (!dev) return;
     m_free_machine_list = dev->get_local_machinelist();
+    const std::string current_agent_id = dev->get_current_printer_agent_id();
 
     BOOST_LOG_TRIVIAL(trace) << "SelectMachinePopup update_other_devices start";
     this->Freeze();
@@ -511,6 +512,10 @@ void SelectMachinePopup::update_other_devices()
         MachineObject *     mobj = elem.second;
         /* do not show printer bind state is empty */
         if (!mobj->is_avaliable()) continue;
+
+        /* do not show devices discovered/bound by a different printer agent */
+        if (mobj->printer_agent_id != current_agent_id)
+            continue;
 
         if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider()) && !mobj->is_lan_mode_printer())
             continue;
@@ -562,7 +567,7 @@ void SelectMachinePopup::update_other_devices()
             }
         }
 
-        op->Bind(EVT_CONNECT_LAN_PRINT, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
                 if (mobj->is_lan_mode_printer()) {
                     ConnectPrinterDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Input access code"));
@@ -574,7 +579,7 @@ void SelectMachinePopup::update_other_devices()
             }
         });
 
-        op->Bind(EVT_BIND_MACHINE, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_BIND_MACHINE, [mobj](wxCommandEvent &e) {
             BindMachineDialog dlg;
             dlg.update_machine_info(mobj);
             int dlg_result = wxID_CANCEL;
@@ -634,7 +639,7 @@ void SelectMachinePopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list();
+    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;
@@ -695,7 +700,7 @@ void SelectMachinePopup::update_user_devices()
                     op->set_printer_state(PrinterState::LOCK);
                 }
             }
-            op->Bind(EVT_UNBIND_MACHINE, [this, dev, mobj](wxCommandEvent& e) {
+            op->Bind(EVT_UNBIND_MACHINE, [dev, mobj](wxCommandEvent& e) {
                 dev->set_selected_machine("");
                 if (mobj) {
                     AppConfig* config = wxGetApp().app_config;
@@ -704,7 +709,6 @@ void SelectMachinePopup::update_user_devices()
                     }
 
                     mobj->set_access_code("");
-                    mobj->erase_user_access_code();
                 }
 
                 if (GUI::wxGetApp().plater())
@@ -716,7 +720,7 @@ void SelectMachinePopup::update_user_devices()
         }
         else {
             op->show_printer_bind(true, PrinterBindState::ALLOW_UNBIND);
-            op->Bind(EVT_UNBIND_MACHINE, [this, mobj, dev](wxCommandEvent& e) {
+            op->Bind(EVT_UNBIND_MACHINE, [mobj, dev](wxCommandEvent& e) {
                 // show_unbind_dialog
                 UnBindMachineDialog dlg;
                 dlg.update_machine_info(mobj);
@@ -743,7 +747,7 @@ void SelectMachinePopup::update_user_devices()
             }
         }
 
-        op->Bind(EVT_CONNECT_LAN_PRINT, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
                 if (mobj->is_lan_mode_printer()) {
                     ConnectPrinterDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Input access code"));
@@ -755,7 +759,7 @@ void SelectMachinePopup::update_user_devices()
             }
         });
 
-         op->Bind(EVT_EDIT_PRINT_NAME, [this, mobj](wxCommandEvent &e) {
+         op->Bind(EVT_EDIT_PRINT_NAME, [mobj](wxCommandEvent &e) {
             EditDevNameDialog dlg;
             dlg.set_machine_obj(mobj);
             dlg.ShowModal();

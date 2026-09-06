@@ -4,6 +4,7 @@
 #include "../Preset.hpp"
 #include "../Utils.hpp"
 #include "../LocalesUtils.hpp"
+#include "../FilamentMixer.hpp"
 #include "../GCode.hpp"
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
@@ -246,6 +247,8 @@ static constexpr const char* BUILD_TAG = "build";
 static constexpr const char* ITEM_TAG = "item";
 static constexpr const char* METADATA_TAG = "metadata";
 static constexpr const char* FILAMENT_TAG = "filament";
+static constexpr const char* MIXED_FILAMENT_TAG = "mixed_filament";
+static constexpr const char* MIXED_FILAMENT_COMPONENTS_TAG = "components";
 static constexpr const char* SLICE_WARNING_TAG = "warning";
 static constexpr const char* WARNING_MSG_TAG = "msg";
 static constexpr const char *FILAMENT_ID_TAG   = "id";
@@ -1315,6 +1318,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _handle_end_config_metadata();
 
         bool _handle_start_config_filament(const char** attributes, unsigned int num_attributes);
+        bool _handle_start_config_mixed_filament(const char** attributes, unsigned int num_attributes);
         bool _handle_end_config_filament();
 
         bool _handle_start_config_warning(const char** attributes, unsigned int num_attributes);
@@ -2694,6 +2698,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return;
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
+
+            // Heal any gradient-curve slots corrupted by the legacy "|" separator collision
+            // (see FilamentMixer::sanitize_mixed_gradient_curve_array). The 3MF JSON itself
+            // is safe (";" + C-style escape), but older projects saved through the buggy
+            // export_selections/load_selections path may already carry single-point entries
+            // that fail MakerWorld's "curve needs >= 2 points" check.
+            if (auto* curve_opt = config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
+                Slic3r::sanitize_mixed_gradient_curve_array(curve_opt->values);
         }
     }
 
@@ -3511,6 +3523,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             res = _handle_start_config_plater_instance(attributes, num_attributes);
         else if (::strcmp(FILAMENT_TAG, name) == 0)
             res = _handle_start_config_filament(attributes, num_attributes);
+        else if (::strcmp(MIXED_FILAMENT_TAG, name) == 0)
+            res = _handle_start_config_mixed_filament(attributes, num_attributes);
         else if (::strcmp(SLICE_WARNING_TAG, name) == 0)
             res = _handle_start_config_warning(attributes, num_attributes);
         else if (::strcmp(NOZZLE_TAG, name) == 0)
@@ -4680,6 +4694,23 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             filament_info.nozzle_diameter = atof(nozzle_diameter.c_str());
             filament_info.nozzle_volume_type = volume_type;
             m_curr_plater->slice_filaments_info.push_back(filament_info);
+        }
+        return true;
+    }
+
+    bool _BBS_3MF_Importer::_handle_start_config_mixed_filament(const char** attributes, unsigned int num_attributes)
+    {
+        if (m_curr_plater) {
+            std::string id         = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_ID_TAG);
+            std::string type       = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_TYPE_TAG);
+            std::string color      = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_COLOR_TAG);
+            std::string components = bbs_get_attribute_value_string(attributes, num_attributes, MIXED_FILAMENT_COMPONENTS_TAG);
+            PlateMixedFilamentInfo mixed_info;
+            mixed_info.id         = atoi(id.c_str());
+            mixed_info.type       = type;
+            mixed_info.color      = color;
+            mixed_info.components = components;
+            m_curr_plater->mixed_filaments_info.push_back(mixed_info);
         }
         return true;
     }
@@ -8488,6 +8519,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                            << FILAMENT_USED_FOR_SUPPORT << "=\"" << std::boolalpha << it->used_for_support << "\"/>\n";
                 }
 
+                // Mixed (virtual) filaments used by this plate. These are resolved to physical
+                // components before g-code statistics, so they are not present in the <filament>
+                // list above and are recorded separately here.
+                for (auto it = plate_data->mixed_filaments_info.begin(); it != plate_data->mixed_filaments_info.end(); it++)
+                {
+                    stream << "    <" << MIXED_FILAMENT_TAG << " " << FILAMENT_ID_TAG << "=\"" << std::to_string(it->id) << "\" "
+                           << FILAMENT_TYPE_TAG << "=\"" << it->type << "\" "
+                           << FILAMENT_COLOR_TAG << "=\"" << it->color << "\" "
+                           << MIXED_FILAMENT_COMPONENTS_TAG << "=\"" << it->components << "\"/>\n";
+                }
+
                 for (auto it = plate_data->warnings.begin(); it != plate_data->warnings.end(); it++) {
                     stream << "    <" << SLICE_WARNING_TAG << " msg=\"" << it->msg << "\" level=\"" << std::to_string(it->level) << "\" error_code =\"" << it->error_code << "\"  />\n";
                 }
@@ -8921,7 +8963,7 @@ private:
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inital and interval = " << m_interval;
         m_next_backup = boost::get_system_time() + boost::posix_time::seconds(m_interval);
         boost::unique_lock lock(m_mutex);
-        m_thread = std::move(boost::thread(boost::ref(*this)));
+        m_thread = boost::thread(boost::ref(*this));
     }
 
     ~_BBS_Backup_Manager() {
