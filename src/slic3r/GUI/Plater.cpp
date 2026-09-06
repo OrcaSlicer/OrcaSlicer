@@ -2421,6 +2421,9 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
      }
  }
 
+// Defined below; also used by the sidebar's printer-materials button above it.
+template<typename T> void setup_dialog_position(T& info);
+
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
@@ -2520,7 +2523,20 @@ Sidebar::Sidebar(Plater *parent)
                 size_t         tool_count     = resolve_active_printer_tool_count(store);
                 const Preset  &printer_preset = active_printer_session().profile();
                 FilamentInventoryEditor dlg(this, printer_preset.name, tool_count);
+                // Where the user last left it (the main frame's own saved-geometry helpers),
+                // else beside the printer section on the side the sidebar's other dialogs use.
+                // The size is always the dialog's own fit: the tool count changes it.
+                if (wxGetApp().window_pos_restore(&dlg, "filament_inventory_editor")) {
+                    dlg.Fit();
+                } else {
+                    struct { wxPoint dialog_pos; bool dialog_pos_align_right = true; } at;
+                    setup_dialog_position(at);
+                    const int x = at.dialog_pos_align_right ? at.dialog_pos.x : at.dialog_pos.x - dlg.GetSize().x;
+                    dlg.SetPosition(wxPoint(x, p->m_panel_printer_title->GetScreenPosition().y));
+                }
+                wxGetApp().window_pos_sanitize(&dlg);
                 dlg.ShowModal();
+                wxGetApp().window_pos_save(&dlg, "filament_inventory_editor");
             });
         });
 
