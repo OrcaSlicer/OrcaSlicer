@@ -19,19 +19,28 @@ T safe_at(const std::vector<T>& vec, int index, const T& fallback)
     return (index >= 0 && index < static_cast<int>(vec.size())) ? vec[index] : fallback;
 }
 
-std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
-                                                         const std::string&      vendor_name,
-                                                         const std::string&      filament_type,
-                                                         const std::string&      color_rgba)
-{
-    std::string best_match_id       = "";
-    int         best_color_distance = 0xffffffff;
+} // anonymous namespace
 
-    for (const auto& p : filaments.get_presets()) {
+std::string SnapmakerPrinterAgent::find_closest_filament_preset(const std::string&      vendor_name,
+                                                                const std::string&      filament_type,
+                                                                const std::string&      filament_subtype,
+                                                                const std::string&      color_rgba)
+
+{
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+    std::string sub = trim_and_upper(filament_subtype);
+    std::string best_match_id = "";
+    int         best_color_distance = 0xffffffff;
+    bool        matched_subtype = false;
+
+    for (const auto& p : bundle->filaments.get_presets()) {
         if (p.is_visible && p.is_compatible &&
             // Filament profile must be detached from parent to be considered for matching
-            filaments.get_preset_base(p) == &p && p.config.opt_string("filament_vendor", 0u) == vendor_name &&
+            bundle->filaments.get_preset_base(p) == &p && p.config.opt_string("filament_vendor", 0u) == vendor_name &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
+            std::string name = trim_and_upper(p.name);
+            bool matches_subtype = (name.find(sub) != std::string::npos);
+
             // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
             // so we must remove # and ignore alpha channel for distance calculation
             unsigned int target_color_value = std::stoul(color_rgba.substr(0, color_rgba.length() - 2), nullptr, 16);
@@ -54,7 +63,13 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
             int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
             unsigned int distance = dr * dr + dg * dg + db * db;
 
-            if (distance < best_color_distance) {
+            bool is_better = ! matched_subtype && matches_subtype;
+            is_better |= matched_subtype && matches_subtype && distance < best_color_distance;
+            is_better |= ! matched_subtype && distance < best_color_distance;
+
+            matched_subtype |= matches_subtype;
+
+            if (is_better) {
                 best_color_distance = distance;
                 best_match_id       = p.filament_id;
             }
@@ -62,8 +77,6 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
     }
     return best_match_id;
 }
-
-} // anonymous namespace
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
@@ -193,8 +206,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
             // If not found, default to traditional search by type only or generic type mapping.
             if (bundle) {
                 std::string vendor      = safe_at(filament_vendor, i, empty_str);
-                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor, tray.tray_type,
-                                                                                       tray.tray_color);
+                std::string filament_id = find_closest_filament_preset(vendor, safe_at(filament_type, i, empty_str), safe_at(filament_sub_type, i, empty_str), tray.tray_color);
 
                 if (!filament_id.empty()) {
                     tray.tray_info_idx = filament_id;
