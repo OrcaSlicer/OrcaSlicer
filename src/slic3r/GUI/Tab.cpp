@@ -2747,17 +2747,6 @@ void TabPrint::build()
         option.opt.height = 15;
         optgroup->append_single_option_line(option, "quality_settings_wall_and_surfaces#small-area-flow-compensation");
 
-        optgroup = page->new_optgroup(L("Bridging"), L"param_bridge");
-        optgroup->append_single_option_line("bridge_flow", "quality_settings_bridging#flow-ratio");
-        optgroup->append_single_option_line("internal_bridge_flow", "quality_settings_bridging#flow-ratio");
-        optgroup->append_single_option_line("bridge_density", "quality_settings_bridging#bridge-density");
-        optgroup->append_single_option_line("internal_bridge_density", "quality_settings_bridging#bridge-density");
-        optgroup->append_single_option_line("thick_bridges", "quality_settings_bridging#thick-bridges");
-        optgroup->append_single_option_line("thick_internal_bridges", "quality_settings_bridging#thick-bridges");
-        optgroup->append_single_option_line("enable_extra_bridge_layer", "quality_settings_bridging#extra-bridge-layers");
-        optgroup->append_single_option_line("dont_filter_internal_bridges", "quality_settings_bridging#filter-out-small-internal-bridges");
-        optgroup->append_single_option_line("counterbore_hole_bridging", "quality_settings_bridging#bridge-counterbore-hole");
-
         optgroup = page->new_optgroup(L("Overhangs"), L"param_overhang");
         optgroup->append_single_option_line("detect_overhang_wall", "quality_settings_overhangs#detect-overhang-wall");
         optgroup->append_single_option_line("make_overhang_printable", "quality_settings_overhangs#make-overhang-printable");
@@ -2767,6 +2756,22 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse", "quality_settings_overhangs#reverse-on-even");
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
+
+        optgroup = page->new_optgroup(L("Bridging"), L"param_bridge");
+        optgroup->append_single_option_line("bridge_flow", "quality_settings_bridging#flow-ratio");
+        optgroup->append_single_option_line("bridge_density", "quality_settings_bridging#bridge-density");
+        optgroup->append_single_option_line("thick_bridges", "quality_settings_bridging#thick-bridges");
+        optgroup->append_single_option_line("internal_bridge_flow", "quality_settings_bridging#flow-ratio");
+        optgroup->append_single_option_line("internal_bridge_density", "quality_settings_bridging#bridge-density");
+        optgroup->append_single_option_line("thick_internal_bridges", "quality_settings_bridging#thick-bridges");
+        optgroup->append_single_option_line("enable_extra_bridge_layer", "quality_settings_bridging#extra-bridge-layers");
+        optgroup->append_single_option_line("dont_filter_internal_bridges", "quality_settings_bridging#filter-out-small-internal-bridges");
+        optgroup->append_single_option_line("counterbore_hole_bridging", "quality_settings_bridging#bridge-counterbore-hole");
+
+        optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
+        optgroup->append_single_option_line("bridge_angle", "strength_settings_advanced#bridge-infill-direction");
+        optgroup->append_single_option_line("internal_bridge_angle", "strength_settings_advanced#bridge-infill-direction"); // ORCA: Internal bridge angle override
+        optgroup->append_single_option_line("relative_bridge_angle", "strength_settings_advanced#relative-bridge-angle");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");
@@ -2829,9 +2834,6 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
         optgroup->append_single_option_line("align_infill_direction_to_model", "strength_settings_advanced#align-directions-to-model");
         optgroup->append_single_option_line("extra_solid_infills", "strength_settings_infill#extra-solid-infill");
-        optgroup->append_single_option_line("bridge_angle", "strength_settings_advanced#bridge-infill-direction");
-        optgroup->append_single_option_line("internal_bridge_angle", "strength_settings_advanced#bridge-infill-direction"); // ORCA: Internal bridge angle override
-        optgroup->append_single_option_line("relative_bridge_angle", "strength_settings_advanced#relative-bridge-angle");
         optgroup->append_single_option_line("minimum_sparse_infill_area", "strength_settings_advanced#minimum-sparse-infill-threshold");
         optgroup->append_single_option_line("infill_combination", "strength_settings_advanced#infill-combination");
         optgroup->append_single_option_line("infill_combination_max_layer_height", "strength_settings_advanced#max-layer-height");
