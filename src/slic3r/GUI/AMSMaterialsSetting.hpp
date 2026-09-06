@@ -197,8 +197,16 @@ protected:
     struct FilamentInfos {
         std::string filament_id;
         std::string setting_id;
+        // why: filament_id is NOT unique across vendors (e.g. several vendor ABS/ASA profiles ship
+        //      Generic PLA's "GFL99"), so resolving the selection by scanning for the first
+        //      filament_id match can land on a preset of a different material type. Look up by
+        //      name instead.
+        std::string preset_name;
     };
-    std::map<std::string, FilamentInfos> map_filament_items;
+    // why: alias text is not unique (two presets can share a display alias, see
+    //      PresetCollection::set_custom_preset_alias), so a combo row must be identified by its
+    //      list position, not by the possibly-duplicated alias string.
+    std::vector<FilamentInfos> m_filament_infos;
 };
 
 wxDECLARE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);
