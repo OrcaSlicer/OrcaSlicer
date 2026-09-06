@@ -215,8 +215,10 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //ORCA: POST /server/files/upload as multipart/form-data with:
     //          file = <gcode file>
     //          root = <storage root>     (Moonraker default: "gcodes")
+    //          path = <subdirectory from root> (optional)
+    //          print = <bool> (start print immediately after upload)
     //      Successful response shape:
-    //          { "result": { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> } }
+    //          { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> }
     //      We always start the print explicitly via /printer/print/start regardless of `print_started`
     //      so the user can rely on a single call site for state.
     wxString test_msg;
@@ -242,11 +244,12 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //      servers that don't use it ignore the unknown form field.
     const std::string plateindex = upload_data.extended("plateindex");
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, plateindex=%6%, start_print=%7%)")
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, path = %5%, filename=%6%, plateindex=%7%,  start_print=%8%)")
         % name
         % upload_data.source_path
         % url
         % root
+        % upload_parent_path.string()
         % upload_filename.string()
         % (plateindex.empty() ? "-" : plateindex)
         % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
@@ -254,6 +257,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     auto http = Http::post(std::move(url));
     set_auth(http);
     http.form_add("root", root);
+    http.form_add("path", upload_parent_path.string());
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
     http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
@@ -267,7 +271,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                 //ORCA: Moonraker confirms the storage-relative path in result.item.path. We pass exactly
                 //      that string to /printer/print/start so any server-side renaming (collision suffix,
                 //      etc.) is respected.
-                const auto stored_path = ptree.get_optional<std::string>("result.item.path");
+                const auto stored_path = ptree.get_optional<std::string>("item.path");
                 if (stored_path) {
                     uploaded_path = *stored_path;
                 } else {
