@@ -1130,7 +1130,7 @@ class Print;
         // m_result.nozzle_group_result, which is handed over only after the stream for the
         // pre-heat injector's second pass and gates the richer change-time model.
         std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
-        bool m_manual_filament_change;
+        bool m_manual_filament_change{ false };
 
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
