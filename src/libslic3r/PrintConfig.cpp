@@ -6557,7 +6557,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("G-code written at the very top of the output file, before any other content. "
                      "Useful for adding metadata that printer firmware reads from the first lines of the file "
                      "(e.g. estimated print time, filament usage). "
-                     "Supports placeholders like {print_time_sec} and {used_filament_length}.");
+                     "Supports placeholders like {print_time_sec}, {used_filament_length} and {used_filament_volume}.");
     def->multiline = true;
     def->full_width = true;
     def->height = 8;
@@ -12559,6 +12559,10 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def = this->add("used_filament_length", coString);
     def->label = L("Filament length (meters)");
     def->tooltip = L("Total filament length used in meters. Replaced with actual value during post-processing.");
+
+    def = this->add("used_filament_volume", coString);
+    def->label = L("Filament volume (mm³)");
+    def->tooltip = L("Total filament volume used in cubic millimeters. Replaced with actual value during post-processing.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()
