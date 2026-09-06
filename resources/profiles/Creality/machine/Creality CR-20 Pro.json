@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality CR-20 Pro",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_k1_buildplate_model.stl",
+	"default_bed_type": "Cool Plate",
+	"bed_texture": "creality_k1_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_CR_20_Pro",
+	"default_materials": "Generic PETG;Generic PLA;Generic ABS"
+}

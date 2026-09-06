@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Creality Ender-3 V2",
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"CR-PLA @Ender-3 V2-all"
 	],
 	"default_print_profile": "0.20mm Standard @Creality Ender3V2",
 	"nozzle_diameter": [
@@ -20,7 +20,6 @@
 		"0x220"
 	],
 	"printable_height": "250",
-	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
 	"machine_max_junction_deviation": [
 		"0.013",

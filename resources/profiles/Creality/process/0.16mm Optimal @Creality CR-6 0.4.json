@@ -42,7 +42,7 @@
 	"support_threshold_angle": "30",
 	"support_top_z_distance": "0.15",
 	"top_surface_acceleration": "0",
-	"travel_acceleration": "0",
+	"travel_acceleration": "500",
 	"tree_support_branch_angle": "40",
 	"wall_loops": "2",
 	"compatible_printers": [

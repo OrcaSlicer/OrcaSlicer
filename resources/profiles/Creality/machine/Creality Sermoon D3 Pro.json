@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality Sermoon D3 Pro",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_cr10v2_buildplate_model.stl",
+	"default_bed_type": "High Temp Plate",
+	"bed_texture": "creality_cr10v2_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Sermoon_D3_Pro",
+	"default_materials": "Hyper PLA-CF;CR-PETG;Hyper PLA;CR-ABS"
+}
