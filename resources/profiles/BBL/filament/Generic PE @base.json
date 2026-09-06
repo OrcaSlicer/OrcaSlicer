@@ -3,7 +3,7 @@
 	"name": "Generic PE @base",
 	"inherits": "fdm_filament_pe",
 	"from": "system",
-	"filament_id": "GFP99",
+	"filament_id": "OFPklMI1",
 	"instantiation": "false",
 	"filament_cost": [
 		"40.99"

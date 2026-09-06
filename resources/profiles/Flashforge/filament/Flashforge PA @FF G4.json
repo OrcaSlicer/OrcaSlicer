@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PA @FF G4",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "wAkuJRTLWxGyBU0b",
+	"filament_id": "OFEvEfw5",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

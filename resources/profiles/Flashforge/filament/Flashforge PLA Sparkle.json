@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Sparkle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "LYtdPgec1hBLhoQA",
+	"filament_id": "OFV5c8hG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Sparkle"

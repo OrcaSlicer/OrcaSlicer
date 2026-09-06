@@ -1,0 +1,7903 @@
+{
+ "ids": {
+  "OF02UAVh": {
+   "filaments": [
+    "Creality/Soleyin Ultra PLA"
+   ],
+   "name": "Soleyin Ultra PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OF03RK6r": {
+   "filaments": [
+    "BBL/BETA PLA Metal"
+   ],
+   "name": "BETA PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF0AquDh": {
+   "filaments": [
+    "Flashforge/FusRock S-Multi"
+   ],
+   "name": "FusRock S-Multi",
+   "filament_type": "PA",
+   "filament_vendor": "FusRock"
+  },
+  "OF0EYBWQ": {
+   "filaments": [
+    "BBL/addnorth PETG Flame v0"
+   ],
+   "name": "addnorth PETG Flame v0",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OF0FfcAG": {
+   "filaments": [
+    "Anycubic/Anycubic TPU for ACE"
+   ],
+   "name": "Anycubic TPU for ACE",
+   "filament_type": "TPU",
+   "filament_vendor": "Anycubic"
+  },
+  "OF0NgY1y": {
+   "filaments": [
+    "BBL/COEX NYLEX PA6-CF",
+    "OrcaFilamentLibrary/COEX NYLEX PA6-CF"
+   ],
+   "name": "COEX NYLEX PA6-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "COEX 3D"
+  },
+  "OF0R5Wc7": {
+   "filaments": [
+    "Artillery/Artillery PLA Tough"
+   ],
+   "name": "Artillery PLA Tough",
+   "filament_type": "PLA Tough",
+   "filament_vendor": "Artillery"
+  },
+  "OF0UJcb6": {
+   "filaments": [
+    "BBL/PolyLite PETG",
+    "OrcaFilamentLibrary/PolyLite PETG",
+    "Snapmaker/PolyLite PETG"
+   ],
+   "name": "PolyLite PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Polymaker"
+  },
+  "OF0VpkBM": {
+   "filaments": [
+    "Snapmaker/PolyLite PETG Translucent"
+   ],
+   "name": "PolyLite PETG Translucent",
+   "filament_type": "PETG",
+   "filament_vendor": "Polymaker"
+  },
+  "OF0Vtzaw": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Amarillo Radiante"
+   ],
+   "name": "FilAr PETG Amarillo Radiante",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OF0b7M1z": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC PA-CF"
+   ],
+   "name": "SeeMeCNC PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OF0c7mnL": {
+   "filaments": [
+    "InfiMech/InfiMech ABS"
+   ],
+   "name": "InfiMech ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "InfiMech"
+  },
+  "OF0gGRWk": {
+   "filaments": [
+    "BBL/Panchroma PLA Glow",
+    "OrcaFilamentLibrary/Panchroma PLA Glow",
+    "Snapmaker/Panchroma PLA Glow"
+   ],
+   "name": "Panchroma PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF0kCNDK": {
+   "filaments": [
+    "BBL/Panchroma PLA Luminous",
+    "OrcaFilamentLibrary/Panchroma PLA Luminous",
+    "Snapmaker/Panchroma PLA Luminous"
+   ],
+   "name": "Panchroma PLA Luminous",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF0omtEb": {
+   "filaments": [
+    "Snapmaker/Fiberon ASA-CF08"
+   ],
+   "name": "Fiberon ASA-CF08",
+   "filament_type": "ASA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF0pzFLc": {
+   "filaments": [
+    "BBL/COEX PLA+Silk",
+    "OrcaFilamentLibrary/COEX PLA+Silk"
+   ],
+   "name": "COEX PLA+Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "COEX 3D"
+  },
+  "OF0w7OpJ": {
+   "filaments": [
+    "Qidi/QIDI ABS Rapido 0.8 nozzle"
+   ],
+   "name": "QIDI ABS Rapido 0.8 nozzle",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OF0wBGNx": {
+   "filaments": [
+    "BBL/Bambu ASA-CF",
+    "OrcaFilamentLibrary/Bambu ASA-CF"
+   ],
+   "name": "Bambu ASA-CF",
+   "filament_type": "ASA-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF0wz84w": {
+   "filaments": [
+    "Qidi/QIDI ABS Rapido 0.6 nozzle"
+   ],
+   "name": "QIDI ABS Rapido 0.6 nozzle",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OF0yFLkY": {
+   "filaments": [
+    "Anycubic/Anycubic ASA"
+   ],
+   "name": "Anycubic ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Anycubic"
+  },
+  "OF112FvY": {
+   "filaments": [
+    "Anycubic/Generic PETG Basic"
+   ],
+   "name": "Generic PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OF1ID4N1": {
+   "filaments": [
+    "BBL/addnorth PA6 Addlantis"
+   ],
+   "name": "addnorth PA6 Addlantis",
+   "filament_type": "PA6",
+   "filament_vendor": "addnorth"
+  },
+  "OF1N1qMK": {
+   "filaments": [
+    "BBL/Panchroma PLA UV Shift",
+    "OrcaFilamentLibrary/Panchroma PLA UV Shift",
+    "Snapmaker/Panchroma PLA UV Shift"
+   ],
+   "name": "Panchroma PLA UV Shift",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF1Pke8t": {
+   "filaments": [
+    "BBL/Overture Easy PLA",
+    "OrcaFilamentLibrary/Overture Easy PLA"
+   ],
+   "name": "Overture Easy PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OF1UNk9P": {
+   "filaments": [
+    "BBL/Generic PP",
+    "Creality/Generic PP",
+    "OrcaFilamentLibrary/Generic PP",
+    "Tiertime/Generic PP"
+   ],
+   "name": "Generic PP",
+   "filament_type": "PP",
+   "filament_vendor": "Generic"
+  },
+  "OF1W7c76": {
+   "filaments": [
+    "Qidi/QIDI ASA-CF"
+   ],
+   "name": "QIDI ASA-CF",
+   "filament_type": "ASA-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OF1d7c3A": {
+   "filaments": [
+    "Snapmaker/Snapmaker ASA"
+   ],
+   "name": "Snapmaker ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF1dpPrW": {
+   "filaments": [
+    "Qidi/Bambu PLA"
+   ],
+   "name": "Bambu PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF1hznGB": {
+   "filaments": [
+    "Elegoo/Elegoo PLA PRO",
+    "OrcaFilamentLibrary/Elegoo PLA PRO"
+   ],
+   "name": "Elegoo PLA PRO",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OF20kXr5": {
+   "filaments": [
+    "Elegoo/Elegoo PAHT-CF",
+    "OrcaFilamentLibrary/Elegoo PAHT-CF"
+   ],
+   "name": "Elegoo PAHT-CF",
+   "filament_type": "PA",
+   "filament_vendor": "Elegoo"
+  },
+  "OF223rZv": {
+   "filaments": [
+    "Anycubic/Anycubic ABS"
+   ],
+   "name": "Anycubic ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Anycubic"
+  },
+  "OF2EB9Iz": {
+   "filaments": [
+    "Volumic/Volumic ASA Ultra"
+   ],
+   "name": "Volumic ASA Ultra",
+   "filament_type": "ASA",
+   "filament_vendor": "Volumic"
+  },
+  "OF2EK9F1": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Violeta"
+   ],
+   "name": "FilAr PLA-mate Violeta",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF2GCW1l": {
+   "filaments": [
+    "BBL/SUNLU PETG",
+    "Flashforge/SUNLU PETG",
+    "OrcaFilamentLibrary/SUNLU PETG",
+    "Sovol/SUNLU PETG"
+   ],
+   "name": "SUNLU PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "SUNLU"
+  },
+  "OF2TQpOO": {
+   "filaments": [
+    "Qidi/QIDI PLA Silk"
+   ],
+   "name": "QIDI PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OF2VFe4J": {
+   "filaments": [
+    "BBL/Bambu PAHT-CF",
+    "OrcaFilamentLibrary/Bambu PAHT-CF"
+   ],
+   "name": "Bambu PAHT-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF2Z1nT5": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Azul Imperial"
+   ],
+   "name": "FilAr PETG Azul Imperial",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OF2hfMcG": {
+   "filaments": [
+    "OrcaArena/Arena PLA-CF"
+   ],
+   "name": "Arena PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Orca Arena"
+  },
+  "OF2pj5l5": {
+   "filaments": [
+    "BBL/Overture Super PLA+",
+    "OrcaFilamentLibrary/Overture Super PLA+"
+   ],
+   "name": "Overture Super PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OF2xccEe": {
+   "filaments": [],
+   "name": "DREMC ASA GF",
+   "filament_type": "ASA",
+   "filament_vendor": "DREMC"
+  },
+  "OF30Ftju": {
+   "filaments": [
+    "Elegoo/Elegoo Rapid TPU 95A",
+    "OrcaFilamentLibrary/Elegoo Rapid TPU 95A"
+   ],
+   "name": "Elegoo Rapid TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Elegoo"
+  },
+  "OF342jVN": {
+   "filaments": [
+    "BBL/Bambu PLA Tough+"
+   ],
+   "name": "Bambu PLA Tough+",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF3F63OE": {
+   "filaments": [
+    "re3D/re3D PETG"
+   ],
+   "name": "re3D PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "re3D"
+  },
+  "OF3IKafc": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido Matte"
+   ],
+   "name": "QIDI PLA Rapido Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OF3OMgrI": {
+   "filaments": [
+    "Creality/CR-Silk"
+   ],
+   "name": "CR-Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OF3PDEw3": {
+   "filaments": [
+    "BBL/BETA PLA High Speed"
+   ],
+   "name": "BETA PLA High Speed",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF3WQaKK": {
+   "filaments": [
+    "Creality/CR-PETG"
+   ],
+   "name": "CR-PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Creality"
+  },
+  "OF3dJf4E": {
+   "filaments": [
+    "Volumic/Volumic PLA Ultra (Performance)"
+   ],
+   "name": "Volumic PLA Ultra (Performance)",
+   "filament_type": "PLA",
+   "filament_vendor": "Volumic"
+  },
+  "OF3fwO8b": {
+   "filaments": [
+    "FlyingBear/FlyingBear PLA Basic"
+   ],
+   "name": "FlyingBear PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "FlyingBear"
+  },
+  "OF3kBrdA": {
+   "filaments": [
+    "Creality/eSUN PETG",
+    "OrcaFilamentLibrary/eSUN PETG"
+   ],
+   "name": "eSUN PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "eSUN"
+  },
+  "OF3msXEa": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PETG-CF"
+   ],
+   "name": "Snapmaker Dual PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF3ydJTT": {
+   "filaments": [
+    "InfiMech/InfiMech PLA Hyper"
+   ],
+   "name": "InfiMech PLA Hyper",
+   "filament_type": "PLA",
+   "filament_vendor": "InfiMech"
+  },
+  "OF43Raws": {
+   "filaments": [
+    "Snapmaker/PolyTerra J1 PLA"
+   ],
+   "name": "PolyTerra J1 PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF44ERDr": {
+   "filaments": [
+    "Snapmaker/Polymaker General PLA Family"
+   ],
+   "name": "Polymaker General PLA Family",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF44VYzK": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Azul Francia"
+   ],
+   "name": "FilAr PETG Azul Francia",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OF4APyxe": {
+   "filaments": [
+    "Creality/Hyper PAHT-CF"
+   ],
+   "name": "Hyper PAHT-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OF4GM5qX": {
+   "filaments": [
+    "Ratrig/Generic ASA BigNozzle"
+   ],
+   "name": "Generic ASA BigNozzle",
+   "filament_type": "ASA",
+   "filament_vendor": "Generic"
+  },
+  "OF4KsW72": {
+   "filaments": [],
+   "name": "FilAr PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF4Nhggz": {
+   "filaments": [
+    "Artillery/Artillery PLA Basic+"
+   ],
+   "name": "Artillery PLA Basic+",
+   "filament_type": "PLA Basic+",
+   "filament_vendor": "Artillery"
+  },
+  "OF4PKvem": {
+   "filaments": [
+    "BBL/BETA PLA Fluorescence"
+   ],
+   "name": "BETA PLA Fluorescence",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF4QZANi": {
+   "filaments": [
+    "BBL/BETA TPU Matte"
+   ],
+   "name": "BETA TPU Matte",
+   "filament_type": "TPU",
+   "filament_vendor": "BETA"
+  },
+  "OF4RvVuU": {
+   "filaments": [
+    "BBL/Bambu PPS-CF"
+   ],
+   "name": "Bambu PPS-CF",
+   "filament_type": "PPS-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF4S3To3": {
+   "filaments": [
+    "Qidi/QIDI PETG Rapido"
+   ],
+   "name": "QIDI PETG Rapido",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OF4WB37S": {
+   "filaments": [
+    "Snapmaker/Snapmaker PETG"
+   ],
+   "name": "Snapmaker PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF4XTfoI": {
+   "filaments": [
+    "BBL/BETA PETG Marble"
+   ],
+   "name": "BETA PETG Marble",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OF4f8vVp": {
+   "filaments": [
+    "WonderMaker/WonderMaker PET-CF"
+   ],
+   "name": "WonderMaker PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "WonderMaker"
+  },
+  "OF4iWKrE": {
+   "filaments": [
+    "Qidi/QIDI PETG-CF"
+   ],
+   "name": "QIDI PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OF4nQ62r": {
+   "filaments": [
+    "Qidi/QIDI PLA Basic"
+   ],
+   "name": "QIDI PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OF4ulo9Y": {
+   "filaments": [
+    "WonderMaker/WonderMaker PVA"
+   ],
+   "name": "WonderMaker PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OF53eLVD": {
+   "filaments": [
+    "Blocks/Generic ASA-CF",
+    "Creality/Generic ASA-CF",
+    "Elegoo/Generic ASA-CF"
+   ],
+   "name": "Generic ASA-CF",
+   "filament_type": "ASA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OF54B0S0": {
+   "filaments": [
+    "BBL/Bambu PPA-CF",
+    "OrcaFilamentLibrary/Bambu PPA-CF"
+   ],
+   "name": "Bambu PPA-CF",
+   "filament_type": "PPA-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF54SvEe": {
+   "filaments": [
+    "Prusa/Prusament PA-CF"
+   ],
+   "name": "Prusament PA-CF",
+   "filament_type": "PA11-CF",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OF55jHAJ": {
+   "filaments": [
+    "Prusa/Generic ABS HF"
+   ],
+   "name": "Generic ABS HF",
+   "filament_type": "ABS",
+   "filament_vendor": "Generic"
+  },
+  "OF5B9sUc": {
+   "filaments": [
+    "BBL/Fiberon PA6-GF25"
+   ],
+   "name": "Fiberon PA6-GF25",
+   "filament_type": "PA-GF",
+   "filament_vendor": "Polymaker"
+  },
+  "OF5BN24W": {
+   "filaments": [
+    "Flashforge/Flashforge PPA-GF"
+   ],
+   "name": "Flashforge PPA-GF",
+   "filament_type": "PPA-GF",
+   "filament_vendor": "Flashforge"
+  },
+  "OF5BXhHF": {
+   "filaments": [
+    "BBL/BETA PLA High Temp"
+   ],
+   "name": "BETA PLA High Temp",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF5CgdDq": {
+   "filaments": [
+    "BBL/PolyLite PLA",
+    "OrcaArena/PolyLite PLA",
+    "OrcaFilamentLibrary/PolyLite PLA",
+    "Qidi/PolyLite PLA",
+    "Snapmaker/PolyLite PLA"
+   ],
+   "name": "PolyLite PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF5LAnla": {
+   "filaments": [
+    "BBL/BETA PLA Gradient"
+   ],
+   "name": "BETA PLA Gradient",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF5NqBfC": {
+   "filaments": [
+    "Wanhao France/YUMI PETG"
+   ],
+   "name": "YUMI PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Yumi"
+  },
+  "OF5P4jgA": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Dorado"
+   ],
+   "name": "FilAr PLA Dorado",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF5PtjTp": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Glow"
+   ],
+   "name": "Anycubic PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OF5SJ3jz": {
+   "filaments": [
+    "Flashforge/Flashforge ABS"
+   ],
+   "name": "Flashforge ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Flashforge"
+  },
+  "OF5YVJXH": {
+   "filaments": [
+    "Artillery/Artillery ASA"
+   ],
+   "name": "Artillery ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Artillery"
+  },
+  "OF5c6nq3": {
+   "filaments": [
+    "Flashforge/Generic TPU-64D"
+   ],
+   "name": "Generic TPU-64D",
+   "filament_type": "TPU-64D",
+   "filament_vendor": "Generic"
+  },
+  "OF5lGPup": {
+   "filaments": [
+    "WonderMaker/WonderMaker PETG Basic"
+   ],
+   "name": "WonderMaker PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "WonderMaker"
+  },
+  "OF5nlfKY": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Oro"
+   ],
+   "name": "FilAr PLA Oro",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF5oNRED": {
+   "filaments": [
+    "Eryone/Eryone PP"
+   ],
+   "name": "Eryone PP",
+   "filament_type": "PP",
+   "filament_vendor": "Eryone"
+  },
+  "OF5oXk4M": {
+   "filaments": [
+    "Anycubic/Polymaker PLA Pro",
+    "Snapmaker/Polymaker PLA Pro"
+   ],
+   "name": "Polymaker PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF5rnhjh": {
+   "filaments": [],
+   "name": "FilAr PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OF5tX6va": {
+   "filaments": [
+    "Ratrig/Generic TPU BigNozzle"
+   ],
+   "name": "Generic TPU BigNozzle",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OF5umxxT": {
+   "filaments": [
+    "BBL/PolyLite PLA Glow",
+    "Snapmaker/PolyLite PLA Glow"
+   ],
+   "name": "PolyLite PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF5vgi2G": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Azul"
+   ],
+   "name": "FilAr PLA-mate Azul",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF65InrS": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPU"
+   ],
+   "name": "Snapmaker TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF66KUAN": {
+   "filaments": [
+    "Creality/PolySonic PLA"
+   ],
+   "name": "PolySonic PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF6ATsCF": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA-CF"
+   ],
+   "name": "Snapmaker Dual PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF6H51Xx": {
+   "filaments": [
+    "Snapmaker/Polymaker PETG",
+    "Sovol/Polymaker PETG"
+   ],
+   "name": "Polymaker PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Polymaker"
+  },
+  "OF6Ll8lK": {
+   "filaments": [
+    "Elegoo/Elegoo PETG Translucent",
+    "OrcaFilamentLibrary/Elegoo PETG Translucent"
+   ],
+   "name": "Elegoo PETG Translucent",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OF6MOPWx": {
+   "filaments": [
+    "Creality/Generic PET",
+    "Elegoo/Generic PET",
+    "Flashforge/Generic PET"
+   ],
+   "name": "Generic PET",
+   "filament_type": "PET",
+   "filament_vendor": "Generic"
+  },
+  "OF6TuVAg": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PVA"
+   ],
+   "name": "Snapmaker J1 PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF6Yn69v": {
+   "filaments": [
+    "BBL/BETA TPU 90A"
+   ],
+   "name": "BETA TPU 90A",
+   "filament_type": "TPU",
+   "filament_vendor": "BETA"
+  },
+  "OF6kj4jI": {
+   "filaments": [
+    "iQ/Fiberthree PACF Pro P2"
+   ],
+   "name": "Fiberthree PACF Pro P2",
+   "filament_type": "PACF Pro",
+   "filament_vendor": "iQ Materials"
+  },
+  "OF6qAuyi": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Matte"
+   ],
+   "name": "Flashforge PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OF6qw3Wb": {
+   "filaments": [
+    "BBL/BETA PAHT-CF"
+   ],
+   "name": "BETA PAHT-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "BETA"
+  },
+  "OF6rdQ6M": {
+   "filaments": [
+    "BBL/Generic PPS-CF",
+    "Creality/Generic PPS-CF",
+    "Tiertime/Generic PPS-CF"
+   ],
+   "name": "Generic PPS-CF",
+   "filament_type": "PPS-CF",
+   "filament_vendor": "Generic"
+  },
+  "OF70zbGS": {
+   "filaments": [
+    "Creality/Hyper L-W PLA"
+   ],
+   "name": "Hyper L-W PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OF71b7qO": {
+   "filaments": [
+    "BBL/addnorth PLA E-PLA"
+   ],
+   "name": "addnorth PLA E-PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OF72YYTd": {
+   "filaments": [
+    "Snapmaker/Snapmaker ABS"
+   ],
+   "name": "Snapmaker ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF74KeQR": {
+   "filaments": [
+    "BBL/Generic PHA",
+    "OrcaFilamentLibrary/Generic PHA",
+    "Tiertime/Generic PHA"
+   ],
+   "name": "Generic PHA",
+   "filament_type": "PHA",
+   "filament_vendor": "Generic"
+  },
+  "OF79Fbo6": {
+   "filaments": [
+    "Cubicon/Cubicon PC"
+   ],
+   "name": "Cubicon PC",
+   "filament_type": "PC",
+   "filament_vendor": "Cubicon"
+  },
+  "OF7H3VJM": {
+   "filaments": [
+    "OrcaFilamentLibrary/eSUN PLA-Marble"
+   ],
+   "name": "eSUN PLA-Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OF7OqDp3": {
+   "filaments": [
+    "Tiertime/Tiertime PLA-CF"
+   ],
+   "name": "Tiertime PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Tiertime"
+  },
+  "OF7SliVn": {
+   "filaments": [
+    "Snapmaker/PolyLite J1 PLA"
+   ],
+   "name": "PolyLite J1 PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OF7c9fln": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Translucent"
+   ],
+   "name": "Anycubic PLA Translucent",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OF7lOgYF": {
+   "filaments": [
+    "BBL/Generic PETG HF",
+    "OrcaFilamentLibrary/Generic PETG HF",
+    "Prusa/Generic PETG HF"
+   ],
+   "name": "Generic PETG HF",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OF7lwj52": {
+   "filaments": [
+    "CoLiDo/CoLiDo PETG"
+   ],
+   "name": "CoLiDo PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "CoLiDo"
+  },
+  "OF7nBAd3": {
+   "filaments": [
+    "Eryone/Eryone Silk PLA"
+   ],
+   "name": "Eryone Silk PLA",
+   "filament_type": "PLA Silk",
+   "filament_vendor": "Eryone"
+  },
+  "OF7pjCsO": {
+   "filaments": [
+    "Flashforge/FusRock PAHT"
+   ],
+   "name": "FusRock PAHT",
+   "filament_type": "PAHT",
+   "filament_vendor": "FusRock"
+  },
+  "OF7tt7DO": {
+   "filaments": [
+    "Cubicon/Cubicon PLA+"
+   ],
+   "name": "Cubicon PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OF8GnyFU": {
+   "filaments": [
+    "Creality/Hyper ABS"
+   ],
+   "name": "Hyper ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Creality"
+  },
+  "OF8GtyKJ": {
+   "filaments": [
+    "Flashforge/Flashforge TPU-64D"
+   ],
+   "name": "Flashforge TPU-64D",
+   "filament_type": "TPU-64D",
+   "filament_vendor": "Flashforge"
+  },
+  "OF8Hx3Pi": {
+   "filaments": [
+    "Cubicon/Cubicon PETG"
+   ],
+   "name": "Cubicon PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Cubicon"
+  },
+  "OF8Jl6NT": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PET"
+   ],
+   "name": "Snapmaker J1 PET",
+   "filament_type": "PET",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF8O09RG": {
+   "filaments": [
+    "Flashforge/Flashforge HS PLA Burnt Ti"
+   ],
+   "name": "Flashforge HS PLA Burnt Ti",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OF8QdQwS": {
+   "filaments": [
+    "BBL/BETA PLA Silk+"
+   ],
+   "name": "BETA PLA Silk+",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OF8Tlg47": {
+   "filaments": [
+    "BBL/Generic PPA-GF",
+    "OrcaFilamentLibrary/Generic PPA-GF",
+    "Tiertime/Generic PPA-GF"
+   ],
+   "name": "Generic PPA-GF",
+   "filament_type": "PPA-GF",
+   "filament_vendor": "Generic"
+  },
+  "OF8aFWfQ": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Amarillo Lirio"
+   ],
+   "name": "FilAr PLA Amarillo Lirio",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF8dCquh": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 ABS Benchy"
+   ],
+   "name": "Snapmaker J1 ABS Benchy",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OF8eaY7j": {
+   "filaments": [
+    "Creality/Generic PA612-CF"
+   ],
+   "name": "Generic PA612-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OF8jh0Lk": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Marron"
+   ],
+   "name": "FilAr PLA-mate Marron",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OF8kJys9": {
+   "filaments": [
+    "Eryone/Eryone PETG"
+   ],
+   "name": "Eryone PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Eryone"
+  },
+  "OF8tPByX": {
+   "filaments": [
+    "BBL/Generic PPA-CF",
+    "OrcaFilamentLibrary/Generic PPA-CF",
+    "Tiertime/Generic PPA-CF"
+   ],
+   "name": "Generic PPA-CF",
+   "filament_type": "PPA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OF8wE5l7": {
+   "filaments": [
+    "Artillery/Artillery PETG Basic"
+   ],
+   "name": "Artillery PETG Basic",
+   "filament_type": "PETG Basic",
+   "filament_vendor": "Artillery"
+  },
+  "OF99UMPq": {
+   "filaments": [
+    "BBL/COEX ABS",
+    "OrcaFilamentLibrary/COEX ABS"
+   ],
+   "name": "COEX ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "COEX 3D"
+  },
+  "OF99vXPs": {
+   "filaments": [],
+   "name": "DREMC ABS+",
+   "filament_type": "ABS",
+   "filament_vendor": "DREMC"
+  },
+  "OF9EHUKK": {
+   "filaments": [
+    "Qidi/QIDI TPU-GF"
+   ],
+   "name": "QIDI TPU-GF",
+   "filament_type": "TPU-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OF9HCdyQ": {
+   "filaments": [
+    "Afinia/Afinia PLA"
+   ],
+   "name": "Afinia PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Afinia"
+  },
+  "OF9OlTWH": {
+   "filaments": [
+    "BBL/Bambu PLA Marble",
+    "OrcaFilamentLibrary/Bambu PLA Marble"
+   ],
+   "name": "Bambu PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OF9PELEb": {
+   "filaments": [
+    "Qidi/QIDI UltraPA-CF25"
+   ],
+   "name": "QIDI UltraPA-CF25",
+   "filament_type": "UltraPA-CF25",
+   "filament_vendor": "QIDI"
+  },
+  "OF9UJOGF": {
+   "filaments": [
+    "Anycubic/Anycubic PETG-CF"
+   ],
+   "name": "Anycubic PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OF9cAwMK": {
+   "filaments": [
+    "Flashforge/Flashforge PLA-CF"
+   ],
+   "name": "Flashforge PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OF9emAI9": {
+   "filaments": [
+    "Ratrig/RatRig PunkFil PETG"
+   ],
+   "name": "RatRig PunkFil PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "RatRig"
+  },
+  "OFA026vt": {
+   "filaments": [
+    "OrcaArena/Arena PA-CF"
+   ],
+   "name": "Arena PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFAC7Wyu": {
+   "filaments": [
+    "Artillery/Artillery PLA Matte"
+   ],
+   "name": "Artillery PLA Matte",
+   "filament_type": "PLA Matte",
+   "filament_vendor": "Artillery"
+  },
+  "OFAIBCLJ": {
+   "filaments": [
+    "Elegoo/Generic ABS-CF"
+   ],
+   "name": "Generic ABS-CF",
+   "filament_type": "ABS-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFAIrQXu": {
+   "filaments": [
+    "Creality/Creality Hyper PLA"
+   ],
+   "name": "Creality Hyper PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFANFm4x": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido Metal"
+   ],
+   "name": "QIDI PLA Rapido Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFAO9A7J": {
+   "filaments": [
+    "Sovol/Sovol Zero PLA Silk HS Nozzle"
+   ],
+   "name": "Sovol Zero PLA Silk HS Nozzle",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFAZllAN": {
+   "filaments": [
+    "Artillery/Artillery PLA-CF"
+   ],
+   "name": "Artillery PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Artillery"
+  },
+  "OFAc0Pr3": {
+   "filaments": [
+    "BBL/Fiberon PET-CF17"
+   ],
+   "name": "Fiberon PET-CF17",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFAcJkl1": {
+   "filaments": [
+    "BBL/addnorth PETG-CF Rigid X"
+   ],
+   "name": "addnorth PETG-CF Rigid X",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "addnorth"
+  },
+  "OFAebKg8": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Metal"
+   ],
+   "name": "Flashforge PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFAnyRUI": {
+   "filaments": [
+    "BBL/Bambu Support For PLA",
+    "OrcaFilamentLibrary/Bambu Support For PLA"
+   ],
+   "name": "Bambu Support For PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFAt6ec0": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Marron Oxido"
+   ],
+   "name": "FilAr PLA Marron Oxido",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFB5SmWk": {
+   "filaments": [
+    "OrcaFilamentLibrary/Valment PLA Galaxy"
+   ],
+   "name": "Valment PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Valment"
+  },
+  "OFBBgw7B": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Wood"
+   ],
+   "name": "WonderMaker PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFBJAdLw": {
+   "filaments": [
+    "LH/LHS PCTG"
+   ],
+   "name": "LHS PCTG",
+   "filament_type": "PCTG",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFBLktDy": {
+   "filaments": [
+    "Creality/Soleyin Basic PETG"
+   ],
+   "name": "Soleyin Basic PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Creality"
+  },
+  "OFBSW57R": {
+   "filaments": [
+    "BBL/Bambu PLA Aero",
+    "OrcaFilamentLibrary/Bambu PLA Aero"
+   ],
+   "name": "Bambu PLA Aero",
+   "filament_type": "PLA-AERO",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFBUIlZ7": {
+   "filaments": [
+    "Elegoo/Elegoo PLA+",
+    "OrcaFilamentLibrary/Elegoo PLA+"
+   ],
+   "name": "Elegoo PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFBlFMVp": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PETG"
+   ],
+   "name": "Snapmaker Dual PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFBoSWxb": {
+   "filaments": [
+    "BBL/PolyLite PLA Luminous",
+    "Snapmaker/PolyLite PLA Luminous"
+   ],
+   "name": "PolyLite PLA Luminous",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFBsbMMF": {
+   "filaments": [
+    "BBL/addnorth PA-CF Adura X"
+   ],
+   "name": "addnorth PA-CF Adura X",
+   "filament_type": "PA-CF",
+   "filament_vendor": "addnorth"
+  },
+  "OFBw6eEG": {
+   "filaments": [
+    "BBL/Overture Matte PLA",
+    "OrcaFilamentLibrary/Overture Matte PLA"
+   ],
+   "name": "Overture Matte PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFC1PzXz": {
+   "filaments": [
+    "Creality/Hyper Luminous"
+   ],
+   "name": "Hyper Luminous",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFC5f4Ay": {
+   "filaments": [
+    "RH3D/Generic PCCF"
+   ],
+   "name": "Generic PCCF",
+   "filament_type": "PC-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFC78WGQ": {
+   "filaments": [
+    "BBL/Panchroma PLA Starlight",
+    "OrcaFilamentLibrary/Panchroma PLA Starlight",
+    "Snapmaker/Panchroma PLA Starlight"
+   ],
+   "name": "Panchroma PLA Starlight",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFCD8qiU": {
+   "filaments": [
+    "BBL/Generic EVA",
+    "OrcaFilamentLibrary/Generic EVA",
+    "Tiertime/Generic EVA"
+   ],
+   "name": "Generic EVA",
+   "filament_type": "EVA",
+   "filament_vendor": "Generic"
+  },
+  "OFCIUsWh": {
+   "filaments": [
+    "BBL/Panchroma PLA Translucent",
+    "OrcaFilamentLibrary/Panchroma PLA Translucent",
+    "Snapmaker/Panchroma PLA Translucent"
+   ],
+   "name": "Panchroma PLA Translucent",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFCJpR7a": {
+   "filaments": [
+    "Creality/HP Ultra PLA"
+   ],
+   "name": "HP Ultra PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFCZsqXg": {
+   "filaments": [
+    "Creality/Hyper PLA"
+   ],
+   "name": "Hyper PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFCccVrQ": {
+   "filaments": [
+    "OrcaFilamentLibrary/PolyTerra Dual PLA",
+    "Snapmaker/PolyTerra Dual PLA"
+   ],
+   "name": "PolyTerra Dual PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFCidU7j": {
+   "filaments": [
+    "OrcaFilamentLibrary/DREMC ABS-GF"
+   ],
+   "name": "DREMC ABS-GF",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "DREMC"
+  },
+  "OFCjG251": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Verde"
+   ],
+   "name": "FilAr PLA-mate Verde",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFCn83wF": {
+   "filaments": [
+    "Flashforge/FusRock S-PAHT"
+   ],
+   "name": "FusRock S-PAHT",
+   "filament_type": "PAHT",
+   "filament_vendor": "FusRock"
+  },
+  "OFCnywiC": {
+   "filaments": [
+    "Tiertime/Tiertime PET-CF"
+   ],
+   "name": "Tiertime PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Tiertime"
+  },
+  "OFCoRobU": {
+   "filaments": [
+    "OrcaFilamentLibrary/Elas ASA"
+   ],
+   "name": "Elas ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Elas"
+  },
+  "OFCp3Bgo": {
+   "filaments": [
+    "Anycubic/Anycubic PLA SE"
+   ],
+   "name": "Anycubic PLA SE",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFCuaCer": {
+   "filaments": [
+    "Volumic/Désactivé"
+   ],
+   "name": "Désactivé",
+   "filament_type": "PLA",
+   "filament_vendor": "Volumic"
+  },
+  "OFD21ije": {
+   "filaments": [
+    "Cubicon/Cubicon PA-CF"
+   ],
+   "name": "Cubicon PA-CF",
+   "filament_type": "PA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFD8loeT": {
+   "filaments": [
+    "re3D/re3D rPETG"
+   ],
+   "name": "re3D rPETG",
+   "filament_type": "PETG",
+   "filament_vendor": "re3D"
+  },
+  "OFD9taow": {
+   "filaments": [
+    "FlyingBear/FlyingBear PLA Hyper"
+   ],
+   "name": "FlyingBear PLA Hyper",
+   "filament_type": "PLA",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFDETOM6": {
+   "filaments": [
+    "Creality/eSUN PLA-Matte",
+    "OrcaFilamentLibrary/eSUN PLA-Matte"
+   ],
+   "name": "eSUN PLA-Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFDGigEI": {
+   "filaments": [
+    "BBL/Bambu PLA Dynamic",
+    "OrcaFilamentLibrary/Bambu PLA Dynamic"
+   ],
+   "name": "Bambu PLA Dynamic",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFDIrhbu": {
+   "filaments": [
+    "Qidi/QIDI PC/ABS-FR"
+   ],
+   "name": "QIDI PC/ABS-FR",
+   "filament_type": "PC-ABS-FR",
+   "filament_vendor": "QIDI"
+  },
+  "OFDJU6R3": {
+   "filaments": [
+    "Afinia/Afinia TPU"
+   ],
+   "name": "Afinia TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Afinia"
+  },
+  "OFDKIKyw": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PVA"
+   ],
+   "name": "Snapmaker Dual PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFDKgoqx": {
+   "filaments": [
+    "Flashforge/Flashforge PLA"
+   ],
+   "name": "Flashforge PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFDRpXLZ": {
+   "filaments": [
+    "FlyingBear/Other PETG",
+    "InfiMech/Other PETG"
+   ],
+   "name": "Other PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Other"
+  },
+  "OFDSrzZ8": {
+   "filaments": [
+    "Anker/Generic PLA",
+    "Anycubic/Generic PLA",
+    "Artillery/Generic PLA",
+    "BBL/Generic PLA",
+    "Blocks/Generic PLA",
+    "CONSTRUCT3D/Generic PLA",
+    "Chuanying/Generic PLA",
+    "Co Print/Generic PLA",
+    "CoLiDo/Generic PLA",
+    "Comgrow/Generic PLA",
+    "Creality/Generic PLA",
+    "Custom/Generic PLA",
+    "DeltaMaker/Generic PLA",
+    "Dremel/Generic PLA",
+    "Elegoo/Generic PLA",
+    "FLSun/Generic PLA",
+    "Flashforge/Generic PLA",
+    "FlyingBear/Generic PLA",
+    "Ginger Additive/Generic PLA",
+    "InfiMech/Generic PLA",
+    "LONGER/Generic PLA",
+    "Lulzbot/Generic PLA",
+    "OrcaArena/Generic PLA",
+    "OrcaFilamentLibrary/Generic PLA",
+    "Peopoly/Generic PLA",
+    "Phrozen/Generic PLA",
+    "Prusa/Generic PLA",
+    "Qidi/Generic PLA",
+    "RH3D/Generic PLA",
+    "Ratrig/Generic PLA",
+    "SecKit/Generic PLA",
+    "Sovol/Generic PLA",
+    "Tiertime/Generic PLA",
+    "Vzbot/Generic PLA",
+    "Z-Bolt/Generic PLA"
+   ],
+   "name": "Generic PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFDdEaoL": {
+   "filaments": [
+    "re3D/re3D PLA"
+   ],
+   "name": "re3D PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "re3D"
+  },
+  "OFDe8uyM": {
+   "filaments": [
+    "OrcaFilamentLibrary/Valment PLA"
+   ],
+   "name": "Valment PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Valment"
+  },
+  "OFDgQaca": {
+   "filaments": [
+    "FlyingBear/FlyingBear PETG"
+   ],
+   "name": "FlyingBear PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFDpW3J8": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PLA Basic"
+   ],
+   "name": "FILL3D PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "FILL3D"
+  },
+  "OFDtop41": {
+   "filaments": [
+    "Creality/Generic Support for PA"
+   ],
+   "name": "Generic Support for PA",
+   "filament_type": "PA",
+   "filament_vendor": "Generic"
+  },
+  "OFDu1qE7": {
+   "filaments": [
+    "Flashforge/FusRock PET-CF"
+   ],
+   "name": "FusRock PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "FusRock"
+  },
+  "OFDvXujf": {
+   "filaments": [
+    "Anker/Generic PVA",
+    "Anycubic/Generic PVA",
+    "BBL/Generic PVA",
+    "Blocks/Generic PVA",
+    "Chuanying/Generic PVA",
+    "Creality/Generic PVA",
+    "Custom/Generic PVA",
+    "FLSun/Generic PVA",
+    "Flashforge/Generic PVA",
+    "OrcaArena/Generic PVA",
+    "OrcaFilamentLibrary/Generic PVA",
+    "Prusa/Generic PVA",
+    "Qidi/Generic PVA",
+    "Ratrig/Generic PVA",
+    "SecKit/Generic PVA",
+    "Tiertime/Generic PVA",
+    "Vzbot/Generic PVA"
+   ],
+   "name": "Generic PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Generic"
+  },
+  "OFDvqJ6n": {
+   "filaments": [
+    "OrcaFilamentLibrary/Overture ABS Basic"
+   ],
+   "name": "Overture ABS Basic",
+   "filament_type": "ABS",
+   "filament_vendor": "Overture"
+  },
+  "OFDwBwO5": {
+   "filaments": [
+    "Prusa/Generic PVA HF"
+   ],
+   "name": "Generic PVA HF",
+   "filament_type": "PVA",
+   "filament_vendor": "Generic"
+  },
+  "OFDxfPgH": {
+   "filaments": [
+    "BBL/Bambu PLA Sparkle",
+    "OrcaFilamentLibrary/Bambu PLA Sparkle"
+   ],
+   "name": "Bambu PLA Sparkle",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFDxxTpW": {
+   "filaments": [
+    "Flashforge/Flashforge HS PETG"
+   ],
+   "name": "Flashforge HS PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Flashforge"
+  },
+  "OFE0NFRh": {
+   "filaments": [
+    "BBL/COEX TPU 60A",
+    "OrcaFilamentLibrary/COEX TPU 60A"
+   ],
+   "name": "COEX TPU 60A",
+   "filament_type": "TPU",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFEGNJD4": {
+   "filaments": [
+    "BBL/Bambu PLA Silk",
+    "OrcaFilamentLibrary/Bambu PLA Silk"
+   ],
+   "name": "Bambu PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFEOnBj6": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Lite"
+   ],
+   "name": "Snapmaker PLA Lite",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFEWYR89": {
+   "filaments": [
+    "Anker/Generic PLA+",
+    "Qidi/Generic PLA+"
+   ],
+   "name": "Generic PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFEZ449N": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Uva"
+   ],
+   "name": "FilAr PLA-mate Uva",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFEZpel7": {
+   "filaments": [
+    "Volumic/PPS Carbone (Performance)"
+   ],
+   "name": "PPS Carbone (Performance)",
+   "filament_type": "PPS-CF",
+   "filament_vendor": "Volumic"
+  },
+  "OFEabreg": {
+   "filaments": [
+    "Anycubic/Fiberon PA6-CF20",
+    "BBL/Fiberon PA6-CF20",
+    "Snapmaker/Fiberon PA6-CF20"
+   ],
+   "name": "Fiberon PA6-CF20",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFEbIx49": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Marble"
+   ],
+   "name": "WonderMaker PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFEhuUNq": {
+   "filaments": [],
+   "name": "DREMC PA12-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "DREMC"
+  },
+  "OFEj7sca": {
+   "filaments": [
+    "Cubicon/Cubicon PC"
+   ],
+   "name": "Cubicon PC",
+   "filament_type": "PC",
+   "filament_vendor": "Cubicon"
+  },
+  "OFEjbwqG": {
+   "filaments": [
+    "BBL/PolyTerra PLA+",
+    "Snapmaker/PolyTerra PLA+"
+   ],
+   "name": "PolyTerra PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFEkPBwx": {
+   "filaments": [
+    "BBL/Bambu PLA Glow",
+    "OrcaFilamentLibrary/Bambu PLA Glow"
+   ],
+   "name": "Bambu PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFEmsric": {
+   "filaments": [
+    "Snapmaker/Snapmaker PA-CF"
+   ],
+   "name": "Snapmaker PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFEnbt6D": {
+   "filaments": [
+    "Peopoly/Peopoly Lancer PLA-C"
+   ],
+   "name": "Peopoly Lancer PLA-C",
+   "filament_type": "PLA",
+   "filament_vendor": "Peopoly"
+  },
+  "OFEswT5W": {
+   "filaments": [
+    "BBL/Bambu PLA-CF",
+    "OrcaFilamentLibrary/Bambu PLA-CF"
+   ],
+   "name": "Bambu PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFEvEfw5": {
+   "filaments": [
+    "Flashforge/Flashforge PA"
+   ],
+   "name": "Flashforge PA",
+   "filament_type": "PA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFEwRwmL": {
+   "filaments": [
+    "Cubicon/Cubicon PLA"
+   ],
+   "name": "Cubicon PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFF3cuzT": {
+   "filaments": [
+    "Creality/Generic TPU 64D"
+   ],
+   "name": "Generic TPU 64D",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OFF5o7b2": {
+   "filaments": [
+    "BBL/BETA PLA Youth"
+   ],
+   "name": "BETA PLA Youth",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFF9OKoY": {
+   "filaments": [
+    "BBL/PolyLite PLA Pro",
+    "OrcaFilamentLibrary/PolyLite PLA Pro",
+    "Snapmaker/PolyLite PLA Pro"
+   ],
+   "name": "PolyLite PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFF9cgY5": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Matte"
+   ],
+   "name": "Snapmaker PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFFAWVf0": {
+   "filaments": [
+    "Qidi/QIDI PC-ABS-FR"
+   ],
+   "name": "QIDI PC-ABS-FR",
+   "filament_type": "PC-ABS-FR",
+   "filament_vendor": "QIDI"
+  },
+  "OFFFg2Pf": {
+   "filaments": [
+    "Flashforge/Flashforge ASA Basic"
+   ],
+   "name": "Flashforge ASA Basic",
+   "filament_type": "ASA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFFNYwWR": {
+   "filaments": [
+    "BBL/Bambu PA-CF",
+    "OrcaFilamentLibrary/Bambu PA-CF"
+   ],
+   "name": "Bambu PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFFP4ORR": {
+   "filaments": [
+    "Creality/Creality Hyper ABS"
+   ],
+   "name": "Creality Hyper ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Creality"
+  },
+  "OFFX1DRD": {
+   "filaments": [
+    "FlyingBear/FlyingBear PC"
+   ],
+   "name": "FlyingBear PC",
+   "filament_type": "PC",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFFZ458u": {
+   "filaments": [
+    "Snapmaker/Fiberon PA612-ESD"
+   ],
+   "name": "Fiberon PA612-ESD",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFFbQscs": {
+   "filaments": [
+    "Creality/eSUN PETG-Basic"
+   ],
+   "name": "eSUN PETG-Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "eSUN"
+  },
+  "OFFbSnCD": {
+   "filaments": [
+    "BBL/Bambu PLA Translucent"
+   ],
+   "name": "Bambu PLA Translucent",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFFfJ09N": {
+   "filaments": [
+    "BBL/BETA PETG Glow"
+   ],
+   "name": "BETA PETG Glow",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFFkCLBl": {
+   "filaments": [
+    "BBL/Panchroma PLA Galaxy",
+    "OrcaFilamentLibrary/Panchroma PLA Galaxy",
+    "Snapmaker/Panchroma PLA Galaxy"
+   ],
+   "name": "Panchroma PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFFvzqcd": {
+   "filaments": [
+    "BBL/Bambu PETG Basic",
+    "OrcaFilamentLibrary/Bambu PETG Basic"
+   ],
+   "name": "Bambu PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFFwJWea": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Silk"
+   ],
+   "name": "Anycubic PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFG0kOKX": {
+   "filaments": [
+    "Volumic/Volumic PETG Ultra"
+   ],
+   "name": "Volumic PETG Ultra",
+   "filament_type": "PETG",
+   "filament_vendor": "Volumic"
+  },
+  "OFG2RkhN": {
+   "filaments": [
+    "Creality/CR-TPU"
+   ],
+   "name": "CR-TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Creality"
+  },
+  "OFG4do34": {
+   "filaments": [
+    "Qidi/Qidi ASA-Aero"
+   ],
+   "name": "Qidi ASA-Aero",
+   "filament_type": "ASA-AERO",
+   "filament_vendor": "QIDI"
+  },
+  "OFGJ1nxs": {
+   "filaments": [
+    "FlyingBear/Other PLA",
+    "InfiMech/Other PLA"
+   ],
+   "name": "Other PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Other"
+  },
+  "OFGVwfK0": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Gris"
+   ],
+   "name": "FilAr PLA-mate Gris",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFGVxj2A": {
+   "filaments": [
+    "BBL/BETA PLA Wood"
+   ],
+   "name": "BETA PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFGc9l16": {
+   "filaments": [
+    "BBL/BETA PLA Glow"
+   ],
+   "name": "BETA PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFGcLA5R": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Beige"
+   ],
+   "name": "FilAr PLA-mate Beige",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFGcMkEB": {
+   "filaments": [
+    "Creality/HP-TPU"
+   ],
+   "name": "HP-TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Creality"
+  },
+  "OFGdP6Na": {
+   "filaments": [
+    "Volumic/Volumic PVA"
+   ],
+   "name": "Volumic PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Volumic"
+  },
+  "OFGkyftV": {
+   "filaments": [
+    "BBL/Overture Silk PLA",
+    "OrcaFilamentLibrary/Overture Silk PLA"
+   ],
+   "name": "Overture Silk PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFGwT5Av": {
+   "filaments": [
+    "Creality/Creality Hyper PLA-CF"
+   ],
+   "name": "Creality Hyper PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFGwZmgS": {
+   "filaments": [
+    "Creality/CR-ABS"
+   ],
+   "name": "CR-ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Creality"
+  },
+  "OFGxC8gB": {
+   "filaments": [
+    "Creality/CR-Wood"
+   ],
+   "name": "CR-Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFGxuI0n": {
+   "filaments": [
+    "Flashforge/Flashforge PA-CF"
+   ],
+   "name": "Flashforge PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFH2nN08": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA INGEO 850"
+   ],
+   "name": "Eolas Prints PLA INGEO 850",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFH57ibH": {
+   "filaments": [
+    "Snapmaker/Polymaker Silk PLA Family"
+   ],
+   "name": "Polymaker Silk PLA Family",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFH7b12v": {
+   "filaments": [
+    "Creality/Generic PAHT-CF"
+   ],
+   "name": "Generic PAHT-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFHAccHz": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Blanco Antartida"
+   ],
+   "name": "FilAr PLA Blanco Antartida",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFHHwrd1": {
+   "filaments": [
+    "BBL/addnorth PETG Base"
+   ],
+   "name": "addnorth PETG Base",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OFHWSM21": {
+   "filaments": [
+    "BBL/Fiberon PET-CF",
+    "OrcaFilamentLibrary/Fiberon PET-CF"
+   ],
+   "name": "Fiberon PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFHa48An": {
+   "filaments": [
+    "BBL/Bambu PET-CF",
+    "OrcaFilamentLibrary/Bambu PET-CF"
+   ],
+   "name": "Bambu PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFHaYaB1": {
+   "filaments": [
+    "Creality/eSUN PET-Basic"
+   ],
+   "name": "eSUN PET-Basic",
+   "filament_type": "PET",
+   "filament_vendor": "eSUN"
+  },
+  "OFHf2lKK": {
+   "filaments": [
+    "FlyingBear/FlyingBear TPU Basic"
+   ],
+   "name": "FlyingBear TPU Basic",
+   "filament_type": "TPU",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFHfzQXo": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Transition"
+   ],
+   "name": "Eolas Prints PLA Transition",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFHknN4v": {
+   "filaments": [
+    "Anycubic/Polymaker PLA Pro Metallic",
+    "Snapmaker/Polymaker PLA Pro Metallic"
+   ],
+   "name": "Polymaker PLA Pro Metallic",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFHmPYRy": {
+   "filaments": [
+    "BBL/SUNLU PLA+ 2.0",
+    "Flashforge/SUNLU PLA+ 2.0",
+    "OrcaFilamentLibrary/SUNLU PLA+ 2.0"
+   ],
+   "name": "SUNLU PLA+ 2.0",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFI2MKy7": {
+   "filaments": [
+    "BBL/BETA PEBA 90A"
+   ],
+   "name": "BETA PEBA 90A",
+   "filament_type": "TPU",
+   "filament_vendor": "BETA"
+  },
+  "OFI6WZpn": {
+   "filaments": [
+    "OrcaArena/Arena Support W"
+   ],
+   "name": "Arena Support W",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFIBXa0k": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Rojo"
+   ],
+   "name": "FilAr PLA-mate Rojo",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFIBbYO5": {
+   "filaments": [
+    "BBL/Bambu TPU for AMS"
+   ],
+   "name": "Bambu TPU for AMS",
+   "filament_type": "TPU-AMS",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFIE3vOf": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Matte"
+   ],
+   "name": "Anycubic PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFIK2H3G": {
+   "filaments": [
+    "Flashforge/Flashforge HS PLA"
+   ],
+   "name": "Flashforge HS PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFIKZxPF": {
+   "filaments": [
+    "Creality/Generic PLA Wood"
+   ],
+   "name": "Generic PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFIPjqHt": {
+   "filaments": [
+    "OrcaArena/Arena Support G"
+   ],
+   "name": "Arena Support G",
+   "filament_type": "PA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFIRUqWi": {
+   "filaments": [
+    "Creality/eSUN PLA-Silk"
+   ],
+   "name": "eSUN PLA-Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFIVWJPm": {
+   "filaments": [
+    "InfiMech/InfiMech TPU"
+   ],
+   "name": "InfiMech TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "InfiMech"
+  },
+  "OFIWMSGX": {
+   "filaments": [
+    "Qidi/HATCHBOX PETG"
+   ],
+   "name": "HATCHBOX PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "HATCHBOX"
+  },
+  "OFIZMQwM": {
+   "filaments": [
+    "LH/LHS TPU"
+   ],
+   "name": "LHS TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFIamQnD": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Gris Ceniza"
+   ],
+   "name": "FilAr PLA Gris Ceniza",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFIegjmD": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints TPU Flex D53"
+   ],
+   "name": "Eolas Prints TPU Flex D53",
+   "filament_type": "TPU",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFIfnzxC": {
+   "filaments": [
+    "BBL/Bambu Support For PLA/PETG",
+    "OrcaFilamentLibrary/Bambu Support For PLA/PETG"
+   ],
+   "name": "Bambu Support For PLA/PETG",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFIgbDHq": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Luminous"
+   ],
+   "name": "Anycubic PLA Luminous",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFIxOuOu": {
+   "filaments": [
+    "BBL/PolyLite PLA Starlight",
+    "Snapmaker/PolyLite PLA Starlight"
+   ],
+   "name": "PolyLite PLA Starlight",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFJ3F2jm": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Basic"
+   ],
+   "name": "Flashforge PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFJ3HRsR": {
+   "filaments": [
+    "OrcaArena/Arena ABS"
+   ],
+   "name": "Arena ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFJHBEGD": {
+   "filaments": [],
+   "name": "DREMC PLA+ HS",
+   "filament_type": "PLA",
+   "filament_vendor": "DREMC"
+  },
+  "OFJJ0Ar3": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Galaxy"
+   ],
+   "name": "Flashforge PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFJNeELv": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PA"
+   ],
+   "name": "FILL3D PA",
+   "filament_type": "PA",
+   "filament_vendor": "FILL3D"
+  },
+  "OFJOFnOZ": {
+   "filaments": [
+    "BBL/AliZ PETG-CF",
+    "OrcaFilamentLibrary/AliZ PETG-CF"
+   ],
+   "name": "AliZ PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Aliz"
+  },
+  "OFJQDUk3": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Cristal"
+   ],
+   "name": "FilAr PETG Cristal",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFJS560n": {
+   "filaments": [],
+   "name": "Flashforge ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFJWKoYG": {
+   "filaments": [
+    "iQ/Material4Print ABS Natur P1"
+   ],
+   "name": "Material4Print ABS Natur P1",
+   "filament_type": "ABS Material4Print Natur",
+   "filament_vendor": "iQ Materials"
+  },
+  "OFJYpVAQ": {
+   "filaments": [
+    "Flashforge/Generic TPU-90A"
+   ],
+   "name": "Generic TPU-90A",
+   "filament_type": "TPU-90A",
+   "filament_vendor": "Generic"
+  },
+  "OFJgijky": {
+   "filaments": [
+    "BBL/PolyLite CosPLA",
+    "Snapmaker/PolyLite CosPLA"
+   ],
+   "name": "PolyLite CosPLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFJhT2fd": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual ABS"
+   ],
+   "name": "Snapmaker Dual ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFJnEaCp": {
+   "filaments": [
+    "BBL/BETA PLA Transparent"
+   ],
+   "name": "BETA PLA Transparent",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFJrvXth": {
+   "filaments": [
+    "Snapmaker/Snapmaker ABS Benchy"
+   ],
+   "name": "Snapmaker ABS Benchy",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFJs1ToM": {
+   "filaments": [
+    "BBL/COEX NYLEX UNFILLED"
+   ],
+   "name": "COEX NYLEX UNFILLED",
+   "filament_type": "PA",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFJu1XwK": {
+   "filaments": [
+    "OrcaFilamentLibrary/NIT PETG"
+   ],
+   "name": "NIT PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "NIT"
+  },
+  "OFJxSqO4": {
+   "filaments": [
+    "Wanhao France/YUMI PLA Direct Drive"
+   ],
+   "name": "YUMI PLA Direct Drive",
+   "filament_type": "PLA",
+   "filament_vendor": "Yumi"
+  },
+  "OFK7830e": {
+   "filaments": [
+    "BBL/BETA TPU 95A"
+   ],
+   "name": "BETA TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "BETA"
+  },
+  "OFK8XHPn": {
+   "filaments": [
+    "Qidi/Overture ABS"
+   ],
+   "name": "Overture ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Overture"
+  },
+  "OFKIQO2W": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido"
+   ],
+   "name": "QIDI PLA Rapido",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFKKajh6": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Gris Plata"
+   ],
+   "name": "FilAr PLA Gris Plata",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFKTGKJU": {
+   "filaments": [
+    "Flashforge/FusRock PET"
+   ],
+   "name": "FusRock PET",
+   "filament_type": "PET",
+   "filament_vendor": "FusRock"
+  },
+  "OFKTSiYF": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Blanco Calido"
+   ],
+   "name": "FilAr PLA Blanco Calido",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFKUEXPA": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual ASA"
+   ],
+   "name": "Snapmaker Dual ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFKW5hEW": {
+   "filaments": [
+    "Flashforge/FusRock PAHT-CF"
+   ],
+   "name": "FusRock PAHT-CF",
+   "filament_type": "PAHT-CF",
+   "filament_vendor": "FusRock"
+  },
+  "OFKWWgyp": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Carpincho"
+   ],
+   "name": "FilAr PLA Carpincho",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFKYBAWe": {
+   "filaments": [
+    "BBL/BETA PLA Marble"
+   ],
+   "name": "BETA PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFKZ9skj": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Naranja Tigre"
+   ],
+   "name": "FilAr PLA Naranja Tigre",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFKbdiiJ": {
+   "filaments": [
+    "Creality/PolySonic PLA Pro"
+   ],
+   "name": "PolySonic PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFKfJTwL": {
+   "filaments": [
+    "Qidi/QIDI PET-CF"
+   ],
+   "name": "QIDI PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFKgmsqE": {
+   "filaments": [
+    "Qidi/QIDI PAHT-CF"
+   ],
+   "name": "QIDI PAHT-CF",
+   "filament_type": "PAHT-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFKhMPeX": {
+   "filaments": [
+    "BBL/Bambu PC",
+    "OrcaFilamentLibrary/Bambu PC"
+   ],
+   "name": "Bambu PC",
+   "filament_type": "PC",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFKiSMWR": {
+   "filaments": [
+    "BBL/Panchroma PLA Marble",
+    "OrcaFilamentLibrary/Panchroma PLA Marble",
+    "Snapmaker/Panchroma PLA Marble"
+   ],
+   "name": "Panchroma PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFKyNkQz": {
+   "filaments": [
+    "BBL/BETA PETG UV Color Change"
+   ],
+   "name": "BETA PETG UV Color Change",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFL9aRjN": {
+   "filaments": [
+    "Snapmaker/Snapmaker PETG HF"
+   ],
+   "name": "Snapmaker PETG HF",
+   "filament_type": "PETG",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFLAXKqP": {
+   "filaments": [
+    "WonderMaker/WonderMaker TPU 95A"
+   ],
+   "name": "WonderMaker TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFLC1oRH": {
+   "filaments": [
+    "Flashforge/Flashforge PPA-CF"
+   ],
+   "name": "Flashforge PPA-CF",
+   "filament_type": "PPA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFLJ8S6I": {
+   "filaments": [
+    "BBL/SUNLU Wood PLA",
+    "Flashforge/SUNLU Wood PLA",
+    "OrcaFilamentLibrary/SUNLU Wood PLA"
+   ],
+   "name": "SUNLU Wood PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFLNgV3C": {
+   "filaments": [],
+   "name": "DREMC ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "DREMC"
+  },
+  "OFLOf6Sc": {
+   "filaments": [
+    "Tiertime/Tiertime TPU 95A"
+   ],
+   "name": "Tiertime TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Tiertime"
+  },
+  "OFLPAxz3": {
+   "filaments": [
+    "Anker/Generic ASA",
+    "Anycubic/Generic ASA",
+    "Artillery/Generic ASA",
+    "BBL/Generic ASA",
+    "Blocks/Generic ASA",
+    "Chuanying/Generic ASA",
+    "Creality/Generic ASA",
+    "Custom/Generic ASA",
+    "Elegoo/Generic ASA",
+    "FLSun/Generic ASA",
+    "Flashforge/Generic ASA",
+    "OrcaArena/Generic ASA",
+    "OrcaFilamentLibrary/Generic ASA",
+    "Prusa/Generic ASA",
+    "Qidi/Generic ASA",
+    "RH3D/Generic ASA",
+    "Ratrig/Generic ASA",
+    "SecKit/Generic ASA",
+    "Tiertime/Generic ASA",
+    "Vzbot/Generic ASA"
+   ],
+   "name": "Generic ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Generic"
+  },
+  "OFLTYJW0": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Translucent"
+   ],
+   "name": "Snapmaker PLA Translucent",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFLXvuMr": {
+   "filaments": [
+    "Elegoo/Elegoo Rapid PETG",
+    "OrcaFilamentLibrary/Elegoo Rapid PETG"
+   ],
+   "name": "Elegoo Rapid PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFLYDngx": {
+   "filaments": [
+    "Qidi/Bambu PETG"
+   ],
+   "name": "Bambu PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFLakOUI": {
+   "filaments": [
+    "Anker/Generic PC",
+    "Anycubic/Generic PC",
+    "BBL/Generic PC",
+    "Blocks/Generic PC",
+    "Creality/Generic PC",
+    "Custom/Generic PC",
+    "Elegoo/Generic PC",
+    "FLSun/Generic PC",
+    "FlyingBear/Generic PC",
+    "InfiMech/Generic PC",
+    "OrcaArena/Generic PC",
+    "OrcaFilamentLibrary/Generic PC",
+    "Prusa/Generic PC",
+    "Qidi/Generic PC",
+    "Ratrig/Generic PC",
+    "SecKit/Generic PC",
+    "Sovol/Generic PC",
+    "Tiertime/Generic PC",
+    "Vzbot/Generic PC"
+   ],
+   "name": "Generic PC",
+   "filament_type": "PC",
+   "filament_vendor": "Generic"
+  },
+  "OFLbXwoL": {
+   "filaments": [
+    "Artillery/Artillery PLA Silk"
+   ],
+   "name": "Artillery PLA Silk",
+   "filament_type": "PLA Silk",
+   "filament_vendor": "Artillery"
+  },
+  "OFLbdkrE": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA Eco"
+   ],
+   "name": "Snapmaker J1 PLA Eco",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFLcd093": {
+   "filaments": [
+    "Elegoo/Elegoo PETG",
+    "OrcaFilamentLibrary/Elegoo PETG"
+   ],
+   "name": "Elegoo PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFLfywkp": {
+   "filaments": [
+    "Afinia/Afinia ABS+"
+   ],
+   "name": "Afinia ABS+",
+   "filament_type": "ABS",
+   "filament_vendor": "Afinia"
+  },
+  "OFLgwqp2": {
+   "filaments": [
+    "Creality/Hyper PETG-GF"
+   ],
+   "name": "Hyper PETG-GF",
+   "filament_type": "PETG-GF",
+   "filament_vendor": "Creality"
+  },
+  "OFLjDYxH": {
+   "filaments": [
+    "BBL/addnorth PLA X-PLA High Speed"
+   ],
+   "name": "addnorth PLA X-PLA High Speed",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFLqgSuX": {
+   "filaments": [
+    "BBL/BETA PLA-CF"
+   ],
+   "name": "BETA PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "BETA"
+  },
+  "OFLzx3J4": {
+   "filaments": [
+    "Creality/Hyper Marble"
+   ],
+   "name": "Hyper Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFM0xjBG": {
+   "filaments": [
+    "Creality/CR-PLA Matte"
+   ],
+   "name": "CR-PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFM4iJlv": {
+   "filaments": [
+    "Creality/Generic PA12-CF"
+   ],
+   "name": "Generic PA12-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFM91vZs": {
+   "filaments": [
+    "BBL/Overture ASA",
+    "OrcaFilamentLibrary/Overture ASA"
+   ],
+   "name": "Overture ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Overture"
+  },
+  "OFMDHOcT": {
+   "filaments": [
+    "Qidi/QIDI TPU-Aero"
+   ],
+   "name": "QIDI TPU-Aero",
+   "filament_type": "TPU-AERO",
+   "filament_vendor": "QIDI"
+  },
+  "OFMK5gVo": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Basic"
+   ],
+   "name": "WonderMaker PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFML2aVd": {
+   "filaments": [
+    "Anycubic/Anycubic TPU 95A"
+   ],
+   "name": "Anycubic TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Anycubic"
+  },
+  "OFMSvS8z": {
+   "filaments": [
+    "Artillery/Artillery PA"
+   ],
+   "name": "Artillery PA",
+   "filament_type": "PA",
+   "filament_vendor": "Artillery"
+  },
+  "OFMTK0UC": {
+   "filaments": [
+    "BBL/Bambu Support For PA/PET",
+    "OrcaFilamentLibrary/Bambu Support For PA/PET"
+   ],
+   "name": "Bambu Support For PA/PET",
+   "filament_type": "PA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFMUWNkp": {
+   "filaments": [
+    "BBL/SUNLU PLA+",
+    "Flashforge/SUNLU PLA+",
+    "OrcaFilamentLibrary/SUNLU PLA+"
+   ],
+   "name": "SUNLU PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFMZvH0z": {
+   "filaments": [
+    "BBL/Overture Rock PLA",
+    "OrcaFilamentLibrary/Overture Rock PLA"
+   ],
+   "name": "Overture Rock PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFMjtqTC": {
+   "filaments": [
+    "BBL/Bambu PLA Wood",
+    "OrcaFilamentLibrary/Bambu PLA Wood"
+   ],
+   "name": "Bambu PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFMkAW6r": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Color Change"
+   ],
+   "name": "Flashforge PLA Color Change",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFMpxamb": {
+   "filaments": [
+    "Flashforge/Flashforge PETG"
+   ],
+   "name": "Flashforge PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Flashforge"
+  },
+  "OFMsDGbs": {
+   "filaments": [
+    "Anycubic/Anycubic TPU"
+   ],
+   "name": "Anycubic TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Anycubic"
+  },
+  "OFMuXBmO": {
+   "filaments": [
+    "OrcaFilamentLibrary/Elas PLA Basic"
+   ],
+   "name": "Elas PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Elas"
+  },
+  "OFMzRg65": {
+   "filaments": [
+    "BBL/BETA PLA PRO"
+   ],
+   "name": "BETA PLA PRO",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFN8QBhu": {
+   "filaments": [
+    "BBL/addnorth PLA Wood"
+   ],
+   "name": "addnorth PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFN9fefN": {
+   "filaments": [
+    "Cubicon/Cubicon ABS-A100"
+   ],
+   "name": "Cubicon ABS-A100",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFNBlAPT": {
+   "filaments": [
+    "OrcaArena/Arena PETG Basic"
+   ],
+   "name": "Arena PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFNGTH3w": {
+   "filaments": [
+    "Tiertime/Tiertime PLA"
+   ],
+   "name": "Tiertime PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Tiertime"
+  },
+  "OFNQKF0M": {
+   "filaments": [
+    "Tiertime/Tiertime ABS"
+   ],
+   "name": "Tiertime ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Tiertime"
+  },
+  "OFNSYu5h": {
+   "filaments": [
+    "Volumic/Volumic PP Ultra (Performance)"
+   ],
+   "name": "Volumic PP Ultra (Performance)",
+   "filament_type": "PP",
+   "filament_vendor": "Volumic"
+  },
+  "OFNU9YIW": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Azul Boreal"
+   ],
+   "name": "FilAr PETG Azul Boreal",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFNemJM6": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Cobre"
+   ],
+   "name": "FilAr PLA Cobre",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFNjku08": {
+   "filaments": [
+    "CONSTRUCT3D/Generic High Flow PETG"
+   ],
+   "name": "Generic High Flow PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OFNk8AvA": {
+   "filaments": [
+    "BBL/BETA PETG Gradient"
+   ],
+   "name": "BETA PETG Gradient",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFNk8bxk": {
+   "filaments": [
+    "BBL/Bambu PA6-GF",
+    "OrcaFilamentLibrary/Bambu PA6-GF"
+   ],
+   "name": "Bambu PA6-GF",
+   "filament_type": "PA-GF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFNstOna": {
+   "filaments": [
+    "Eryone/Eryone PETG-CF"
+   ],
+   "name": "Eryone PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFNvBIL0": {
+   "filaments": [
+    "Creality/Hyper PPA-CF"
+   ],
+   "name": "Hyper PPA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFO1GEq6": {
+   "filaments": [
+    "BBL/Panchroma PLA Neon",
+    "OrcaFilamentLibrary/Panchroma PLA Neon",
+    "Snapmaker/Panchroma PLA Neon"
+   ],
+   "name": "Panchroma PLA Neon",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFO5djrM": {
+   "filaments": [
+    "Chuanying/Generic PETG-CF10",
+    "Flashforge/Generic PETG-CF10"
+   ],
+   "name": "Generic PETG-CF10",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFO6GMJ3": {
+   "filaments": [
+    "BBL/addnorth TPU EasyFlex"
+   ],
+   "name": "addnorth TPU EasyFlex",
+   "filament_type": "TPU",
+   "filament_vendor": "addnorth"
+  },
+  "OFOABq7t": {
+   "filaments": [
+    "BBL/AliZ PETG-Metal",
+    "OrcaFilamentLibrary/AliZ PETG-Metal"
+   ],
+   "name": "AliZ PETG-Metal",
+   "filament_type": "PETG",
+   "filament_vendor": "Aliz"
+  },
+  "OFOAdMCB": {
+   "filaments": [
+    "OrcaArena/Arena PLA Metal"
+   ],
+   "name": "Arena PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFOHOf2F": {
+   "filaments": [
+    "Creality/eSUN PLA-HS"
+   ],
+   "name": "eSUN PLA-HS",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFOJPAAS": {
+   "filaments": [
+    "iQ/VXL90 TiQ2 P2"
+   ],
+   "name": "VXL90 TiQ2 P2",
+   "filament_type": "VXL90 Xioneer",
+   "filament_vendor": "iQ Materials"
+  },
+  "OFOPU1xv": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Full Spectrum"
+   ],
+   "name": "Snapmaker PLA Full Spectrum",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFOQCfVa": {
+   "filaments": [
+    "BBL/addnorth PLA Premium Silk"
+   ],
+   "name": "addnorth PLA Premium Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFObG16Q": {
+   "filaments": [
+    "InfiMech/InfiMech PLA Basic"
+   ],
+   "name": "InfiMech PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "InfiMech"
+  },
+  "OFObyktP": {
+   "filaments": [
+    "Tiertime/Tiertime PETG"
+   ],
+   "name": "Tiertime PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Tiertime"
+  },
+  "OFOiJfLM": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PETG CF"
+   ],
+   "name": "FILL3D PETG CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "FILL3D"
+  },
+  "OFOnSNt3": {
+   "filaments": [
+    "Artillery/Artillery PETG-CF"
+   ],
+   "name": "Artillery PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Artillery"
+  },
+  "OFOsHDnB": {
+   "filaments": [
+    "Elegoo/Elegoo PETG PRO",
+    "OrcaFilamentLibrary/Elegoo PETG PRO"
+   ],
+   "name": "Elegoo PETG PRO",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFOuEEvv": {
+   "filaments": [
+    "Qidi/QIDI ABS Rapido 0.2 nozzle"
+   ],
+   "name": "QIDI ABS Rapido 0.2 nozzle",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OFOvv91M": {
+   "filaments": [
+    "BBL/PolyLite ABS",
+    "OrcaFilamentLibrary/PolyLite ABS",
+    "Qidi/PolyLite ABS"
+   ],
+   "name": "PolyLite ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Polymaker"
+  },
+  "OFOwQuZM": {
+   "filaments": [
+    "Snapmaker/Snapmaker PETG-CF"
+   ],
+   "name": "Snapmaker PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFOzwywz": {
+   "filaments": [
+    "Eryone/Eryone ABS"
+   ],
+   "name": "Eryone ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Eryone"
+  },
+  "OFP26zNb": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Violeta Jacaranda"
+   ],
+   "name": "FilAr PLA Violeta Jacaranda",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFPHLnoe": {
+   "filaments": [
+    "Creality/HP-ASA"
+   ],
+   "name": "HP-ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Creality"
+  },
+  "OFPWPlSC": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PP"
+   ],
+   "name": "FILL3D PP",
+   "filament_type": "PP",
+   "filament_vendor": "FILL3D"
+  },
+  "OFPYDWgC": {
+   "filaments": [
+    "Peopoly/Peopoly Lancer PET-CF"
+   ],
+   "name": "Peopoly Lancer PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Peopoly"
+  },
+  "OFPbyOSk": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Rojo Carmesi"
+   ],
+   "name": "FilAr PETG Rojo Carmesi",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFPc4zVY": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA INGEO 870"
+   ],
+   "name": "Eolas Prints PLA INGEO 870",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFPkCJKE": {
+   "filaments": [
+    "BBL/Panchroma PLA Satin",
+    "Creality/Panchroma PLA Satin",
+    "OrcaFilamentLibrary/Panchroma PLA Satin",
+    "Snapmaker/Panchroma PLA Satin"
+   ],
+   "name": "Panchroma PLA Satin",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFPklMI1": {
+   "filaments": [
+    "BBL/Generic PE",
+    "OrcaFilamentLibrary/Generic PE",
+    "Tiertime/Generic PE"
+   ],
+   "name": "Generic PE",
+   "filament_type": "PE",
+   "filament_vendor": "Generic"
+  },
+  "OFPoyiFs": {
+   "filaments": [
+    "BBL/Polymaker HT-PLA",
+    "OrcaFilamentLibrary/Polymaker HT-PLA",
+    "Snapmaker/Polymaker HT-PLA"
+   ],
+   "name": "Polymaker HT-PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFPqX3x2": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Rosa Amaranto"
+   ],
+   "name": "FilAr PLA Rosa Amaranto",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFQ1KzO8": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA Silk"
+   ],
+   "name": "Snapmaker J1 PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFQ1zgm3": {
+   "filaments": [
+    "Eryone/Eryone ABS-CF"
+   ],
+   "name": "Eryone ABS-CF",
+   "filament_type": "ABS-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFQ3e56w": {
+   "filaments": [
+    "BBL/Bambu PLA Galaxy",
+    "OrcaFilamentLibrary/Bambu PLA Galaxy"
+   ],
+   "name": "Bambu PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFQ40XeN": {
+   "filaments": [
+    "Qidi/QIDI PETG Tough"
+   ],
+   "name": "QIDI PETG Tough",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFQ5TxZ2": {
+   "filaments": [
+    "BBL/addnorth PVDF Adamant S1"
+   ],
+   "name": "addnorth PVDF Adamant S1",
+   "filament_type": "PA",
+   "filament_vendor": "addnorth"
+  },
+  "OFQEGL7z": {
+   "filaments": [
+    "FlyingBear/FlyingBear PA-CF"
+   ],
+   "name": "FlyingBear PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFQGvU2G": {
+   "filaments": [
+    "OrcaArena/Arena TPU 95A"
+   ],
+   "name": "Arena TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFQHiNJs": {
+   "filaments": [
+    "BBL/Bambu Support G",
+    "OrcaFilamentLibrary/Bambu Support G"
+   ],
+   "name": "Bambu Support G",
+   "filament_type": "PA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFQLcbps": {
+   "filaments": [
+    "Anker/Generic PA-CF",
+    "Anycubic/Generic PA-CF",
+    "BBL/Generic PA-CF",
+    "Blocks/Generic PA-CF",
+    "Creality/Generic PA-CF",
+    "Custom/Generic PA-CF",
+    "FLSun/Generic PA-CF",
+    "FlyingBear/Generic PA-CF",
+    "InfiMech/Generic PA-CF",
+    "OrcaArena/Generic PA-CF",
+    "OrcaFilamentLibrary/Generic PA-CF",
+    "Prusa/Generic PA-CF",
+    "Qidi/Generic PA-CF",
+    "Ratrig/Generic PA-CF",
+    "SecKit/Generic PA-CF",
+    "Tiertime/Generic PA-CF",
+    "Vzbot/Generic PA-CF"
+   ],
+   "name": "Generic PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFQMTRc8": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PETG"
+   ],
+   "name": "Snapmaker J1 PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFQMsFfF": {
+   "filaments": [
+    "Qidi/QIDI ABS-GF10"
+   ],
+   "name": "QIDI ABS-GF10",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFQWIKbV": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Titanio"
+   ],
+   "name": "FilAr PLA Titanio",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFQYaiGg": {
+   "filaments": [
+    "Snapmaker/Snapmaker PET"
+   ],
+   "name": "Snapmaker PET",
+   "filament_type": "PET",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFQbjX3s": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PETG"
+   ],
+   "name": "FILL3D PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "FILL3D"
+  },
+  "OFQdaVZS": {
+   "filaments": [
+    "Creality/Generic PET-CF",
+    "Elegoo/Generic PET-CF"
+   ],
+   "name": "Generic PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFQe7sAx": {
+   "filaments": [
+    "Anycubic/Anycubic PA6-CF"
+   ],
+   "name": "Anycubic PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFQyyO0l": {
+   "filaments": [
+    "Flashforge/Polymaker CoPA"
+   ],
+   "name": "Polymaker CoPA",
+   "filament_type": "PA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFR0gODA": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC ABS"
+   ],
+   "name": "SeeMeCNC ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OFR1XLMN": {
+   "filaments": [
+    "Qidi/QIDI TPU 95A-HF"
+   ],
+   "name": "QIDI TPU 95A-HF",
+   "filament_type": "TPU",
+   "filament_vendor": "QIDI"
+  },
+  "OFRFhdqy": {
+   "filaments": [
+    "BBL/addnorth PLA Textura"
+   ],
+   "name": "addnorth PLA Textura",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFRJ325z": {
+   "filaments": [
+    "LH/LHS PETG"
+   ],
+   "name": "LHS PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFRhBryT": {
+   "filaments": [
+    "Cubicon/Cubicon PLAi21"
+   ],
+   "name": "Cubicon PLAi21",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFRhCTUg": {
+   "filaments": [
+    "Anycubic/Anycubic PET-CF"
+   ],
+   "name": "Anycubic PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFRiFnfQ": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PETG Transition"
+   ],
+   "name": "Eolas Prints PETG Transition",
+   "filament_type": "PETG",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFRiYgMK": {
+   "filaments": [
+    "BBL/Panchroma PLA Celestial",
+    "OrcaFilamentLibrary/Panchroma PLA Celestial",
+    "Snapmaker/Panchroma PLA Celestial"
+   ],
+   "name": "Panchroma PLA Celestial",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFRkjhxK": {
+   "filaments": [
+    "Volumic/Volumic PVA-BVOH (Performance)"
+   ],
+   "name": "Volumic PVA-BVOH (Performance)",
+   "filament_type": "PVA",
+   "filament_vendor": "Volumic"
+  },
+  "OFRmGKVX": {
+   "filaments": [
+    "Cubicon/Cubicon PLA+"
+   ],
+   "name": "Cubicon PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFRooa0F": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PA-CF"
+   ],
+   "name": "Snapmaker Dual PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFRpAZ1P": {
+   "filaments": [
+    "DeltaMaker/DeltaMaker Brand PLA"
+   ],
+   "name": "DeltaMaker Brand PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "DeltaMaker"
+  },
+  "OFRyOsZj": {
+   "filaments": [
+    "re3D/re3D PLA"
+   ],
+   "name": "re3D PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "re3D"
+  },
+  "OFRzR5mi": {
+   "filaments": [
+    "OrcaFilamentLibrary/eSUN ePLA-LW"
+   ],
+   "name": "eSUN ePLA-LW",
+   "filament_type": "PLA-AERO",
+   "filament_vendor": "eSUN"
+  },
+  "OFS2tn6G": {
+   "filaments": [
+    "BBL/Fiberon PA612-CF",
+    "OrcaFilamentLibrary/Fiberon PA612-CF"
+   ],
+   "name": "Fiberon PA612-CF",
+   "filament_type": "PA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFS4jbj3": {
+   "filaments": [
+    "Eryone/Eryone PA"
+   ],
+   "name": "Eryone PA",
+   "filament_type": "PA",
+   "filament_vendor": "Eryone"
+  },
+  "OFS8lTQt": {
+   "filaments": [
+    "BBL/Panchroma PLA Silk",
+    "OrcaFilamentLibrary/Panchroma PLA Silk",
+    "Snapmaker/Panchroma PLA Silk"
+   ],
+   "name": "Panchroma PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFSDfduA": {
+   "filaments": [
+    "Flashforge/Flashforge TPU 65D"
+   ],
+   "name": "Flashforge TPU 65D",
+   "filament_type": "TPU",
+   "filament_vendor": "Flashforge"
+  },
+  "OFSa39yP": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA"
+   ],
+   "name": "Snapmaker J1 PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFSbGfsz": {
+   "filaments": [
+    "OrcaArena/Arena PLA Basic"
+   ],
+   "name": "Arena PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFSfm8iP": {
+   "filaments": [
+    "BBL/BETA PLA Heat Color Change"
+   ],
+   "name": "BETA PLA Heat Color Change",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFSiCZP3": {
+   "filaments": [
+    "BBL/BETA PETG-GF"
+   ],
+   "name": "BETA PETG-GF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "BETA"
+  },
+  "OFSqIcJC": {
+   "filaments": [
+    "Flashforge/Flashforge TPU 95A"
+   ],
+   "name": "Flashforge TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Flashforge"
+  },
+  "OFSw6Mor": {
+   "filaments": [
+    "BBL/addnorth PA Adura FDA"
+   ],
+   "name": "addnorth PA Adura FDA",
+   "filament_type": "PA",
+   "filament_vendor": "addnorth"
+  },
+  "OFSwbBWS": {
+   "filaments": [],
+   "name": "DREMC PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "DREMC"
+  },
+  "OFT2jon4": {
+   "filaments": [
+    "Qidi/QIDI ABS Rapido"
+   ],
+   "name": "QIDI ABS Rapido",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OFTGHyNC": {
+   "filaments": [
+    "OrcaFilamentLibrary/Bambu PLA Impact"
+   ],
+   "name": "Bambu PLA Impact",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFTHDCqA": {
+   "filaments": [
+    "BBL/Bambu PLA Pure"
+   ],
+   "name": "Bambu PLA Pure",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFTOPcx0": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints TPU Transition"
+   ],
+   "name": "Eolas Prints TPU Transition",
+   "filament_type": "TPU",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFTRZ8Y4": {
+   "filaments": [
+    "BBL/Bambu PETG-CF",
+    "OrcaFilamentLibrary/Bambu PETG-CF"
+   ],
+   "name": "Bambu PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFTSXxzE": {
+   "filaments": [
+    "Flashforge/Flashforge PPS-CF"
+   ],
+   "name": "Flashforge PPS-CF",
+   "filament_type": "PPS-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFTXduCM": {
+   "filaments": [
+    "Creality/eSUN ABS+"
+   ],
+   "name": "eSUN ABS+",
+   "filament_type": "ABS",
+   "filament_vendor": "eSUN"
+  },
+  "OFTcE0nA": {
+   "filaments": [
+    "OrcaFilamentLibrary/eSUN PLA-Basic"
+   ],
+   "name": "eSUN PLA-Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFTdauIq": {
+   "filaments": [
+    "Volumic/Volumic PCTG Ultra (Performance)"
+   ],
+   "name": "Volumic PCTG Ultra (Performance)",
+   "filament_type": "PETG",
+   "filament_vendor": "Volumic"
+  },
+  "OFTkj6DR": {
+   "filaments": [
+    "Anycubic/Anycubic PVA"
+   ],
+   "name": "Anycubic PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFTlRzpe": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Gris Pizarra"
+   ],
+   "name": "FilAr PLA Gris Pizarra",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFTnWzBs": {
+   "filaments": [
+    "Creality/Hyper PLA-CF"
+   ],
+   "name": "Hyper PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFTs8peJ": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual TPE"
+   ],
+   "name": "Snapmaker Dual TPE",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFTsHNQi": {
+   "filaments": [
+    "Qidi/QIDI ASA"
+   ],
+   "name": "QIDI ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "QIDI"
+  },
+  "OFU1zPxE": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Galaxy",
+    "OrcaFilamentLibrary/Elegoo PLA Galaxy"
+   ],
+   "name": "Elegoo PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFU3QXL7": {
+   "filaments": [
+    "re3D/re3D PC"
+   ],
+   "name": "re3D PC",
+   "filament_type": "PC",
+   "filament_vendor": "re3D"
+  },
+  "OFU5JPDy": {
+   "filaments": [
+    "BBL/addnorth PETG PRO Matte"
+   ],
+   "name": "addnorth PETG PRO Matte",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OFU7CKZt": {
+   "filaments": [
+    "Volumic/Volumic ASA Ultra (Performance)"
+   ],
+   "name": "Volumic ASA Ultra (Performance)",
+   "filament_type": "ASA",
+   "filament_vendor": "Volumic"
+  },
+  "OFUF7oA4": {
+   "filaments": [
+    "Creality/Hyper PC"
+   ],
+   "name": "Hyper PC",
+   "filament_type": "PC",
+   "filament_vendor": "Creality"
+  },
+  "OFUH1aee": {
+   "filaments": [
+    "Volumic/Volumic FLEX93 Ultra (Performance)"
+   ],
+   "name": "Volumic FLEX93 Ultra (Performance)",
+   "filament_type": "TPU",
+   "filament_vendor": "Volumic"
+  },
+  "OFUIfGoh": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PET"
+   ],
+   "name": "Snapmaker Dual PET",
+   "filament_type": "PET",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFUYCqtB": {
+   "filaments": [
+    "InfiMech/InfiMech PLA"
+   ],
+   "name": "InfiMech PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "InfiMech"
+  },
+  "OFUaHEO9": {
+   "filaments": [
+    "Anycubic/Anycubic PEBA 95A"
+   ],
+   "name": "Anycubic PEBA 95A",
+   "filament_type": "PEBA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFUanySo": {
+   "filaments": [
+    "BBL/Bambu PLA Silk+",
+    "OrcaFilamentLibrary/Bambu PLA Silk+"
+   ],
+   "name": "Bambu PLA Silk+",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFUmS5z5": {
+   "filaments": [
+    "Creality/eSUN ASA+"
+   ],
+   "name": "eSUN ASA+",
+   "filament_type": "ASA",
+   "filament_vendor": "eSUN"
+  },
+  "OFUtiVRn": {
+   "filaments": [
+    "BBL/addnorth PETG ESD"
+   ],
+   "name": "addnorth PETG ESD",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OFUyDDNv": {
+   "filaments": [
+    "Elegoo/Elegoo PC",
+    "OrcaFilamentLibrary/Elegoo PC"
+   ],
+   "name": "Elegoo PC",
+   "filament_type": "PC",
+   "filament_vendor": "Elegoo"
+  },
+  "OFV5Q7j2": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 TPE"
+   ],
+   "name": "Snapmaker J1 TPE",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFV5c8hG": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Sparkle"
+   ],
+   "name": "Flashforge PLA Sparkle",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFV5wEMe": {
+   "filaments": [
+    "Afinia/Afinia ABS"
+   ],
+   "name": "Afinia ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Afinia"
+  },
+  "OFV8Mxqx": {
+   "filaments": [],
+   "name": "Flashforge PLA-SILK",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFVBlUFH": {
+   "filaments": [],
+   "name": "DREMC PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "DREMC"
+  },
+  "OFVCkX5w": {
+   "filaments": [
+    "BBL/Bambu TPU 95A",
+    "OrcaFilamentLibrary/Bambu TPU 95A"
+   ],
+   "name": "Bambu TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFVDWuxl": {
+   "filaments": [
+    "BBL/addnorth PLA HT-PLA PRO Matte"
+   ],
+   "name": "addnorth PLA HT-PLA PRO Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFVHMFJX": {
+   "filaments": [
+    "Qidi/QIDI PETG Tough 0.2 nozzle"
+   ],
+   "name": "QIDI PETG Tough 0.2 nozzle",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFVptRxp": {
+   "filaments": [
+    "BBL/COEX TPE 30D",
+    "OrcaFilamentLibrary/COEX TPE 30D"
+   ],
+   "name": "COEX TPE 30D",
+   "filament_type": "TPU",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFVtIasg": {
+   "filaments": [
+    "Eryone/Eryone ASA"
+   ],
+   "name": "Eryone ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Eryone"
+  },
+  "OFW29a9R": {
+   "filaments": [
+    "BBL/PolyTerra PLA",
+    "OrcaArena/PolyTerra PLA",
+    "OrcaFilamentLibrary/PolyTerra PLA",
+    "Snapmaker/PolyTerra PLA"
+   ],
+   "name": "PolyTerra PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFW5FqkL": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido Silk"
+   ],
+   "name": "QIDI PLA Rapido Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFW8M3CY": {
+   "filaments": [
+    "BBL/BETA PLA Chameleon"
+   ],
+   "name": "BETA PLA Chameleon",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFW8lqnb": {
+   "filaments": [
+    "Snapmaker/Snapmaker PETG Translucent"
+   ],
+   "name": "Snapmaker PETG Translucent",
+   "filament_type": "PETG",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFWDe7YH": {
+   "filaments": [
+    "Qidi/QIDI UltraPA"
+   ],
+   "name": "QIDI UltraPA",
+   "filament_type": "UltraPA",
+   "filament_vendor": "QIDI"
+  },
+  "OFWK0Y9A": {
+   "filaments": [
+    "BBL/addnorth PA Adura"
+   ],
+   "name": "addnorth PA Adura",
+   "filament_type": "PA",
+   "filament_vendor": "addnorth"
+  },
+  "OFWRITFw": {
+   "filaments": [
+    "Prusa/Prusament rPLA"
+   ],
+   "name": "Prusament rPLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFWTAEjH": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPE"
+   ],
+   "name": "Snapmaker TPE",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFWTRJ1K": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Bronce"
+   ],
+   "name": "FilAr PLA Bronce",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFWXCbVF": {
+   "filaments": [
+    "Flashforge/Flashforge PC"
+   ],
+   "name": "Flashforge PC",
+   "filament_type": "PC",
+   "filament_vendor": "Flashforge"
+  },
+  "OFWYtgCa": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Wood",
+    "OrcaFilamentLibrary/Elegoo PLA Wood"
+   ],
+   "name": "Elegoo PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFWa0NiB": {
+   "filaments": [
+    "Volumic/Volumic NYLON Ultra"
+   ],
+   "name": "Volumic NYLON Ultra",
+   "filament_type": "PA",
+   "filament_vendor": "Volumic"
+  },
+  "OFWao3Ic": {
+   "filaments": [
+    "Creality/Ender-PLA"
+   ],
+   "name": "Ender-PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFWbdGsC": {
+   "filaments": [
+    "Anker/Generic PLA-CF",
+    "Anycubic/Generic PLA-CF",
+    "Artillery/Generic PLA-CF",
+    "BBL/Generic PLA-CF",
+    "Blocks/Generic PLA-CF",
+    "Creality/Generic PLA-CF",
+    "Custom/Generic PLA-CF",
+    "FLSun/Generic PLA-CF",
+    "Flashforge/Generic PLA-CF",
+    "OrcaArena/Generic PLA-CF",
+    "OrcaFilamentLibrary/Generic PLA-CF",
+    "Prusa/Generic PLA-CF",
+    "Qidi/Generic PLA-CF",
+    "Ratrig/Generic PLA-CF",
+    "SecKit/Generic PLA-CF",
+    "Tiertime/Generic PLA-CF",
+    "Vzbot/Generic PLA-CF"
+   ],
+   "name": "Generic PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFWgFOjn": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Silk"
+   ],
+   "name": "Snapmaker PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFWwF7K7": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Cafe con Leche"
+   ],
+   "name": "FilAr PLA Cafe con Leche",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFX0etlv": {
+   "filaments": [
+    "re3D/re3D PETG"
+   ],
+   "name": "re3D PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "re3D"
+  },
+  "OFX0ycRQ": {
+   "filaments": [
+    "BBL/Fiberon PA12-CF",
+    "OrcaFilamentLibrary/Fiberon PA12-CF"
+   ],
+   "name": "Fiberon PA12-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFX2zcrM": {
+   "filaments": [
+    "Chuanying/Generic PLA-CF10",
+    "Flashforge/Generic PLA-CF10"
+   ],
+   "name": "Generic PLA-CF10",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFXCBZTA": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints ABS"
+   ],
+   "name": "Eolas Prints ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFXIbw5D": {
+   "filaments": [
+    "BBL/Bambu PLA Matte",
+    "OrcaFilamentLibrary/Bambu PLA Matte"
+   ],
+   "name": "Bambu PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFXJ9iom": {
+   "filaments": [
+    "iQ/Grauts HPP4GF25 P1"
+   ],
+   "name": "Grauts HPP4GF25 P1",
+   "filament_type": "HPP4GF25",
+   "filament_vendor": "iQ Materials"
+  },
+  "OFXSvqOX": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPU 95A HF"
+   ],
+   "name": "Snapmaker TPU 95A HF",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFXTPuqV": {
+   "filaments": [
+    "OrcaFilamentLibrary/Elas PETG Basic"
+   ],
+   "name": "Elas PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "Elas"
+  },
+  "OFXW4CDh": {
+   "filaments": [
+    "Ratrig/Generic PCTG BigNozzle"
+   ],
+   "name": "Generic PCTG BigNozzle",
+   "filament_type": "PCTG",
+   "filament_vendor": "Generic"
+  },
+  "OFXi59OX": {
+   "filaments": [
+    "Afinia/Afinia Value ABS"
+   ],
+   "name": "Afinia Value ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Afinia"
+  },
+  "OFXiArjA": {
+   "filaments": [
+    "Flashforge/Flashforge PETG Pro"
+   ],
+   "name": "Flashforge PETG Pro",
+   "filament_type": "PETG",
+   "filament_vendor": "Flashforge"
+  },
+  "OFXk1emJ": {
+   "filaments": [
+    "Artillery/Artillery PLA Basic"
+   ],
+   "name": "Artillery PLA Basic",
+   "filament_type": "PLA Basic",
+   "filament_vendor": "Artillery"
+  },
+  "OFXkm8q1": {
+   "filaments": [
+    "BBL/Generic PP-CF",
+    "Creality/Generic PP-CF",
+    "OrcaFilamentLibrary/Generic PP-CF",
+    "Tiertime/Generic PP-CF"
+   ],
+   "name": "Generic PP-CF",
+   "filament_type": "PP-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFXmv5p0": {
+   "filaments": [
+    "Creality/Generic Speed PLA"
+   ],
+   "name": "Generic Speed PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFXn3Vd9": {
+   "filaments": [
+    "Qidi/QIDI Support For PAHT"
+   ],
+   "name": "QIDI Support For PAHT",
+   "filament_type": "PAHT-S",
+   "filament_vendor": "QIDI"
+  },
+  "OFXnToSX": {
+   "filaments": [
+    "Creality/Hyper Stardust"
+   ],
+   "name": "Hyper Stardust",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFXuGxvQ": {
+   "filaments": [
+    "Volumic/Volumic PLA Ultra"
+   ],
+   "name": "Volumic PLA Ultra",
+   "filament_type": "PLA",
+   "filament_vendor": "Volumic"
+  },
+  "OFXz7Mwx": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Silk",
+    "OrcaFilamentLibrary/Elegoo PLA Silk"
+   ],
+   "name": "Elegoo PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFXzQ4yL": {
+   "filaments": [
+    "BBL/Bambu ASA-Aero",
+    "OrcaFilamentLibrary/Bambu ASA-Aero"
+   ],
+   "name": "Bambu ASA-Aero",
+   "filament_type": "ASA-AERO",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFY0F5qA": {
+   "filaments": [
+    "Volumic/Volumic PETG Ultra carbone (Performance)"
+   ],
+   "name": "Volumic PETG Ultra carbone (Performance)",
+   "filament_type": "PETG",
+   "filament_vendor": "Volumic"
+  },
+  "OFY3AB7j": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA Matte"
+   ],
+   "name": "Snapmaker J1 PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFY7jxcS": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPU 90A"
+   ],
+   "name": "Snapmaker TPU 90A",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFY9muEs": {
+   "filaments": [
+    "Anker/Generic ABS",
+    "Anycubic/Generic ABS",
+    "Artillery/Generic ABS",
+    "BBL/Generic ABS",
+    "Blocks/Generic ABS",
+    "Chuanying/Generic ABS",
+    "Co Print/Generic ABS",
+    "CoLiDo/Generic ABS",
+    "Comgrow/Generic ABS",
+    "Creality/Generic ABS",
+    "Custom/Generic ABS",
+    "Elegoo/Generic ABS",
+    "FLSun/Generic ABS",
+    "Flashforge/Generic ABS",
+    "FlyingBear/Generic ABS",
+    "InfiMech/Generic ABS",
+    "Lulzbot/Generic ABS",
+    "OrcaArena/Generic ABS",
+    "OrcaFilamentLibrary/Generic ABS",
+    "Peopoly/Generic ABS",
+    "Prusa/Generic ABS",
+    "Qidi/Generic ABS",
+    "RH3D/Generic ABS",
+    "Ratrig/Generic ABS",
+    "SecKit/Generic ABS",
+    "Sovol/Generic ABS",
+    "Tiertime/Generic ABS",
+    "Vzbot/Generic ABS",
+    "Z-Bolt/Generic ABS"
+   ],
+   "name": "Generic ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Generic"
+  },
+  "OFYE7YZw": {
+   "filaments": [
+    "Qidi/Tinmorry PETG-ECO"
+   ],
+   "name": "Tinmorry PETG-ECO",
+   "filament_type": "PETG",
+   "filament_vendor": "Tinmorry"
+  },
+  "OFYEtXuk": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PA-CF"
+   ],
+   "name": "Snapmaker J1 PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFYGbPHX": {
+   "filaments": [
+    "OrcaFilamentLibrary/PolyLite Dual PLA",
+    "Snapmaker/PolyLite Dual PLA"
+   ],
+   "name": "PolyLite Dual PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFYGrfHY": {
+   "filaments": [
+    "BBL/BETA PETG Fluorescence"
+   ],
+   "name": "BETA PETG Fluorescence",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFYPdQJh": {
+   "filaments": [
+    "Anker/Generic PETG",
+    "Anycubic/Generic PETG",
+    "Artillery/Generic PETG",
+    "BBL/Generic PETG",
+    "Blocks/Generic PETG",
+    "CONSTRUCT3D/Generic PETG",
+    "Chuanying/Generic PETG",
+    "Co Print/Generic PETG",
+    "CoLiDo/Generic PETG",
+    "Comgrow/Generic PETG",
+    "Creality/Generic PETG",
+    "Custom/Generic PETG",
+    "DeltaMaker/Generic PETG",
+    "Elegoo/Generic PETG",
+    "FLSun/Generic PETG",
+    "Flashforge/Generic PETG",
+    "FlyingBear/Generic PETG",
+    "Ginger Additive/Generic PETG",
+    "InfiMech/Generic PETG",
+    "LONGER/Generic PETG",
+    "Lulzbot/Generic PETG",
+    "OrcaArena/Generic PETG",
+    "OrcaFilamentLibrary/Generic PETG",
+    "Peopoly/Generic PETG",
+    "Prusa/Generic PETG",
+    "Qidi/Generic PETG",
+    "RH3D/Generic PETG",
+    "Ratrig/Generic PETG",
+    "SecKit/Generic PETG",
+    "Sovol/Generic PETG",
+    "Tiertime/Generic PETG",
+    "Vzbot/Generic PETG",
+    "Z-Bolt/Generic PETG"
+   ],
+   "name": "Generic PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OFYTIMbj": {
+   "filaments": [
+    "Flashforge/Flashforge ABS-CF"
+   ],
+   "name": "Flashforge ABS-CF",
+   "filament_type": "ABS-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFYYeMyQ": {
+   "filaments": [
+    "Flashforge/Flashforge PETG Basic"
+   ],
+   "name": "Flashforge PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "Flashforge"
+  },
+  "OFYd5uS3": {
+   "filaments": [],
+   "name": "DREMC TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "DREMC"
+  },
+  "OFYezc6s": {
+   "filaments": [
+    "FlyingBear/FlyingBear TPU"
+   ],
+   "name": "FlyingBear TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFYuowge": {
+   "filaments": [
+    "FlyingBear/Other ABS",
+    "InfiMech/Other ABS"
+   ],
+   "name": "Other ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Other"
+  },
+  "OFZ0mR5b": {
+   "filaments": [
+    "Anycubic/Anycubic PLA-CF"
+   ],
+   "name": "Anycubic PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFZ2LuAi": {
+   "filaments": [
+    "Wanhao France/YUMI PLA Bowden"
+   ],
+   "name": "YUMI PLA Bowden",
+   "filament_type": "PLA",
+   "filament_vendor": "Yumi"
+  },
+  "OFZ3K2cL": {
+   "filaments": [
+    "Qidi/QIDI PA6-CF"
+   ],
+   "name": "QIDI PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFZ4QbfK": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Rosa Flamenco"
+   ],
+   "name": "FilAr PLA Rosa Flamenco",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFZGrQTU": {
+   "filaments": [
+    "BBL/addnorth PETG Economy"
+   ],
+   "name": "addnorth PETG Economy",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OFZJft47": {
+   "filaments": [
+    "BBL/addnorth PLA Economy"
+   ],
+   "name": "addnorth PLA Economy",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFZLtWYs": {
+   "filaments": [
+    "Qidi/QIDI ABS-GF25"
+   ],
+   "name": "QIDI ABS-GF25",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFZOuWrO": {
+   "filaments": [
+    "Qidi/QIDI PPS-CF"
+   ],
+   "name": "QIDI PPS-CF",
+   "filament_type": "PPS-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFZivHGL": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA"
+   ],
+   "name": "Snapmaker Dual PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFZqZMuv": {
+   "filaments": [
+    "BBL/BETA ASA"
+   ],
+   "name": "BETA ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "BETA"
+  },
+  "OFZr862X": {
+   "filaments": [
+    "Creality/Generic PLA HF",
+    "Prusa/Generic PLA HF"
+   ],
+   "name": "Generic PLA HF",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFZtOQtl": {
+   "filaments": [
+    "Flashforge/Flashforge PA6-CF"
+   ],
+   "name": "Flashforge PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFZtkHRq": {
+   "filaments": [
+    "Anycubic/Anycubic PC"
+   ],
+   "name": "Anycubic PC",
+   "filament_type": "PC",
+   "filament_vendor": "Anycubic"
+  },
+  "OFaDOaNt": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Celeste Cielo"
+   ],
+   "name": "FilAr PLA Celeste Cielo",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFaDsTE0": {
+   "filaments": [
+    "Flashforge/Polymaker S1"
+   ],
+   "name": "Polymaker S1",
+   "filament_type": "PA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFaEesXQ": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Rojo de Carreras"
+   ],
+   "name": "FilAr PLA Rojo de Carreras",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFaEuvNF": {
+   "filaments": [
+    "Anycubic/Anycubic PAHT-CF"
+   ],
+   "name": "Anycubic PAHT-CF",
+   "filament_type": "PAHT-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFaHjk1V": {
+   "filaments": [
+    "Volumic/Volumic PC"
+   ],
+   "name": "Volumic PC",
+   "filament_type": "PC",
+   "filament_vendor": "Volumic"
+  },
+  "OFaP2SsH": {
+   "filaments": [
+    "LH/LHS ASA"
+   ],
+   "name": "LHS ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFaQMgRH": {
+   "filaments": [
+    "BBL/Bambu PLA Tough",
+    "OrcaFilamentLibrary/Bambu PLA Tough"
+   ],
+   "name": "Bambu PLA Tough",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFaRjiIm": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC PETG-CF"
+   ],
+   "name": "SeeMeCNC PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OFaYz8iE": {
+   "filaments": [
+    "OrcaFilamentLibrary/Elas PLA Pro"
+   ],
+   "name": "Elas PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Elas"
+  },
+  "OFaaddbQ": {
+   "filaments": [
+    "Flashforge/Flashforge PVA"
+   ],
+   "name": "Flashforge PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFaeIx7W": {
+   "filaments": [
+    "iQ/Polymaker PETG Polymax black P1"
+   ],
+   "name": "Polymaker PETG Polymax black P1",
+   "filament_type": "PETG Polymax",
+   "filament_vendor": "iQ Materials"
+  },
+  "OFafO6VM": {
+   "filaments": [
+    "Elegoo/Generic PC-CF"
+   ],
+   "name": "Generic PC-CF",
+   "filament_type": "PC-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFafocjw": {
+   "filaments": [
+    "Cubicon/Cubicon ABS"
+   ],
+   "name": "Cubicon ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFausr3F": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Rosa"
+   ],
+   "name": "FilAr PLA-mate Rosa",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFb5EEM3": {
+   "filaments": [
+    "Artillery/Artillery PET"
+   ],
+   "name": "Artillery PET",
+   "filament_type": "PET",
+   "filament_vendor": "Artillery"
+  },
+  "OFbP8zEO": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Silk"
+   ],
+   "name": "Eolas Prints PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFbPuPKY": {
+   "filaments": [
+    "Prusa/Generic FLEX"
+   ],
+   "name": "Generic FLEX",
+   "filament_type": "FLEX",
+   "filament_vendor": "Generic"
+  },
+  "OFbSChKb": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC PLA"
+   ],
+   "name": "SeeMeCNC PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OFbSZBOi": {
+   "filaments": [
+    "InfiMech/InfiMech TPU Basic"
+   ],
+   "name": "InfiMech TPU Basic",
+   "filament_type": "TPU",
+   "filament_vendor": "InfiMech"
+  },
+  "OFbh7HcA": {
+   "filaments": [
+    "Eryone/Eryone PP-CF"
+   ],
+   "name": "Eryone PP-CF",
+   "filament_type": "PP-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFc3xdm9": {
+   "filaments": [
+    "BBL/Overture PLA",
+    "OrcaFilamentLibrary/Overture PLA",
+    "Qidi/Overture PLA"
+   ],
+   "name": "Overture PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFc87pL3": {
+   "filaments": [
+    "OrcaArena/Arena PET-CF"
+   ],
+   "name": "Arena PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFcBJQcC": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual TPU High-Flow"
+   ],
+   "name": "Snapmaker Dual TPU High-Flow",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFcBl0nJ": {
+   "filaments": [
+    "BBL/Fiberon PA612-CF15"
+   ],
+   "name": "Fiberon PA612-CF15",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFcJDtTx": {
+   "filaments": [
+    "Artillery/Artillery TPU"
+   ],
+   "name": "Artillery TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Artillery"
+  },
+  "OFcKtw8W": {
+   "filaments": [
+    "Volumic/PA6 CF20 (Performance)"
+   ],
+   "name": "PA6 CF20 (Performance)",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Volumic"
+  },
+  "OFcVLpNA": {
+   "filaments": [
+    "Flashforge/FusRock PAHT-GF"
+   ],
+   "name": "FusRock PAHT-GF",
+   "filament_type": "PAHT-GF",
+   "filament_vendor": "FusRock"
+  },
+  "OFcfQk4h": {
+   "filaments": [
+    "BBL/Overture Air PLA",
+    "OrcaFilamentLibrary/Overture Air PLA"
+   ],
+   "name": "Overture Air PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFcnWTJB": {
+   "filaments": [
+    "BBL/BETA PLA Glitter"
+   ],
+   "name": "BETA PLA Glitter",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFcogyWl": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Metal"
+   ],
+   "name": "WonderMaker PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFcpa50Z": {
+   "filaments": [
+    "BBL/addnorth PLA-CF Carbon Fiber"
+   ],
+   "name": "addnorth PLA-CF Carbon Fiber",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "addnorth"
+  },
+  "OFctg8r1": {
+   "filaments": [
+    "CoLiDo/CoLiDo PLA+"
+   ],
+   "name": "CoLiDo PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "CoLiDo"
+  },
+  "OFcvKkrs": {
+   "filaments": [
+    "BBL/Overture TPU",
+    "OrcaFilamentLibrary/Overture TPU"
+   ],
+   "name": "Overture TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Overture"
+  },
+  "OFcytyoA": {
+   "filaments": [
+    "BBL/Fiberon PETG-ESD",
+    "OrcaFilamentLibrary/Fiberon PETG-ESD",
+    "Snapmaker/Fiberon PETG-ESD"
+   ],
+   "name": "Fiberon PETG-ESD",
+   "filament_type": "PETG",
+   "filament_vendor": "Polymaker"
+  },
+  "OFd0Fv0k": {
+   "filaments": [
+    "BBL/Generic PE-CF",
+    "OrcaFilamentLibrary/Generic PE-CF",
+    "Tiertime/Generic PE-CF"
+   ],
+   "name": "Generic PE-CF",
+   "filament_type": "PE-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFd2vX0G": {
+   "filaments": [
+    "BBL/COEX PLA PRIME",
+    "OrcaFilamentLibrary/COEX PLA PRIME"
+   ],
+   "name": "COEX PLA PRIME",
+   "filament_type": "PLA",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFd4zw5l": {
+   "filaments": [
+    "BBL/AliZ PA-CF",
+    "OrcaFilamentLibrary/AliZ PA-CF"
+   ],
+   "name": "AliZ PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Aliz"
+  },
+  "OFdD5Wbu": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA-CF"
+   ],
+   "name": "Snapmaker J1 PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFdI4zMo": {
+   "filaments": [],
+   "name": "DREMC ASA CF",
+   "filament_type": "ASA",
+   "filament_vendor": "DREMC"
+  },
+  "OFdXVjGZ": {
+   "filaments": [
+    "Tiertime/Tiertime PC"
+   ],
+   "name": "Tiertime PC",
+   "filament_type": "PC",
+   "filament_vendor": "Tiertime"
+  },
+  "OFdb8YNz": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Verde Manzana"
+   ],
+   "name": "FilAr PLA Verde Manzana",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFdd8ZqJ": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Wood"
+   ],
+   "name": "Snapmaker PLA Wood",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFdkWDiy": {
+   "filaments": [
+    "Cubicon/Cubicon PLAi21"
+   ],
+   "name": "Cubicon PLAi21",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFdqkWtz": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Luminous"
+   ],
+   "name": "Flashforge PLA Luminous",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFdrYBmI": {
+   "filaments": [
+    "Tiertime/Tiertime ASA"
+   ],
+   "name": "Tiertime ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Tiertime"
+  },
+  "OFdtPd9h": {
+   "filaments": [
+    "Qidi/QIDI PETG-GF"
+   ],
+   "name": "QIDI PETG-GF",
+   "filament_type": "PETG-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFdzlrhi": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Chocolate"
+   ],
+   "name": "FilAr PLA-mate Chocolate",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFe61n6v": {
+   "filaments": [
+    "Ratrig/RatRig PunkFil PETG CF"
+   ],
+   "name": "RatRig PunkFil PETG CF",
+   "filament_type": "PETG-CF10",
+   "filament_vendor": "RatRig"
+  },
+  "OFe8tuNb": {
+   "filaments": [
+    "Tiertime/Tiertime PA6-CF"
+   ],
+   "name": "Tiertime PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Tiertime"
+  },
+  "OFe8yBMG": {
+   "filaments": [
+    "Qidi/QIDI PETG Tough 0.6 nozzle"
+   ],
+   "name": "QIDI PETG Tough 0.6 nozzle",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFe98A1y": {
+   "filaments": [
+    "Elegoo/Elegoo PET-CF",
+    "OrcaFilamentLibrary/Elegoo PET-CF"
+   ],
+   "name": "Elegoo PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Elegoo"
+  },
+  "OFeAxvEt": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual ABS Benchy"
+   ],
+   "name": "Snapmaker Dual ABS Benchy",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFeCJqxx": {
+   "filaments": [
+    "Qidi/QIDI ABS Rapido Metal"
+   ],
+   "name": "QIDI ABS Rapido Metal",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OFeF4UNh": {
+   "filaments": [
+    "BBL/BETA PLA Silk"
+   ],
+   "name": "BETA PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFeIyhUx": {
+   "filaments": [
+    "Anycubic/Anycubic PC-CF"
+   ],
+   "name": "Anycubic PC-CF",
+   "filament_type": "PC-CF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFeTATC7": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 Breakaway"
+   ],
+   "name": "Snapmaker J1 Breakaway",
+   "filament_type": "Breakaway Support",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFeVzkSU": {
+   "filaments": [
+    "Snapmaker/Fiberon PPS-GF20"
+   ],
+   "name": "Fiberon PPS-GF20",
+   "filament_type": "ABS",
+   "filament_vendor": "Polymaker"
+  },
+  "OFeelsSM": {
+   "filaments": [
+    "Qidi/HATCHBOX PLA"
+   ],
+   "name": "HATCHBOX PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "HATCHBOX"
+  },
+  "OFelDBgv": {
+   "filaments": [
+    "Snapmaker/Polymaker PLA"
+   ],
+   "name": "Polymaker PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFepU7Tl": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Matte"
+   ],
+   "name": "WonderMaker PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFesA6rF": {
+   "filaments": [
+    "Anker/Generic PLA Silk",
+    "BBL/Generic PLA Silk",
+    "Creality/Generic PLA Silk",
+    "FLSun/Generic PLA Silk",
+    "Flashforge/Generic PLA Silk",
+    "OrcaArena/Generic PLA Silk",
+    "OrcaFilamentLibrary/Generic PLA Silk",
+    "Prusa/Generic PLA Silk",
+    "Qidi/Generic PLA Silk",
+    "Sovol/Generic PLA Silk",
+    "Tiertime/Generic PLA Silk"
+   ],
+   "name": "Generic PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFexaZU2": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Manteca"
+   ],
+   "name": "FilAr PLA Manteca",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFf0MkD5": {
+   "filaments": [
+    "Qidi/QIDI PETG Translucent"
+   ],
+   "name": "QIDI PETG Translucent",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFf52D4e": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA-CF"
+   ],
+   "name": "Snapmaker PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFf5awy4": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Matte"
+   ],
+   "name": "Eolas Prints PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFf6ZEvu": {
+   "filaments": [
+    "InfiMech/InfiMech PC"
+   ],
+   "name": "InfiMech PC",
+   "filament_type": "PC",
+   "filament_vendor": "InfiMech"
+  },
+  "OFf6mfQO": {
+   "filaments": [
+    "BBL/Bambu Support for ABS",
+    "OrcaFilamentLibrary/Bambu Support for ABS"
+   ],
+   "name": "Bambu Support for ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFf6ynfH": {
+   "filaments": [
+    "FlyingBear/FlyingBear PETG Basic"
+   ],
+   "name": "FlyingBear PETG Basic",
+   "filament_type": "PETG Basic",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFfBpSRI": {
+   "filaments": [
+    "BBL/Bambu ASA",
+    "OrcaFilamentLibrary/Bambu ASA"
+   ],
+   "name": "Bambu ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFfD87Gy": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Glow"
+   ],
+   "name": "Snapmaker PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFfHGM1D": {
+   "filaments": [
+    "re3D/re3D rPP"
+   ],
+   "name": "re3D rPP",
+   "filament_type": "PP",
+   "filament_vendor": "re3D"
+  },
+  "OFfJSCzm": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast PETG"
+   ],
+   "name": "FDplast PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "FDplast"
+  },
+  "OFfSqS4R": {
+   "filaments": [
+    "Creality/ENDER FAST PLA"
+   ],
+   "name": "ENDER FAST PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFfYHK5z": {
+   "filaments": [
+    "Qidi/Polymaker PLA-HT"
+   ],
+   "name": "Polymaker PLA-HT",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFfZcoKr": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Piel"
+   ],
+   "name": "FilAr PLA-mate Piel",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFfb10SK": {
+   "filaments": [
+    "Artillery/Artillery PC"
+   ],
+   "name": "Artillery PC",
+   "filament_type": "PC",
+   "filament_vendor": "Artillery"
+  },
+  "OFfmHUkQ": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual Breakaway"
+   ],
+   "name": "Snapmaker Dual Breakaway",
+   "filament_type": "Breakaway Support",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFfmZrI3": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast TPU"
+   ],
+   "name": "FDplast TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "FDplast"
+  },
+  "OFfnXFie": {
+   "filaments": [
+    "BBL/COEX TPE 40D",
+    "OrcaFilamentLibrary/COEX TPE 40D"
+   ],
+   "name": "COEX TPE 40D",
+   "filament_type": "TPU",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFfq5YXA": {
+   "filaments": [
+    "OrcaFilamentLibrary/Valment PLA-CF"
+   ],
+   "name": "Valment PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Valment"
+  },
+  "OFfr4XNO": {
+   "filaments": [
+    "BBL/COEX TPE 60D",
+    "OrcaFilamentLibrary/COEX TPE 60D"
+   ],
+   "name": "COEX TPE 60D",
+   "filament_type": "TPU",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFfr6JDF": {
+   "filaments": [
+    "Qidi/QIDI PETG Tough 0.8 nozzle"
+   ],
+   "name": "QIDI PETG Tough 0.8 nozzle",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFfuhviw": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Marble",
+    "OrcaFilamentLibrary/Elegoo PLA Marble"
+   ],
+   "name": "Elegoo PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFfuih8e": {
+   "filaments": [
+    "Creality/Creality Silk PLA"
+   ],
+   "name": "Creality Silk PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFg3cWVt": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA Metal"
+   ],
+   "name": "Snapmaker Dual PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFg57Nmc": {
+   "filaments": [
+    "BBL/Bambu PC FR",
+    "OrcaFilamentLibrary/Bambu PC FR"
+   ],
+   "name": "Bambu PC FR",
+   "filament_type": "PC",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFg8hMzT": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PPCF"
+   ],
+   "name": "FILL3D PPCF",
+   "filament_type": "PP",
+   "filament_vendor": "FILL3D"
+  },
+  "OFg8ndtj": {
+   "filaments": [
+    "Anker/Generic PA",
+    "Anycubic/Generic PA",
+    "BBL/Generic PA",
+    "Blocks/Generic PA",
+    "Creality/Generic PA",
+    "Custom/Generic PA",
+    "Elegoo/Generic PA",
+    "FLSun/Generic PA",
+    "OrcaArena/Generic PA",
+    "OrcaFilamentLibrary/Generic PA",
+    "Prusa/Generic PA",
+    "Qidi/Generic PA",
+    "Ratrig/Generic PA",
+    "SecKit/Generic PA",
+    "Tiertime/Generic PA",
+    "Vzbot/Generic PA",
+    "Z-Bolt/Generic PA"
+   ],
+   "name": "Generic PA",
+   "filament_type": "PA",
+   "filament_vendor": "Generic"
+  },
+  "OFgHh8ly": {
+   "filaments": [
+    "Afinia/Afinia Value PLA"
+   ],
+   "name": "Afinia Value PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Afinia"
+  },
+  "OFgMWJ8T": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Negro Azabache"
+   ],
+   "name": "FilAr PLA Negro Azabache",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFgSbX7E": {
+   "filaments": [
+    "Volumic/Volumic PC (Performance)"
+   ],
+   "name": "Volumic PC (Performance)",
+   "filament_type": "PC",
+   "filament_vendor": "Volumic"
+  },
+  "OFgVQkqW": {
+   "filaments": [
+    "Cubicon/Cubicon ABSk"
+   ],
+   "name": "Cubicon ABSk",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFgXgt98": {
+   "filaments": [
+    "Artillery/Artillery ABS"
+   ],
+   "name": "Artillery ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Artillery"
+  },
+  "OFgbpcy9": {
+   "filaments": [
+    "Anker/Generic TPU",
+    "Anycubic/Generic TPU",
+    "Artillery/Generic TPU",
+    "BBL/Generic TPU",
+    "Blocks/Generic TPU",
+    "Chuanying/Generic TPU",
+    "Co Print/Generic TPU",
+    "CoLiDo/Generic TPU",
+    "Creality/Generic TPU",
+    "Custom/Generic TPU",
+    "DeltaMaker/Generic TPU",
+    "FLSun/Generic TPU",
+    "Flashforge/Generic TPU",
+    "FlyingBear/Generic TPU",
+    "InfiMech/Generic TPU",
+    "OrcaArena/Generic TPU",
+    "OrcaFilamentLibrary/Generic TPU",
+    "Prusa/Generic TPU",
+    "Qidi/Generic TPU",
+    "RH3D/Generic TPU",
+    "Ratrig/Generic TPU",
+    "SecKit/Generic TPU",
+    "Sovol/Generic TPU",
+    "Tiertime/Generic TPU",
+    "Vzbot/Generic TPU"
+   ],
+   "name": "Generic TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OFgdaBOt": {
+   "filaments": [
+    "Snapmaker/Polymaker Tough PLA Family"
+   ],
+   "name": "Polymaker Tough PLA Family",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFgeM7nD": {
+   "filaments": [
+    "Flashforge/Flashforge PA12-CF"
+   ],
+   "name": "Flashforge PA12-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFgjgN35": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Silk"
+   ],
+   "name": "Flashforge PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFglhKLM": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido 0.8 nozzle"
+   ],
+   "name": "QIDI PLA Rapido 0.8 nozzle",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFgpLTMR": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Gris Plata"
+   ],
+   "name": "FilAr PETG Gris Plata",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFgpQwkk": {
+   "filaments": [
+    "Creality/CR-PLA Fluo"
+   ],
+   "name": "CR-PLA Fluo",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFgptDSf": {
+   "filaments": [
+    "OrcaArena/Arena PLA Matte"
+   ],
+   "name": "Arena PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFgyPlwU": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPU High-Flow"
+   ],
+   "name": "Snapmaker TPU High-Flow",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFh7mvPO": {
+   "filaments": [
+    "Prusa/Prusament PVB"
+   ],
+   "name": "Prusament PVB",
+   "filament_type": "PVB",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFh9u9c0": {
+   "filaments": [
+    "Creality/Generic PA6-GF"
+   ],
+   "name": "Generic PA6-GF",
+   "filament_type": "PA-GF",
+   "filament_vendor": "Generic"
+  },
+  "OFhASRWj": {
+   "filaments": [
+    "BBL/Panchroma PLA Temp Shift",
+    "OrcaFilamentLibrary/Panchroma PLA Temp Shift",
+    "Snapmaker/Panchroma PLA Temp Shift"
+   ],
+   "name": "Panchroma PLA Temp Shift",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFhMO9Kh": {
+   "filaments": [
+    "OrcaFilamentLibrary/GreenGate3D PETG"
+   ],
+   "name": "GreenGate3D PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "GreenGate3D"
+  },
+  "OFhN09f0": {
+   "filaments": [
+    "BBL/addnorth PC BLend HT LCF"
+   ],
+   "name": "addnorth PC BLend HT LCF",
+   "filament_type": "PC",
+   "filament_vendor": "addnorth"
+  },
+  "OFhO5aEJ": {
+   "filaments": [
+    "Ratrig/RatRig PunkFil ABS"
+   ],
+   "name": "RatRig PunkFil ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "RatRig"
+  },
+  "OFhQf8ou": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA-CF"
+   ],
+   "name": "Snapmaker PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFhQfUQY": {
+   "filaments": [
+    "BBL/Generic SBS",
+    "OrcaFilamentLibrary/Generic SBS",
+    "Tiertime/Generic SBS"
+   ],
+   "name": "Generic SBS",
+   "filament_type": "SBS",
+   "filament_vendor": "Generic"
+  },
+  "OFhTPf6L": {
+   "filaments": [
+    "Creality/Generic PA6-CF",
+    "Elegoo/Generic PA6-CF"
+   ],
+   "name": "Generic PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFhUjPA5": {
+   "filaments": [
+    "Eryone/Eryone TPU"
+   ],
+   "name": "Eryone TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Eryone"
+  },
+  "OFhWc5Bv": {
+   "filaments": [
+    "OrcaFilamentLibrary/NIT ABS"
+   ],
+   "name": "NIT ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "NIT"
+  },
+  "OFhWhL1i": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PETG"
+   ],
+   "name": "Eolas Prints PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFhWrAuP": {
+   "filaments": [
+    "Qidi/QIDI PLA-CF"
+   ],
+   "name": "QIDI PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFhbolij": {
+   "filaments": [
+    "Creality/eSUN PLA-Lite"
+   ],
+   "name": "eSUN PLA-Lite",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFhcYzR8": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Sparkle",
+    "OrcaFilamentLibrary/Elegoo PLA Sparkle"
+   ],
+   "name": "Elegoo PLA Sparkle",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFhfd722": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints TPU Flex 93A"
+   ],
+   "name": "Eolas Prints TPU Flex 93A",
+   "filament_type": "TPU",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFhiJE7Y": {
+   "filaments": [
+    "Qidi/QIDI PEBA 95A"
+   ],
+   "name": "QIDI PEBA 95A",
+   "filament_type": "PEBA",
+   "filament_vendor": "QIDI"
+  },
+  "OFhkN0a7": {
+   "filaments": [
+    "Creality/Hyper PA612-CF"
+   ],
+   "name": "Hyper PA612-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFhlCNqq": {
+   "filaments": [
+    "BBL/COEX PLA",
+    "OrcaFilamentLibrary/COEX PLA"
+   ],
+   "name": "COEX PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFhmxnYw": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Basic"
+   ],
+   "name": "Snapmaker PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFhuaUQB": {
+   "filaments": [
+    "BBL/Bambu ABS",
+    "OrcaFilamentLibrary/Bambu ABS",
+    "Qidi/Bambu ABS"
+   ],
+   "name": "Bambu ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFhwiZ50": {
+   "filaments": [
+    "Qidi/QIDI PLA Rapido 0.2 nozzle"
+   ],
+   "name": "QIDI PLA Rapido 0.2 nozzle",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFhx4uOG": {
+   "filaments": [
+    "Qidi/QIDI PET-GF"
+   ],
+   "name": "QIDI PET-GF",
+   "filament_type": "PET-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFi5RSve": {
+   "filaments": [
+    "Creality/eSUN PLA-LW"
+   ],
+   "name": "eSUN PLA-LW",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFi6PfUM": {
+   "filaments": [
+    "Chuanying/Generic PLA-Silk",
+    "Creality/Generic PLA-Silk",
+    "Flashforge/Generic PLA-Silk"
+   ],
+   "name": "Generic PLA-Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFi90KlM": {
+   "filaments": [
+    "Volumic/Volumic NYLON Ultra (Performance)"
+   ],
+   "name": "Volumic NYLON Ultra (Performance)",
+   "filament_type": "PA",
+   "filament_vendor": "Volumic"
+  },
+  "OFiDpM1B": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Bordo"
+   ],
+   "name": "FilAr PLA-mate Bordo",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFiEz2XI": {
+   "filaments": [
+    "Cubicon/Cubicon PA-CF"
+   ],
+   "name": "Cubicon PA-CF",
+   "filament_type": "PA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFiWaoqD": {
+   "filaments": [
+    "OrcaFilamentLibrary/DREMC PPA-CF"
+   ],
+   "name": "DREMC PPA-CF",
+   "filament_type": "PPA-CF",
+   "filament_vendor": "DREMC"
+  },
+  "OFibWuBd": {
+   "filaments": [
+    "Flashforge/Flashforge ABS Basic"
+   ],
+   "name": "Flashforge ABS Basic",
+   "filament_type": "ABS",
+   "filament_vendor": "Flashforge"
+  },
+  "OFilAA3b": {
+   "filaments": [
+    "Eryone/Eryone PLA-CF"
+   ],
+   "name": "Eryone PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFilD4bP": {
+   "filaments": [
+    "FlyingBear/FlyingBear PLA"
+   ],
+   "name": "FlyingBear PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFilnglt": {
+   "filaments": [
+    "Artillery/Artillery PETG"
+   ],
+   "name": "Artillery PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Artillery"
+  },
+  "OFin64Qg": {
+   "filaments": [
+    "Creality/Generic Support for PLA"
+   ],
+   "name": "Generic Support for PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFitS8al": {
+   "filaments": [
+    "BBL/PolyLite PLA Neon",
+    "Snapmaker/PolyLite PLA Neon"
+   ],
+   "name": "PolyLite PLA Neon",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFiwEbze": {
+   "filaments": [
+    "Volumic/PETG ESD (Performance)"
+   ],
+   "name": "PETG ESD (Performance)",
+   "filament_type": "PETG-ESD",
+   "filament_vendor": "Volumic"
+  },
+  "OFj3bTjw": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Amarillo"
+   ],
+   "name": "FilAr PLA-mate Amarillo",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFj64R5U": {
+   "filaments": [
+    "Peopoly/Peopoly Lancer ABS-GF"
+   ],
+   "name": "Peopoly Lancer ABS-GF",
+   "filament_type": "ABS",
+   "filament_vendor": "Peopoly"
+  },
+  "OFjD3YTW": {
+   "filaments": [
+    "Qidi/Qidi PC-ABS-FR"
+   ],
+   "name": "Qidi PC-ABS-FR",
+   "filament_type": "PC-ABS-FR",
+   "filament_vendor": "QIDI"
+  },
+  "OFjHrAX0": {
+   "filaments": [
+    "WonderMaker/WonderMaker ABS"
+   ],
+   "name": "WonderMaker ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFjLAYgO": {
+   "filaments": [
+    "Anycubic/Anycubic PEBA"
+   ],
+   "name": "Anycubic PEBA",
+   "filament_type": "PEBA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFjPXrXO": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Glow",
+    "OrcaFilamentLibrary/Elegoo PLA Glow"
+   ],
+   "name": "Elegoo PLA Glow",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFjT9PkZ": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Tabaco"
+   ],
+   "name": "FilAr PLA Tabaco",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFjUGUIK": {
+   "filaments": [
+    "iQ/Fiberthree PACF Pro P1"
+   ],
+   "name": "Fiberthree PACF Pro P1",
+   "filament_type": "PACF Pro",
+   "filament_vendor": "iQ Materials"
+  },
+  "OFjUXn67": {
+   "filaments": [
+    "BBL/BETA ABS"
+   ],
+   "name": "BETA ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "BETA"
+  },
+  "OFjVOWfJ": {
+   "filaments": [
+    "Anycubic/Anycubic PLA High Speed"
+   ],
+   "name": "Anycubic PLA High Speed",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFjXrKFO": {
+   "filaments": [
+    "OrcaArena/Arena PLA Impact"
+   ],
+   "name": "Arena PLA Impact",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFjb0wos": {
+   "filaments": [
+    "BBL/Panchroma PLA Metallic",
+    "OrcaFilamentLibrary/Panchroma PLA Metallic",
+    "Snapmaker/Panchroma PLA Metallic"
+   ],
+   "name": "Panchroma PLA Metallic",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFjcwUEm": {
+   "filaments": [
+    "Cubicon/Cubicon PLA"
+   ],
+   "name": "Cubicon PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Cubicon"
+  },
+  "OFjiXpyf": {
+   "filaments": [
+    "Qidi/Generic TPU 95A",
+    "TwoTrees/Generic TPU 95A"
+   ],
+   "name": "Generic TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OFjkdnyN": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual TPU"
+   ],
+   "name": "Snapmaker Dual TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFjoAe0R": {
+   "filaments": [
+    "Qidi/Qidi PLA-CF"
+   ],
+   "name": "Qidi PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFjogeYN": {
+   "filaments": [
+    "BBL/BETA PETG Glitter"
+   ],
+   "name": "BETA PETG Glitter",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFjorDcx": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast ABS"
+   ],
+   "name": "FDplast ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "FDplast"
+  },
+  "OFjt8dDO": {
+   "filaments": [
+    "Flashforge/FusRock NexPA-CF25"
+   ],
+   "name": "FusRock NexPA-CF25",
+   "filament_type": "PA-CF",
+   "filament_vendor": "FusRock"
+  },
+  "OFjt9en1": {
+   "filaments": [
+    "OrcaFilamentLibrary/Generic CoPE"
+   ],
+   "name": "Generic CoPE",
+   "filament_type": "CoPE",
+   "filament_vendor": "Generic"
+  },
+  "OFjz0a3m": {
+   "filaments": [
+    "Prusa/Prusament PC-CF"
+   ],
+   "name": "Prusament PC-CF",
+   "filament_type": "PC-CF",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFk8t9mz": {
+   "filaments": [
+    "BBL/Fiberon PETG-rCF",
+    "OrcaFilamentLibrary/Fiberon PETG-rCF"
+   ],
+   "name": "Fiberon PETG-rCF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFkAltI8": {
+   "filaments": [
+    "FlyingBear/Other PA-CF",
+    "InfiMech/Other PA-CF"
+   ],
+   "name": "Other PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Other"
+  },
+  "OFkGp50Y": {
+   "filaments": [
+    "Volumic/Volumic UNIVERSAL Ultra (Performance)"
+   ],
+   "name": "Volumic UNIVERSAL Ultra (Performance)",
+   "filament_type": "UNIV",
+   "filament_vendor": "Volumic"
+  },
+  "OFkGvN4d": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Verde Pixel"
+   ],
+   "name": "FilAr PLA Verde Pixel",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFkHbjUv": {
+   "filaments": [
+    "BBL/BETA PLA Metallic"
+   ],
+   "name": "BETA PLA Metallic",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFkOviHk": {
+   "filaments": [
+    "BBL/Fiberon PA6-CF",
+    "OrcaFilamentLibrary/Fiberon PA6-CF"
+   ],
+   "name": "Fiberon PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFkR8E2c": {
+   "filaments": [
+    "Prusa/Prusament PETG"
+   ],
+   "name": "Prusament PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFkf1HHw": {
+   "filaments": [
+    "Flashforge/Generic PLA-SILK"
+   ],
+   "name": "Generic PLA-SILK",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFkhhUS0": {
+   "filaments": [
+    "Elegoo/Elegoo Rapid PLA+",
+    "OrcaFilamentLibrary/Elegoo Rapid PLA+"
+   ],
+   "name": "Elegoo Rapid PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFklJcWK": {
+   "filaments": [
+    "FlyingBear/Other PLA Hyper",
+    "InfiMech/Other PLA Hyper"
+   ],
+   "name": "Other PLA Hyper",
+   "filament_type": "PLA",
+   "filament_vendor": "Other"
+  },
+  "OFknl9Iz": {
+   "filaments": [
+    "BBL/Bambu ABS-GF",
+    "OrcaFilamentLibrary/Bambu ABS-GF"
+   ],
+   "name": "Bambu ABS-GF",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFkoLUtR": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Verde Oliva"
+   ],
+   "name": "FilAr PLA Verde Oliva",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFkq7rPy": {
+   "filaments": [
+    "Eryone/Eryone PA-GF"
+   ],
+   "name": "Eryone PA-GF",
+   "filament_type": "PA-GF",
+   "filament_vendor": "Eryone"
+  },
+  "OFks6esg": {
+   "filaments": [
+    "Creality/EN-PLA+"
+   ],
+   "name": "EN-PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFkx5MEe": {
+   "filaments": [
+    "Artillery/Artillery PVA"
+   ],
+   "name": "Artillery PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Artillery"
+  },
+  "OFkzr35f": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Antibacterial"
+   ],
+   "name": "Eolas Prints PLA Antibacterial",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFlBoEfL": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 TPU High-Flow"
+   ],
+   "name": "Snapmaker J1 TPU High-Flow",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFlIsW6f": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA Matte"
+   ],
+   "name": "Snapmaker Dual PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFlN6DL1": {
+   "filaments": [
+    "Qidi/QIDI PA-Ultra"
+   ],
+   "name": "QIDI PA-Ultra",
+   "filament_type": "UltraPA",
+   "filament_vendor": "QIDI"
+  },
+  "OFlP3KWq": {
+   "filaments": [
+    "Elegoo/Elegoo PETG HF",
+    "OrcaFilamentLibrary/Elegoo PETG HF"
+   ],
+   "name": "Elegoo PETG HF",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFlSNkhc": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints ASA"
+   ],
+   "name": "Eolas Prints ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFlfuj2k": {
+   "filaments": [
+    "BBL/Bambu TPU 85A"
+   ],
+   "name": "Bambu TPU 85A",
+   "filament_type": "TPU",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFlgMgNM": {
+   "filaments": [
+    "Flashforge/Flashforge PPS"
+   ],
+   "name": "Flashforge PPS",
+   "filament_type": "PPS",
+   "filament_vendor": "Flashforge"
+  },
+  "OFllmFhT": {
+   "filaments": [
+    "Elegoo/Generic PETG PRO"
+   ],
+   "name": "Generic PETG PRO",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OFlmxlDG": {
+   "filaments": [
+    "BBL/BETA HIPS"
+   ],
+   "name": "BETA HIPS",
+   "filament_type": "HIPS",
+   "filament_vendor": "BETA"
+  },
+  "OFln72PT": {
+   "filaments": [
+    "Elegoo/Elegoo PLA-CF",
+    "OrcaFilamentLibrary/Elegoo PLA-CF"
+   ],
+   "name": "Elegoo PLA-CF",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFlsTpJG": {
+   "filaments": [
+    "Elegoo/Elegoo PC-FR",
+    "OrcaFilamentLibrary/Elegoo PC-FR"
+   ],
+   "name": "Elegoo PC-FR",
+   "filament_type": "PC",
+   "filament_vendor": "Elegoo"
+  },
+  "OFlufQpZ": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA"
+   ],
+   "name": "Snapmaker PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFlwmqrC": {
+   "filaments": [
+    "BBL/Polymaker HT-PLA-GF",
+    "OrcaFilamentLibrary/Polymaker HT-PLA-GF",
+    "Snapmaker/Polymaker HT-PLA-GF"
+   ],
+   "name": "Polymaker HT-PLA-GF",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFm06H6V": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Basic",
+    "OrcaFilamentLibrary/Elegoo PLA Basic"
+   ],
+   "name": "Elegoo PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFm4SivL": {
+   "filaments": [
+    "Flashforge/Flashforge PLA Pro"
+   ],
+   "name": "Flashforge PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Flashforge"
+  },
+  "OFm4ysMO": {
+   "filaments": [
+    "FlyingBear/FlyingBear ABS"
+   ],
+   "name": "FlyingBear ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "FlyingBear"
+  },
+  "OFm70lLt": {
+   "filaments": [
+    "CoLiDo/CoLiDo PLA"
+   ],
+   "name": "CoLiDo PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "CoLiDo"
+  },
+  "OFm8rqoY": {
+   "filaments": [
+    "re3D/re3D rPP"
+   ],
+   "name": "re3D rPP",
+   "filament_type": "PP",
+   "filament_vendor": "re3D"
+  },
+  "OFmCOW2Y": {
+   "filaments": [
+    "re3D/re3D rPETG"
+   ],
+   "name": "re3D rPETG",
+   "filament_type": "PETG",
+   "filament_vendor": "re3D"
+  },
+  "OFmFwUWM": {
+   "filaments": [
+    "Prusa/Prusament ASA"
+   ],
+   "name": "Prusament ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFmJAd3A": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast HIPS"
+   ],
+   "name": "FDplast HIPS",
+   "filament_type": "HIPS",
+   "filament_vendor": "FDplast"
+  },
+  "OFmKU2Ha": {
+   "filaments": [
+    "Eryone/Eryone PLA"
+   ],
+   "name": "Eryone PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Eryone"
+  },
+  "OFmN2lvw": {
+   "filaments": [
+    "BBL/Generic TPU for AMS"
+   ],
+   "name": "Generic TPU for AMS",
+   "filament_type": "TPU-AMS",
+   "filament_vendor": "Generic"
+  },
+  "OFmY0l6t": {
+   "filaments": [
+    "Creality/Generic PLA Matte",
+    "Elegoo/Generic PLA Matte",
+    "OrcaFilamentLibrary/Generic PLA Matte"
+   ],
+   "name": "Generic PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFma5TXH": {
+   "filaments": [
+    "Qidi/QIDI ABS Odorless"
+   ],
+   "name": "QIDI ABS Odorless",
+   "filament_type": "ABS",
+   "filament_vendor": "QIDI"
+  },
+  "OFmaeU4a": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Naranja"
+   ],
+   "name": "FilAr PLA-mate Naranja",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFmfizbq": {
+   "filaments": [
+    "OrcaArena/Arena PLA Silk"
+   ],
+   "name": "Arena PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFmjN2bc": {
+   "filaments": [
+    "Anycubic/Anycubic PLA"
+   ],
+   "name": "Anycubic PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFmn9NZL": {
+   "filaments": [
+    "BBL/FusRock ABS-GF",
+    "OrcaFilamentLibrary/FusRock ABS-GF"
+   ],
+   "name": "FusRock ABS-GF",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "FusRock"
+  },
+  "OFmpMwxS": {
+   "filaments": [
+    "BBL/Generic PLA High Speed",
+    "Creality/Generic PLA High Speed",
+    "FLSun/Generic PLA High Speed",
+    "Flashforge/Generic PLA High Speed",
+    "OrcaFilamentLibrary/Generic PLA High Speed",
+    "Qidi/Generic PLA High Speed",
+    "Tiertime/Generic PLA High Speed"
+   ],
+   "name": "Generic PLA High Speed",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFmt513L": {
+   "filaments": [
+    "BBL/BETA PETG Transparent"
+   ],
+   "name": "BETA PETG Transparent",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFmveLWz": {
+   "filaments": [
+    "Elegoo/Elegoo PETG-GF",
+    "OrcaFilamentLibrary/Elegoo PETG-GF"
+   ],
+   "name": "Elegoo PETG-GF",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFn1QaY3": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Translucent2",
+    "OrcaFilamentLibrary/Elegoo PLA Translucent2"
+   ],
+   "name": "Elegoo PLA Translucent2",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFn2GlhY": {
+   "filaments": [
+    "Creality/Hyper PA6-CF"
+   ],
+   "name": "Hyper PA6-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFn6WpN7": {
+   "filaments": [
+    "Qidi/QIDI PA12-CF"
+   ],
+   "name": "QIDI PA12-CF",
+   "filament_type": "PA12-CF",
+   "filament_vendor": "QIDI"
+  },
+  "OFnBvPhb": {
+   "filaments": [
+    "BBL/addnorth PLA rPLA RE-ADD"
+   ],
+   "name": "addnorth PLA rPLA RE-ADD",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFnHc3D6": {
+   "filaments": [
+    "Creality/eSUN PLA-CF"
+   ],
+   "name": "eSUN PLA-CF",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "eSUN"
+  },
+  "OFnO4wnf": {
+   "filaments": [
+    "Prusa/Prusament PLA"
+   ],
+   "name": "Prusament PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFnSeLHk": {
+   "filaments": [
+    "CoLiDo/CoLiDo PLA Silk"
+   ],
+   "name": "CoLiDo PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "CoLiDo"
+  },
+  "OFnT7Qpb": {
+   "filaments": [
+    "Prusa/Generic TPU HF"
+   ],
+   "name": "Generic TPU HF",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OFnXrkhA": {
+   "filaments": [
+    "InfiMech/InfiMech PA-CF"
+   ],
+   "name": "InfiMech PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "InfiMech"
+  },
+  "OFnXwW8l": {
+   "filaments": [
+    "Snapmaker/PolyLite PLA Pro Metallic"
+   ],
+   "name": "PolyLite PLA Pro Metallic",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFnYVFk2": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Azul Francia"
+   ],
+   "name": "FilAr PLA Azul Francia",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFncpm7O": {
+   "filaments": [
+    "WonderMaker/WonderMaker PLA Silk"
+   ],
+   "name": "WonderMaker PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFneOFWe": {
+   "filaments": [
+    "CoLiDo/CoLiDo ABS"
+   ],
+   "name": "CoLiDo ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "CoLiDo"
+  },
+  "OFnejEt4": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Cian"
+   ],
+   "name": "FilAr PETG Cian",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFnfxTvi": {
+   "filaments": [
+    "BBL/Bambu PLA Lite"
+   ],
+   "name": "Bambu PLA Lite",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFngcE81": {
+   "filaments": [
+    "LH/LHS TPU Foamy 78A"
+   ],
+   "name": "LHS TPU Foamy 78A",
+   "filament_type": "TPU",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFniMuTN": {
+   "filaments": [
+    "BBL/Bambu PA6-CF",
+    "OrcaFilamentLibrary/Bambu PA6-CF"
+   ],
+   "name": "Bambu PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFnmp2pO": {
+   "filaments": [
+    "Snapmaker/Snapmaker Breakaway Support For PLA"
+   ],
+   "name": "Snapmaker Breakaway Support For PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFnmp6rt": {
+   "filaments": [
+    "Anycubic/Anycubic PLA+"
+   ],
+   "name": "Anycubic PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFnpX8uh": {
+   "filaments": [
+    "BBL/BETA PETG Matte"
+   ],
+   "name": "BETA PETG Matte",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFnyHfcv": {
+   "filaments": [
+    "Ratrig/Generic ABS BigNozzle"
+   ],
+   "name": "Generic ABS BigNozzle",
+   "filament_type": "ABS",
+   "filament_vendor": "Generic"
+  },
+  "OFo15hcT": {
+   "filaments": [
+    "Qidi/QIDI PAHT-GF"
+   ],
+   "name": "QIDI PAHT-GF",
+   "filament_type": "PAHT-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFo2UF2C": {
+   "filaments": [
+    "BBL/Generic BVOH",
+    "Creality/Generic BVOH",
+    "Flashforge/Generic BVOH",
+    "OrcaFilamentLibrary/Generic BVOH",
+    "Tiertime/Generic BVOH"
+   ],
+   "name": "Generic BVOH",
+   "filament_type": "BVOH",
+   "filament_vendor": "Generic"
+  },
+  "OFo6n2pB": {
+   "filaments": [
+    "Anycubic/Anycubic PETG"
+   ],
+   "name": "Anycubic PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Anycubic"
+  },
+  "OFoBTKmn": {
+   "filaments": [
+    "Cubicon/Cubicon PETG"
+   ],
+   "name": "Cubicon PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Cubicon"
+  },
+  "OFoSknDB": {
+   "filaments": [
+    "OrcaFilamentLibrary/FILL3D PLA Turbo"
+   ],
+   "name": "FILL3D PLA Turbo",
+   "filament_type": "PLA",
+   "filament_vendor": "FILL3D"
+  },
+  "OFoYSJKi": {
+   "filaments": [
+    "Anker/Generic PETG-CF",
+    "BBL/Generic PETG-CF",
+    "Creality/Generic PETG-CF",
+    "Elegoo/Generic PETG-CF",
+    "Flashforge/Generic PETG-CF",
+    "OrcaArena/Generic PETG-CF",
+    "OrcaFilamentLibrary/Generic PETG-CF",
+    "Qidi/Generic PETG-CF",
+    "Tiertime/Generic PETG-CF"
+   ],
+   "name": "Generic PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Generic"
+  },
+  "OFobDOW5": {
+   "filaments": [
+    "Elegoo/Elegoo ASA",
+    "OrcaFilamentLibrary/Elegoo ASA"
+   ],
+   "name": "Elegoo ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFocyw69": {
+   "filaments": [
+    "BBL/AliZ PETG",
+    "OrcaFilamentLibrary/AliZ PETG"
+   ],
+   "name": "AliZ PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Aliz"
+  },
+  "OFoiVqVM": {
+   "filaments": [
+    "BBL/Bambu PLA Basic",
+    "OrcaFilamentLibrary/Bambu PLA Basic"
+   ],
+   "name": "Bambu PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFojbdhR": {
+   "filaments": [
+    "Flashforge/Flashforge ABS-GF"
+   ],
+   "name": "Flashforge ABS-GF",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "Flashforge"
+  },
+  "OForhBi4": {
+   "filaments": [
+    "Cubicon/Cubicon ABSk"
+   ],
+   "name": "Cubicon ABSk",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFovEIbw": {
+   "filaments": [
+    "BBL/Bambu PETG HF",
+    "OrcaFilamentLibrary/Bambu PETG HF"
+   ],
+   "name": "Bambu PETG HF",
+   "filament_type": "PETG",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFp4ETDP": {
+   "filaments": [
+    "Creality/CR-PLA"
+   ],
+   "name": "CR-PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Creality"
+  },
+  "OFp57RRC": {
+   "filaments": [
+    "Qidi/QIDI PPS-GF"
+   ],
+   "name": "QIDI PPS-GF",
+   "filament_type": "PPS-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFp9wdmf": {
+   "filaments": [
+    "Eryone/Eryone PA-CF"
+   ],
+   "name": "Eryone PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFpBlrvY": {
+   "filaments": [
+    "OrcaFilamentLibrary/Valment PLA Silk"
+   ],
+   "name": "Valment PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Valment"
+  },
+  "OFpDo5Ix": {
+   "filaments": [
+    "Cubicon/Cubicon ABS"
+   ],
+   "name": "Cubicon ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFpPGSKG": {
+   "filaments": [
+    "BBL/SUNLU Silk PLA+",
+    "Flashforge/SUNLU Silk PLA+",
+    "OrcaFilamentLibrary/SUNLU Silk PLA+"
+   ],
+   "name": "SUNLU Silk PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFpPJSHE": {
+   "filaments": [
+    "Peopoly/Peopoly Lancer PETG-C"
+   ],
+   "name": "Peopoly Lancer PETG-C",
+   "filament_type": "PETG",
+   "filament_vendor": "Peopoly"
+  },
+  "OFpW4gdi": {
+   "filaments": [
+    "BBL/SUNLU PLA Matte",
+    "Flashforge/SUNLU PLA Matte",
+    "OrcaFilamentLibrary/SUNLU PLA Matte"
+   ],
+   "name": "SUNLU PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFpdjFI3": {
+   "filaments": [
+    "BBL/BETA PLA UV Color Change"
+   ],
+   "name": "BETA PLA UV Color Change",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFpu74Qe": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Eco"
+   ],
+   "name": "Snapmaker PLA Eco",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFpumhCM": {
+   "filaments": [
+    "Volumic/Volumic UNIVERSAL Ultra"
+   ],
+   "name": "Volumic UNIVERSAL Ultra",
+   "filament_type": "UNIV",
+   "filament_vendor": "Volumic"
+  },
+  "OFq0TY7C": {
+   "filaments": [
+    "Flashforge/Flashforge ASA-CF"
+   ],
+   "name": "Flashforge ASA-CF",
+   "filament_type": "ASA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFq8gfS4": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Negro Azabache"
+   ],
+   "name": "FilAr PETG Negro Azabache",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFq9svOz": {
+   "filaments": [
+    "BBL/Generic PPS",
+    "Creality/Generic PPS",
+    "Tiertime/Generic PPS"
+   ],
+   "name": "Generic PPS",
+   "filament_type": "PPS",
+   "filament_vendor": "Generic"
+  },
+  "OFqFRiLb": {
+   "filaments": [
+    "Ratrig/Generic PLA BigNozzle"
+   ],
+   "name": "Generic PLA BigNozzle",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFqGRZyH": {
+   "filaments": [
+    "BBL/Numakers PLA+",
+    "OrcaFilamentLibrary/Numakers PLA+"
+   ],
+   "name": "Numakers PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "Numakers"
+  },
+  "OFqHQNoZ": {
+   "filaments": [
+    "Elegoo/Elegoo TPU 95A",
+    "OrcaFilamentLibrary/Elegoo TPU 95A"
+   ],
+   "name": "Elegoo TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Elegoo"
+  },
+  "OFqINlYj": {
+   "filaments": [
+    "BBL/eSUN PLA+",
+    "Creality/eSUN PLA+",
+    "OrcaFilamentLibrary/eSUN PLA+"
+   ],
+   "name": "eSUN PLA+",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
+  },
+  "OFqTwtXM": {
+   "filaments": [
+    "BBL/addnorth PETG rPETG Matte"
+   ],
+   "name": "addnorth PETG rPETG Matte",
+   "filament_type": "PETG",
+   "filament_vendor": "addnorth"
+  },
+  "OFqcL5UF": {
+   "filaments": [
+    "Qidi/QIDI Support For PET/PA"
+   ],
+   "name": "QIDI Support For PET/PA",
+   "filament_type": "PA-S",
+   "filament_vendor": "QIDI"
+  },
+  "OFqtx549": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Celeste Cielo"
+   ],
+   "name": "FilAr PLA-mate Celeste Cielo",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFqw2PQA": {
+   "filaments": [
+    "BBL/Panchroma CoPE",
+    "OrcaFilamentLibrary/Panchroma CoPE",
+    "Snapmaker/Panchroma CoPE"
+   ],
+   "name": "Panchroma CoPE",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFrFBEfd": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Neon"
+   ],
+   "name": "Eolas Prints PLA Neon",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFrGJ4tR": {
+   "filaments": [
+    "Anycubic/Anycubic PLA Slik"
+   ],
+   "name": "Anycubic PLA Slik",
+   "filament_type": "PLA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFrKLeE3": {
+   "filaments": [
+    "BBL/Bambu PLA Metal",
+    "OrcaFilamentLibrary/Bambu PLA Metal"
+   ],
+   "name": "Bambu PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFrLiqiM": {
+   "filaments": [
+    "InfiMech/InfiMech PETG"
+   ],
+   "name": "InfiMech PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "InfiMech"
+  },
+  "OFrM4hdm": {
+   "filaments": [
+    "Creality/CR-PLA Carbon"
+   ],
+   "name": "CR-PLA Carbon",
+   "filament_type": "PLA-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFrOh600": {
+   "filaments": [
+    "BBL/Panchroma PLA Matte",
+    "Creality/Panchroma PLA Matte",
+    "OrcaFilamentLibrary/Panchroma PLA Matte",
+    "Snapmaker/Panchroma PLA Matte"
+   ],
+   "name": "Panchroma PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFrZDhVt": {
+   "filaments": [
+    "Flashforge/Flashforge ASA-GF"
+   ],
+   "name": "Flashforge ASA-GF",
+   "filament_type": "ASA-GF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFrdZ0cK": {
+   "filaments": [
+    "Creality/eSUN PETG+HS"
+   ],
+   "name": "eSUN PETG+HS",
+   "filament_type": "PETG",
+   "filament_vendor": "eSUN"
+  },
+  "OFrjacXf": {
+   "filaments": [
+    "Flashforge/Flashforge PET-CF"
+   ],
+   "name": "Flashforge PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFrqMlGt": {
+   "filaments": [
+    "BBL/BETA PETG"
+   ],
+   "name": "BETA PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFrr67nG": {
+   "filaments": [
+    "OrcaArena/Arena PC"
+   ],
+   "name": "Arena PC",
+   "filament_type": "PC",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFryjl35": {
+   "filaments": [
+    "Elegoo/Elegoo ASA-CF",
+    "OrcaFilamentLibrary/Elegoo ASA-CF"
+   ],
+   "name": "Elegoo ASA-CF",
+   "filament_type": "ASA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFsB2lxm": {
+   "filaments": [
+    "Elegoo/Elegoo PLA Matte",
+    "OrcaFilamentLibrary/Elegoo PLA Matte"
+   ],
+   "name": "Elegoo PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFsD974q": {
+   "filaments": [
+    "Volumic/Volumic PETG Ultra (Performance)"
+   ],
+   "name": "Volumic PETG Ultra (Performance)",
+   "filament_type": "PETG",
+   "filament_vendor": "Volumic"
+  },
+  "OFsDXRpS": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Piel"
+   ],
+   "name": "FilAr PLA Piel",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFsFo7ms": {
+   "filaments": [
+    "Volumic/Volumic PP Ultra"
+   ],
+   "name": "Volumic PP Ultra",
+   "filament_type": "PP",
+   "filament_vendor": "Volumic"
+  },
+  "OFsFon5l": {
+   "filaments": [
+    "BBL/Generic HIPS",
+    "Chuanying/Generic HIPS",
+    "Creality/Generic HIPS",
+    "Flashforge/Generic HIPS",
+    "OrcaFilamentLibrary/Generic HIPS",
+    "Tiertime/Generic HIPS"
+   ],
+   "name": "Generic HIPS",
+   "filament_type": "HIPS",
+   "filament_vendor": "Generic"
+  },
+  "OFsHSVZc": {
+   "filaments": [
+    "BBL/Bambu Support W",
+    "OrcaFilamentLibrary/Bambu Support W"
+   ],
+   "name": "Bambu Support W",
+   "filament_type": "PLA",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFsP8PKH": {
+   "filaments": [
+    "Z-Bolt/Generic ABS HT"
+   ],
+   "name": "Generic ABS HT",
+   "filament_type": "ABS",
+   "filament_vendor": "Generic"
+  },
+  "OFsRDvTM": {
+   "filaments": [
+    "Anycubic/Panchroma PLA",
+    "BBL/Panchroma PLA",
+    "OrcaFilamentLibrary/Panchroma PLA",
+    "Snapmaker/Panchroma PLA"
+   ],
+   "name": "Panchroma PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFsXQXbs": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Blanco Antartida"
+   ],
+   "name": "FilAr PETG Blanco Antartida",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFsijjtH": {
+   "filaments": [
+    "BBL/Generic PP-GF",
+    "OrcaFilamentLibrary/Generic PP-GF",
+    "Tiertime/Generic PP-GF"
+   ],
+   "name": "Generic PP-GF",
+   "filament_type": "PP-GF",
+   "filament_vendor": "Generic"
+  },
+  "OFsoykbm": {
+   "filaments": [
+    "OrcaFilamentLibrary/DREMC PA6-CF"
+   ],
+   "name": "DREMC PA6-CF",
+   "filament_type": "PA6-CF",
+   "filament_vendor": "DREMC"
+  },
+  "OFt0JbR7": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PLA Metal"
+   ],
+   "name": "Snapmaker J1 PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFt3HtlG": {
+   "filaments": [
+    "Qidi/QIDI ABS-GF"
+   ],
+   "name": "QIDI ABS-GF",
+   "filament_type": "ABS-GF",
+   "filament_vendor": "QIDI"
+  },
+  "OFt6e0US": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Amarillo Lima"
+   ],
+   "name": "FilAr PETG Amarillo Lima",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFt7SngH": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 ASA"
+   ],
+   "name": "Snapmaker J1 ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFtFtiS0": {
+   "filaments": [
+    "Snapmaker/Polymaker PETG Galaxy"
+   ],
+   "name": "Polymaker PETG Galaxy",
+   "filament_type": "PETG",
+   "filament_vendor": "Polymaker"
+  },
+  "OFtGC1ye": {
+   "filaments": [
+    "Artillery/Artillery PA-CF"
+   ],
+   "name": "Artillery PA-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Artillery"
+  },
+  "OFtKeKa9": {
+   "filaments": [
+    "OrcaArena/Arena PLA Tough"
+   ],
+   "name": "Arena PLA Tough",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFtOPlK6": {
+   "filaments": [
+    "OrcaArena/Arena PAHT-CF"
+   ],
+   "name": "Arena PAHT-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFtOoWIj": {
+   "filaments": [],
+   "name": "FilAr PLA-mate",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFtRn8X8": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast SBS"
+   ],
+   "name": "FDplast SBS",
+   "filament_type": "SBS",
+   "filament_vendor": "FDplast"
+  },
+  "OFtdVZpV": {
+   "filaments": [
+    "BBL/addnorth PLA X-PLA"
+   ],
+   "name": "addnorth PLA X-PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "addnorth"
+  },
+  "OFtefokm": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Blanco"
+   ],
+   "name": "FilAr PLA-mate Blanco",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFtkLO6q": {
+   "filaments": [
+    "BBL/Bambu TPU 90A"
+   ],
+   "name": "Bambu TPU 90A",
+   "filament_type": "TPU",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFtndTHe": {
+   "filaments": [
+    "BBL/BETA PETG-CF"
+   ],
+   "name": "BETA PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "BETA"
+  },
+  "OFtpXCCv": {
+   "filaments": [
+    "BBL/COEX ASA PRIME",
+    "OrcaFilamentLibrary/COEX ASA PRIME"
+   ],
+   "name": "COEX ASA PRIME",
+   "filament_type": "ASA",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFtr8eZw": {
+   "filaments": [
+    "OrcaFilamentLibrary/FDplast PLA"
+   ],
+   "name": "FDplast PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "FDplast"
+  },
+  "OFtudokz": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA Premium"
+   ],
+   "name": "Eolas Prints PLA Premium",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFtybfNX": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA Metal"
+   ],
+   "name": "Snapmaker PLA Metal",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFu08yGN": {
+   "filaments": [
+    "Volumic/Volumic PETG Ultra carbone"
+   ],
+   "name": "Volumic PETG Ultra carbone",
+   "filament_type": "PETG",
+   "filament_vendor": "Volumic"
+  },
+  "OFu0fjPJ": {
+   "filaments": [
+    "LH/LHS PC CF"
+   ],
+   "name": "LHS PC CF",
+   "filament_type": "PC",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFu1E4ur": {
+   "filaments": [
+    "Qidi/QIDI ASA-Aero"
+   ],
+   "name": "QIDI ASA-Aero",
+   "filament_type": "ASA-AERO",
+   "filament_vendor": "QIDI"
+  },
+  "OFu1evlr": {
+   "filaments": [
+    "BBL/Generic PCTG",
+    "Creality/Generic PCTG",
+    "OrcaFilamentLibrary/Generic PCTG",
+    "Ratrig/Generic PCTG",
+    "Tiertime/Generic PCTG"
+   ],
+   "name": "Generic PCTG",
+   "filament_type": "PCTG",
+   "filament_vendor": "Generic"
+  },
+  "OFuFEtKX": {
+   "filaments": [
+    "Flashforge/Flashforge PETG-CF"
+   ],
+   "name": "Flashforge PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFuJ49uH": {
+   "filaments": [
+    "Qidi/QIDI PETG Basic"
+   ],
+   "name": "QIDI PETG Basic",
+   "filament_type": "PETG",
+   "filament_vendor": "QIDI"
+  },
+  "OFuO0cAP": {
+   "filaments": [
+    "OrcaArena/Arena PETG-CF"
+   ],
+   "name": "Arena PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFuUuIhR": {
+   "filaments": [
+    "Elegoo/Elegoo PETG-CF",
+    "OrcaFilamentLibrary/Elegoo PETG-CF"
+   ],
+   "name": "Elegoo PETG-CF",
+   "filament_type": "PETG",
+   "filament_vendor": "Elegoo"
+  },
+  "OFuV79ru": {
+   "filaments": [
+    "Flashforge/Flashforge PA66-CF"
+   ],
+   "name": "Flashforge PA66-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Flashforge"
+  },
+  "OFuWCQXN": {
+   "filaments": [
+    "BBL/COEX ABS PRIME",
+    "OrcaFilamentLibrary/COEX ABS PRIME"
+   ],
+   "name": "COEX ABS PRIME",
+   "filament_type": "ABS",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFuehn62": {
+   "filaments": [
+    "OrcaArena/Arena PLA Marble"
+   ],
+   "name": "Arena PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFufTAK9": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA-mate Negro"
+   ],
+   "name": "FilAr PLA-mate Negro",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFughwKn": {
+   "filaments": [
+    "Qidi/QIDI PLA Matte Basic"
+   ],
+   "name": "QIDI PLA Matte Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFujZSdh": {
+   "filaments": [
+    "Creality/Hyper PETG"
+   ],
+   "name": "Hyper PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Creality"
+  },
+  "OFulOdT2": {
+   "filaments": [
+    "Flashforge/Generic TPU 85A"
+   ],
+   "name": "Generic TPU 85A",
+   "filament_type": "TPU",
+   "filament_vendor": "Generic"
+  },
+  "OFurdQxc": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Magenta"
+   ],
+   "name": "FilAr PETG Magenta",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFusbWjj": {
+   "filaments": [
+    "Creality/Hyper PETG-CF"
+   ],
+   "name": "Hyper PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Creality"
+  },
+  "OFuvOt0r": {
+   "filaments": [
+    "BBL/BETA PLA Basic"
+   ],
+   "name": "BETA PLA Basic",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFuxH0Uz": {
+   "filaments": [
+    "Volumic/Volumic FLEX93 Ultra"
+   ],
+   "name": "Volumic FLEX93 Ultra",
+   "filament_type": "TPU",
+   "filament_vendor": "Volumic"
+  },
+  "OFvD0Qqt": {
+   "filaments": [
+    "Ratrig/Generic PETG BigNozzle"
+   ],
+   "name": "Generic PETG BigNozzle",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OFvDbkFq": {
+   "filaments": [
+    "Prusa/Prusament PC Blend"
+   ],
+   "name": "Prusament PC Blend",
+   "filament_type": "PC",
+   "filament_vendor": "Prusa Polymers"
+  },
+  "OFvKUnLh": {
+   "filaments": [
+    "BBL/Bambu TPU 95A HF",
+    "OrcaFilamentLibrary/Bambu TPU 95A HF"
+   ],
+   "name": "Bambu TPU 95A HF",
+   "filament_type": "TPU",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFvLppPU": {
+   "filaments": [
+    "Creality/CR-Nylon"
+   ],
+   "name": "CR-Nylon",
+   "filament_type": "PA",
+   "filament_vendor": "Creality"
+  },
+  "OFvPPMxL": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PLA Verde FilAr"
+   ],
+   "name": "FilAr PLA Verde FilAr",
+   "filament_type": "PLA",
+   "filament_vendor": "FilAr"
+  },
+  "OFvTVZc3": {
+   "filaments": [
+    "BBL/COEX PETG",
+    "OrcaFilamentLibrary/COEX PETG"
+   ],
+   "name": "COEX PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFvVy7yo": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints TPU D60 UV Resistant"
+   ],
+   "name": "Eolas Prints TPU D60 UV Resistant",
+   "filament_type": "TPU",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFvaLVML": {
+   "filaments": [
+    "Flashforge/Flashforge HIPS"
+   ],
+   "name": "Flashforge HIPS",
+   "filament_type": "HIPS",
+   "filament_vendor": "Flashforge"
+  },
+  "OFvcIGee": {
+   "filaments": [
+    "BBL/addnorth TPU Pro Matte 85A"
+   ],
+   "name": "addnorth TPU Pro Matte 85A",
+   "filament_type": "TPU",
+   "filament_vendor": "addnorth"
+  },
+  "OFvdZ2bx": {
+   "filaments": [
+    "Qidi/QIDI WOOD Rapido"
+   ],
+   "name": "QIDI WOOD Rapido",
+   "filament_type": "PLA",
+   "filament_vendor": "QIDI"
+  },
+  "OFvgE0Zh": {
+   "filaments": [
+    "Elegoo/Elegoo PLA",
+    "OrcaFilamentLibrary/Elegoo PLA"
+   ],
+   "name": "Elegoo PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Elegoo"
+  },
+  "OFvmwTZE": {
+   "filaments": [
+    "Snapmaker/Snapmaker TPU 95A"
+   ],
+   "name": "Snapmaker TPU 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFvrXuV7": {
+   "filaments": [
+    "BBL/PolyLite ASA",
+    "OrcaFilamentLibrary/PolyLite ASA"
+   ],
+   "name": "PolyLite ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFvxIS9g": {
+   "filaments": [
+    "BBL/Fiberon PA12-CF10",
+    "Snapmaker/Fiberon PA12-CF10"
+   ],
+   "name": "Fiberon PA12-CF10",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFvxghTE": {
+   "filaments": [
+    "Chuanying/Generic HS PLA",
+    "Flashforge/Generic HS PLA",
+    "TwoTrees/Generic HS PLA"
+   ],
+   "name": "Generic HS PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFvyB0Bz": {
+   "filaments": [
+    "BBL/PolyLite PLA Galaxy",
+    "Snapmaker/PolyLite PLA Galaxy"
+   ],
+   "name": "PolyLite PLA Galaxy",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFvzvwCu": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PLA High Speed"
+   ],
+   "name": "Eolas Prints PLA High Speed",
+   "filament_type": "PLA",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFw4WD4T": {
+   "filaments": [
+    "BBL/Fiberon PETG-rCF08"
+   ],
+   "name": "Fiberon PETG-rCF08",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFwJ0qu2": {
+   "filaments": [],
+   "name": "DREMC PET-CF",
+   "filament_type": "PET-CF",
+   "filament_vendor": "DREMC"
+  },
+  "OFwLBAGf": {
+   "filaments": [
+    "Qidi/HATCHBOX ABS"
+   ],
+   "name": "HATCHBOX ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "HATCHBOX"
+  },
+  "OFwPrlCM": {
+   "filaments": [
+    "BBL/Bambu PETG Translucent",
+    "OrcaFilamentLibrary/Bambu PETG Translucent"
+   ],
+   "name": "Bambu PETG Translucent",
+   "filament_type": "PETG",
+   "filament_vendor": "Bambu Lab"
+  },
+  "OFwRJ4g0": {
+   "filaments": [
+    "OrcaFilamentLibrary/NIT PLA"
+   ],
+   "name": "NIT PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "NIT"
+  },
+  "OFwVVKEV": {
+   "filaments": [
+    "FlyingBear/Other TPU",
+    "InfiMech/Other TPU"
+   ],
+   "name": "Other TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Other"
+  },
+  "OFwaYjL6": {
+   "filaments": [
+    "BBL/Fiberon PA6-GF",
+    "OrcaFilamentLibrary/Fiberon PA6-GF"
+   ],
+   "name": "Fiberon PA6-GF",
+   "filament_type": "PA-GF",
+   "filament_vendor": "Polymaker"
+  },
+  "OFwbsgWj": {
+   "filaments": [
+    "re3D/re3D PC"
+   ],
+   "name": "re3D PC",
+   "filament_type": "PC",
+   "filament_vendor": "re3D"
+  },
+  "OFwc74ck": {
+   "filaments": [
+    "BBL/BETA PLA Matte"
+   ],
+   "name": "BETA PLA Matte",
+   "filament_type": "PLA",
+   "filament_vendor": "BETA"
+  },
+  "OFwhLMs4": {
+   "filaments": [
+    "Snapmaker/Snapmaker PLA SnapSpeed"
+   ],
+   "name": "Snapmaker PLA SnapSpeed",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFwjMiKL": {
+   "filaments": [
+    "Flashforge/Flashforge PETG Transparent"
+   ],
+   "name": "Flashforge PETG Transparent",
+   "filament_type": "PETG",
+   "filament_vendor": "Flashforge"
+  },
+  "OFwlZ7gH": {
+   "filaments": [
+    "Flashforge/Flashforge TPU-90A"
+   ],
+   "name": "Flashforge TPU-90A",
+   "filament_type": "TPU-90A",
+   "filament_vendor": "Flashforge"
+  },
+  "OFwu7IAG": {
+   "filaments": [
+    "BBL/COEX PCTG PRIME",
+    "OrcaFilamentLibrary/COEX PCTG PRIME"
+   ],
+   "name": "COEX PCTG PRIME",
+   "filament_type": "PCTG",
+   "filament_vendor": "COEX 3D"
+  },
+  "OFwwAQnA": {
+   "filaments": [
+    "Prusa/Generic PC HF"
+   ],
+   "name": "Generic PC HF",
+   "filament_type": "PC",
+   "filament_vendor": "Generic"
+  },
+  "OFwyt1xt": {
+   "filaments": [
+    "Eryone/Eryone ASA-CF"
+   ],
+   "name": "Eryone ASA-CF",
+   "filament_type": "ASA-CF",
+   "filament_vendor": "Eryone"
+  },
+  "OFx0WlzS": {
+   "filaments": [
+    "Flashforge/Flashforge TPU-95A"
+   ],
+   "name": "Flashforge TPU-95A",
+   "filament_type": "TPU-95A",
+   "filament_vendor": "Flashforge"
+  },
+  "OFx8Lmsd": {
+   "filaments": [
+    "OrcaFilamentLibrary/Eolas Prints PETG UV Resistant"
+   ],
+   "name": "Eolas Prints PETG UV Resistant",
+   "filament_type": "PETG",
+   "filament_vendor": "Eolas Prints"
+  },
+  "OFxA1p01": {
+   "filaments": [
+    "BBL/Overture PLA Pro",
+    "OrcaFilamentLibrary/Overture PLA Pro"
+   ],
+   "name": "Overture PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "Overture"
+  },
+  "OFxDHUX8": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC PETG"
+   ],
+   "name": "SeeMeCNC PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OFxJRuVF": {
+   "filaments": [
+    "Anycubic/Anycubic PC-GF"
+   ],
+   "name": "Anycubic PC-GF",
+   "filament_type": "PC-GF",
+   "filament_vendor": "Anycubic"
+  },
+  "OFxOHhZw": {
+   "filaments": [
+    "Elegoo/Elegoo ABS",
+    "OrcaFilamentLibrary/Elegoo ABS"
+   ],
+   "name": "Elegoo ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Elegoo"
+  },
+  "OFxUwUeW": {
+   "filaments": [
+    "BBL/SUNLU PLA Marble",
+    "Flashforge/SUNLU PLA Marble",
+    "OrcaFilamentLibrary/SUNLU PLA Marble"
+   ],
+   "name": "SUNLU PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "SUNLU"
+  },
+  "OFxYB4Sw": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 PETG-CF"
+   ],
+   "name": "Snapmaker J1 PETG-CF",
+   "filament_type": "PETG-CF",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFxe4rXr": {
+   "filaments": [
+    "BBL/PolyTerra PLA Marble",
+    "Snapmaker/PolyTerra PLA Marble"
+   ],
+   "name": "PolyTerra PLA Marble",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFxqf79Q": {
+   "filaments": [
+    "BBL/BETA PETG HF"
+   ],
+   "name": "BETA PETG HF",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFy02QHU": {
+   "filaments": [
+    "BBL/PolyLite PLA Translucent",
+    "Snapmaker/PolyLite PLA Translucent"
+   ],
+   "name": "PolyLite PLA Translucent",
+   "filament_type": "PLA",
+   "filament_vendor": "Polymaker"
+  },
+  "OFy14TRA": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 ABS"
+   ],
+   "name": "Snapmaker J1 ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFy3sW6j": {
+   "filaments": [
+    "WonderMaker/WonderMaker ASA"
+   ],
+   "name": "WonderMaker ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "WonderMaker"
+  },
+  "OFy48TOp": {
+   "filaments": [
+    "Flashforge/Generic TPU-95A"
+   ],
+   "name": "Generic TPU-95A",
+   "filament_type": "TPU-95A",
+   "filament_vendor": "Generic"
+  },
+  "OFy8tYJE": {
+   "filaments": [
+    "Cubicon/Cubicon ABS-A100"
+   ],
+   "name": "Cubicon ABS-A100",
+   "filament_type": "ABS",
+   "filament_vendor": "Cubicon"
+  },
+  "OFyFyLIp": {
+   "filaments": [
+    "SeeMeCNC/SeeMeCNC TPU"
+   ],
+   "name": "SeeMeCNC TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "SeeMeCNC"
+  },
+  "OFyHgT60": {
+   "filaments": [
+    "OrcaArena/Arena PLA Sparkle"
+   ],
+   "name": "Arena PLA Sparkle",
+   "filament_type": "PLA",
+   "filament_vendor": "Orca Arena"
+  },
+  "OFyJjkek": {
+   "filaments": [
+    "BBL/addnorth TPU Pro Matte 95A"
+   ],
+   "name": "addnorth TPU Pro Matte 95A",
+   "filament_type": "TPU",
+   "filament_vendor": "addnorth"
+  },
+  "OFyLWVF3": {
+   "filaments": [
+    "Creality/Generic PETG-GF"
+   ],
+   "name": "Generic PETG-GF",
+   "filament_type": "PETG-GF",
+   "filament_vendor": "Generic"
+  },
+  "OFyPG8v2": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA Eco"
+   ],
+   "name": "Snapmaker Dual PLA Eco",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFyPTnSk": {
+   "filaments": [
+    "BBL/BETA PETG Heat Color Change"
+   ],
+   "name": "BETA PETG Heat Color Change",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFyQwdaM": {
+   "filaments": [
+    "Volumic/Volumic ABS Ultra (Performance)"
+   ],
+   "name": "Volumic ABS Ultra (Performance)",
+   "filament_type": "ABS",
+   "filament_vendor": "Volumic"
+  },
+  "OFyRCIMh": {
+   "filaments": [
+    "FlyingBear/Other PC",
+    "InfiMech/Other PC"
+   ],
+   "name": "Other PC",
+   "filament_type": "PC",
+   "filament_vendor": "Other"
+  },
+  "OFyUJI3q": {
+   "filaments": [
+    "Volumic/Volumic ABS Ultra"
+   ],
+   "name": "Volumic ABS Ultra",
+   "filament_type": "ABS",
+   "filament_vendor": "Volumic"
+  },
+  "OFybzvQN": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Gris Ceniza"
+   ],
+   "name": "FilAr PETG Gris Ceniza",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFyhjiNs": {
+   "filaments": [
+    "Snapmaker/Snapmaker PVA"
+   ],
+   "name": "Snapmaker PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFyj3m13": {
+   "filaments": [
+    "Snapmaker/Snapmaker Dual PLA Silk"
+   ],
+   "name": "Snapmaker Dual PLA Silk",
+   "filament_type": "PLA",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFymnal9": {
+   "filaments": [
+    "Sovol/Sovol Zero PETG HS Nozzle"
+   ],
+   "name": "Sovol Zero PETG HS Nozzle",
+   "filament_type": "PETG",
+   "filament_vendor": "Generic"
+  },
+  "OFyoBZdm": {
+   "filaments": [
+    "LH/LHS PLA"
+   ],
+   "name": "LHS PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFyreocX": {
+   "filaments": [
+    "Tiertime/Tiertime PVA"
+   ],
+   "name": "Tiertime PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Tiertime"
+  },
+  "OFyrnlUn": {
+   "filaments": [
+    "Snapmaker/Snapmaker J1 TPU"
+   ],
+   "name": "Snapmaker J1 TPU",
+   "filament_type": "TPU",
+   "filament_vendor": "Snapmaker"
+  },
+  "OFysxCep": {
+   "filaments": [
+    "OrcaFilamentLibrary/FilAr PETG Coral"
+   ],
+   "name": "FilAr PETG Coral",
+   "filament_type": "PETG",
+   "filament_vendor": "FilAr"
+  },
+  "OFyxayW4": {
+   "filaments": [
+    "BBL/AliZ PLA",
+    "OrcaFilamentLibrary/AliZ PLA"
+   ],
+   "name": "AliZ PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Aliz"
+  },
+  "OFz1a1fy": {
+   "filaments": [
+    "BBL/BETA PETG Metallic"
+   ],
+   "name": "BETA PETG Metallic",
+   "filament_type": "PETG",
+   "filament_vendor": "BETA"
+  },
+  "OFz5oHgf": {
+   "filaments": [
+    "MagicMaker/Generic PEEK"
+   ],
+   "name": "Generic PEEK",
+   "filament_type": "PEEK",
+   "filament_vendor": "Generic"
+  },
+  "OFzAWsca": {
+   "filaments": [
+    "Qidi/Qidi TPU 95A-HF"
+   ],
+   "name": "Qidi TPU 95A-HF",
+   "filament_type": "TPU",
+   "filament_vendor": "QIDI"
+  },
+  "OFzB4uOs": {
+   "filaments": [
+    "Sovol/Sovol Zero PLA Basic HS Nozzle"
+   ],
+   "name": "Sovol Zero PLA Basic HS Nozzle",
+   "filament_type": "PLA",
+   "filament_vendor": "Generic"
+  },
+  "OFzRtFM9": {
+   "filaments": [
+    "Prusa/Generic ASA HF"
+   ],
+   "name": "Generic ASA HF",
+   "filament_type": "ASA",
+   "filament_vendor": "Generic"
+  },
+  "OFzS7zt4": {
+   "filaments": [
+    "Anycubic/Anycubic PA"
+   ],
+   "name": "Anycubic PA",
+   "filament_type": "PA",
+   "filament_vendor": "Anycubic"
+  },
+  "OFzY7N3Z": {
+   "filaments": [
+    "Artillery/Artillery PLA"
+   ],
+   "name": "Artillery PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Artillery"
+  },
+  "OFzaq7Yg": {
+   "filaments": [
+    "BBL/BETA TPU 98A"
+   ],
+   "name": "BETA TPU 98A",
+   "filament_type": "TPU",
+   "filament_vendor": "BETA"
+  },
+  "OFzk5oAo": {
+   "filaments": [
+    "BBL/addnorth ABS rABS"
+   ],
+   "name": "addnorth ABS rABS",
+   "filament_type": "ABS",
+   "filament_vendor": "addnorth"
+  },
+  "OFzrUUxc": {
+   "filaments": [],
+   "name": "DREMC ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "DREMC"
+  },
+  "OFztQ7rO": {
+   "filaments": [
+    "LH/LHS ABS"
+   ],
+   "name": "LHS ABS",
+   "filament_type": "ASA",
+   "filament_vendor": "LH Stinger"
+  },
+  "OFzwA5Z9": {
+   "filaments": [
+    "Flashforge/FusRock PET-GF"
+   ],
+   "name": "FusRock PET-GF",
+   "filament_type": "PET-GF",
+   "filament_vendor": "FusRock"
+  },
+  "OFzyIxba": {
+   "filaments": [
+    "BBL/Bambu PVA",
+    "OrcaFilamentLibrary/Bambu PVA"
+   ],
+   "name": "Bambu PVA",
+   "filament_type": "PVA",
+   "filament_vendor": "Bambu Lab"
+  }
+ }
+}

@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "oXlxQJY0K6Dnri7e",
+	"filament_id": "OFV5c8hG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

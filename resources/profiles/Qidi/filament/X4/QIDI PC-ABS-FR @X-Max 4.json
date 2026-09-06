@@ -3,7 +3,7 @@
 	"name": "QIDI PC/ABS-FR@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_34",
+	"filament_id": "OFDIrhbu",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"50"

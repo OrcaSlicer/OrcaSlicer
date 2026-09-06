@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA-CF @U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "17021473250",
+	"filament_id": "OFhQf8ou",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

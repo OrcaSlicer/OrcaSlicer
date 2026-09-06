@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PLA@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OFeelsSM",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

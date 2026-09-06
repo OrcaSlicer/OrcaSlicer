@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC-FR @base",
+	"inherits": "Elegoo PC @base",
+	"from": "system",
+	"filament_id": "OFlsTpJG",
+	"instantiation": "false"
+}

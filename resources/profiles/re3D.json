@@ -1,7 +1,7 @@
 {
     "name":  "re3D",
     "url":  "",
-    "version":  "03.00.08",
+    "version":  "03.00.09",
     "force_update":  "0",
     "description":  "re3D configurations",
     "machine_model_list":  [

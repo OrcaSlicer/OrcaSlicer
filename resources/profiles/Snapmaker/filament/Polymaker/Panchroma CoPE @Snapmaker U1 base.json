@@ -3,7 +3,7 @@
 	"name": "Panchroma CoPE @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM016",
+	"filament_id": "OFqw2PQA",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

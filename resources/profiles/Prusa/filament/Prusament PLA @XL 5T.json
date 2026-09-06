@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PLA @XL 5T",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Prusament PLA @base",
 	"from": "system",
 	"setting_id": "3xyT73BMaAvbb1Ej",
 	"instantiation": "true",

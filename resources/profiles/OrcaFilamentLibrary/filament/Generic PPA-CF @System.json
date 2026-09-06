@@ -4,6 +4,7 @@
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
 	"setting_id": "rZpVQIyltFNiQyW3",
+	"filament_id": "OF8tPByX",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"35"

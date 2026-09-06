@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Prusa MK4S HF0.8",
+	"inherits": "Generic ASA @Prusa MK4S HF0.4",
+	"renamed_from": "Prusa Generic ASA @MK4S HF0.8;Prusa Generic ASA MK4S HF0.8",
+	"from": "system",
+	"setting_id": "HF59RnyQo2wt5act",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S HF0.8 nozzle"
+	],
+	"fan_max_speed": "15",
+	"fan_min_speed": "15",
+	"filament_max_volumetric_speed": [
+		"36"
+	],
+	"nozzle_temperature": "270",
+	"nozzle_temperature_initial_layer": "270",
+	"slow_down_layer_time": "20"
+}

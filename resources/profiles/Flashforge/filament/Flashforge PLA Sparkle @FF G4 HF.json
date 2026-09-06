@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Sparkle @FF G4 HF",
-	"inherits": "Flashforge Generic ABS @G3U",
+	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "1qXV6AJqPpAwX1YK",
+	"filament_id": "OFV5c8hG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

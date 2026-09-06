@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_12",
+	"filament_id": "OFt3HtlG",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

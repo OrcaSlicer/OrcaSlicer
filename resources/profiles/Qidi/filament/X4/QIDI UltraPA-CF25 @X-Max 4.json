@@ -3,7 +3,7 @@
 	"name": "QIDI UltraPA-CF25@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_26",
+	"filament_id": "OF9PELEb",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"

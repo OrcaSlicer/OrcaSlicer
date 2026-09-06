@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Flashforge AD4",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "lS237JRDRMQgJFzd",
-	"filament_id": "GFB99",
+	"filament_id": "OFY9muEs",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.093"

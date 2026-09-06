@@ -3,7 +3,7 @@
 	"name": "Snapmaker ASA @U1 base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "12471727060",
+	"filament_id": "OF1d7c3A",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

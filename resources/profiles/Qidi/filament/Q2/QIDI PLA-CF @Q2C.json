@@ -3,7 +3,7 @@
 	"name": "QIDI PLA-CF@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_5",
+	"filament_id": "OFhWrAuP",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"100"

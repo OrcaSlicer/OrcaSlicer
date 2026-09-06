@@ -5,6 +5,7 @@
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
@@ -95,7 +96,12 @@ std::string DevAmsTray::get_filament_type()
     if (m_fila_type == "Sup.ABS") { return "ABS-S"; }
     if (m_fila_type == "Support W") { return "PLA-S"; }
     if (m_fila_type == "Support G") { return "PA-S"; }
-    if (m_fila_type == "Support") { if (setting_id == "GFS00") { m_fila_type = "PLA-S"; } else if (setting_id == "GFS01") { m_fila_type = "PA-S"; } else { return "PLA-S"; } }
+    // setting_id is our OF id; GFS00/GFS01 are the printer's own support-filament ids.
+    if (m_fila_type == "Support") {
+        auto* agent = GUI::wxGetApp().getAgent();
+        const std::string printer_filament_id = agent ? agent->from_orca_filament_id(setting_id) : setting_id;
+        if (printer_filament_id == "GFS00") { m_fila_type = "PLA-S"; } else if (printer_filament_id == "GFS01") { m_fila_type = "PA-S"; } else { return "PLA-S"; }
+    }
 
     return m_fila_type;
 }
@@ -654,11 +660,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 curr_tray->setting_id = (*tray_it)["tray_info_idx"].get<std::string>();
                                 //std::string type            = (*tray_it)["tray_type"].get<std::string>();
                                 std::string type = MachineObject::setting_id_to_type(curr_tray->setting_id, (*tray_it)["tray_type"].get<std::string>());
-                                if (curr_tray->setting_id == "GFS00")
+                                // curr_tray->setting_id is our OF id; GFS00/GFS01 are the printer's own support-filament ids.
+                                auto* agent = GUI::wxGetApp().getAgent();
+                                const std::string printer_filament_id = agent ? agent->from_orca_filament_id(curr_tray->setting_id) : curr_tray->setting_id;
+                                if (printer_filament_id == "GFS00")
                                 {
                                     curr_tray->m_fila_type = "PLA-S";
                                 }
-                                else if (curr_tray->setting_id == "GFS01")
+                                else if (printer_filament_id == "GFS01")
                                 {
                                     curr_tray->m_fila_type = "PA-S";
                                 }

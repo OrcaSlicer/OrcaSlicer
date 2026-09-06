@@ -20,6 +20,8 @@
 > Please describe the tests that you have conducted to verify the changes made in this PR.
 -->
 
+- [ ] New filament/material profiles: I wrote **no** `filament_id` key by hand — I ran `python scripts/assign_filament_ids.py` and `--update-snapshot` and committed both diffs (see `doc/developer-reference/filament_id.md`)
+
 <!--
 > A guide for users on how to download the artifacts from this PR.
 -->

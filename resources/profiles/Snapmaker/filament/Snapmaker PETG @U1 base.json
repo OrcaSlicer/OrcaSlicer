@@ -3,7 +3,7 @@
 	"name": "Snapmaker PETG @U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "22090010620",
+	"filament_id": "OF4WB37S",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

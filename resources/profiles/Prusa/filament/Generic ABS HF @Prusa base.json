@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic ABS HF @Prusa base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "OF55jHAJ",
+	"instantiation": "false"
+}

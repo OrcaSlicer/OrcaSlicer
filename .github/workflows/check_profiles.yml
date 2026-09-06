@@ -9,6 +9,10 @@ on:
     - release/*
     paths:
     - 'resources/profiles/**'
+    # The extra JSON check also validates resources/printers/bambu_filament_ids.json,
+    # and lives in scripts/, so a PR touching only those must still run this workflow.
+    - 'resources/printers/**'
+    - 'scripts/**'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:
@@ -64,13 +68,14 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -s -l 2 2>&1 | tee ${{ runner.temp }}/validate_slice.log
           exit ${PIPESTATUS[0]}
-      # For now run filament subtype check only for BBL profiles until we fix other vendors' profiles.
-      - name: validate filament subtype check for BBL profiles
+      # All vendors' filament_id collisions were fixed (see scripts/filament_id_snapshot.json),
+      # so the duplicate-filament-subtype check runs tree-wide.
+      - name: validate filament subtype check
         id: validate_filament_subtypes
         continue-on-error: true
         run: |
           set +e
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v BBL -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
           exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
@@ -217,7 +222,7 @@ jobs:
             fi
 
             if [ "${{ steps.validate_filament_subtypes.outcome }}" = "failure" ]; then
-              echo "### BBL Filament Subtype Validation Failed"
+              echo "### Filament Subtype Validation Failed"
               echo ""
               echo '```'
               head -c 30000 ${{ runner.temp }}/validate_filament_subtypes.log || echo "No output captured"

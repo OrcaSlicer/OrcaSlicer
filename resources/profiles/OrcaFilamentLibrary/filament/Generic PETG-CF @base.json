@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"filament_id": "OFoYSJKi",
+	"instantiation": "false",
+	"filament_type": [
+		"PETG-CF"
+	]
+}

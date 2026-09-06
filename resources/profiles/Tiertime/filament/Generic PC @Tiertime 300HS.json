@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Tiertime 300HS",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "Tiertime Generic PC@300HS;Tiertime Generic PC300HS",
+	"from": "system",
+	"setting_id": "cqm5YuWHhzXdvE0M",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"compatible_printers": [
+		"Tiertime UP300 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.6 nozzle",
+		"Tiertime UP600 HS 0.8 nozzle"
+	]
+}

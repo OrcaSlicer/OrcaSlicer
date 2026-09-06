@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "3503790988",
+	"filament_id": "OFlIsW6f",
 	"instantiation": "false",
 	"filament_density": [
 		"1.32"

@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge HIPS @FF G4 0.6 nozzle",
-	"inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
+	"inherits": "Generic ABS @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "0qMEqo9YMDLSVafs",
+	"filament_id": "OFvaLVML",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -61,6 +65,9 @@
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n;right_extruder_material:HIPS"
+	],
+	"filament_type": [
+		"HIPS"
 	],
 	"compatible_printers": [
 		"Flashforge Guider4 0.6 nozzle"

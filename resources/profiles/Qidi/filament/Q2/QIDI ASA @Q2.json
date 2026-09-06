@@ -3,7 +3,7 @@
 	"name": "QIDI ASA@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_18",
+	"filament_id": "OFTsHNQi",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

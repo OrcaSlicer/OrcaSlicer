@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Glow @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM010",
+	"filament_id": "OF0gGRWk",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

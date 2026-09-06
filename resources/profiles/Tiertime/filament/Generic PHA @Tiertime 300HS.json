@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PHA @Tiertime 300HS",
+	"inherits": "fdm_filament_pha",
+	"renamed_from": "Tiertime Generic PHA@300HS;Tiertime Generic PHA300HS",
+	"from": "system",
+	"setting_id": "cdIDNHr9YR5p1gQx",
+	"filament_id": "OF74KeQR",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Tiertime UP300 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.6 nozzle",
+		"Tiertime UP600 HS 0.8 nozzle"
+	]
+}

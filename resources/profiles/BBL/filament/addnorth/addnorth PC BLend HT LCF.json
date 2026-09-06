@@ -4,7 +4,7 @@
 	"inherits": "Generic PC @base",
 	"from": "system",
 	"setting_id": "GF_ANPBX_00",
-	"filament_id": "GF_ANPBX",
+	"filament_id": "OFhN09f0",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

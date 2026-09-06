@@ -3,7 +3,7 @@
 	"name": "Snapmaker PET @U1 base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "21285779410",
+	"filament_id": "OFQYaiGg",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

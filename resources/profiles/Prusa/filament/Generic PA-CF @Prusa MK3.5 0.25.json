@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Generic PA-CF @Prusa MK3.5 0.25",
+	"inherits": "fdm_filament_pa",
+	"renamed_from": "Prusa Generic PA-CF @MK3.5 0.25;Prusa Generic PA-CF MK3.5 0.25",
+	"from": "system",
+	"setting_id": "15pNQLVuXkSI3zjU",
+	"filament_id": "OFQLcbps",
+	"instantiation": "true",
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"filament_max_volumetric_speed": [
+		"6.5"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.14"
+	],
+	"compatible_printers": [
+		"Prusa MK3.5 0.25 nozzle"
+	]
+}

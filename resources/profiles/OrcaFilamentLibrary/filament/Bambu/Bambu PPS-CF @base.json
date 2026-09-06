@@ -3,7 +3,7 @@
 	"name": "Bambu PPS-CF @base",
 	"inherits": "fdm_filament_pps",
 	"from": "system",
-	"filament_id": "OGFT02",
+	"filament_id": "OF4RvVuU",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"fan_max_speed": [

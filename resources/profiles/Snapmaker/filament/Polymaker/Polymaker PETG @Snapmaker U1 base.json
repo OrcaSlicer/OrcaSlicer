@@ -3,7 +3,7 @@
 	"name": "Polymaker PETG @Snapmaker U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "GFL76",
+	"filament_id": "OF6H51Xx",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

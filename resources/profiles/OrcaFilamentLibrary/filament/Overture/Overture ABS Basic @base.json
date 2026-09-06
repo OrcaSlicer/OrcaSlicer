@@ -3,7 +3,7 @@
 	"name": "Overture ABS Basic @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OVTABS08",
+	"filament_id": "OFDvqJ6n",
 	"instantiation": "false",
 	"description": "Overture ABS settings from https://overture3d.com/.",
 	"activate_air_filtration": [

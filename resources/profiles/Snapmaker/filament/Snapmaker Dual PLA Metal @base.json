@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Metal @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "2029994346",
+	"filament_id": "OFg3cWVt",
 	"instantiation": "false",
 	"filament_cost": [
 		"90"

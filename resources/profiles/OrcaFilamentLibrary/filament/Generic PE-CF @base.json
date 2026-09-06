@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PE-CF @base",
+	"inherits": "fdm_filament_pe",
+	"from": "system",
+	"filament_id": "OFd0Fv0k",
+	"instantiation": "false",
+	"filament_type": [
+		"PE-CF"
+	]
+}

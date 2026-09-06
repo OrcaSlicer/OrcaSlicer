@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Snapmaker PLA SnapSpeed @U1 base2",
 	"from": "system",
-	"filament_id": "141703112701",
+	"filament_id": "OFwhLMs4",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"
@@ -195,7 +195,7 @@
 		"100"
 	],
 	"filament_vendor": [
-		"snapmaker"
+		"Snapmaker"
 	],
 	"filament_wipe": [
 		"nil"

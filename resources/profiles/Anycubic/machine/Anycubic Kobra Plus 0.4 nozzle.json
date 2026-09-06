@@ -108,7 +108,7 @@
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "M601",
 	"default_filament_profile": [
-		"Anycubic Generic PLA"
+		"Generic PLA @Anycubic"
 	],
 	"machine_start_gcode": "M104 S140;start the nozzle preheat and don't wait\nG21;metric values\nG90;absolute positioning\nM82;set extruder to absolute mode\nM107;start with the fan off\nG28;home all\nM190 S[bed_temperature_initial_layer_single] ; set wait for bed temp\nM355 S1;turn on the case light\nM109 S[nozzle_temperature_initial_layer]; wait for extruder temp\nG1 Z15.0 F1000 ;move the nozzle up 15mm\nG92 E0;zero the extruded length\nG1 F100 E60;extrude 60mm of feed stock\nG92 E0;zero the extruded length again",
 	"machine_end_gcode": "M104 S0;extruder heater off\nM140 S0;heated bed heater off (if you have it)\nG91;relative positioning\nG1 Z+10 F3600 ;move Z up a bit\nG90;absolute positioning\nG1 X10 F3000; get the head off the bed\nG1 F3000 Y400 ;kick the bed out\nM84;steppers off\nM355 S0;turn off the case light",

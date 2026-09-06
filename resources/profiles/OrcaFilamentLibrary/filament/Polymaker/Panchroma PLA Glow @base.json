@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Glow @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM010",
+	"filament_id": "OF0gGRWk",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

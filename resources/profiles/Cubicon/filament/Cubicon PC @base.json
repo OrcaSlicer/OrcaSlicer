@@ -3,7 +3,7 @@
 	"name": "Cubicon PC @base",
 	"inherits": "fdm_filament_pc",
 	"setting_id": "Mzg6jfwb2nqfGkdV",
-	"filament_id": "P510cfd0",
+	"filament_id": "OF79Fbo6",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle",

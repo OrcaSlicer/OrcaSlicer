@@ -3,7 +3,7 @@
 	"name": "Generic PPA-GF @base",
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
-	"filament_id": "GFN96",
+	"filament_id": "OF8Tlg47",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"6"

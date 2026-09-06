@@ -24,7 +24,7 @@
 	"cooling_tube_retraction": "0",
 	"default_bed_type": "",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Generic PLA @Flashforge"
 	],
 	"default_print_profile": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
 	"deretraction_speed": [

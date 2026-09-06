@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "FILL3D PLA Basic @base",
 	"from": "system",
-	"filament_id": "FILL3D002",
+	"filament_id": "OFDpW3J8",
 	"instantiation": "false",
 	"inherits": "fdm_filament_pla",
 	"filament_vendor": [

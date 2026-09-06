@@ -4,13 +4,13 @@
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "aFlpGq8eSJQEO1Ie",
-	"filament_id": "GFPETG",
+	"filament_id": "OFYPdQJh",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle"
 	],
 	"filament_vendor": [
-		"Anycubic"
+		"Generic"
 	],
 	"filament_type": [
 		"PETG"

@@ -131,7 +131,7 @@
 	"thumbnails_format": "PNG",
 	"nozzle_type": "hardened_steel",
 	"default_filament_profile": [
-		"Comgrow Generic PETG"
+		"Generic PETG @Comgrow"
 	],
 	"default_print_profile": "0.20mm Standard @Comgrow T500",
 	"bed_exclude_area": [

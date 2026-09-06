@@ -4,7 +4,7 @@
 	"inherits": "Prusament PA-CF @CORE One",
 	"from": "system",
 	"setting_id": "gwFsNIMKGU1f2vPS",
-	"filament_id": "Prusament PA-CF @CORE One 0.8",
+	"filament_id": "OF54SvEe",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",

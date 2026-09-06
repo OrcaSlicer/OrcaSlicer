@@ -3,7 +3,7 @@
 	"name": "Overture PLA@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OFc3xdm9",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"100"

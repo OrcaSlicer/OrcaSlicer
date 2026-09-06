@@ -3383,6 +3383,24 @@ std::vector<size_t> PresetBundle::physical_filament_config_indices() const
 }
 
 
+// Orca: the AMS lookups below resolve a tray's filament_id to the FIRST compatible base
+// preset. When several presets match the same id for the selected printer the pick is
+// arbitrary (a profile bug - see the validator's check_duplicate_filament_subtypes), so
+// scan past a successful match and warn about the runners-up. Behavior is unchanged.
+static void warn_ambiguous_filament_id_match(const PresetCollection &filaments, PresetCollection::ConstIterator match, const std::string &filament_id)
+{
+    if (match == filaments.end())
+        return;
+    std::string others;
+    for (auto it = std::next(match); it != filaments.end(); ++it)
+        if (it->is_compatible && filaments.get_preset_base(*it) == &*it && it->filament_id == filament_id)
+            others += (others.empty() ? "\"" : ", \"") + it->name + "\"";
+    if (!others.empty())
+        BOOST_LOG_TRIVIAL(warning) << "Ambiguous AMS filament match: filament_id \"" << filament_id
+                                   << "\" matches multiple presets compatible with the selected printer; picked \"" << match->name
+                                   << "\", also matches " << others;
+}
+
 void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
 {
     combox_info.clear();
@@ -3405,6 +3423,7 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
         }
         auto iter = std::find_if(filaments.begin(), filaments.end(),
                                  [this, &filament_id](auto &f) { return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+        warn_ambiguous_filament_id_match(filaments, iter, filament_id);
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             auto filament_type = ams.opt_string("filament_type", 0u);
@@ -3507,6 +3526,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
             has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
             return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+        warn_ambiguous_filament_id_match(filaments, iter, filament_id);
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {
@@ -4019,6 +4039,9 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
+// ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
+// printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
+// not follow this pattern, the function may not work correctly.
 std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only)
 {
     std::set<std::string> printer_names;
@@ -4049,6 +4072,40 @@ std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle
     return printer_names;
 }
 
+std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::string &printer_type,
+                                                                    const std::string &nozzle_diameter_str,
+                                                                    bool               include_user_presets)
+{
+    // Printer model plus nozzle diameter is expected to resolve to a single system printer preset;
+    // get_printer_names_by_printer_type_and_nozzle asserts as much in debug builds.
+    const std::set<std::string> printer_names = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
+    const Preset *printer = printer_names.empty() ? nullptr : printers.find_preset(*printer_names.begin());
+    if (printer == nullptr)
+        return {};
+
+    // Preset::is_visible is deliberately not consulted: it tracks what the Configuration Wizard
+    // installed, while the caller identifies a physically connected machine the user may never
+    // have installed - gating on it would empty the list for exactly those machines.
+    const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(*printer);
+    // Loop invariant - the two argument is_compatible_with_printer() would rebuild it per preset.
+    DynamicPrintConfig printer_config;
+    printer_config.set_key_value("printer_preset", new ConfigOptionString(printer->name));
+    if (const ConfigOption *opt = printer->config.option("nozzle_diameter"))
+        printer_config.set_key_value("num_extruders", new ConfigOptionInt((int) static_cast<const ConfigOptionFloats *>(opt)->values.size()));
+
+    std::vector<Preset *> compatible;
+    for (Preset &preset : filaments) {
+        /* The situation where the preset is not offered is as follows:
+            1. Not a root preset
+            2. Not a system preset and the printer firmware does not support user presets */
+        if (filaments.get_preset_base(preset) != &preset || (!preset.is_system && !include_user_presets))
+            continue;
+        if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(preset), active_printer, &printer_config))
+            compatible.push_back(&preset);
+    }
+    return compatible;
+}
+
 bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(
     const std::string &printer_type, std::string& nozzle_diameter_str, std::string &setting_id, std::string &tag_uid, std::string &nozzle_temp_min, std::string &nozzle_temp_max, std::string& preset_setting_id)
 {
@@ -4057,7 +4114,11 @@ bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_m
     std::map<std::string, std::vector<Preset const *>> filament_list = filaments.get_filament_presets();
     std::set<std::string> printer_names       = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
 
-    for (const Preset *preset : filament_list.find(setting_id)->second) {
+    auto filament_iter = filament_list.find(setting_id);
+    if (filament_iter == filament_list.end())
+        return is_equation;
+
+    for (const Preset *preset : filament_iter->second) {
         if (tag_uid == "0" || (tag_uid.size() == 16 && tag_uid.substr(12, 2) == "01")) continue;
         if (preset && !preset->is_user()) continue;
         ConfigOption *       printer_opt  = const_cast<Preset *>(preset)->config.option("compatible_printers");
@@ -6170,7 +6231,11 @@ bool PresetBundle::check_duplicate_filament_subtypes() const
     // inherited from its @base at load time), grouped by vendor so we only test a
     // printer against its own vendor's filaments. A vendor's compatible_printers
     // only names that vendor's printers, so same-vendor scoping is correctness
-    // preserving and avoids an O(all printers x all filaments) sweep.
+    // preserving and avoids an O(all printers x all filaments) sweep. The one
+    // exception is the Orca Filament Library: its presets have empty
+    // compatible_printers (= compatible with every printer, minus the alias-shadowing
+    // exclusions that is_compatible_with_printer checks via m_excluded_from), so they
+    // are tested against every vendor's printers as well.
     std::map<std::string, std::vector<const Preset *>> filaments_by_vendor;
     for (const auto &preset : filaments) {
         if (!preset.is_system || preset.filament_id.empty() || preset.vendor == nullptr)
@@ -6178,20 +6243,29 @@ bool PresetBundle::check_duplicate_filament_subtypes() const
         filaments_by_vendor[preset.vendor->name].push_back(&preset);
     }
 
+    const std::vector<const Preset *> no_filaments;
+    const auto library_it = filaments_by_vendor.find(ORCA_FILAMENT_LIBRARY);
+    const std::vector<const Preset *> &library_filaments = library_it == filaments_by_vendor.end() ? no_filaments : library_it->second;
+
     bool found_duplicates = false;
     for (const auto &printer : printers) {
         if (!printer.is_system || printer.vendor == nullptr)
             continue;
         auto vendor_it = filaments_by_vendor.find(printer.vendor->name);
-        if (vendor_it == filaments_by_vendor.end())
+        const std::vector<const Preset *> &vendor_filaments = vendor_it == filaments_by_vendor.end() ? no_filaments : vendor_it->second;
+        if (vendor_filaments.empty() && library_filaments.empty())
             continue;
 
         const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(printer);
         // std::map keeps the reported errors in a deterministic (sorted) order.
         std::map<std::string, std::vector<const Preset *>> by_filament_id;
-        for (const Preset *fil : vendor_it->second)
+        for (const Preset *fil : vendor_filaments)
             if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(*fil), active_printer))
                 by_filament_id[fil->filament_id].push_back(fil);
+        if (&vendor_filaments != &library_filaments)
+            for (const Preset *fil : library_filaments)
+                if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(*fil), active_printer))
+                    by_filament_id[fil->filament_id].push_back(fil);
 
         for (const auto &entry : by_filament_id) {
             if (entry.second.size() < 2)
@@ -6199,9 +6273,15 @@ bool PresetBundle::check_duplicate_filament_subtypes() const
             found_duplicates = true;
             // List each conflicting preset with a clickable file:// URI on its own
             // line, so the profile author can jump straight to the files to fix.
+            // A preset from another bundle (the Orca Filament Library) is tagged with
+            // its vendor so the source bundle is obvious.
             std::string presets;
-            for (const Preset *p : entry.second)
-                presets += "\n    - " + p->name + "\n      " + preset_file_uri(p->file);
+            for (const Preset *p : entry.second) {
+                presets += "\n    - " + p->name;
+                if (p->vendor != nullptr && p->vendor->name != printer.vendor->name)
+                    presets += " [" + p->vendor->name + "]";
+                presets += "\n      " + preset_file_uri(p->file);
+            }
             BOOST_LOG_TRIVIAL(error)
                 << "Ambiguous AMS filament match: " << entry.second.size()
                 << " filament presets share filament_id \"" << entry.first

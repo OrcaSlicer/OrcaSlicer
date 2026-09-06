@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @Creality Hi-all",
+	"inherits": "Generic PETG @Creality Hi-all",
+	"renamed_from": "Creality Generic PETG-CF @Hi-all;Creality Generic PETG-CF Hi-all",
+	"from": "system",
+	"setting_id": "dWEGZoSVFzj7e9m1",
+	"filament_id": "OFoYSJKi",
+	"instantiation": "true",
+	"filament_type": [
+		"PETG-CF"
+	],
+	"filament_max_volumetric_speed": [
+		"9"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"compatible_printers": [
+		"Creality Hi 0.4 nozzle",
+		"Creality Hi 0.6 nozzle"
+	]
+}

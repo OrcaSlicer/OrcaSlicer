@@ -4,7 +4,7 @@
 	"inherits": "Snapmaker PLA Basic @U1 base",
 	"from": "system",
 	"setting_id": "Q5xH6oGGlbXr14Pa",
-	"filament_id": "11813638720",
+	"filament_id": "OFWgFOjn",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.2 nozzle)"

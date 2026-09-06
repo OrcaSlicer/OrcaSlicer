@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PPS @Tiertime 300HS",
+	"inherits": "fdm_filament_pps",
+	"renamed_from": "Tiertime Generic PPS@300HS;Tiertime Generic PPS300HS",
+	"from": "system",
+	"setting_id": "KIspUdArMQzvDtcX",
+	"filament_id": "OFq9svOz",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Tiertime UP300 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.6 nozzle",
+		"Tiertime UP600 HS 0.8 nozzle"
+	]
+}

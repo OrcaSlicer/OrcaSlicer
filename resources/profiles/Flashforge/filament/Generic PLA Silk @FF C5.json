@@ -53,7 +53,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"hot_plate_temp": [
 		"65"

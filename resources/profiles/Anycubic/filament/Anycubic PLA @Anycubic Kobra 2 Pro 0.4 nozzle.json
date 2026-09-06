@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic PLA @Anycubic Kobra 2 Pro 0.4 nozzle",
-	"inherits": "Anycubic Generic PLA",
+	"inherits": "Generic PLA @Anycubic",
 	"from": "system",
 	"setting_id": "ELCOJflyY3DfpPAH",
-	"filament_id": "GFL92",
+	"filament_id": "OFmjN2bc",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"

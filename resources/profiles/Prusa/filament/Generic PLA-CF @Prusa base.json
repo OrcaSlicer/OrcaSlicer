@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Prusa base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFWbdGsC",
+	"instantiation": "false",
+	"filament_type": [
+		"PLA-CF"
+	]
+}

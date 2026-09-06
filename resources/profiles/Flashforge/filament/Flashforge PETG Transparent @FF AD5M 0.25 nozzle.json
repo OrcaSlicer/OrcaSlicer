@@ -4,7 +4,11 @@
 	"inherits": "Flashforge PETG @FF AD5M 0.25 Nozzle",
 	"from": "system",
 	"setting_id": "W59yTyPnVv4LYiah",
+	"filament_id": "OFwjMiKL",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_settings_id": [
 		"Flashforge PETG Transparent @FF AD5M 0.25 nozzle"
 	],

@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "3864371306",
+	"filament_id": "OFhQf8ou",
 	"instantiation": "false",
 	"required_nozzle_HRC": [
 		"40"

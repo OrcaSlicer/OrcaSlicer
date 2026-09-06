@@ -3,7 +3,7 @@
 	"name": "COEX ABS PRIME @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "CXABPB09",
+	"filament_id": "OFuWCQXN",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

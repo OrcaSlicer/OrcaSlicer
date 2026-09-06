@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PP-CF @base",
+	"inherits": "fdm_filament_pp",
+	"from": "system",
+	"filament_id": "OFXkm8q1",
+	"instantiation": "false",
+	"filament_type": [
+		"PP-CF"
+	]
+}

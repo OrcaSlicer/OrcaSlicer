@@ -3,7 +3,7 @@
 	"name": "DREMC PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "DREMC002",
+	"filament_id": "OFVBlUFH",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

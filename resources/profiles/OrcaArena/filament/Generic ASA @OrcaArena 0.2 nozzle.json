@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @OrcaArena 0.2 nozzle",
+	"inherits": "Generic ASA @OrcaArena base",
+	"renamed_from": "OrcaArena Generic ASA @0.2 nozzle;OrcaArena Generic ASA 0.2 nozzle",
+	"from": "system",
+	"setting_id": "rtFj6gFceWHdzTmO",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.2 nozzle"
+	]
+}

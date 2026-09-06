@@ -1,7 +1,7 @@
 {
 	"name": "Flashforge",
 	"url": "",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Flashforge configurations",
 	"machine_model_list": [
@@ -550,20 +550,20 @@
 			"sub_path": "filament/Flashforge/Flashforge ABS @FF AD3.json"
 		},
 		{
-			"name": "Flashforge Generic ABS",
-			"sub_path": "filament/Flashforge Generic ABS.json"
+			"name": "Generic ABS @Flashforge",
+			"sub_path": "filament/Generic ABS @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic ASA",
-			"sub_path": "filament/Flashforge Generic ASA.json"
+			"name": "Generic ASA @Flashforge",
+			"sub_path": "filament/Generic ASA @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic PETG",
-			"sub_path": "filament/Flashforge Generic PETG.json"
+			"name": "Generic PETG @Flashforge",
+			"sub_path": "filament/Generic PETG @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic PETG-CF10",
-			"sub_path": "filament/Flashforge Generic PETG-CF10.json"
+			"name": "Generic PETG-CF10 @Flashforge",
+			"sub_path": "filament/Generic PETG-CF10 @Flashforge.json"
 		},
 		{
 			"name": "Flashforge PETG",
@@ -578,20 +578,20 @@
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
 		},
 		{
-			"name": "Flashforge Generic HS PLA",
-			"sub_path": "filament/Flashforge Generic HS PLA.json"
+			"name": "Generic HS PLA @Flashforge",
+			"sub_path": "filament/Generic HS PLA @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic PLA",
-			"sub_path": "filament/Flashforge Generic PLA.json"
+			"name": "Generic PLA @Flashforge",
+			"sub_path": "filament/Generic PLA @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-CF10",
-			"sub_path": "filament/Flashforge Generic PLA-CF10.json"
+			"name": "Generic PLA-CF10 @Flashforge",
+			"sub_path": "filament/Generic PLA-CF10 @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-Silk",
-			"sub_path": "filament/Flashforge Generic PLA-Silk.json"
+			"name": "Generic PLA-Silk @Flashforge",
+			"sub_path": "filament/Generic PLA-Silk @Flashforge.json"
 		},
 		{
 			"name": "Flashforge PLA",
@@ -622,8 +622,8 @@
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @base.json"
 		},
 		{
-			"name": "Flashforge Generic TPU",
-			"sub_path": "filament/Flashforge Generic TPU.json"
+			"name": "Generic TPU @Flashforge",
+			"sub_path": "filament/Generic TPU @Flashforge.json"
 		},
 		{
 			"name": "Flashforge ABS @FF AD5M 0.25 Nozzle",
@@ -690,28 +690,28 @@
 			"sub_path": "filament/Flashforge ASA-CF @FF G4P.json"
 		},
 		{
-			"name": "Flashforge Generic ABS @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic ABS @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic ABS @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic ABS @FF AD5M 0.25 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic ABS @G3U",
-			"sub_path": "filament/Flashforge Generic ABS @G3U.json"
+			"name": "Generic ABS @Flashforge G3U",
+			"sub_path": "filament/Generic ABS @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic ABS @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic ABS @G3U 0.6 Nozzle.json"
+			"name": "Generic ABS @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic ABS @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic ASA @G3U",
-			"sub_path": "filament/Flashforge Generic ASA @G3U.json"
+			"name": "Generic ASA @Flashforge G3U",
+			"sub_path": "filament/Generic ASA @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic HIPS",
-			"sub_path": "filament/Flashforge Generic HIPS.json"
+			"name": "Generic HIPS @Flashforge",
+			"sub_path": "filament/Generic HIPS @Flashforge.json"
 		},
 		{
-			"name": "Flashforge Generic HIPS @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic HIPS @G3U 0.6 Nozzle.json"
+			"name": "Generic HIPS @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic HIPS @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
 			"name": "Generic ABS @Flashforge AD4",
@@ -726,44 +726,44 @@
 			"sub_path": "filament/Flashforge ASA Basic.json"
 		},
 		{
-			"name": "Flashforge Generic ASA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic ASA @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic ASA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic ASA @FF AD5M 0.25 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic ASA @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic ASA @G3U 0.6 Nozzle.json"
+			"name": "Generic ASA @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic ASA @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
 			"name": "Generic ASA @Flashforge AD4",
 			"sub_path": "filament/Generic ASA @Flashforge AD4.json"
 		},
 		{
-			"name": "Flashforge Generic PETG @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic PETG @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic PETG @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic PETG @FF AD5M 0.25 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PETG @G3U",
-			"sub_path": "filament/Flashforge Generic PETG @G3U.json"
+			"name": "Generic PETG @Flashforge G3U",
+			"sub_path": "filament/Generic PETG @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic PETG @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic PETG @G3U 0.6 Nozzle.json"
+			"name": "Generic PETG @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PETG @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PETG @G3U 0.8 Nozzle",
-			"sub_path": "filament/Flashforge Generic PETG @G3U 0.8 Nozzle.json"
+			"name": "Generic PETG @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PETG @Flashforge G3U 0.8 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PETG-CF @G3U",
-			"sub_path": "filament/Flashforge Generic PETG-CF @G3U.json"
+			"name": "Generic PETG-CF @Flashforge G3U",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic PETG-CF @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic PETG-CF @G3U 0.6 Nozzle.json"
+			"name": "Generic PETG-CF @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PETG-CF @G3U 0.8 Nozzle",
-			"sub_path": "filament/Flashforge Generic PETG-CF @G3U 0.8 Nozzle.json"
+			"name": "Generic PETG-CF @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.8 Nozzle.json"
 		},
 		{
 			"name": "Flashforge HS PETG",
@@ -854,40 +854,40 @@
 			"sub_path": "filament/Flashforge PETG-CF @FF G4P.json"
 		},
 		{
-			"name": "FusRock Generic NexPA-CF25",
-			"sub_path": "filament/FusRock/FusRock Generic NexPA-CF25.json"
+			"name": "FusRock NexPA-CF25",
+			"sub_path": "filament/FusRock/FusRock NexPA-CF25.json"
 		},
 		{
-			"name": "FusRock Generic PAHT-CF",
-			"sub_path": "filament/FusRock/FusRock Generic PAHT-CF.json"
+			"name": "FusRock PAHT-CF",
+			"sub_path": "filament/FusRock/FusRock PAHT-CF.json"
 		},
 		{
-			"name": "FusRock Generic PAHT-CF @G3U 0.6 Nozzle",
-			"sub_path": "filament/FusRock/FusRock Generic PAHT-CF @G3U 0.6 Nozzle.json"
+			"name": "FusRock PAHT-CF @G3U 0.6 Nozzle",
+			"sub_path": "filament/FusRock/FusRock PAHT-CF @G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "FusRock Generic PET-CF",
-			"sub_path": "filament/FusRock/FusRock Generic PET-CF.json"
+			"name": "FusRock PET-CF",
+			"sub_path": "filament/FusRock/FusRock PET-CF.json"
 		},
 		{
-			"name": "FusRock Generic PET-CF @G3U 0.6 Nozzle",
-			"sub_path": "filament/FusRock/FusRock Generic PET-CF @G3U 0.6 Nozzle.json"
+			"name": "FusRock PET-CF @G3U 0.6 Nozzle",
+			"sub_path": "filament/FusRock/FusRock PET-CF @G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "FusRock Generic S-Multi",
-			"sub_path": "filament/FusRock/FusRock Generic S-Multi.json"
+			"name": "FusRock S-Multi",
+			"sub_path": "filament/FusRock/FusRock S-Multi.json"
 		},
 		{
-			"name": "FusRock Generic S-Multi @G3U 0.6 Nozzle",
-			"sub_path": "filament/FusRock/FusRock Generic S-Multi @G3U 0.6 Nozzle.json"
+			"name": "FusRock S-Multi @G3U 0.6 Nozzle",
+			"sub_path": "filament/FusRock/FusRock S-Multi @G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "FusRock Generic S-PAHT",
-			"sub_path": "filament/FusRock/FusRock Generic S-PAHT.json"
+			"name": "FusRock S-PAHT",
+			"sub_path": "filament/FusRock/FusRock S-PAHT.json"
 		},
 		{
-			"name": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
-			"sub_path": "filament/FusRock/FusRock Generic S-PAHT @G3U 0.6 Nozzle.json"
+			"name": "FusRock S-PAHT @G3U 0.6 Nozzle",
+			"sub_path": "filament/FusRock/FusRock S-PAHT @G3U 0.6 Nozzle.json"
 		},
 		{
 			"name": "Generic PETG @Flashforge AD4",
@@ -930,8 +930,8 @@
 			"sub_path": "filament/SUNLU/SUNLU PETG @FF AD5M 0.8 nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic HS PLA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic HS PLA @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic HS PLA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic HS PLA @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "Flashforge HIPS @FF G4",
@@ -1038,36 +1038,36 @@
 			"sub_path": "filament/Generic PLA High Speed @Flashforge AD4.json"
 		},
 		{
-			"name": "Flashforge Generic PLA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic PLA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic PLA @FF AD5M 0.25 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PLA @G3U",
-			"sub_path": "filament/Flashforge Generic PLA @G3U.json"
+			"name": "Generic PLA @Flashforge G3U",
+			"sub_path": "filament/Generic PLA @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic PLA @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA @G3U 0.6 Nozzle.json"
+			"name": "Generic PLA @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PLA @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PLA @G3U 0.8 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA @G3U 0.8 Nozzle.json"
+			"name": "Generic PLA @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PLA @Flashforge G3U 0.8 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-CF @G3U",
-			"sub_path": "filament/Flashforge Generic PLA-CF @G3U.json"
+			"name": "Generic PLA-CF @Flashforge G3U",
+			"sub_path": "filament/Generic PLA-CF @Flashforge G3U.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-CF @G3U 0.6 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA-CF @G3U 0.6 Nozzle.json"
+			"name": "Generic PLA-CF @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PLA-CF @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-CF @G3U 0.8 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA-CF @G3U 0.8 Nozzle.json"
+			"name": "Generic PLA-CF @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PLA-CF @Flashforge G3U 0.8 Nozzle.json"
 		},
 		{
-			"name": "Flashforge Generic PVA",
-			"sub_path": "filament/Flashforge Generic PVA.json"
+			"name": "Generic PVA @Flashforge",
+			"sub_path": "filament/Generic PVA @Flashforge.json"
 		},
 		{
 			"name": "Flashforge HS PLA",
@@ -1222,12 +1222,12 @@
 			"sub_path": "filament/Generic PLA @Flashforge AD4.json"
 		},
 		{
-			"name": "Polymaker Generic CoPA",
-			"sub_path": "filament/Polymaker/Polymaker Generic CoPA.json"
+			"name": "Polymaker CoPA",
+			"sub_path": "filament/Polymaker/Polymaker CoPA.json"
 		},
 		{
-			"name": "Polymaker Generic S1",
-			"sub_path": "filament/Polymaker/Polymaker Generic S1.json"
+			"name": "Polymaker S1",
+			"sub_path": "filament/Polymaker/Polymaker S1.json"
 		},
 		{
 			"name": "Flashforge PA-CF @FF G4",
@@ -1236,14 +1236,6 @@
 		{
 			"name": "Flashforge PA-CF @FF G4P",
 			"sub_path": "filament/Flashforge PA-CF @FF G4P.json"
-		},
-		{
-			"name": "Flashforge PAHT-CF @FF G4",
-			"sub_path": "filament/Flashforge PAHT-CF @FF G4.json"
-		},
-		{
-			"name": "Flashforge PAHT-CF @FF G4P",
-			"sub_path": "filament/Flashforge PAHT-CF @FF G4P.json"
 		},
 		{
 			"name": "Flashforge PLA-CF",
@@ -1290,8 +1282,8 @@
 			"sub_path": "filament/Generic PLA-CF10 @Flashforge AD4.json"
 		},
 		{
-			"name": "Flashforge Generic PLA-SILK @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge Generic PLA-SILK @FF AD5M 0.25 Nozzle.json"
+			"name": "Generic PLA-SILK @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic PLA-SILK @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "Flashforge PLA Silk",
@@ -1866,8 +1858,8 @@
 			"sub_path": "filament/Flashforge PPS-CF.json"
 		},
 		{
-			"name": "FusRock Generic PAHT-GF",
-			"sub_path": "filament/FusRock/FusRock Generic PAHT-GF.json"
+			"name": "FusRock PAHT-GF",
+			"sub_path": "filament/FusRock/FusRock PAHT-GF.json"
 		},
 		{
 			"name": "FusRock PAHT-CF @FF G4 0.6 nozzle",
@@ -1894,40 +1886,40 @@
 			"sub_path": "filament/Flashforge PET-CF.json"
 		},
 		{
-			"name": "FusRock Generic PET-GF",
-			"sub_path": "filament/FusRock/FusRock Generic PET-GF.json"
+			"name": "FusRock PET-GF",
+			"sub_path": "filament/FusRock/FusRock PET-GF.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4 0.6 HF nozzle.json"
+			"name": "Flashforge PPS @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4 0.6 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4 0.6 nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4 0.6 nozzle.json"
+			"name": "Flashforge PPS @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4 0.6 nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4 0.8 HF nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4 0.8 HF nozzle.json"
+			"name": "Flashforge PPS @FF G4 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4 0.8 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4P 0.6 HF nozzle.json"
+			"name": "Flashforge PPS @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4P 0.6 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4P 0.6 nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4P 0.6 nozzle.json"
+			"name": "Flashforge PPS @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4P 0.6 nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS @FF G4P 0.8 HF nozzle",
-			"sub_path": "filament/FlashForge PPS @FF G4P 0.8 HF nozzle.json"
+			"name": "Flashforge PPS @FF G4P 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PPS @FF G4P 0.8 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS-CF @FF G4 0.6 nozzle",
-			"sub_path": "filament/FlashForge PPS-CF @FF G4 0.6 nozzle.json"
+			"name": "Flashforge PPS-CF @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PPS-CF @FF G4 0.6 nozzle.json"
 		},
 		{
-			"name": "FlashForge PPS-CF @FF G4P 0.6 nozzle",
-			"sub_path": "filament/FlashForge PPS-CF @FF G4P 0.6 nozzle.json"
+			"name": "Flashforge PPS-CF @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PPS-CF @FF G4P 0.6 nozzle.json"
 		},
 		{
 			"name": "FusRock PET @FF G4P 0.8 HF nozzle",
@@ -1966,28 +1958,28 @@
 			"sub_path": "filament/Generic PET @FF G4P 0.8 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4 0.6 HF nozzle.json"
+			"name": "Flashforge PC @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4 0.6 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4 0.6 nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4 0.6 nozzle.json"
+			"name": "Flashforge PC @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4 0.6 nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4 0.8 HF nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4 0.8 HF nozzle.json"
+			"name": "Flashforge PC @FF G4 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4 0.8 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4P 0.6 HF nozzle.json"
+			"name": "Flashforge PC @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4P 0.6 HF nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4P 0.6 nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4P 0.6 nozzle.json"
+			"name": "Flashforge PC @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4P 0.6 nozzle.json"
 		},
 		{
-			"name": "FlashForge PC @FF G4P 0.8 HF nozzle",
-			"sub_path": "filament/FlashForge PC @FF G4P 0.8 HF nozzle.json"
+			"name": "Flashforge PC @FF G4P 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PC @FF G4P 0.8 HF nozzle.json"
 		},
 		{
 			"name": "FusRock PAHT @FF G4 0.6 HF nozzle",
@@ -2116,14 +2108,6 @@
 		{
 			"name": "Flashforge PLA Basic @FF G4P 0.8 HF nozzle",
 			"sub_path": "filament/Flashforge PLA Basic @FF G4P 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Buint Ti @FF G4 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Buint Ti @FF G4 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Buint Ti @FF G4P 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Buint Ti @FF G4P 0.8 nozzle.json"
 		},
 		{
 			"name": "Flashforge PLA Color Change @FF G4 0.6 HF nozzle",
@@ -2570,14 +2554,6 @@
 			"sub_path": "filament/Flashforge PA-CF @FF C5P.json"
 		},
 		{
-			"name": "Flashforge PAHT-CF @FF C5",
-			"sub_path": "filament/Flashforge PAHT-CF @FF C5.json"
-		},
-		{
-			"name": "Flashforge PAHT-CF @FF C5P",
-			"sub_path": "filament/Flashforge PAHT-CF @FF C5P.json"
-		},
-		{
 			"name": "Flashforge PET-CF @FF C5",
 			"sub_path": "filament/Flashforge PET-CF @FF C5.json"
 		},
@@ -2610,28 +2586,28 @@
 			"sub_path": "filament/Flashforge PETG-CF @FF C5P.json"
 		},
 		{
-			"name": "Flashforge PLA  Matte @FF C5",
-			"sub_path": "filament/Flashforge PLA  Matte @FF C5.json"
+			"name": "Flashforge PLA Matte @FF C5",
+			"sub_path": "filament/Flashforge PLA Matte @FF C5.json"
 		},
 		{
-			"name": "Flashforge PLA  Matte @FF C5P",
-			"sub_path": "filament/Flashforge PLA  Matte @FF C5P.json"
+			"name": "Flashforge PLA Matte @FF C5P",
+			"sub_path": "filament/Flashforge PLA Matte @FF C5P.json"
 		},
 		{
-			"name": "Flashforge PLA  Metal @FF C5",
-			"sub_path": "filament/Flashforge PLA  Metal @FF C5.json"
+			"name": "Flashforge PLA Metal @FF C5",
+			"sub_path": "filament/Flashforge PLA Metal @FF C5.json"
 		},
 		{
-			"name": "Flashforge PLA  Metal @FF C5P",
-			"sub_path": "filament/Flashforge PLA  Metal @FF C5P.json"
+			"name": "Flashforge PLA Metal @FF C5P",
+			"sub_path": "filament/Flashforge PLA Metal @FF C5P.json"
 		},
 		{
-			"name": "Flashforge PLA  Pro @FF C5",
-			"sub_path": "filament/Flashforge PLA  Pro @FF C5.json"
+			"name": "Flashforge PLA Pro @FF C5",
+			"sub_path": "filament/Flashforge PLA Pro @FF C5.json"
 		},
 		{
-			"name": "Flashforge PLA  Pro @FF C5P",
-			"sub_path": "filament/Flashforge PLA  Pro @FF C5P.json"
+			"name": "Flashforge PLA Pro @FF C5P",
+			"sub_path": "filament/Flashforge PLA Pro @FF C5P.json"
 		},
 		{
 			"name": "Flashforge PLA Basic @FF C5",

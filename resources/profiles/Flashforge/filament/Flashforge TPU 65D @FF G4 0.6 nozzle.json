@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge TPU 65D @FF G4 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "o4KYTpJF6KksX2mg",
+	"filament_id": "OFSDfduA",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG Translucent @EC2",
-	"inherits": "Elegoo PETG @base",
+	"inherits": "Elegoo PETG Translucent @base",
 	"from": "system",
 	"setting_id": "c62Io0F7o3YY9UfY",
 	"instantiation": "true",

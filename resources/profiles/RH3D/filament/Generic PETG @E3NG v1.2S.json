@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_petg",
 	"from": "system",
 	"setting_id": "IS3z7f5wnjsvv8vC",
-	"filament_id": "Generic PETG @E3NG v1.2S",
+	"filament_id": "OFYPdQJh",
 	"instantiation": "true",
 	"compatible_printers": [
 		"E3NG v1.2S - 0.2 nozzle",

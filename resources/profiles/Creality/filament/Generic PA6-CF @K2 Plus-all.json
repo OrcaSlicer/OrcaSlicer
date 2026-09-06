@@ -84,7 +84,7 @@
         "0"
     ],
     "filament_type": [
-        "PA-CF"
+        "PA6-CF"
     ],
     "filament_vendor": [
         "Generic"
@@ -187,5 +187,5 @@
     "compatible_printers": [
         "Creality K2 Plus 0.4 nozzle"
     ],
-    "filament_id": "00015"
+    "filament_id": "OFhTPf6L"
 }

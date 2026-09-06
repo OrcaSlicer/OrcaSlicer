@@ -3,7 +3,7 @@
 	"name": "Bambu Support W @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFS00",
+	"filament_id": "OFsHSVZc",
 	"instantiation": "false",
 	"description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
 	"cool_plate_temp": [

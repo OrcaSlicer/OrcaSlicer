@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "PolyLite J1 PLA",
 	"inherits": "PolyLite PLA @base",
+	"filament_id": "OF7SliVn",
 	"from": "system",
 	"setting_id": "wcpOTTMyZNPFKyXr",
 	"instantiation": "true",

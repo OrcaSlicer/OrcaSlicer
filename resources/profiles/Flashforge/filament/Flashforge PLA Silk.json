@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Silk",
-	"inherits": "Flashforge Generic PLA-Silk",
+	"inherits": "Generic PLA-Silk @Flashforge",
 	"from": "system",
 	"setting_id": "vZb7BvbyVWkZv3rR",
+	"filament_id": "OFgjgN35",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Silk"

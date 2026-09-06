@@ -5,10 +5,15 @@ Inserts/deletes/modifies random lane data in Moonraker database,
 then reads back and displays with colored output.
 """
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None  # only needed for live-printer operations, not --check-ofl-map
 import random
 import argparse
 import json
+import os
+import re
 import time
 import sys
 
@@ -16,6 +21,11 @@ import sys
 DEFAULT_HOST = "192.168.88.9"
 DEFAULT_PORT = 7125
 NAMESPACE = "lane_data"
+
+# Repo-relative paths for the offline generic-map check
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MOONRAKER_AGENT_CPP = os.path.join(REPO_ROOT, "src", "slic3r", "Utils", "MoonrakerPrinterAgent.cpp")
+OFL_FILAMENT_DIR = os.path.join(REPO_ROOT, "resources", "profiles", "OrcaFilamentLibrary", "filament")
 LANE_KEYS = [f"lane{i}" for i in range(1, 9)]  # lane1-lane8
 MATERIALS = ["PLA", "ABS", "PETG", "ASA", "ASA Sparkle", "TPU", ""]
 
@@ -29,6 +39,95 @@ MATERIAL_TEMPS = {
     "TPU":        {"nozzle": 220, "bed": 50},
     "":           {"nozzle": None, "bed": None},
 }
+
+def parse_cpp_type_map():
+    """Extract the normalized-type -> OFL generic family table from MoonrakerPrinterAgent.cpp.
+
+    Reads MoonrakerPrinterAgent::map_filament_type_to_generic_id's type_to_ofl_family
+    initializer so the check tracks the C++ normalization without a duplicated list.
+    """
+    with open(MOONRAKER_AGENT_CPP, encoding="utf-8") as f:
+        src = f.read()
+    m = re.search(r"type_to_ofl_family\s*=\s*\{(.*?)\n\s*\};", src, re.DOTALL)
+    if not m:
+        raise RuntimeError(f"type_to_ofl_family table not found in {MOONRAKER_AGENT_CPP}")
+    pairs = re.findall(r'\{\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\}', m.group(1))
+    if not pairs:
+        raise RuntimeError("type_to_ofl_family table parsed empty")
+    return dict(pairs)
+
+def load_ofl_presets():
+    """Map preset name -> parsed JSON for every OrcaFilamentLibrary filament profile."""
+    presets = {}
+    for root, _dirs, files in os.walk(OFL_FILAMENT_DIR):
+        for fn in files:
+            if not fn.endswith(".json"):
+                continue
+            try:
+                with open(os.path.join(root, fn), encoding="utf-8") as f:
+                    data = json.load(f)
+            except (OSError, ValueError):
+                continue
+            name = data.get("name")
+            if isinstance(name, str) and name:
+                presets[name] = data
+    return presets
+
+def resolve_ofl_filament_id(presets, name):
+    """Follow the inherits chain (within OFL) until a filament_id is declared."""
+    seen = set()
+    while name and name not in seen:
+        seen.add(name)
+        preset = presets.get(name)
+        if preset is None:
+            return None
+        fid = preset.get("filament_id")
+        if fid:
+            return fid
+        name = preset.get("inherits")
+    return None
+
+def check_ofl_generic_map():
+    """Assert every material type the C++ normalization handles resolves to a shipped
+    OrcaFilamentLibrary generic preset carrying a filament_id.
+
+    Expectations are derived from the shipped profiles, not pinned id literals, so the
+    check stays valid across filament_id re-mints.
+    """
+    print("Checking C++ generic-type map against shipped OrcaFilamentLibrary presets...")
+    try:
+        type_map = parse_cpp_type_map()
+    except (OSError, RuntimeError) as e:
+        print(f"  FAIL: {e}")
+        return False
+    presets = load_ofl_presets()
+    if not presets:
+        print(f"  FAIL: no OFL filament profiles found under {OFL_FILAMENT_DIR}")
+        return False
+    errors = []
+    for family in sorted(set(type_map.values())):
+        preset_name = f"Generic {family} @System"
+        if preset_name not in presets:
+            errors.append(f"{preset_name}: no such OFL preset")
+            continue
+        if str(presets[preset_name].get("instantiation", "")).lower() != "true":
+            errors.append(f"{preset_name}: not instantiated — the C++ runtime lookup "
+                          f"only sees presets loaded into the PresetBundle")
+            continue
+        fid = resolve_ofl_filament_id(presets, preset_name)
+        if not fid:
+            errors.append(f"{preset_name}: no filament_id resolvable through inherits")
+            continue
+        aliases = ", ".join(sorted(t for t, fam in type_map.items() if fam == family))
+        print(f"  {fid:10s} {preset_name:32s} <- {aliases}")
+    if errors:
+        for e in errors:
+            print(f"  FAIL: {e}")
+        print(f"OFL generic map check FAILED ({len(errors)} error(s))")
+        return False
+    print(f"OFL generic map check passed: {len(type_map)} type aliases, "
+          f"{len(set(type_map.values()))} OFL generic presets\n")
+    return True
 
 def test_connection(host, port, api_key=None, verbose=False):
     """Test basic connectivity to Moonraker."""
@@ -404,10 +503,24 @@ def main():
                         help="Only read and display current lane data")
     parser.add_argument("--load", metavar="FILE",
                         help="Load lane data from JSON file and overwrite printer lanes")
+    parser.add_argument("--check-ofl-map", action="store_true",
+                        help="Only run the offline check that the C++ generic-type map "
+                             "resolves against shipped OrcaFilamentLibrary presets")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Verbose output for debugging")
 
     args = parser.parse_args()
+
+    # Offline check first: the C++ type normalization must resolve against shipped
+    # OFL presets (no printer needed).
+    if not check_ofl_generic_map():
+        return 1
+    if args.check_ofl_map:
+        return 0
+
+    if requests is None:
+        print("The 'requests' module is required for live printer operations (pip install requests).")
+        return 1
 
     print(f"\nConnecting to Moonraker at {args.host}:{args.port}...")
 

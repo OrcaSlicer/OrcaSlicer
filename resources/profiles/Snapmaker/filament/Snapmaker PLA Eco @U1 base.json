@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Eco @U1 base",
 	"inherits": "fdm_filament_pla_eco",
 	"from": "system",
-	"filament_id": "2008037900",
+	"filament_id": "OFpu74Qe",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

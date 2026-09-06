@@ -1,6 +1,6 @@
 {
 	"name": "SecKit",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "SecKit configurations",
 	"machine_model_list": [
@@ -89,44 +89,44 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "SecKit Generic ABS",
-			"sub_path": "filament/SecKit Generic ABS.json"
+			"name": "Generic ABS @SecKit",
+			"sub_path": "filament/Generic ABS @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic ASA",
-			"sub_path": "filament/SecKit Generic ASA.json"
+			"name": "Generic ASA @SecKit",
+			"sub_path": "filament/Generic ASA @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PA",
-			"sub_path": "filament/SecKit Generic PA.json"
+			"name": "Generic PA @SecKit",
+			"sub_path": "filament/Generic PA @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PA-CF",
-			"sub_path": "filament/SecKit Generic PA-CF.json"
+			"name": "Generic PA-CF @SecKit",
+			"sub_path": "filament/Generic PA-CF @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PC",
-			"sub_path": "filament/SecKit Generic PC.json"
+			"name": "Generic PC @SecKit",
+			"sub_path": "filament/Generic PC @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PETG",
-			"sub_path": "filament/SecKit Generic PETG.json"
+			"name": "Generic PETG @SecKit",
+			"sub_path": "filament/Generic PETG @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PLA",
-			"sub_path": "filament/SecKit Generic PLA.json"
+			"name": "Generic PLA @SecKit",
+			"sub_path": "filament/Generic PLA @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PLA-CF",
-			"sub_path": "filament/SecKit Generic PLA-CF.json"
+			"name": "Generic PLA-CF @SecKit",
+			"sub_path": "filament/Generic PLA-CF @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic PVA",
-			"sub_path": "filament/SecKit Generic PVA.json"
+			"name": "Generic PVA @SecKit",
+			"sub_path": "filament/Generic PVA @SecKit.json"
 		},
 		{
-			"name": "SecKit Generic TPU",
-			"sub_path": "filament/SecKit Generic TPU.json"
+			"name": "Generic TPU @SecKit",
+			"sub_path": "filament/Generic TPU @SecKit.json"
 		}
 	],
 	"machine_list": [

@@ -2,7 +2,6 @@
 	"type": "filament",
 	"name": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "P510eff9",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"

@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Qidi X-Plus 4 0.2 nozzle",
+	"inherits": "Generic PC @Qidi",
+	"renamed_from": "Qidi Generic PC @Qidi X-Plus 4 0.2 nozzle;Qidi Generic PC Qidi X-Plus 4 0.2 nozzle",
+	"from": "system",
+	"setting_id": "2eI2cXfCN6vlk6UV",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.2 nozzle"
+	]
+}

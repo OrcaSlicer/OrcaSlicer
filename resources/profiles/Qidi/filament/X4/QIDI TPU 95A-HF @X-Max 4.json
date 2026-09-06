@@ -3,7 +3,7 @@
 	"name": "QIDI TPU 95A-HF@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_50",
+	"filament_id": "OFR1XLMN",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

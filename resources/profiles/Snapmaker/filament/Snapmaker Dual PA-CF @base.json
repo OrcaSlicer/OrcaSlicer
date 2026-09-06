@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "3493177425",
+	"filament_id": "OFRooa0F",
 	"instantiation": "false",
 	"hot_plate_temp": [
 		"100"

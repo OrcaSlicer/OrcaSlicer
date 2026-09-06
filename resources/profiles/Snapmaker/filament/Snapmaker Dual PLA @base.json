@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "1417031127",
+	"filament_id": "OFZivHGL",
 	"instantiation": "false",
 	"filament_retraction_length": [
 		"nil"

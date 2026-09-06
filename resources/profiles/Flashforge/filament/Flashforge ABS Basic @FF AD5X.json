@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge ABS Basic @FF AD5X",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "9GXBeuCUrScJfmJB",
+	"filament_id": "OFibWuBd",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"

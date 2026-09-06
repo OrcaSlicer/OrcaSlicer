@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Matte @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "WRMePGzDGdEGiqNv",
+	"filament_id": "OF6qAuyi",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

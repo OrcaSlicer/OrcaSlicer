@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge TPU 95A @FF G4 0.6 HF nozzle",
-	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "M0ozqaD3jSKoD6fm",
+	"filament_id": "OFSqIcJC",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

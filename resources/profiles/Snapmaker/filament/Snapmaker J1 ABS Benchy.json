@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker J1 ABS @base",
 	"from": "system",
 	"setting_id": "b1Z94AhG8viXuDsq",
+	"filament_id": "OF8dCquh",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"

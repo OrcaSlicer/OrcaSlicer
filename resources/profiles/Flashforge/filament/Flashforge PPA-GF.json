@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PPA-GF",
-	"inherits": "FusRock Generic PAHT-CF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "KITjZXcyM4N8cVyu",
+	"filament_id": "OF5BN24W",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"fan_max_speed": [
 		"40"
 	],

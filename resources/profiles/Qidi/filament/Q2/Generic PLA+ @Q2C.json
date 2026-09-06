@@ -3,7 +3,7 @@
 	"name": "Generic PLA+@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OFEWYR89",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"100"

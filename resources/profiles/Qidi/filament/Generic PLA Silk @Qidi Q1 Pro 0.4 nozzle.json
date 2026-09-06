@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PLA Silk @Qidi",
+	"renamed_from": "Qidi Generic PLA Silk @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PLA Silk Qidi Q1 Pro 0.4 nozzle",
+	"from": "system",
+	"setting_id": "VusYzaMdLpjravVc",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"enable_pressure_advance": "1",
+	"pressure_advance": [
+		"0.032"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"filament_retraction_length": [
+		"0.5"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"compatible_printers": [
+		"Qidi Q1 Pro 0.4 nozzle"
+	]
+}

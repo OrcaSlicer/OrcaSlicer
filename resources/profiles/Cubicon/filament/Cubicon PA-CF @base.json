@@ -3,7 +3,7 @@
 	"name": "Cubicon PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"setting_id": "55cJDyCoEudfOePY",
-	"filament_id": "P510cfd0",
+	"filament_id": "OFD21ije",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle",

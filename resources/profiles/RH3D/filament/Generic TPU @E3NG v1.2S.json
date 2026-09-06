@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "kaTatels2H01rgeJ",
-	"filament_id": "Generic TPU @E3NG v1.2S",
+	"filament_id": "OFgbpcy9",
 	"instantiation": "true",
 	"compatible_printers": [
 		"E3NG v1.2S - 0.4 nozzle",

@@ -3,7 +3,7 @@
 	"name": "Generic PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GPETGB00",
+	"filament_id": "OFYPdQJh",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

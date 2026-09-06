@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @Prusa MK4S 0.6",
+	"inherits": "Generic TPU @Prusa MK4S",
+	"renamed_from": "Prusa Generic TPU @MK4S 0.6;Prusa Generic TPU MK4S 0.6",
+	"from": "system",
+	"setting_id": "XM427EDbbCgt2wNZ",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S 0.6 nozzle",
+		"Prusa MK4S HF0.6 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	]
+}

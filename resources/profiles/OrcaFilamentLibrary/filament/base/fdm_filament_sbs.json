@@ -3,7 +3,6 @@
 	"name": "fdm_filament_sbs",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OFLSBS99",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

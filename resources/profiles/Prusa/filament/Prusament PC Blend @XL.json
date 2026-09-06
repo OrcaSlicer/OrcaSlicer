@@ -4,7 +4,11 @@
 	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "DLTlxt04GREtOiec",
+	"filament_id": "OFvDbkFq",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
 	"nozzle_temperature_intial_layer": "275",
 	"nozzle_temperature": "275",
 	"hot_plate_temp_initial_layer": "100",

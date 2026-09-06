@@ -3,6 +3,6 @@
 	"name": "Snapmaker PETG @base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "1895495477",
+	"filament_id": "OF4WB37S",
 	"instantiation": "false"
 }

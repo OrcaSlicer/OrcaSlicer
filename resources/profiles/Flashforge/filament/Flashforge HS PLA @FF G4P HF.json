@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PLA @FF G4P HF",
-	"inherits": "Flashforge Generic ABS @G3U",
+	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "Dshsi3O7NvYYjXJt",
+	"filament_id": "OFIK2H3G",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

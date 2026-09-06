@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PC @Qidi",
+	"renamed_from": "Qidi Generic PC @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PC Qidi Q1 Pro 0.4 nozzle",
+	"from": "system",
+	"setting_id": "QmaeYzkbcmKJCJSv",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"pressure_advance": [
+		"0.058"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"compatible_printers": [
+		"Qidi Q1 Pro 0.4 nozzle"
+	]
+}

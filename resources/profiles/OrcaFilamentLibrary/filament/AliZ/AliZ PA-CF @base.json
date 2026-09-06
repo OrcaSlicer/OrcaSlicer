@@ -3,7 +3,7 @@
 	"name": "AliZ PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "AliZ003",
+	"filament_id": "OFd4zw5l",
 	"instantiation": "false",
 	"filament_type": [
 		"PA-CF"

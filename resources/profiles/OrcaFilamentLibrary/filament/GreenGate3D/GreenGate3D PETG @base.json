@@ -3,7 +3,7 @@
 	"name": "GreenGate3D PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFGG300",
+	"filament_id": "OFhMO9Kh",
 	"instantiation": "false",
 	"filament_cost": [
 		"32"

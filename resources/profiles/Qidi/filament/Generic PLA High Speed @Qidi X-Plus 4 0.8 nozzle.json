@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Generic PLA High Speed @Qidi X-Plus 4 0.8 nozzle",
+	"inherits": "Generic PLA @Qidi X-Plus 4 0.8 nozzle",
+	"renamed_from": "Qidi Generic PLA High Speed @Qidi X-Plus 4 0.8 nozzle;Qidi Generic PLA High Speed Qidi X-Plus 4 0.8 nozzle",
+	"from": "system",
+	"setting_id": "VyCsuptxJnVw1KqD",
+	"filament_id": "OFmpMwxS",
+	"instantiation": "true",
+	"slow_down_layer_time": [
+		"6"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.008"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.8 nozzle"
+	]
+}

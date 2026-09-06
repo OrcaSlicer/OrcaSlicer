@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "1223824394",
+	"filament_id": "OFy14TRA",
 	"instantiation": "false",
 	"hot_plate_temp": [
 		"110"

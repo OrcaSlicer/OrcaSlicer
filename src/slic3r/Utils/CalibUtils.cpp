@@ -62,22 +62,29 @@ std::vector<std::string> not_support_auto_pa_cali_filaments = {
 
 void get_default_k_n_value(const std::string &filament_id, float &k, float &n)
 {
-    if (filament_id.compare("GFU01") == 0) {
+    // filament_id is our OF id; the literals below are the printer's own. An id the agent has
+    // no mapping for (e.g. a caller still on the old id) passes through unchanged.
+    auto* agent = wxGetApp().getAgent();
+    const std::string printer_filament_id = agent ? agent->from_orca_filament_id(filament_id) : filament_id;
+    if (printer_filament_id.compare("GFU01") == 0) {
         /* TPU 95A */
         k = 0.25;
         n = 1.0;
-    } else if (filament_id.compare("GFU03") == 0) {
+    } else if (printer_filament_id.compare("GFU03") == 0) {
         /* TPU 90A */
         k = 0.35;
         n = 1.0;
-    } else if (filament_id.compare("GFU04") == 0) {
+    } else if (printer_filament_id.compare("GFU04") == 0) {
         /* TPU 85A */
         k = 0.65;
         n = 1.0;
-    } else if (filament_id.compare("GFG00") == 0 || filament_id.compare("GFG01") == 0 || filament_id.compare("GFG60") == 0 || filament_id.compare("GFL06") == 0 ||
-               filament_id.compare("GFL55") == 0 || filament_id.compare("GFG99") == 0 || filament_id.compare("GFG98") == 0 || filament_id.compare("GFG97") == 0 ||
-               filament_id.compare("GFG50") == 0 || filament_id.compare("GFU02") == 0 || filament_id.compare("GFU98") == 0 || filament_id.compare("GFS00") == 0 ||
-               filament_id.compare("GFS02") == 0) {
+    } else if (printer_filament_id.compare("GFG00") == 0 || printer_filament_id.compare("GFG01") == 0 ||
+               printer_filament_id.compare("GFG60") == 0 || printer_filament_id.compare("GFL06") == 0 ||
+               printer_filament_id.compare("GFL55") == 0 || printer_filament_id.compare("GFG99") == 0 ||
+               printer_filament_id.compare("GFG98") == 0 || printer_filament_id.compare("GFG97") == 0 ||
+               printer_filament_id.compare("GFG50") == 0 || printer_filament_id.compare("GFU02") == 0 ||
+               printer_filament_id.compare("GFU98") == 0 || printer_filament_id.compare("GFS00") == 0 ||
+               printer_filament_id.compare("GFS02") == 0) {
         /* 0.04 filaments */
         k = 0.04;
         n = 1.0;
@@ -1393,7 +1400,10 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
 bool CalibUtils::is_support_auto_pa_cali(std::string filament_id)
 {
-    auto iter = std::find(not_support_auto_pa_cali_filaments.begin(), not_support_auto_pa_cali_filaments.end(), filament_id);
+    // filament_id is our OF id; not_support_auto_pa_cali_filaments holds the printer's own ids.
+    auto* agent = wxGetApp().getAgent();
+    const std::string printer_filament_id = agent ? agent->from_orca_filament_id(filament_id) : filament_id;
+    auto iter = std::find(not_support_auto_pa_cali_filaments.begin(), not_support_auto_pa_cali_filaments.end(), printer_filament_id);
     if (iter != not_support_auto_pa_cali_filaments.end()) {
         return false;
     }

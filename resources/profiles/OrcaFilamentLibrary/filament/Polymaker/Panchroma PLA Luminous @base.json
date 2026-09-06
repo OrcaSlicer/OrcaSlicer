@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Luminous @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM011",
+	"filament_id": "OF0kCNDK",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

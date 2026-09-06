@@ -118,7 +118,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Creality Generic PLA @K2-all"
+		"Generic PLA @Creality K2-all"
 	],
 	"deretraction_speed": [
 		"40"

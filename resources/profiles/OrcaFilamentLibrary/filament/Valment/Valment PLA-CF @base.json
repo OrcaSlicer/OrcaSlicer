@@ -3,7 +3,7 @@
 	"name": "Valment PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "VLMNT03",
+	"filament_id": "OFfq5YXA",
 	"instantiation": "false",
 	"filament_cost": [
 		"1400"

@@ -3,7 +3,7 @@
 	"name": "BETA PLA PRO @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB12",
+	"filament_id": "OFMzRg65",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

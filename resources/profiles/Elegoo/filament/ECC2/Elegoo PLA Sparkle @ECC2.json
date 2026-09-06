@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Sparkle @ECC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Sparkle @base",
 	"from": "system",
 	"setting_id": "RoM3TYRuszinvW6b",
 	"instantiation": "true",

@@ -1,12 +1,23 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-CF @FF G4",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
+	"renamed_from": "Flashforge PAHT-CF @FF G4;Flashforge PAHT-CF FF G4",
 	"from": "system",
 	"setting_id": "nH6pwFYsPyBzL1EB",
+	"filament_id": "OFKW5hEW",
 	"instantiation": "true",
+	"filament_vendor": [
+		"FusRock"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	],
 	"additional_cooling_fan_speed": [
 		"0"
+	],
+	"chamber_temperature": [
+		"60"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -54,7 +65,7 @@
 		"; filament start gcode\n;right_extruder_material:PA-CF\n"
 	],
 	"filament_type": [
-		"PA-CF"
+		"PAHT-CF"
 	],
 	"compatible_printers": [
 		"Flashforge Guider4 0.4 nozzle"

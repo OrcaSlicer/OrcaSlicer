@@ -1,6 +1,6 @@
 {
 	"name": "InfiMech",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "1",
 	"description": "InfiMech configurations",
 	"machine_model_list": [
@@ -305,40 +305,40 @@
 			"sub_path": "filament/HSN/fdm_filament_tpu_other @HSN.json"
 		},
 		{
-			"name": "InfiMech Generic ABS",
-			"sub_path": "filament/InfiMech Generic ABS.json"
+			"name": "Generic ABS @InfiMech",
+			"sub_path": "filament/Generic ABS @InfiMech.json"
 		},
 		{
 			"name": "Other ABS",
 			"sub_path": "filament/Other ABS.json"
 		},
 		{
-			"name": "InfiMech Generic PA-CF",
-			"sub_path": "filament/InfiMech Generic PA-CF.json"
+			"name": "Generic PA-CF @InfiMech",
+			"sub_path": "filament/Generic PA-CF @InfiMech.json"
 		},
 		{
 			"name": "Other PA-CF",
 			"sub_path": "filament/Other PA-CF.json"
 		},
 		{
-			"name": "InfiMech Generic PC",
-			"sub_path": "filament/InfiMech Generic PC.json"
+			"name": "Generic PC @InfiMech",
+			"sub_path": "filament/Generic PC @InfiMech.json"
 		},
 		{
 			"name": "Other PC",
 			"sub_path": "filament/Other PC.json"
 		},
 		{
-			"name": "InfiMech Generic PETG",
-			"sub_path": "filament/InfiMech Generic PETG.json"
+			"name": "Generic PETG @InfiMech",
+			"sub_path": "filament/Generic PETG @InfiMech.json"
 		},
 		{
 			"name": "Other PETG",
 			"sub_path": "filament/Other PETG.json"
 		},
 		{
-			"name": "InfiMech Generic PLA",
-			"sub_path": "filament/InfiMech Generic PLA.json"
+			"name": "Generic PLA @InfiMech",
+			"sub_path": "filament/Generic PLA @InfiMech.json"
 		},
 		{
 			"name": "InfiMech PLA Hyper",
@@ -353,8 +353,8 @@
 			"sub_path": "filament/Other PLA.json"
 		},
 		{
-			"name": "InfiMech Generic TPU",
-			"sub_path": "filament/InfiMech Generic TPU.json"
+			"name": "Generic TPU @InfiMech",
+			"sub_path": "filament/Generic TPU @InfiMech.json"
 		},
 		{
 			"name": "Other TPU",

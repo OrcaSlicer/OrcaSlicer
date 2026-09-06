@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"filament_id": "OFgbpcy9",
+	"setting_id": "dWhysRiE5GrAGyME",
+	"name": "Generic TPU @Artillery",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_tpu",
+	"renamed_from": "Artillery Generic TPU",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	],
+	"compatible_printers": [
+		"Artillery Sidewinder X1 0.4 nozzle",
+		"Artillery Genius 0.4 nozzle",
+		"Artillery Sidewinder X2 0.4 nozzle",
+		"Artillery Genius Pro 0.4 nozzle",
+		"Artillery Hornet 0.4 nozzle"
+	]
+}

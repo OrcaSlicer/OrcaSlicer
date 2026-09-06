@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Elegoo Rapid TPU 95A @EN2 Series",
 	"renamed_from": "Elegoo RAPID TPU 95A @EN2 Series",
-	"inherits": "Elegoo TPU @base",
+	"inherits": "Elegoo Rapid TPU 95A @base",
 	"from": "system",
 	"setting_id": "NcE57l7rlZXMQqqO",
 	"instantiation": "true",

@@ -3,7 +3,7 @@
 	"name": "Fiberon PA6-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OGFL50",
+	"filament_id": "OFkOviHk",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"40"

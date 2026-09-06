@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic ASA @Anycubic Kobra 3 0.4 nozzle",
-	"inherits": "Anycubic Generic ASA",
+	"inherits": "Generic ASA @Anycubic",
 	"from": "system",
 	"setting_id": "U66DGcpZeZ24VfPe",
-	"filament_id": "GFA99",
+	"filament_id": "OF0yFLkY",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"

@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pvb",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFS98",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"35"

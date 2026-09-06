@@ -4,7 +4,7 @@
 	"inherits": "Generic PLA @base",
 	"from": "system",
 	"setting_id": "GF_ANPL_00",
-	"filament_id": "GF_ANPL",
+	"filament_id": "OFZJft47",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

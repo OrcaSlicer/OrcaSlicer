@@ -3,7 +3,7 @@
 	"name": "COEX TPU 60A @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "CX60AB17",
+	"filament_id": "OFE0NFRh",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

@@ -4,6 +4,7 @@
 	"inherits": "Cubicon PLAi21 @base",
 	"from": "system",
 	"setting_id": "vcLVF3cglagBfVAF",
+	"filament_id": "OFRhBryT",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

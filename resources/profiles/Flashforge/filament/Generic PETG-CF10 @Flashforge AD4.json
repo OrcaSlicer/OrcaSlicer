@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Generic PETG-CF10 @Flashforge AD4",
-	"inherits": "Flashforge Generic PETG-CF10",
+	"inherits": "Generic PETG-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "fWM9WLGV9mUQOtHh",
-	"filament_id": "GFG99",
+	"filament_id": "OFO5djrM",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"100"
