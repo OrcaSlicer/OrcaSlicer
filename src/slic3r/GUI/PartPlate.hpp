@@ -3,9 +3,12 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <array>
+#include <string>
 #include <thread>
 #include <mutex>
+#include <memory>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -132,6 +135,14 @@ private:
     PickingModel m_triangles;
     GLModel m_exclude_triangles;
     GLModel m_wrapping_detection_triangles;
+    GLModel m_exclusion_volume_floor_triangles;
+    GLModel m_exclusion_volume_border_triangles;
+    std::vector<std::pair<std::unique_ptr<GLModel>, ColorRGBA>> m_extruder_exclusion_volume_borders;
+    GLModel m_active_exclusion_volume_prisms;
+    GLModel m_exclusion_volume_intersection_triangles;
+    std::string m_exclusion_volume_preview_cache_key;
+    bool m_exclusion_volume_preview_dirty { true };
+    bool m_exclusion_volume_intersections_cleared { false };
     GLModel m_logo_triangles;
     GLModel m_gridlines;
     GLModel m_gridlines_bolder;
@@ -185,6 +196,11 @@ private:
     void render_logo(bool bottom, bool render_cali = true);
     void render_logo_texture(GLTexture &logo_texture, GLModel &logo_buffer, bool bottom);
     void render_exclude_area(bool force_default_color);
+    void render_exclusion_volume_previews(bool force_default_color);
+    void render_exclusion_volume_intersections();
+    void update_exclusion_volume_preview_models();
+    std::string exclusion_volume_preview_cache_key(const std::vector<BedExcludeRegion> &regions) const;
+    double max_broad_phase_intersecting_object_height(const Polygons& regions) const;
     //void render_background_for_picking(const ColorRGBA render_color) const;
     void render_grid(bool bottom);
     void render_wrapping_detection_area(bool force_default_color);
@@ -351,6 +367,16 @@ public:
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
+    // Resolve the mapping policy used specifically by exclusion regions.
+    // Values are 1-based nozzle ids; 0 means automatic Bambu mapping has not
+    // produced a concrete plate-local assignment yet.
+    std::vector<int> get_effective_exclusion_filament_maps(const DynamicConfig &g_config, size_t filament_count,
+                                                           size_t extruder_count) const;
+    // 1-based filament id -> 0-based nozzle/exclusion-region id for the
+    // object's current plate mapping. Includes every filament referenced by
+    // any model volume (including painted facets).
+    std::map<int, size_t> get_object_filament_extruders(const ModelObject &object, const DynamicConfig &g_config,
+                                                        size_t extruder_count) const;
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
@@ -372,6 +398,8 @@ public:
 
     //check whether instance is outside the plate or not
     bool check_outside(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
+    void clear_exclusion_volume_intersections();
+    void invalidate_exclusion_volume_preview();
 
     //judge whether instance is intesected with plate or not
     bool intersect_instance(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
@@ -551,6 +579,8 @@ public:
 
         for (std::vector<std::pair<int, int>>::iterator it = instances_outside.begin(); it != instances_outside.end(); ++it)
             instance_outside_set.insert(std::pair(it->first, it->second));
+
+        invalidate_exclusion_volume_preview();
     }
     template<class Archive> void save(Archive& ar) const {
         std::vector<std::pair<int, int>>	objects_and_instances;
@@ -725,6 +755,8 @@ public:
 
     // Pantheon: update plates after moving plate to the front
     void update_plates();
+    void invalidate_exclusion_volume_previews();
+    void render_exclusion_volume_intersections(const Transform3d &view_matrix, const Transform3d &projection_matrix);
 
     /*basic plate operations*/
     //create an empty plate and return its index
@@ -836,7 +868,8 @@ public:
     //preprocess an arrangement::ArrangePolygon, return true if it is in a locked plate
     bool preprocess_arrange_polygon(int obj_index, int instance_index, arrangement::ArrangePolygon& arrange_polygon, bool selected);
     bool preprocess_arrange_polygon_other_locked(int obj_index, int instance_index, arrangement::ArrangePolygon& arrange_polygon, bool selected);
-    bool preprocess_exclude_areas(arrangement::ArrangePolygons& unselected, bool enable_wrapping_detect, int num_plates = 16, float inflation = 0);
+    bool preprocess_exclude_areas(arrangement::ArrangePolygons &unselected, const DynamicPrintConfig &config,
+                                  bool enable_wrapping_detect, int num_plates = 16, float inflation = 0);
     bool preprocess_nonprefered_areas(arrangement::ArrangePolygons& regions, int num_plates = 1, float inflation=0);
 
     void postprocess_bed_index_for_selected(arrangement::ArrangePolygon& arrange_polygon);

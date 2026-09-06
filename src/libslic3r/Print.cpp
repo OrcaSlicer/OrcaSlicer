@@ -4,6 +4,7 @@
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
+#include "ExclusionVolumeGeometry.hpp"
 #include "Extruder.hpp"
 #include "FilamentMixer.hpp"
 #include "Flow.hpp"
@@ -25,6 +26,7 @@
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
@@ -59,6 +61,75 @@ template class PrintState<PrintObjectStep, posCount>;
 
 PrintRegion::PrintRegion(const PrintRegionConfig &config) : PrintRegion(config, config.hash()) {}
 PrintRegion::PrintRegion(PrintRegionConfig &&config) : PrintRegion(std::move(config), config.hash()) {}
+
+static std::vector<BedExcludeRegion> translated_bed_exclusion_volumes(const Print &print)
+{
+    std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(print.config());
+    const Point print_origin(scale_(print.get_plate_origin().x()), scale_(print.get_plate_origin().y()));
+
+    for (BedExcludeRegion &region : regions)
+        region.polygon.translate(print_origin);
+
+    return regions;
+}
+
+static std::vector<std::vector<BedExcludeRegion>> translated_bed_exclusion_volumes_by_extruder(const Print &print)
+{
+    std::vector<std::vector<BedExcludeRegion>> regions_by_extruder = get_bed_excluded_regions_by_extruder(print.config());
+    const Point print_origin(scale_(print.get_plate_origin().x()), scale_(print.get_plate_origin().y()));
+    for (std::vector<BedExcludeRegion> &regions : regions_by_extruder)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(print_origin);
+    return regions_by_extruder;
+}
+
+static std::optional<size_t> colliding_bed_exclusion_extruder(
+    const Print &print,
+    const PrintObject &print_object,
+    const ModelInstance &instance,
+    const std::vector<std::vector<BedExcludeRegion>> &regions_by_extruder)
+{
+    if (regions_by_extruder.empty())
+        return std::nullopt;
+
+    const bool automatic = is_auto_filament_map_mode(print.get_filament_map_mode());
+    if (automatic && print.is_BBL_printer()) {
+        // Bambu automatic grouping owns the concrete filament assignment and
+        // the config starts with a non-authoritative [1, 1, ...] seed. Its
+        // geometric-unprintable input steers individual filaments away from
+        // colliding nozzles; validation only blocks an object when no nozzle
+        // can print it.
+        std::optional<size_t> first_collision;
+        for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
+            if (!instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
+                return std::nullopt;
+            if (!first_collision.has_value())
+                first_collision = extruder_id;
+        }
+        return first_collision;
+    }
+
+    for (const unsigned int filament_id : print_object.printing_extruders()) {
+        const int resolved_extruder = bed_exclusion_extruder_for_filament(
+            filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
+            true, regions_by_extruder.size());
+        if (resolved_extruder < 0)
+            continue;
+        const size_t extruder_id = size_t(resolved_extruder);
+        if (instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
+            return extruder_id;
+    }
+    return std::nullopt;
+}
+
+static Polygons full_height_bed_exclusion_polygons(const std::vector<BedExcludeRegion> &regions)
+{
+    Polygons out;
+    for (const BedExcludeRegion &region : regions)
+        if (! region.has_z_range)
+            out.emplace_back(region.polygon);
+    return out;
+}
 
 //BBS
 // ORCA: Now this is a parameter
@@ -111,7 +182,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "max_travel_detour_distance",
         "printable_area",
         //BBS: add bed_exclude_area
+        "bed_exclude_area_mode",
         "bed_exclude_area",
+        "extruder_bed_exclude_area",
+        "extruder_offset",
         "thumbnail_size",
         "before_layer_change_gcode",
         "enable_pressure_advance",
@@ -642,10 +716,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 {
     StringObjectException single_object_exception;
     const auto& print_config = print.config();
-    Polygons exclude_polys = get_bed_excluded_area(print_config);
     const Vec3d print_origin = print.get_plate_origin();
-    std::for_each(exclude_polys.begin(), exclude_polys.end(),
-                  [&print_origin](Polygon& p) { p.translate(scale_(print_origin.x()), scale_(print_origin.y())); });
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
 
     struct print_instance_info
     {
@@ -696,22 +768,23 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // Convert the shift from the PrintObject's coordinates into ModelObject's coordinates by removing the centering offset.
                     convex_hull.translate(instance.shift - print_object->center_offset());
                 }
-                convex_hull_no_offset.translate(instance.shift - print_object->center_offset());
-                //juedge the exclude area
-                if (!intersection(exclude_polys, convex_hull_no_offset).empty()) {
+                const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
+                    print, *print_object, *instance.model_instance, exclusion_volumes);
+                if (collision_extruder.has_value()) {
+                    const std::string collision_message =
+                        is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
+                        (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % instance.model_instance->get_object()->name).str() :
+                        (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % instance.model_instance->get_object()->name % (*collision_extruder + 1)).str();
                     if (single_object_exception.string.empty()) {
-                        single_object_exception.string = (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string = collision_message;
                         // single_object_exception.object = instance.model_instance->get_object();
                         //ORCA: Pass ModelInstance instead of ModelObject
                         single_object_exception.object = instance.model_instance;
                     }
                     else {
-                        single_object_exception.string += "\n"+(boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string += "\n" + collision_message;
                         single_object_exception.object = nullptr;
                     }
-                    //if (polygons) {
-                    //    intersecting_idxs.emplace_back(convex_hulls_other.size());
-                    //}
                 }
 
                 // if output needed, collect indices (inside convex_hulls_other) of intersecting hulls
@@ -964,10 +1037,9 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         return {};
 
     const auto& print_config = print.config();
-    Polygons exclude_polys = get_bed_excluded_area(print_config);
     const Vec3d print_origin = print.get_plate_origin();
-    std::for_each(exclude_polys.begin(), exclude_polys.end(),
-                  [&print_origin](Polygon& p) { p.translate(scale_(print_origin.x()), scale_(print_origin.y())); });
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
+    const Polygons prime_tower_exclude_polys = full_height_bed_exclusion_polygons(translated_bed_exclusion_volumes(print));
 
     Pointfs wrapping_detection_area = print_config.wrapping_exclude_area.values;
     Polygon wrapping_poly;
@@ -987,14 +1059,6 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
                                                                                   inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()));
             volume_hull.translate(inst->shift - inst->print_object->center_offset());
 
-            if (!intersection(exclude_polys, volume_hull).empty()) {
-                // return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                //        inst->model_instance->get_object()};
-                //ORCA: Pass ModelInstance instead of ModelObject
-                return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                        inst->model_instance};
-            }
-
             if (print_config.enable_wrapping_detection.value && !intersection(wrapping_poly, volume_hull).empty()) {
                 // return {inst->model_instance->get_object()->name + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n",
                 //        inst->model_instance->get_object()};
@@ -1003,6 +1067,14 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
                         inst->model_instance};
             }
             current_instance_hulls.emplace_back(volume_hull);
+        }
+        if (const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
+                print, *inst->print_object, *inst->model_instance, exclusion_volumes); collision_extruder.has_value()) {
+            const std::string message =
+                is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
+                (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % inst->model_instance->get_object()->name).str() :
+                (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % inst->model_instance->get_object()->name % (*collision_extruder + 1)).str();
+            return {message + "\n", inst->model_instance};
         }
 
         if (!intersection(convex_hulls_other, current_instance_hulls).empty()) {
@@ -1066,7 +1138,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
         }
     }
-    if (!intersection(exclude_polys, convex_hulls_temp).empty()) {
+    if (!intersection(prime_tower_exclude_polys, convex_hulls_temp).empty()) {
         /*if (warning) {
             warning->string += L("Prime Tower is too close to exclusion area, there may be collisions when printing.\n");
         }*/
@@ -2810,7 +2882,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         // Orca: Build both the old object-keyed brim map and the per-instance
         // maps used by skirt/brim groups.
         m_brimMap.clear();
+        m_brimFilamentMap.clear();
         m_brimMapByInstance.clear();
+        for (const auto& [object_id, filament] : objPrintVec)
+            if (filament > 0)
+                m_brimFilamentMap.emplace(object_id, filament - 1);
         m_first_layer_convex_hull.points.clear();
         if (this->has_brim()) {
             Polygons islands_area;
@@ -3191,7 +3267,17 @@ void Print::_make_skirt()
             }
         }
 
-        auto make_brims_for_skirt_brim_group = [this](const std::vector<ObjectInstanceID>& group_instances) {
+        const std::vector<std::vector<BedExcludeRegion>> brim_exclusion_regions =
+            translated_bed_exclusion_volumes_by_extruder(*this);
+        const bool has_brim_exclusions = std::any_of(
+            brim_exclusion_regions.begin(), brim_exclusion_regions.end(),
+            [](const std::vector<BedExcludeRegion> &regions) { return !regions.empty(); });
+        const bool has_nozzle_specific_brim_exclusions = has_brim_exclusions &&
+            m_config.bed_exclude_area_mode.value != BedExcludeAreaMode::Shared;
+
+        auto make_brims_for_skirt_brim_group =
+            [this, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
+            (const std::vector<ObjectInstanceID>& group_instances) {
             std::vector<SkirtBrimGroup::Brim> brims;
             std::vector<ObjectInstanceID> brim_instances;
             for (const ObjectInstanceID& instance : group_instances) {
@@ -3200,10 +3286,31 @@ void Print::_make_skirt()
                     brim_instances.push_back(instance);
             }
 
+            auto brim_filament = [this](const ObjectInstanceID& instance) -> std::optional<unsigned int> {
+                const auto it = m_brimFilamentMap.find(instance.object_id);
+                return it == m_brimFilamentMap.end() ? std::nullopt :
+                    std::optional<unsigned int>(it->second);
+            };
+            auto compatible_brim_nozzles =
+                [this, &brim_filament, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
+                (const ObjectInstanceID& first, const ObjectInstanceID& second) {
+                    if (!has_nozzle_specific_brim_exclusions)
+                        return true;
+                    const std::optional<unsigned int> first_filament = brim_filament(first);
+                    const std::optional<unsigned int> second_filament = brim_filament(second);
+                    return first_filament.has_value() && second_filament.has_value() &&
+                        bed_exclusion_physical_extruders(
+                            *this, { *first_filament, *second_filament },
+                            brim_exclusion_regions.size(), 0).size() == 1;
+                };
+
             const bool combine_group_brims = m_config.combine_brims && brim_instances.size() > 1;
             if (!combine_group_brims) {
-                for (const ObjectInstanceID& instance : brim_instances)
-                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
+                for (const ObjectInstanceID& instance : brim_instances) {
+                    const std::optional<unsigned int> filament = brim_filament(instance);
+                    if (filament.has_value())
+                        brims.push_back({ m_brimMapByInstance.at(instance), { instance }, *filament });
+                }
                 return brims;
             }
 
@@ -3231,6 +3338,7 @@ void Print::_make_skirt()
                 for (size_t j = i + 1; j < brim_instances.size(); ++j) {
                     const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
                     if (area_j != m_objectBrimAreasByInstance.end() &&
+                        compatible_brim_nozzles(brim_instances[i], brim_instances[j]) &&
                         !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
                         unite_brims(i, j);
                 }
@@ -3241,9 +3349,12 @@ void Print::_make_skirt()
                 combined_brim_ids[find_brim_parent(i)].push_back(brim_instances[i]);
 
             for (const auto& [_, instances] : combined_brim_ids) {
+                const std::optional<unsigned int> filament = brim_filament(instances.front());
+                if (!filament.has_value())
+                    continue;
                 if (instances.size() == 1) {
                     const ObjectInstanceID& instance = instances.front();
-                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance }, *filament });
                     continue;
                 }
 
@@ -3255,8 +3366,26 @@ void Print::_make_skirt()
                 const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
                 combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
+                // The group has one known physical nozzle. Clip after union and
+                // cleanup so the geometry consumed by path generation remains
+                // valid for the exact filament recorded on the combined brim.
+                const std::vector<size_t> physical_extruders = bed_exclusion_physical_extruders(
+                    *this, { *filament }, brim_exclusion_regions.size(), 0);
+                const coord_t width_spacing_delta = std::max<coord_t>(
+                    0, brim_flow().scaled_width() - brim_flow().scaled_spacing());
+                const coord_t exclusion_clearance =
+                    (width_spacing_delta + 1) / 2 + coord_t(SCALED_EPSILON);
+                const ExPolygons exclusions = active_bed_exclusion_footprints(
+                    brim_exclusion_regions, physical_extruders, 0.0,
+                    std::max(0.0, skirt_first_layer_height()), Point(0, 0), exclusion_clearance);
+                if (!exclusions.empty())
+                    combined_area = diff_ex(combined_area, exclusions);
+                if (combined_area.empty())
+                    continue;
+
                 Polygons islands_area;
-                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area),
+                                  instances, *filament });
             }
 
             return brims;
@@ -4528,6 +4657,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         // (via ensure_nozzle_group_result), so the multi-nozzle send/monitor mapping survives here.
         if (result != nullptr && result->nozzle_group_result)
             processor.initialize_from_context(result->nozzle_group_result);
+        processor.configure_exclusion_volume_path_check(this->config());
         //processor.enable_producers(true);
         processor.process_file(file);
 

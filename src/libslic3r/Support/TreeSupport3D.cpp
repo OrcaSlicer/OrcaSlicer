@@ -3441,12 +3441,41 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         m_progress_offset = counter == 0 ? 0 : TREE_PROGRESS_TOTAL * (double(counter) * m_progress_multiplier);
 #endif // SLIC3R_TREESUPPORT_PROGRESS
         PrintObject &print_object = *print.get_object(processing.second.front());
+        const size_t num_raft_layers_for_exclusions = config.raft_layers.size();
+        std::vector<std::pair<coordf_t, coordf_t>> tree_layer_z_ranges;
+        tree_layer_z_ranges.reserve(num_raft_layers_for_exclusions + print_object.layer_count());
+        coordf_t previous_z = 0.;
+        for (const coordf_t print_z : config.raft_layers) {
+            tree_layer_z_ranges.emplace_back(previous_z, print_z);
+            previous_z = print_z;
+        }
+        for (const Layer *layer : print_object.layers()) {
+            tree_layer_z_ranges.emplace_back(layer->print_z - layer->height, layer->print_z);
+        }
+        // A tree is one continuous structure while "current filament" may
+        // alternate between base and interface nozzles from layer to layer.
+        // Planning against both masks prevents a locally valid layer from
+        // forcing a branch through another possible nozzle's exclusion volume.
+        std::vector<Polygons> exclusion_areas =
+            support_exclusion_areas_for_layers(print_object, tree_layer_z_ranges, false);
+        const bool tree_uses_interface_material = !config.raft_layers.empty() ||
+            print_object.config().support_interface_top_layers.value > 0 ||
+            number_of_support_interface_bottom_layers(print_object.config()) > 0;
+        if (tree_uses_interface_material) {
+            const std::vector<Polygons> interface_exclusion_areas =
+                support_exclusion_areas_for_layers(print_object, tree_layer_z_ranges, true);
+            for (size_t layer_idx = 0; layer_idx < exclusion_areas.size(); ++layer_idx) {
+                append(exclusion_areas[layer_idx], interface_exclusion_areas[layer_idx]);
+                exclusion_areas[layer_idx] = union_(exclusion_areas[layer_idx]);
+            }
+        }
+
         // Generator for model collision, avoidance and internal guide volumes.
         TreeModelVolumes volumes{ print_object, build_volume, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(),
 #ifdef SLIC3R_TREESUPPORTS_PROGRESS
             m_progress_multiplier, m_progress_offset,
 #endif // SLIC3R_TREESUPPORTS_PROGRESS
-            /* additional_excluded_areas */{} };
+            exclusion_areas };
 
         //FIXME generating overhangs just for the first mesh of the group.
         assert(processing.second.size() == 1);
@@ -3594,6 +3623,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
         // Produce the support G-code.
         SupportGeneratorLayersPtr raft_layers = generate_raft_base(print_object, support_params, print_object.slicing_parameters(), top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
+        trim_support_layers_by_exclusion_volumes(
+            print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers,
+            interface_layers, base_interface_layers);
         SupportGeneratorLayersPtr layers_sorted = generate_support_layers(print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
 
         // BBS: This is a hack to avoid the support being generated outside the bed area. See #4769.

@@ -82,6 +82,71 @@ using ItemGroup = std::vector<std::reference_wrapper<Item>>;
 const double BIG_ITEM_TRESHOLD = 0.02;
 #define VITRIFY_TEMP_DIFF_THRSH 15  // bed temp can be higher than vitrify temp, but not higher than this thresh
 
+static bool z_ranges_overlap(double first_min, double first_max, double second_min, double second_max)
+{
+    if (first_min > first_max)
+        std::swap(first_min, first_max);
+    if (second_min > second_max)
+        std::swap(second_min, second_max);
+
+    // Touching a volume is treated as a collision. Arrangement may leave some
+    // usable space empty, but it must not create a marginally unsafe placement.
+    return first_max >= second_min - EPSILON && second_max >= first_min - EPSILON;
+}
+
+template<typename T>
+static bool bed_exclusion_applies_impl(const T &item, const T &fixed_item)
+{
+    if (!fixed_item.is_bed_exclusion)
+        return false;
+    if (item.has_z_range && fixed_item.has_z_range &&
+        !z_ranges_overlap(item.z_min, item.z_max, fixed_item.z_min, fixed_item.z_max))
+        return false;
+
+    // Shared volumes and unresolved object mappings apply conservatively to
+    // every nozzle. Otherwise only the owning physical nozzle participates.
+    return fixed_item.bed_exclusion_extruder_id < 0 || item.bed_exclusion_extruder_ids.empty() ||
+           std::find(item.bed_exclusion_extruder_ids.begin(), item.bed_exclusion_extruder_ids.end(),
+                     fixed_item.bed_exclusion_extruder_id) != item.bed_exclusion_extruder_ids.end();
+}
+
+bool has_bed_exclusion_regions(const ArrangePolygons &polygons)
+{
+    return std::any_of(polygons.begin(), polygons.end(), [](const ArrangePolygon &polygon) {
+        return polygon.is_bed_exclusion;
+    });
+}
+
+bool bed_exclusion_applies(const ArrangePolygon &item, const ArrangePolygon &fixed_item)
+{
+    return bed_exclusion_applies_impl(item, fixed_item);
+}
+
+void invalidate_bed_exclusion_conflicts(ArrangePolygons &items, const ArrangePolygons &fixed_items,
+                                        const Vec2crd fixed_items_offset)
+{
+    for (ArrangePolygon &item : items) {
+        if (item.bed_idx < 0)
+            continue;
+
+        BoundingBox item_bbox = get_extents(item.transformed_poly());
+        item_bbox.offset(std::max<coord_t>(0, item.inflation));
+
+        for (const ArrangePolygon &fixed : fixed_items) {
+            if (fixed.bed_idx != item.bed_idx || !bed_exclusion_applies(item, fixed))
+                continue;
+
+            BoundingBox exclusion_bbox = get_extents(fixed.transformed_poly());
+            exclusion_bbox.offset(std::max<coord_t>(0, fixed.inflation));
+            exclusion_bbox.translate(fixed_items_offset.x(), fixed_items_offset.y());
+            if (item_bbox.overlap(exclusion_bbox)) {
+                item.bed_idx = UNARRANGED;
+                break;
+            }
+        }
+    }
+}
+
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected)
 {
     double                             skirt_distance = get_real_skirt_dist(*print_cfg);
@@ -304,6 +369,14 @@ void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
     // Allow parallel execution.
     pcfg.parallel = params.parallel;
+
+    pcfg.should_check_collision = [](const Item &candidate, const Item &packed) {
+        if (packed.is_bed_exclusion)
+            return bed_exclusion_applies_impl(candidate, packed);
+        if (candidate.is_bed_exclusion)
+            return bed_exclusion_applies_impl(packed, candidate);
+        return true;
+    };
 
     // BBS: excluded regions in BBS bed
     for (auto& poly : params.excluded_regions)
@@ -1074,6 +1147,12 @@ static void process_arrangeable(const ArrangePolygon &arrpoly,
     item.itemId(arrpoly.itemid);
     item.extrude_ids = arrpoly.extrude_ids;
     item.height = arrpoly.height;
+    item.z_min = arrpoly.z_min;
+    item.z_max = arrpoly.z_max;
+    item.has_z_range = arrpoly.has_z_range;
+    item.is_bed_exclusion = arrpoly.is_bed_exclusion;
+    item.bed_exclusion_extruder_ids = arrpoly.bed_exclusion_extruder_ids;
+    item.bed_exclusion_extruder_id = arrpoly.bed_exclusion_extruder_id;
     item.name = arrpoly.name;
     //BBS: add virtual object logic
     item.is_virt_object = arrpoly.is_virt_object;

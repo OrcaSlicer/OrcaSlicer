@@ -31,6 +31,7 @@
 #include "wxExtensions.hpp"
 #include "PresetComboBoxes.hpp"
 #include <wx/wupdlock.h>
+#include <limits>
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
@@ -1823,6 +1824,26 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
         if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
             printer_tab->on_gcode_flavor_changed();
+    }
+
+    if (opt_key == "bed_exclude_area_mode" && m_type == Preset::TYPE_PRINTER &&
+        m_config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") == BedExcludeAreaMode::PerExtruder) {
+        auto *per_extruder = m_config->option<ConfigOptionStrings>("extruder_bed_exclude_area");
+        const auto *shared = m_config->option<ConfigOptionPoints>("bed_exclude_area");
+        const size_t extruder_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
+        const bool definitions_empty = per_extruder == nullptr ||
+            std::all_of(per_extruder->values.begin(), per_extruder->values.end(), [](const std::string &entry) { return entry.empty(); });
+
+        if (definitions_empty && shared != nullptr && extruder_count > 0) {
+            const std::string serialized = shared->serialize();
+            const bool valid_shared_definition = shared->values.size() >= 3 ||
+                (has_bed_exclusion_volume_syntax(*shared) &&
+                 is_valid_bed_exclude_area_string(serialized, std::numeric_limits<double>::max()));
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("extruder_bed_exclude_area",
+                new ConfigOptionStrings(std::vector<std::string>(extruder_count, valid_shared_definition ? serialized : std::string{})));
+            m_config_manipulation.apply(m_config, &new_conf);
+        }
     }
 
     if (opt_key == "compatible_prints")
@@ -5001,6 +5022,7 @@ void TabPrinter::build_fff()
            return 	create_bed_shape_widget(parent);
         });
         optgroup->append_single_option_line("parallel_printheads_count");
+        optgroup->append_single_option_line("bed_exclude_area_mode");
         Option option = optgroup->get_option("bed_exclude_area");
         option.opt.full_width = true;
         optgroup->append_single_option_line(option, "printer_basic_information_printable_space#excluded-bed-area");
@@ -5653,6 +5675,10 @@ if (is_marlin_flavor)
             option.opt.full_width = true;
             optgroup->append_single_option_line(option, "printer_extruder_basic_information#extruder-offset-position");
 
+            Option exclusion_option = optgroup->get_option("extruder_bed_exclude_area", extruder_idx);
+            exclusion_option.opt.full_width = true;
+            optgroup->append_single_option_line(exclusion_option, "printer_basic_information_printable_space#excluded-bed-area");
+
             optgroup->m_on_change = [this, extruder_idx](const t_config_option_key& opt_key, boost::any value)
             {
                 bool is_SEMM = m_config->opt_bool("single_extruder_multi_material");
@@ -6108,6 +6134,11 @@ void TabPrinter::toggle_options()
         const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
         toggle_line("parallel_printheads_count", support_parallel_printheads);
 
+        const size_t exclusion_extruder_count = m_preset_bundle->get_printer_extruder_count();
+        const BedExcludeAreaMode exclusion_mode = m_config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
+        toggle_line("bed_exclude_area_mode", exclusion_extruder_count > 1);
+        toggle_line("bed_exclude_area", exclusion_extruder_count <= 1 || exclusion_mode != BedExcludeAreaMode::PerExtruder);
+
         toggle_line("fan_direction", m_config->opt_bool("auxiliary_fan"));
 
         // The cooling filter and air filtration are alternative accessories: show only the one the printer supports.
@@ -6165,6 +6196,8 @@ void TabPrinter::toggle_options()
 
         toggle_option("extruder_printable_area", false, i);          // disable
         toggle_line("extruder_printable_area", m_preset_bundle->get_printer_extruder_count() == 2, i);  //hide
+        const bool per_extruder_exclusions = m_config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") == BedExcludeAreaMode::PerExtruder;
+        toggle_line("extruder_bed_exclude_area", m_preset_bundle->get_printer_extruder_count() > 1 && per_extruder_exclusions, i);
         toggle_option("extruder_printable_height", false, i);
         toggle_line("extruder_printable_height", m_preset_bundle->get_printer_extruder_count() == 2, i);
 

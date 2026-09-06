@@ -72,6 +72,17 @@ struct ArrangePolygon {
     int       itemid{ 0 };         // item id in the vector, used for accessing all possible params like extrude_id
     int       is_applied{ 0 };     // transform has been applied
     double    height{ 0 };         // item height
+    double    z_min{ 0 };          // lowest occupied Z coordinate
+    double    z_max{ 0 };          // highest occupied Z coordinate
+    bool      has_z_range{ false }; // whether z_min / z_max are authoritative
+    bool      is_bed_exclusion{ false }; // conditional bed-exclusion obstacle
+    // Physical nozzle ids used only for per-nozzle exclusion checks. These are
+    // deliberately separate from extrude_ids, which contains logical filament
+    // ids used by Orca's normal material-aware arrangement. Empty is treated
+    // conservatively as unresolved and therefore applicable to every nozzle.
+    std::vector<int> bed_exclusion_extruder_ids{};
+    // Zero-based nozzle owning an exclusion obstacle; -1 means shared.
+    int       bed_exclusion_extruder_id{ -1 };
     double    brim_width{ 0 };     // brim width
     std::string name;
 
@@ -184,6 +195,11 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
+bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);
+void invalidate_bed_exclusion_conflicts(ArrangePolygons& items, const ArrangePolygons& fixed_items,
+                                        Vec2crd fixed_items_offset = Vec2crd::Zero());
 
 Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 

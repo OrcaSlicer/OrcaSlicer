@@ -510,6 +510,10 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating layers";
 
+    trim_support_layers_by_exclusion_volumes(
+        object, raft_layers, bottom_contacts, top_contacts, intermediate_layers,
+        interface_layers, base_interface_layers);
+
 // For debugging purposes, one may want to show only some of the support extrusions.
 //    raft_layers.clear();
 //    bottom_contacts.clear();

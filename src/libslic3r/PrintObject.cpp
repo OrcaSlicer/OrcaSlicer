@@ -306,6 +306,23 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 
     std::vector<std::set<int>> geometric_unprintables(extruder_size); // the container to return
 
+    std::vector<std::vector<BedExcludeRegion>> exclusion_regions = get_bed_excluded_regions_by_extruder(m_print->config());
+    exclusion_regions.resize(extruder_size);
+    const Point plate_origin(scale_(m_print->get_plate_origin().x()), scale_(m_print->get_plate_origin().y()));
+    for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(plate_origin);
+
+    const std::vector<unsigned int> used_filaments = printing_extruders();
+    for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
+        const bool collision = std::any_of(m_instances.begin(), m_instances.end(), [&](const PrintInstance &instance) {
+            return instance.model_instance != nullptr &&
+                instance.model_instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]);
+        });
+        if (collision)
+            geometric_unprintables[extruder_id].insert(used_filaments.begin(), used_filaments.end());
+    }
+
     std::vector<double> printable_height_per_extruder = m_print->config().extruder_printable_height.values;
     assert(printable_height_per_extruder.size() == extruder_size);
 
@@ -3972,6 +3989,24 @@ std::vector<unsigned int> PrintObject::object_extruders() const
             extruders.push_back(extruder - 1);
         }
     }
+    sort_remove_duplicates(extruders);
+    return extruders;
+}
+
+std::vector<unsigned int> PrintObject::printing_extruders() const
+{
+    std::vector<unsigned int> extruders = object_extruders();
+    if (has_support_material()) {
+        const size_t filament_count = print()->config().filament_diameter.size();
+        auto append_fixed_filament = [&](const int filament_id) {
+            if (filament_id > 0)
+                extruders.emplace_back(std::min<size_t>(size_t(filament_id - 1), filament_count > 0 ? filament_count - 1 : 0));
+        };
+        append_fixed_filament(config().support_filament.value);
+        append_fixed_filament(config().support_interface_filament.value);
+    }
+    if (extruders.empty())
+        extruders.emplace_back(0);
     sort_remove_duplicates(extruders);
     return extruders;
 }

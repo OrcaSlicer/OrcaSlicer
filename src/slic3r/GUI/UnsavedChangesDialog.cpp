@@ -1422,7 +1422,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             return get_thumbnails_string(points.values);
         }
         else if (opt_key == "bed_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+            return from_u8(config.option<ConfigOptionPoints>(opt_key)->serialize());
         }
         else if (opt_key == "head_wrap_detect_zone") {
             return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);

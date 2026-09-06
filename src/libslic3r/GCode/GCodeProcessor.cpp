@@ -2526,6 +2526,17 @@ void GCodeProcessorResult::reset() {
     wrapping_exclude_area = Pointfs();
     //BBS: add toolpath_outside
     toolpath_outside = false;
+    exclusion_volume_path_checked = false;
+    exclusion_volume_path_conflict = false;
+    exclusion_volume_travel_conflict = false;
+    exclusion_volume_extrusion_conflict = false;
+    exclusion_volume_other_motion_conflict = false;
+    exclusion_volume_conflict_gcode_id = 0;
+    exclusion_volume_conflict_move_id = 0;
+    exclusion_volume_conflict_move_type = EMoveType::Noop;
+    exclusion_volume_conflict_extruder_id = -1;
+    exclusion_volume_conflict_region_id = 0;
+    exclusion_volume_conflict_used_unknown_z = false;
     //BBS: add label_object_enabled
     label_object_enabled = false;
     long_retraction_when_cut = false;
@@ -3162,7 +3173,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 
     //BBS: add bed_exclude_area
     const ConfigOptionPoints* bed_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area");
-    if (bed_exclude_area != nullptr)
+    if (bed_exclude_area != nullptr && !has_bed_exclusion_volume_syntax(*bed_exclude_area))
         m_result.bed_exclude_area = bed_exclude_area->values;
 
     const ConfigOptionPoints* wrapping_exclude_area = config.option<ConfigOptionPoints>("wrapping_exclude_area");
@@ -3482,6 +3493,10 @@ void GCodeProcessor::reset()
     m_start_position = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_end_position = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_origin = { 0.0f, 0.0f, 0.0f, 0.0f };
+    m_axis_position_known = { false, false, false };
+    m_axis_origin_known = { true, true, true };
+    m_processing_homing_move = false;
+    m_exclusion_volume_path_checker.clear();
     m_cached_position.reset();
     m_wiping = false;
     m_flushing = false;
@@ -3689,6 +3704,40 @@ void GCodeProcessor::process_buffer(const std::string &buffer)
     });
 }
 
+void GCodeProcessor::configure_exclusion_volume_path_check(const PrintConfig &config)
+{
+    m_exclusion_volume_path_checker.configure(config);
+}
+
+GCodeProcessor::PositionState GCodeProcessor::get_current_position() const
+{
+    PositionState state;
+    state.position = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]);
+    state.axis_known = m_axis_position_known;
+    return state;
+}
+
+void GCodeProcessor::update_exclusion_volume_path_check_result()
+{
+    m_result.exclusion_volume_path_checked = m_exclusion_volume_path_checker.configured();
+    const ExclusionVolumePathCheckResult &check = m_exclusion_volume_path_checker.result();
+    m_result.exclusion_volume_path_conflict = check.has_any_conflict;
+    m_result.exclusion_volume_travel_conflict = check.has_travel_conflict;
+    m_result.exclusion_volume_extrusion_conflict = check.has_extrusion_conflict;
+    m_result.exclusion_volume_other_motion_conflict = check.has_other_motion_conflict;
+
+    if (!check.first_hit)
+        return;
+
+    const ExclusionVolumePathHit &hit = *check.first_hit;
+    m_result.exclusion_volume_conflict_gcode_id = hit.gcode_id;
+    m_result.exclusion_volume_conflict_move_id = hit.move_id;
+    m_result.exclusion_volume_conflict_move_type = static_cast<EMoveType>(hit.source_move_type);
+    m_result.exclusion_volume_conflict_extruder_id = hit.extruder_id;
+    m_result.exclusion_volume_conflict_region_id = hit.region_id;
+    m_result.exclusion_volume_conflict_used_unknown_z = hit.used_unknown_z;
+}
+
 void GCodeProcessor::finalize(bool post_process)
 {
     m_result.z_offset = m_z_offset;
@@ -3728,6 +3777,7 @@ void GCodeProcessor::finalize(bool post_process)
         if (m_enable_pre_heating)
             run_second_pass_injection();
     }
+    update_exclusion_volume_path_check_result();
     //BBS: update slice warning
     update_slice_warnings();
 }
@@ -4854,6 +4904,30 @@ void GCodeProcessor::process_G0(const GCodeReader::GCodeLine& line)
     process_G1(line);
 }
 
+void GCodeProcessor::update_position_known_from_move(
+    const std::array<std::optional<double>, 4> &axes,
+    const G1DiscretizationOrigin origin)
+{
+    if (origin != G1DiscretizationOrigin::G1 || m_global_positioning_type != EPositioningType::Absolute)
+        return;
+
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (axes[axis].has_value())
+            m_axis_position_known[axis] = m_axis_origin_known[axis];
+    }
+}
+
+void GCodeProcessor::update_position_known_from_move(const GCodeReader::GCodeLine &line)
+{
+    if (m_global_positioning_type != EPositioningType::Absolute)
+        return;
+
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (line.has(static_cast<Axis>(axis)))
+            m_axis_position_known[axis] = m_axis_origin_known[axis];
+    }
+}
+
 void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
     std::array<std::optional<double>, 4> g1_axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt };
@@ -4869,6 +4943,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes, const std::optional<double>& feedrate,
     G1DiscretizationOrigin origin, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
+    const std::array<bool, 3> start_axis_known = m_axis_position_known;
     int filament_id = get_filament_id();
     int last_filament_id = get_last_filament_id();
     float filament_diameter = (static_cast<size_t>(filament_id) < m_result.filament_diameters.size()) ? m_result.filament_diameters[filament_id] : m_result.filament_diameters.back();
@@ -4918,6 +4993,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     for (unsigned char a = X; a <= E; ++a) {
         m_end_position[a] = extract_absolute_position_on_axis((Axis)a, axes[a], double(area_filament_cross_section));
     }
+    update_position_known_from_move(axes, origin);
 
     // updates feedrate from line, if present
     if (feedrate.has_value())
@@ -4938,6 +5014,40 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     EMoveType type = move_type(delta_pos);
     const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
     m_travel_dist = delta_xyz;
+
+    if (!m_processing_homing_move) {
+        std::optional<ExclusionVolumeMotionType> exclusion_motion_type;
+        switch (type) {
+        case EMoveType::Travel:
+            exclusion_motion_type = ExclusionVolumeMotionType::Travel;
+            break;
+        case EMoveType::Extrude:
+        case EMoveType::Wipe:
+            exclusion_motion_type = ExclusionVolumeMotionType::Extrude;
+            break;
+        case EMoveType::Retract:
+        case EMoveType::Unretract:
+            exclusion_motion_type = ExclusionVolumeMotionType::Other;
+            break;
+        default:
+            break;
+        }
+
+        if (exclusion_motion_type) {
+            m_exclusion_volume_path_checker.check_motion(
+                Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]),
+                Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]),
+                start_axis_known[X] && start_axis_known[Y],
+                m_axis_position_known[X] && m_axis_position_known[Y],
+                start_axis_known[Z],
+                m_axis_position_known[Z],
+                get_extruder_id(false),
+                *exclusion_motion_type,
+                static_cast<unsigned char>(type),
+                m_line_id,
+                m_result.moves.size());
+        }
+    }
 
     if (type == EMoveType::Extrude) {
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
@@ -5922,6 +6032,10 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
         internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
     }
+
+    // Internal linearized arc segments inherit the arc's starting certainty.
+    // Only the original absolute command may establish a newly known endpoint.
+    update_position_known_from_move(line);
 }
 
 //BBS
@@ -6021,7 +6135,19 @@ void GCodeProcessor::process_G28(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine new_gline;
     GCodeReader reader;
     reader.parse_line(new_line_raw, [&](GCodeReader& reader, const GCodeReader::GCodeLine& gline) { new_gline = gline; });
+    m_processing_homing_move = true;
     process_G1(new_gline);
+    m_processing_homing_move = false;
+
+    // G28's physical endpoint is printer-specific even though the preview uses
+    // zero. Wait for a subsequent explicit absolute coordinate before checking
+    // a path from any homed axis.
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (!found || line.has(static_cast<Axis>(axis))) {
+            m_axis_position_known[axis] = false;
+            m_axis_origin_known[axis] = true;
+        }
+    }
 }
 
 void GCodeProcessor::process_G90(const GCodeReader::GCodeLine& line)
@@ -6040,16 +6166,19 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
     bool any_found = false;
 
     if (line.has_x()) {
+        m_axis_origin_known[X] = m_axis_position_known[X];
         m_origin[X] = m_end_position[X] - line.x() * lengths_scale_factor;
         any_found = true;
     }
 
     if (line.has_y()) {
+        m_axis_origin_known[Y] = m_axis_position_known[Y];
         m_origin[Y] = m_end_position[Y] - line.y() * lengths_scale_factor;
         any_found = true;
     }
 
     if (line.has_z()) {
+        m_axis_origin_known[Z] = m_axis_position_known[Z];
         m_origin[Z] = m_end_position[Z] - line.z() * lengths_scale_factor;
         any_found = true;
     }
@@ -6067,6 +6196,8 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
         // The G92 may be called for axes that PrusaSlicer does not recognize, for example see GH issue #3510,
         // where G92 A0 B0 is called although the extruder axis is till E.
         for (unsigned char a = X; a <= E; ++a) {
+            if (a <= Z)
+                m_axis_origin_known[a] = m_axis_position_known[a];
             m_origin[a] = m_end_position[a];
         }
     }

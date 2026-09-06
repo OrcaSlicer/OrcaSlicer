@@ -222,3 +222,101 @@ TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
         REQUIRE(ap.bed_idx == 0);
     require_no_overlap(items);
 }
+
+TEST_CASE("Bed exclusions apply by physical nozzle and overlapping Z range", "[Arrange][ExclusionVolume][MultiNozzle]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.has_z_range = true;
+    object.z_min = 0.0;
+    object.z_max = 20.0;
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon exclusion = make_square(scaled(20.));
+    exclusion.is_bed_exclusion = true;
+    exclusion.has_z_range = true;
+    exclusion.z_min = 10.0;
+    exclusion.z_max = 30.0;
+    exclusion.bed_exclusion_extruder_id = 1;
+
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    exclusion.bed_exclusion_extruder_id = 0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Empty physical-nozzle assignments mean unresolved, so arrangement stays conservative.
+    object.bed_exclusion_extruder_ids.clear();
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    object.bed_exclusion_extruder_ids = {0};
+    object.z_max = 9.0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Touching at one Z plane is intentionally treated as a collision.
+    object.z_max = 10.0;
+    CHECK(bed_exclusion_applies(object, exclusion));
+}
+
+TEST_CASE("Shared bed exclusions apply to every arranged object", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon shared = make_square(scaled(20.));
+    shared.is_bed_exclusion = true;
+    shared.bed_exclusion_extruder_id = -1;
+
+    CHECK(has_bed_exclusion_regions({shared}));
+    CHECK_FALSE(has_bed_exclusion_regions({object}));
+    CHECK(bed_exclusion_applies(object, shared));
+}
+
+TEST_CASE("Conservative exclusion validation invalidates only relevant placements", "[Arrange][ExclusionVolume][MultiNozzle]")
+{
+    ArrangePolygon exclusion = make_square(scaled(20.));
+    exclusion.is_bed_exclusion = true;
+    exclusion.bed_exclusion_extruder_id = 0;
+    exclusion.has_z_range = true;
+    exclusion.z_min = 0.0;
+    exclusion.z_max = 30.0;
+
+    ArrangePolygon relevant = make_square(scaled(10.));
+    relevant.bed_exclusion_extruder_ids = {0};
+    relevant.has_z_range = true;
+    relevant.z_min = 0.0;
+    relevant.z_max = 10.0;
+
+    ArrangePolygon other_nozzle = relevant;
+    other_nozzle.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon above = relevant;
+    above.z_min = 31.0;
+    above.z_max = 40.0;
+
+    ArrangePolygons items{relevant, other_nozzle, above};
+    invalidate_bed_exclusion_conflicts(items, {exclusion});
+
+    CHECK(items[0].bed_idx == UNARRANGED);
+    CHECK(items[1].bed_idx == 0);
+    CHECK(items[2].bed_idx == 0);
+}
+
+TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacles", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon exclusion = make_square(scaled(30.));
+    exclusion.translation = Vec2crd(scaled(35.0), scaled(35.0));
+    exclusion.is_bed_exclusion = true;
+    exclusion.bed_exclusion_extruder_id = 0;
+
+    ArrangePolygons items = squares(4, 20.0);
+    for (ArrangePolygon &item : items)
+        item.bed_exclusion_extruder_ids = {0};
+
+    arrange(items, {exclusion}, bed(100.0, 100.0), quiet_params(scaled(1.0)));
+
+    const ExPolygon excluded_shape = exclusion.transformed_poly();
+    for (const ArrangePolygon &item : items) {
+        REQUIRE(item.bed_idx == 0);
+        CHECK(intersection(ExPolygons{item.transformed_poly()}, ExPolygons{excluded_shape}).empty());
+    }
+    require_no_overlap(items);
+}

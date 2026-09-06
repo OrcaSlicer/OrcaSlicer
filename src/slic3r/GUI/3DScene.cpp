@@ -1333,10 +1333,21 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     BuildVolume plate_build_volume(pp_bed_shape, build_volume.printable_height(), build_volume.extruder_areas(), build_volume.extruder_heights());
     const std::vector<BoundingBoxf3>& exclude_areas = curr_plate->get_exclude_areas();
 
+    std::vector<std::vector<BedExcludeRegion>> exclusion_regions =
+        get_bed_excluded_regions_by_extruder(*GUI::wxGetApp().plater()->config());
+    const Vec3d plate_origin = curr_plate->get_origin();
+    const Point exclusion_offset(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(exclusion_offset);
+
     std::map<ModelObject*, std::map<int, std::set<int>>> objects_unprintable_filaments;
-    int extruder_count = build_volume.get_extruder_area_count();
+    const DynamicPrintConfig &plate_project_config = GUI::wxGetApp().preset_bundle->project_config;
+    const int build_volume_extruder_count = build_volume.get_extruder_area_count();
+    const int extruder_count = std::max<int>(build_volume_extruder_count, int(exclusion_regions.size()));
     std::vector<std::set<int>> unprintable_filament_ids(extruder_count, std::set<int>());
     std::set<ModelObject*> partly_objects_set;
+    std::map<std::pair<int, int>, std::vector<bool>> instance_inside_exclusion_regions;
     const ModelObjectPtrs &model_objects = model.objects;
     for (GLVolume* volume : this->volumes)
     {
@@ -1351,7 +1362,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //FIXME this test does not evaluate collision of a build volume bounding box with non-convex objects.
                     const BoundingBoxf3& bb = volume_bbox(*volume);
                     state = plate_build_volume.volume_state_bbox(bb);
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_volume_bbox_state_with_extruder_areas(bb, inside_extruders);
                     }
@@ -1365,7 +1376,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     const indexed_triangle_set& convex_mesh_it = volume_convex_mesh(*volume).its;
                     const Transform3f trafo = volume->world_matrix().cast<float>();
                     state = plate_build_volume.object_state(convex_mesh_it, trafo, volume_sinking(*volume));
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_object_state_with_extruder_areas(convex_mesh_it, trafo, inside_extruders);
                     }
@@ -1378,12 +1389,52 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
                 assert(state != BuildVolume::ObjectState::Below);
 
+                // Preserve Orca's native printable-area result separately.
+                // Exclusion collisions have current-map semantics and must not
+                // leak into the later "unprintable on every possible nozzle"
+                // aggregation used by automatic printable-area assignment.
+                const std::vector<bool> printable_area_inside_extruders = inside_extruders;
+
+                // Newer Orca resolves live multi-nozzle placement through this
+                // per-extruder state vector. Merge exclusion-volume collisions
+                // into the same source of truth instead of relying only on the
+                // legacy PartPlate::check_outside() path.
+                if ((state == BuildVolume::ObjectState::Inside || state == BuildVolume::ObjectState::Limited) &&
+                    volume->object_idx() >= 0 && volume->object_idx() < int(model_objects.size()) &&
+                    volume->instance_idx() >= 0 &&
+                    volume->instance_idx() < int(model_objects[volume->object_idx()]->instances.size())) {
+                    inside_extruders.resize(extruder_count, true);
+
+                    const std::pair<int, int> instance_key{ volume->object_idx(), volume->instance_idx() };
+                    auto [cache_it, inserted] = instance_inside_exclusion_regions.emplace(
+                        instance_key, std::vector<bool>(extruder_count, true));
+                    if (inserted) {
+                        const ModelInstance *instance = model_objects[volume->object_idx()]->instances[volume->instance_idx()];
+                        for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
+                            if (instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]))
+                                cache_it->second[extruder_id] = false;
+                        }
+                    }
+
+                    bool exclusion_limited = false;
+                    for (size_t extruder_id = 0; extruder_id < cache_it->second.size(); ++extruder_id) {
+                        if (!cache_it->second[extruder_id]) {
+                            inside_extruders[extruder_id] = false;
+                            exclusion_limited = true;
+                        }
+                    }
+
+                    if (exclusion_limited && state == BuildVolume::ObjectState::Inside)
+                        state = extruder_count > 1 ? BuildVolume::ObjectState::Limited : BuildVolume::ObjectState::Colliding;
+
+                }
+
                 if (state == BuildVolume::ObjectState::Limited) {
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
-                    for (size_t i = 0; i < inside_extruders.size(); ++i) {
-                        if (!inside_extruders[i]) {
+                    for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
+                        if (!printable_area_inside_extruders[i]) {
                             std::vector<int> filaments = model_volume->get_extruders();
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
@@ -1458,8 +1509,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     //check per-object error for extruder areas
     if (object_results && (extruder_count > 1))
     {
-        const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-        object_results->mode = curr_plate->get_real_filament_map_mode(project_config);
+        object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1521,8 +1571,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(project_config);
+            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1537,7 +1586,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
-                        if (filament_maps[filament - 1] == extruder_id)
+                        if (filament > 0 && size_t(filament) <= filament_maps.size() &&
+                            filament_maps[filament - 1] == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
                             object_results->filament_maps[filament] = extruder_id;
@@ -1554,6 +1604,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 object_results->filaments = std::vector<int>(conflict_filaments_set.begin(), conflict_filaments_set.end());
             }
         }
+
     }
 
     /*for (GLVolume* volume : this->volumes)

@@ -17,6 +17,7 @@
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <memory>
 #include <type_traits> // for std::enable_if_t
 #include <typeinfo>    // for typeid
 
@@ -139,6 +140,73 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
             }
         }
     }
+}
+
+TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][ExclusionVolume][MultiNozzle]")
+{
+    // The importer creates a backup tree for the reloaded model. Give that
+    // process-global temp root a writable, isolated location on every OS.
+    ScopedSlic3rTemporaryDir temporary_dir("orca_exclusion");
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10.0, 10.0, 10.0));
+    object->add_instance();
+
+    // Keep the project config intentionally sparse: this test owns only the
+    // exclusion settings and should not depend on unrelated printer-profile
+    // defaults surviving the project archive round-trip.
+    DynamicPrintConfig source;
+    source.set_key_value("bed_exclude_area_mode",
+                         new ConfigOptionEnum<BedExcludeAreaMode>(BedExcludeAreaMode::PerExtruder));
+    source.set_deserialize_strict("bed_exclude_area", "0x0,10x0,10x10,0x10");
+    source.set_key_value("extruder_bed_exclude_area", new ConfigOptionStrings{
+        "0..25;5x5,15x5,15x15,5x15",
+        "30..80;40x40,55x40,55x55,40x55|0..5;70x10,80x10,80x20,70x20",
+    });
+
+    const boost::filesystem::path backup_dir = temporary_dir.path() / "source_backup";
+    model.set_backup_path(backup_dir.string());
+
+    const boost::filesystem::path path = temporary_dir.path() / "round_trip.3mf";
+    const std::string path_string = path.string();
+    auto plate = std::make_unique<PlateData>();
+    plate->plate_index = 0;
+    StoreParams store_params;
+    store_params.path = path_string.c_str();
+    store_params.model = &model;
+    store_params.config = &source;
+    store_params.plate_data_list.push_back(plate.get());
+    store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    REQUIRE(store_bbs_3mf(store_params));
+
+    Model reloaded_model;
+    DynamicPrintConfig reloaded;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Disable};
+    PlateDataPtrs reloaded_plates;
+    std::vector<Preset *> project_presets;
+    bool is_bbl_3mf = false;
+    bool is_orca_3mf = false;
+    Semver file_version;
+    const bool loaded = load_bbs_3mf(
+        path_string.c_str(), &reloaded, &substitutions, &reloaded_model, &reloaded_plates,
+        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+    release_PlateData_list(reloaded_plates);
+
+    REQUIRE(loaded);
+    REQUIRE(reloaded.option<ConfigOptionEnum<BedExcludeAreaMode>>("bed_exclude_area_mode") != nullptr);
+    CHECK(reloaded.option<ConfigOptionEnum<BedExcludeAreaMode>>("bed_exclude_area_mode")->value ==
+          BedExcludeAreaMode::PerExtruder);
+
+    const auto *areas = reloaded.option<ConfigOptionStrings>("extruder_bed_exclude_area");
+    REQUIRE(areas != nullptr);
+    REQUIRE(areas->values.size() == 2);
+    CHECK(areas->values == source.option<ConfigOptionStrings>("extruder_bed_exclude_area")->values);
+
+    const auto *legacy = reloaded.option<ConfigOptionPoints>("bed_exclude_area");
+    REQUIRE(legacy != nullptr);
+    CHECK(legacy->serialize() == "0x0,10x0,10x10,0x10");
 }
 
 // .3mf multi-nozzle round-trip.

@@ -1455,27 +1455,31 @@ static std::pair<bool, bool> construct_extruder_unprintable_error(ObjectFilament
     auto mode = object_result.mode;
 
     for (auto& obj_filament : object_result.object_filaments) {
+        bool found_left = false;
+        bool found_right = false;
+
         if (mode == FilamentMapMode::fmmManual) {
             for (auto& elem : obj_filament.manual_filaments) {
-                bool found_left = false, found_right = false;
-                int filamnet_id = elem.first;
                 int extruder_id = elem.second;
-                if (extruder_id == 1 && !found_left) {
+                if (extruder_id == 1) {
                     found_left = true;
-                    left_unprintable_objects.emplace_back(obj_filament);
                 }
-                if (extruder_id == 2 && !found_right) {
+                if (extruder_id == 2) {
                     found_right = true;
-                    right_unprintable_objects.emplace_back(obj_filament);
                 }
             }
         }
         else {
             if (!obj_filament.auto_filaments.empty()) {
-                left_unprintable_objects.emplace_back(obj_filament);
-                right_unprintable_objects.emplace_back(obj_filament);
+                found_left = true;
+                found_right = true;
             }
         }
+
+        if (found_left)
+            left_unprintable_objects.emplace_back(obj_filament);
+        if (found_right)
+            right_unprintable_objects.emplace_back(obj_filament);
     }
 
     Preset &preset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
@@ -1511,7 +1515,7 @@ static std::pair<bool, bool> construct_extruder_unprintable_error(ObjectFilament
             model_prefix = (boost::format(_u8L("The position or size of some models exceeds the %s's printable range.")) % nozzle_name).str();
         else
             model_prefix = (boost::format(_u8L("The position or size of the model %s exceeds the %s's printable range."))
-                           %object_result.object_filaments.front().object->name % nozzle_name).str();
+                           %unprintable_objs.front().object->name % nozzle_name).str();
         tips[idx] += model_prefix;
 
         tips[idx] += (boost::format(_u8L(" Please check and adjust the part's position or size to fit the printable range:\n"))).str();
@@ -2081,6 +2085,9 @@ void GLCanvas3D::render(bool only_init)
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
         _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        if (!no_partplate)
+            wxGetApp().plater()->get_partplate_list().render_exclusion_volume_intersections(
+                camera.get_view_matrix(), camera.get_projection_matrix());
         _render_sla_slices();
         _render_selection();
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
@@ -4321,6 +4328,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // It should be detection of volume change
         // Not only detection of some modifiers !!!
         if (evt.Dragging()) {
+            if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+                plate->clear_exclusion_volume_intersections();
             GLGizmosManager::EType c = m_gizmos.get_current_type();
             if (current_printer_technology() == ptFFF &&
                 (fff_print()->config().print_sequence == PrintSequence::ByObject)) {
@@ -4521,6 +4530,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
             if (!m_mouse.drag.move_requires_threshold) {
                 m_mouse.dragging = true;
+                if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+                    plate->clear_exclusion_volume_intersections();
                 Vec3d cur_pos = m_mouse.drag.start_position_3D;
                 // we do not want to translate objects if the user just clicked on an object while pressing shift to remove it from the selection and then drag
                 if (m_selection.contains_volume(get_first_hover_volume_idx())) {
@@ -5585,6 +5596,13 @@ void GLCanvas3D::set_cursor(ECursorType type)
 
 void GLCanvas3D::mouse_up_cleanup()
 {
+    // Both direct dragging and gizmo manipulation clear the expensive red
+    // exclusion-intersection mesh while moving. Gizmo drags do not always set
+    // m_mouse.dragging, so every completed mouse operation must allow the
+    // cached preview to restore/recompute that mesh.
+    if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+        plate->invalidate_exclusion_volume_preview();
+
     m_moving = false;
     m_camera_movement = false;
     m_mouse.drag.move_volume_idx = -1;

@@ -21,6 +21,58 @@
 namespace Slic3r { namespace GUI {
     using ArrangePolygon = arrangement::ArrangePolygon;
 
+void set_arrange_polygon_bed_exclusion_extruders(ArrangePolygon &polygon, const ModelObject &object,
+                                                  const PartPlate &plate, const DynamicPrintConfig &config)
+{
+    polygon.bed_exclusion_extruder_ids.clear();
+    if (config.opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") == BedExcludeAreaMode::Shared)
+        return;
+
+    const ConfigOptionFloats *nozzle_diameters = config.opt<ConfigOptionFloats>("nozzle_diameter");
+    const size_t extruder_count = nozzle_diameters != nullptr ? nozzle_diameters->size() : 0;
+    if (extruder_count == 0)
+        return;
+
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    if (preset_bundle == nullptr)
+        return;
+
+    const DynamicPrintConfig &project_config = preset_bundle->project_config;
+    // Automatic Bambu mapping may be recalculated after arrangement or differ
+    // between destination plates. Leave it unresolved so every nozzle volume
+    // is checked rather than embedding a temporary assignment in the item.
+    if (preset_bundle->is_bbl_vendor() &&
+        is_auto_filament_map_mode(plate.get_real_filament_map_mode(project_config)))
+        return;
+
+    std::set<int> extruder_ids;
+    for (const auto &mapping : plate.get_object_filament_extruders(object, project_config, extruder_count))
+        extruder_ids.emplace(int(mapping.second));
+    polygon.bed_exclusion_extruder_ids.assign(extruder_ids.begin(), extruder_ids.end());
+}
+
+static void set_arrange_polygon_bed_exclusion_extruders_for_all_plates(ArrangePolygon &polygon,
+                                                                       const ModelObject &object,
+                                                                       PartPlateList &plate_list,
+                                                                       const DynamicPrintConfig &config)
+{
+    polygon.bed_exclusion_extruder_ids.clear();
+    if (config.opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") == BedExcludeAreaMode::Shared)
+        return;
+
+    std::set<int> extruder_ids;
+    for (int plate_index = 0; plate_index < plate_list.get_plate_count(); ++plate_index) {
+        ArrangePolygon mapped = polygon;
+        set_arrange_polygon_bed_exclusion_extruders(mapped, object, *plate_list.get_plate(plate_index), config);
+        if (mapped.bed_exclusion_extruder_ids.empty()) {
+            polygon.bed_exclusion_extruder_ids.clear();
+            return;
+        }
+        extruder_ids.insert(mapped.bed_exclusion_extruder_ids.begin(), mapped.bed_exclusion_extruder_ids.end());
+    }
+    polygon.bed_exclusion_extruder_ids.assign(extruder_ids.begin(), extruder_ids.end());
+}
+
 // Cache the wti info
 class WipeTower: public GLCanvas3D::WipeTowerInfo {
 public:
@@ -100,11 +152,14 @@ void ArrangeJob::clear_input()
     current_plate_index = 0;
 }
 
-ArrangePolygon ArrangeJob::prepare_arrange_polygon(void* model_instance)
+ArrangePolygon ArrangeJob::prepare_arrange_polygon(void *model_instance, const PartPlate *mapping_plate)
 {
     ModelInstance* instance = (ModelInstance*)model_instance;
     const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
-    return get_instance_arrange_poly(instance, config);
+    ArrangePolygon polygon = get_instance_arrange_poly(instance, config);
+    if (mapping_plate != nullptr)
+        set_arrange_polygon_bed_exclusion_extruders(polygon, *instance->get_object(), *mapping_plate, config);
+    return polygon;
 }
 
 void ArrangeJob::prepare_selected() {
@@ -138,6 +193,8 @@ void ArrangeJob::prepare_selected() {
         for (size_t i = 0; i < inst_sel.size(); ++i) {
             ModelInstance* mi = mo->instances[i];
             ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[i]);
+            set_arrange_polygon_bed_exclusion_extruders_for_all_plates(
+                ap, *mo, plate_list, wxGetApp().preset_bundle->full_config());
             //BBS: partplate_list preprocess
             //remove the locked plate's instances, neither in selected, nor in un-selected
             bool locked = plate_list.preprocess_arrange_polygon(oidx, i, ap, inst_sel[i]);
@@ -210,6 +267,8 @@ void ArrangeJob::prepare_all() {
         for (size_t i = 0; i < mo->instances.size(); ++i) {
             ModelInstance * mi = mo->instances[i];
             ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[i]);
+            set_arrange_polygon_bed_exclusion_extruders_for_all_plates(
+                ap, *mo, plate_list, wxGetApp().preset_bundle->full_config());
             //BBS: partplate_list preprocess
             //remove the locked plate's instances, neither in selected, nor in un-selected
             bool locked = plate_list.preprocess_arrange_polygon(oidx, i, ap, true);
@@ -251,7 +310,7 @@ void ArrangeJob::prepare_all() {
     bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
 
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, MAX_NUM_PLATES);
+    plate_list.preprocess_exclude_areas(m_unselected, wxGetApp().preset_bundle->full_config(), enable_wrapping, MAX_NUM_PLATES);
 }
 
 arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<int>& extruder_ids)
@@ -397,7 +456,7 @@ void ArrangeJob::prepare_partplate() {
         for (size_t inst_idx = 0; inst_idx < mo->instances.size(); ++inst_idx)
         {
             bool             in_plate = plate->contain_instance(oidx, inst_idx) || plate->intersect_instance(oidx, inst_idx);
-            ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[inst_idx]);
+            ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[inst_idx], plate);
 
             ArrangePolygons& cont = mo->instances[inst_idx]->printable ?
                 (in_plate ? m_selected : m_unselected) :
@@ -428,7 +487,8 @@ void ArrangeJob::prepare_partplate() {
     bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
 
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, current_plate_index + 1);
+    plate_list.preprocess_exclude_areas(
+        m_unselected, wxGetApp().preset_bundle->full_config(), enable_wrapping, current_plate_index + 1);
 }
 
 //BBS: add partplate logic
@@ -541,7 +601,9 @@ void ArrangeJob::process(Ctl &ctl)
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
     bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
-    partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
+    partplate_list.preprocess_exclude_areas(params.excluded_regions, global_config, enable_wrapping, 1, scale_(1));
+    if (has_bed_exclusion_regions(params.excluded_regions))
+        params.do_final_align = false;
 
     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << bedpts[0].transpose() << ", " << bedpts[1].transpose() << ", " << bedpts[2].transpose() << ", " << bedpts[3].transpose();
 
@@ -565,6 +627,7 @@ void ArrangeJob::process(Ctl &ctl)
     }
 
     arrangement::arrange(m_selected, m_unselected, bedpts, params);
+    invalidate_bed_exclusion_conflicts(m_selected, m_unselected);
 
     // sort by item id
     std::sort(m_selected.begin(), m_selected.end(), [](auto a, auto b) {return a.itemid < b.itemid; });
