@@ -3562,6 +3562,14 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
                 case coPercents:add_correct_opts_to_diff<ConfigOptionPercents   >(opt_key, diff, config_other, config_this, strict);  break;
                 case coFloatsOrPercents: add_correct_opts_to_diff<ConfigOptionFloatsOrPercents>(opt_key, diff, config_other, config_this, strict); break;
                 case coPoints:  add_correct_opts_to_diff<ConfigOptionPoints     >(opt_key, diff, config_other, config_this, strict);  break;
+                case coPointsGroups:
+                    // Orca: Indexed assignment cannot remove groups. Transfer the whole option when its size changes.
+                    if (static_cast<const ConfigOptionPointsGroups*>(this_opt)->size() !=
+                        static_cast<const ConfigOptionPointsGroups*>(other_opt)->size())
+                        diff.emplace_back(opt_key);
+                    else
+                        add_correct_opts_to_diff<ConfigOptionPointsGroups>(opt_key, diff, config_other, config_this, strict);
+                    break;
                 // BBS
                 case coEnums: add_correct_opts_to_diff<ConfigOptionInts>(opt_key, diff, config_other, config_this, strict); break;
                 default:        diff.emplace_back(opt_key);     break;

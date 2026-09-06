@@ -116,7 +116,13 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
             case coFloats: change_opt_key<ConfigOptionFloats>(opt_key, config, cnt); break;
             case coStrings: change_opt_key<ConfigOptionStrings>(opt_key, config, cnt); break;
             case coPercents: change_opt_key<ConfigOptionPercents>(opt_key, config, cnt); break;
+            case coFloatsOrPercents: change_opt_key<ConfigOptionVector<FloatOrPercent>>(opt_key, config, cnt); break;
             case coPoints: change_opt_key<ConfigOptionPoints>(opt_key, config, cnt); break;
+            case coPointsGroups:
+                change_opt_key<ConfigOptionPointsGroups>(opt_key, config, cnt);
+                // Orca: Keep the registered #0 field available when all groups have been removed.
+                cnt = std::max(cnt, 1);
+                break;
             // BBS
             case coEnums: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             default: break;
@@ -334,29 +340,46 @@ const Option &OptionsSearcher::get_option(size_t pos_in_filter) const
 
 const Option &OptionsSearcher::get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const
 {
+    auto not_found = [&variant_index]() -> const Option& {
+        static const Option empty_option;
+        variant_index = -2;
+        return empty_option;
+    };
+
+    variant_index = -1;
     std::string opt_key2 = opt_key;
     if (auto n = opt_key.find('#'); n != std::string::npos) {
         variant_index = std::atoi(opt_key.c_str() + n + 1);
         opt_key2 = opt_key.substr(0, n);
     }
-    auto it = std::lower_bound(options.begin(), options.end(), Option({boost::nowide::widen(get_key(opt_key2, type))}));
-    // BBS: return the 0th option when not found in searcher caused by mode difference
-    // assert(it != options.end());
-    if (it == options.end()) { variant_index = -2 ; return options[0]; }
-    if (it->opt_key() == opt_key2) {
+    const std::wstring key = boost::nowide::widen(get_key(opt_key2, type));
+    auto it = std::lower_bound(options.begin(), options.end(), Option({key}));
+    if (it == options.end()) return not_found();
+    if (it->key == key) {
         variant_index = -1;
     } else {
-        const std::string opt_key3 = opt_key2 + "#";
-        it = std::lower_bound(it, options.end(), Option({boost::nowide::widen(get_key(opt_key3, type))}));
-        if (it == options.end() || it->opt_key().compare(0, opt_key3.length(), opt_key3) != 0) {
-            variant_index = -2; // Not found
-            return options[0];
+        const std::wstring prefix = key + L"#";
+        it = std::lower_bound(it, options.end(), Option({prefix}));
+        if (it == options.end() || it->key.compare(0, prefix.length(), prefix) != 0)
+            return not_found();
+        // Orca: Copy-parameters dialogs request the base key, without a vector index.
+        if (variant_index < 0) return *it;
+
+        const bool has_mode = type == Preset::TYPE_PRINTER && printer_options_with_variant_2.count(opt_key2) > 0;
+        const bool has_variant =
+            (type == Preset::TYPE_PRINT && print_options_with_variant.count(opt_key2) > 0) ||
+            (type == Preset::TYPE_FILAMENT && filament_options_with_variant.count(opt_key2) > 0) ||
+            (type == Preset::TYPE_PRINTER && printer_options_with_variant_1.count(opt_key2) > 0) || has_mode;
+        if (!has_variant || has_mode) {
+            // Orca: Machine limits store (Normal, Silent) pairs per variant; the UI registers only #0/#1.
+            const std::wstring indexed_key = has_mode ? prefix + std::to_wstring(variant_index % 2) :
+                                                       boost::nowide::widen(get_key(opt_key, type));
+            it = std::lower_bound(it, options.end(), Option({indexed_key}));
+            if (it == options.end() || it->key != indexed_key)
+                return not_found();
+            if (!has_variant)
+                variant_index = -1;
         }
-        auto it2 = it;
-        ++it2;
-        if (it2 != options.end() && it2->opt_key().compare(0, opt_key3.length(), opt_key3) == 0
-                && printer_options_with_variant_1.find(opt_key2) == printer_options_with_variant_1.end())
-            variant_index = -2;
     }
 
     return options[it - options.begin()];
