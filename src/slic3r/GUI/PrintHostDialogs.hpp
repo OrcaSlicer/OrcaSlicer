@@ -219,6 +219,38 @@ private:
     std::vector<BitmapComboBox*> m_slot_combos; // one per gcode filament
 };
 
+class SnapmakerPrintHostSendDialog : public PrintHostSendDialog
+{
+public:
+    SnapmakerPrintHostSendDialog(const boost::filesystem::path& path,
+                                 PrintHostPostUploadActions     post_actions,
+                                 const wxArrayString&           groups,
+                                 const wxArrayString&           storage_paths,
+                                 const wxArrayString&           storage_names,
+                                 bool                           switch_to_device_tab,
+                                 PrintHost*                     printhost);
+
+    virtual void                               init() override;
+    virtual std::map<std::string, std::string> extendedInfo() const;
+
+private:
+    static constexpr const char* CONFIG_KEY_AUTOLEVELING = "snapmaker_auto_bed_leveling";
+    static constexpr const char* CONFIG_KEY_FLOWCALIB    = "snapmaker_flow_calibrate";
+
+    bool        m_autoBedLeveling;
+    bool        m_flowCalibrate;
+    PrintHost*  m_printhost;
+
+    struct SlotInfo {
+        std::string tool_id;   // e.g. "T0"
+        std::string type;      // e.g. "PLA"
+        std::string color;     // e.g. "#ffffff"
+        int         slot_id;
+    };
+    std::vector<SlotInfo>   m_printer_slots;
+    std::vector<BitmapComboBox*> m_slot_combos; // one per gcode filament
+};
+
 class FlashforgePrintHostSendDialog : public PrintHostSendDialog
 {
 public:
