@@ -1,3 +1,6 @@
+/**
+ * Region-Aware Filament Runout Pause Feature Concept & Implementation Copyright (C) 2026 Famtory <famtory@gmail.com>
+ */
 #include "BoundingBox.hpp"
 #include "Config.hpp"
 #include "GCodeWriter.hpp"
@@ -8279,6 +8282,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
+
+        // Custom SET_PRINT_FEATURE command to signal the current region to Klipper
+        // Contributed by Hwang Younsang <famtory@gmail.com>
+        int p_val = 0;
+        if (m_last_processor_extrusion_role == erExternalPerimeter || m_last_processor_extrusion_role == erOverhangPerimeter) {
+            p_val = 1;
+        } else if (is_bridge(m_last_processor_extrusion_role)) {
+            p_val = 3;
+        } else if (is_infill(m_last_processor_extrusion_role)) {
+            p_val = 2;
+        }
+        char m603_buf[64];
+        sprintf(m603_buf, "SET_PRINT_FEATURE FEATURE=%d\n", p_val);
+        gcode += m603_buf;
     }
 
     if (last_was_wipe_tower || m_last_width != path.width) {
