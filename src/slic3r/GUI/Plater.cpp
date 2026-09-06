@@ -503,37 +503,36 @@ public:
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
 
         m_label = new wxStaticText(this, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-        m_label->SetFont(Label::Body_13);
-        m_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        m_label->SetFont(Label::Body_12);
+        m_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
 
         m_brace_left = new wxStaticText(this, wxID_ANY, "(", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-        m_brace_left->SetFont(Label::Body_13);
-        m_brace_left->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+        m_brace_left->SetFont(Label::Body_12);
+        m_brace_left->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         m_brace_left->Hide();
 
         m_count = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-        m_count->SetFont(Label::Body_13.Bold());
-        m_count->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+        m_count->SetFont(Label::Body_12.Bold());
+        m_count->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         m_count->Hide();
 
         m_brace_right = new wxStaticText(this, wxID_ANY, ")", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-        m_brace_right->SetFont(Label::Body_13);
-        m_brace_right->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+        m_brace_right->SetFont(Label::Body_12);
+        m_brace_right->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         m_brace_right->Hide();
 
-        m_hover_btn = new ScalableButton(this, wxID_ANY, "dot");
-        m_hover_btn->SetMinSize(wxSize(FromDIP(25), -1));
+        m_hover_btn = new ScalableButton(this, wxID_ANY, "edit_12px", wxEmptyString, FromDIP(wxSize(12,12)), wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 12);
         m_hover_btn->SetBackgroundColour(extruder_group_chip_bg());
         m_hover_btn->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
             if (m_enabled && m_hover_on_click)
                 m_hover_on_click();
         });
 
-        sizer->Add(m_label, 0, wxALIGN_CENTER_VERTICAL);
-        sizer->Add(m_brace_left, 0, wxALIGN_CENTER_VERTICAL);
-        sizer->Add(m_count, 0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_label      , 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
+        sizer->Add(m_brace_left , 0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_count      , 0, wxALIGN_CENTER_VERTICAL);
         sizer->Add(m_brace_right, 0, wxALIGN_CENTER_VERTICAL);
-        sizer->Add(m_hover_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+        sizer->Add(m_hover_btn  , 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
 
         // No SetSizerAndFit: that would record the count-hidden width as an explicit min size,
         // which outranks best size in sizer allocation, so once the count is shown any ancestor
@@ -545,7 +544,7 @@ public:
     void EnableEdit(bool enable)
     {
         m_enabled = enable;
-        m_hover_btn->SetBitmap_(enable ? "edit" : "dot");
+        //m_hover_btn->SetBitmap_(enable ? "edit_12px" : "dot"); // it causes crash if icon sizes not matches
     }
 
     void SetOnHoverClick(std::function<void()> on_click) { m_hover_on_click = std::move(on_click); }
@@ -556,11 +555,13 @@ public:
             m_count->Hide();
             m_brace_left->Hide();
             m_brace_right->Hide();
+            m_hover_btn->Hide();
         } else {
             m_count->SetLabel(wxString::Format("%d", count));
             m_count->Show();
             m_brace_left->Show();
             m_brace_right->Show();
+            m_hover_btn->Show();
         }
         UpdateSizing();
     }
@@ -571,15 +572,18 @@ public:
         UpdateSizing();
     }
 
-    void Rescale() { m_hover_btn->msw_rescale(); }
+    void Rescale() {
+        m_hover_btn->msw_rescale();
+        UpdateSizing();
+    }
 
     // Re-apply the chip colours on a live light/dark switch (they are set once at construction).
     void sys_color_changed()
     {
         SetBackgroundColour(extruder_group_chip_bg());
-        m_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        m_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         for (wxStaticText *t : {m_brace_left, m_count, m_brace_right})
-            t->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+            t->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         m_hover_btn->SetBackgroundColour(extruder_group_chip_bg());
         Refresh();
     }
@@ -611,6 +615,7 @@ struct ExtruderGroup : StaticGroup
     ExtruderGroup(wxWindow * parent, int index, wxString const &title);
     wxStaticBoxSizer *sizer        = nullptr;
     HoverLabel *      hover_label  = nullptr;
+    wxStaticText*     ams_label{nullptr};
     ScalableButton *  btn_edit     = nullptr;
     ComboBox *        combo_diameter = nullptr;
     ComboBox *        combo_flow = nullptr;
@@ -650,8 +655,10 @@ struct ExtruderGroup : StaticGroup
     {
         if (hover_label)
             hover_label->Rescale();
-        if (btn_edit)
+        if (btn_edit){
             btn_edit->msw_rescale();
+            btn_edit->SetMinSize(ams_label->GetSize());
+        }
         btn_up->msw_rescale();
         btn_down->msw_rescale();
         combo_diameter->Rescale();
@@ -1261,7 +1268,7 @@ public:
 
         Bind(wxEVT_PAINT, [this](wxPaintEvent& evt) {
                 wxPaintDC dc(this);
-                dc.SetPen(StateColor::darkModeColorFor(wxColour("#DBDBDB"))); // ORCA match popup border color
+                dc.SetPen(StateColor::darkModeColorFor(wxColour("#009688"))); // ORCA match popup border color
                 dc.SetBrush(*wxTRANSPARENT_BRUSH);
                 dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
             });
@@ -1315,7 +1322,7 @@ public:
 };
 
 ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title)
-    : StaticGroup(parent, wxID_ANY, wxString())
+    : StaticGroup(parent, wxID_ANY, "O") // use dummy title for centering border to title
 {
     SetFont(Label::Body_10);
     SetForegroundColour(wxColour("#CECECE"));
@@ -1326,18 +1333,14 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     // The title lives in an interactive row inside the card (with the nozzle-count badge and its edit
     // button) instead of being painted on the border by StaticGroup.
     hover_label = new HoverLabel(this, title);
+    hover_label->SetPosition(wxPoint(FromDIP(PRINTER_PANEL_RADIUS), FromDIP(1))); // position it without putting in a sizer so it will look like title
 
     // Nozzle
-    wxStaticText *label_diameter = new wxStaticText(this, wxID_ANY, _L("Diameter"));
-    label_diameter->SetFont(Label::Body_14);
-    label_diameter->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    if (index >= 0) label_diameter->SetMinSize({FromDIP(80), -1});
     auto combo_diameter = new ComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     this->combo_diameter = combo_diameter;
-    wxStaticText *label_flow = new wxStaticText(this, wxID_ANY, _L("Flow"));
-    label_flow->SetFont(Label::Body_14);
-    label_flow->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    if (index >= 0) label_flow->SetMinSize({FromDIP(80), -1});
+    combo_diameter->SetToolTip(_L("Diameter"));
+
+    // Flow
     auto combo_flow = new ComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     combo_flow->GetDropDown().SetUseContentWidth(true);
     combo_flow->Bind(wxEVT_COMBOBOX, [index, combo_flow](wxCommandEvent &evt) {
@@ -1354,51 +1357,57 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         }
     });
     this->combo_flow = combo_flow;
+    combo_flow->SetToolTip(_L("Flow"));
 
     // AMS
-    wxStaticText *label_ams  = new wxStaticText(this, wxID_ANY, _L("AMS"));
-    label_ams->SetFont(Label::Body_14);
-    label_ams->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    //label_ams->SetMinSize({FromDIP(70), -1});
+    auto ams_panel = new wxPanel(this, wxID_ANY);
+
+    ams_label  = new wxStaticText(ams_panel, wxID_ANY, _L("AMS"));
+    ams_label->SetFont(Label::Body_14);
+    ams_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+
+    // AMS not installed message
+    ams_not_installed_msg = new wxStaticText(ams_panel, wxID_ANY, _L("Not installed"));
+    ams_not_installed_msg->SetFont(Label::Body_14);
+    ams_not_installed_msg->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+
     if (index >= 0) {
-        btn_edit = new ScalableButton(this, wxID_ANY, "dot");
+        btn_edit = new ScalableButton(ams_panel, wxID_ANY, "edit");
+        btn_edit->SetMinSize(ams_label->GetSize());
         btn_edit->SetBackgroundColour(extruder_group_chip_bg());
         btn_edit->Hide();
-        btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto &evt) {
+        btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index, combo_diameter](auto &evt) {
             PopupWindow *window = new AMSCountPopupWindow(this, index);
             auto         size   = GetSize();
-            auto         pos    = ClientToScreen({0, size.y + 12});
+            auto         pos    = ClientToScreen({0, size.y - FromDIP(8) - combo_diameter->GetSize().y});
             size.SetWidth(size.GetWidth() + FromDIP(10));
             window->Position(pos, {0, 0});
             window->Popup();
         });
 
         auto hovered = std::make_shared<wxWindow *>();
-        for (wxWindow *w : std::initializer_list<wxWindow *>{this, label_diameter, combo_diameter, label_flow, combo_flow, btn_edit, label_ams}) {
-            w->Bind(wxEVT_ENTER_WINDOW, [w, hovered, this](wxMouseEvent &evt) { *hovered = w; btn_edit->SetBitmap_("edit"); });
-            w->Bind(wxEVT_LEAVE_WINDOW, [w, hovered, this](wxMouseEvent &evt) { if (*hovered == w) { btn_edit->SetBitmap_("dot"); *hovered = nullptr; } });
+        for (wxWindow *w : std::initializer_list<wxWindow *>{this, btn_edit, ams_not_installed_msg, ams_label, ams_panel}) {
+            w->Bind(wxEVT_ENTER_WINDOW, [w, hovered, this](wxMouseEvent &evt) { *hovered = w; btn_edit->Show(); ams_label->Hide(); hsizer_ams->Layout();});
+            w->Bind(wxEVT_LEAVE_WINDOW, [w, hovered, this](wxMouseEvent &evt) { if (*hovered == w) { btn_edit->Hide(); ams_label->Show(); hsizer_ams->Layout(); *hovered = nullptr; } });
         }
     }
 
-    // AMS not installed message
-    ams_not_installed_msg = new wxStaticText(this, wxID_ANY, _L("Not installed"));
-    ams_not_installed_msg->SetFont(Label::Body_14);
-    ams_not_installed_msg->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-
     // AMS group
     for (size_t i = 0; i < 4; ++i) {
-        ams[i] = new AMSPreview(this, wxID_ANY, AMSinfo(), AMSModel::GENERIC_AMS);
+        ams[i] = new AMSPreview(ams_panel, wxID_ANY, AMSinfo(), AMSModel::GENERIC_AMS);
         ams[i]->Close();
     }
 
     hsizer_ams = new wxBoxSizer(wxHORIZONTAL);
     hsizer_ams->SetMinSize(0, ams[0]->GetMinHeight());
-    hsizer_ams->Add(label_ams, 0, wxALIGN_CENTER);
+    hsizer_ams->Add(ams_label, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(5));
     if (btn_edit)
-        hsizer_ams->Add(btn_edit, 0, wxLEFT | wxALIGN_CENTER, FromDIP(2));
+        hsizer_ams->Add(btn_edit, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(5));
     hsizer_ams->Add(ams_not_installed_msg, 0, wxALIGN_CENTER);
 
-    btn_up = new ScalableButton(this, wxID_ANY, "page_up", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
+    ams_panel->SetSizer(hsizer_ams);
+
+    btn_up = new ScalableButton(ams_panel, wxID_ANY, "page_up", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
     btn_up->SetBackgroundColour(*wxWHITE);
     btn_up->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur > 0)
@@ -1406,7 +1415,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         update_ams();
     });
     btn_up->Hide();
-    btn_down = new ScalableButton(this, wxID_ANY, "page_down", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
+    btn_down = new ScalableButton(ams_panel, wxID_ANY, "page_down", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
     btn_down->SetBackgroundColour(*wxWHITE);
     btn_down->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur + 1 < page_num)
@@ -1415,31 +1424,19 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     });
     btn_down->Hide();
 
-    wxBoxSizer *hsizer_diameter = new wxBoxSizer(wxHORIZONTAL);
-    hsizer_diameter->Add(label_diameter, 0, wxALIGN_CENTER);
-    hsizer_diameter->Add(combo_diameter, 1, wxEXPAND);
-    wxBoxSizer * hsizer_nozzle = new wxBoxSizer(wxHORIZONTAL);
-    hsizer_nozzle->Add(label_flow, 0, wxALIGN_CENTER);
-    hsizer_nozzle->Add(combo_flow, 1, wxEXPAND);
+    wxStaticBoxSizer *vsizer = new wxStaticBoxSizer(this, wxVERTICAL);
+    wxBoxSizer *hsizer       = new wxBoxSizer(wxHORIZONTAL);
+
+    hsizer->Add(combo_diameter, 1, wxRIGHT, FromDIP(6));
+    hsizer->Add(combo_flow    , 1);
     if (index < 0) {
-        label_ams->Hide();
-        ams_not_installed_msg->Hide();
-        wxStaticBoxSizer *vsizer = new wxStaticBoxSizer(this, wxVERTICAL);
-        wxBoxSizer *hsizer       = new wxBoxSizer(wxHORIZONTAL);
-        hsizer->Add(hsizer_diameter, 1, wxEXPAND | wxTOP| wxBOTTOM, FromDIP(8));
-        hsizer->Add(hsizer_nozzle, 1, wxEXPAND | wxALL, FromDIP(8));
-        hsizer->AddSpacer(FromDIP(2)); // Avoid badge
-        vsizer->Add(hover_label, 0, wxLEFT | wxALL, FromDIP(2));
-        vsizer->Add(hsizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(2));
-        this->sizer = vsizer;
+        ams_panel->Hide();
     } else {
-        wxStaticBoxSizer *vsizer = new wxStaticBoxSizer(this, wxVERTICAL);
-        vsizer->Add(hover_label, 0, wxLEFT | wxALL, FromDIP(2));
-        vsizer->Add(hsizer_ams, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, FromDIP(2));
-        vsizer->Add(hsizer_diameter, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, FromDIP(2));
-        vsizer->Add(hsizer_nozzle, 0, wxEXPAND | wxALL, FromDIP(2));
-        this->sizer = vsizer;
+        vsizer->Add(ams_panel, 0, wxEXPAND | wxALL, FromDIP(2));
     }
+    vsizer->Add(hsizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(2));
+    this->sizer = vsizer;
+
     AMSCountPopupWindow::UpdateAMSCount(index < 0 ? 0 : index, this);
 }
 
