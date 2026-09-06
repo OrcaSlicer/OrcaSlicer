@@ -437,7 +437,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_temperature_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1));
     m_temperature_input->SetMaxLength(3); // Limit to 3 digits
 
-    m_temperature_input->Bind(wxEVT_CHAR, [this](wxKeyEvent& event) {
+    m_temperature_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
         if (keycode >= '0' && keycode <= '9') {
             event.Skip();
@@ -464,7 +464,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_time_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(100), -1));
     m_time_input->SetMaxLength(3); // Limit to 3 digits
 
-    m_time_input->Bind(wxEVT_CHAR, [this](wxKeyEvent& event) {
+    m_time_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
         if (keycode >= '0' && keycode <= '9') {
             event.Skip();
@@ -698,7 +698,7 @@ wxBoxSizer* AMSDryCtrWin::create_guide_info_section(wxPanel* parent)
     m_rotate_spool_toggle = new wxCheckBox(parent, wxID_ANY, "");
     m_rotate_spool_toggle->SetValue(false);
 
-    m_rotate_spool_toggle->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    m_rotate_spool_toggle->Bind(wxEVT_CHECKBOX, [](wxCommandEvent& event) {
         bool is_checked = event.IsChecked();
         // Add toggle behavior logic here
     });
@@ -736,7 +736,7 @@ wxBoxSizer* AMSDryCtrWin::create_guide_right_section(wxPanel* parent)
 
     m_back_button = create_button(
         parent,
-        wxString::FromUTF8(_CTX_utf8(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
+        wxString::FromUTF8(_u8L_CONTEXT(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
         wxColour("#F8F8F8"),       // Background color - light gray
         wxColour("#D0D0D0"),       // Border color - gray
         *wxBLACK                   // Text color - black

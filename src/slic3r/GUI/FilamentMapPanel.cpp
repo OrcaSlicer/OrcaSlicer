@@ -105,7 +105,7 @@ void FilamentMapManualPanel::OnTimer(wxTimerEvent &)
             m_suggestion_panel->Hide();
         } else {
             m_errors->SetLabel(wxString::Format(_L("Error: %s extruder has no available %s nozzle, current group result is invalid."),
-                                                invalid_eid == 0 ? _L("Left") : _L("Right"),
+                                                invalid_eid == 0 ? _L_CONTEXT("Left", "Nozzle position") : _L_CONTEXT("Right", "Nozzle position"),
                                                 invalid_nozzle == NozzleVolumeType::nvtStandard ? _L("Standard") : _L("High Flow")));
             // Re-wrap: wrapping only applies to the label text present when Wrap is called,
             // and the label was empty at construction time.
@@ -642,19 +642,12 @@ void FilamentMapBtnPanel::Select(bool selected)
     Refresh();
 }
 
-void GUI::FilamentMapBtnPanel::Hide()
+bool GUI::FilamentMapBtnPanel::Show(bool show)
 {
-    m_btn->Hide();
-    m_label->Hide();
-    m_detail->Hide();
-    wxPanel::Hide();
-}
-void GUI::FilamentMapBtnPanel::Show()
-{
-    m_btn->Show();
-    m_label->Show();
-    m_detail->Show();
-    wxPanel::Show();
+    m_btn->Show(show);
+    m_label->Show(show);
+    m_detail->Show(show);
+    return wxPanel::Show(show);
 }
 
 FilamentMapAutoPanel::FilamentMapAutoPanel(wxWindow *parent, FilamentMapMode mode, bool machine_synced) : wxPanel(parent)
@@ -694,18 +687,11 @@ FilamentMapAutoPanel::FilamentMapAutoPanel(wxWindow *parent, FilamentMapMode mod
     Layout();
     GUI::wxGetApp().UpdateDarkUIWin(this);
 }
-void FilamentMapAutoPanel::Hide()
+bool FilamentMapAutoPanel::Show(bool show)
 {
-    m_flush_panel->Hide();
-    m_match_panel->Hide();
-    wxPanel::Hide();
-}
-
-void FilamentMapAutoPanel::Show()
-{
-    m_flush_panel->Show();
-    m_match_panel->Show();
-    wxPanel::Show();
+    m_flush_panel->Show(show);
+    m_match_panel->Show(show);
+    return wxPanel::Show(show);
 }
 
 void FilamentMapAutoPanel::UpdateStatus()
@@ -743,16 +729,10 @@ FilamentMapDefaultPanel::FilamentMapDefaultPanel(wxWindow *parent) : wxPanel(par
     GUI::wxGetApp().UpdateDarkUIWin(this);
 }
 
-void FilamentMapDefaultPanel::Hide()
+bool FilamentMapDefaultPanel::Show(bool show)
 {
-    m_label->Hide();
-    wxPanel::Hide();
-}
-
-void FilamentMapDefaultPanel::Show()
-{
-    m_label->Show();
-    wxPanel::Show();
+    m_label->Show(show);
+    return wxPanel::Show(show);
 }
 
 }} // namespace Slic3r::GUI

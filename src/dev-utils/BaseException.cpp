@@ -9,6 +9,7 @@
 #include <boost/format.hpp>
 #include <mutex>
 
+#include "git_commit_hash.h"
 #include "libslic3r_version.h"
 
 static std::string g_log_folder;
@@ -39,7 +40,7 @@ CBaseException::CBaseException(HANDLE hProcess, WORD wPID, LPCTSTR lpSymbolPath,
 		output_file->open(log_filename, std::ios::out | std::ios::app);
 
 		// Output app build info in crash log so we could look for the correct PDB files
-        OutputString(_T("%s\n\n"), _T(SLIC3R_APP_NAME " " SoftFever_VERSION " Build " GIT_COMMIT_HASH));
+        OutputString(_T("%s\n\n"), _T(SLIC3R_APP_NAME " " SoftFever_VERSION " Build " GIT_COMMIT_HASH GIT_COMMIT_SUFFIX));
 	}
 }
 
@@ -69,7 +70,7 @@ void CBaseException::OutputString(LPCTSTR lpszFormat, ...)
 	//WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), szBuf, _tcslen(szBuf), NULL, NULL);
 
 	//output it to the current directory of binary
-	std::string output_str = textconv_helper::T2A_(szBuf);
+    std::string output_str = static_cast<const char*>(textconv_helper::T2A_(szBuf));
 	*output_file << output_str;
 	output_file->flush();
 }

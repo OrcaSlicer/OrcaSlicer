@@ -17,6 +17,9 @@
 	"filament_max_volumetric_speed": [
 		"11.5"
 	],
+	"filament_multitool_ramming_flow": [
+		"13"
+	],
 	"overhang_fan_speed": [
 		"100"
 	],

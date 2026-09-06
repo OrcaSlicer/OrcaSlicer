@@ -1,2 +1,12 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=auto
+
+# Shell scripts are run by Git Bash on Windows CI, which cannot read a script
+# with CRLF line endings: it fails on the first line. Windows checkouts default
+# to core.autocrlf=true, so keep these LF whatever the platform.
+*.sh text eol=lf
+
+# Batch files are read by cmd.exe, which tracks a byte offset into the file to
+# resume after `call :label`. With LF endings that offset can land wrong and the
+# label lookup fails, so keep these CRLF whatever the platform.
+*.bat text eol=crlf

@@ -30,6 +30,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
+#include "FilamentBitmapUtils.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -283,7 +284,7 @@ wxBoxSizer *SyncAmsInfoDialog::create_sizer_thumbnail(wxButton *image_button, bo
     auto sizer_thumbnail = new wxBoxSizer(wxVERTICAL);
     if (left) {
         wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto        sync_text  = new Label(image_button->GetParent(), _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
+        auto        sync_text  = new Label(image_button->GetParent(), _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
         sync_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         text_sizer->Add(sync_text, 0, wxALIGN_CENTER | wxALL, 0);
         sizer_thumbnail->Add(sync_text, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(4));
@@ -550,7 +551,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer         = new wxBoxSizer(wxHORIZONTAL);
     m_choose_plate_sizer->AddStretchSpacer();
 
-    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _CTX(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
+    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
@@ -1112,7 +1113,7 @@ void SyncAmsInfoDialog::init_bind()
         e.Skip();
     });
 
-    Bind(EVT_CONNECT_LAN_MODE_PRINT, [this](wxCommandEvent &e) {
+    Bind(EVT_CONNECT_LAN_MODE_PRINT, [](wxCommandEvent &e) {
         if (e.GetInt() == 0) {
             DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev) return;
@@ -1218,8 +1219,8 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
             iter++;
         }
     }
-    auto tab_index = (MainFrame::TabPosition) dynamic_cast<Notebook *>(wxGetApp().tab_panel())->GetSelection();
-    if (tab_index == MainFrame::TabPosition::tp3DEditor || tab_index == MainFrame::TabPosition::tpPreview) {
+    wxString tab_name = wxGetApp().tab_panel()->GetSelectedPageName();
+    if (tab_name == TAB_ID_PREPARE || tab_name == TAB_ID_PREVIEW) {
         updata_thumbnail_data_after_connected_printer();
     }
 }
@@ -2575,6 +2576,10 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
     m_materialList.clear();
     m_filaments.clear();
 
+    // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as
+    // AMS sync targets.
+    auto* is_mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+
     bool use_double_extruder = get_is_double_extruder();
     if (use_double_extruder) {
         const auto &project_config = preset_bundle->project_config;
@@ -2592,13 +2597,15 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
         auto colour_rgb = wxColour((int) rgb[0], (int) rgb[1], (int) rgb[2], (int) rgb[3]);
         if (extruder >= materials.size() || extruder < 0 || extruder >= display_materials.size())
             continue;
+        if (is_mixed_opt && extruder < (int) is_mixed_opt->values.size() && is_mixed_opt->values[extruder])
+            continue;
 
         if (contronal_index % SYNC_FLEX_GRID_COL == 0) {
             wxBoxSizer *ams_tip_sizer = new wxBoxSizer(wxVERTICAL);
             if (is_first_row) {
                 is_first_row              = false;
                 if (!m_original_in_colormap) {
-                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_colormap->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_colormap->SetFont(::Label::Head_12);
                 }
@@ -2637,7 +2644,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
         item_index++;
 
         contronal_index++;
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent &e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent &e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder, item_index_str](wxMouseEvent &e) {
             MaterialHash::iterator iter = m_materialList.begin();
             while (iter != m_materialList.end()) {
@@ -2793,6 +2800,10 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
     m_fix_materialList.clear();
     m_fix_filaments.clear();
 
+    // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as
+    // AMS sync targets.
+    auto* is_mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+
     bool use_double_extruder = get_is_double_extruder();
     if (use_double_extruder) {
         const auto &project_config = preset_bundle->project_config;
@@ -2810,13 +2821,15 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
         auto colour_rgb = wxColour((int) rgb[0], (int) rgb[1], (int) rgb[2], (int) rgb[3]);
         if (extruder >= extruders.size() || extruder < 0 || extruder >= m_ams_combo_info.ams_filament_colors.size())
             continue;
+        if (is_mixed_opt && extruder < (int) is_mixed_opt->values.size() && is_mixed_opt->values[extruder])
+            continue;
 
         if (contronal_index % SYNC_FLEX_GRID_COL == 0) {
             wxBoxSizer *ams_tip_sizer = new wxBoxSizer(wxVERTICAL);
             if (is_first_row) {
                 is_first_row   = false;
                 if (!m_original_in_override) {
-                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_override->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_override->SetFont(::Label::Head_12);
                 }
@@ -2931,6 +2944,20 @@ void SyncAmsInfoDialog::clone_thumbnail_data()
             iter++;
         }
     }
+
+    // Expand color arrays to cover mixed (virtual) slots and compute their blended colors
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    size_t total = 0;
+    if (auto* opt = cfg.option<ConfigOptionBools>("filament_is_mixed"))
+        total = opt->values.size();
+    size_t target = std::max(total, m_cur_colors_in_thumbnail.size());
+    if (m_cur_colors_in_thumbnail.size() < target)
+        m_cur_colors_in_thumbnail.resize(target);
+    if (m_preview_colors_in_thumbnail.size() < target)
+        m_preview_colors_in_thumbnail.resize(target);
+    recompute_mixed_slot_colors(m_preview_colors_in_thumbnail, cfg);
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     // copy data
     auto &data = m_cur_input_thumbnail_data;
     m_preview_thumbnail_data.reset();
@@ -3119,6 +3146,10 @@ void SyncAmsInfoDialog::change_default_normal(int old_filament_id, wxColour temp
             return;
         }
     }
+    // Recompute mixed slot colors after physical slot color change
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     ThumbnailData &data          = m_cur_input_thumbnail_data;
     ThumbnailData &no_light_data = m_cur_no_light_thumbnail_data;
     if (data.width > 0 && data.height > 0 && data.width == no_light_data.width && data.height == no_light_data.height) {
@@ -3218,7 +3249,7 @@ SyncNozzleAndAmsDialog::SyncNozzleAndAmsDialog(InputInfo &input_info)
                                                                                             _L("Successfully synchronized nozzle and AMS number information.")
                               ) + "\n\n" + _L("Do you want to continue to sync filaments?"),
                               _L("Yes"), // ORCA use shorter text for buttons
-                              _CTX(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
+                              _L_CONTEXT(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)
 {
@@ -3266,7 +3297,7 @@ FinishSyncAmsDialog::FinishSyncAmsDialog(InputInfo &input_info)
                               wxGetApp().app_config->get("sync_ams_filament_mode") == "1" ?
                                   _L("Successfully synchronized filament color from printer.") :
                                   _L("Successfully synchronized color and type of filament from printer."),
-                              _CTX(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
+                              _L_CONTEXT(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
                               "",
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)

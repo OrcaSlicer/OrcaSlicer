@@ -1359,7 +1359,6 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     if (auto* app_config = GUI::wxGetApp().app_config) {
         const std::string access_code = device_info.api_key.empty() ? "88888888" : device_info.api_key;
         app_config->set_str("access_code", device_info.dev_id, access_code);
-        app_config->set_str("user_access_code", device_info.dev_id, access_code);
     }
 
     nlohmann::json payload;

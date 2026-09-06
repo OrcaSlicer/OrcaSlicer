@@ -13,6 +13,10 @@ on:
         arch:
           required: false
           type: string
+        compiler:
+          required: false
+          type: string
+          default: msvc
         macos-combine-only:
           required: false
           type: boolean
@@ -145,7 +149,7 @@ jobs:
         env:
           ORCA_TESTS_BUILD_ONLY: ${{ inputs.arch == 'arm64' && '1' || '' }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
+          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
 
       - name: Pack unit tests mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
@@ -161,6 +165,14 @@ jobs:
           path: build_tests.tar
           retention-days: 5
           if-no-files-found: error
+
+      - name: Build system preset cache (macOS)
+        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        # The bundle was already packed from resources/, so the caches have to be
+        # installed into it here; the source tree keeps its JSONs for later jobs.
+        run: ./scripts/build_preset_cache.sh -b build/${{ inputs.arch }} build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app/Contents/Resources/profiles
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -196,7 +208,7 @@ jobs:
         if: runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
+          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a universal -t 10.15
 
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
@@ -387,8 +399,26 @@ jobs:
         # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
           $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
+          # -l selects clang-cl and -x Ninja; together they build the slicer with clang.
+          $clang = "${{ inputs.compiler }}" -eq "clang"
+          $flags = if ($clang) { "-l", "-x" } else { @() }
+          if ($clang) {
+            # Build against the same VC toolchain and SDK as the dependencies.
+            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            $vs = & $vswhere -latest -property installationPath
+            $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
+            Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+            Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
+          }
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 @flags tests } else { .\build_release_vs.bat slicer @flags tests }
         shell: pwsh
+
+      - name: Build system preset cache (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        # Shipped into both the already-installed tree (portable zip, MSIX) and
+        # the checkout cpack re-installs from when it builds the NSIS installer.
+        run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
 
       - name: Pack unit tests Win
         if: runner.os == 'Windows'
@@ -539,6 +569,20 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+      - name: Build system preset cache (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Both were packed from resources/ before the caches existed, so the
+          # AppImage is unpacked first and the caches shipped into it and into
+          # the package tree; the source tree keeps its JSONs for later steps.
+          appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract
+          ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
+          ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
+          rm -rf squashfs-root
         # Ship the freshly-built validator so slice_check_linux (build_all.yml)
         # can slice-sweep the shipped profiles with this PR's engine. Taken from
         # the aarch64 leg so the sweep also exercises the arm build; x86_64 on

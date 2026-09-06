@@ -195,7 +195,6 @@ public:
     Point(int64_t x, int32_t y) : Vec2crd(coord_t(x), coord_t(y)) {}
     Point(int32_t x, int64_t y) : Vec2crd(coord_t(x), coord_t(y)) {}
     Point(double x, double y) : Vec2crd(coord_t(std::round(x)), coord_t(std::round(y))) {}
-    Point(const Point &rhs) { *this = rhs; }
 	explicit Point(const Vec2d& rhs) : Vec2crd(coord_t(std::round(rhs.x())), coord_t(std::round(rhs.y()))) {}
 	// This constructor allows you to construct Point from Eigen expressions
     // This constructor has to be implicit (non-explicit) to allow implicit conversion from Eigen expressions.
@@ -278,7 +277,6 @@ public:
     Point3(int32_t x, int32_t y, int32_t z = 0) : Vec3crd(coord_t(x), coord_t(y), coord_t(z)) {}
     Point3(int64_t x, int64_t y, int64_t z = 0) : Vec3crd(coord_t(x), coord_t(y), coord_t(z)) {}
     Point3(double x, double y, double z = 0.0) : Vec3crd(coord_t(std::round(x)), coord_t(std::round(y)), coord_t(std::round(z))) {}
-    Point3(const Point3 &rhs) { *this = rhs; }
     explicit Point3(const Vec2crd& vec2crd, coord_t z = 0) : Vec3crd(vec2crd.x(), vec2crd.y(), z) {}
     explicit Point3(const Vec3crd &vec3crd) : Vec3crd(vec3crd) {}
     // This constructor allows you to construct Point from Eigen expressions
