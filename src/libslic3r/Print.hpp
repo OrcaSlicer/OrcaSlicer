@@ -1136,6 +1136,18 @@ public:
     //BBS: plate's origin related functions
     void set_plate_origin(Vec3d origin) { m_origin = origin; }
     const Vec3d get_plate_origin() const { return m_origin; }
+    // IMEX firmware-managed zones: additional XY shift applied at gcode emission so the
+    // primary zone's contents land at bed origin (0,0). Non-zero only when
+    // `imex_firmware_managed_zones` is on AND the active mode is non-primary; Vec2d::Zero()
+    // in every other case → byte-identical gcode output for everyone else.
+    //
+    // Derived, never pushed in: update_imex_slice_offset() recomputes it from the applied
+    // config, so a headless slice gets the same shift a GUI slice does. It is a pure
+    // function of the config + printable_area, so calling it twice is a no-op; process()
+    // and export_gcode() both call it, which is what settles it ahead of every consumer
+    // (the writer offset in export_gcode(), and translate_to_print_space()).
+    void update_imex_slice_offset();
+    Vec2d get_imex_slice_offset() const { return m_imex_slice_offset; }
     //BBS: export gcode from previous gcode file from 3mf
     void set_gcode_file_ready();
     void set_gcode_file_invalidated();
@@ -1364,6 +1376,9 @@ private:
 
     //BBS: plate's origin
     Vec3d   m_origin {0, 0, 0};
+    // IMEX firmware-managed slice offset (plate-local primary-zone center, or zero).
+    // Cache of update_imex_slice_offset(); nothing outside that function writes it.
+    Vec2d   m_imex_slice_offset { Vec2d::Zero() };
     //BBS: modified_count
     int     m_modified_count {0};
     //BBS
