@@ -948,7 +948,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
     if (machine_diameter == 0.0f && preset_bundle) {
         const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+        if (opt) {
+            const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+            if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+        }
     }
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
@@ -1246,7 +1249,10 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
             if (machine_diameter == 0.0f) {
                 const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-                if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+                if (opt) {
+                    const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+                    if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+                }
             }
             stream << std::fixed << std::setprecision(1) << machine_diameter;
         }

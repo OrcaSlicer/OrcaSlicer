@@ -106,6 +106,15 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer)
+{
+    int extruder = filament_id;
+    if (is_bbl_printer && config.nozzle_diameter.size() > 1 &&
+        filament_id >= 1 && static_cast<size_t>(filament_id - 1) < config.filament_map.size())
+        extruder = config.filament_map.get_at(filament_id - 1);
+    return config.nozzle_diameter.get_at(extruder - 1);
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)

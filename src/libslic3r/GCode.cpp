@@ -6309,7 +6309,7 @@ LayerResult GCode::process_layer(
                         break;
                     }
             std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
-            m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            m_filament_instances_code = filament_instances_id.empty() ? std::string() : _encode_label_ids_to_base64(filament_instances_id);
         }
 
         // The inline _extrude hook may already have taken the snapshot mid-extrusion on a
