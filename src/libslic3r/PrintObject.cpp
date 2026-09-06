@@ -872,6 +872,44 @@ void PrintObject::contour_z()
     this->set_done(posContouring);
 }
 
+// ORCA: runs after posContouring so displacement composes with Z anti-aliasing.
+void PrintObject::fuzzy_skin_top()
+{
+    if (!this->set_started(posFuzzySkinTop)) {
+        return;
+    }
+
+    // Bind to a local: all_regions() returns by value, so calling it for begin() and
+    // end() separately would compare iterators into two different temporaries.
+    const std::vector<std::reference_wrapper<const PrintRegion>> regions = this->all_regions();
+    const bool any_region_enabled = std::any_of(
+        regions.begin(), regions.end(),
+        [](const std::reference_wrapper<const PrintRegion>& region) {
+            return region.get().config().fuzzy_skin_top != FuzzySkinTopMode::Disabled;
+        });
+    if (!any_region_enabled) {
+        this->set_done(posFuzzySkinTop);
+        return;
+    }
+
+    m_print->set_status(45, L("Fuzzy skin on top surfaces"));
+    BOOST_LOG_TRIVIAL(debug) << "Top surface fuzzy skin in parallel - start";
+
+    tbb::parallel_for(
+        tbb::blocked_range<size_t>(0, m_layers.size()),
+        [this](const tbb::blocked_range<size_t>& range) {
+            for (size_t layer_idx = range.begin(); layer_idx < range.end(); layer_idx++) {
+                m_print->throw_if_canceled();
+                m_layers[layer_idx]->make_fuzzy_skin_top();
+            }
+        }
+    );
+    m_print->throw_if_canceled();
+    BOOST_LOG_TRIVIAL(debug) << "Top surface fuzzy skin in parallel - end";
+
+    this->set_done(posFuzzySkinTop);
+}
+
 // BBS
 void PrintObject::clear_overhangs_for_lift()
 {
@@ -1407,7 +1445,13 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "small_area_infill_flow_compensation"
             || opt_key == "lateral_lattice_angle_1"
             || opt_key == "lateral_lattice_angle_2"
-            || opt_key == "infill_overhang_angle") {
+            || opt_key == "infill_overhang_angle"
+            // ORCA: the fills must be regenerated before the top surface pass can re-run.
+            || opt_key == "fuzzy_skin_top"
+            || opt_key == "fuzzy_skin_top_area"
+            || opt_key == "fuzzy_skin_top_params"
+            || opt_key == "fuzzy_skin_top_thickness"
+            || opt_key == "fuzzy_skin_top_point_distance") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
                    || opt_key == "sparse_infill_smooth_factor"
@@ -1574,16 +1618,21 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 	bool invalidated = Inherited::invalidate_step(step);
 
     // propagate to dependent steps
+    // ORCA: posFuzzySkinTop rewrites fills in place, so it follows their invalidation.
     if (step == posPerimeters) {
-		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
+		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posFuzzySkinTop, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
-        invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
+        invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posFuzzySkinTop, posSimplifyPath, posSimplifyInfill });
     } else if (step == posInfill) {
-        invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
+        invalidated |= this->invalidate_steps({ posIroning, posContouring, posFuzzySkinTop, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+    } else if (step == posIroning) {
+        invalidated |= this->invalidate_steps({ posContouring, posFuzzySkinTop, posSimplifyInfill });
+    } else if (step == posContouring) {
+        invalidated |= this->invalidate_steps({ posFuzzySkinTop, posSimplifyInfill });
     } else if (step == posSlice) {
-		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
+		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posFuzzySkinTop, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
     } else if (step == posSupportMaterial) {

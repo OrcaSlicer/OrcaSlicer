@@ -2484,6 +2484,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         }
 
+        // ORCA: after Z contouring, so displacement is added to the contoured Z.
+        for (PrintObject *obj : m_objects) {
+            if (need_slicing_objects.count(obj) != 0)
+                obj->fuzzy_skin_top();
+            else if (obj->set_started(posFuzzySkinTop))
+                obj->set_done(posFuzzySkinTop);
+        }
+
         // SlicingPipeline: support runs in the parallel block below; the hook must fire in a
         // sequential loop afterward. Snapshot per-object done-state just before the parallel_for.
         std::vector<char> sup_was_done(m_objects.size(), 1);

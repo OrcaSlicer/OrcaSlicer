@@ -1079,19 +1079,35 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Get the current fuzzy skin state
     bool has_fuzzy_skin = config->opt_enum<FuzzySkinType>("fuzzy_skin") != FuzzySkinType::Disabled_fuzzy;
     
-    // Show fuzzy skin options when fuzzy skin is not disabled
-    for (auto el : {"fuzzy_skin_mode", "fuzzy_skin_noise_type", "fuzzy_skin_point_distance", "fuzzy_skin_thickness", "fuzzy_skin_first_layer"})
-        toggle_line(el, has_fuzzy_skin);
-    
+    // ORCA: independent of the wall fuzzy skin type; texture on the top alone is valid.
+    const bool has_top_fuzzy_skin = config->opt_enum<FuzzySkinTopMode>("fuzzy_skin_top") != FuzzySkinTopMode::Disabled;
+    const bool top_fuzzy_custom   = config->opt_enum<FuzzySkinTopParams>("fuzzy_skin_top_params") == FuzzySkinTopParams::Custom;
+
+    // ORCA: keep a shared row visible while either the walls or the top surfaces still read it.
+    const bool noise_in_use     = has_fuzzy_skin || has_top_fuzzy_skin;
+    const bool wall_size_in_use = has_fuzzy_skin || (has_top_fuzzy_skin && !top_fuzzy_custom);
+
+    toggle_line("fuzzy_skin_mode", has_fuzzy_skin);
+    toggle_line("fuzzy_skin_first_layer", has_fuzzy_skin);
+    toggle_line("fuzzy_skin_noise_type", noise_in_use);
+    toggle_line("fuzzy_skin_point_distance", wall_size_in_use);
+    toggle_line("fuzzy_skin_thickness", wall_size_in_use);
+
     // Show noise type specific options with the same logic
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
     const bool is_ripple = fuzzy_skin_noise_type == NoiseType::Ripple;
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin && !is_ripple);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin && !is_ripple);
-    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin && !is_ripple);
+    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && noise_in_use && !is_ripple);
+    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && noise_in_use && !is_ripple);
+    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && noise_in_use && !is_ripple);
+    // Ripple is wall-only; the top surface pass falls back to Classic.
     toggle_line("fuzzy_skin_ripples_per_layer", is_ripple && has_fuzzy_skin);
     toggle_line("fuzzy_skin_ripple_offset", is_ripple && has_fuzzy_skin);
     toggle_line("fuzzy_skin_layers_between_ripple_offset", is_ripple && has_fuzzy_skin);
+
+    toggle_line("fuzzy_skin_top_area", has_top_fuzzy_skin);
+    toggle_line("fuzzy_skin_top_params", has_top_fuzzy_skin);
+    toggle_line("fuzzy_skin_top_point_distance", has_top_fuzzy_skin && top_fuzzy_custom);
+    toggle_line("fuzzy_skin_top_thickness", has_top_fuzzy_skin && top_fuzzy_custom);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
     for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle", "min_feature_size", "min_length_factor",

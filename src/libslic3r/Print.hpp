@@ -95,7 +95,7 @@ enum PrintStep {
 
 enum PrintObjectStep {
     posSlice, posPerimeters,posEstimateCurledExtrusions, posPrepareInfill,
-    posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifySupportPath,
+    posInfill, posIroning, posContouring, posFuzzySkinTop, posSupportMaterial, posSimplifyPath, posSimplifySupportPath,
     // BBS
     posDetectOverhangsForLift,
     posSimplifyWall, posSimplifyInfill,
@@ -522,6 +522,8 @@ private:
     void ironing();
     bool need_z_contouring() const;
     void contour_z();
+    // ORCA: fuzzy skin on top surfaces
+    void fuzzy_skin_top();
     void generate_support_material();
     void estimate_curled_extrusions();
     void simplify_extrusion_path();
