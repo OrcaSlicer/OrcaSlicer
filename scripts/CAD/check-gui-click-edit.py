@@ -147,6 +147,14 @@ def seed_datadir(datadir):
     # ~90% case expects. A ladder whose result depends on the developer's own preferences is not
     # a gate.
     app["auto_close_sketch_loops"] = True
+    # SILENCE THE NETWORK PLUGIN PROMPT. Without this, GUI_App::post_init() re-raises "Bambu
+    # Network Plug-in Required" from an IDLE event — after any modal sweep this driver does at
+    # startup — and ShowModal() then runs a nested event loop. The app is alive, its window is
+    # there, and the MCP socket answers nothing: indistinguishable from a hang, and it was
+    # investigated as one, with gdb, twice. `installed_networking` false stops the whole
+    # networking-plugin path, so m_networking_need_update is never set and the dialog never
+    # exists to be swept.
+    app["installed_networking"] = False
     with open(conf, "w") as f:
         json.dump(data, f, indent=1)
     for sub in ("user", "system", "presets", "vendor"):
@@ -368,6 +376,7 @@ def parse(line):
 # ---------------------------------------------------------------- grading
 
 def check(cond, what):
+    """Returns the verdict so a caller can abandon a rung whose precondition failed."""
     global _fail, _checks
     _checks += 1
     if cond:
@@ -375,6 +384,7 @@ def check(cond, what):
     else:
         print(f"    FAIL  {what}", file=sys.stderr)
         _fail += 1
+    return bool(cond)
 
 
 def type_into_open_field(value, mark):
@@ -548,6 +558,34 @@ def rung_tool(k, name, clicks, values):
         mark = type_into_open_field(v, mark)
 
 
+def rung_rounded_rect():
+    """The shape the user actually reported: a ROUNDED rectangle, Width -> Height -> Radius.
+
+    It has no keyboard shortcut — the rectangle family binds R to CornerRect and leaves the other
+    modes in the toolbar flyout — so TOOLS above cannot reach it and the whole three-step chain
+    went untested. `run_verb` arms it the way the offer menu does.
+
+    NOTE the id: the OFFER verb is `sk_rect_rounded`; `design_rect_rounded` is the ACTION name and
+    run_verb throws on it, leaving the tool as Select. A run that misses that draws nothing and
+    still reaches its assertions, so arm-and-verify rather than arm-and-hope.
+    """
+    print("  Rounded rectangle")
+    key("Escape", 0.6)
+    tool = None
+    for _ in range(8):
+        try_call("run_verb", verb="sk_rect_rounded")
+        time.sleep(0.8)
+        tool = (try_call("sketch_describe") or {}).get("tool")
+        if tool == "rect_rounded":
+            break
+    if not check(tool == "rect_rounded", f"the rounded-rectangle tool armed (tool={tool!r})"):
+        return
+    mark = trace_mark()
+    click(1030, 540); click(1330, 700); click(1300, 660)   # corners, then the radius point
+    for v in (63, 41, 7):
+        mark = type_into_open_field(v, mark)
+
+
 def rung_label_click():
     """The user's own report: click an existing dimension label and type a new value into it.
 
@@ -600,6 +638,7 @@ def main():
     enter_sketch()
     for (k, name, clicks, values) in TOOLS:
         rung_tool(k, name, clicks, values)
+    rung_rounded_rect()
     rung_label_click()
     print()
     if _fail:
