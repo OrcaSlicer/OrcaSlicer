@@ -641,6 +641,71 @@ void RemoveInputBorder(wxWindow* win)
     );
 #endif
 }
+
+void StyleStaticBox(wxWindow* win, int radiusPx, int borderWidth, const char* borderColor)
+{
+    if (!win) return;
+
+    GtkWidget* widget = static_cast<GtkWidget*>(win->GetHandle());
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    GtkCssProvider* provider = gtk_css_provider_new();
+
+    char css[512];
+    g_snprintf(css, sizeof(css),
+        "frame {"
+        "  border-width: 0px;"
+        "}"
+        "frame > border {"
+        "  border-style: solid;"
+        "  border-width: %dpx;"
+        "  border-color: %s;"
+        "  border-radius: %dpx;"
+        "  background-clip: padding-box;" /* prevents background leaking outside radius */
+        "}"
+        "label {"
+        "  color: inherit;"
+        "  margin-left: 6px;"
+        "  padding: 0 0.3em;"
+        "  font-weight: bold;"
+        "  background-clip: content-box;" /* padding box fills background even if it has no label */
+        "}",
+        borderWidth,
+        borderColor ? borderColor : "@borders",
+        radiusPx
+    );
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    gtk_css_provider_load_from_data(provider, css, -1);
+#else
+    gtk_css_provider_load_from_data(provider, css, -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    //gtk_frame_set_label_align(GTK_FRAME(widget), 0.05f, 0.5f);  // frame API
+
+    // apply to label
+    GtkWidget* label = gtk_frame_get_label_widget(GTK_FRAME(widget));
+    if (label) {
+        GtkStyleContext* label_ctx = gtk_widget_get_style_context(label);
+        gtk_style_context_add_provider(
+            label_ctx,
+            GTK_STYLE_PROVIDER(provider),
+            GTK_STYLE_PROVIDER_PRIORITY_USER
+        );
+    }
+
+    g_object_unref(provider);
+#endif
+    // dont make changes if GTK2
+}
+
 #endif // __WXGTK__
 
 #ifdef __linux__
