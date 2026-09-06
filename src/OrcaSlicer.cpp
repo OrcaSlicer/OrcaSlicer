@@ -82,6 +82,7 @@ using namespace nlohmann;
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
+#include "slic3r/Utils/MeshOrient.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -4480,6 +4481,63 @@ int CLI::run(int argc, char **argv)
                 for (auto &o : model.objects)
                     // this affects volumes:
                     o->rotate(Geometry::deg2rad(m_config.opt_float(opt_key)), Y);
+        } else if (opt_key == "ground_largest_face" || opt_key == "lay_flat") {
+            // Find the largest planar face cluster across all volumes and rotate so it
+            // sits on Z=0. Single flag; the operator passes `1` to enable.
+            if (m_config.option<ConfigOptionInt>(opt_key)->value != 0) {
+                for (auto &model : m_models)
+                    Slic3r::MeshOrient::ground_largest_face(model);
+            }
+        } else if (opt_key == "ground_face_normal") {
+            // Rotate so the face whose mesh-local normal best matches NX,NY,NZ sits on Z=0.
+            const std::string &s = m_config.option<ConfigOptionString>(opt_key)->value;
+            if (!s.empty()) {
+                Vec3d n;
+                if (sscanf(s.c_str(), "%lf,%lf,%lf", &n.x(), &n.y(), &n.z()) != 3) {
+                    BOOST_LOG_TRIVIAL(error) << "--ground-face-normal expects NX,NY,NZ (e.g. 0,0,-1), got: " << s;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                for (auto &model : m_models)
+                    Slic3r::MeshOrient::ground_face_normal(model, n);
+            }
+        } else if (opt_key == "ground_face_point") {
+            // Find triangle containing (X,Y,Z) in mesh-local coords, then ground its face.
+            const std::string &s = m_config.option<ConfigOptionString>(opt_key)->value;
+            if (!s.empty()) {
+                Vec3d p;
+                if (sscanf(s.c_str(), "%lf,%lf,%lf", &p.x(), &p.y(), &p.z()) != 3) {
+                    BOOST_LOG_TRIVIAL(error) << "--ground-face-point expects X,Y,Z, got: " << s;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                bool any_failed = false;
+                for (auto &model : m_models)
+                    if (!Slic3r::MeshOrient::ground_face_point(model, p)) any_failed = true;
+                if (any_failed) {
+                    BOOST_LOG_TRIVIAL(error) << "--ground-face-point: point (" << p.x() << "," << p.y() << "," << p.z()
+                                             << ") is not on the mesh surface. Pick a point ON a face.";
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+            }
+        } else if (opt_key == "center_on_bed") {
+            // Translate so bbox XY centroid hits bed center (from printable_area; falls back
+            // to a Core-One-ish (125,110) footprint if the config didn't carry a bed shape).
+            if (m_config.option<ConfigOptionInt>(opt_key)->value != 0) {
+                Vec2d bed_center(125.0, 110.0);
+                if (auto *area_opt = m_print_config.option<ConfigOptionPoints>("printable_area");
+                    area_opt && area_opt->values.size() >= 4) {
+                    Vec2d lo = area_opt->values[0], hi = area_opt->values[0];
+                    for (const auto &p : area_opt->values) {
+                        lo.x() = std::min(lo.x(), p.x());  lo.y() = std::min(lo.y(), p.y());
+                        hi.x() = std::max(hi.x(), p.x());  hi.y() = std::max(hi.y(), p.y());
+                    }
+                    bed_center = 0.5 * (lo + hi);
+                }
+                for (auto &model : m_models)
+                    Slic3r::MeshOrient::center_on_bed(model, bed_center);
+            }
         } else if (opt_key == "scale") {
             float ratio = m_config.opt_float(opt_key);
             if (ratio <= 0.f) {
