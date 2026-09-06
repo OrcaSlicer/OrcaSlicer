@@ -1488,7 +1488,7 @@ void IMSlider::render_add_menu()
         ImGui::OpenPopup("slider_add_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_add_menu_popup")) {
+    if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
         bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
         bool hovered = false;
         {
@@ -1543,7 +1543,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         ImGui::OpenPopup("slider_edit_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_edit_menu_popup")) {
+    if (ImGui::BeginPopup("slider_edit_menu_popup", ImGuiWindowFlags_NoMove)) {
         switch (tick.type)
         {
         case CustomGCode::PausePrint:

@@ -498,22 +498,26 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
     m_btn    = new wxBitmapButton(this, wxID_ANY, icon_enabled, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
     m_btn->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
+    auto icon_sizer = new wxBoxSizer(wxVERTICAL);
+    icon_sizer->Add(m_btn  , 0, wxLEFT, horizontal_margin);
+
     m_label = new wxStaticText(this, wxID_ANY, label);
     m_label->SetFont(Label::Head_14);
     m_label->SetForegroundColour(TextNormalBlackColor);
 
-    auto label_sizer = new wxBoxSizer(wxHORIZONTAL);
-    label_sizer->AddStretchSpacer();
-    label_sizer->Add(m_btn, 0, wxEXPAND | wxLEFT, FromDIP(1));
-    label_sizer->Add(m_label, 0, wxEXPAND| wxALL, FromDIP(3));
-    label_sizer->AddStretchSpacer();
+    auto label_sizer = new wxBoxSizer(wxVERTICAL);
+    label_sizer->Add(m_label, 0, wxLEFT, horizontal_margin);
 
     m_disable_tip = new Label(this, _L("(Sync with printer)"));
+    m_disable_tip->SetFont(Label::Body_12);
+    label_sizer->AddSpacer(FromDIP(2));
+    label_sizer->Add(m_disable_tip, 0, wxLEFT, horizontal_margin);
 
-    sizer->AddSpacer(FromDIP(32));
+    sizer->AddSpacer(FromDIP(15));
+    sizer->Add(icon_sizer, 0, wxEXPAND);
+    sizer->AddSpacer(FromDIP(10));
     sizer->Add(label_sizer, 0, wxEXPAND);
-    sizer->Add(m_disable_tip, 0, wxALIGN_CENTER);
-    sizer->AddSpacer(FromDIP(3));
+    sizer->AddSpacer(FromDIP(6));
 
     auto detail_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_detail          = new Label(this, detail);

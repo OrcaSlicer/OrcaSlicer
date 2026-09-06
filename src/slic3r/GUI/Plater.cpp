@@ -747,7 +747,7 @@ struct Sidebar::priv
     // that Orca's sidebar has no counterpart for, so these are parented to p->scrolled.
     wxPanel*          m_btn_add_mixed_filament{nullptr};  // "+ Add Mixed Filament" full-width button
     wxPanel*          m_panel_mixed_title{nullptr};       // title row: "Mixed Filament" + add/del buttons
-    wxStaticText*     m_text_mixed_title{nullptr};
+    StaticLine*       m_text_mixed_title{nullptr};
     ScalableButton*   m_btn_mixed_add{nullptr};
     ScalableButton*   m_btn_mixed_del{nullptr};
     wxScrolledWindow* m_mixed_scroll_area{nullptr};       // independent scrollbar for mixed rows
@@ -3096,10 +3096,10 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_mixed_title->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     {
         auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
-        p->m_text_mixed_title = new wxStaticText(p->m_panel_mixed_title, wxID_ANY, _L("Mixed Filament"));
+        p->m_text_mixed_title = new StaticLine(p->m_panel_mixed_title, false, _L("Mixed Filament"));
         p->m_text_mixed_title->SetFont(::Label::Head_14);
-        title_sizer->Add(p->m_text_mixed_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
-        title_sizer->AddStretchSpacer();
+        p->m_text_mixed_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
 
         p->m_btn_mixed_del = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_filament");
         p->m_btn_mixed_del->SetToolTip(_L("Remove last mixed filament"));
@@ -3931,7 +3931,7 @@ void Sidebar::update_mixed_filament_list()
     wxWindowUpdateLocker noUpdates(this);
 
     const wxColour mc_bg     = StateColor::darkModeColorFor(*wxWHITE);
-    const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#DBDBDB")); // same color with filament combo box border
     const wxColour mc_text   = StateColor::darkModeColorFor(wxColour("#262E30"));
     const wxColour mc_dim    = StateColor::darkModeColorFor(wxColour("#ACACAC"));
 
@@ -4045,8 +4045,9 @@ void Sidebar::update_mixed_filament_list()
         for (size_t i = 0; i < mixed_indices.size(); ++i) {
             size_t cfg_idx = mixed_indices[i];
             auto* combo_and_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-            combo_and_btn_sizer->Add(FromDIP(10), 0, 0, 0, 0);
+            
+            if (i == 0 || i % 2 == 0) // dont add left margin for right column items so all horizontal margins will be equal like on filaments section
+                combo_and_btn_sizer->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
 
             // Parse components and ratios from config strings (supports 2-N components)
             std::vector<unsigned int> comp_ids;
@@ -4136,10 +4137,12 @@ void Sidebar::update_mixed_filament_list()
                     dc.DrawText(txt, (sz.GetWidth() - txt_sz.GetWidth()) / 2,
                                      (sz.GetHeight() - txt_sz.GetHeight()) / 2);
                 });
-                combo_and_btn_sizer->Add(grad_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                grad_panel->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { edit_mixed_filament(i); }); // ORCA also open edit color dialog with clicking swatch
+                combo_and_btn_sizer->Add(grad_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
             } else {
-                combo_and_btn_sizer->Add(make_swatch_panel(p->m_panel_mixed_content, mix_col, mix_num),
-                                         0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                auto swatch_panel = make_swatch_panel(p->m_panel_mixed_content, mix_col, mix_num);
+                swatch_panel->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { edit_mixed_filament(i); }); // ORCA also open edit color dialog with clicking swatch
+                combo_and_btn_sizer->Add(swatch_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
             }
 
             auto* content_panel = new wxPanel(p->m_panel_mixed_content, wxID_ANY);
@@ -4363,9 +4366,9 @@ void Sidebar::update_mixed_filament_list()
 
                 PopupMenu(&menu);
             });
-            combo_and_btn_sizer->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+            combo_and_btn_sizer->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
 
-            combo_and_btn_sizer->Add(FromDIP(16), 0, 0, 0, 0);
+            combo_and_btn_sizer->Add(FromDIP(SidebarProps::ContentMargin()), 0, 0, 0, 0);
 
             int side = i % 2;
             auto* col = (side == 0) ? left_col : right_col;

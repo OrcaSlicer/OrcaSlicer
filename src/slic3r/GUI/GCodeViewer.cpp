@@ -600,7 +600,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
+
                 const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
                 const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
                 if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
@@ -628,7 +635,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGui::EndTable();
                 }
                 ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(1);
+                ImGui::PopStyleColor(5);
                 imgui.end();
             }
 

@@ -265,6 +265,8 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
 
+    bSizer->AddSpacer(FromDIP(10));
+
     wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
     m_save_default_checkbox->SetFont(::Label::Body_14);
