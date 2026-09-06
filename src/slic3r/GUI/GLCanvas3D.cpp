@@ -3856,7 +3856,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                         IMSlider *m_layers_slider = get_gcode_viewer().get_layers_slider();
                         IMSlider *m_moves_slider  = get_gcode_viewer().get_moves_slider();
                         int increment = (evt.CmdDown() || evt.ShiftDown()) ? 5 : 1;
-                        if ((evt.CmdDown() || evt.ShiftDown()) && evt.GetKeyCode() == 'G') {
+                        if (((!evt.CmdDown() && evt.ShiftDown())) && evt.GetKeyCode() == 'G') {
                             m_layers_slider->show_go_to_layer(true);
                         }
                         else if (keyCode == WXK_UP || keyCode == WXK_DOWN) {
