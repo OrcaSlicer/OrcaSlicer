@@ -161,12 +161,12 @@
 			"sub_path": "machine/Creality K2 Pro.json"
 		},
 		{
-			"name": "Creality SPARKX i7",
-			"sub_path": "machine/Creality SPARKX i7.json"
-		},
-		{
 			"name": "Creality Sermoon V1",
 			"sub_path": "machine/Creality Sermoon V1.json"
+		},
+		{
+			"name": "Creality SPARKX i7",
+			"sub_path": "machine/Creality SPARKX i7.json"
 		}
 	],
 	"process_list": [
