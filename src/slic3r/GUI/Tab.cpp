@@ -3082,6 +3082,17 @@ void TabPrint::build()
         optgroup->append_single_option_line("fuzzy_skin_layers_between_ripple_offset", "others_settings_fuzzy_skin#layers-between-ripple-offset");
         optgroup->append_single_option_line("fuzzy_skin_first_layer", "others_settings_fuzzy_skin#apply-fuzzy-skin-to-first-layer");
 
+        optgroup = page->new_optgroup(L("Stuffed lines"), L"param_stuffed_lines");
+        optgroup->append_single_option_line("stuff_divider", "others_settings_stuffed_lines#stuffed_lines");
+        optgroup->append_single_option_line("stuff_force", "others_settings_stuffed_lines#stuffed_lines");
+        optgroup->append_single_option_line("stuff_z_tamping", "others_settings_stuffed_lines#stuffed_lines");
+        optgroup->append_single_option_line("stuffed_top_infill", "others_settings_stuffed_lines#stuffed_top_infill");
+        optgroup->append_single_option_line("stuffed_outer_walls", "others_settings_stuffed_lines#stuffed_outer_walls");
+        optgroup->append_single_option_line("stuffed_inner_walls", "others_settings_stuffed_lines#stuffed_inner_walls");
+        optgroup->append_single_option_line("stuff_z_tamping_first_layer", "others_settings_stuffed_lines#stuffed_lines");
+        optgroup->append_single_option_line("stuffed_first_layer_perimeters", "others_settings_stuffed_lines#stuffed_first_layer_perimeters");
+        optgroup->append_single_option_line("stuffed_first_layer_infill", "others_settings_stuffed_lines#stuffed_first_layer_infill");
+
         optgroup = page->new_optgroup(L("G-code output"), L"param_gcode");
         optgroup->append_single_option_line("reduce_infill_retraction", "others_settings_g_code_output#reduce-infill-retraction");
         optgroup->append_single_option_line("gcode_add_line_number", "others_settings_g_code_output#add-line-number");

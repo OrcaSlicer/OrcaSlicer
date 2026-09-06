@@ -221,9 +221,9 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             path.mm3_per_mm = extrusion_mm3_per_mm;
             path.width = extrusion_width;
             path.height     = (float)perimeter_generator.layer_height;
+
             paths.emplace_back(std::move(path));
         }
-
         coll.append(ExtrusionLoop(std::move(paths), loop_role));
     }
 

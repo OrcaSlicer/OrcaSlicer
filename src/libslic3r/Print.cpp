@@ -213,6 +213,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "required_nozzle_HRC",
         "upward_compatible_machine",
         "is_infill_first",
+        "stuffed_inner_walls", "stuffed_outer_walls", "stuffed_top_infill", "stuffed_first_layer_perimeters", "stuffed_first_layer_infill", "stuff_divider", "stuff_force", "stuff_z_tamping", "stuff_z_tamping_first_layer",
         // Orca
         "chamber_temperature",
         "chamber_minimal_temperature",

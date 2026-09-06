@@ -7813,12 +7813,72 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
     return res;
 }
 
+std::string GCode::_extrude_stuffed_line(const ExtrusionPath& path, double& stuff_value, double& tamp_value,
+                                         Vec3d pre_point, Vec3d point,
+                                         double e_per_mm, std::string description)
+{
+    std::string gcode;
+    const bool is_aggresive_tamping(tamp_value < 0);
+    const double tamping_height(path.height * tamp_value);
+    double s_shift(path.width / m_config.stuff_divider.value);
+    point(2) = pre_point(2) = m_nominal_z;
+    Vec3d s_vector(point - pre_point);
+    const double line_length = s_vector.norm();
+    double dE;
+    double semi_shift(s_shift * 0.5);
+    double s_point((s_shift - EPSILON) * (double) rand() / RAND_MAX); // set random start point
+    double s_force((m_config.stuff_force.value - 1.) / 4.);
+    double s_idle(semi_shift * (1 - s_force));
+    Vec3d vm(pre_point + s_vector * (s_point / line_length));
+    gcode += m_writer.extrude_to_xyz(vm, s_point * e_per_mm, "");
+    double wo_length(line_length - s_shift);
+    for (; s_point < wo_length; s_point += s_shift) {
+        double s_idle_point(s_point + s_idle);
+        Vec3d vm1(pre_point + s_vector * (s_idle_point / line_length));
+        vm1(2) += is_aggresive_tamping ? 0 : tamping_height;
+        gcode += m_writer.extrude_to_xyz(vm1, semi_shift * (1 + std::min(stuff_value, 1.)) * e_per_mm, "");
+        if (stuff_value <= 1.) // if stuffing value <= 100%
+            dE = semi_shift * (1 - stuff_value) * e_per_mm;
+        else {
+            double s_cidle(s_shift - s_idle);
+            dE = e_per_mm * path.height * (stuff_value - 1.) * 10;
+            Vec3d vm2(pre_point + s_vector * ((s_idle_point + s_cidle * 0.50) / line_length));
+            vm2(2) += tamping_height / 2.;
+            gcode += m_writer.extrude_to_xyz(vm2, -dE, ""); // retract
+        }
+        Vec3d vm4(pre_point + s_vector * (s_point + s_shift) / line_length);
+        vm4(2) += is_aggresive_tamping ? tamping_height : 0;
+        gcode += m_writer.extrude_to_xyz(vm4, dE, ""); // work cycle
+    }
+    gcode += m_writer.extrude_to_xyz(point, e_per_mm * (line_length - s_point), GCodeWriter::full_gcode_comment ? description : "");
+    return gcode;
+}
+
 std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
 {
     std::string gcode;
 
     if (is_bridge(path.role()))
         description += " (bridge)";
+
+    // Orca: stuffed lines
+    double tamp_value(0.);
+    double stuff_value(0.);
+    if (this->layer_id() == 0 && abs(layer()->bottom_z()) < EPSILON) {
+        if (path.role() == erPerimeter || path.role() == erExternalPerimeter)
+            stuff_value = m_config.stuffed_first_layer_perimeters.value * .01;
+        if (path.role() == erBottomSurface || path.role() == erInternalInfill || path.role() == erSolidInfill)
+            stuff_value = m_config.stuffed_first_layer_infill.value * .01;
+        tamp_value  = m_config.stuff_z_tamping_first_layer.value * .01;
+    } else {
+        if (path.role() == erTopSolidInfill)
+            stuff_value = m_config.stuffed_top_infill.value * .01;
+        if (path.role() == erPerimeter)
+            stuff_value = m_config.stuffed_inner_walls.value * .01;
+        else if (path.role() == erExternalPerimeter)
+            stuff_value = m_config.stuffed_outer_walls.value * .01;
+        tamp_value = m_config.stuff_z_tamping.value * .01;
+    }
 
     const ExtrusionPathSloped* sloped = dynamic_cast<const ExtrusionPathSloped*>(&path);
 
@@ -8547,11 +8607,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                                          GCodeWriter::full_gcode_comment ? tempDescription : "");
 
                     } else if (sloped == nullptr) {
+                        // Orca: Stuffed paths print
+                        if (stuff_value) {
+                            gcode += _extrude_stuffed_line(path, stuff_value, tamp_value, this->point_to_gcode(line.a),
+                                                           this->point_to_gcode(line.b), e_per_mm, tempDescription);
+                        } else {
                         // Normal extrusion
                         gcode += m_writer.extrude_to_xy(
                             this->point_to_gcode(line.b.to_point()),
                             dE,
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        }
                     } else {
                         // Sloped extrusion
                         const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
@@ -8650,6 +8716,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         
         if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
             pre_fan_enabled = true;
+
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
@@ -8756,8 +8823,12 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
                                                  GCodeWriter::full_gcode_comment ? tempDescription : "");
             } else if (sloped == nullptr) {
-                // Normal extrusion
-                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                // Orca: Stuffed paths print
+                if (stuff_value) {
+                    gcode += _extrude_stuffed_line(path, stuff_value, tamp_value, point_to_gcode(pre_processed_point.p),
+                                                   point_to_gcode(processed_point.p), e_per_mm, tempDescription);
+                } else // Normal extrusion
+                    gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
             } else {
                 // Sloped extrusion
                 const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
