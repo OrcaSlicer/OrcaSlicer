@@ -1033,6 +1033,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
     m_no_sparse_layers(config.wipe_tower_no_sparse_layers),
+    m_enable_timelapse_print(config.timelapse_type.value == TimelapseType::tlSmooth),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
@@ -1253,7 +1254,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
         toolchange_Load(writer, cleaning_box); // Prime the tool.
         if (idx_tool + 1 == tools.size()) {
             // Last tool should not be unloaded, but it should be wiped enough to become of a pure color.
-            toolchange_Wipe(writer, cleaning_box, wipe_volumes[tools[idx_tool-1]][tool], false, true);
+            toolchange_Wipe(writer, cleaning_box, wipe_volumes[old_tool][tool], false, true);
         } else {
             // Ram the hot material out of the melt zone, retract the filament into the cooling tubes and let it cool.
             //writer.travel(writer.x(), writer.y() + m_perimeter_width, 7200);
@@ -1954,10 +1955,11 @@ void WipeTower2::toolchange_Wipe(
 
 
 
-WipeTower::ToolChangeResult WipeTower2::finish_layer()
+WipeTower::ToolChangeResult WipeTower2::finish_layer(bool timelapse_wall_only)
 {
 	assert(! this->layer_finished());
-    m_current_layer_finished = true;
+    if (!timelapse_wall_only)
+        m_current_layer_finished = true;
 
     size_t old_tool = m_current_tool;
 
@@ -1981,11 +1983,13 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     writer.set_initial_position((m_left_to_right ? fill_box.ru : fill_box.lu), // so there is never a diagonal travel
                                  m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
+    if (timelapse_wall_only)
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start) + "\n");
 
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
 
     // inner perimeter of the sparse section, if there is space for it:
-    if (fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
+    if (!timelapse_wall_only && fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
         writer.rectangle(fill_box.ld, fill_box.rd.x()-fill_box.ld.x(), fill_box.ru.y()-fill_box.rd.y(), feedrate);
 
     // we are in one of the corners, travel to ld along the perimeter:
@@ -1996,7 +2000,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     const float dy = (fill_box.lu.y() - fill_box.ld.y() - m_perimeter_width);
     float left = fill_box.lu.x() + 2*m_perimeter_width;
     float right = fill_box.ru.x() - 2 * m_perimeter_width;
-    if (dy > m_perimeter_width)
+    if (!timelapse_wall_only && dy > m_perimeter_width)
     {
         writer.travel(fill_box.ld + Vec2f(m_perimeter_width * 2, 0.f))
             .append(";--------------------\n"
@@ -2052,20 +2056,21 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     const float spacing = m_perimeter_width - m_layer_height*float(1.-M_PI_4);
     feedrate = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
+    const bool extrude_outer_wall = timelapse_wall_only || !m_enable_timelapse_print;
     Polygon poly;
     if (m_wall_type == (int)wtwCone) {
          WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
                                            m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
         // outer contour (always)
         bool infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
-        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing);
+        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing, extrude_outer_wall);
     } else {
         WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, true);
+        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, extrude_outer_wall);
     }
 
     // brim (first layer only)
-    if (first_layer) {
+    if (first_layer && extrude_outer_wall) {
         writer.append("; WIPE_TOWER_BRIM_START\n");
             float brim_width = m_wipe_tower_brim_width;
         if (brim_width < 0.f)
@@ -2100,13 +2105,16 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     int i = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
     writer.add_wipe_point(writer.pos());
     writer.add_wipe_point(unscale(poly.points[i==0 ? int(poly.points.size())-1 : i-1]).cast<float>());
+    if (timelapse_wall_only)
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End) + "\n");
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_no_sparse_layers || toolchanges_on_layer || first_layer) {
+    if (m_enable_timelapse_print || !m_no_sparse_layers || toolchanges_on_layer || first_layer) {
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
-        m_current_height += m_layer_info->height;
+        if (!timelapse_wall_only)
+            m_current_height += m_layer_info->height;
     }
 
     return construct_tcr(writer, false, old_tool, true, false);
@@ -2451,6 +2459,21 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             m_rib_length = std::max(m_rib_length, min_depth * (float)std::sqrt(2.f));
     }
 
+    if (m_enable_timelapse_print) {
+        const bool has_toolchanges = std::any_of(m_plan.begin(), m_plan.end(),
+            [](const WipeTowerInfo &layer) { return !layer.tool_changes.empty(); });
+        if (!has_toolchanges) {
+            const float min_depth = WipeTower::get_limit_depth_by_height(m_wipe_tower_height);
+            m_wipe_tower_depth = std::max(m_wipe_tower_depth, min_depth);
+            if (m_wall_type == (int)wtwRib)
+                m_wipe_tower_width = m_wipe_tower_depth;
+        }
+
+        const float layer_depth = std::max(0.f, m_wipe_tower_depth - m_perimeter_width);
+        for (WipeTowerInfo &layer : m_plan)
+            layer.depth = layer_depth;
+    }
+
     const float diagonal = std::sqrt(m_wipe_tower_depth * m_wipe_tower_depth + m_wipe_tower_width * m_wipe_tower_width);
     m_rib_length = std::max(m_rib_length, diagonal);
     m_rib_length += m_extra_rib_length;
@@ -2489,6 +2512,11 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 
         int idx = first_toolchange_to_nonsoluble_nonsupport(layer.tool_changes);
         WipeTower::ToolChangeResult finish_layer_tcr;
+        WipeTower::ToolChangeResult timelapse_wall_tcr;
+
+        // Keep the wall first for the snapshot return while the normal finish result retains the tower infill.
+        if (m_enable_timelapse_print)
+            timelapse_wall_tcr = finish_layer(true);
 
         if (idx == -1) {
             // if there is no toolchange switching to non-soluble, finish layer
@@ -2515,6 +2543,9 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             else
                 layer_result[idx] = merge_tcr(layer_result[idx], finish_layer_tcr);
         }
+
+        if (m_enable_timelapse_print)
+            layer_result.insert(layer_result.begin(), std::move(timelapse_wall_tcr));
 
 		result.emplace_back(std::move(layer_result));
 
@@ -2630,7 +2661,8 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
 // This block creates the stabilization cone.
 // First define a lambda to draw the rectangle with stabilization.
 Polygon WipeTower2::generate_support_cone_wall(
-    WipeTowerWriter2& writer, const WipeTower::box_coordinates& wt_box, double feedrate, bool infill_cone, float spacing){
+    WipeTowerWriter2& writer, const WipeTower::box_coordinates& wt_box, double feedrate, bool infill_cone, float spacing,
+    bool extrude_perimeter){
 
     const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                              m_wipe_tower_cone_angle);
@@ -2664,6 +2696,8 @@ Polygon WipeTower2::generate_support_cone_wall(
     Polygon poly;
     for (const auto& [pt, tag] : pts)
         poly.points.push_back(Point::new_scale(pt));
+    if (!extrude_perimeter)
+        return poly;
 
     // Prepare polygons to be filled by infill.
     Polylines polylines;

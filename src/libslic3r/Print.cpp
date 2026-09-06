@@ -4389,6 +4389,8 @@ void Print::_make_wipe_tower()
                     }
                 }
                 layer_tools.wiping_extrusions().ensure_perimeters_infills_order(*this);
+                if (enable_timelapse_print())
+                    continue;
                 if (&layer_tools == &m_wipe_tower_data.tool_ordering.back() || (&layer_tools + 1)->wipe_tower_partitions == 0)
                     break;
             }
