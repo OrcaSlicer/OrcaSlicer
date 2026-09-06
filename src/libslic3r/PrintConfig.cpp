@@ -277,7 +277,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "default", ipCount } // used for undertop infill
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -2304,6 +2305,17 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+
+    def = this->add("undertop_surface_pattern", coEnum);
+    def->label = L("Undertop surface pattern");
+    def->category = L("Strength");
+    def->tooltip = L("This is the line pattern for undertop surface infill.");
+    def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
+    def->enum_values = def_top_fill_pattern->enum_values;
+    def->enum_labels = def_top_fill_pattern->enum_labels;
+    def->enum_values.insert(def->enum_values.begin(), "default");
+    def->enum_labels.insert(def->enum_labels.begin(), L("Solid default"));
+    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCount));
 
     def = this->add("top_surface_density", coPercent);
     def->label = L("Top surface density");
@@ -9120,6 +9132,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "disabled";
     } else if ((opt_key == "sparse_infill_pattern"         ||
                 opt_key == "top_surface_pattern"           ||
+                opt_key == "undertop_surface_pattern"      ||
                 opt_key == "bottom_surface_pattern"        ||
                 opt_key == "internal_solid_infill_pattern" ||
                 opt_key == "ironing_pattern"               ||
@@ -11718,6 +11731,11 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     // --top-fill-pattern
     if (! print_config_def.get("top_surface_pattern")->has_enum_value(cfg.top_surface_pattern.serialize())) {
         error_message.emplace("top_surface_pattern", L("invalid value ") + cfg.top_surface_pattern.serialize());
+    }
+
+    // --undertop-fill-pattern
+    if (!print_config_def.get("undertop_surface_pattern")->has_enum_value(cfg.undertop_surface_pattern.serialize())) {
+        error_message.emplace("undertop_surface_pattern", L("invalid value ") + cfg.undertop_surface_pattern.serialize());
     }
 
     // --bottom-fill-pattern

@@ -799,6 +799,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
     toggle_line("sparse_infill_smooth_factor", is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")));
     toggle_field("top_surface_pattern", has_top_shell);
+    toggle_field("undertop_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell_layers);
     toggle_field("bottom_surface_density", has_bottom_shell);
@@ -829,6 +830,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                                         config->opt_string("sparse_infill_rotate_template") != "" ||
                                         config->opt_string("solid_infill_rotate_template") != "";
     toggle_line("separated_infills", is_internal_infill_separable);
+
+    // Orca: undertop infill
+    toggle_line("undertop_surface_pattern", config->option<ConfigOptionPercent>("top_surface_density")->value < 100 && config->opt_int("top_shell_layers") > 2);
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
