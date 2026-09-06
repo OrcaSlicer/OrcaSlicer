@@ -1229,3 +1229,146 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
 }
+
+// Total length of every ironing extrusion on the layer, and the bounding box they span.
+struct IroningExtent
+{
+    double length = 0.;
+    Points points;
+};
+
+static IroningExtent ironing_extent(const Print &print)
+{
+    IroningExtent out;
+
+    auto account = [&out](const ExtrusionPath &path) {
+        if (path.role() != erIroning)
+            return;
+        out.length += path.length();
+        append(out.points, path.polyline.to_polyline().points);
+    };
+
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities) {
+                if (auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+                    account(*path);
+                else if (auto *multi = dynamic_cast<const ExtrusionMultiPath *>(entity))
+                    for (const ExtrusionPath &p : multi->paths)
+                        account(p);
+                else if (auto *loop = dynamic_cast<const ExtrusionLoop *>(entity))
+                    for (const ExtrusionPath &p : loop->paths)
+                        account(p);
+            }
+    return out;
+}
+
+// True for the upward facing facets on the low-x half of the volume: the subset this test paints.
+static bool is_low_x_top_facet(const indexed_triangle_set &its, const BoundingBoxf3 &bb, int facet_idx)
+{
+    const Vec3i32 &t  = its.indices[facet_idx];
+    const Vec3f    v0 = its.vertices[t(0)], v1 = its.vertices[t(1)], v2 = its.vertices[t(2)];
+    const Vec3f    n  = (v1 - v0).cross(v2 - v0);
+    const double   cx = (v0.x() + v1.x() + v2.x()) / 3.;
+    return n.z() > 0.f && cx < 0.5 * (bb.min.x() + bb.max.x());
+}
+
+static void paint_low_x_top_facets(Model &model)
+{
+    ModelVolume                &mv  = *model.objects.front()->volumes.front();
+    const indexed_triangle_set &its = mv.mesh().its;
+    const BoundingBoxf3         bb  = mv.mesh().bounding_box();
+
+    TriangleSelector selector(mv.mesh());
+    for (int i = 0; i < int(its.indices.size()); ++i)
+        if (is_low_x_top_facet(its, bb, i))
+            selector.set_facet(i, EnforcerBlockerType::IRONING);
+    mv.ironing_facets.set(selector);
+}
+
+// XY footprint of the painted facets, in the same frame the slicer projects them into.
+static ExPolygons painted_footprint(const PrintObject &object)
+{
+    const ModelVolume          &mv    = *object.model_object()->volumes.front();
+    const indexed_triangle_set &its   = mv.mesh().its;
+    const BoundingBoxf3         bb    = mv.mesh().bounding_box();
+    const Transform3d           trafo = object.trafo_centered() * mv.get_matrix();
+
+    Polygons painted;
+    for (int i = 0; i < int(its.indices.size()); ++i) {
+        if (!is_low_x_top_facet(its, bb, i))
+            continue;
+        Polygon poly;
+        for (int c = 0; c < 3; ++c) {
+            const Vec3d p = trafo * its.vertices[its.indices[i](c)].cast<double>();
+            poly.points.emplace_back(scaled<coord_t>(p.x()), scaled<coord_t>(p.y()));
+        }
+        if (poly.area() < 0)
+            poly.reverse();
+        painted.emplace_back(std::move(poly));
+    }
+    return union_ex(painted);
+}
+
+TEST_CASE("Painted ironing irons only the painted part of the top surface", "[Fill]")
+{
+    auto config_items = std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem>{
+        {"ironing_type", "painted"},
+        {"top_surface_pattern", "monotonic"},
+        {"layer_height", 0.2},
+    };
+
+    // Reference run: the same object with every top surface ironed.
+    Print all_top;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, all_top,
+                                         {{"ironing_type", "top"}, {"top_surface_pattern", "monotonic"}, {"layer_height", 0.2}});
+    const IroningExtent reference = ironing_extent(all_top);
+    // The reference has to actually iron something, or the comparisons below are vacuous.
+    REQUIRE(reference.length > 0.);
+
+    Print              print;
+    Model              model;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    for (const auto &item : config_items)
+        config.set_deserialize_strict(item.opt_key, item.opt_value);
+
+    Slic3r::Test::init_print({Slic3r::Test::cube(20)}, print, model, config_items);
+    paint_low_x_top_facets(model);
+    print.apply(model, config);
+    print.process();
+
+    const ExPolygons footprint = painted_footprint(*print.objects().front());
+    REQUIRE(!footprint.empty());
+
+    const IroningExtent painted = ironing_extent(print);
+
+    // Painting drives ironing on: something is ironed, but less than ironing every top surface.
+    REQUIRE(painted.length > 0.);
+    REQUIRE(painted.length < reference.length);
+
+    // Half of the top face is painted, so roughly half the ironing survives.
+    CAPTURE(painted.length, reference.length);
+    REQUIRE(painted.length > 0.25 * reference.length);
+    REQUIRE(painted.length < 0.75 * reference.length);
+
+    // Every ironing extrusion stays inside the painted footprint. The slack covers the
+    // ironing line width and the inset make_ironing() applies to the surface.
+    const Polygons allowed = offset(footprint, scaled<float>(0.5));
+    Points         outside;
+    for (const Point &p : painted.points)
+        if (!contains(allowed, p))
+            outside.emplace_back(p);
+    CAPTURE(outside.size(), painted.points.size());
+    REQUIRE(outside.empty());
+}
+
+TEST_CASE("Painted ironing irons nothing when no facet is painted", "[Fill]")
+{
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                         {{"ironing_type", "painted"},
+                                          {"top_surface_pattern", "monotonic"},
+                                          {"layer_height", 0.2}});
+
+    REQUIRE(ironing_extent(print).length == 0.);
+}

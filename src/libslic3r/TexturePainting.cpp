@@ -558,11 +558,12 @@ bool apply_painted_mesh_to_volume(
     // Mesh geometry has been replaced; any per-face annotation indexed
     // against the previous triangle set is now stale. mmu_segmentation_facets
     // is rewritten below from the new selector; reset the others so future
-    // import paths that carry support / seam / fuzzy_skin painting cannot
-    // leak indices from the old mesh into the new one.
+    // import paths that carry support / seam / fuzzy_skin / ironing painting
+    // cannot leak indices from the old mesh into the new one.
     volume.supported_facets.reset();
     volume.fuzzy_skin_facets.reset();
     volume.seam_facets.reset();
+    volume.ironing_facets.reset();
 
     if (ModelObject* obj = volume.get_object())
         obj->invalidate_bounding_box();

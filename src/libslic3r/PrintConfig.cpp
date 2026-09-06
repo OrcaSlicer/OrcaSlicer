@@ -286,7 +286,8 @@ static t_config_enum_values s_keys_map_IroningType {
     { "no ironing",     int(IroningType::NoIroning) },
     { "top",            int(IroningType::TopSurfaces) },
     { "topmost",        int(IroningType::TopmostOnly) },
-    { "solid",          int(IroningType::AllSolid) }
+    { "solid",          int(IroningType::AllSolid) },
+    { "painted",        int(IroningType::PaintedOnly) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(IroningType)
 
@@ -4783,16 +4784,18 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_type", coEnum);
     def->label = L("Ironing type");
     def->category = L("Quality");
-    def->tooltip = L("Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed.");
+    def->tooltip = L("Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed. \"Painted surfaces only\" irons just the top surfaces painted with the paint-on ironing tool.");
     def->enum_keys_map = &ConfigOptionEnum<IroningType>::get_enum_values();
     def->enum_values.push_back("no ironing");
     def->enum_values.push_back("top");
     def->enum_values.push_back("topmost");
     def->enum_values.push_back("solid");
+    def->enum_values.push_back("painted");
     def->enum_labels.push_back(L("No ironing"));
     def->enum_labels.push_back(L("All top surfaces"));
     def->enum_labels.push_back(L("Topmost surface only"));
     def->enum_labels.push_back(L("All solid layers"));
+    def->enum_labels.push_back(L("Painted surfaces only"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<IroningType>(IroningType::NoIroning));
 
