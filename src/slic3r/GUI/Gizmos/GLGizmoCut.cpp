@@ -746,6 +746,10 @@ void GLGizmoCut3D::render_move_center_input(int axis)
 // and no World/Object/Part coordinate switch (the cut plane has one frame).
 void GLGizmoCut3D::render_cut_rotation_input()
 {
+    // Same item spacing as the object Rotate overlay (the panel default is
+    // much taller, which stretched our rows apart vertically).
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f));
+
     float space_size = m_imgui->get_style_scaling() * 8;
     // Same formula as the overlay (theirs captions this row "World").
     float caption_max = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
@@ -878,6 +882,8 @@ void GLGizmoCut3D::render_cut_rotation_input()
         }
         delete_negative_sign(m_cut_absolute_deg);
     }
+
+    ImGui::PopStyleVar();
 }
 
 bool GLGizmoCut3D::render_connect_type_radio_button(CutConnectorType type)
