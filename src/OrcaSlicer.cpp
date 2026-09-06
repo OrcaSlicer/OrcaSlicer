@@ -1187,6 +1187,105 @@ static void load_downward_settings_list_from_config(std::string config_file, std
     }
 }
 
+//ORCA: search for a preset JSON by bare `name` under all known vendor trees.
+//      Priority: user override → installed vendor system tree → bundled
+//      resources. Returns "" on miss. Used to walk the `inherits` chain for
+//      external configs loaded via --load-settings / --load-filaments, which
+//      otherwise never resolve past their leaf JSON (the old CLI relied on
+//      hard-coded "resources_dir/profiles/BBL/*_full/" paths that only exist
+//      for BBL; for any other vendor — Prusa, Elegoo, Anycubic, Custom, ... —
+//      grandparent values were silently defaulted to schema zeros, which bit
+//      slicer-chat 2026-08-08 with chamber_temperature=[20] getting served as 0).
+static std::string cli_find_preset_json(const std::string &name, const std::string &preset_type,
+                                        const std::string &preferred_vendor_dir = std::string())
+{
+    namespace fs = boost::filesystem;
+    //ORCA: prefer the vendor directory that supplied the previous hop of the chain.
+    //      Base profile names are NOT unique across vendors: fdm_process_common.json ships
+    //      in 61 bundled vendors with 43 distinct contents. The scan below returns whichever
+    //      vendor directory_iterator yields first, which is filesystem order and has nothing
+    //      to do with the leaf's vendor -- so a Prusa chain could resolve its base against
+    //      another vendor's same-named file and silently pick up that vendor's values.
+    //      Staying inside one vendor while walking removes the ordering dependency.
+    if (!preferred_vendor_dir.empty()) {
+        fs::path candidate = fs::path(preferred_vendor_dir) / preset_type / (name + ".json");
+        if (fs::exists(candidate)) return candidate.string();
+    }
+    const std::vector<std::string> roots = {
+        Slic3r::data_dir() + "/user",
+        Slic3r::data_dir() + "/system",
+        resources_dir()    + "/profiles",
+    };
+    for (const std::string &root : roots) {
+        if (root.empty() || !fs::exists(root) || !fs::is_directory(root)) continue;
+        for (fs::directory_iterator it(root), end; it != end; ++it) {
+            if (!fs::is_directory(it->status())) continue;
+            fs::path candidate = it->path() / preset_type / (name + ".json");
+            if (fs::exists(candidate)) return candidate.string();
+        }
+    }
+    return {};
+}
+
+//ORCA: walk `config`'s inherits chain and cascade-apply oldest→leaf so
+//      values only present in ancestors reach the resolved config. Mirrors
+//      the GUI PresetCollection load path (Preset.cpp:1738). Depth-capped at
+//      8 to defend against pathological cycles; missing parents warn + stop
+//      rather than fail (matches how the rest of the CLI is lenient about
+//      externally-loaded configs). No-op when `inherits` is empty (i.e. the
+//      caller passed a fully-flattened preset like a BBL system_full).
+static void cli_resolve_inherits_chain(DynamicPrintConfig &config,
+                                       const std::string  &preset_type,
+                                       ForwardCompatibilitySubstitutionRule rule)
+{
+    if (preset_type != "filament" && preset_type != "process" && preset_type != "machine")
+        return;
+    auto *inherits_opt = dynamic_cast<ConfigOptionString *>(config.option("inherits"));
+    if (!inherits_opt || inherits_opt->value.empty()) return;
+
+    std::vector<DynamicPrintConfig> ancestors; // parent, grandparent, ...
+    std::string next = inherits_opt->value;
+    std::string vendor_dir; //ORCA: vendor directory that supplied the previous hop, preferred for the next
+    for (int depth = 0; depth < 8 && !next.empty(); ++depth) {
+        const std::string parent_path = cli_find_preset_json(next, preset_type, vendor_dir);
+        if (parent_path.empty()) {
+            BOOST_LOG_TRIVIAL(warning)
+                << "cli inherits: could not find parent preset '" << next
+                << "' (type " << preset_type << "); chain walk stopped, downstream keys will fall back to schema defaults";
+            break;
+        }
+        //ORCA: parent_path is <vendor_dir>/<preset_type>/<name>.json -- keep <vendor_dir> so the
+        //      next hop resolves within the same vendor before falling back to the global scan.
+        vendor_dir = boost::filesystem::path(parent_path).parent_path().parent_path().string();
+        DynamicPrintConfig parent;
+        std::map<std::string, std::string> kv;
+        std::string reason;
+        try {
+            parent.load_from_json(parent_path, rule, kv, reason);
+        } catch (const std::exception &err) {
+            BOOST_LOG_TRIVIAL(warning) << "cli inherits: failed to load parent " << parent_path << ": " << err.what();
+            break;
+        }
+        if (!reason.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "cli inherits: parse error on parent " << parent_path << ": " << reason;
+            break;
+        }
+        auto *next_opt = dynamic_cast<ConfigOptionString *>(parent.option("inherits"));
+        next = (next_opt ? next_opt->value : std::string());
+        ancestors.push_back(std::move(parent));
+    }
+    if (ancestors.empty()) return;
+
+    // Cascade oldest ancestor → leaf so leaf's own explicit keys always win.
+    DynamicPrintConfig resolved;
+    for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it)
+        resolved.apply(*it);
+    resolved.apply(config);
+    config = std::move(resolved);
+    BOOST_LOG_TRIVIAL(info) << "cli inherits: resolved " << ancestors.size()
+                             << "-hop chain for " << preset_type << " preset";
+}
+
 int CLI::run(int argc, char **argv)
 {
     // Mark the main thread for the debugger and for runtime checks.
@@ -2019,6 +2118,14 @@ int CLI::run(int argc, char **argv)
                 boost::nowide::cerr <<__FUNCTION__ << boost::format(": unknown config type %1% of file %2% in load-settings") % config_type % file;
                 return CLI_CONFIG_FILE_ERROR;
             }
+            //ORCA: walk the inherits chain now, before normalize_fdm / downstream
+            //      merge. External configs (--load-settings / --load-filaments) come
+            //      in as bare leaf JSON; without this, any key that only exists
+            //      farther up the chain (parent, grandparent, ...) is invisible
+            //      and downstream slicing reads schema-default zeros instead of the
+            //      inherited values. Only user leaf presets need walking — pure
+            //      system files either have no inherits or the walker is idempotent.
+            cli_resolve_inherits_chain(config, config_type, config_substitution_rule);
             config.normalize_fdm();
 
             if (! config_substitutions.empty()) {
