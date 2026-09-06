@@ -244,8 +244,6 @@ public:
     void delete_selected_sketch_entities();
     bool inline_busy() const;                         // a sketch value field is open (guard keys)
     bool inline_has_focus() const;                    // the field itself holds keyboard focus
-    // Hand one character to the open value field, bypassing focus. See DesignPanel's arbiter.
-    bool inline_type_char(int key);
     void inline_commit();                             // accept the typed value (Enter/Tab)
     void inline_cancel();                             // discard the typed value (Esc)
     // The layered Esc: abandon the points of the gesture in progress, else drop the armed tool

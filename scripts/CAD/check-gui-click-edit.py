@@ -399,46 +399,29 @@ def type_into_open_field(value, mark):
     title = opens[-1][1]
     prefill = opens[-1][2].get("prefill", "")
     m2 = trace_mark()
-    # REPRODUCE THE FAILING CONDITION ON PURPOSE, rather than hoping the window manager supplies
-    # it. The defect is "the value field is open but does not hold the keyboard", which is what
-    # mutter does on the user's GNOME desktop and what openbox — the rig's WM — never does. A
-    # ladder that just types on openbox is green at baseline and proves nothing: the gate could
-    # not fail, so it could not pass meaningfully either.
+    # TYPE NORMALLY. NOTHING TO DEFOCUS ANY MORE.
     #
-    # So take the keyboard AWAY from the field first, deliberately, by activating the main
-    # window. That is exactly the state mutter leaves behind, reproduced deterministically on any
-    # WM. A build that routes keys by content is unaffected; a build that routes by focus commits
-    # its prefill, which is the bug, and the assertion below catches it.
-    if not A.no_defocus:
-        w, _, _, _, _ = win()
-        # windowfocus, NOT windowactivate. `windowactivate` sets _NET_ACTIVE_WINDOW — it ASKS the
-        # window manager, and openbox obliges by marking the field's toplevel inactive while
-        # leaving the X input focus exactly where it was. Measured: the trace read
-        # "active=0 toplevel_focus=0" and every keystroke still reached the field, so the ladder
-        # passed against a binary with the arbiter compiled out. A gate that cannot fail cannot
-        # pass meaningfully either, and that run nearly shipped as proof.
-        #
-        # `windowfocus` calls XSetInputFocus, which is what actually decides where the server
-        # delivers keys. That reproduces the real defect — field on screen, keyboard elsewhere —
-        # on any WM, instead of hoping the local one volunteers it.
-        # DELIVER THE KEYS TO THE MAIN WINDOW, not to whatever holds the focus.
-        #
-        # This is the defect, reproduced exactly and without a focus fight. On the user's GNOME
-        # desktop mutter's focus-stealing prevention refuses the borderless field toplevel the
-        # keyboard, so the digits are delivered to the Design panel — which is precisely what
-        # DesignPanel's CHAR_HOOK comment describes. Only routing by CONTENT can get them from
-        # there into the field; a build that routes by focus commits its prefill.
-        #
-        # Stealing the focus instead does NOT work and must not be reinstated: measured on
-        # openbox, the app re-asserts SetFocus from open()'s CallAfter and wins every race — four
-        # retries of XSetInputFocus all lost, `xdotool getwindowfocus` came back as the field's
-        # own toplevel every time. Two full runs passed against a binary with the arbiter
-        # compiled out because of it. Targeting the window sidesteps the question entirely.
-        target = None
-        if not A.no_defocus:
-            target, _, _, _, _ = win()
-    typ(str(value), 0.4, window=target)
-    key("Return", 0.9, window=target)
+    # The value field is drawn INSIDE the GL canvas by ImGui, so it is not a window: there is no
+    # second toplevel for a window manager to grant or refuse the keyboard, and the keystrokes go
+    # to the app's one window exactly as a person's would. That is the entire point of the design
+    # — the WM has no say — and it is why this ladder no longer tries to manufacture the failing
+    # condition.
+    #
+    # When the field WAS a floating wxFrame, this spot held two attempts to reproduce
+    # "field open, keyboard elsewhere", and both are recorded here so neither is tried again:
+    #   - XSetInputFocus onto the main window (`xdotool windowfocus`): the field's own re-focus
+    #     CallAfter wins the race every time; four retries all lost, and the ladder passed twice
+    #     against a binary with the fix compiled out.
+    #   - XSendEvent at the main window (`xdotool type --window`): GTK discards synthetic key
+    #     events, so NEITHER build received anything and every run was red regardless of the code.
+    # A run that used the second of those is what produced "the app never saw a digit" — a
+    # property of xdotool, not of the product.
+    #
+    # For the in-canvas field the honest gate is simply: type, and see whether the value the app
+    # commits is the value that was typed.
+    diag = sh(f"DISPLAY={DISP} xdotool getwindowfocus").strip()
+    typ(str(value), 0.4)
+    key("Return", 0.9)
     after, commits, refused, commit_at = [], [], [], None
     deadline = time.time() + 5.0
     while time.time() < deadline:
