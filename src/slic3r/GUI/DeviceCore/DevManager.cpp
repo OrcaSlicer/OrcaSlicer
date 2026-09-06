@@ -10,6 +10,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include "libslic3r/Time.hpp"
@@ -355,7 +356,10 @@ namespace Slic3r
                     obj->bind_state = "free";
 
                 obj->last_alive = Slic3r::Utils::get_current_time_utc();
-                obj->m_is_online = true;
+                // Route through set_online_state() (rather than writing m_is_online directly) so the
+                // DeviceOnlineChanged lifecycle event fires consistently; same effective value/behavior
+                // here since the object was already online in the common case.
+                obj->set_online_state(true);
                 obj->set_dev_name(dev_name);
                 /* if (!obj->dev_ip.empty()) {
                 Slic3r::GUI::wxGetApp().app_config->set_str("ip_address", obj->dev_id, obj->dev_ip);
@@ -373,6 +377,10 @@ namespace Slic3r
                 obj->bind_sec_link  = sec_link;
                 obj->dev_connection_name = connection_name;
                 obj->bind_ssdp_version = ssdp_version;
+                // Discovery establishes the initial reachability state. Do not report it as an
+                // online transition; DeviceDiscovered below is the lifecycle event for a new
+                // device. Subsequent updates route through set_online_state(), so a known device
+                // still emits DeviceOnlineChanged when its reachability actually changes.
                 obj->m_is_online = true;
 
                 //load access code
@@ -389,6 +397,15 @@ namespace Slic3r
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " New Machine, dev_id= " << dev_id
                     << ", ip = " << dev_ip <<", printer_name = " << dev_name
                     << ", con_type= " << connect_type <<", signal= " << printer_signal << ", bind_state= " << bind_state;
+
+                // First discovery of a genuinely new device (not a periodic SSDP/heartbeat update to
+                // an already-known one, which is handled in the branch above).
+                {
+                    LifecycleEventContext ctx;
+                    ctx.name = dev_id;
+                    ctx.code = LifecycleEvtCode::Ok;
+                    fire_lifecycle_event(LifecycleEvent::DeviceDiscovered, ctx);
+                }
             }
             update_local_machine(*obj);
         }
@@ -984,8 +1001,14 @@ namespace Slic3r
     }
 
     void DeviceManager::OnSelectedMachineChanged(const std::string& /*pre_dev_id*/,
-                                                 const std::string& /*new_dev_id*/)
+                                                 const std::string& new_dev_id)
     {
+        {
+            LifecycleEventContext ctx;
+            ctx.name = new_dev_id; // empty string is a valid deselection
+            ctx.code = LifecycleEvtCode::Ok;
+            fire_lifecycle_event(LifecycleEvent::DeviceSelected, ctx);
+        }
         if (MachineObject* obj_ = get_selected_machine()) {
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
             if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)

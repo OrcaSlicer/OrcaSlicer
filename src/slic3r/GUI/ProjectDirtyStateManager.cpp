@@ -6,6 +6,7 @@
 #include "MainFrame.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -17,13 +18,23 @@ namespace GUI {
 
 void ProjectDirtyStateManager::update_from_undo_redo_stack(bool dirty)
 {
+    const bool was_dirty = is_dirty();
     m_plater_dirty = dirty;
+    notify_dirty_change(was_dirty, "undo_redo");
     if (const Plater *plater = wxGetApp().plater(); plater && wxGetApp().initialized())
         wxGetApp().mainframe->update_title();
 }
 
+void ProjectDirtyStateManager::set_plater_dirty(bool is_dirty)
+{
+    const bool was_dirty = this->is_dirty();
+    m_plater_dirty = is_dirty;
+    notify_dirty_change(was_dirty, "plater");
+}
+
 void ProjectDirtyStateManager::update_from_presets()
 {
+    const bool was_dirty = is_dirty();
     m_presets_dirty = false;
     // check switching of the presets only for exist/loaded project, but not for new
     GUI_App &app = wxGetApp();
@@ -45,16 +56,51 @@ void ProjectDirtyStateManager::update_from_presets()
     }
     m_presets_dirty |= app.has_unsaved_preset_changes();
     m_project_config_dirty = m_initial_project_config != app.preset_bundle->project_config;
+    notify_dirty_change(was_dirty, "presets");
     app.mainframe->update_title();
 }
 
 void ProjectDirtyStateManager::reset_after_save()
 {
+    const bool was_dirty = is_dirty();
     this->reset_initial_presets();
     m_plater_dirty  = false;
     m_presets_dirty = false;
     m_project_config_dirty = false;
+    notify_dirty_change(was_dirty, "save");
     wxGetApp().mainframe->update_title();
+}
+
+void ProjectDirtyStateManager::notify_dirty_change(bool was_dirty, const char *source)
+{
+    if (m_suppress_depth > 0)
+        return;
+
+    const bool dirty = is_dirty();
+    if (was_dirty == dirty)
+        return;
+
+    LifecycleEventContext ctx;
+    ctx.code = LifecycleEvtCode::Ok;
+    ctx.dirty = dirty;
+    ctx.source = source;
+    fire_lifecycle_event(LifecycleEvent::ProjectDirtyChanged, ctx);
+}
+
+void ProjectDirtyStateManager::begin_suppress_notifications()
+{
+    if (m_suppress_depth == 0)
+        m_suppress_entry_dirty = is_dirty();
+    ++m_suppress_depth;
+}
+
+void ProjectDirtyStateManager::end_suppress_notifications()
+{
+    assert(m_suppress_depth > 0);
+    if (m_suppress_depth > 0)
+        --m_suppress_depth;
+    if (m_suppress_depth == 0)
+        notify_dirty_change(m_suppress_entry_dirty, "batch");
 }
 
 void ProjectDirtyStateManager::reset_initial_presets()
@@ -168,4 +214,3 @@ void ProjectDirtyStateManager::render_debug_window() const
 
 } // namespace GUI
 } // namespace Slic3r
-

@@ -6,6 +6,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "libnest2d/common.hpp"
 
 #include <numeric>
@@ -347,6 +348,13 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
             m_plater->arrange();
         }
         m_plater->update();
+
+        {
+            Slic3r::LifecycleEventContext ctx;
+            ctx.code = Slic3r::LifecycleEvtCode::Ok;
+            ctx.msg = "arranged";
+            Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+        }
     }
 
     m_plater->mark_plate_toolbar_image_dirty();

@@ -3,6 +3,7 @@
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
 
@@ -2622,7 +2623,15 @@ void MachineObject::reset()
 
 void MachineObject::set_print_state(std::string status)
 {
+    const bool changed = (print_status != status);
     print_status = status;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = print_status;
+        fire_lifecycle_event(LifecycleEvent::PrintStateChanged, ctx);
+    }
 }
 
 int MachineObject::connect(bool use_openssl)
@@ -2644,6 +2653,10 @@ int MachineObject::connect(bool use_openssl)
 int MachineObject::disconnect()
 {
     if (m_agent) {
+        LifecycleEventContext ctx;
+        ctx.name = dev_id;
+        ctx.code = LifecycleEvtCode::Ok;
+        fire_lifecycle_event(LifecycleEvent::DeviceDisconnected, ctx);
         return m_agent->disconnect_printer();
     }
     return -1;
@@ -2674,8 +2687,16 @@ bool MachineObject::is_connecting()
 
 void MachineObject::set_online_state(bool on_off)
 {
+    const bool changed = (m_is_online != on_off);
     m_is_online = on_off;
     if (!on_off) m_active_state = NotActive;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = on_off ? "online" : "offline";
+        fire_lifecycle_event(LifecycleEvent::DeviceOnlineChanged, ctx);
+    }
 }
 
 bool MachineObject::is_info_ready(bool check_version) const
@@ -4597,8 +4618,13 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
         try {
             if (j.contains("event")) {
                 if (j["event"].contains("event")) {
-                    if (j["event"]["event"].get<std::string>() == "client.disconnected")
+                    if (j["event"]["event"].get<std::string>() == "client.disconnected") {
                         set_online_state(false);
+                        LifecycleEventContext ctx;
+                        ctx.name = dev_id;
+                        ctx.code = LifecycleEvtCode::Ok;
+                        fire_lifecycle_event(LifecycleEvent::DeviceDisconnected, ctx);
+                    }
                     else if (j["event"]["event"].get<std::string>() == "client.connected")
                         set_online_state(true);
                 }

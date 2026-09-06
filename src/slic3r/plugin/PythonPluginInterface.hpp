@@ -10,6 +10,8 @@
 #include <nlohmann/json.hpp>
 #include <pybind11/embed.h>
 
+#include <libslic3r/LifecycleEvents.hpp>
+
 namespace Slic3r {
 
 enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, Unknown };
@@ -166,6 +168,8 @@ public:
     virtual void on_load() {}
     virtual void on_unload() {}
     virtual void on_cancelled() {}
+
+    virtual void on_lifecycle_event(LifecycleEvent event, const LifecycleEventContext& ctx) { (void) event; (void) ctx; }
 
     // ── C++-only host state, never exposed to Python. Set by the loader at materialization. ──
     //

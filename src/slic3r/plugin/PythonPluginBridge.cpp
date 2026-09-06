@@ -377,6 +377,62 @@ void bind_python_api(pybind11::module_& m)
         .value("FatalError", PluginResult::FatalError)
         .export_values();
 
+    py::enum_<LifecycleEvent>(m, "LifecycleEvent", "Application lifecycle moment passed to on_lifecycle_event")
+        .value("NewProject", LifecycleEvent::NewProject)
+        .value("ProjectOpened", LifecycleEvent::ProjectOpened)
+        .value("ProjectBeforeSave", LifecycleEvent::ProjectBeforeSave)
+        .value("ProjectAfterSave", LifecycleEvent::ProjectAfterSave)
+        .value("ProjectClosed", LifecycleEvent::ProjectClosed)
+        .value("ProjectDirtyChanged", LifecycleEvent::ProjectDirtyChanged)
+        .value("SliceStarted", LifecycleEvent::SliceStarted)
+        .value("SliceGeometryFinished", LifecycleEvent::SliceGeometryFinished)
+        .value("GCodeExportStarted", LifecycleEvent::GCodeExportStarted)
+        .value("GCodeExportFinished", LifecycleEvent::GCodeExportFinished)
+        .value("SlicingJobComplete", LifecycleEvent::SlicingJobComplete)
+        .value("ObjectAdded", LifecycleEvent::ObjectAdded)
+        .value("ObjectDeleted", LifecycleEvent::ObjectDeleted)
+        .value("ObjectTransformed", LifecycleEvent::ObjectTransformed)
+        .value("ObjectChanged", LifecycleEvent::ObjectChanged)
+        .value("ObjectRenamed", LifecycleEvent::ObjectRenamed)
+        .value("PlateCreated", LifecycleEvent::PlateCreated)
+        .value("PlateDeleted", LifecycleEvent::PlateDeleted)
+        .value("PlateSelected", LifecycleEvent::PlateSelected)
+        .value("PlateRenamed", LifecycleEvent::PlateRenamed)
+        .value("PresetSelected", LifecycleEvent::PresetSelected)
+        .value("PresetSaved", LifecycleEvent::PresetSaved)
+        .value("PrintStateChanged", LifecycleEvent::PrintStateChanged)
+        .value("DeviceOnlineChanged", LifecycleEvent::DeviceOnlineChanged)
+        .value("DeviceDiscovered", LifecycleEvent::DeviceDiscovered)
+        .value("DeviceSelected", LifecycleEvent::DeviceSelected)
+        .value("DeviceConnected", LifecycleEvent::DeviceConnected)
+        .value("DeviceDisconnected", LifecycleEvent::DeviceDisconnected)
+        .value("UploadStarted", LifecycleEvent::UploadStarted)
+        .value("UploadFinished", LifecycleEvent::UploadFinished)
+        .value("PrintJobStarted", LifecycleEvent::PrintJobStarted)
+        .value("PrintJobFinished", LifecycleEvent::PrintJobFinished)
+        .value("SendJobStarted", LifecycleEvent::SendJobStarted)
+        .value("SendJobFinished", LifecycleEvent::SendJobFinished)
+        .export_values();
+
+    py::enum_<LifecycleEvtCode>(m, "LifecycleEvtCode", "Outcome code accompanying a LifecycleEventContext")
+        .value("Ok", LifecycleEvtCode::Ok)
+        .value("Error", LifecycleEvtCode::Error)
+        .value("Warn", LifecycleEvtCode::Warn)
+        .export_values();
+
+    py::class_<LifecycleEventContext>(m, "LifecycleEventContext", "Payload accompanying a LifecycleEvent")
+        .def(py::init<>())
+        .def_readonly("name", &LifecycleEventContext::name)
+        .def_readonly("code", &LifecycleEventContext::code)
+        .def_readonly("msg", &LifecycleEventContext::msg)
+        .def_readonly("id", &LifecycleEventContext::id)
+        .def_readonly("previous_name", &LifecycleEventContext::previous_name)
+        .def_readonly("device_id", &LifecycleEventContext::device_id)
+        .def_readonly("job_id", &LifecycleEventContext::job_id)
+        .def_readonly("source", &LifecycleEventContext::source)
+        .def_readonly("index", &LifecycleEventContext::index)
+        .def_readonly("dirty", &LifecycleEventContext::dirty);
+
     py::class_<PluginContext>(m, "PluginContext", "Context shared with plugin entry points")
         .def(py::init<>())
         .def_readwrite("orca_version", &PluginContext::orca_version);
@@ -401,6 +457,9 @@ void bind_python_api(pybind11::module_& m)
         .def("get_type", &PluginCapabilityInterface::get_type)
         .def("on_load", &PluginCapabilityInterface::on_load)
         .def("on_unload", &PluginCapabilityInterface::on_unload)
+        .def("on_lifecycle_event", &PluginCapabilityInterface::on_lifecycle_event,
+             "Override to react to an application lifecycle moment (LifecycleEvent) and its\n"
+             "LifecycleEventContext payload. Available on every capability type.")
         .def("has_config_ui", &PluginCapabilityInterface::has_config_ui,
              "Override to return True to replace the host's default JSON editor with your own HTML\n"
              "UI, returned by get_config_ui(). Every capability is configurable and appears in the\n"

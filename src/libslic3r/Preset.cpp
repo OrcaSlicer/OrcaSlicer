@@ -47,6 +47,7 @@
 #include <boost/log/trivial.hpp>
 
 #include "libslic3r.h"
+#include "LifecycleEvents.hpp"
 #include "Utils.hpp"
 #include "Time.hpp"
 #include "PlaceholderParser.hpp"
@@ -2951,6 +2952,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
     // 1) Find the preset with a new_name or create a new one,
     // initialize it with the edited config.
     auto it = this->find_preset_internal(new_name);
+    const bool preset_existed = (it != m_presets.end() && it->name == new_name);
     if (it != m_presets.end() && it->name == new_name) {
         // Preset with the same name found.
         Preset &preset = *it;
@@ -3058,6 +3060,14 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         this->get_selected_preset().save(&(parent_preset->config));
     else
         this->get_selected_preset().save(nullptr);
+
+    {
+        LifecycleEventContext ctx;
+        ctx.name  = new_name;
+        ctx.msg = preset_existed ? "overwrite" : "new";
+        ctx.code = LifecycleEvtCode::Ok;
+        fire_lifecycle_event(LifecycleEvent::PresetSaved, ctx);
+    }
 }
 
 bool PresetCollection::delete_current_preset()
