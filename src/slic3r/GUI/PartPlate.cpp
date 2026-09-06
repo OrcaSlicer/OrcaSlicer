@@ -20,6 +20,7 @@
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -1549,7 +1550,9 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-		if (!contain_instance_totally(obj_idx, 0))
+		// Any instance on the plate counts, as PrintApply does: after an arrange, instance 0
+		// can sit on a different plate.
+		if (!contain_any_instance_totally(obj_idx))
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
@@ -2311,113 +2314,84 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
     return wipe_tower_size;
 }*/
 
-Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count, int plate_extruder_size, bool use_global_objects, bool enable_wrapping_detection) const
+WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintConfig &config, int plate_extruder_size, bool use_global_objects) const
 {
-    Vec3d wipe_tower_size;
-    double layer_height = 0.08f; // hard code layer height
-    double max_height = 0.f;
-    wipe_tower_size.setZero();
-
-    const ConfigOption* layer_height_opt = config.option("layer_height");
-    if (layer_height_opt)
-        layer_height = layer_height_opt->getFloat();
-
-    // empty plate
-    if (plate_extruder_size == 0)
-    {
-        std::vector<int> plate_extruders = get_extruders(true);
-        plate_extruder_size = plate_extruders.size();
+    std::vector<int> plate_extruders;
+    if (plate_extruder_size == 0) {
+        plate_extruders     = get_extruders(true);
+        plate_extruder_size = int(plate_extruders.size());
+    }
+    // The wipe tower filament joins the tool ordering even when unused (Print::extruders), so
+    // validation counts it. An explicit count is the plate's painted filaments, which never do.
+    const ConfigOption *wipe_tower_filament_opt = config.option("wipe_tower_filament");
+    const int           wipe_tower_filament     = wipe_tower_filament_opt != nullptr ? wipe_tower_filament_opt->getInt() : 0;
+    if (plate_extruder_size > 1 && wipe_tower_filament > 0) {
+        if (plate_extruders.empty())
+            plate_extruders = get_extruders(true);
+        if (std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
+            ++plate_extruder_size;
     }
     if (plate_extruder_size == 0)
-        return wipe_tower_size;
+        return WipeTowerFootprint();
 
-    for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (!use_global_objects && !contain_instance_totally(obj_idx, 0))
+    // Tallest object on this plate and the thinnest layer it is sliced at, resolved per object
+    // as PrintObject resolves them (override, else preset) and over this plate's objects only -
+    // seeding from the global value, or folding in an off-plate override, diverges from Print.
+    const ConfigOption *layer_height_opt    = config.option("layer_height");
+    const double        global_layer_height = layer_height_opt != nullptr ? layer_height_opt->getFloat() : 0.08;
+    const ConfigOption *raft_layers_opt     = config.option("raft_layers");
+    const int           global_raft_layers  = raft_layers_opt != nullptr ? raft_layers_opt->getInt() : 0;
+    double              max_height          = 0.;
+    double              layer_height        = std::numeric_limits<double>::max();
+    bool                any_raft            = false;
+    for (int obj_idx = 0; obj_idx < int(m_model->objects.size()); ++obj_idx) {
+        const ModelObject *object = m_model->objects[obj_idx];
+        if (!use_global_objects && !contain_any_instance_totally(obj_idx))
             continue;
-
-		BoundingBoxf3 bbox = m_model->objects[obj_idx]->bounding_box_exact();
-        max_height = std::max(bbox.size().z(), max_height);
-    }
-    wipe_tower_size(2) = max_height;
-    //const DynamicPrintConfig &dconfig = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    auto timelapse_type    = config.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | enable_wrapping_detection;
-    double extra_spacing     = config.option("prime_tower_infill_gap")->getFloat() / 100.;
-    const ConfigOptionEnum<WipeTowerWallType>* use_rib_wall_opt = config.option<ConfigOptionEnum<WipeTowerWallType>>("wipe_tower_wall_type");
-    bool use_rib_wall = use_rib_wall_opt ? use_rib_wall_opt->value == WipeTowerWallType::wtwRib: false;
-    double rib_width = config.option("wipe_tower_rib_width")->getFloat();
-    double depth;
-    double filament_change_volume=0.;
-    {
-        std::vector<double>             filament_change_lengths;
-        auto                filament_change_lengths_opt = m_print->config().option<ConfigOptionFloats>("filament_change_length");
-        if (filament_change_lengths_opt) filament_change_lengths = filament_change_lengths_opt->values;
-        double length = filament_change_lengths.empty() ? 0 : *std::max_element(filament_change_lengths.begin(), filament_change_lengths.end());
-        double diameter = 1.75;
-        std::vector<double> diameters;
-        auto                filament_diameter_opt = m_print->config().option<ConfigOptionFloats>("filament_diameter");
-        if (filament_diameter_opt) diameters = filament_diameter_opt->values;
-        diameter = diameters.empty() ? diameter : *std::max_element(diameters.begin(), diameters.end());
-        filament_change_volume = length * PI * diameter * diameter / 4.;
-    }
-    double volume = wipe_volume * (extruder_count == 2 ? plate_extruder_size : (plate_extruder_size - 1));
-    if (extruder_count == 2) volume += filament_change_volume * (int) (plate_extruder_size / 2);
-    // Read from the passed plate config — m_print may not have been applied yet
-    // (fresh plates, CLI), in which case its PrintConfig still holds defaults.
-    const auto *purge_opt  = config.option<ConfigOptionBool>("purge_in_prime_tower");
-    const auto *semm_opt   = config.option<ConfigOptionBool>("single_extruder_multi_material");
-    const bool  semm_flush = purge_opt && purge_opt->value && semm_opt && semm_opt->value;
-    if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(config, plate_extruder_size);
-    if (use_rib_wall) {
-        depth = std::sqrt(volume / layer_height * extra_spacing);
-        if (need_wipe_tower || plate_extruder_size > 1) {
-            float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-            double volume_depth         = depth;
-            depth = std::max((double) min_wipe_tower_depth, depth);
-            rib_width = std::min(rib_width, depth / 2);
-            depth = rib_width / std::sqrt(2) + std::max(depth + m_print->config().wipe_tower_extra_rib_length.value, volume_depth);
-            wipe_tower_size(0) = wipe_tower_size(1) = depth;
+        // Per instance, to match PrintObject::size(); the union over instances differs once
+        // they are rotated apart.
+        for (int inst_idx = 0; inst_idx < int(object->instances.size()); ++inst_idx) {
+            if (!use_global_objects && !contain_instance_totally(obj_idx, inst_idx))
+                continue;
+            max_height = std::max(max_height, object->instance_bounding_box(inst_idx, true).size().z());
         }
+        const ConfigOption *object_layer_height = object->config.option("layer_height");
+        layer_height = std::min(layer_height, object_layer_height != nullptr ? object_layer_height->getFloat() : global_layer_height);
+        const ConfigOption *object_raft_layers = object->config.option("raft_layers");
+        any_raft = any_raft || (object_raft_layers != nullptr ? object_raft_layers->getInt() : global_raft_layers) > 0;
     }
-    else {
-        depth = volume / (layer_height * w);
-        // The flush volumes already hold the spacing between wipes.
-        if (!semm_flush) depth *= extra_spacing;
-        if (need_wipe_tower || depth > EPSILON) {
-            float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-            depth = std::max((double)min_wipe_tower_depth, depth);
-        }
-        wipe_tower_size(0) = w;
-        wipe_tower_size(1) = depth;
-    }
+    if (layer_height == std::numeric_limits<double>::max())
+        layer_height = global_layer_height;
 
-    return wipe_tower_size;
+    return Slic3r::estimate_wipe_tower_footprint(config, size_t(plate_extruder_size), layer_height, max_height, any_raft);
 }
 
-arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count, int plate_extruder_size, bool use_global_objects) const
+Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig &config, int plate_extruder_size, bool use_global_objects) const
+{
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(config, plate_extruder_size, use_global_objects);
+    return Vec3d(footprint.width, footprint.depth, footprint.height);
+}
+
+arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size, bool use_global_objects) const
 {
 	float x = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_x"))->get_at(plate_index);
 	float y = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_y"))->get_at(plate_index);
-	float w = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_width"))->value;
 	//float a = dynamic_cast<const ConfigOptionFloat*>(config.option("wipe_tower_rotation_angle"))->value;
-	float v = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_volume"))->value;
-    float tower_brim_width = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_brim_width"))->value;
-    const ConfigOptionBool * wrapping_opt = dynamic_cast<const ConfigOptionBool *>(config.option("enable_wrapping_detection"));
-	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
-	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
+	const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(config, plate_extruder_size, use_global_objects);
+	wt_size = Vec3d(footprint.width, footprint.depth, footprint.height);
 	int plate_width=m_width, plate_depth=m_depth;
-	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
+	float w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
-	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
-	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
-	if (wipe_tower_brim_width_opt) {
-		wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-        if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wt_size.z());
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
-	}
+	// Resolved brim, not the raw option: "Auto" (-1) would yield a margin of 0 and let the
+	// clamp put the brim off the bed. Matches set_default_wipe_tower_pos_for_plate.
+	const float wp_brim_width = float(footprint.brim_width);
+	const float margin        = WIPE_TOWER_MARGIN + wp_brim_width;
+	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
 
-	x = std::clamp(x, margin, (float)plate_width - w - margin - wp_brim_width);
-    y = std::clamp(y, margin, (float)plate_depth - depth - margin - wp_brim_width);
+	// A tower too deep for the plate leaves no valid position: clamping with hi < lo is UB and
+	// in release silently returns the negative hi.
+	x = std::clamp(x, margin, std::max(margin, (float)plate_width - w - margin));
+	y = std::clamp(y, margin, std::max(margin, (float)plate_depth - depth - margin));
     wt_pos(0) = x;
     wt_pos(1) = y;
     wt_pos(2) = 0.f;
@@ -2753,6 +2727,20 @@ bool PartPlate::contain_instance_totally(int obj_id, int instance_id) const
 	}
 
 	return result;
+}
+
+//judge whether any of the object's instances is totally included in plate or not
+bool PartPlate::contain_any_instance_totally(int obj_id) const
+{
+	if (obj_id < 0 || obj_id >= int(m_model->objects.size()))
+		return false;
+
+	const ModelObject *object = m_model->objects[obj_id];
+	for (int instance_id = 0; instance_id < int(object->instances.size()); ++instance_id)
+		if (contain_instance_totally(obj_id, instance_id))
+			return true;
+
+	return false;
 }
 
 //check whether instance is outside the plate or not
@@ -4488,26 +4476,16 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         f_volume_maps = wxGetApp().preset_bundle->get_default_nozzle_volume_types_for_filaments(filament_maps);
     }
     DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps, f_volume_maps);
-    float w = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_tower_width"))->value;
-    float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;
-    bool enable_wrapping = false;
-    const ConfigOptionBool *wrapping_opt = dynamic_cast<const ConfigOptionBool *>(full_config.option("enable_wrapping_detection"));
-    if (wrapping_opt) enable_wrapping = wrapping_opt->value;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
+    WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config, init_pos ? 2 : 0);
 
-    if (!init_pos && (is_approx(wipe_tower_size(0), 0.0) || is_approx(wipe_tower_size(1), 0.0))) {
-        wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 2, false, enable_wrapping);
+    if (!init_pos && (is_approx(footprint.width, 0.0) || is_approx(footprint.depth, 0.0))) {
+        footprint = part_plate->estimate_wipe_tower_footprint(full_config, 2);
     }
+    Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-    // Compute brim-aware margin: brim extends outward from tower position
-    float brim_width = 0.f;
-    const ConfigOptionFloat *brim_opt = full_config.option<ConfigOptionFloat>("prime_tower_brim_width");
-    if (brim_opt) {
-        brim_width = brim_opt->value;
-        if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
-    }
-    const float margin = WIPE_TOWER_MARGIN + brim_width;
+    // Brim-aware margin: the brim extends outward from the tower position.
+    const float brim_width = float(footprint.brim_width);
+    const float margin     = WIPE_TOWER_MARGIN + brim_width;
 
     // clamp wipe tower position within plate boundaries
     {

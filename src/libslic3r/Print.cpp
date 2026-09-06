@@ -15,6 +15,7 @@
 #include "GCode.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
+#include "GCode/WipeTowerEstimate.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
@@ -1026,20 +1027,20 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
 
     //BBS: add the wipe tower check logic
     const PrintConfig &       config   = print.config();
-    int                 filaments_count = print.extruders().size();
+    // Custom G-code tool changes (MultiAsSingle) build a real tower on a plate whose objects
+    // all use one filament, so they have to be counted or the hull below collapses to a point.
+    int                 filaments_count = print.extruders(true).size();
     int                 plate_index = print.get_plate_index();
     const Vec3d         plate_origin = print.get_plate_origin();
     float               x            = config.wipe_tower_x.get_at(plate_index) + plate_origin(0);
     float               y            = config.wipe_tower_y.get_at(plate_index) + plate_origin(1);
-    float               width        = config.prime_tower_width.value;
     float               a            = config.wipe_tower_rotation_angle.value;
     //float               v            = config.wiping_volume.value;
 
-    float        depth                     = print.wipe_tower_data(filaments_count).depth;
-    //float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
-
-    if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib)
-        width = depth;
+    // The estimate resolves the effective width (a rib wall squares the tower).
+    const WipeTowerData &wipe_tower_estimate = print.wipe_tower_data(filaments_count);
+    float                width               = wipe_tower_estimate.width;
+    float                depth               = wipe_tower_estimate.depth;
 
     Polygons convex_hulls_temp;
     if (print.has_wipe_tower()) {
@@ -3992,74 +3993,27 @@ bool Print::has_wipe_tower() const
 
 const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 {
-    // If the wipe tower wasn't created yet, make sure the depth and brim_width members are set to default.
-    double max_height = 0;
-    for (size_t obj_idx = 0; obj_idx < m_objects.size(); obj_idx++) {
-        double object_z = (double) m_objects[obj_idx]->size().z();
-        max_height      = std::max(unscale_(object_z), max_height);
+    // Until the tower is generated, size it with the estimate the GUI/CLI placement uses, so
+    // validation cannot reject a position the clamp just accepted.
+    if (is_step_done(psWipeTower) || filaments_cnt == 0)
+        return m_wipe_tower_data;
+
+    double max_height   = 0.;
+    double layer_height = std::numeric_limits<double>::max();
+    bool   any_raft     = false;
+    for (const PrintObject *object : m_objects) {
+        max_height   = std::max(max_height, unscale_(double(object->size().z())));
+        layer_height = std::min(layer_height, object->config().layer_height.value);
+        any_raft     = any_raft || object->config().raft_layers.value > 0;
     }
-    if (max_height < EPSILON) return m_wipe_tower_data;
+    if (max_height < EPSILON)
+        return m_wipe_tower_data;
 
-    double layer_height                  = 0.08f; // hard code layer height
-    layer_height        = m_objects.front()->config().layer_height.value;
-
-    auto   timelapse_type  = config().option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool   need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib);
-    double extra_spacing = config().option("prime_tower_infill_gap")->getFloat() / 100.;
-    double rib_width     = config().option("wipe_tower_rib_width")->getFloat();
-
-    double filament_change_volume = 0.;
-    {
-        std::vector<double> filament_change_lengths;
-        auto                filament_change_lengths_opt = config().option<ConfigOptionFloats>("filament_change_length");
-        if (filament_change_lengths_opt) filament_change_lengths = filament_change_lengths_opt->values;
-        double              length   = filament_change_lengths.empty() ? 0 : *std::max_element(filament_change_lengths.begin(), filament_change_lengths.end());
-        double              diameter = 1.75;
-        std::vector<double> diameters;
-        auto                filament_diameter_opt = config().option<ConfigOptionFloats>("filament_diameter");
-        if (filament_diameter_opt) diameters = filament_diameter_opt->values;
-        diameter               = diameters.empty() ? diameter : *std::max_element(diameters.begin(), diameters.end());
-        filament_change_volume = length * PI * diameter * diameter / 4.;
-    }
-
-
-    if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
-        double wipe_volume  = m_config.prime_volume;
-        int filament_depth_count = m_config.nozzle_diameter.values.size() == 2 ? filaments_cnt : filaments_cnt - 1;
-        if (filaments_cnt == 1 && enable_timelapse_print()) filament_depth_count = 1;
-        double volume = wipe_volume * filament_depth_count;
-        if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
-
-        // Sizing should take into account currently set wiping volumes.
-        // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
-        // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
-        const bool semm_flush = m_config.purge_in_prime_tower && m_config.single_extruder_multi_material;
-        if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(m_config, filaments_cnt);
-
-        if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
-            double depth = std::sqrt(volume / layer_height * extra_spacing);
-            if (need_wipe_tower || filaments_cnt > 1) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth  = std::max((double) min_wipe_tower_depth, depth);
-                depth += rib_width / std::sqrt(2) + config().wipe_tower_extra_rib_length.value;
-                const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-                const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-            }
-        }
-        else {
-            double width = m_config.prime_tower_width;
-            double depth = volume / (layer_height * width);
-            // The flush volumes already hold the spacing between wipes.
-            if (!semm_flush) depth *= extra_spacing;
-            if (need_wipe_tower || depth > EPSILON) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth = std::max((double) min_wipe_tower_depth, depth);
-            }
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-            const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-        }
-        if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
-    }
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, filaments_cnt, layer_height, max_height, any_raft);
+    WipeTowerData &data = const_cast<Print *>(this)->m_wipe_tower_data;
+    data.depth      = float(footprint.depth);
+    data.width      = float(footprint.width);
+    data.brim_width = float(footprint.brim_width);
     return m_wipe_tower_data;
 }
 
