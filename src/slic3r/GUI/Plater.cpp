@@ -6777,6 +6777,7 @@ struct Plater::priv
 
     BackgroundSlicingProcess    background_process;
     bool suppressed_backround_processing_update { false };
+    std::optional<fs::path> plugin_temp_export_path;
 
     // TODO: A mechanism would be useful for blocking the plater interactions:
     // objects would be frozen for the user. In case of arrange, an animation
@@ -7092,6 +7093,7 @@ struct Plater::priv
     void on_process_completed(SlicingProcessCompletedEvent&);
     void on_export_began(wxCommandEvent&);
     void on_export_finished(wxCommandEvent&);
+    void cleanup_plugin_temp_export();
     void on_slicing_began();
 
     void clear_warnings();
@@ -12302,6 +12304,30 @@ void Plater::priv::on_export_finished(wxCommandEvent& evt)
         q->export_3mf(gcode_path.replace_extension(".3mf"), SaveStrategy::Silence); // BBS: silence
     }
 #endif
+    if (plugin_temp_export_path) {
+        cleanup_plugin_temp_export();
+        notification_manager->stop_delayed_notifications_of_type(NotificationType::ExportOngoing);
+        notification_manager->close_notification_of_type(NotificationType::ExportOngoing);
+    }
+}
+
+void Plater::priv::cleanup_plugin_temp_export()
+{
+    if (!plugin_temp_export_path)
+        return;
+
+    for (const fs::path& candidate : {
+             *plugin_temp_export_path,
+             fs::path(plugin_temp_export_path->string() + ".tmp")
+         }) {
+        try {
+            fs::remove(candidate);
+        } catch (const std::exception& error) {
+            BOOST_LOG_TRIVIAL(warning) << "Failed to remove plugin temporary export "
+                                       << candidate.string() << ": " << error.what();
+        }
+    }
+    plugin_temp_export_path.reset();
 }
 
 void Plater::priv::on_slicing_began()
@@ -12412,6 +12438,12 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.
     this->background_process.reset_export();
+    const bool was_plugin_temp_export = plugin_temp_export_path.has_value();
+    cleanup_plugin_temp_export();
+    if (was_plugin_temp_export) {
+        notification_manager->stop_delayed_notifications_of_type(NotificationType::ExportOngoing);
+        notification_manager->close_notification_of_type(NotificationType::ExportOngoing);
+    }
     // This bool stops showing export finished notification even when process_completed_with_error is false
     bool has_error = false;
     if (evt.error()) {
@@ -17927,6 +17959,30 @@ void Plater::export_gcode(bool prefer_removable)
         } catch (...) {}
 
     }
+}
+
+bool Plater::export_gcode_to_temp()
+{
+    if (!wxIsMainThread() || p->model.objects.empty() || printer_technology() != ptFFF ||
+        p->process_completed_with_error == p->partplate_list.get_curr_plate_index() ||
+        p->background_process.is_export_scheduled() || p->plugin_temp_export_path)
+        return false;
+
+    const fs::path output_path = fs::temp_directory_path() /
+        fs::unique_path(".orcaslicer.plugin-export.%%%%-%%%%-%%%%-%%%%.gcode");
+    p->plugin_temp_export_path = output_path;
+    try {
+        p->export_gcode(output_path, false);
+    } catch (...) {
+        p->cleanup_plugin_temp_export();
+        throw;
+    }
+
+    if (!p->background_process.is_export_scheduled()) {
+        p->cleanup_plugin_temp_export();
+        return false;
+    }
+    return true;
 }
 
 void Plater::send_to_printer(bool isall)
