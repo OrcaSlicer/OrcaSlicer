@@ -155,6 +155,16 @@ namespace Emboss
     HealedExPolygons  text2shapes (FontFileWithCache &font, const char *text,         const FontProp &font_prop, const std::function<bool()> &was_canceled = []() {return false;});
     ExPolygonsWithIds text2vshapes(FontFileWithCache &font, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled = []() {return false;});
 
+    /// <summary>
+    /// Convert text into triangle set
+    /// </summary>
+    /// <param name="font">Define fonts + cache, which could extend</param>
+    /// <param name="text">Characters to convert</param>
+    /// <param name="font_prop">User defined property of the font</param>
+    /// <param name="dx_y_z_size">The size of the printed text {dx, y, z}. "dx" is the width of the character relative to its size (default is 1.0). "y" is the font height in millimeters. "z"S is the height of the extruded text in millimeters.</param>
+    /// <returns>Indexed triangle set</returns>
+    indexed_triangle_set text2model(FontFileWithCache& font, const char *text, const FontProp &font_prop, Vec3d dx_y_z_size);
+    
     const unsigned ENTER_UNICODE = static_cast<unsigned>('\n');
     /// Sum of character '\n'
     unsigned get_count_lines(const std::wstring &ws);

@@ -1217,6 +1217,7 @@ ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
     this->layer_height_profile        = rhs.layer_height_profile;
     this->printable                   = rhs.printable;
     this->origin_translation          = rhs.origin_translation;
+    this->calib_params                = rhs.calib_params;
     this->cut_id.copy(rhs.cut_id);
     this->copy_transformation_caches(rhs);
 
