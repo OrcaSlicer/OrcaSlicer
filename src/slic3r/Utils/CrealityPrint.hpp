@@ -31,6 +31,12 @@ public:
     PrintHostPostUploadActions         get_post_upload_actions() const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool supports_multi_color_print() const;
+
+    // Single source of truth for the CFS-capable model table, shared with
+    // LAN discovery (CrealityHostDiscovery). Model is the /info "model"
+    // value: an F-code on the K2 platform, a literal name on K1-family.
+    static bool model_supports_multi_color(const std::string& model);
+    static std::string model_display_name(const std::string& model);
     std::string query_boxes_info() const;
     std::string model_name() const;
 
