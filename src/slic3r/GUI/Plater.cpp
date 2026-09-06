@@ -15918,6 +15918,10 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     double layer_height = nozzle_diameter / 2.0; // prefer 0.2 layer height for 0.4 nozzle
     first_layer_height = std::max(first_layer_height, layer_height);
 
+	// ORCA: prevent crash that happens when line_width is set to 0
+	print_config->option<ConfigOptionFloatOrPercent>("line_width")->value = 100.;
+    print_config->option<ConfigOptionFloatOrPercent>("line_width")->percent = true;
+
     const auto canvas    = wxGetApp().plater()->canvas3D();
     auto&      selection = canvas->get_selection();
     selection.setup_cache();
