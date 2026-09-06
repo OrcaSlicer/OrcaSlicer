@@ -5,6 +5,7 @@
 #include "OrcaPrinterAgent.hpp"
 #include "QidiPrinterAgent.hpp"
 #include "SnapmakerPrinterAgent.hpp"
+#include "ElegooPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
@@ -171,6 +172,7 @@ void NetworkAgentFactory::register_all_agents()
     register_agent<OrcaPrinterAgent>();
     register_agent<QidiPrinterAgent>();
     register_agent<SnapmakerPrinterAgent>();
+    register_agent<ElegooPrinterAgent>();
     register_agent<CrealityPrintAgent>();  // Must come BEFORE MoonrakerPrinterAgent —
                                             // CrealityPrintAgent extends Moonraker behaviour
                                             // for K-series boards with CFS support.

@@ -728,6 +728,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/OrcaPrinterAgent.hpp
     Utils/QidiPrinterAgent.cpp
     Utils/QidiPrinterAgent.hpp
+    Utils/ElegooPrinterAgent.cpp
+    Utils/ElegooPrinterAgent.hpp
+    Utils/FilamentSyncUtils.cpp
+    Utils/FilamentSyncUtils.hpp
     Utils/SnapmakerPrinterAgent.cpp
     Utils/SnapmakerPrinterAgent.hpp
     Utils/MoonrakerPrinterAgent.cpp
