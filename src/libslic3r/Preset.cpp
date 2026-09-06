@@ -1112,7 +1112,8 @@ static std::vector<std::string> s_Preset_print_options{
     "outer_wall_acceleration", "initial_layer_acceleration", "top_surface_acceleration", "default_acceleration", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_height","single_loop_draft_shield", "draft_shield",
     "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "brim_ears_outer_only", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
     "raft_layers", "raft_first_layer_density", "raft_first_layer_expansion", "raft_contact_distance", "raft_expansion",
-    "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_style",
+    "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_conical_angle",
+    "support_conical_min_width", "support_conical_max_column_width", "support_style",
     // BBS
     "print_extruder_id",
     "print_extruder_variant",

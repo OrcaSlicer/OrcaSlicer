@@ -1,9 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include <tuple>
+
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include "test_helpers.hpp" // get access to init_print, etc
+#include "libslic3r/Support/SupportParameters.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
@@ -34,6 +37,267 @@ TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
         { "enforce_support_layers", 100 }
     });
     REQUIRE(enforced.objects().front()->support_layers().size() > 0);
+}
+
+TEST_CASE("Conical support narrows and subdivides wide areas toward the build plate", "[SupportMaterial]")
+{
+    // Model the same broad slab on a narrow central pillar used for manual
+    // verification. Grid support used to erase each small per-layer offset.
+    TriangleMesh pedestal = make_cube(8.2, 30., 62.6);
+    pedestal.translate(20.2f, 0.f, 0.f);
+    TriangleMesh overhang = make_cube(48.6, 30., 7.4);
+    overhang.translate(0.f, 0.f, 62.6f);
+    pedestal.merge(overhang);
+
+    auto support_layer_near_z = [](const Print &print, double print_z) {
+        const SupportLayer *nearest = nullptr;
+        for (const SupportLayer *layer : print.objects().front()->support_layers())
+            if (! layer->support_islands.empty() &&
+                (nearest == nullptr || std::abs(layer->print_z - print_z) < std::abs(nearest->print_z - print_z)))
+                nearest = layer;
+        return nearest;
+    };
+
+    const std::initializer_list<ConfigBase::SetDeserializeItem> common_config {
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    };
+
+    DynamicPrintConfig straight_config = DynamicPrintConfig::full_print_config();
+    straight_config.set_deserialize_strict(common_config);
+    straight_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsGrid));
+    Print straight;
+    init_and_process_print({ pedestal }, straight, straight_config);
+
+    DynamicPrintConfig conical_config = straight_config;
+    conical_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsConical));
+    Print conical;
+    init_and_process_print({ pedestal }, conical, conical_config);
+    REQUIRE(straight.objects().front()->config().support_style.value == smsGrid);
+    REQUIRE(conical.objects().front()->config().support_style.value == smsConical);
+    REQUIRE(SupportParameters(*conical.objects().front()).support_style == smsSnug);
+
+    DynamicPrintConfig subdivided_config = conical_config;
+    // Each original support region is wider than this limit and should become
+    // multiple independently tapered columns.
+    subdivided_config.set_key_value("support_conical_max_column_width", new ConfigOptionFloat(12));
+    Print subdivided;
+    init_and_process_print({ pedestal }, subdivided, subdivided_config);
+
+    DynamicPrintConfig inactive_limit_config = conical_config;
+    inactive_limit_config.set_key_value("support_conical_max_column_width", new ConfigOptionFloat(100));
+    Print inactive_limit;
+    init_and_process_print({ pedestal }, inactive_limit, inactive_limit_config);
+
+    const SupportLayer *straight_low = support_layer_near_z(straight, 2.);
+    const SupportLayer *conical_low  = support_layer_near_z(conical, 2.);
+    const SupportLayer *conical_high = support_layer_near_z(conical, 58.);
+    const SupportLayer *subdivided_low = support_layer_near_z(subdivided, 2.);
+    const SupportLayer *subdivided_contact = support_layer_near_z(subdivided, 62.);
+    const SupportLayer *conical_contact = support_layer_near_z(conical, 62.);
+    const SupportLayer *inactive_limit_low = support_layer_near_z(inactive_limit, 2.);
+    REQUIRE(straight_low != nullptr);
+    REQUIRE(conical_low != nullptr);
+    REQUIRE(conical_high != nullptr);
+    REQUIRE(subdivided_low != nullptr);
+    REQUIRE(subdivided_contact != nullptr);
+    REQUIRE(conical_contact != nullptr);
+    REQUIRE(inactive_limit_low != nullptr);
+
+    const double straight_area_low = area(straight_low->support_islands);
+    const double conical_area_low  = area(conical_low->support_islands);
+    const double conical_area_high = area(conical_high->support_islands);
+    REQUIRE(straight_area_low > 0.);
+    REQUIRE(conical_area_low > 0.);
+    REQUIRE(conical_area_high > 0.);
+    REQUIRE(conical_area_low < 0.75 * straight_area_low);
+    REQUIRE(conical_area_low < conical_area_high);
+    REQUIRE(unscaled(unscaled(conical_area_low)) < 500.);
+    REQUIRE(conical_low->support_islands.size() == 2);
+    REQUIRE(subdivided_low->support_islands.size() > conical_low->support_islands.size());
+    REQUIRE(subdivided_contact->support_islands.size() == conical_contact->support_islands.size());
+    REQUIRE_THAT(area(subdivided_contact->support_islands),
+        Catch::Matchers::WithinRel(area(conical_contact->support_islands), 0.01));
+    REQUIRE(inactive_limit_low->support_islands.size() == conical_low->support_islands.size());
+    REQUIRE_THAT(area(inactive_limit_low->support_islands),
+        Catch::Matchers::WithinRel(conical_area_low, 0.001));
+
+    size_t sampled_layers = 0;
+    size_t changing_layers = 0;
+    double previous_area = 0.;
+    for (const SupportLayer *layer : conical.objects().front()->support_layers()) {
+        if (layer->support_islands.empty() || layer->print_z < 48. || layer->print_z > 58.)
+            continue;
+        const double current_area = area(layer->support_islands);
+        if (sampled_layers > 0 && std::abs(current_area - previous_area) > EPSILON)
+            ++ changing_layers;
+        previous_area = current_area;
+        ++ sampled_layers;
+    }
+    REQUIRE(sampled_layers > 20);
+    REQUIRE(changing_layers > 0.8 * (sampled_layers - 1));
+
+    double previous_top_area = 0.;
+    for (const SupportLayer *layer : conical.objects().front()->support_layers()) {
+        if (layer->support_islands.empty() || layer->print_z < 55. || layer->print_z > 63.)
+            continue;
+        const double current_area = area(layer->support_islands);
+        if (previous_top_area > 0.)
+            REQUIRE(current_area < 1.1 * previous_top_area);
+        previous_top_area = current_area;
+    }
+}
+
+TEST_CASE("Zero-angle conical support matches snug support", "[SupportMaterial]")
+{
+    TriangleMesh model = make_cube(4., 20., 20.);
+    TriangleMesh roof = make_cube(20., 20., 4.);
+    roof.translate(0.f, 0.f, 20.f);
+    model.merge(roof);
+
+    auto support_signature = [](const Print &print) {
+        std::vector<std::tuple<double, size_t, double>> signature;
+        for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+            if (! layer->support_islands.empty())
+                signature.emplace_back(layer->print_z, layer->support_islands.size(), area(layer->support_islands));
+        }
+        return signature;
+    };
+
+    DynamicPrintConfig snug_config = DynamicPrintConfig::full_print_config();
+    snug_config.set_deserialize_strict({
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_interface_top_layers",       3 },
+        { "support_style",                      "snug" },
+        { "support_conical_angle",              0 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    });
+    Print snug;
+    init_and_process_print({ model }, snug, snug_config);
+
+    DynamicPrintConfig conical_config = snug_config;
+    conical_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsConical));
+    Print conical;
+    init_and_process_print({ model }, conical, conical_config);
+
+    const auto snug_signature = support_signature(snug);
+    const auto conical_signature = support_signature(conical);
+    REQUIRE(conical_signature.size() == snug_signature.size());
+    for (size_t i = 0; i < snug_signature.size(); ++ i) {
+        REQUIRE_THAT(std::get<0>(conical_signature[i]), Catch::Matchers::WithinAbs(std::get<0>(snug_signature[i]), EPSILON));
+        REQUIRE(std::get<1>(conical_signature[i]) == std::get<1>(snug_signature[i]));
+        REQUIRE_THAT(std::get<2>(conical_signature[i]), Catch::Matchers::WithinRel(std::get<2>(snug_signature[i]), 0.001));
+    }
+}
+
+TEST_CASE("Conical support preserves its minimum width across a large layer offset", "[SupportMaterial]")
+{
+    TriangleMesh model = make_cube(2., 10., 10.);
+    TriangleMesh roof = make_cube(12., 10., 2.);
+    roof.translate(0.f, 0.f, 10.f);
+    model.merge(roof);
+
+    Print print;
+    init_and_process_print({ model }, print, {
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              89 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    });
+
+    const SupportLayer *middle = nullptr;
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        if (! layer->support_islands.empty() &&
+            (middle == nullptr || std::abs(layer->print_z - 5.) < std::abs(middle->print_z - 5.)))
+            middle = layer;
+    REQUIRE(middle != nullptr);
+    REQUIRE(unscaled(unscaled(area(middle->support_islands))) >= 25.);
+}
+
+TEST_CASE("Conical column subdivision is bounded for tiny configured widths", "[SupportMaterial]")
+{
+    TriangleMesh model = make_cube(2., 10., 10.);
+    TriangleMesh roof = make_cube(12., 10., 2.);
+    roof.translate(0.f, 0.f, 10.f);
+    model.merge(roof);
+
+    Print print;
+    init_and_process_print({ model }, print, {
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          0 },
+        { "support_conical_max_column_width",   0.01 }
+    });
+
+    bool generated_support = false;
+    for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+        generated_support |= ! layer->support_islands.empty();
+        REQUIRE(layer->support_islands.size() <= 4096);
+    }
+    REQUIRE(generated_support);
+}
+
+TEST_CASE("Conical build plate support does not start above blocking geometry", "[SupportMaterial]")
+{
+    // The upper slab is entirely inside the vertical shadow of the lower slab.
+    // Conical tapering must not reinterpret the enclosed gap as a path to the
+    // build plate and leave disconnected support fragments above the lower slab.
+    TriangleMesh model = make_cube(40., 30., 5.);
+    TriangleMesh upper_slab = make_cube(20., 10., 5.);
+    upper_slab.translate(10.f, 10.f, 35.f);
+    model.merge(upper_slab);
+
+    auto support_area_near_z = [](const Print &print, double print_z) {
+        const SupportLayer *nearest = nullptr;
+        for (const SupportLayer *layer : print.objects().front()->support_layers())
+            if (! layer->support_islands.empty() &&
+                (nearest == nullptr || std::abs(layer->print_z - print_z) < std::abs(nearest->print_z - print_z)))
+                nearest = layer;
+        return nearest == nullptr ? 0. : area(nearest->support_islands);
+    };
+
+    DynamicPrintConfig everywhere_config = DynamicPrintConfig::full_print_config();
+    everywhere_config.set_deserialize_strict({
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        0 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    });
+    Print everywhere;
+    init_and_process_print({ model }, everywhere, everywhere_config);
+
+    DynamicPrintConfig buildplate_config = everywhere_config;
+    buildplate_config.set_key_value("support_on_build_plate_only", new ConfigOptionBool(true));
+    Print buildplate;
+    init_and_process_print({ model }, buildplate, buildplate_config);
+
+    REQUIRE(support_area_near_z(everywhere, 20.) > 0.);
+    REQUIRE(support_area_near_z(buildplate, 20.) == 0.);
 }
 
 SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")

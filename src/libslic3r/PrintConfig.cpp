@@ -363,7 +363,8 @@ static t_config_enum_values s_keys_map_SupportMaterialStyle {
     { "organic",        smsTreeOrganic },
     { "tree_slim",      smsTreeSlim },
     { "tree_strong",    smsTreeStrong },
-    { "tree_hybrid",    smsTreeHybrid }
+    { "tree_hybrid",    smsTreeHybrid },
+    { "conical",        smsConical }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
@@ -6990,6 +6991,36 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    def = this->add("support_conical_angle", coFloat);
+    def->label = L("Conical support angle");
+    def->category = L("Support");
+    def->tooltip = L("Tilt angle of conical support. Positive values make the support narrower toward the build plate; "
+                     "negative values make its base wider.");
+    def->sidetext = u8"°";
+    def->min = -89;
+    def->max = 89;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30));
+
+    def = this->add("support_conical_min_width", coFloat);
+    def->label = L("Conical support minimum width");
+    def->category = L("Support");
+    def->tooltip = L("Minimum width preserved while conical support narrows toward the build plate.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(5));
+
+    def = this->add("support_conical_max_column_width", coFloat);
+    def->label = L("Conical support maximum column width");
+    def->category = L("Support");
+    def->tooltip = L("Split wider conical support areas into multiple independently tapered columns. Set to zero to disable subdivision. "
+                     "The value must be greater than the conical support minimum width.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");
@@ -7005,7 +7036,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     def->tooltip = L("Style and shape of the support. For normal support, projecting the supports into a regular grid "
                      "will create more stable supports (default), while snug support towers will save material and reduce "
-                     "object scarring.\n"
+                     "object scarring. Conical support progressively narrows support toward the build plate.\n"
                      "For tree support, slim and organic style will merge branches more aggressively and save "
                      "a lot of material (default organic), while hybrid style will create similar structure to normal support "
                      "under large flat overhangs.");
@@ -7017,6 +7048,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tree_slim");
     def->enum_values.push_back("tree_strong");
     def->enum_values.push_back("tree_hybrid");
+    def->enum_values.push_back("conical");
     def->enum_labels.push_back(L("Default (Grid/Organic)"));
     def->enum_labels.push_back(L("Grid"));
     def->enum_labels.push_back(L("Snug"));
@@ -7024,6 +7056,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Tree Slim"));
     def->enum_labels.push_back(L("Tree Strong"));
     def->enum_labels.push_back(L("Tree Hybrid"));
+    def->enum_labels.push_back(L("Conical (experimental)"));
 
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));

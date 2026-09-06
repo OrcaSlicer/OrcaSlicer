@@ -260,7 +260,7 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
-    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
+    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsConical,
 };
 
 enum LongRectrationLevel
@@ -1156,6 +1156,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Spacing between support material lines (the hatching distance).
     ((ConfigOptionFloat,               support_base_pattern_spacing))
     ((ConfigOptionFloat,               support_expansion))
+    ((ConfigOptionFloat,               support_conical_angle))
+    ((ConfigOptionFloat,               support_conical_min_width))
+    ((ConfigOptionFloat,               support_conical_max_column_width))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
 

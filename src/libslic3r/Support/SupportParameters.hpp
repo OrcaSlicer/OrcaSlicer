@@ -194,11 +194,16 @@ struct SupportParameters {
         support_style = object_config.support_style;
         support_interface_pattern = object_config.support_interface_pattern;
         if (support_style != smsDefault) {
-            if ((support_style == smsSnug || support_style == smsGrid) && is_tree(object_config.support_type)) support_style = smsDefault;
+            if ((support_style == smsSnug || support_style == smsGrid || support_style == smsConical) && is_tree(object_config.support_type))
+                support_style = smsDefault;
             if ((support_style == smsTreeSlim || support_style == smsTreeStrong || support_style == smsTreeHybrid || support_style == smsTreeOrganic) &&
                 !is_tree(object_config.support_type))
                 support_style = smsDefault;
         }
+        // Conical support uses snug contours internally. Keep the user-facing
+        // style in object_config so the projection code can still apply tapering.
+        if (support_style == smsConical)
+            support_style = smsSnug;
         if (support_style == smsDefault) {
             if (is_tree(object_config.support_type)) {
                 // Orca: use organic as default
