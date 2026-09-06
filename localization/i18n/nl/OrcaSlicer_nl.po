@@ -5830,13 +5830,9 @@ msgstr "Waarde %s valt buiten het bereik. Het geldige bereik loopt van %d tot %d
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Is het %s%% or %s %s?\n"
-"JA voor %s%%, \n"
-"NEE voor %s %s."
+"Is het %s%% or %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

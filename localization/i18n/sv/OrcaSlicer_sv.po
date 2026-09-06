@@ -5903,13 +5903,9 @@ msgstr "Värdet %s ligger utanför intervallet. Giltigt intervall är från %d t
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Det är %s%% eller %s %s?\n"
-"JA för %s%%, \n"
-"NEJ för %s %s."
+"Det är %s%% eller %s %s?"
 
 # AI Translated
 #, boost-format

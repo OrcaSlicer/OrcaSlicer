@@ -5332,13 +5332,9 @@ msgstr "Значение %s выходит за пределы допустим�
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Имелось ввиду %s%%? (введено %s %s)\n"
-"Да – изменить на %s%%\n"
-"Нет – оставить %s %s."
+"Имелось ввиду %s%% или %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

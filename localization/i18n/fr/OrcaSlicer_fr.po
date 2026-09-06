@@ -5240,13 +5240,9 @@ msgstr "La valeur %s est hors plage. La plage valide est comprise entre %d et %d
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Est-ce %s%% ou %s %s ?\n"
-"OUI pour %s%%, \n"
-"NON pour %s %s."
+"Est-ce %s%% ou %s %s ?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

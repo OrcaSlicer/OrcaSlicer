@@ -5174,13 +5174,9 @@ msgstr "值 %s 超出了范围，有效的范围是从 %d 到 %d 。"
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%%还是%s %s？\n"
-"是：%s%%\n"
-"否：%s %s"
+"%s%%还是%s %s？"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

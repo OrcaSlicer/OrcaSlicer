@@ -5336,13 +5336,9 @@ msgstr "%s érték tartományon kívül van. Az érvényes tartomány: %d - %d."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%% vagy %s %s?\n"
-"IGEN %s%%, \n"
-"NEM %s %s."
+"%s%% vagy %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

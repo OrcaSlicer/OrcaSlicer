@@ -5362,13 +5362,9 @@ msgstr "값 %s이 범위를 벗어났습니다. 유효한 범위는 %d에서 %d�
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%% 또는 %s %s입니까?\n"
-"%s%%에 대해 예,\n"
-"%s %s에 대해 아니요."
+"%s%% 또는 %s %s입니까?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

@@ -5338,13 +5338,9 @@ msgstr "Il valore %s è fuori intervallo. L'intervallo valido è da %d a %d."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"È %s%% o %s %s?\n"
-"Sì per %s%%, \n"
-"NO per %s %s."
+"È %s%% o %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

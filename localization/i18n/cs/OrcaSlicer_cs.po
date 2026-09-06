@@ -5384,13 +5384,9 @@ msgstr "Hodnota %s je mimo rozsah. Platný rozsah je od %d do %d."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Je to %s%% nebo %s %s?\n"
-"ANO pro %s%%,\n"
-"NE pro %s %s."
+"Je to %s%% nebo %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

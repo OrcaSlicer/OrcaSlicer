@@ -5428,13 +5428,9 @@ msgstr "El valor %s està fora de rang. El rang vàlid és de %d a %d."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"És %s%% or %s %s?\n"
-"SÍ per %s%%.\n"
-"NO per %s %s."
+"És %s%% or %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

@@ -5318,13 +5318,9 @@ msgstr "ค่า %s อยู่นอกช่วง ช่วงที่ถ�
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"มันคือ %s%% หรือ %s %s?\n"
-"ใช่สำหรับ %s%% \n"
-"ไม่ สำหรับ %s %s"
+"มันคือ %s%% หรือ %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

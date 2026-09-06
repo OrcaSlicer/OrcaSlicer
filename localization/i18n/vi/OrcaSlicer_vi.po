@@ -5633,13 +5633,9 @@ msgstr "Giá trị %s nằm ngoài phạm vi. Phạm vi hợp lệ từ %d đế
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Là %s%% hay %s %s?\n"
-"YES cho %s%%, \n"
-"NO cho %s %s."
+"Là %s%% hay %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

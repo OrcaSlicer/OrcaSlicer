@@ -5202,13 +5202,9 @@ msgstr "%s balioa tartetik kanpo dago. Baliozko tartea %d eta %d artekoa da."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%% edo %s %s da?\n"
-"BAI %s%%-(r)entzat,\n"
-"EZ %s %s-(r)entzat."
+"%s%% edo %s %s da?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

@@ -5380,13 +5380,9 @@ msgstr "Değer %s aralık dışında. Geçerli aralık %d ile %d arasındadır."
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%% mi yoksa %s %s mi?\n"
-"%s%% için EVET,\n"
-"%s %s için HAYIR."
+"%s%% mi yoksa %s %s mi?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

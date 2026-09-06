@@ -5290,13 +5290,9 @@ msgstr "Wert %s ist außerhalb des Bereichs. Der gültige Bereich liegt zwischen
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"Heißt es %s%% oder %s %s?\n"
-"Ja für %s%%, \n"
-"Nein für %s %s."
+"Heißt es %s%% oder %s %s?"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""

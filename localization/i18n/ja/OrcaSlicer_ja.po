@@ -5351,12 +5351,9 @@ msgstr "値%sは範囲外です。有効な範囲は%dから%dです。"
 
 #, c-format, boost-format
 msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
+"Is it %s%% or %s %s?"
 msgstr ""
-"%s%% か、それとも %s %sですか？\n"
-"%s%% の場合ははい、 %s %s はいいえ。"
+"%s%% か、それとも %s %sですか？"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
