@@ -1,7 +1,8 @@
 #ifndef slic3r_PythonInterpreter_hpp_
 #define slic3r_PythonInterpreter_hpp_
 
-#include <Python.h>
+// Via pybind11 so this file requests the same python3xx.lib as everything else.
+#include <pybind11/conduit/wrap_include_python_h.h>
 #include <pytypedefs.h>
 #include <atomic>
 #include <functional>

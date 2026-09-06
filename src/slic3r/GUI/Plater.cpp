@@ -3988,16 +3988,16 @@ void Sidebar::update_mixed_filament_list()
     p->m_panel_mixed_warning->Show(false);
 
     // Show/dismiss 3D canvas notification for broken mixed filaments
-    if (has_mixed && !broken_set.empty()) {
-        auto* notify = wxGetApp().plater()->get_notification_manager();
-        if (notify)
+    auto*       notify        = plater->get_notification_manager();
+    GLCanvas3D* view3d_canvas = plater->get_view3D_canvas3D();
+    if(view3d_canvas && view3d_canvas->is_initialized() && notify){
+        if (has_mixed && !broken_set.empty()) {
             notify->push_notification(NotificationType::BBLMixedFilamentBroken,
                 NotificationManager::NotificationLevel::ErrorNotificationLevel,
                 _u8L("Mixed filament has invalid or mismatched components. Please re-edit affected entries."));
-    } else {
-        auto* notify = wxGetApp().plater()->get_notification_manager();
-        if (notify)
+        } else {
             notify->close_notification_of_type(NotificationType::BBLMixedFilamentBroken);
+        }
     }
 
     if (has_mixed) {
@@ -8278,7 +8278,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     bool dlg_cont = true;
     bool is_user_cancel = false;
     bool translate_old = false;
-    int current_width = 0, current_depth = 0, current_height = 0, project_filament_count = 1;
+    int current_width = 0, current_depth = 0, project_filament_count = 1;
+    double current_height = 0;
 
     if (input_files.empty())
         return std::vector<size_t>();
@@ -16272,6 +16273,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     obj->config.set_key_value("wall_sequence", new ConfigOptionEnum<WallSequence>(WallSequence::InnerOuter));
     obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     obj->config.set_key_value("precise_z_height", new ConfigOptionBool(false));
+    obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
 
 
     changed_objects({ 0 });

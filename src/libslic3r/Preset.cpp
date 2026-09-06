@@ -983,15 +983,19 @@ BedType Preset::get_default_bed_type(PresetBundle* preset_bundle)
     if (config.has("default_bed_type") && !config.opt_string("default_bed_type").empty()) {
         try {
             std::string str_bed_type = config.opt_string("default_bed_type");
-            
-            // Try parsing as integer first (legacy format)
+            BedType bed_type;
+            if (ConfigOptionEnum<BedType>::from_string(str_bed_type, bed_type) &&
+                bed_type > btDefault && bed_type < btCount) {
+                return bed_type;
+            }
+
+            // Try parsing as integer (legacy format)
             int bed_type_value = atoi(str_bed_type.c_str());
-            if (bed_type_value > 0) {
+            if (bed_type_value > 0 && bed_type_value < BedType::btCount) {
                 return BedType(bed_type_value);
             }
-            else {
-                BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
-            }
+
+            BOOST_LOG_TRIVIAL(error) << "default_bed_type: invalid bed type: " << str_bed_type;
             return BedType::btPEI;
 
         } catch(...) {
