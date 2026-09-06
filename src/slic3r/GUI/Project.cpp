@@ -51,16 +51,12 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    m_browser = WebView::CreateWebView(this, m_project_home_url);
-    if (m_browser == nullptr) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("load web view of project page failed");
+    create_browser();
+    if (m_browser == nullptr)
         return;
-    }
+    m_reset_on_show = wxGetApp().is_recreating_gui();
     //m_browser->Hide();
     main_sizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
-    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
-    Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this, m_browser->GetId());
 
     Bind(EVT_PROJECT_RELOAD, &ProjectPanel::on_reload, this);
 
@@ -85,6 +81,36 @@ void ProjectPanel::shutdown()
     if (m_reload_task && m_reload_task->joinable())
         m_reload_task->join();
     m_reload_task.reset();
+}
+
+void ProjectPanel::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, m_project_home_url);
+    if (m_browser == nullptr) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("load web view of project page failed");
+        return;
+    }
+    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
+    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
+    Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this, m_browser->GetId());
+}
+
+void ProjectPanel::reset_browser()
+{
+    wxSizer* sizer = GetSizer();
+    if (m_browser) {
+        if (sizer)
+            sizer->Detach(m_browser);
+        m_browser->Destroy();
+        m_browser = nullptr;
+    }
+    create_browser();
+    if (m_browser == nullptr)
+        return;
+    if (sizer) {
+        sizer->Insert(0, m_browser, wxSizerFlags().Expand().Proportion(1));
+        Layout();
+    }
 }
 
 // Helper to convert newlines to <br>
@@ -495,10 +521,16 @@ void ProjectPanel::RunScript(std::string content)
     WebView::RunScript(m_browser, content);
 }
 
-bool ProjectPanel::Show(bool show) 
+bool ProjectPanel::Show(bool show)
 {
+    // Recover from a wedged WebView2 backend created during a GUI rebuild by
+    // recreating the control the first time the panel is actually shown.
+    if (show && m_reset_on_show) {
+        m_reset_on_show = false;
+        reset_browser();
+    }
     if (show) update_model_data();
-    return wxPanel::Show(show); 
+    return wxPanel::Show(show);
 }
 
 }} // namespace Slic3r::GUI

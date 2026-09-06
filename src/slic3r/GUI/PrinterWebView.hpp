@@ -55,6 +55,13 @@ private:
     friend class PrinterWebViewHandler;
 
     void SendAPIKey();
+    // Create/configure the underlying wxWebView (m_browser) and bind its events.
+    void create_browser();
+    // Tear down and recreate m_browser from scratch. Used to recover from a
+    // wedged WebView2 backend after a recreate_GUI (language switch), where a
+    // control created while the previous frame's active webview is still alive
+    // silently ignores all navigations.
+    void reset_browser();
 
     wxWebView* m_browser;
     long m_zoomFactor;
@@ -62,6 +69,10 @@ private:
     bool m_apikey_sent;
     wxString m_url_deferred;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
+    // When this view is constructed during a GUI rebuild, its WebView2 backend
+    // may come up wedged. Recreate it the first time the view is actually shown
+    // (by then the old frame is gone and creation is clean).
+    bool m_reset_on_show{false};
 
     // DECLARE_EVENT_TABLE()
 };
