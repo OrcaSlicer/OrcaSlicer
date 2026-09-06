@@ -991,6 +991,14 @@ bool GLGizmoPainterBase::on_mouse(const wxMouseEvent &mouse_event)
         return false;
     }
 
+    // while a stroke is active and mouse capture is held, treat a Leaving() event as "still painting, cursor is temporarily outside the window"
+    // rather than letting it fall through to `return false` (which would misroute the event to camera rotate/pan in GLCanvas3D::on_mouse).
+    if (mouse_event.Leaving()) {
+        if (m_button_down != Button::None && m_parent.has_mouse_capture())
+            return true;
+        return false;
+    }
+
     // when control is down we allow scene pan and rotation even when clicking
     // over some object
     bool control_down           = mouse_event.CmdDown();

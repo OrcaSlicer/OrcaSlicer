@@ -4309,7 +4309,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         }
 
         // ORCA keep tracking mouse position while drag active and cursor not in window bounds
-        if (!has_mouse_capture() && evt.LeftIsDown() && m_gizmos.is_dragging())
+        if (!has_mouse_capture() && (evt.LeftIsDown() || evt.RightIsDown()) && m_gizmos.is_dragging())
             m_canvas->CaptureMouse();
 
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())

@@ -217,6 +217,8 @@ public:
     /// propagate it otherwise False.</returns>
     bool on_mouse(const wxMouseEvent &mouse_event) override;
 
+    bool is_dragging() const override { return m_button_down != Button::None; }
+
 protected:
     virtual void render_triangles(const Selection& selection) const;
     void render_cursor();
