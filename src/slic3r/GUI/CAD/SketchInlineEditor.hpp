@@ -49,7 +49,22 @@ private:
 public:
     // True when the field itself holds keyboard focus. Callers use this to decide whether the
     // field will handle a key on its own or needs it forwarded — see DesignPanel's CHAR_HOOK.
+    //
+    // NOTE what this is NOT for any more: deciding whether the field may receive a character.
+    // Whether a borderless top-level window is granted focus is the window manager's call and
+    // differs per desktop — openbox grants it, mutter refuses it — so a routing rule built on
+    // this question gives a different product on every machine. Routing is now by CONTENT
+    // (DesignPanel's arbiter); this stays only to avoid forwarding a key the field is already
+    // going to get for itself, which would type it twice.
     bool has_focus() const { return m_ctrl != nullptr && wxWindow::FindFocus() == m_ctrl; }
+
+    // Deliver one character into the field programmatically, bypassing focus entirely.
+    // `key` is a wx key code: a printable character is inserted, WXK_BACK/WXK_DELETE edit.
+    // Returns true if the field consumed it. Modelled on FreeCAD, whose sketcher decides where a
+    // key belongs from the key itself and never queries focus:
+    // DrawSketchKeyboardManager::detectKeyboardEventHandlingMode routes digits, '-', '.', ','
+    // and Backspace/Delete to the on-view parameter and everything else to the view.
+    bool type_char(int key);
 
 private:
     void do_commit();
@@ -70,6 +85,7 @@ private:
     bool                        m_open{false};
     bool                        m_closing{false};
     wxString                    m_title_text;   // the real title, restored after an error message
+    wxString                    m_prefill;      // what open() put in the field; see trace_ux
 };
 
 }} // namespace Slic3r::GUI

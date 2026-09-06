@@ -1383,10 +1383,22 @@ std::string DesignSketchTool::dimtype_title(DimType k) const {
 // Draw-then-edit dispatcher: mirror the Select-mode quote-click logic, but target the
 // freshly-drawn selection's PRIMARY value and use the tentative (clean-cancel) path for
 // scalar quotes. Runs after render_live_quotes, so the live-quote state is populated.
+// Why a draw-then-edit chain did not start. Four early returns can swallow it, and from outside
+// they are indistinguishable: the shape appears, no field opens, and nothing says which guard
+// fired. check-gui-click-edit.py reports that as "a value field opened (nothing did)" for every
+// tool at once, which reads like a total product failure and is not necessarily one.
+static void trace_autoedit(const char* why, size_t n)
+{
+    if (!std::getenv("SNAPORCA_UXTRACE")) return;
+    fprintf(stderr, "[UX] autoedit %s steps=%zu\n", why, n);
+    fflush(stderr);
+}
+
 void DesignSketchTool::open_primary_autoedit()
 {
-    if (!on_inline_edit || m_awaiting_length) return;   // no host, or a field is already open
-    if (!m_active) return;                              // session ended before the deferred tick
+    if (!on_inline_edit) { trace_autoedit("skip: no on_inline_edit host", 0); return; }
+    if (m_awaiting_length) { trace_autoedit("skip: a field is already open", 0); return; }
+    if (!m_active) { trace_autoedit("skip: session ended before the deferred tick", 0); return; }
 
     // Build ONE ordered list of edit steps covering EVERY characteristic dimension of the
     // freshly-drawn shape — scalar quotes (constraint-based) AND geometric editors — so every
@@ -1494,6 +1506,8 @@ void DesignSketchTool::open_primary_autoedit()
             [this, fi](double v){ set_rect_angle(fi, v); }, span(fi), "Angle" });
     }
 
+    trace_autoedit(m_autoedit_dims.empty() ? "built NO steps (no live quote matched)" : "opening",
+                   m_autoedit_dims.size());
     if (!m_autoedit_dims.empty()) {
         m_autoedit_dim_idx = 0;
         open_next_autoedit_dim();
@@ -8857,6 +8871,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // next render_live_quotes(), so the deferred open still sees this frame's values.
     if (m_autoedit_pending) {
         m_autoedit_pending = false;
+        trace_autoedit("pending -> deferring open", 0);
         wxGetApp().CallAfter([this] { open_primary_autoedit(); });
     }
     if (is_edit_op_mode())

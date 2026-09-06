@@ -90,6 +90,23 @@ constexpr bool keep_mapped_between_fields =
     false;
 #endif
 
+// The click-edit contract, made observable. scripts/CAD/check-gui-click-edit.py grades a build
+// on these four lines and nothing else, because they are the only place the distinction it cares
+// about is visible: a field that is on screen but deaf commits its PREFILL, and every other
+// signal — the field drew, a constraint appeared, the solve succeeded — looks perfectly healthy
+// either way. `typed` is what the control actually held when Enter arrived; `prefill` is what
+// open() put there. typed == prefill on a commit means the keyboard never reached the field.
+//
+// stderr, one line, no buffering, only under SNAPORCA_UXTRACE: this is a test surface, not
+// logging, and it must cost nothing in a normal run.
+void trace_ux(const char* event, const std::string& title, const std::string& kv)
+{
+    if (!std::getenv("SNAPORCA_UXTRACE")) return;
+    fprintf(stderr, "[UX] %s title=%s%s%s\n", event, title.c_str(),
+            kv.empty() ? "" : " ", kv.c_str());
+    fflush(stderr);
+}
+
 void trace_inline_focus(wxFrame* frame, const std::string& title)
 {
     if (!std::getenv("SNAPORCA_KEYTRACE")) return;
@@ -214,6 +231,8 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     m_ctrl->SetFocus();
     m_ctrl->SelectAll();
     m_open = true;
+    m_prefill = m_ctrl->GetValue();
+    trace_ux("open", title, "prefill=" + std::string(m_prefill.utf8_str()));
     trace_inline_focus(m_frame, title);
     // Re-assert on the next tick too: the GL canvas can reclaim focus while it finishes
     // handling the click/render that opened us, so a single immediate SetFocus may be stolen.
@@ -235,12 +254,25 @@ void SketchInlineEditor::do_commit()
         // Silence here read as a freeze: Enter did nothing, the text re-selected itself, and
         // nothing on screen said the value had been refused or what would be accepted. Every
         // other CAD names the problem in place; so do we.
+        trace_ux("refused", std::string(m_title_text.utf8_str()),
+                 "typed=" + std::string(m_ctrl->GetValue().utf8_str()));
         flag_invalid(m_ctrl->GetValue().Strip(wxString::both).IsEmpty()
                          ? _L("Enter a number")
                          : _L("Not a number"));
         m_ctrl->SetFocus();
         m_ctrl->SelectAll();
         return;
+    }
+    {
+        // LOCALE-INVARIANT on purpose. printf honours the app's locale, which on an Italian
+        // desktop makes this "61,0000" — and the ladder that reads it does float(), which raises
+        // on a comma and takes the whole run down one check after the first success. A machine
+        // surface must not change shape with the user's regional settings.
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%.4f", v);
+        for (char* c = buf; *c; ++c) if (*c == ',') *c = '.';
+        trace_ux("commit", std::string(m_title_text.utf8_str()),
+                 "typed=" + std::string(m_ctrl->GetValue().utf8_str()) + " value=" + buf);
     }
     auto cb = m_commit;
     m_open   = false;          // logically closed; whether it stays MAPPED is per-toolkit
@@ -260,6 +292,53 @@ void SketchInlineEditor::do_commit()
         m_frame->Hide();
         return_focus();   // the chain is over; the keyboard belongs to the canvas again
     });
+}
+
+// Deliver one character into the field without the window manager's permission.
+//
+// This is the whole content-based-routing idea in one function: the caller has already decided,
+// from the KEY ITSELF, that this keystroke belongs to a number field, so the field takes it —
+// whether or not any window manager saw fit to give it focus. FreeCAD's sketcher works exactly
+// this way and never asks who is focused.
+bool SketchInlineEditor::type_char(int key)
+{
+    if (!m_open || m_ctrl == nullptr) return false;
+
+    if (key == WXK_BACK || key == WXK_DELETE) {
+        long from = 0, to = 0;
+        m_ctrl->GetSelection(&from, &to);
+        if (from != to) {
+            m_ctrl->Remove(from, to);
+        } else {
+            const long ip = m_ctrl->GetInsertionPoint();
+            if (key == WXK_BACK) { if (ip > 0) m_ctrl->Remove(ip - 1, ip); }
+            else                 { if (ip < m_ctrl->GetLastPosition()) m_ctrl->Remove(ip, ip + 1); }
+        }
+        clear_invalid();
+        return true;
+    }
+
+    // The numeric keypad reports its own key codes, and a keypad is exactly what someone typing
+    // dimensions all day uses.
+    int ch = key;
+    if (key >= WXK_NUMPAD0 && key <= WXK_NUMPAD9) ch = '0' + (key - WXK_NUMPAD0);
+    else if (key == WXK_NUMPAD_DECIMAL)           ch = '.';
+    else if (key == WXK_NUMPAD_SUBTRACT)          ch = '-';
+
+    const bool numeric = (ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' || ch == ',';
+    if (!numeric) return false;
+
+    // A decimal COMMA is normalised to a point on the way in: this field feeds a CAD kernel and
+    // the rest of the file already promises a point whatever the locale (see fmt_value).
+    if (ch == ',') ch = '.';
+
+    // WriteText replaces the current selection — and open() left the whole prefill selected, so
+    // the FIRST character typed replaces the as-drawn value and the rest append. That is the
+    // behaviour a person expects from a pre-selected field, obtained for free rather than
+    // reimplemented.
+    m_ctrl->WriteText(wxString(wxUniChar(ch)));
+    clear_invalid();
+    return true;
 }
 
 void SketchInlineEditor::cancel()
@@ -345,6 +424,7 @@ void SketchInlineEditor::clear_invalid()
 void SketchInlineEditor::do_cancel()
 {
     if (!m_open) return;
+    trace_ux("cancel", std::string(m_title_text.utf8_str()), "");
     auto cb = m_cancel;
     close();
     if (cb) cb();

@@ -4205,6 +4205,25 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_viewport->inline_commit();
                 return;
             }
+            // THE ARBITER. Route by what the key IS, not by who the window manager focused.
+            //
+            // This is FreeCAD's rule, from Sketcher's DrawSketchKeyboardManager::
+            // detectKeyboardEventHandlingMode: a digit, a sign, a decimal separator or a
+            // Backspace/Delete is unambiguously meant for the number the user is entering; a
+            // letter is unambiguously a tool shortcut; Enter/Tab hand control back to the view.
+            // FreeCAD never queries focus anywhere in that decision, and that is precisely why
+            // its sketcher behaves the same on every desktop.
+            //
+            // Ours asked "who has focus?" instead — a question whose answer is the window
+            // manager's opinion. openbox grants this borderless top-level the keyboard, mutter
+            // refuses it, so the same binary took typed values on one machine and silently
+            // committed the pre-filled as-drawn number on another. Seven workarounds fought that
+            // and one of them cost a macOS regression. The question was wrong, not the answers.
+            //
+            // The has_focus() guard above keeps this from double-typing where the toolkit DID
+            // give the field the keyboard: there the field's own binding will get the key too.
+            if (!ctrl && m_viewport->inline_type_char(key))
+                return;
             // Esc is NOT special-cased here any more: escape() routes it, and the open field is
             // exactly what CadLevel::Transient means, so it closes the field and stops there.
         }
