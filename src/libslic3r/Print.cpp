@@ -242,6 +242,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "activate_chamber_temp_control",
         "manual_filament_change",
         "disable_m73",
+        "omit_gcode_header_blocks",
         "use_firmware_retraction",
         "enable_long_retraction_when_cut",
         "long_retractions_when_cut",
