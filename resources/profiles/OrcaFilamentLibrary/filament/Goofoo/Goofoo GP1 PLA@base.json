@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 PLA@base",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "Generic PLA @System",
+	"hot_plate_temp": [
+		"50"
+	],
+	"hot_plate_temp_initial_layer": [
+		"50"
+	],
+	"filament_id": "GFG_V027",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

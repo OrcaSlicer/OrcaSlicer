@@ -1,0 +1,26 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PLA@base",
+  "inherits": "Generic PLA @System",
+  "from": "system",
+  "instantiation": "false",
+  "hot_plate_temp": [
+    "40"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "40"
+  ],
+  "nozzle_temperature": [
+    "230"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "230"
+  ],
+  "filament_id": "GFG_V014",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PLA"
+  ]
+}

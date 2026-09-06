@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PETG-CF @base",
+	"from": "system",
+	"filament_id": "TBM018",
+	"filament_type": [
+		"PETG-CF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PETG-CF @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

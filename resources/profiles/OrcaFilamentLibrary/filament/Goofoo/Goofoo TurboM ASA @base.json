@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM ASA @base",
+	"from": "system",
+	"filament_id": "TBM006",
+	"filament_type": [
+		"ASA"
+	],
+	"instantiation": "false",
+	"inherits": "Generic ASA @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_flow_ratio": [
+		"0.93"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	]
+}

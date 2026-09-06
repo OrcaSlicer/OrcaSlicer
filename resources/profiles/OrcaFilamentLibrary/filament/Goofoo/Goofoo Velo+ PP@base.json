@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PP@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PP @System",
+  "filament_id": "GFG_V017",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PP"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PLA Silk @base",
+	"from": "system",
+	"filament_id": "TBM021",
+	"filament_type": [
+		"PLA Silk"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PLA Silk @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

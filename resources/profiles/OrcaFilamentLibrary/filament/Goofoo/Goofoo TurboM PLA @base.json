@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PLA @base",
+	"from": "system",
+	"filament_id": "TBM020",
+	"filament_type": [
+		"PLA"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PLA @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"hot_plate_temp": [
+		"40"
+	],
+	"hot_plate_temp_initial_layer": [
+		"40"
+	]
+}

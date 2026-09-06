@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PHA@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PHA @System",
+  "filament_id": "GFG_V011",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PHA"
+  ]
+}

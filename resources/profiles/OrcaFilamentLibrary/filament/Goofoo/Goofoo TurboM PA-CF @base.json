@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PA-CF @base",
+	"from": "system",
+	"filament_id": "TBM008",
+	"filament_type": [
+		"PA-CF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PA-CF @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	]
+}

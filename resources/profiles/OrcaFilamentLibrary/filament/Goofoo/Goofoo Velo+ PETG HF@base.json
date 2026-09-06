@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PETG HF@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PETG HF @System",
+  "filament_id": "GFG_F008",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PETG HF"
+  ]
+}

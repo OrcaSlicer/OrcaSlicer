@@ -1,0 +1,20 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PA@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PA @System",
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "reduce_fan_stop_start_freq": [
+    "1"
+  ],
+  "filament_id": "GFG_V005",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PA"
+  ]
+}

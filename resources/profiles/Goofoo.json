@@ -1,0 +1,99 @@
+{
+  "name": "Goofoo",
+  "version": "02.04.00.01",
+  "force_update": "0",
+  "description": "Goofoo configurations",
+  "machine_model_list": [
+    {
+      "name": "Goofoo Velo+",
+      "sub_path": "machine/Goofoo Velo+.json"
+    },
+    {
+      "name": "Generic Klipper Printer",
+      "sub_path": "machine/MyKlipper.json"
+    },
+    {
+      "name": "Goofoo TurboM",
+      "sub_path": "machine/Goofoo TurboM.json"
+    },
+    {
+      "name": "Goofoo GP1",
+      "sub_path": "machine/Goofoo GP1.json"
+    }
+
+  ],
+  "process_list": [
+    {
+      "name": "fdm_process_common",
+      "sub_path": "process/fdm_process_common.json"
+    },
+    {
+      "name": "fdm_process_klipper_common",
+      "sub_path": "process/fdm_process_klipper_common.json"
+    },
+    {
+      "name": "0.20mm Standard @MyKlipper",
+      "sub_path": "process/0.20mm Standard @MyKlipper.json"
+    },
+    {
+      "name": "0.20mm GP1 @Goofoo",
+      "sub_path": "process/0.20mm GP1 @Goofoo.json"
+    },
+    {
+      "name": "0.20mm Velo+ @Goofoo",
+      "sub_path": "process/0.20mm Velo+ @Goofoo.json"
+    },
+    {
+      "name": "0.30mm Standard Velo+@Goofoo",
+      "sub_path": "process/0.30mm Standard Velo+@Goofoo.json"
+    },
+    {
+      "name": "0.20mm TurboM @Goofoo",
+      "sub_path": "process/0.20mm TurboM @Goofoo.json"
+    }
+  ],
+  "filament_list": [
+  ],
+  "machine_list": [
+    {
+      "name": "fdm_machine_common",
+      "sub_path": "machine/fdm_machine_common.json"
+    },
+    {
+      "name": "fdm_klipper_common",
+      "sub_path": "machine/fdm_klipper_common.json"
+    },
+    {
+      "name": "MyKlipper 0.2 nozzle",
+      "sub_path": "machine/MyKlipper 0.2 nozzle.json"
+    },
+    {
+      "name": "MyKlipper 0.4 nozzle",
+      "sub_path": "machine/MyKlipper 0.4 nozzle.json"
+    },
+    {
+      "name": "MyKlipper 0.6 nozzle",
+      "sub_path": "machine/MyKlipper 0.6 nozzle.json"
+    },
+    {
+      "name": "Goofoo Velo+ 0.2 nozzle",
+      "sub_path": "machine/Goofoo Velo+ 0.2 nozzle.json"
+    },
+    {
+      "name": "Goofoo Velo+ 0.4 nozzle",
+      "sub_path": "machine/Goofoo Velo+ 0.4 nozzle.json"
+    },
+    {
+      "name": "Goofoo Velo+ 0.6 nozzle",
+      "sub_path": "machine/Goofoo Velo+ 0.6 nozzle.json"
+    },
+    {
+      "name": "Goofoo TurboM 0.4 nozzle",
+      "sub_path": "machine/Goofoo TurboM 0.4 nozzle.json"
+    },
+    {
+      "name": "Goofoo GP1 0.4 nozzle",
+      "sub_path": "machine/Goofoo GP1 0.4 nozzle.json"
+    }
+  ]
+}

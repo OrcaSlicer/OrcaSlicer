@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PVA @base",
+	"from": "system",
+	"filament_id": "TBM026",
+	"filament_type": [
+		"PVA"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PVA @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}
