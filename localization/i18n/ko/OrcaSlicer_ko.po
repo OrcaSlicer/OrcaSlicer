@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 09:39-0300\n"
+"POT-Creation-Date: 2026-09-03 10:27+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4931,6 +4931,10 @@ msgstr ""
 "예 - 이 설정을 변경하고 나선 모드를 자동으로 활성화합니다\n"
 "아니오 - 이번에는 나선 모드 사용을 포기합니다"
 
+# AI Translated
+msgid "N/A"
+msgstr "해당 없음"
+
 msgid "Printing"
 msgstr "출력 중"
 
@@ -5389,10 +5393,6 @@ msgstr "잘못된 패턴입니다. N, N#K 또는 항목당 선택적 #K가 있�
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "잘못된 형식입니다. 필요한 벡터 형식: \"%1%\""
-
-# AI Translated
-msgid "N/A"
-msgstr "해당 없음"
 
 # AI Translated
 msgid "System agents"
@@ -6349,6 +6349,12 @@ msgstr "프로젝트 다른 이름으로 저장"
 
 msgid "Save current project as"
 msgstr "현재 프로젝트 다른 이름으로 저장"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "3MF/STL/STEP/SVG/OBJ/AMF 가져오기"
@@ -8195,6 +8201,12 @@ msgstr "이러한 사전 설정 내의 Gcode가 기계 손상을 방지할 수 �
 msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed:"
+msgstr ""
+
 # AI Translated
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "STEP 파일 내부의 구성 요소 이름이 UTF-8 형식이 아닙니다!"
@@ -8621,6 +8633,17 @@ msgstr "슬라이스 파일을 다음으로 저장:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "%s 파일이 프린터의 저장 공간으로 전송되었으며 프린터에서 볼 수 있습니다."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "게시"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "노즐 유형이 설정되지 않았습니다. 노즐을 설정하고 다시 시도하세요."
@@ -9865,9 +9888,6 @@ msgstr "모델 게시 웹 페이지로 이동"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "참고: 준비하는 데 몇 분 정도 걸릴 수 있습니다. 조금만 기다려 주십시오."
 
-msgid "Publish"
-msgstr "게시"
-
 msgid "Publish was canceled"
 msgstr "게시가 취소되었습니다"
 
@@ -9883,6 +9903,64 @@ msgstr "데이터 업로드 중"
 
 msgid "Jump to webpage"
 msgstr "웹 페이지로 이동"
+
+msgid "Material"
+msgstr ""
+
+msgid "Mixed filament"
+msgstr ""
+
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr ""
+
+msgid "needs"
+msgstr ""
+
+msgid "not enabled"
+msgstr ""
+
+msgid "material not published"
+msgstr ""
+
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr ""
+
+msgid "Publish anyway"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to be published in the 3MF file"
+msgstr ""
+
+msgid "Publish 3MF Wiki"
+msgstr ""
+
+msgid "Publish 3MF Video Guide"
+msgstr ""
+
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr ""
+
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr ""
+
+msgid "Publish this filament slot in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -21535,6 +21613,15 @@ msgstr "이 작업은 취소할 수 없습니다. 계속하시겠습니까?"
 
 msgid "Skipping objects."
 msgstr "물체 건너뛰기"
+
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
+msgstr ""
+
+msgid "Ratio"
+msgstr ""
 
 msgid "Select Filament"
 msgstr "필라멘트 선택"

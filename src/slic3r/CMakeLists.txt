@@ -97,6 +97,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
+    GUI/ConfigValueFormatter.cpp
+    GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
     GUI/ConfigWizard_private.hpp
@@ -451,6 +453,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PublishSettingsDialog.cpp
+    GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp

@@ -1,6 +1,5 @@
 
 #include "libslic3r/Model.hpp"
-#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
@@ -9,8 +8,11 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/PublishSettings.hpp"
 
 #include "test_utils.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -499,7 +501,6 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
     }
 }
 
-
 // A mixed-color filament occupies an ordinary filament slot, and painting with it stores an
 // ordinary extruder state: a project saved by BambuStudio encodes filament 5 of a 5-slot setup
 // as paint state 5, with the mix described by the parallel filament_mixed_* project arrays.
@@ -590,3 +591,639 @@ SCENARIO("Mixed-color filament setup and painting round-trip through a .3mf", "[
         }
     }
 }
+// Locks the serialization contract of the "Publish" metadata: the orca_published flag and the
+// orca_published_keys JSON array in model.model_info->metadata_items must survive a store_bbs_3mf ->
+// load_bbs_3mf round-trip unchanged. (The full preset-preservation behavior is exercised
+// headlessly in test_preset_bundle_loading.cpp.)
+SCENARIO("Published 3MF round-trips the published flag and published_keys metadata", "[3mf]") {
+    GIVEN("a model carrying published metadata") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG]      = "1";
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = R"(["layer_height","wall_thickness"])";
+
+        // store_bbs_3mf stages project_settings.config through the model's backup path; point
+        // it at a writable temp dir (the default lives under a read-only root in CI).
+        ScopedTemporaryDir backup_dir("orca_pub");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the published metadata round-trips unchanged") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height","wall_thickness"])");
+
+                // The orca_published_keys value is a JSON array of setting keys; it must parse back to
+                // the same keys that were selected.
+                nlohmann::json keys = nlohmann::json::parse(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG]);
+                REQUIRE(keys.is_array());
+                REQUIRE(keys.size() == 2);
+                REQUIRE(keys[0] == "layer_height");
+                REQUIRE(keys[1] == "wall_thickness");
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+// A normal 3MF (no Publish metadata) must load identically: the loader must not fabricate a
+// "orca_published" flag or orca_published_keys for files that never carried them.
+SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
+    GIVEN("a model without any published metadata") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        ScopedTemporaryDir backup_dir("orca_legacy");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("no published key is fabricated") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_TAG) == 0);
+                REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_KEYS_TAG) == 0);
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+// Locks the serialization contract of the orca_published_material_keys metadata: the per-entry JSON
+// must survive a store_bbs_3mf -> load_bbs_3mf round-trip verbatim, exactly like orca_published_keys.
+SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf]") {
+    GIVEN("a model carrying published material keys metadata") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        const std::string material_keys_json =
+            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99"},"slot":0,"keys":["filament_retraction_length","filament_z_hop"]}])";
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = material_keys_json;
+
+        ScopedTemporaryDir backup_dir("orca_pub_mat");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the published material keys metadata round-trips unchanged") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] == material_keys_json);
+
+                // The value must parse back to one material entry carrying the nested identity
+                // object, the author slot ordinal and the key list.
+                nlohmann::json entries = nlohmann::json::parse(material_keys_json);
+                REQUIRE(entries.is_array());
+                REQUIRE(entries.size() == 1);
+                REQUIRE(entries[0]["material"]["filament_type"] == "PLA");
+                REQUIRE(entries[0]["material"]["filament_vendor"] == "Generic");
+                REQUIRE(entries[0]["material"]["filament_id"] == "GFL99");
+                REQUIRE(entries[0]["slot"] == 0);
+                REQUIRE(entries[0]["keys"].is_array());
+                REQUIRE(entries[0]["keys"].size() == 2);
+                REQUIRE(entries[0]["keys"][0] == "filament_retraction_length");
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer tags", "[3mf]") {
+    GIVEN("a multi-instance model carrying published metadata and a published_config payload") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+        // A second instance: tag-less third-party files get their multi-instance objects split,
+        // published files must not (the loader recognizes them by their metadata).
+        model.objects.front()->add_instance();
+
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.set_key_value("layer_height", new ConfigOptionFloat(0.24));
+        full_cfg.set_key_value("retraction_length", new ConfigOptionFloats({ 1.2 }));
+
+        const std::vector<std::string> published_keys = { "layer_height", "retraction_length" };
+        const std::vector<PublishedMaterialEntry> material_keys = {
+            { "PLA", "Generic", "GFL99", "", "Generic PLA", 0, { "filament_retraction_length" } }
+        };
+
+        // The payload builder keeps the published and identity keys and drops everything else.
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        REQUIRE(filtered_cfg.option("layer_height") != nullptr);
+        REQUIRE(filtered_cfg.option("retraction_length") != nullptr);
+        REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+        REQUIRE(filtered_cfg.option("filament_type") != nullptr);
+        REQUIRE(filtered_cfg.option("wipe_tower_x") != nullptr);
+        REQUIRE(filtered_cfg.option("sparse_infill_density") == nullptr);
+        REQUIRE(filtered_cfg.option("machine_start_gcode") == nullptr);
+
+        // Serialize the payload exactly like export_published_3mf does.
+        std::string payload;
+        for (const std::string &key : filtered_cfg.keys())
+            payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG]      = "1";
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = R"(["layer_height","retraction_length"])";
+        model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = payload;
+
+        ScopedTemporaryDir backup_dir("orca_min_pub");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored using SaveStrategy::MinimalPublished and reloaded") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            // Create a fake project preset to verify MinimalPublished omits it.
+            Preset preset(Preset::TYPE_PRINT, "TestPrintPreset");
+            preset.config = full_cfg;
+            std::vector<Preset*> project_presets = { &preset };
+
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &filtered_cfg;
+            store_params.project_presets = project_presets;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            ScopedTemporaryDir loaded_backup_dir("orca_min_pub_loaded");
+            dst_model.set_backup_path(loaded_backup_dir.string());
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> loaded_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &loaded_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the 3MF loads without project config or embedded presets") {
+                REQUIRE(loaded);
+                REQUIRE(dst_config.empty());
+                REQUIRE(loaded_presets.empty());
+            }
+            THEN("the file carries no slicer tags and classifies as a generic 3MF") {
+                REQUIRE_FALSE(is_bbl_3mf);
+                REQUIRE_FALSE(is_orca_3mf);
+                // No Application / OrcaSlicer tag: old receivers import the geometry silently
+                // instead of showing a baked-in, wrong "old version" popup.
+                REQUIRE_FALSE(file_version.valid());
+            }
+            THEN("the geometry keeps BBS-grade handling: instances are not split") {
+                REQUIRE(dst_model.objects.size() == 1);
+                REQUIRE(dst_model.objects.front()->instances.size() == 2);
+            }
+            THEN("the published metadata and payload round-trip unchanged") {
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height","retraction_length"])");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] == payload);
+            }
+            THEN("the payload parses back to the published values") {
+                DynamicPrintConfig parsed_payload;
+                parsed_payload.load_from_ini_string(dst_model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG], ForwardCompatibilitySubstitutionRule::Enable);
+                REQUIRE(parsed_payload.option("layer_height") != nullptr);
+                REQUIRE_THAT(parsed_payload.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-6));
+                REQUIRE(parsed_payload.option("retraction_length") != nullptr);
+                REQUIRE_THAT(parsed_payload.opt<ConfigOptionFloats>("retraction_length")->get_at(0), Catch::Matchers::WithinAbs(1.2, 1e-6));
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+// A minimal published 3MF must not leak the slicer tags of the source project. The exporter seeds
+// metadata_item_map from the input file's metadata_items, so re-publishing a project opened from a
+// regular Orca/BBS 3MF (the typical remix flow) must strip the Application / OrcaSlicer tags it
+// came with, otherwise old receivers route onto the baked-in "old version" popup.
+SCENARIO("MinimalPublished strips slicer tags carried by the source project", "[3mf]") {
+    GIVEN("a model loaded from a regular Orca/BBS 3MF whose metadata carries the slicer tags") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = "1";
+        model.model_info->metadata_items["Application"]     = "BambuStudio-2.0.0";
+        model.model_info->metadata_items["OrcaSlicer"]      = "2.1.0";
+
+        ScopedTemporaryDir backup_dir("orca_strip_tags");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored using SaveStrategy::MinimalPublished and reloaded") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> loaded_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &loaded_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the source slicer tags are stripped, not carried through") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items.count("Application") == 0);
+                REQUIRE(dst_model.model_info->metadata_items.count("OrcaSlicer") == 0);
+                // The published marker itself must survive.
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+            }
+            THEN("the file classifies as a generic 3MF without a version popup") {
+                REQUIRE_FALSE(is_bbl_3mf);
+                REQUIRE_FALSE(is_orca_3mf);
+                REQUIRE_FALSE(file_version.valid());
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+// An entry masks the non-published slots to their defaults so publishing slot 1 never leaks slot
+// 0's value into the file. Both a full entry (the whole-slot key list) and a partial entry (a
+// per-slot key) go through the same masking path in filter_published_config (keys and full_keys
+// are filtered identically), so the two forms are exercised together.
+SCENARIO("Published entries mask the other slots to their defaults", "[3mf]") {
+    const bool full = GENERATE(true, false);
+    GIVEN("a full print configuration with two filament slots") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values = { "#111111", "#222222" };
+        // filament_flow_ratio carries a non-empty option default (1.0) of the same type, so the
+        // mask can restore it on the non-published slot.
+        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
+
+        WHEN("filtering with a published entry for slot 1") {
+            PublishedMaterialEntry entry;
+            entry.slot = 1;
+            if (full) {
+                entry.full      = true;
+                entry.full_keys = { "filament_flow_ratio" };
+            } else {
+                entry.keys = { "filament_flow_ratio" };
+            }
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { entry });
+
+            THEN("the selected key is present with the author's slot value") {
+                REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
+            }
+            THEN("the non-published slot is masked to its default") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// A key needing slot masking that cannot be masked (no registered option default of the same
+// type) is dropped from the payload entirely instead of shipping the author's whole vector.
+SCENARIO("Unmaskable keys are dropped from the published payload instead of leaking", "[3mf]") {
+    GIVEN("a config carrying a synthetic def-less vector key and a maskable one") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values  = { "#111111", "#222222" };
+        // Not a PrintConfig key: print_config_def has no default to mask with.
+        full_cfg.set_key_value("orca_synthetic_setting", new ConfigOptionFloats({ 9.9, 8.8 }));
+        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
+
+        PublishedMaterialEntry partial_entry;
+        partial_entry.slot = 1;
+        partial_entry.keys = { "orca_synthetic_setting", "filament_flow_ratio" };
+
+        WHEN("filtering with a partial entry for slot 1") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { partial_entry });
+
+            THEN("the unmaskable synthetic key is not published") {
+                REQUIRE(filtered_cfg.option("orca_synthetic_setting") == nullptr);
+            }
+            THEN("the maskable key is present, author slot kept, other slot masked") {
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio") != nullptr);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// A per-extruder printer key carrying a "#N" variant (e.g. retraction_length#1) must not serialize
+// every extruder's value: the base is masked to the author's extruder and the other slots are
+// restored to their option default, matching the material-side slot-masking invariant. A bare
+// printer base key (no variant) keeps whole-vector serialization.
+SCENARIO("Published per-extruder printer keys mask the other extruders to their defaults", "[3mf]") {
+    GIVEN("a full print configuration with three extruders carrying per-extruder retraction values") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        // Non-default values on the un-selected slots, so a leak is distinguishable from the mask
+        // restoring the option default (retraction_length defaults to {0.8}).
+        full_cfg.opt<ConfigOptionFloats>("retraction_length")->values = { 3.0, 1.2, 4.0 };
+
+        WHEN("filtering with only extruder 1's retraction_length checked") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "retraction_length#1" }, {});
+
+            THEN("the author's extruder value survives") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[1], Catch::Matchers::WithinAbs(1.2, 1e-6));
+            }
+            THEN("the other extruders are masked to their default") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[0], Catch::Matchers::WithinAbs(0.8, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[2], Catch::Matchers::WithinAbs(0.8, 1e-6));
+            }
+        }
+        WHEN("filtering the bare base key without a '#N' variant") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "retraction_length" }, {});
+
+            THEN("the whole vector is serialized unmasked") {
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[0], Catch::Matchers::WithinAbs(3.0, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[1], Catch::Matchers::WithinAbs(1.2, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloats>("retraction_length")->values[2], Catch::Matchers::WithinAbs(4.0, 1e-6));
+            }
+        }
+    }
+}
+
+// The extended per-entry fields (full dump list, published type and colour) travel inside the
+// published_material_keys metadata and round-trip unchanged.
+SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
+    GIVEN("a model carrying extended published material keys metadata") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        const std::string material_keys_json =
+            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99","setting_id":"RFs9eCKYOMUSmvZf","name":"Generic PLA Matte @System"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = material_keys_json;
+
+        ScopedTemporaryDir backup_dir("orca_pub_mat2");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the extended material metadata round-trips unchanged") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] == material_keys_json);
+
+                // The value must parse back with every extended field intact.
+                nlohmann::json entries = nlohmann::json::parse(material_keys_json);
+                REQUIRE(entries.is_array());
+                REQUIRE(entries.size() == 1);
+                REQUIRE(entries[0]["full"].get<bool>() == true);
+                REQUIRE(entries[0]["full_keys"].is_array());
+                REQUIRE(entries[0]["full_keys"].size() == 2);
+                REQUIRE(entries[0]["publish_type"].get<bool>() == true);
+                REQUIRE(entries[0]["type"] == "PLA");
+                REQUIRE(entries[0]["publish_color"].get<bool>() == false);
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+
+// A published mixed filament serializes its whole definition (components, ratios, gradient)
+// masked to the author's slot: the mix slot's values survive, the non-published slots reset to
+// their defaults, so a partial publish never leaks another slot's mix data.
+SCENARIO("Published mixed-filament keys are masked to the author's slot", "[3mf]") {
+    GIVEN("a full print configuration with three slots, one of them mixed") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values  = { "#111111", "#222222", "#333333" };
+        full_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values  = { 0, 0, 1 };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values       = { "", "", "1,2" };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values   = { "", "", "0.6,0.4" };
+        full_cfg.opt<ConfigOptionBools>("filament_mixed_gradient")->values            = { 0, 0, 1 };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values    = { "", "", "0.9,0.1" };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values    = { "", "", "0,0.1|1,0.9" };
+        full_cfg.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values   = { 0, 0, 1 };
+
+        PublishedMaterialEntry mix_entry;
+        mix_entry.slot = 2;
+        mix_entry.keys = {
+            "filament_is_mixed",          "filament_mixed_components",       "filament_mixed_sublayer_ratios",
+            "filament_mixed_gradient",    "filament_mixed_gradient_range",   "filament_mixed_gradient_curve",
+            "filament_mixed_gradient_per_part"
+        };
+
+        WHEN("filtering with a mixed entry for slot 2") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { mix_entry });
+
+            THEN("the author's mixed slot keeps its definition") {
+                REQUIRE(filtered_cfg.option("filament_is_mixed") != nullptr);
+                REQUIRE(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>{ 0, 0, 1 });
+                const auto& components = filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+                REQUIRE(components.size() == 3);
+                CHECK(components[2] == "1,2");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[2] == "0.6,0.4");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values[2] == "0,0.1|1,0.9");
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_mixed_gradient")->values[2]);
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values[2]);
+            }
+            THEN("the non-published slots are masked to their defaults") {
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values[0] == "");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values[1] == "");
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values[0] == 0);
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values[1] == 0);
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// The published flag is gated on the exact string "1": any other serialized value means "not
+// published", so a receiver never treats a file as published on a loose truthiness check.
+TEST_CASE("is_published_3mf_flag accepts only the literal \"1\"", "[3mf]") {
+    CHECK(is_published_3mf_flag("1"));
+    CHECK_FALSE(is_published_3mf_flag("0"));
+    CHECK_FALSE(is_published_3mf_flag("false"));
+    CHECK_FALSE(is_published_3mf_flag("true"));
+    CHECK_FALSE(is_published_3mf_flag(""));
+    CHECK_FALSE(is_published_3mf_flag("YES"));
+}
+
+// bbs_3mf_is_published is the lightweight metadata probe used to decide whether a file was
+// produced by the publish feature (GUI "recently published" tracking). It must return true only
+// for a file whose metadata carries the flag set to "1", and false for legacy files and for a
+// file whose flag is present but not "1" (which loads as a normal, non-published 3MF).
+SCENARIO("bbs_3mf_is_published detects only genuinely published 3MFs", "[3mf]") {
+    auto store_model = [](const std::string &path, const std::string &flag_value, const std::string &keys_value) {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+        model.model_info = std::make_shared<ModelInfo>();
+        // An empty flag_value means "don't write the flag at all" (a legacy file).
+        if (!flag_value.empty())
+            model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = flag_value;
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = keys_value;
+        ScopedTemporaryDir backup_dir("orca_is_pub");
+        model.set_backup_path(backup_dir.string());
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        StoreParams store_params;
+        store_params.path     = path.c_str();
+        store_params.model    = &model;
+        store_params.config   = &config;
+        store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+        REQUIRE(store_bbs_3mf(store_params));
+    };
+
+    GIVEN("a minimal published 3MF whose flag is \"1\"") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "1", R"(["layer_height"])");
+        WHEN("probed by bbs_3mf_is_published") {
+            THEN("it is recognized as published") {
+                CHECK(bbs_3mf_is_published(temp.string()));
+            }
+        }
+    }
+    GIVEN("a legacy 3MF without any published flag") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "", R"(["layer_height"])");
+        WHEN("probed by bbs_3mf_is_published") {
+            THEN("it is not recognized as published") {
+                CHECK_FALSE(bbs_3mf_is_published(temp.string()));
+            }
+        }
+    }
+    GIVEN("a 3MF carrying the flag set to \"0\"") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "0", R"(["layer_height"])");
+        WHEN("probed and loaded") {
+            THEN("it is not recognized as published") {
+                CHECK_FALSE(bbs_3mf_is_published(temp.string()));
+            }
+            THEN("it loads as a normal, non-published 3MF") {
+                Model dst_model;
+                DynamicPrintConfig dst_config;
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+                PlateDataPtrs        dst_plates;
+                std::vector<Preset*> project_presets;
+                bool   is_bbl_3mf = false, is_orca_3mf = false;
+                Semver file_version;
+                REQUIRE(load_bbs_3mf(temp.string().c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                     &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+                REQUIRE(dst_model.model_info != nullptr);
+                // The key is present but not "1", so nothing treats the file as published; the
+                // stored keys still round-trip verbatim.
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "0");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height"])");
+                release_PlateData_list(dst_plates);
+            }
+        }
+    }
+}
+

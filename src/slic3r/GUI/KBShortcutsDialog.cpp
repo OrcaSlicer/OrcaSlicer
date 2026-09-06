@@ -174,6 +174,7 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + "O", L("Open Project") },
             { ctrl + "S", L("Save Project") },
             { ctrl + shift + "S", L("Save Project as")},
+            { ctrl + shift + "E", L("Publish 3MF") },
             // File>Import
             { ctrl + "I", L("Import geometry data from STL/STEP/3MF/OBJ/AMF files") },
             // File>Export

@@ -39,7 +39,6 @@
 #include "Plater.hpp"
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
-#include "format.hpp"
 // BBS
 #include "PartPlate.hpp"
 #include "Preferences.hpp"
@@ -49,11 +48,9 @@
 #include "../Utils/NetworkAgentFactory.hpp"
 #include "../Utils/PrintHost.hpp"
 
-#include <fstream>
-#include <string_view>
-
 #include "GUI_App.hpp"
 #include "UnsavedChangesDialog.hpp"
+#include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
@@ -741,6 +738,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         if (evt.CmdDown() && evt.GetKeyCode() == 'I' && !evt.ShiftDown()) {
             if (!can_add_models()) return;
             if (m_plater) { m_plater->add_file(); }
+            return;
+        }
+        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'E') {
+            if (can_export_model()) publish_project();
             return;
         }
         evt.Skip();
@@ -1737,6 +1738,22 @@ bool MainFrame::save_project_as(const wxString& filename)
         m_plater->reset_project_dirty_after_save();
     }
     return ret;
+}
+
+void MainFrame::publish_project()
+{
+    if (m_plater == nullptr)
+        return;
+    // Seed the dialog from the session selection (a remembered state or a freshly loaded
+    // published 3MF); a null pointer means "fresh", keeping the dirty defaults.
+    std::vector<std::string> pending_keys;
+    std::vector<Slic3r::PublishedMaterialEntry> pending_material;
+    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material);
+    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    m_plater->set_pending_published(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
+    m_plater->export_published_3mf(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
 }
 
 bool MainFrame::can_upload() const
@@ -2832,6 +2849,20 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
+#endif
+
+        // BBS: publish
+        fileMenu->AppendSeparator();
+        auto publish_handler = [this](wxCommandEvent&) { publish_project(); };
+
+#ifndef __APPLE__
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+            publish_handler, "menu_publish", nullptr,
+            [this](){return can_export_model(); }, this);
+#else
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+            publish_handler, "", nullptr,
+            [this](){return can_export_model(); }, this);
 #endif
 
 
@@ -4212,15 +4243,23 @@ std::wstring MainFrame::FileHistory::GetThumbnailUrl(int index) const
     return wss.str();
 }
 
+bool MainFrame::FileHistory::GetPublished(int index) const
+{
+    return index >= 0 && index < static_cast<int>(m_published_files.size()) && m_published_files[index];
+}
+
 void MainFrame::FileHistory::AddFileToHistory(const wxString &file)
 {
     if (this->m_fileMaxFiles == 0)
         return;
     wxFileHistory::AddFileToHistory(file);
-    if (m_load_called)
+    if (m_load_called) {
         m_thumbnails.push_front(bbs_3mf_get_thumbnail(into_u8(file).c_str()));
-    else
+        m_published_files.push_front(bbs_3mf_is_published(into_u8(file)));
+    } else {
         m_thumbnails.push_front("");
+        m_published_files.push_front(false);
+    }
 }
 
 void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
@@ -4229,6 +4268,7 @@ void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
         return;
     wxFileHistory::RemoveFileFromHistory(i);
     m_thumbnails.erase(m_thumbnails.begin() + i);
+    m_published_files.erase(m_published_files.begin() + i);
 }
 
 size_t MainFrame::FileHistory::FindFileInHistory(const wxString & file)
@@ -4244,6 +4284,7 @@ void MainFrame::FileHistory::LoadThumbnails()
             if (!thumbnail.empty()) {
                 m_thumbnails[i] = thumbnail;
             }
+            m_published_files[i] = bbs_3mf_is_published(into_u8(GetHistoryFile(i)));
         }
     });
     m_load_called = true;
@@ -4264,6 +4305,7 @@ void MainFrame::get_recent_projects(boost::property_tree::wptree &tree, int imag
         std::wstring proj = m_recent_projects.GetHistoryFile(i).ToStdWstring();
         item.put(L"project_name", proj.substr(proj.find_last_of(L"/\\") + 1));
         item.put(L"path", proj);
+        item.put(L"published", m_recent_projects.GetPublished(i) ? L"1" : L"0");
         boost::system::error_code ec;
         std::time_t t = boost::filesystem::last_write_time(proj, ec);
         if (!ec) {

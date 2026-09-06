@@ -1,12 +1,10 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
-#include "../Utils/NetworkAgentFactory.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
 #include <algorithm>
-#include <chrono>
 #include <numeric>
 #include <limits>
 #include <optional>
@@ -16,8 +14,6 @@
 #include <vector>
 #include <string>
 #include <regex>
-#include <future>
-#include <thread>
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
@@ -69,7 +65,6 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/SLA/Hollowing.hpp"
 #include "libslic3r/SLA/SupportPoint.hpp"
 #include "libslic3r/SLA/ReprojectPointsOnMesh.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -78,16 +73,15 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PublishSettings.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/ObjColorUtils.hpp"
 // For stl export
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "GuiColor.hpp"
 #include "GUI_ObjectList.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
@@ -123,7 +117,6 @@
 #include "SendMultiMachinePage.hpp"
 #include "SendToPrinter.hpp"
 #include "PublishDialog.hpp"
-#include "ModelMall.hpp"
 #include "ConfigWizard.hpp"
 #include "SyncAmsInfoDialog.hpp"
 #include "../Utils/ASCIIFolding.hpp"
@@ -149,7 +142,6 @@
 #include "ParamsDialog.hpp"
 #include "ImageDPIFrame.hpp"
 #include "Widgets/Label.hpp"
-#include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
@@ -6712,6 +6704,12 @@ struct Plater::priv
     SendToPrinterDialog* m_send_to_sdcard_dlg = nullptr;
     PublishDialog *m_publish_dlg = nullptr;
 
+    // Session-level stash of the last published selection. Written on publish and on
+    // loading a published 3MF; read when the Publish dialog is opened.
+    bool                                        m_has_pending_published{false};
+    std::vector<std::string>                    m_pending_published_keys;
+    std::vector<Slic3r::PublishedMaterialEntry> m_pending_material_keys;
+
     // Data
     Slic3r::DynamicPrintConfig *config;        // FIXME: leak?
     Slic3r::Print               fff_print;
@@ -6936,7 +6934,10 @@ struct Plater::priv
 
     // BBS: backup & restore
     using LoadProgressCallback = std::function<bool(int, const wxString&)>;
-    std::vector<size_t> load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi = false);
+    std::vector<size_t> load_files(const std::vector<fs::path>& input_files,
+                                   LoadStrategy strategy,
+                                   bool ask_multi      = false,
+                                   bool* published_out = nullptr);
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     // Texture-to-color import: a mesh loaded with UVs + a texture map gets its faces clustered
@@ -6964,7 +6965,7 @@ struct Plater::priv
                                      std::function<bool()> cancel_callback = {});
 
     fs::path get_export_file_path(GUI::FileType file_type);
-    wxString get_export_file(GUI::FileType file_type);
+    wxString get_export_file(GUI::FileType file_type, const wxString& title = {}, bool published = false);
 
     // BBS
     void load_auxiliary_files();
@@ -8272,7 +8273,10 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
 }
 
 // BBS: backup & restore
-std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi)
+std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files,
+                                             LoadStrategy strategy,
+                                             bool ask_multi,
+                                             bool* published_out)
 {
     std::vector<size_t> empty_result;
     bool dlg_cont = true;
@@ -8352,6 +8356,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     const float INPUT_FILES_RATIO            = 0.7;
     const float INIT_MODEL_RATIO             = 0.75;
     const float CENTER_AROUND_ORIGIN_RATIO   = 0.8;
+
     const float LOAD_MODEL_RATIO             = 0.9;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
@@ -8392,6 +8397,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 DynamicPrintConfig config;
                 Semver             file_version;
                 En3mfType          en_3mf_file_type = En3mfType::From_BBS;
+                // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
+                // on load keep the user's current presets and overlay only those keys. Declared
+                // here (outside the config block below) so it stays alive for the embedded-preset
+                // gate, the metadata strip and the preset overlay after the block closes.
+                PublishedConfig published_config;
                 {
                     DynamicPrintConfig config_loaded;
 
@@ -8418,6 +8428,107 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                           BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
                                       << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_or_orca_3mf %3%, file_version %4% \n") % plate_data.size() %
                                           project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) % file_version.to_string();
+
+                    // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
+                    // on load keep the user's current presets and overlay only those keys. Parsed
+                    // here (before the version/fallback chain below) because a published file has
+                    // no project_settings.config: its values travel in the published_config
+                    // metadata payload, which must fill config_loaded before the chain decides
+                    // whether to import geometry only.
+                    if (model.model_info != nullptr) {
+                        auto published_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_TAG);
+                        if (published_it != model.model_info->metadata_items.end() && is_published_3mf_flag(published_it->second)) {
+                            published_config.published = true;
+                            auto keys_it               = model.model_info->metadata_items.find(ORCA_PUBLISHED_KEYS_TAG);
+                            if (keys_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto j = nlohmann::json::parse(keys_it->second);
+                                    if (j.is_array())
+                                        for (const auto& k : j)
+                                            if (k.is_string())
+                                                published_config.published_keys.emplace_back(k.get<std::string>());
+                                } catch (...) {
+                                    // Ignore malformed published_keys; the project still loads normally.
+                                }
+                            }
+
+                            auto material_keys_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_MATERIAL_TAG);
+                            if (material_keys_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jm = nlohmann::json::parse(material_keys_it->second);
+                                    if (jm.is_array())
+                                        for (const auto& m : jm) {
+                                            try {
+                                                // Malformed entries are isolated so one bad item
+                                                // cannot discard valid entries that follow it.
+                                                if (!m.is_object())
+                                                    continue;
+                                                PublishedMaterialEntry entry;
+                                                const auto mat_it = m.find("material");
+                                                if (mat_it != m.end() && mat_it->is_object()) {
+                                                    const auto& mat = *mat_it;
+                                                    if (mat.contains("filament_type") && mat["filament_type"].is_string())
+                                                        entry.filament_type = mat["filament_type"].get<std::string>();
+                                                    if (mat.contains("filament_vendor") && mat["filament_vendor"].is_string())
+                                                        entry.filament_vendor = mat["filament_vendor"].get<std::string>();
+                                                    if (mat.contains("filament_id") && mat["filament_id"].is_string())
+                                                        entry.filament_id = mat["filament_id"].get<std::string>();
+                                                    if (mat.contains("setting_id") && mat["setting_id"].is_string())
+                                                        entry.setting_id = mat["setting_id"].get<std::string>();
+                                                    if (mat.contains("name") && mat["name"].is_string())
+                                                        entry.preset_name = mat["name"].get<std::string>();
+                                                }
+                                                if (m.contains("slot") && m["slot"].is_number_integer())
+                                                    entry.slot = m["slot"].get<int>();
+                                                const auto entry_keys_it = m.find("keys");
+                                                if (entry_keys_it != m.end() && entry_keys_it->is_array())
+                                                    for (const auto& k : *entry_keys_it)
+                                                        if (k.is_string())
+                                                            entry.keys.emplace_back(k.get<std::string>());
+                                                // Fields always written by the current exporter.
+                                                if (m.contains("full") && m["full"].is_boolean())
+                                                    entry.full = m["full"].get<bool>();
+                                                const auto entry_full_keys_it = m.find("full_keys");
+                                                if (entry_full_keys_it != m.end() && entry_full_keys_it->is_array())
+                                                    for (const auto& k : *entry_full_keys_it)
+                                                        if (k.is_string())
+                                                            entry.full_keys.emplace_back(k.get<std::string>());
+                                                if (m.contains("publish_type") && m["publish_type"].is_boolean())
+                                                    entry.publish_type = m["publish_type"].get<bool>();
+                                                if (m.contains("type") && m["type"].is_string())
+                                                    entry.publish_type_value = m["type"].get<std::string>();
+                                                if (m.contains("publish_color") && m["publish_color"].is_boolean())
+                                                    entry.publish_color = m["publish_color"].get<bool>();
+                                                if (m.contains("color") && m["color"].is_string())
+                                                    entry.color = m["color"].get<std::string>();
+                                                published_config.material_keys.emplace_back(std::move(entry));
+                                            } catch (const nlohmann::json::exception&) {
+                                                // Ignore only this malformed material entry.
+                                            }
+                                        }
+                                } catch (const nlohmann::json::exception&) {
+                                    // Ignore malformed published_material_keys; the project still loads normally.
+                                }
+                            }
+
+                            // Rebuild the published values from the metadata payload: a published
+                            // file carries no project_settings.config, so config_loaded is filled
+                            // from here; a missing or malformed payload leaves it empty and the
+                            // fallback chain below imports the geometry only.
+                            auto payload_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_CONFIG_TAG);
+                            if (payload_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    ConfigSubstitutions payload_substitutions =
+                                        config_loaded.load_from_ini_string(payload_it->second, ForwardCompatibilitySubstitutionRule::Enable);
+                                    config_substitutions.substitutions.insert(config_substitutions.substitutions.end(),
+                                                                              std::make_move_iterator(payload_substitutions.begin()),
+                                                                              std::make_move_iterator(payload_substitutions.end()));
+                                } catch (...) {
+                                    // Ignore malformed published_config; the project still loads normally.
+                                }
+                            }
+                        }
+                    }
 
                     // 1. add extruder for prusa model if the number of existing extruders is not enough
                     // 2. add extruder for BBS or Other model if only import geometry
@@ -8582,7 +8693,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                     text += "\n";
                                     log_and_show_3mf_info(text, bambu_project_title);
                                 }
-                            } else if (load_config) {
+                            } else if (load_config && !published_config.published) {
                                 // BambuStudio version is older or same as our SLIC3R_VERSION
                                 wxString text = _L("The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer.");
                                 log_and_show_3mf_info(text, bambu_project_title);
@@ -8642,7 +8753,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
 
                         Semver old_version(1, 5, 9);
-                        if ((en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) && (file_version < old_version) && load_model && load_config && !config_loaded.empty()) {
+                        // A published 3MF has no project config to migrate: skip the old-version
+                        // translations even if a slicer tag slipped through classification.
+                        if ((en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) && (file_version < old_version) && !published_config.published && load_model && load_config && !config_loaded.empty()) {
                             translate_old = true;
                             partplate_list.get_plate_size(current_width, current_depth, current_height);
                         }
@@ -8664,8 +8777,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
-                    // BBS:: project embedded presets
-                    if ((project_presets.size() > 0) && load_config) {
+                    // BBS:: project embedded presets (skipped for published projects: the author's
+                    // embedded presets must not pollute the receiver's library, the overlay applies
+                    // the published keys to the receiver's own presets instead).
+                    if ((project_presets.size() > 0) && load_config && !published_config.published) {
                         // load project embedded presets
                         PresetsConfigSubstitutions preset_substitutions;
                         PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
@@ -8721,6 +8836,19 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                 }
 
+                // BBS: a "published" 3MF loads as a new project: its path must not become the
+                // project filename (Save/Ctrl-S would overwrite the shared file), and the
+                // published metadata is consumed above and stripped so a later save is a normal
+                // unpublished 3MF.
+                if (published_out != nullptr && published_config.published)
+                    *published_out = true;
+                if (published_config.published && load_config && this->model.model_info != nullptr) {
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+                }
+
                 if (load_config) {
                     if (!config.empty()) {
                         Preset::normalize(config);
@@ -8729,7 +8857,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         {
                             // BBS: modify the prime tower params for old version file
                             Semver old_version3(2, 0, 0);
-                            if ((en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) && file_version < old_version3) {
+                            if ((en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) && !published_config.published && file_version < old_version3) {
                                 double old_filament_prime_volume = 0.;
                                 int    filament_count            = 0;
                                 {
@@ -8779,7 +8907,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
 
                         auto choise = wxGetApp().app_config->get("no_warn_when_modified_gcodes");
-                        if (choise.empty() || choise != "true") {
+                        if (!published_config.published && (choise.empty() || choise != "true")) {
                             // BBS: first validate the printer
                             // validate the system profiles
                             std::set<std::string> modified_gcodes;
@@ -8824,7 +8952,50 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
+                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version, &published_config);
+
+                            // Mixed-filament definitions that collided with one of the
+                            // receiver's real slots were relocated during the preset load.
+                            // Re-point the freshly parsed model's extruder references and
+                            // color painting from the author's slot numbers to where each
+                            // definition landed, so volumes colored with a mix follow it.
+                            // Runs before the objects are handed over to the plater below.
+                            if (load_model && !published_config.mixed_slot_relocations.empty())
+                                Slic3r::remap_model_filament_slots(model, published_config.mixed_slot_relocations);
+
+                            // BBS: notify the user about published settings that could not be applied.
+                            if (!published_config.skipped_keys.empty()) {
+                                NotificationManager* notify_manager = q->get_notification_manager();
+                                std::string message                 = _u8L("Some published settings could not be applied:");
+                                for (const std::string& key : published_config.skipped_keys)
+                                    message += "\n-" + key;
+                                // Informational: the load succeeded, these keys were skipped.
+                                notify_manager
+                                    ->bbl_show_3mf_warn_notification(message,
+                                                                     NotificationManager::NotificationLevel::WarningNotificationLevel);
+                            }
+
+                            // BBS: notify the user about slot materials that were replaced while
+                            // loading a published project (type mismatch / no same-type match).
+                            if (!published_config.material_replacements.empty()) {
+                                NotificationManager* notify_manager = q->get_notification_manager();
+                                std::string message                 = _u8L("Some filament slots were changed:");
+                                for (const std::string& replacement : published_config.material_replacements)
+                                    message += "\n-" + replacement;
+                                // Informational: the load succeeded, the slots were adapted.
+                                notify_manager
+                                    ->bbl_show_3mf_warn_notification(message,
+                                                                     NotificationManager::NotificationLevel::WarningNotificationLevel);
+                            }
+
+                            // Remember the imported published selection so the Publish dialog is
+                            // pre-seeded with the file's settings. Stored after the load so any
+                            // per-slot relocations are already reflected in material_keys.
+                            if (published_config.published) {
+                                this->m_has_pending_published = true;
+                                this->m_pending_published_keys = published_config.published_keys;
+                                this->m_pending_material_keys  = published_config.material_keys;
+                            }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
@@ -8965,7 +9136,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                     dynamic_map->value = false;
                             }
                             // Update filament combobox after loading config
-                            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                            if (published_config.published) {
+                                q->update_filament_colors_in_full_config();
+                                wxGetApp().plater()->sidebar().update_all_preset_comboboxes();
+                                wxGetApp().plater()->sidebar().update_dynamic_filament_list();
+                            } else {
+                                wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                            }
                             // The loaded project supplies nozzle_volume_type; refresh the sidebar
                             // nozzle-count badges against it.
                             if (auto *nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")) {
@@ -9718,7 +9895,7 @@ fs::path Plater::priv::get_export_file_path(GUI::FileType file_type)
     return output_file;
 }
 
-wxString Plater::priv::get_export_file(GUI::FileType file_type)
+wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& title, bool published)
 {
     wxString wildcard;
     switch (file_type) {
@@ -9760,8 +9937,11 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         }
         case FT_3MF:
         {
-            output_file.replace_extension("3mf");
-            dlg_title = _L("Save file as");
+        // A published export is suggested as "<name>.published.3mf" so the role is visible in the
+        // dialog and in the recent-files list. This is only a pre-filled suggestion; the user's
+        // typed filename wins, keeping a plain ".3mf" output fully valid.
+        output_file.replace_extension(published ? "published.3mf" : "3mf");
+        dlg_title = title.empty() ? _L("Save file as") : title;
             break;
         }
         case FT_OBJ:
@@ -9998,6 +10178,11 @@ void Plater::priv::reset(bool apply_presets_change)
     Plater::TakeSnapshot snapshot(q, _u8L("Reset Project"), UndoRedo::SnapshotType::ProjectSeparator);
 
     clear_warnings();
+
+    // A new project must not inherit the previous project's published selection (Feature A/B).
+    m_has_pending_published   = false;
+    m_pending_published_keys.clear();
+    m_pending_material_keys.clear();
 
     set_project_filename("");
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
@@ -15099,14 +15284,15 @@ void Plater::load_project(wxString const& filename2,
     if (strategy & LoadStrategy::Restore)
         input_paths.push_back(into_u8(originfile));
 
-    std::vector<size_t> res = load_files(input_paths, strategy);
+    bool loaded_published   = false;
+    std::vector<size_t> res = load_files(input_paths, strategy, false, &loaded_published);
 
     reset_project_dirty_initial_presets();
     update_project_dirty_from_presets();
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     // if res is empty no data has been loaded
-    if (!res.empty() && (load_restore || !(strategy & LoadStrategy::Silence))) {
+    if (!res.empty() && !loaded_published && (load_restore || !(strategy & LoadStrategy::Silence))) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << (load_restore ? originfile : filename);
         p->set_project_filename(load_restore ? originfile : filename);
         if (load_restore && originfile.IsEmpty()) {
@@ -15117,6 +15303,15 @@ void Plater::load_project(wxString const& filename2,
         if (using_exported_file()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
             p->set_project_filename(filename);
+        } else if (loaded_published && !res.empty()) {
+            // A "published" 3MF loads as a new project: its path must not become the project
+            // filename (Save/Ctrl-S prompts for a destination instead of overwriting it);
+            // reset() already cleared the project name, so restore the default title and keep
+            // the file in recents. Only on a successful load (res not empty): a failed or
+            // cancelled load must not pollute "Recently opened".
+            p->set_project_name(_L("Untitled"));
+            if (!filename.IsEmpty())
+                wxGetApp().mainframe->add_to_recent_projects(filename);
         }
 
     }
@@ -16774,22 +16969,12 @@ void Plater::force_update_all_plate_thumbnails()
 }
 
 // BBS: backup
-std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi) {
+std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi, bool* published_out) {
     //BBS: wish to reset state when load a new file
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
-    return p->load_files(input_files, strategy, ask_multi);
-}
-
-// To be called when providing a list of files to the GUI slic3r on command line.
-std::vector<size_t> Plater::load_files(const std::vector<std::string>& input_files, LoadStrategy strategy,  bool ask_multi)
-{
-    std::vector<fs::path> paths;
-    paths.reserve(input_files.size());
-    for (const std::string& path : input_files)
-        paths.emplace_back(path);
-    return p->load_files(paths, strategy, ask_multi);
+    return p->load_files(input_files, strategy, ask_multi, published_out);
 }
 
 bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
@@ -18018,13 +18203,188 @@ void Plater::send_gcode_finish(wxString name)
     auto out_str = GUI::format(_L("The file %s has been sent to the printer's storage space and can be viewed on the printer."), name);
     p->notification_manager->push_exporting_finished_notification(out_str, "", false);
 }
-
 void Plater::export_core_3mf()
 {
     wxString path = p->get_export_file(FT_3MF);
     if (path.empty()) { return; }
     const std::string path_u8 = into_u8(path);
     export_3mf(path_u8, SaveStrategy::Silence);
+}
+
+// Export the current project as a "published" 3MF: a pure export that never touches the
+// project's file name, dirty state, backup path or title, and attaches the published metadata
+// to the model only for the duration of the export (a later Save Project is a normal 3MF).
+int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
+                                 const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
+{
+    wxString path = p->get_export_file(FT_3MF, _L("Publish 3MF file as:"), true);
+    if (path.empty() || path == "<cancel>")
+        return wxID_CANCEL;
+
+    nlohmann::json j = nlohmann::json::array();
+    for (const std::string& key : published_keys)
+        j.push_back(key);
+    nlohmann::json jm = nlohmann::json::array();
+    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+        jm.push_back({{"material",
+                       {{"filament_type", e.filament_type},
+                        {"filament_vendor", e.filament_vendor},
+                        {"filament_id", e.filament_id},
+                        {"setting_id", e.setting_id},
+                        {"name", e.preset_name}}},
+                      {"slot", e.slot},
+                      {"keys", e.keys},
+                      {"full", e.full},
+                      {"full_keys", e.full_keys},
+                      {"publish_type", e.publish_type},
+                      {"type", e.publish_type_value},
+                      {"publish_color", e.publish_color},
+                      {"color", e.color}});
+
+    Model& model = this->model();
+    // Save the previous metadata so it can be restored after the export, keeping the in-memory
+    // project pristine (the published flag lives only in the exported file).
+    const bool had_model_info     = (model.model_info != nullptr);
+    const bool had_published      = had_model_info &&
+                                    (model.model_info->metadata_items.find(ORCA_PUBLISHED_TAG) != model.model_info->metadata_items.end());
+    const bool had_published_keys = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_KEYS_TAG) !=
+                                                       model.model_info->metadata_items.end());
+    const bool had_material_keys  = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_MATERIAL_TAG) !=
+                                                       model.model_info->metadata_items.end());
+    const bool had_payload = had_model_info &&
+                             (model.model_info->metadata_items.find(ORCA_PUBLISHED_CONFIG_TAG) != model.model_info->metadata_items.end());
+    const std::string prev_published      = had_published ? model.model_info->metadata_items.at(ORCA_PUBLISHED_TAG) : std::string();
+    const std::string prev_published_keys = had_published_keys ? model.model_info->metadata_items.at(ORCA_PUBLISHED_KEYS_TAG) :
+                                                                 std::string();
+    const std::string prev_material_keys  = had_material_keys ? model.model_info->metadata_items.at(ORCA_PUBLISHED_MATERIAL_TAG) :
+                                                                std::string();
+    const std::string prev_payload        = had_payload ? model.model_info->metadata_items.at(ORCA_PUBLISHED_CONFIG_TAG) : std::string();
+
+    // export_3mf() assigns archive paths to previously unsaved SVGs. Preserve those fields too,
+    // otherwise a publish changes what a later normal project save writes.
+    std::vector<std::pair<std::string*, std::string>> previous_svg_paths;
+    for (ModelObject* object : model.objects)
+        for (ModelVolume* volume : object->volumes)
+            if (volume != nullptr && volume->emboss_shape.has_value() && volume->emboss_shape->svg_file.has_value()) {
+                std::string* path_in_3mf = &volume->emboss_shape->svg_file->path_in_3mf;
+                previous_svg_paths.emplace_back(path_in_3mf, *path_in_3mf);
+            }
+
+    auto restore_temporary_state = [&]() {
+        for (const auto& [path_in_3mf, previous_path] : previous_svg_paths)
+            *path_in_3mf = previous_path;
+
+        if (!had_model_info) {
+            model.model_info = nullptr;
+        } else {
+            if (had_published)
+                model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = prev_published;
+            else
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_TAG);
+            if (had_published_keys)
+                model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = prev_published_keys;
+            else
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
+            if (had_material_keys)
+                model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = prev_material_keys;
+            else
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
+            if (had_payload)
+                model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
+            else
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+        }
+    };
+    bool state_restored = false;
+    auto restore_now    = [&]() {
+        if (state_restored)
+            return;
+        restore_temporary_state();
+        state_restored = true;
+    };
+    ScopeGuard restore_guard(restore_now);
+
+    if (model.model_info == nullptr)
+        model.model_info = std::make_shared<ModelInfo>();
+    model.model_info->metadata_items[ORCA_PUBLISHED_TAG]          = "1";
+    model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG]     = j.dump();
+    model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = jm.dump();
+
+    int ret = -1;
+    try {
+        // Minimal published export: filter full_config to the published keys, material keys,
+        // identity fields and plate geometry keys, and omit the project config file, the
+        // project-embedded preset dumps and the OrcaSlicer version tag from the archive. The
+        // filtered values are serialized into the published_config metadata payload instead, so
+        // OrcaSlicer versions without the publish feature fall back to importing the geometry only
+        // (keeping the receiver's presets) while new versions rebuild the config from the payload.
+        DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        std::string payload;
+        for (const std::string& key : filtered_cfg.keys()) {
+            // A value containing a newline would break the INI written below (read_ini throws),
+            // so load_from_ini_string discards the whole settings block on import. Skip such
+            // keys instead of silently dropping every setting.
+            std::string value = filtered_cfg.opt_serialize(key);
+            if (value.find('\n') != std::string::npos) {
+                BOOST_LOG_TRIVIAL(warning) << "publish: dropping key \"" << key
+                                           << "\" from the published payload (value contains a newline)";
+                continue;
+            }
+            payload += key + " = " + value + "\n";
+        }
+        model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
+
+        // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
+        // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
+        auto save_strategy  = SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
+        bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
+        if (full_pathnames)
+            save_strategy = save_strategy | SaveStrategy::FullPathSources;
+        ret = export_3mf(into_path(path), save_strategy, -1, nullptr);
+    } catch (...) {
+        restore_now();
+        MessageDialog(this,
+                      _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                         "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+
+    if (ret < 0) {
+        restore_now();
+        MessageDialog(this,
+                      _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                         "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+    restore_now();
+
+    // Register the exported file in the "Recently opened" list
+    wxGetApp().mainframe->add_to_recent_projects(path);
+
+    return wxID_YES;
+}
+
+bool Plater::get_pending_published(std::vector<std::string>& out_keys,
+                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material) const
+{
+    if (!p->m_has_pending_published)
+        return false;
+    out_keys     = p->m_pending_published_keys;
+    out_material = p->m_pending_material_keys;
+    return true;
+}
+
+void Plater::set_pending_published(const std::vector<std::string>& published_keys,
+                                   const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
+{
+    p->m_has_pending_published = true;
+    p->m_pending_published_keys = published_keys;
+    p->m_pending_material_keys  = material_keys;
 }
 
 Preset *get_printer_preset(const MachineObject *obj)

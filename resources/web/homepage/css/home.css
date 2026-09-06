@@ -552,7 +552,8 @@ body
 	background-color: #E4E4E4;
 	border-radius: 8px;
 	width: 184px;
-	height: 184px;	
+	height: 184px;
+	position: relative;	
 }
 
 .FileItem img
@@ -564,12 +565,54 @@ body
 	object-fit: cover;
 }
 
+.FileImg .FileLogoBadge
+{
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	width: 26px;
+	height: 26px;
+	padding: 2px;
+	box-sizing: border-box;
+	background-color: rgba(255,255,255,0.85);
+	border-radius: 50%;
+}
+
 .FileName
 {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     word-break: break-all;	
+}
+
+.FileNamePack
+{
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.FileNamePack .FileName
+{
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.FilePublishedBadge
+{
+	flex: 0 0 auto;
+	margin-right: 4px;
+	padding: 0 4px;
+	height: 16px;
+	line-height: 16px;
+	font-size: 10px;
+	font-weight: 600;
+	color: #FFFFFF;
+	background-color: #009688;
+	border-radius: 2px;
+	white-space: nowrap;
 }
 
 .FileDate

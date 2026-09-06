@@ -7,16 +7,18 @@
 
 #include "PresetCacheFormat.hpp"
 #include "PrintConfig.hpp"
+#include "PublishSettings.hpp"
 #include "FilamentMixer.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
 #include "Model.hpp"
+#include "TriangleSelector.hpp"
 #include "libslic3r_version.h"
 
 #include <algorithm>
-#include <mutex>
+#include <cstdlib>
 #include <set>
 #include <fstream>
 #include <unordered_set>
@@ -45,6 +47,10 @@
 
 namespace Slic3r {
 
+// Project-level options imported from a loaded 3MF into project_config. s_project_options_published
+// below is the reduced subset that crosses over in "published" 3MF mode; keep both in sync.
+// s_project_options_published additionally carries wipe_tower_rotation_angle, which normal
+// loads do not import (it is not listed here): published-only plate geometry.
 static std::vector<std::string> s_project_options {
     "flush_volumes_vector",
     "flush_volumes_matrix",
@@ -84,6 +90,21 @@ static std::vector<std::string> s_project_options {
     "filament_mixed_gradient_curve",
     "filament_mixed_gradient_per_part"
 };
+
+// Project options applied when loading a "published" 3MF project: s_project_options minus the
+// filament/purge keys, plus wipe_tower_rotation_angle (plate geometry that only published
+// loads import today). A published file must not port the author's filament data
+// (colors, colour types, filament/map/AMS slot state, purge/prime/flush volumes, nozzle
+// volume types, filament switcher state) to the receiver's project_config, which feeds the
+// scene colors, AMS slot colors and purge data. Only the plate/bed geometry keys cross over;
+// normal (non-published) 3MF loads keep importing the author's flush data via s_project_options.
+//
+// KEEP IN SYNC with s_project_options above: when a new project option is added there, decide
+// here whether it is plate/bed geometry (add it to this list) or filament/purge/mapping/device
+// state (it must NOT be added). curr_bed_type is deliberately NOT in this list: the receiver
+// keeps its own bed type when loading a published project. The published-mode project_config
+// assertions in tests/libslic3r/test_preset_bundle_loading.cpp guard both directions.
+static std::vector<std::string> s_project_options_published{"wipe_tower_x", "wipe_tower_y", "wipe_tower_rotation_angle"};
 
 //Orca: add custom as default
 const char *PresetBundle::ORCA_DEFAULT_BUNDLE = "Custom";
@@ -4695,6 +4716,142 @@ static std::map<std::string, std::map<std::string, std::string>> filament_preset
                               {"Bambu ASA @BBL H2D 0.6 nozzle", "Bambu ASA @BBL H2D 0.8 nozzle"}}}
 };
 
+// Relocate the per-slot cells of one mixed-filament project vector inside the imported
+// config, applying every authored-slot -> destination move at once. Each move reads its
+// source cell from a frozen snapshot of the config's current cells, so relocations never
+// cross-contaminate when an earlier destination overlaps a later source (adjacent published
+// tail mixes relocate onto consecutive slots). Cells the snapshot lacks degrade to
+// empty/false defaults - the missing-data handling in the material pass reports them
+// downstream. Left-behind source cells stay as-is: nothing else consumes the imported config
+// at those indices in published mode.
+static void apply_mixed_config_relocations(DynamicPrintConfig&                            config,
+                                           const std::string&                             key,
+                                           const std::vector<std::pair<size_t, size_t>>&  moves)
+{
+    ConfigOption* opt = config.optptr(key);
+    if (opt == nullptr || moves.empty())
+        return;
+    std::unique_ptr<ConfigOption> snapshot(opt->clone());
+    switch (opt->type()) {
+    case coBools: {
+        auto*       live   = static_cast<ConfigOptionBools*>(opt);
+        const auto* frozen = static_cast<const ConfigOptionBools*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const unsigned char cell = from < frozen->values.size() ? frozen->values[from] : 0;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, 0);
+            live->values[to] = cell;
+        }
+        break;
+    }
+    case coStrings: {
+        auto*       live   = static_cast<ConfigOptionStrings*>(opt);
+        const auto* frozen = static_cast<const ConfigOptionStrings*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, std::string{});
+            live->values[to] = cell;
+        }
+        break;
+    }
+    default: break;
+    }
+}
+
+// Relocate the per-slot cells of the receiver's OWN mixed-filament definitions (the ones that
+// pre-existed in project_config) onto fresh tail slots, clearing each vacated source cell so an
+// incoming published real filament can claim it. Unlike apply_mixed_config_relocations - which
+// moves the incoming file's config and leaves sources alone - a displaced receiver mix must not
+// keep its mixed flag in the physical region: the source slot becomes a physical slot, so its
+// mixed flag and definition are reset, while its swatch colour and mapping travel with the
+// definition to the tail slot. Reads come from a frozen snapshot so an earlier move's
+// destination never overwrites a later move's still-unread source (sources sit in the physical
+// region and destinations past it, so they cannot overlap, but the snapshot keeps the helper
+// safe for any future reordering).
+static void apply_receiver_mix_relocations(DynamicPrintConfig&                            config,
+                                           std::vector<std::vector<std::string>>&          ams_multi_color_filment,
+                                           const std::vector<std::pair<size_t, size_t>>&  moves)
+{
+    if (moves.empty())
+        return;
+
+    auto move_bools  = [&](const char* key, bool clear_source) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionBools*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionBools*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const bool cell = from < frozen->values.size() ? frozen->values[from] : false;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, false);
+            live->values[to] = cell;
+            if (clear_source && from < live->values.size())
+                live->values[from] = false;
+        }
+    };
+    auto move_strings = [&](const char* key, bool clear_source) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionStrings*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionStrings*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, std::string{});
+            live->values[to] = cell;
+            if (clear_source && from < live->values.size())
+                live->values[from] = std::string{};
+        }
+    };
+    auto move_ints = [&](const char* key) {
+        ConfigOption* opt = config.optptr(key);
+        if (opt == nullptr)
+            return;
+        auto*             live   = static_cast<ConfigOptionInts*>(opt);
+        std::unique_ptr<ConfigOption> snapshot(opt->clone());
+        const auto*       frozen  = static_cast<const ConfigOptionInts*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const int cell = from < frozen->values.size() ? frozen->values[from] : 0;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, 0);
+            live->values[to] = cell;
+        }
+    };
+
+    // Mixed-definition cells: move to the tail and clear the source - the vacated physical slot
+    // no longer holds a mix.
+    move_bools("filament_is_mixed", true);
+    move_strings("filament_mixed_components", true);
+    move_strings("filament_mixed_sublayer_ratios", true);
+    move_bools("filament_mixed_gradient", true);
+    move_strings("filament_mixed_gradient_range", true);
+    move_strings("filament_mixed_gradient_curve", true);
+    move_bools("filament_mixed_gradient_per_part", true);
+    // Swatch colour and mapping travel with the definition; the source colour is left for the
+    // incoming real's publish_color (or the slot's resolved preset) to fill in.
+    move_strings("filament_colour", false);
+    move_strings("filament_multi_colour", false);
+    move_strings("filament_colour_type", false);
+    move_ints("filament_map");
+    move_ints("filament_nozzle_map");
+    move_ints("filament_volume_map");
+    {
+        const std::vector<std::vector<std::string>> frozen = ams_multi_color_filment;
+        for (const auto [from, to] : moves) {
+            const std::vector<std::string> cell = from < frozen.size() ? frozen[from] : std::vector<std::string>();
+            if (ams_multi_color_filment.size() <= to)
+                ams_multi_color_filment.resize(to + 1, std::vector<std::string>{});
+            ams_multi_color_filment[to] = cell;
+        }
+    }
+}
+
+
 //convert the old filament preset to new one after split
 static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
 {
@@ -4711,9 +4868,13 @@ static void convert_filament_preset_name(std::string& machine_name, std::string&
 }
 // Load a config file from a boost property_tree. This is a private method called from load_config_file.
 // is_external == false on if called from ConfigWizard
-void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected)
+void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected, PublishedConfig *published_config)
 {
     PrinterTechnology printer_technology = Preset::printer_technology(config);
+
+    // A "published" 3MF project keeps the user's currently-selected presets and overlays only
+    // the author-selected published keys onto the edited presets.
+    const bool is_published = published_config != nullptr && published_config->published;
 
     auto clear_compatible_printers = [](DynamicPrintConfig& config){
         ConfigOption *opt_compatible = config.optptr("compatible_printers");
@@ -4855,127 +5016,60 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     switch (Preset::printer_technology(config)) {
     case ptFFF:
     {
-        //BBS: add different settings logic
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load print preset from print_settings_id");
-        std::vector<std::string> print_different_keys_vector;
-        std::string print_different_settings = different_values[0];
-        Slic3r::unescape_strings_cstyle(print_different_settings, print_different_keys_vector);
-        std::set<std::string> print_different_keys_set(print_different_keys_vector.begin(), print_different_keys_vector.end());
-        //if (!has_different_settings_to_system) {
-        //    print_different_keys_set.clear();
-        //}
-        //else
-            print_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
-        if (!print_compatible_printers.empty()) {
-            ConfigOptionStrings* compatible_printers = config.option<ConfigOptionStrings>("compatible_printers", true);
-            compatible_printers->values = print_compatible_printers;
-        }
-
-        load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
-
-        //clear compatible printers
-        clear_compatible_printers(config);
-
-        std::vector<std::string> printer_different_keys_vector;
-        std::string printer_different_settings = different_values[num_filaments + 1];
-        Slic3r::unescape_strings_cstyle(printer_different_settings, printer_different_keys_vector);
-        std::set<std::string> printer_different_keys_set(printer_different_keys_vector.begin(), printer_different_keys_vector.end());
-        //if (!has_different_settings_to_system) {
-        //    printer_different_keys_set.clear();
-        //}
-        //else
-            printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
-        //BBS: add config related logs
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
-        load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
-
-        // 3) Now load the filaments. If there are multiple filament presets, split them and load them.
-        auto old_filament_profile_names = config.option<ConfigOptionStrings>("filament_settings_id", true);
-        old_filament_profile_names->values.resize(num_filaments, std::string());
-
-        auto old_machine_profile_name = config.option<ConfigOptionString>("printer_settings_id", true);
-
-        if (num_filaments <= 1) {
-            // Split the "compatible_printers_condition" and "inherits" values from the cummulative vectors to separate filament presets.
-            inherits                      = inherits_values[1];
-            compatible_printers_condition = compatible_printers_condition_values[1];
-			compatible_prints_condition   = compatible_prints_condition_values.front();
-			Preset                *loaded = nullptr;
-
+        // A "published" 3MF project keeps the user's currently-selected presets, so the
+        // print / printer / filament presets are NOT loaded from the file. Only the
+        // project config values and the published keys are applied below.
+        if (!is_published) {
             //BBS: add different settings logic
-            std::vector<std::string> filament_different_keys_vector;
-            std::string filament_different_settings = different_values[1];
-            Slic3r::unescape_strings_cstyle(filament_different_settings, filament_different_keys_vector);
-            std::set<std::string> filament_different_keys_set(filament_different_keys_vector.begin(), filament_different_keys_vector.end());
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load print preset from print_settings_id");
+            std::vector<std::string> print_different_keys_vector;
+            std::string print_different_settings = different_values[0];
+            Slic3r::unescape_strings_cstyle(print_different_settings, print_different_keys_vector);
+            std::set<std::string> print_different_keys_set(print_different_keys_vector.begin(), print_different_keys_vector.end());
             //if (!has_different_settings_to_system) {
-            //    filament_different_keys_set.clear();
+            //    print_different_keys_set.clear();
             //}
             //else
-                filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+                print_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+            if (!print_compatible_printers.empty()) {
+                ConfigOptionStrings* compatible_printers = config.option<ConfigOptionStrings>("compatible_printers", true);
+                compatible_printers->values = print_compatible_printers;
+            }
 
-            std::string filament_id = filament_ids[0];
+            load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
+
+            //clear compatible printers
+            clear_compatible_printers(config);
+
+            std::vector<std::string> printer_different_keys_vector;
+            std::string printer_different_settings = different_values[num_filaments + 1];
+            Slic3r::unescape_strings_cstyle(printer_different_settings, printer_different_keys_vector);
+            std::set<std::string> printer_different_keys_set(printer_different_keys_vector.begin(), printer_different_keys_vector.end());
+            //if (!has_different_settings_to_system) {
+            //    printer_different_keys_set.clear();
+            //}
+            //else
+                printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
             //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load single filament preset from filament_settings_id");
-            if (is_external) {
-                if (inherits.empty())
-                    convert_filament_preset_name(old_machine_profile_name->value, old_filament_profile_names->values.front());
-                else
-                    convert_filament_preset_name(old_machine_profile_name->value, inherits);
-                loaded = this->filaments.load_external_preset(name_or_path, name, old_filament_profile_names->values.front(), config, filament_different_keys_set, PresetCollection::LoadAndSelect::Always, file_version, filament_id).first;
-            }
-            else {
-                // called from Config Wizard.
-				loaded= &this->filaments.load_preset(this->filaments.path_from_name(name, inherits.empty()), name, config, true, file_version);
-				loaded->save(nullptr);
-			}
-            this->filament_presets.clear();
-			this->filament_presets.emplace_back(loaded->name);
-        } else {
-            assert(is_external);
-            // Split the filament presets, load each of them separately.
-            std::vector<DynamicPrintConfig> configs(num_filaments, this->filaments.default_preset().config);
-            // loop through options and scatter them into configs.
-            for (const t_config_option_key &key : this->filaments.default_preset().config.keys()) {
-                ConfigOption *other_opt = config.option(key);
-                if (other_opt == nullptr)
-                    continue;
-                if (other_opt->is_scalar()) {
-                    for (size_t i = 0; i < configs.size(); ++ i)
-                        configs[i].option(key, false)->set(other_opt);
-                }
-                else if (key != "compatible_printers" && key != "compatible_prints") {
-                    for (size_t i = 0; i < configs.size(); ++i) {
-                        if (process_multi_extruder && (filament_options_with_variant.find(key) != filament_options_with_variant.end())) {
-                            ConfigOptionVectorBase* other_opt_vec = static_cast<ConfigOptionVectorBase*>(other_opt);
-                            if (other_opt_vec->size() != extruder_variant_count) {
-                                other_opt_vec->resize(extruder_variant_count);
-                            }
-                            size_t next_index = (i < (configs.size() - 1)) ? filament_variant_index[i + 1] : extruder_variant_count;
-                            static_cast<ConfigOptionVectorBase*>(configs[i].option(key, false))->set(other_opt, filament_variant_index[i], next_index - filament_variant_index[i]);
-                        }
-                        else
-                            static_cast<ConfigOptionVectorBase*>(configs[i].option(key, false))->set_at(other_opt, 0, i);
-                    }
-                }
-            }
-            // Load the configs into this->filaments and make them active.
-            this->filament_presets = std::vector<std::string>(configs.size());
-            // To avoid incorrect selection of the first filament preset (means a value of Preset->m_idx_selected)
-            // in a case when next added preset take a place of previosly selected preset,
-            // we should add presets from last to first
-            bool any_modified = false;
-            //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load multiple filament preset from filament_settings_id");
-            for (int i = (int)configs.size()-1; i >= 0; i--) {
-                DynamicPrintConfig &cfg = configs[i];
-                // Split the "compatible_printers_condition" and "inherits" from the cummulative vectors to separate filament presets.
-                cfg.opt_string("compatible_printers_condition", true) = compatible_printers_condition_values[i + 1];
-                cfg.opt_string("compatible_prints_condition",   true) = compatible_prints_condition_values[i];
-                cfg.opt_string("inherits", true)                      = inherits_values[i + 1];
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
+            load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
+
+            // 3) Now load the filaments. If there are multiple filament presets, split them and load them.
+            auto old_filament_profile_names = config.option<ConfigOptionStrings>("filament_settings_id", true);
+            old_filament_profile_names->values.resize(num_filaments, std::string());
+
+            auto old_machine_profile_name = config.option<ConfigOptionString>("printer_settings_id", true);
+
+            if (num_filaments <= 1) {
+                // Split the "compatible_printers_condition" and "inherits" values from the cummulative vectors to separate filament presets.
+                inherits                      = inherits_values[1];
+                compatible_printers_condition = compatible_printers_condition_values[1];
+    			compatible_prints_condition   = compatible_prints_condition_values.front();
+    			Preset                *loaded = nullptr;
 
                 //BBS: add different settings logic
                 std::vector<std::string> filament_different_keys_vector;
-                std::string filament_different_settings = different_values[i+1];
+                std::string filament_different_settings = different_values[1];
                 Slic3r::unescape_strings_cstyle(filament_different_settings, filament_different_keys_vector);
                 std::set<std::string> filament_different_keys_set(filament_different_keys_vector.begin(), filament_different_keys_vector.end());
                 //if (!has_different_settings_to_system) {
@@ -4984,32 +5078,105 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 //else
                     filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
 
-                std::string filament_id = filament_ids[i];
+                std::string filament_id = filament_ids[0];
+                //BBS: add config related logs
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load single filament preset from filament_settings_id");
+                if (is_external) {
+                    if (inherits.empty())
+                        convert_filament_preset_name(old_machine_profile_name->value, old_filament_profile_names->values.front());
+                    else
+                        convert_filament_preset_name(old_machine_profile_name->value, inherits);
+                    loaded = this->filaments.load_external_preset(name_or_path, name, old_filament_profile_names->values.front(), config, filament_different_keys_set, PresetCollection::LoadAndSelect::Always, file_version, filament_id).first;
+                }
+                else {
+                    // called from Config Wizard.
+    				loaded= &this->filaments.load_preset(this->filaments.path_from_name(name, inherits.empty()), name, config, true, file_version);
+    				loaded->save(nullptr);
+    			}
+                this->filament_presets.clear();
+    			this->filament_presets.emplace_back(loaded->name);
+            } else {
+                assert(is_external);
+                // Split the filament presets, load each of them separately.
+                std::vector<DynamicPrintConfig> configs(num_filaments, this->filaments.default_preset().config);
+                // loop through options and scatter them into configs.
+                for (const t_config_option_key &key : this->filaments.default_preset().config.keys()) {
+                    ConfigOption *other_opt = config.option(key);
+                    if (other_opt == nullptr)
+                        continue;
+                    if (other_opt->is_scalar()) {
+                        for (size_t i = 0; i < configs.size(); ++ i)
+                            configs[i].option(key, false)->set(other_opt);
+                    }
+                    else if (key != "compatible_printers" && key != "compatible_prints") {
+                        for (size_t i = 0; i < configs.size(); ++i) {
+                            if (process_multi_extruder && (filament_options_with_variant.find(key) != filament_options_with_variant.end())) {
+                                ConfigOptionVectorBase* other_opt_vec = static_cast<ConfigOptionVectorBase*>(other_opt);
+                                if (other_opt_vec->size() != extruder_variant_count) {
+                                    other_opt_vec->resize(extruder_variant_count);
+                                }
+                                size_t next_index = (i < (configs.size() - 1)) ? filament_variant_index[i + 1] : extruder_variant_count;
+                                static_cast<ConfigOptionVectorBase*>(configs[i].option(key, false))->set(other_opt, filament_variant_index[i], next_index - filament_variant_index[i]);
+                            }
+                            else
+                                static_cast<ConfigOptionVectorBase*>(configs[i].option(key, false))->set_at(other_opt, 0, i);
+                        }
+                    }
+                }
+                // Load the configs into this->filaments and make them active.
+                this->filament_presets = std::vector<std::string>(configs.size());
+                // To avoid incorrect selection of the first filament preset (means a value of Preset->m_idx_selected)
+                // in a case when next added preset take a place of previosly selected preset,
+                // we should add presets from last to first
+                bool any_modified = false;
+                //BBS: add config related logs
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load multiple filament preset from filament_settings_id");
+                for (int i = (int)configs.size()-1; i >= 0; i--) {
+                    DynamicPrintConfig &cfg = configs[i];
+                    // Split the "compatible_printers_condition" and "inherits" from the cummulative vectors to separate filament presets.
+                    cfg.opt_string("compatible_printers_condition", true) = compatible_printers_condition_values[i + 1];
+                    cfg.opt_string("compatible_prints_condition",   true) = compatible_prints_condition_values[i];
+                    cfg.opt_string("inherits", true)                      = inherits_values[i + 1];
 
-                // Load all filament presets, but only select the first one in the preset dialog.
-                std::string& filament_inherit = cfg.opt_string("inherits", true);
-                if (filament_inherit.empty() && (i < int(old_filament_profile_names->values.size())))
-                    convert_filament_preset_name(old_machine_profile_name->value, old_filament_profile_names->values[i]);
-                else
-                    convert_filament_preset_name(old_machine_profile_name->value, filament_inherit);
-                auto [loaded, modified] = this->filaments.load_external_preset(name_or_path, name,
-                    (i < int(old_filament_profile_names->values.size())) ? old_filament_profile_names->values[i] : "",
-                    std::move(cfg),
-                    filament_different_keys_set,
-                    i == 0 ?
-                        PresetCollection::LoadAndSelect::Always :
-                    any_modified ?
-                        PresetCollection::LoadAndSelect::Never :
-                        PresetCollection::LoadAndSelect::OnlyIfModified,
-                    file_version,
-                    filament_id);
-                any_modified |= modified;
-                this->filament_presets[i] = loaded->name;
+                    //BBS: add different settings logic
+                    std::vector<std::string> filament_different_keys_vector;
+                    std::string filament_different_settings = different_values[i+1];
+                    Slic3r::unescape_strings_cstyle(filament_different_settings, filament_different_keys_vector);
+                    std::set<std::string> filament_different_keys_set(filament_different_keys_vector.begin(), filament_different_keys_vector.end());
+                    //if (!has_different_settings_to_system) {
+                    //    filament_different_keys_set.clear();
+                    //}
+                    //else
+                        filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+
+                    std::string filament_id = filament_ids[i];
+
+                    // Load all filament presets, but only select the first one in the preset dialog.
+                    std::string& filament_inherit = cfg.opt_string("inherits", true);
+                    if (filament_inherit.empty() && (i < int(old_filament_profile_names->values.size())))
+                        convert_filament_preset_name(old_machine_profile_name->value, old_filament_profile_names->values[i]);
+                    else
+                        convert_filament_preset_name(old_machine_profile_name->value, filament_inherit);
+                    auto [loaded, modified] = this->filaments.load_external_preset(name_or_path, name,
+                        (i < int(old_filament_profile_names->values.size())) ? old_filament_profile_names->values[i] : "",
+                        std::move(cfg),
+                        filament_different_keys_set,
+                        i == 0 ?
+                            PresetCollection::LoadAndSelect::Always :
+                        any_modified ?
+                            PresetCollection::LoadAndSelect::Never :
+                            PresetCollection::LoadAndSelect::OnlyIfModified,
+                        file_version,
+                        filament_id);
+                    any_modified |= modified;
+                    this->filament_presets[i] = loaded->name;
+                }
             }
-        }
+        } // !is_published
 
-        // 4) Load the project config values (the per extruder wipe matrix etc).
-        this->project_config.apply_only(config, s_project_options);
+        // Load the project config values. In published mode only the plate/bed geometry keys
+        // cross over (the receiver must not inherit the author's filament/purge data).
+        this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
 
         break;
     }
@@ -5028,18 +5195,1143 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
 
+    // A "published" 3MF project overlays the author-selected published keys onto the user's
+    // currently-selected (edited) process preset. Keys that cannot be applied are collected for
+    // notification; filament-class keys in published_keys (which only the material pass knows
+    // how to apply) fall through into skipped_keys.
+    if (is_published) {
+        std::vector<std::string> skipped_keys;
+        std::set<std::string> applied_keys;
+        // Only re-select the edited filament preset when the material overlay changed
+        // something: re-selecting unconditionally would discard the user's unsaved in-memory
+        // filament edits when the published file touches nothing.
+        bool material_applied = false;
+        // Structural keys are never applied (they would rewrite the user's preset
+        // inheritance/structure). Defense-in-depth: a hand-crafted 3MF could list them despite
+        // the dialog, so skip them here too.
+        const std::set<std::string>& structural_keys = publish_structural_keys();
+        // The printer overlay is restricted to the publishable retraction/z-hop allowlist;
+        // printer-class keys outside it are contract-excluded (never applied, never reported).
+        const std::set<std::string>& printer_allowlist  = publishable_printer_keys();
+        const std::vector<std::string>& printer_options = Preset::printer_options();
+        const std::set<std::string> printer_option_set(printer_options.begin(), printer_options.end());
+        std::set<std::string> contract_excluded_keys;
+        auto apply_published = [&](DynamicPrintConfig& target, const std::set<std::string>* allowlist) {
+            // Single-extruder receivers collapse a base key's per-extruder "#N" variants onto
+            // their single slot: only the first serialized variant of a base key is applied
+            // (the author's "left or right" whichever came first), the rest are reported as
+            // skipped. Per-target, so the process and printer passes each track their own bases.
+            std::set<std::string> collapsed_bases;
+            for (const std::string& key : published_config->published_keys) {
+                if (applied_keys.count(key) != 0)
+                    continue; // already applied
+                // A '#' suffix denotes a variant key; resolve the base key.
+                const std::string base_key = publish_base_key(key);
+                // Structural keys are never applied (not "skipped due to mismatch"), so bail
+                // out before the applied/skipped bookkeeping.
+                if (structural_keys.count(base_key) != 0)
+                    continue;
+                if (allowlist != nullptr && printer_option_set.count(base_key) != 0 && allowlist->count(base_key) == 0) {
+                    // Printer-class key outside the publishable allowlist: contract-excluded.
+                    contract_excluded_keys.insert(base_key);
+                    continue;
+                }
+                const ConfigOption* src_opt = config.option(base_key);
+                if (src_opt == nullptr)
+                    continue; // key not present in the loaded config; record later
+                if (src_opt->is_vector()) {
+                    ConfigOption* dst_opt = target.option(base_key);
+                    if (dst_opt == nullptr || !dst_opt->is_vector())
+                        continue; // cannot apply; will be reported as skipped
+                    // Type mismatch: ConfigOptionVector::set() throws ConfigurationError on a
+                    // mismatch, which would abort the whole project load; report the key as
+                    // skipped instead (the material pass guards the same way). Note that the
+                    // nullable variants report the same type() as their non-nullable base, so
+                    // this catches genuinely different option kinds (e.g. a string where a float
+                    // vector is expected), not nullable-ness.
+                    if (dst_opt->type() != src_opt->type())
+                        continue;
+                    // A '#N' variant key (e.g. per-extruder retraction_length#2) applies one
+                    // element, so the index only needs to be in range on the author's side - the
+                    // receiver may have a different extruder count than the author. Out-of-range
+                    // indices are skipped (set_at would otherwise resize the receiver's vector).
+                    if (key.size() > base_key.size()) {
+                        // Strict numeric suffix parse: a malformed variant ("#abc", "#1x")
+                        // must be reported as skipped, not silently applied as element 0.
+                        const std::string suffix = key.substr(base_key.size() + 1);
+                        size_t idx               = 0;
+                        bool valid               = !suffix.empty();
+                        for (const char c : suffix) {
+                            if (c < '0' || c > '9') {
+                                valid = false;
+                                break;
+                            }
+                            idx = idx * 10 + size_t(c - '0');
+                            if (idx > 1000000) { // overflow guard; real vector sizes are tiny
+                                valid = false;
+                                break;
+                            }
+                        }
+                        const size_t src_size = static_cast<const ConfigOptionVectorBase*>(src_opt)->size();
+                        if (!valid || idx >= src_size)
+                            continue; // malformed or out-of-range on the author's side: cannot apply; reported as skipped
+                        const size_t dst_size = static_cast<const ConfigOptionVectorBase*>(dst_opt)->size();
+                        if (dst_size == 1) {
+                            // Single-extruder receiver: collapse the author's per-extruder slots
+                            // onto the receiver's single slot. Only the first serialized variant
+                            // of a base key is applied (the author's "left or right" whichever was
+                            // published first); later variants of the same base are reported as
+                            // skipped, mirroring the receiver's single extruder.
+                            if (collapsed_bases.count(base_key) != 0)
+                                continue;
+                            collapsed_bases.insert(base_key);
+                            static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, idx);
+                        } else {
+                            if (idx >= dst_size)
+                                continue; // out-of-range variant: cannot apply; reported as skipped
+                            target.apply_only(config, {key}, true);
+                        }
+                    } else if (static_cast<const ConfigOptionVectorBase*>(src_opt)->size() !=
+                               static_cast<const ConfigOptionVectorBase*>(dst_opt)->size()) {
+                        // Whole-vector base key: the receiver must have a matching vector size,
+                        // otherwise applying would overwrite a different number of elements.
+                        continue; // cannot apply; will be reported as skipped
+                    } else {
+                        target.apply_only(config, {key}, true);
+                    }
+                    applied_keys.insert(key);
+                } else {
+                    // A scalar key cannot carry a '#N' suffix; a hand-crafted file listing one
+                    // is reported as skipped instead of being silently marked applied.
+                    if (key.find('#') != std::string::npos)
+                        continue;
+                    // Scalar key: apply only if present on the user's machine.
+                    const ConfigOption* dst_opt = target.option(base_key);
+                    if (dst_opt == nullptr)
+                        continue; // not present on the edited preset; will be reported as skipped
+                    // Type mismatch: skipped, never thrown (see the vector branch above).
+                    if (dst_opt->type() != src_opt->type())
+                        continue;
+                    target.apply_only(config, {key}, true);
+                    applied_keys.insert(key);
+                }
+            }
+        };
+        apply_published(this->prints.get_edited_preset().config, nullptr);
+        apply_published(this->printers.get_edited_preset().config, &printer_allowlist);
+
+        // Material pass: positional per-slot entries. The author published, per slot, either the
+        // entire filament (full) or specific keys plus optionally a curated type and/or colour.
+        //   - full: lands on a freshly created standalone detached copy (no library preset used
+        //     or mutated);
+        //   - partial: a type requirement gates application; on mismatch the slot is replaced
+        //     with the best visible candidate by published identity (exact name, setting_id,
+        //     filament_id, vendor+type, type); with no replacement the receiver's material is
+        //     kept and the keys are reported as skipped;
+        //   - colour: applied regardless of the type gate.
+        //   - capacity: past the printer's physical nozzles the entry becomes an empty
+        //     mixed-filament placeholder; on a single-physical-slot receiver it is dropped.
+        // Applied partial values land on the collection's edited layer when the slot references
+        // it and that layer survives the load, otherwise on the stored preset in place. Slots
+        // aliasing a shared preset are re-pointed at distinct presets before the values apply.
+        {
+            // Grow the receiver's slots only as far as the highest published slot (never
+            // shrink, never pull filler materials for unpublished slots).
+            bool has_published_entries = false;
+            // Physical filament capacity of the receiver's printer: a non-SEMM tool-changer
+            // feeds filament N from nozzle N, so the nozzle count is the hard limit; a SEMM
+            // printer (single_extruder_multi_material) sizes its slot list by hand, so only
+            // the global slot limit applies (same condition as GUI_App::load_current_presets).
+            // Published entries that would need a NEW physical slot past this capacity are
+            // appended as empty mixed-filament placeholders instead of growing the list.
+            size_t physical_capacity = size_t(EnforcerBlockerType::ExtruderMax);
+            {
+                const Preset& receiver_printer = this->printers.get_edited_preset();
+                if (receiver_printer.printer_technology() == ptFFF &&
+                    !receiver_printer.config.opt_bool("single_extruder_multi_material")) {
+                    if (const auto* nozzle_diameter = receiver_printer.config.option<ConfigOptionFloats>("nozzle_diameter");
+                        nozzle_diameter != nullptr && !nozzle_diameter->values.empty())
+                        physical_capacity = nozzle_diameter->values.size();
+                }
+            }
+            const std::set<std::string>& mixed_definitions = publish_mixed_keys();
+            auto is_mixed_definition                      = [&mixed_definitions](const PublishedMaterialEntry& entry) {
+                return std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
+                    return mixed_definitions.count(publish_base_key(key)) != 0;
+                });
+            };
+            size_t grow_target = 0;
+            for (const PublishedMaterialEntry& entry : published_config->material_keys) {
+                has_published_entries = true;
+                if (entry.slot < 0)
+                    continue;
+                // A physical entry past the capacity becomes a tail placeholder below; its
+                // growth is covered by the append counter, not the positional target.
+                if (!is_mixed_definition(entry) && size_t(entry.slot) >= physical_capacity)
+                    continue;
+                grow_target = std::max(grow_target, size_t(entry.slot) + 1);
+            }
+            // Mixed-filament definitions live in project-level virtual slots, so applying one
+            // positionally onto a receiver slot holding a real filament would convert hardware
+            // state into a virtual mix. Compute each entry's destination before anything
+            // consumes entry.slot: a definition on a slot that already holds a mixed definition
+            // keeps its place (like-for-like); everything else follows one monotone append
+            // counter preserving author order (dest = max(authored, next_free)). Appends past
+            // the extruder limit are dropped and reported. Physical entries past capacity join
+            // the same counter as mixed_placeholder empties the GUI flags for assignment.
+            //
+            // The finished project keeps the physical-first invariant (see the sidebar's
+            // add_custom_filament: mixed slots always sit at the tail, physical slots packed
+            // first). That invariant must survive an import, so every receiver mixed slot that
+            // would end up inside (or ahead of) the incoming physical region is displaced to a
+            // fresh tail slot, and the tail allocator starts at the physical boundary rather
+            // than the receiver's slot count - otherwise a relocated mix can collide with a
+            // keep-placed new real slot.
+            size_t physical_boundary = this->num_physical_filaments();
+            for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                // Mirror the payload-real keep-place decision below: a real keeps its authored
+                // slot when that slot already exists on the receiver, or lies within the
+                // printer's physical capacity. Both end up as physical slots at index
+                // entry.slot, so they bound the physical region even past the capacity.
+                if (entry.slot >= 0 && !is_mixed_definition(entry) &&
+                    (size_t(entry.slot) < this->filament_presets.size() || size_t(entry.slot) < physical_capacity))
+                    physical_boundary = std::max(physical_boundary, size_t(entry.slot) + 1);
+            size_t next_free_slot      = std::max(physical_boundary, this->filament_presets.size());
+            bool   any_mixed_relocated = false;
+            // All authored-slot -> destination moves decided by this pass, applied to the
+            // incoming config in one batched snapshot step below (an earlier move's
+            // destination can overlap a later move's source: adjacent tail mixes relocate
+            // onto consecutive slots, so incremental in-place shifts would overwrite a
+            // definition that has not been moved yet).
+            std::vector<std::pair<size_t, size_t>> mixed_moves;
+            // Receiver-mix relocations land in project_config, not the incoming config, so they
+            // get their own move list, applied below after the arrays grow. The swept set lets
+            // the payload loop below treat a displaced receiver mix as the physical slot it will
+            // become (a payload mix like-for-like overriding such a slot must itself relocate).
+            std::vector<std::pair<size_t, size_t>> receiver_mix_moves;
+            std::set<size_t>                        swept_mix_slots;
+            for (size_t slot = 0; slot < this->filament_presets.size(); ++slot) {
+                if (!this->is_mixed_filament(slot))
+                    continue;
+                // Slot 0 is the receiver's base filament and is never a virtual mix; the
+                // sidebar's physical-first layout guarantees it, so never displace it.
+                if (slot == 0)
+                    continue;
+                if (slot >= physical_boundary)
+                    continue; // already lives in the tail region
+                const size_t dest = next_free_slot++;
+                swept_mix_slots.insert(slot);
+                receiver_mix_moves.emplace_back(slot, dest);
+                any_mixed_relocated = true;
+                // A payload mix authored at the same slot (a mix inside the physical region) is
+                // processed after this sweep and overrides its own destination below.
+                published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
+                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + " -> slot " +
+                                                                      std::to_string(dest) + ": mixed filament");
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated receiver mixed filament slot " << slot
+                                        << " -> " << dest << " (physical-first rebalance)";
+            }
+            for (auto entry_it = published_config->material_keys.begin(); entry_it != published_config->material_keys.end();) {
+                PublishedMaterialEntry& entry = *entry_it;
+                if (entry.slot < 0) {
+                    ++entry_it;
+                    continue;
+                }
+                const bool is_payload_mix = is_mixed_definition(entry);
+                // Does this entry need a tail slot at all? A payload mixed definition does,
+                // except when it like-for-like overrides a receiver slot that is already a
+                // mix (bounds-checked). A physical entry only becomes a placeholder when it
+                // would need a NEW physical slot: an authored position the receiver's list
+                // already covers is applied positionally as before, even when that list sits
+                // above the printer's capacity (pre-existing state is never shrunk).
+                bool keep_place = false;
+                if (is_payload_mix)
+                    keep_place = this->is_mixed_filament(size_t(entry.slot)) && swept_mix_slots.count(size_t(entry.slot)) == 0;
+                else
+                    keep_place = size_t(entry.slot) < this->filament_presets.size() ||
+                                 size_t(entry.slot) < physical_capacity;
+                if (keep_place) {
+                    ++entry_it;
+                    continue;
+                }
+                const std::string material_label = !entry.filament_id.empty()        ? entry.filament_id :
+                                                   !entry.publish_type_value.empty() ? entry.publish_type_value :
+                                                                                       entry.filament_type;
+                if (std::max(size_t(entry.slot), next_free_slot) >= size_t(EnforcerBlockerType::ExtruderMax)) {
+                    // No free virtual slot left: report instead of destroying a real filament.
+                    // The local skipped_keys is published wholesale at the end of the pass;
+                    // writing published_config->skipped_keys here would be clobbered by it.
+                    skipped_keys.emplace_back("material:" + material_label + (is_payload_mix ?
+                                                                                  " (mixed filament definition: filament slot limit reached)" :
+                                                                                  " (filament slot limit reached)"));
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF " << (is_payload_mix ? "mixed filament definition" : "material")
+                                               << " from slot " << entry.slot << " could not be placed: all " << next_free_slot
+                                               << " slots exhausted";
+                    entry_it = published_config->material_keys.erase(entry_it);
+                    continue;
+                }
+                if (!is_payload_mix && physical_capacity < 2) {
+                    // A single physical slot can never host a mixed-filament editor (the
+                    // sidebar's mixed section needs two physical filaments to mix), so a
+                    // placeholder would be invisible and unfixable: drop the entry and
+                    // report it like any other unappliable input.
+                    skipped_keys.emplace_back("material:" + material_label + " (printer supports only " +
+                                              std::to_string(physical_capacity) + " filament)");
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF material from slot " << entry.slot
+                                               << " dropped: printer supports only " << physical_capacity << " filament";
+                    entry_it = published_config->material_keys.erase(entry_it);
+                    continue;
+                }
+                const int authored_slot = entry.slot;
+                const int dest_slot     = is_payload_mix ? int(std::max(size_t(authored_slot), next_free_slot)) : int(next_free_slot);
+                next_free_slot          = size_t(dest_slot) + 1;
+                if (is_payload_mix) {
+                    if (dest_slot == authored_slot)
+                        // Uncontended fresh tail slot: the definition is already readable there.
+                        ++entry_it;
+                    else {
+                        entry.slot              = dest_slot;
+                        any_mixed_relocated     = true;
+                        mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
+                        published_config->mixed_slot_relocations.insert_or_assign(authored_slot, entry.slot);
+                        published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
+                                                                             std::to_string(entry.slot) + ": mixed filament");
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
+                                                << " -> " << entry.slot;
+                        ++entry_it;
+                    }
+                } else {
+                    // Surplus published material beyond the printer's capacity: become an
+                    // empty mixed-filament placeholder at the next free tail slot. The flag
+                    // routes the entry to the placeholder finalize below; the slot's
+                    // definition stays empty until the user assigns components.
+                    entry.mixed_placeholder = true;
+                    any_mixed_relocated     = true;
+                    if (dest_slot != authored_slot) {
+                        entry.slot = dest_slot;
+                        mixed_moves.emplace_back(size_t(authored_slot), size_t(dest_slot));
+                        published_config->mixed_slot_relocations.insert_or_assign(authored_slot, dest_slot);
+                    }
+                    published_config->material_replacements.emplace_back(
+                        (dest_slot != authored_slot ?
+                             "slot " + std::to_string(authored_slot) + " -> slot " + std::to_string(dest_slot) :
+                             "slot " + std::to_string(dest_slot)) +
+                        ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF material from slot " << authored_slot
+                                            << " placed as an unassigned mixed filament at slot " << dest_slot
+                                            << " (printer supports only " << physical_capacity << " filaments)";
+                    ++entry_it;
+                }
+            }
+            if (!mixed_moves.empty())
+                for (const std::string& mixed_key : mixed_definitions)
+                    apply_mixed_config_relocations(config, mixed_key, mixed_moves);
+            if (has_published_entries) {
+                // Defensive cap: growth never exceeds the file's own filament count. The
+                // receiver's current slot count is a floor: neither the preset list nor the
+                // project vectors are ever shrunk, even when the file carries fewer filaments
+                // than the receiver has slots. Relocated mixed entries and capacity
+                // placeholders legitimately land past the file's own slot count (virtual
+                // slots consume no nozzle or tray), so their append destinations lift the
+                // ceiling explicitly.
+                const size_t target_slots = std::max({this->filament_presets.size(), std::min(grow_target, num_filaments),
+                                                      any_mixed_relocated ? next_free_slot : size_t(0)});
+                // Slots carrying published content, steering the initial preset selection of
+                // newly grown slots.
+                std::set<int> published_slots;
+                for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                    if (entry.slot >= 0)
+                        published_slots.insert(entry.slot);
+                // Grown slots the receiver creates that carry no published content of their own
+                // (e.g. an unpublished mixed slot left as a gap by a published mix's authored
+                // position) at or beyond the receiver's physical capacity. They must not become
+                // physical filaments (that would overflow the nozzle count): finalized as empty
+                // mixed placeholders below, like the surplus-material placeholders.
+                std::set<int> virtual_gap_slots;
+                // Exact-name resolution of each published slot's preset through the collection's
+                // own name machinery: find_preset2 follows renamed_from (vendor profile renames)
+                // and canonical bundle names, and auto-matches removed vendor-generic profiles
+                // to the Orca Filament Library. First entry per slot wins (mirrors the loops'
+                // break-on-first behavior); an empty value means "no resolution" and the string
+                // tiers (raw name / trimmed bare name / alias) below take over.
+                std::map<int, std::string> exact_name_by_slot;
+                for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                    if (entry.slot >= 0 && !entry.preset_name.empty() && exact_name_by_slot.count(entry.slot) == 0)
+                        if (const Preset* resolved = this->filaments.find_preset2(entry.preset_name, true))
+                            exact_name_by_slot.emplace(entry.slot, resolved->name);
+                auto resolved_name_for = [&exact_name_by_slot](int slot) -> std::string {
+                    const auto it = exact_name_by_slot.find(slot);
+                    return it == exact_name_by_slot.end() ? std::string() : it->second;
+                };
+                // Mirror first_visible_idx()'s start index so suppressed default presets are
+                // never picked as a slot material.
+                const size_t first_candidate = this->filaments.is_default_suppressed() ? this->filaments.num_default_presets() : 0;
+                // Candidate preference for a published entry: exact preset name (raw author and
+                // collection-resolved), then trimmed bare form / alias, then exact setting_id
+                // (variant-level), then exact filament_id, then vendor+type, then type only.
+                auto candidate_score = [](const Preset& candidate, const PublishedMaterialEntry& entry,
+                                          const std::string& resolved_name) -> int {
+                    // Exact preset name: raw and collection-resolved forms both outrank the
+                    // fuzzy bare/alias tier by tier value, so a receiver preset literally named
+                    // "Generic PLA" (tier 4) can never beat the author's exact
+                    // "Generic PLA @Vendor" (tier 5). Within one tier the strict ">"
+                    // comparison keeps the first candidate in collection order.
+                    if (!entry.preset_name.empty() && candidate.name == entry.preset_name)
+                        return 5;
+                    if (!resolved_name.empty() && candidate.name == resolved_name)
+                        return 5;
+                    if (!entry.preset_name.empty()) {
+                        std::string bare_name = entry.preset_name.substr(0, entry.preset_name.find('@'));
+                        boost::trim_right(bare_name);
+                        if (!bare_name.empty() &&
+                            (candidate.alias == entry.preset_name || candidate.name == bare_name || candidate.alias == bare_name))
+                            return 4;
+                    }
+                    if (!entry.setting_id.empty() && candidate.setting_id == entry.setting_id)
+                        return 3;
+                    const ConfigOptionStrings* types   = candidate.config.opt<ConfigOptionStrings>("filament_type");
+                    const ConfigOptionStrings* vendors = candidate.config.opt<ConfigOptionStrings>("filament_vendor");
+                    const std::string type             = (types != nullptr && !types->values.empty()) ? types->get_at(0) : std::string();
+                    const std::string vendor = (vendors != nullptr && !vendors->values.empty()) ? vendors->get_at(0) : std::string();
+                    if (!entry.filament_id.empty() && candidate.filament_id == entry.filament_id)
+                        return 2;
+                    // Tier 0/1 family gate: the explicit type requirement when published as
+                    // such, otherwise the entry's own material family - so identity scoring
+                    // also applies to entries published without a checked Type row.
+                    const std::string required_type = !entry.publish_type_value.empty() ? entry.publish_type_value :
+                                                                                          normalize_filament_type(entry.filament_type);
+                    if (!required_type.empty() && normalize_filament_type(type) == required_type) {
+                        if (!entry.filament_vendor.empty() && vendor == entry.filament_vendor)
+                            return 1;
+                        return 0;
+                    }
+                    return -1;
+                };
+                while (this->filament_presets.size() < target_slots) {
+                    const size_t new_slot_idx = this->filament_presets.size();
+                    std::string initial_preset;
+                    if (new_slot_idx >= physical_capacity && published_slots.count(static_cast<int>(new_slot_idx)) == 0)
+                        // An unpublished grown slot past the printer's physical capacity cannot
+                        // host a real filament: finalize it as a virtual placeholder below.
+                        virtual_gap_slots.insert(static_cast<int>(new_slot_idx));
+                    if (published_slots.count(static_cast<int>(new_slot_idx)) != 0) {
+                        // Grow the slot the way the sidebar "add filament" does: seed it with
+                        // the receiver's last preset.
+                        if (!this->filament_presets.empty())
+                            initial_preset = this->filament_presets.back();
+                    }
+                    if (initial_preset.empty())
+                        // Unpublished filler slot, or every visible preset is already used:
+                        // repeat the receiver's last preset ("Add one filament" behaviour).
+                        initial_preset = this->filament_presets.empty() ? this->filaments.first_visible().name :
+                                                                          this->filament_presets.back();
+                    this->filament_presets.emplace_back(initial_preset);
+                }
+                // Published slots that alias another slot (multi-extruder with one filament)
+                // get re-pointed at distinct presets: the overlay writes onto the slot's
+                // effective preset in place, so a shared preset would leak one slot's published
+                // values into every aliased slot. Slot 0 (the receiver's own material) is never
+                // re-assigned; when no unused candidate exists the aliasing stays (unavoidable).
+                auto referenced_elsewhere = [&](const std::string& preset_name, size_t except_slot) {
+                    for (size_t s = 0; s < this->filament_presets.size(); ++s)
+                        if (s != except_slot && this->filament_presets[s] == preset_name)
+                            return true;
+                    return false;
+                };
+                for (size_t slot = 1; slot < this->filament_presets.size(); ++slot) {
+                    if (published_slots.count(static_cast<int>(slot)) == 0 || !referenced_elsewhere(this->filament_presets[slot], slot))
+                        continue;
+                    // A slot whose published entry writes nothing into a shared preset in place
+                    // keeps its own preset: de-aliasing would needlessly swap the material. Only
+                    // keys routed to the slot's preset can leak across an aliased slot (colour is
+                    // slot-scoped via project_config; a type requirement is handled by the
+                    // type-gate below; full detaches separately). Mixed-definition keys go to the
+                    // per-slot project arrays, never the preset.
+                    bool writes_preset_keys = false;
+                    for (const PublishedMaterialEntry& entry : published_config->material_keys) {
+                        if (entry.slot != static_cast<int>(slot))
+                            continue;
+                        for (const std::string& key : entry.keys)
+                            if (mixed_definitions.count(publish_base_key(key)) == 0) {
+                                writes_preset_keys = true;
+                                break;
+                            }
+                        if (writes_preset_keys)
+                            break;
+                    }
+                    if (!writes_preset_keys)
+                        continue;
+                    // Prefer the best distinct candidate for the slot's published material
+                    // (exact id, then vendor+type, then type only), compatible presets first...
+                    std::string replacement;
+                    int best_score = -1;
+                    for (const PublishedMaterialEntry& entry : published_config->material_keys) {
+                        // Scored for every entry with an identity, not only when a Type
+                        // requirement was checked (same as the growth seeding above).
+                        if (entry.slot != static_cast<int>(slot))
+                            continue;
+                        const std::string resolved_name = resolved_name_for(entry.slot);
+                        auto scan                       = [&](bool compatible_only) -> std::pair<int, std::string> {
+                            int best_score = -1;
+                            std::string best_name;
+                            for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                const Preset& candidate = this->filaments.preset(i);
+                                if (compatible_only && !candidate.is_compatible)
+                                    continue;
+                                const int score = candidate_score(candidate, entry, resolved_name);
+                                // Exact identity tiers (name / setting_id) may use a hidden preset;
+                                // the referenced check stays: re-pointing exists to de-alias.
+                                if (score < 3 && !candidate.is_visible)
+                                    continue;
+                                if (referenced_elsewhere(candidate.name, size_t(-1)))
+                                    continue;
+                                if (score > best_score) {
+                                    best_score = score;
+                                    best_name  = candidate.name;
+                                }
+                            }
+                            return {best_score, best_name};
+                        };
+                        const auto [compat_score, compat_name] = scan(true);
+                        const auto [any_score, any_name]       = scan(false);
+                        if (compat_score >= 0) {
+                            best_score  = compat_score;
+                            replacement = compat_name;
+                        } else if (any_score >= 0) {
+                            best_score  = any_score;
+                            replacement = any_name;
+                        }
+                        if (best_score >= 0)
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF re-pointed slot " << slot << " to " << replacement
+                                                    << " (score " << best_score << ", preset_name \"" << entry.preset_name << "\", type \""
+                                                    << entry.publish_type_value << "\")";
+                        break;
+                    }
+                    // ...otherwise any distinct visible preset not referenced by another slot,
+                    // preferring the published material's own family when it is known.
+                    if (replacement.empty()) {
+                        std::string slot_family;
+                        for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                            if (entry.slot == static_cast<int>(slot)) {
+                                slot_family = !entry.publish_type_value.empty() ? entry.publish_type_value :
+                                                                                  normalize_filament_type(entry.filament_type);
+                                break;
+                            }
+                        for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                            const Preset& candidate = this->filaments.preset(i);
+                            if (!candidate.is_visible || referenced_elsewhere(candidate.name, size_t(-1)))
+                                continue;
+                            if (!slot_family.empty()) {
+                                const ConfigOptionStrings* types = candidate.config.opt<ConfigOptionStrings>("filament_type");
+                                const std::string cand_type      = (types != nullptr && !types->values.empty()) ? types->get_at(0) :
+                                                                                                                  std::string();
+                                if (normalize_filament_type(cand_type) != slot_family)
+                                    continue;
+                            }
+                            replacement = candidate.name;
+                            break;
+                        }
+                    }
+                    if (replacement.empty())
+                        continue; // every visible preset is referenced: aliasing is unavoidable
+                    const std::string aliased_name = this->filament_presets[slot];
+                    this->filament_presets[slot]   = replacement;
+                    material_applied               = true;
+                    // The re-point used to be silent; surface it like the other slot changes.
+                    published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + aliased_name + " -> " +
+                                                                         replacement);
+                }
+                // Grow the per-slot colour/type/map project vectors to the new slot count and
+                // seed the new entries so the slots render with colours instead of blank chips
+                // (mirrors set_num_filaments; existing values are left untouched).
+                ConfigOptionStrings* proj_colour       = this->project_config.opt<ConfigOptionStrings>("filament_colour");
+                ConfigOptionStrings* proj_multi_colour = this->project_config.opt<ConfigOptionStrings>("filament_multi_colour");
+                ConfigOptionStrings* proj_colour_type  = this->project_config.opt<ConfigOptionStrings>("filament_colour_type");
+                ConfigOptionInts* proj_map             = this->project_config.opt<ConfigOptionInts>("filament_map");
+                ConfigOptionInts* proj_nozzle_map      = this->project_config.opt<ConfigOptionInts>("filament_nozzle_map");
+                ConfigOptionInts* proj_volume_map      = this->project_config.opt<ConfigOptionInts>("filament_volume_map");
+                const size_t old_colour_count          = (proj_colour != nullptr) ? proj_colour->values.size() : 0;
+                // Grow-only: an already-larger project vector is left untouched (the receiver's
+                // slot count never shrinks below its own setup).
+                if (proj_colour && proj_colour->values.size() < target_slots)
+                    proj_colour->resize(target_slots);
+                if (proj_multi_colour && proj_multi_colour->values.size() < target_slots)
+                    proj_multi_colour->values.resize(target_slots);
+                if (proj_colour_type && proj_colour_type->values.size() < target_slots)
+                    proj_colour_type->values.resize(target_slots);
+                if (proj_map && proj_map->values.size() < target_slots)
+                    proj_map->values.resize(target_slots, 1);
+                if (proj_nozzle_map && proj_nozzle_map->values.size() < target_slots)
+                    proj_nozzle_map->values.resize(target_slots, 0);
+                if (proj_volume_map && proj_volume_map->values.size() < target_slots)
+                    proj_volume_map->values.resize(target_slots, static_cast<int>(NozzleVolumeType::nvtStandard));
+                // The mixed-color project arrays are parallel per-slot like filament_colour;
+                // grow them in lockstep so a published mix slot has room for its definition.
+                // Defaults mirror set_num_filaments (false / empty string).
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_components"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_mixed_gradient"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_range"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
+                if (this->ams_multi_color_filment.size() < target_slots)
+                    this->ams_multi_color_filment.resize(target_slots);
+                for (size_t slot = old_colour_count; slot < target_slots; ++slot) {
+                    std::string seed;
+                    for (const PublishedMaterialEntry& entry : published_config->material_keys)
+                        if (entry.slot == static_cast<int>(slot) && entry.publish_color && !entry.color.empty()) {
+                            seed = entry.color;
+                            break;
+                        }
+                    if (seed.empty()) {
+                        if (const Preset* preset = this->filaments.find_preset(this->filament_presets[slot], false)) {
+                            const ConfigOptionStrings* colours = preset->config.opt<ConfigOptionStrings>("filament_colour");
+                            if (colours != nullptr && !colours->values.empty())
+                                seed = colours->values.front();
+                        }
+                        if (seed.empty()) {
+                            // Fall back to the option's registered default instead of a
+                            // duplicated literal; if the lookup fails the chip stays blank.
+                            if (const ConfigOptionDef* colour_def = print_config_def.get("filament_colour"))
+                                if (const auto* default_colours = dynamic_cast<const ConfigOptionStrings*>(colour_def->default_value.get()))
+                                    if (!default_colours->values.empty())
+                                        seed = default_colours->values.front();
+                        }
+                    }
+                    if (proj_colour && slot < proj_colour->values.size())
+                        proj_colour->values[slot] = seed;
+                    if (proj_multi_colour && slot < proj_multi_colour->values.size())
+                        proj_multi_colour->values[slot] = seed;
+                    if (proj_colour_type && slot < proj_colour_type->values.size())
+                        proj_colour_type->values[slot] = "1"; // default colour type
+                }
+                // Rebuild the flush volumes for the grown slot count (as set_num_filaments does).
+                this->update_multi_material_filament_presets();
+
+                auto apply_slot_keys = [&](DynamicPrintConfig& preset_config, const std::vector<std::string>& slot_keys, int author_slot,
+                                           const std::string& material_label) {
+                    for (const std::string& key : slot_keys) {
+                        const std::string base_key = publish_base_key(key);
+                        if (structural_keys.count(base_key) != 0)
+                            continue;
+                        const ConfigOption* src_opt = config.option(base_key);
+                        if (src_opt == nullptr || !src_opt->is_vector() || author_slot < 0 ||
+                            author_slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                            continue;
+                        }
+                        ConfigOption* dst_opt = preset_config.option(base_key);
+                        if (dst_opt == nullptr || !dst_opt->is_vector() || static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() ||
+                            dst_opt->type() != src_opt->type()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                            continue;
+                        }
+                        // Per-slot scalar copy: the receiver preset holds one value per key
+                        // (vector of size 1), the file holds the per-slot vector.
+                        static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                        material_applied = true;
+                    }
+                };
+
+                // The slot's values are applied onto the slot's effective preset (the
+                // collection's edited layer when the slot references it, otherwise the stored
+                // preset in place); the per-entry type gate below may re-point the slot first.
+                //
+                // The edited layer only survives the load when the final re-select below stays
+                // off, i.e. slot 0's preset still matches the edited preset. Otherwise the
+                // re-select re-snapshots the edited layer from a stored preset and silently
+                // discards everything written there: route the overlay to the stored presets
+                // instead so the values survive. (Residual edge: a slot-0 type replacement
+                // re-pointing slot 0 mid-loop can still invalidate the layer after earlier
+                // slots wrote to it; that compound case is not chased.)
+                const bool edited_survives_load = this->filament_presets.empty() ||
+                                                  this->filament_presets.front() == this->filaments.get_edited_preset().name;
+                // Displaced receiver mixes (see the physical-first rebalance above): move their
+                // per-slot cells onto the grown tail slots and reset the vacated physical slots,
+                // so the incoming real filaments can claim them. Runs before mixed_final_slots is
+                // built, so the rebalanced layout is what the mix validation sees.
+                apply_receiver_mix_relocations(this->project_config, this->ams_multi_color_filment, receiver_mix_moves);
+                // Final layout for mix-definition validation: every slot that will hold a
+                // mixed definition once this load completes - the receiver's own virtual
+                // slots, each published mixed entry's final (possibly relocated) slot, and
+                // each capacity placeholder (they become mixes in the finalize below, before
+                // this loop's is_mixed_filament scan would see them). Mix components are
+                // 1-based slot numbers, so a component is valid only when the slot it names
+                // exists and does not itself hold a mixed filament.
+                std::set<int> mixed_final_slots;
+                for (const PublishedMaterialEntry& mix_entry : published_config->material_keys)
+                    if (mix_entry.slot >= 0 && (is_mixed_definition(mix_entry) || mix_entry.mixed_placeholder))
+                        mixed_final_slots.insert(mix_entry.slot);
+                for (size_t i = 0; i < this->filament_presets.size(); ++i)
+                    if (this->is_mixed_filament(i))
+                        mixed_final_slots.insert(int(i));
+                // Unpublished gap slots past the capacity are virtual too: count them in the
+                // final layout so a published mix whose components collide with one is caught.
+                for (int gap_slot : virtual_gap_slots)
+                    mixed_final_slots.insert(gap_slot);
+                const size_t mixed_final_slot_count = this->filament_presets.size();
+                // Finalize a slot as an empty mixed-filament placeholder: mark it virtual with
+                // an intentionally empty definition, and add it to the final-layout set so a
+                // later entry's components validate against the new state. Used by the capacity
+                // placeholders and by any mixed definition that has to be rejected after its
+                // slot was already grown and seeded - without it such a slot would keep the
+                // seeded preset and masquerade as a real filament. No definition is written:
+                // the placeholder carries no material of its own (the GUI flags the empty mix
+                // via check_mixed_filament_integrity and blocks slicing until components are
+                // assigned). The slot's colour was already seeded by the growth pass above.
+                auto finalize_mixed_placeholder = [&](size_t slot_idx) {
+                    if (ConfigOptionBools* is_mixed_opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed");
+                        is_mixed_opt != nullptr && slot_idx < is_mixed_opt->values.size())
+                        is_mixed_opt->values[slot_idx] = true;
+                    mixed_final_slots.insert(int(slot_idx));
+                    material_applied = true;
+                };
+                // Full Publish within-load dedup: identical Full materials (same setting_id
+                // + preset_name identity) share one created instance, so an author who
+                // pointed two slots at one preset yields one standalone copy here.
+                std::map<std::string, std::string> published_full_dedup;
+                for (const PublishedMaterialEntry& entry : published_config->material_keys) {
+                    if (entry.slot < 0 || size_t(entry.slot) >= this->filament_presets.size())
+                        continue; // out of range: nothing to do for this slot
+                    const size_t slot = size_t(entry.slot);
+
+                    // Surplus published material beyond the printer's capacity: finalize the
+                    // tail placeholder - mark the slot virtual with an intentionally empty
+                    // definition. The GUI flags the empty mix (check_mixed_filament_integrity)
+                    // and blocks slicing until the user assigns components from their own
+                    // filaments. The entry's keys are deliberately not applied and no preset
+                    // is detached: the placeholder carries no material of its own. The colour
+                    // was already seeded into the project arrays by the growth pass above.
+                    if (entry.mixed_placeholder) {
+                        finalize_mixed_placeholder(slot);
+                        continue;
+                    }
+
+                    // Resolve the stored preset itself (real=true), never the edited snapshot:
+                    // find_preset would return &m_edited_preset for the selected slot. The
+                    // overlay target below decides between the edited layer and this preset.
+                    Preset* recv = this->filaments.find_preset(this->filament_presets[slot], false, true);
+                    if (recv == nullptr) {
+                        // Defensive: the slot exists (grown and seeded above) but its preset
+                        // could not be resolved. A mixed definition left unapplied on such a
+                        // slot would keep the seeded preset and look like a real filament:
+                        // finalize it as an empty placeholder instead, like a rejected
+                        // definition below.
+                        if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
+                            finalize_mixed_placeholder(slot);
+                            published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                 ": mixed filament definition could not be imported");
+                        }
+                        continue;
+                    }
+
+                    const std::string material_label = entry.filament_id.empty() ?
+                                                           (entry.publish_type_value.empty() ? entry.filament_type :
+                                                                                               entry.publish_type_value) :
+                                                           entry.filament_id;
+
+                    // Import-side validation of a mixed-filament definition: the publish
+                    // dialog cannot produce a definition whose components reference slots
+                    // that do not exist or hold other mixed filaments, so a broken one here
+                    // means the payload itself is broken (hand-crafted or corrupt file).
+                    // Report it through the same channel as every other rejected input and
+                    // skip the entry, instead of shipping a mix the GUI integrity check
+                    // (check_mixed_filament_integrity) would only flag later. A payload
+                    // that omits the mixed arrays entirely is not an error here: the key
+                    // routing below reports those per key as usual.
+                    if (is_mixed_definition(entry)) {
+                        std::string mix_error;
+                        if (const ConfigOptionStrings* comp_opt = config.opt<ConfigOptionStrings>("filament_mixed_components");
+                            comp_opt != nullptr && entry.slot < static_cast<int>(comp_opt->values.size())) {
+                            const std::vector<unsigned int> comps = parse_mixed_components(comp_opt->values[entry.slot]);
+                            if (comps.size() < 2)
+                                // An empty definition cell counts as broken too: applying it
+                                // would ship a mix the sidebar would only flag later.
+                                mix_error = "needs at least two components";
+                            else
+                                for (unsigned int comp : comps)
+                                    if (comp < 1 || size_t(comp) > mixed_final_slot_count ||
+                                        mixed_final_slots.count(int(comp) - 1) != 0) {
+                                        mix_error = "components reference missing slots";
+                                        break;
+                                    }
+                        }
+                        if (!mix_error.empty()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (mixed filament definition: " + mix_error + ")");
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
+                                                       << " rejected: " << mix_error;
+                            // Degradation, not silent corruption: the slot was already grown and
+                            // seeded by the pass above, so skipping the definition alone would
+                            // leave it holding the seeded preset and looking like a real
+                            // filament that carries the mix identity but no mix.
+                            //  - a slot that was NOT already a receiver mix is finalized as an
+                            //    empty mixed placeholder (consistent with the capacity
+                            //    placeholders; the user assigns components there);
+                            //  - a like-for-like override of the receiver's own mix leaves that
+                            //    valid definition untouched: nothing was applied, so the
+                            //    receiver's cells are intact and only the author's definition
+                            //    is reported as skipped above.
+                            if (!this->is_mixed_filament(slot)) {
+                                finalize_mixed_placeholder(slot);
+                                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                     ": mixed filament definition could not be imported (" +
+                                                                                     mix_error + ")");
+                            }
+                            continue;
+                        }
+                    }
+
+                    // Full Publish: always create a standalone detached copy (even on exact
+                    // identity match) as a "Preset Inside Project" (project-embedded: lives
+                    // in this project only, never written to the library), universally
+                    // compatible, named after the author's preset with its variant tail
+                    // stripped ("(Published)" uniquification on collision). No existing
+                    // preset is ever mutated.
+                    if (entry.full) {
+                        std::string dedup_key = entry.setting_id + std::string("\x1f") + entry.preset_name;
+                        // Identity-less hand-crafted files (empty setting_id+name) must not
+                        // collide: fall back to slot-scoped key so each slot gets its own copy
+                        // unless the dedup above is meaningful.
+                        if (dedup_key == std::string("\x1f"))
+                            dedup_key = dedup_key + std::to_string(slot);
+                        else if (!entry.filament_id.empty())
+                            dedup_key += std::string("\x1f") + entry.filament_id;
+                        std::string new_name;
+                        const auto dedup_it = published_full_dedup.find(dedup_key);
+                        if (dedup_it != published_full_dedup.end()) {
+                            new_name = dedup_it->second;
+                        } else {
+                            // Baseline: clone the receiver slot's stored preset config (schema-
+                            // complete across versions), then overlay the published full_keys.
+                            DynamicPrintConfig new_cfg = recv != nullptr ? recv->config : this->filaments.default_preset().config;
+                            for (const std::string& key : entry.full_keys) {
+                                const std::string base_key = publish_base_key(key);
+                                if (structural_keys.count(base_key) != 0)
+                                    continue;
+                                const ConfigOption* src_opt = config.option(base_key);
+                                if (src_opt == nullptr || !src_opt->is_vector() || entry.slot < 0 ||
+                                    entry.slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size()))
+                                    continue;
+                                ConfigOption* dst_opt = new_cfg.option(base_key);
+                                if (dst_opt == nullptr || !dst_opt->is_vector() ||
+                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() || dst_opt->type() != src_opt->type())
+                                    continue;
+                                static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, entry.slot);
+                            }
+                            // The published colour is authoritative even for Full (the payload's
+                            // filament_colour plus the explicit publish_color field).
+                            if (entry.publish_color && !entry.color.empty()) {
+                                if (ConfigOptionStrings* col = new_cfg.opt<ConfigOptionStrings>("filament_colour", true)) {
+                                    if (col->values.empty())
+                                        col->values.emplace_back();
+                                    col->values[0] = entry.color;
+                                }
+                            }
+                            make_publish_universal(new_cfg);
+                            // Naming: stripped variant tail ("Generic PLA @System" -> "Generic
+                            // PLA"), then identity fallbacks; collisions uniquify with
+                            // "(Published)" / "(Published N)" inside add_detached_preset.
+                            std::string base_name = entry.preset_name.empty() ? std::string() :
+                                                                                publish_material_base_name(entry.preset_name);
+                            if (base_name.empty()) {
+                                base_name = !entry.filament_id.empty() ?
+                                                entry.filament_id :
+                                                (!entry.publish_type_value.empty() ? entry.publish_type_value : entry.filament_type);
+                                if (base_name.empty())
+                                    base_name = "Published Filament";
+                            }
+                            new_name = this->filaments.add_detached_preset(base_name, std::move(new_cfg), entry.filament_id);
+                            published_full_dedup.emplace(dedup_key, new_name);
+                        }
+                        const std::string old_name   = this->filament_presets[slot];
+                        this->filament_presets[slot] = new_name;
+                        material_applied             = true;
+                        published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + old_name + " -> " +
+                                                                             new_name);
+                        // Colour is slot-scoped and project-visible: sync into project_config
+                        // (the copy already baked it, this makes the chips render).
+                        if (entry.publish_color && !entry.color.empty()) {
+                            if (ConfigOptionStrings* proj_colour = this->project_config.opt<ConfigOptionStrings>("filament_colour")) {
+                                if (slot < proj_colour->values.size())
+                                    proj_colour->values[slot] = entry.color;
+                            }
+                            if (ConfigOptionStrings* proj_multi_colour = this->project_config.opt<ConfigOptionStrings>(
+                                    "filament_multi_colour")) {
+                                if (slot < proj_multi_colour->values.size())
+                                    proj_multi_colour->values[slot] = entry.color;
+                            }
+                        } else if (proj_colour && new_name != old_name) {
+                            // Fall back to the copy's colour so the chip is never blank: try
+                            // the newly created preset's filament_colour, then the option default.
+                            std::string seed;
+                            if (const Preset* created = this->filaments.find_preset(new_name, false, true)) {
+                                if (const ConfigOptionStrings* cols = created->config.opt<ConfigOptionStrings>("filament_colour"))
+                                    if (!cols->values.empty())
+                                        seed = cols->values.front();
+                            }
+                            if (seed.empty()) {
+                                if (const ConfigOptionDef* colour_def = print_config_def.get("filament_colour"))
+                                    if (const auto* defaults = dynamic_cast<const ConfigOptionStrings*>(colour_def->default_value.get()))
+                                        if (!defaults->values.empty())
+                                            seed = defaults->values.front();
+                            }
+                            if (!seed.empty()) {
+                                if (proj_colour && slot < proj_colour->values.size())
+                                    proj_colour->values[slot] = seed;
+                                if (proj_multi_colour && slot < proj_multi_colour->values.size())
+                                    proj_multi_colour->values[slot] = seed;
+                            }
+                        }
+                        if (proj_colour_type && slot < proj_colour_type->values.size())
+                            proj_colour_type->values[slot] = "1";
+                        continue;
+                    }
+
+                    bool apply_slot = true;
+                    // The gate compares against the slot's effective material type: the edited
+                    // layer when the slot references the collection's edited preset and that
+                    // layer will survive the load (see edited_survives_load below), the stored
+                    // preset otherwise.
+                    const DynamicPrintConfig& effective_config = (edited_survives_load &&
+                                                                  recv->name == this->filaments.get_edited_preset().name) ?
+                                                                     this->filaments.get_edited_preset().config :
+                                                                     recv->config;
+                    if (entry.publish_type && !entry.publish_type_value.empty()) {
+                        // Null-guard: a malformed receiver preset may lack filament_type.
+                        const ConfigOptionStrings* recv_types = effective_config.opt<ConfigOptionStrings>("filament_type");
+                        const std::string recv_type = (recv_types != nullptr && !recv_types->values.empty()) ? recv_types->get_at(0) :
+                                                                                                               std::string();
+                        if (normalize_filament_type(recv_type) != entry.publish_type_value) {
+                            // Type mismatch: replace the slot with the best matching preset,
+                            // scored by the published identity (exact preset name, then exact
+                            // setting_id, exact filament_id, then vendor+type, then type only).
+                            // A preset no other slot references wins on equal scores; a shared
+                            // exact-material preset is taken even though mutating it also
+                            // affects the other slot. Compatible presets are searched first: an
+                            // incompatible preset is only picked when no compatible candidate
+                            // exists at all.
+                            auto find_best = [&](bool compatible_only) -> std::pair<int, std::string> {
+                                auto scan = [&](bool unreferenced_only) -> std::pair<int, std::string> {
+                                    int best_score = -1;
+                                    std::string best_name;
+                                    const std::string resolved_name = resolved_name_for(entry.slot);
+                                    for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                        const Preset& candidate = this->filaments.preset(i);
+                                        if (compatible_only && !candidate.is_compatible)
+                                            continue;
+                                        const int score = candidate_score(candidate, entry, resolved_name);
+                                        if (score <= best_score)
+                                            continue;
+                                        // Lower tiers (vendor+type, type only) need a visible preset;
+                                        // an exact identity match (name / setting_id) wins even when
+                                        // the preset is hidden in the library.
+                                        if (score < 3 && !candidate.is_visible)
+                                            continue;
+                                        if (unreferenced_only) {
+                                            bool used = false;
+                                            for (size_t s = 0; s < this->filament_presets.size(); ++s)
+                                                if (s != slot && this->filament_presets[s] == candidate.name) {
+                                                    used = true;
+                                                    break;
+                                                }
+                                            if (used)
+                                                continue;
+                                        }
+                                        best_score = score;
+                                        best_name  = candidate.name;
+                                    }
+                                    return {best_score, best_name};
+                                };
+                                const auto [strict_score, strict_name]   = scan(true);
+                                const auto [relaxed_score, relaxed_name] = scan(false);
+                                if (relaxed_score > strict_score)
+                                    return {relaxed_score, relaxed_name};
+                                return {strict_score, strict_name};
+                            };
+                            const auto [compat_score, compat_name] = find_best(true);
+                            const auto [any_score, any_name]       = find_best(false);
+                            int score                              = any_score;
+                            std::string replacement                = any_name;
+                            if (compat_score >= 0) {
+                                score       = compat_score;
+                                replacement = compat_name;
+                            }
+                            if (!replacement.empty()) {
+                                const std::string old_name   = recv->name;
+                                this->filament_presets[slot] = replacement;
+                                recv                         = this->filaments.find_preset(replacement, false, true);
+                                material_applied             = true;
+                                BOOST_LOG_TRIVIAL(info)
+                                    << __FUNCTION__ << ": published 3MF slot " << slot << " material " << old_name << " -> " << replacement
+                                    << " (score " << score << ", preset_name \"" << entry.preset_name << "\", filament_id \""
+                                    << entry.filament_id << "\", setting_id \"" << entry.setting_id << "\", type \""
+                                    << entry.publish_type_value << "\")";
+                                std::string replacement_line = "slot " + std::to_string(slot) + ": " + old_name + " -> " + replacement;
+                                // A pick that is not the exact published material is a substitute;
+                                // an entry without identity fields cannot be judged, so it stays plain.
+                                if (score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
+                                    replacement_line += " (substitute)";
+                                published_config->material_replacements.emplace_back(std::move(replacement_line));
+                            } else {
+                                // Partial publish with no replacement: keep the receiver's
+                                // material and report the slot's keys as skipped. (Full entries
+                                // never reach this gate: they detach above.)
+                                for (const std::string& key : entry.keys)
+                                    skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                apply_slot = false;
+                                // A mixed definition left unapplied here would keep the grown
+                                // slot's seeded preset and masquerade as a real filament:
+                                // finalize it as an empty placeholder like a rejected
+                                // definition (a like-for-like override of the receiver's own
+                                // mix is left untouched).
+                                if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
+                                    finalize_mixed_placeholder(slot);
+                                    published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                         ": mixed filament definition could not be imported");
+                                }
+                            }
+                        }
+                    }
+
+                    // The values below are applied onto the slot's effective preset: the edited
+                    // layer when the slot references the collection's edited preset and that
+                    // layer will survive the load (visible as a modification and revertible,
+                    // preserving the user's unsaved edits), otherwise the stored preset it ended
+                    // up on (original or partial type replacement), in place. Full entries never
+                    // get here - they detach above.
+                    DynamicPrintConfig& write_config = (edited_survives_load && recv->name == this->filaments.get_edited_preset().name) ?
+                                                           this->filaments.get_edited_preset().config :
+                                                           recv->config;
+
+                    // Colour is slot-scoped and independent of the type gate; it is also synced
+                    // into project_config for GUI rendering.
+                    if (entry.publish_color && !entry.color.empty()) {
+                        // A mixed-definition entry carries the mix's blended colour for the
+                        // swatch only: never write it into the slot's (possibly shared) preset
+                        // config, only into the project-level colour arrays.
+                        const bool is_mixed_entry = is_mixed_definition(entry);
+                        if (!is_mixed_entry && recv != nullptr) {
+                            // Create the key when the target preset lacks it: the colour is a
+                            // requirement, not an override.
+                            if (ConfigOptionStrings* colour = write_config.opt<ConfigOptionStrings>("filament_colour", true)) {
+                                if (colour->values.empty())
+                                    colour->values.emplace_back();
+                                colour->values[0] = entry.color;
+                                material_applied  = true;
+                            }
+                        }
+                        if (ConfigOptionStrings* proj_colour = this->project_config.opt<ConfigOptionStrings>("filament_colour")) {
+                            if (slot < proj_colour->values.size())
+                                proj_colour->values[slot] = entry.color;
+                        }
+                        if (ConfigOptionStrings* proj_multi_colour = this->project_config.opt<ConfigOptionStrings>(
+                                "filament_multi_colour")) {
+                            if (slot < proj_multi_colour->values.size())
+                                proj_multi_colour->values[slot] = entry.color;
+                        }
+                    }
+
+                    if (apply_slot && recv != nullptr) {
+                        // Mixed-color definition keys live in project_config (parallel per-slot
+                        // arrays), not in a filament preset; route them there. Normal keys keep
+                        // the per-slot preset path below.
+                        const std::set<std::string>& mixed_keys = publish_mixed_keys();
+                        std::vector<std::string>        preset_keys;
+                        for (const std::string& key : entry.keys) {
+                            const std::string base_key = publish_base_key(key);
+                            if (mixed_keys.count(base_key) != 0) {
+                                const ConfigOption* src_opt = config.option(base_key);
+                                if (src_opt != nullptr && src_opt->is_vector() && entry.slot >= 0 &&
+                                    entry.slot < static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                                    if (ConfigOption* dst_opt = this->project_config.option(base_key)) {
+                                        if (dst_opt->is_vector() && dst_opt->type() == src_opt->type() &&
+                                            slot < static_cast<const ConfigOptionVectorBase*>(dst_opt)->size()) {
+                                            static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, slot, entry.slot);
+                                            material_applied = true;
+                                            continue;
+                                        }
+                                    }
+                                }
+                                // The slot (or its arrays) could not be written: report rather
+                                // than drop the mix silently.
+                                skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                continue;
+                            }
+                            preset_keys.emplace_back(key);
+                        }
+                        apply_slot_keys(write_config, preset_keys, entry.slot, material_label);
+                    }
+                }
+                // Unpublished gap slots past the printer's physical capacity: the receiver grew
+                // them only to reach a published definition, so they must not become physical
+                // filaments (that would overflow the nozzle count). Finalize each as an empty
+                // mixed placeholder, exactly like the surplus-material placeholders above.
+                for (int gap_slot : virtual_gap_slots)
+                    if (!this->is_mixed_filament(size_t(gap_slot))) {
+                        finalize_mixed_placeholder(size_t(gap_slot));
+                        published_config->material_replacements.emplace_back(
+                            "slot " + std::to_string(gap_slot) +
+                            ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
+                    }
+            }
+        }
+
+        for (const std::string& key : published_config->published_keys) {
+            if (applied_keys.count(key) != 0)
+                continue;
+            const std::string base_key = publish_base_key(key);
+            // Structural keys are silently ignored, never reported as skipped: a hand-crafted
+            // 3MF must not trigger the "could not be applied" warning for them.
+            if (structural_keys.count(base_key) != 0)
+                continue;
+            // Printer-class keys outside the publishable allowlist are contract-excluded too.
+            if (contract_excluded_keys.count(base_key) != 0)
+                continue;
+            skipped_keys.emplace_back(key);
+        }
+        published_config->skipped_keys = std::move(skipped_keys);
+
+        // The overlay lands on the edited layer only when it survives the load (slot 0's preset
+        // still matches the edited preset; see edited_survives_load) and on the stored presets
+        // otherwise. The edited preset is a snapshot taken when the preset was last selected, so
+        // a slot-0 preset change (type replacement) still needs a re-select to surface; when
+        // slot 0 is unchanged the edited layer already carries the overlay, and re-selecting
+        // would discard both it and the user's unsaved edits.
+        if (material_applied && !this->filament_presets.empty() &&
+            this->filament_presets.front() != this->filaments.get_edited_preset().name)
+            this->filaments.select_preset_by_name(this->filament_presets.front(), false);
+    }
+
+
     //BBS
     //const std::string &physical_printer = config.option<ConfigOptionString>("physical_printer_settings_id", true)->value;
     const std::string physical_printer;
-    if (this->printers.get_edited_preset().is_external || physical_printer.empty()) {
-        this->physical_printers.unselect_printer();
-    } else {
-        // Activate the physical printer profile if possible.
-        PhysicalPrinter *pp = this->physical_printers.find_printer(physical_printer, true);
-        if (pp != nullptr && std::find(pp->preset_names.begin(), pp->preset_names.end(), this->printers.get_edited_preset().name) != pp->preset_names.end())
-            this->physical_printers.select_printer(pp->name, this->printers.get_edited_preset().name);
-        else
+    if (!is_published) {
+        if (this->printers.get_edited_preset().is_external || physical_printer.empty()) {
             this->physical_printers.unselect_printer();
+        } else {
+            // Activate the physical printer profile if possible.
+            PhysicalPrinter *pp = this->physical_printers.find_printer(physical_printer, true);
+            if (pp != nullptr && std::find(pp->preset_names.begin(), pp->preset_names.end(), this->printers.get_edited_preset().name) != pp->preset_names.end())
+                this->physical_printers.select_printer(pp->name, this->printers.get_edited_preset().name);
+            else
+                this->physical_printers.unselect_printer();
+        }
     }
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");

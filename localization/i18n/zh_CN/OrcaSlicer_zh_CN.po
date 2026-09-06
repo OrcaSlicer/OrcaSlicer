@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 09:39-0300\n"
+"POT-Creation-Date: 2026-09-03 10:27+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -4743,6 +4743,9 @@ msgstr ""
 "是 - 自动调整这些设置并开启旋转模式\n"
 "否 - 暂不使用旋转模式"
 
+msgid "N/A"
+msgstr "不适用"
+
 msgid "Printing"
 msgstr "打印中"
 
@@ -5201,9 +5204,6 @@ msgstr "无效的模式。请使用 N、N#K 或逗号分隔的列表（每个条
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "无效格式，应该是\"%1%\"这种数组格式"
-
-msgid "N/A"
-msgstr "不适用"
 
 # AI Translated
 msgid "System agents"
@@ -6158,6 +6158,12 @@ msgstr "项目另存为"
 
 msgid "Save current project as"
 msgstr "项目另存为"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "导入 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7949,6 +7955,12 @@ msgstr "请确认这些预设中的G-codes是否安全，以防止对机器造�
 msgid "Customized Preset"
 msgstr "自定义的预设"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "STEP 文件中的部件名称不是 UTF-8 格式！"
 
@@ -8353,6 +8365,17 @@ msgstr "切片文件另存为："
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "文件%s已经发送到打印机的存储空间，可以在打印机上浏览。"
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "发布"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "未设置喷嘴类型。请设置喷嘴并重试。"
@@ -9489,9 +9512,6 @@ msgstr "跳转到发布页面"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "提示：发布前需要一些准备时间，请耐心等待。"
 
-msgid "Publish"
-msgstr "发布"
-
 msgid "Publish was canceled"
 msgstr "发布已取消"
 
@@ -9506,6 +9526,64 @@ msgstr "正在上传数据"
 
 msgid "Jump to webpage"
 msgstr "跳转到网页"
+
+msgid "Material"
+msgstr ""
+
+msgid "Mixed filament"
+msgstr ""
+
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr ""
+
+msgid "needs"
+msgstr ""
+
+msgid "not enabled"
+msgstr ""
+
+msgid "material not published"
+msgstr ""
+
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr ""
+
+msgid "Publish anyway"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to be published in the 3MF file"
+msgstr ""
+
+msgid "Publish 3MF Wiki"
+msgstr ""
+
+msgid "Publish 3MF Video Guide"
+msgstr ""
+
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr ""
+
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr ""
+
+msgid "Publish this filament slot in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -20638,6 +20716,15 @@ msgstr "此操作无法撤消。继续？"
 
 msgid "Skipping objects."
 msgstr "跳过对象。"
+
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
+msgstr ""
+
+msgid "Ratio"
+msgstr ""
 
 msgid "Select Filament"
 msgstr "选择耗材"

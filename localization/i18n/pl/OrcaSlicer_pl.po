@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 09:39-0300\n"
+"POT-Creation-Date: 2026-09-03 10:27+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -5013,6 +5013,10 @@ msgstr ""
 "Tak - Zmień te ustawienia automatycznie i włącz tryb Wazy\n"
 "Nie - Zrezygnuj tym razem z używania trybu Wazy"
 
+# AI Translated
+msgid "N/A"
+msgstr "Nie dotyczy"
+
 msgid "Printing"
 msgstr "Drukowanie"
 
@@ -5479,10 +5483,6 @@ msgstr "Nieprawidłowy wzorzec. Użyj N, N#K lub listy rozdzielonej przecinkami 
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Nieprawidłowy format. Oczekiwano formatu wektorowego: „%1%”"
-
-# AI Translated
-msgid "N/A"
-msgstr "Nie dotyczy"
 
 # AI Translated
 msgid "System agents"
@@ -6468,6 +6468,12 @@ msgstr "Zapisz projekt jako"
 
 msgid "Save current project as"
 msgstr "Zapisz bieżący projekt jako"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importuj 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8353,6 +8359,12 @@ msgstr "Proszę potwierdź, że G-code w tych profilach jest bezpieczny, aby zap
 msgid "Customized Preset"
 msgstr "Dostosowany profil"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Nazwa komponentów w pliku step nie jest w formacie UTF-8!"
 
@@ -8778,6 +8790,17 @@ msgstr "Zapisz plik po wykonaniu cięcia jako:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Plik %s został wysłany do pamięci drukarki i można go obejrzeć na urządzeniu."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Opublikuj"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Nie ustawiono typu dyszy Wprowadź ustawienia dyszy i spróbuj ponownie."
@@ -10021,9 +10044,6 @@ msgstr "Przejdź do strony publikacji modelu"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Uwaga: Przygotowanie może zająć kilka minut. Proszę o cierpliwość."
 
-msgid "Publish"
-msgstr "Opublikuj"
-
 msgid "Publish was canceled"
 msgstr "Publikacja została anulowana"
 
@@ -10039,6 +10059,64 @@ msgstr "Przesyłanie danych"
 
 msgid "Jump to webpage"
 msgstr "Przejdź na stronę"
+
+msgid "Material"
+msgstr ""
+
+msgid "Mixed filament"
+msgstr ""
+
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr ""
+
+msgid "needs"
+msgstr ""
+
+msgid "not enabled"
+msgstr ""
+
+msgid "material not published"
+msgstr ""
+
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr ""
+
+msgid "Publish anyway"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to be published in the 3MF file"
+msgstr ""
+
+msgid "Publish 3MF Wiki"
+msgstr ""
+
+msgid "Publish 3MF Video Guide"
+msgstr ""
+
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr ""
+
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr ""
+
+msgid "Publish this filament slot in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -21722,6 +21800,15 @@ msgstr "Tego działania nie będzie można cofnąć. Kontynuować?"
 
 msgid "Skipping objects."
 msgstr "Pomijanie obiektów."
+
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
+msgstr ""
+
+msgid "Ratio"
+msgstr ""
 
 msgid "Select Filament"
 msgstr "Wybierz filament"
