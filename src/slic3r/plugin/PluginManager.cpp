@@ -13,6 +13,7 @@
 #include "libslic3r/Semver.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/plugin/host/PluginVisualizations.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -113,6 +114,7 @@ bool PluginManager::initialize()
             write_install_state(root, state);
         }
     });
+    PluginVisualizations::instance().install_callbacks(*this);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 

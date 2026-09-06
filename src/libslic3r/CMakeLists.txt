@@ -200,6 +200,8 @@ set(lisbslic3r_sources
     Format/AMF.hpp
     Format/DRC.cpp
     Format/DRC.hpp
+    Format/GLB.cpp
+    Format/GLB.hpp
     Format/bbs_3mf.cpp
     Format/bbs_3mf.hpp
     format.hpp

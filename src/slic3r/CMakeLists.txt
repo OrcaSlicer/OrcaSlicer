@@ -154,6 +154,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/format.hpp
     GUI/GCodeViewer.cpp
     GUI/GCodeViewer.hpp
+    GUI/ToolpathMeshBuilder.cpp
+    GUI/ToolpathMeshBuilder.hpp
     GUI/Gizmos/GizmoObjectManipulation.cpp
     GUI/Gizmos/GizmoObjectManipulation.hpp
     GUI/Gizmos/GLGizmoAssembly.cpp
@@ -638,6 +640,10 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostUi.hpp
     plugin/host/PluginPages.cpp
     plugin/host/PluginPages.hpp
+    plugin/host/PreviewGeometrySnapshot.cpp
+    plugin/host/PreviewGeometrySnapshot.hpp
+    plugin/host/PluginVisualizations.cpp
+    plugin/host/PluginVisualizations.hpp
     plugin/CloudPluginService.cpp
     plugin/CloudPluginService.hpp
     plugin/PluginFsUtils.cpp
@@ -667,6 +673,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.cpp
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapability.hpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapability.cpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapabilityTrampoline.hpp
     pchheader.cpp
     pchheader.hpp
     Utils/ASCIIFolding.cpp

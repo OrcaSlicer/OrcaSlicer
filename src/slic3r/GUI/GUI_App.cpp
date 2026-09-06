@@ -536,6 +536,7 @@ static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
     /* FT_TEX */     { L("Texture"),         { ".png"sv, ".svg"sv } },
     /* FT_SL1 */     { L("Masked SLA files"), { ".sl1"sv, ".sl1s"sv } },
     /* FT_DRC */     { L("Draco files"),     { ".drc"sv } },
+    /* FT_GLB */     { L("GLB files"),       { ".glb"sv } },
 };
 
 // This function produces a Win32 file dialog file template mask to be consumed by wxWidgets on all platforms.

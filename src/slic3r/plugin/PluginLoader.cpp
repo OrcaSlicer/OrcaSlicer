@@ -347,6 +347,11 @@ bool load(const PluginDescriptor&                          descriptor,
                     instance->set_resolved_identity(found.name, type);
                     instance->set_enabled(enabled);
 
+                    // Type-specific declarations (supported inputs, protocols, etc.) are part of
+                    // materialization. Invalid declarations make the capability unusable and fail
+                    // the load instead of surfacing an action which cannot be dispatched safely.
+                    instance->resolve_type_metadata();
+
                     // Cache has_config_ui() once, under this same GIL, so the GUI can pick the
                     // capability's custom UI vs. the host JSON editor without touching Python. It is
                     // optional and plugin-authored: a raising or non-bool override only costs this

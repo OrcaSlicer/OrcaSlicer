@@ -63,6 +63,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/Format/GLB.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/Format/AMF.hpp"
 //#include "libslic3r/Format/3mf.hpp"
@@ -9724,6 +9725,7 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
     switch (file_type) {
         case FT_STL:
         case FT_DRC:
+        case FT_GLB:
         case FT_AMF:
         case FT_3MF:
         case FT_GCODE:
@@ -9749,6 +9751,12 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         {
             output_file.replace_extension("drc");
             dlg_title = _L("Export Draco file:");
+            break;
+        }
+        case FT_GLB:
+        {
+            output_file.replace_extension("glb");
+            dlg_title = _L("Export GLB file:");
             break;
         }
         case FT_AMF:
@@ -18343,6 +18351,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         switch (file_type) {
         case FT_STL: ext = ".stl"; break;
         case FT_DRC: ext = ".drc"; break;
+        case FT_GLB: ext = ".glb"; break;
         }
 
         auto path = dir + name + ext;
@@ -18350,6 +18359,22 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         while (boost::filesystem::exists(path))
             path = dir + name + "(" + std::to_string(n++) + ")"+ext;
         return path;
+    };
+    auto store_mesh = [this, file_type, quality](const std::string& output_path, TriangleMesh& mesh) {
+        switch (file_type) {
+        case FT_STL: Slic3r::store_stl(output_path.c_str(), &mesh, true); break;
+        case FT_DRC: Slic3r::store_drc(output_path.c_str(), &mesh, quality); break;
+        case FT_GLB:
+            try {
+                Slic3r::store_glb(output_path.c_str(), &mesh);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "Failed to export GLB: " << e.what();
+                get_notification_manager()->push_plater_error_notification(e.what());
+                return false;
+            }
+            break;
+        }
+        return true;
     };
 
     TriangleMesh mesh;
@@ -18381,10 +18406,8 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
                 auto mesh = mesh_to_export(*object, i.second);
                 mesh.translate(-object->origin_translation.cast<float>());
 
-                switch (file_type) {
-                case FT_STL: Slic3r::store_stl(get_save_file(path_u8, object->name).c_str(), &mesh, true); break;
-                case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, object->name).c_str(), &mesh, quality); break;
-                }
+                if (!store_mesh(get_save_file(path_u8, object->name), mesh))
+                    return;
             }
             return;
         }
@@ -18398,18 +18421,13 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
             auto mesh = mesh_to_export(*o, -1);
             mesh.translate(-o->origin_translation.cast<float>());
 
-            switch (file_type) {
-            case FT_STL: Slic3r::store_stl(get_save_file(path_u8, o->name).c_str(), &mesh, true); break;
-            case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, o->name).c_str(), &mesh, quality); break;
-            }
+            if (!store_mesh(get_save_file(path_u8, o->name), mesh))
+                return;
         }
         return;
     }
 
-    switch (file_type) {
-    case FT_STL: Slic3r::store_stl(path_u8.c_str(), &mesh, true); break;
-    case FT_DRC: Slic3r::store_drc(path_u8.c_str(), &mesh, quality); break;
-    }
+    (void) store_mesh(path_u8, mesh);
 }
 
 //BBS: remove amf export
@@ -18806,8 +18824,13 @@ void Plater::export_toolpaths_to_obj() const
     if (path.empty())
         return;
 
-    wxBusyCursor wait;
-    p->preview->get_canvas3d()->export_toolpaths_to_obj(into_u8(path).c_str());
+    try {
+        wxBusyCursor wait;
+        p->preview->get_canvas3d()->export_toolpaths_to_obj(into_u8(path).c_str());
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to export toolpaths as OBJ: " << e.what();
+        GUI::show_error(p->q, e.what());
+    }
 }
 
 bool Plater::is_empty_project() {
