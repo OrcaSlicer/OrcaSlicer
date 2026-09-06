@@ -274,6 +274,14 @@ public:
         auto it = m_local_machines.find(machine.dev_id);
         if (it != m_local_machines.end()) {
             const auto& current = it->second;
+            // Unscoped credentials predate printer agents and belong to the legacy BBL agent.
+            const bool has_legacy_access_code = !current.access_code.empty() || !get("access_code", machine.dev_id).empty() ||
+                                                !get("user_access_code", machine.dev_id).empty();
+            const std::string current_agent = current.printer_agent_id.empty() && has_legacy_access_code
+                                                  ? "bbl"
+                                                  : current.printer_agent_id;
+            if (!current_agent.empty() && !machine.printer_agent_id.empty() && current_agent != machine.printer_agent_id)
+                return;
             if (machine != current) {
                 m_local_machines[machine.dev_id] = machine;
                 m_dirty = true;

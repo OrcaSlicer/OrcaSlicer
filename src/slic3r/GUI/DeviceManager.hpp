@@ -64,7 +64,6 @@ class DeviceErrorDialog; // Previous definitions
 }
 
 class NetworkAgent;
-class PresetBundle;
 // Orca: ManualPaCaliMethod now provided by DeviceCore/DevCalib.h (enum class)
 
 #define UpgradeNoError          0
@@ -114,9 +113,6 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
-
-    static std::optional<std::string> find_printhost_access_code(
-        const PresetBundle& preset_bundle, const std::string& agent_id, const std::string& dev_id);
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -230,7 +226,6 @@ public:
     bool has_access_right() const;
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
-    bool reconcile_printhost_access_code(const PresetBundle& preset_bundle, bool persist = true);
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */

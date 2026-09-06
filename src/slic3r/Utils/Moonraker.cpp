@@ -48,10 +48,6 @@ std::string Moonraker::make_url(const std::string &path) const
 
 void Moonraker::set_auth(Http &http) const
 {
-    // ORCA: Send X-Api-Key only when configured. Without a key, requests rely on
-    // Moonraker's `[authorization] trusted_clients`; `force_logins` overrides
-    // trusted-client access when enabled and at least one user exists.
-    // HTTP Basic / Digest credentials are not used.
     if (!m_apikey.empty())
         http.header("X-Api-Key", m_apikey);
     if (!m_cafile.empty())

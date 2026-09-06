@@ -435,54 +435,6 @@ std::string MachineObject::dev_id_from_address(const std::string& host, const st
     return result;
 }
 
-std::optional<std::string> MachineObject::find_printhost_access_code(
-    const PresetBundle& preset_bundle, const std::string& agent_id, const std::string& dev_id)
-{
-    if (agent_id != MOONRAKER_PRINTER_AGENT_ID)
-        return std::nullopt;
-
-    auto code_for_device = [&dev_id](const DynamicPrintConfig& config) -> std::optional<std::string> {
-        if (config.opt_string("printer_agent") != MOONRAKER_PRINTER_AGENT_ID)
-            return std::nullopt;
-
-        const std::string host = config.opt_string("print_host");
-        if (host.empty() || dev_id_from_address(host, config.opt_string("printhost_port")) != dev_id)
-            return std::nullopt;
-
-        return config.opt_string("printhost_apikey");
-    };
-
-    std::optional<std::string> matched_code;
-    bool                       conflicting_codes = false;
-    auto consider = [&](const DynamicPrintConfig& config) {
-        if (auto code = code_for_device(config)) {
-            if (matched_code && *matched_code != *code)
-                conflicting_codes = true;
-            else
-                matched_code = std::move(code);
-        }
-    };
-
-    consider(preset_bundle.printers.get_edited_preset().config);
-    for (const PhysicalPrinter& printer : preset_bundle.physical_printers)
-        consider(printer.config);
-    for (const Preset& preset : preset_bundle.printers)
-        consider(preset.config);
-
-    return conflicting_codes ? std::nullopt : matched_code;
-}
-
-bool MachineObject::reconcile_printhost_access_code(const PresetBundle& preset_bundle, bool persist)
-{
-    auto configured_code = find_printhost_access_code(preset_bundle, printer_agent_id, get_dev_id());
-    if (!configured_code)
-        return false;
-
-    if (*configured_code != get_access_code())
-        set_access_code(*configured_code, persist);
-    return true;
-}
-
 bool MachineObject::HasRecentCloudMessage()
 {
     auto curr_time = std::chrono::system_clock::now();
@@ -531,8 +483,9 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                     const auto& machines = config->get_local_machines();
                     auto        it       = machines.find(get_dev_id());
                     if (it != machines.end()) {
-                        BBLocalMachine local_machine = it->second;
-                        local_machine.access_code    = "";
+                        BBLocalMachine local_machine   = it->second;
+                        local_machine.printer_agent_id = printer_agent_id;
+                        local_machine.access_code      = "";
                         config->update_local_machine(local_machine);
                     }
                     // Also clear the pre-scoping flat legacy key when unbinding under BBL, so an
@@ -2687,8 +2640,14 @@ int MachineObject::connect(bool use_openssl)
 
     if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID) {
         if (const PresetBundle* bundle = GUI::wxGetApp().preset_bundle) {
-            if (reconcile_printhost_access_code(*bundle))
-                password = get_access_code();
+            const DynamicPrintConfig& config = bundle->printers.get_edited_preset().config;
+            const std::string host = config.opt_string("print_host");
+            if (config.opt_string("printer_agent") == MOONRAKER_PRINTER_AGENT_ID && !host.empty() &&
+                dev_id_from_address(host, config.opt_string("printhost_port")) == get_dev_id()) {
+                password = config.opt_string("printhost_apikey");
+                if (password != get_access_code())
+                    set_access_code(password);
+            }
         }
     }
 
