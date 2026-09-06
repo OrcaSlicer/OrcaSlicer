@@ -130,6 +130,8 @@ public:
     coordf_t    overlap;
     // in radians, ccw, 0 = East
     float       angle;
+    // own center displacement
+    Point       shift;
 
     // Orca: Fill direction is fixed absolute angle if SurfaceFillParams.fixed_angle or config.ironing_angle_fixed
     bool        fixed_angle{false};
@@ -153,6 +155,7 @@ public:
     // BBS: all no overlap expolygons in same layer
     ExPolygons  no_overlap_expolygons;
     bool dont_alternate_fill_direction = false;
+    bool is_templated = false;
 
     static float infill_anchor;
     static float infill_anchor_max;

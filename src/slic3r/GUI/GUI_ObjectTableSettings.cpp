@@ -326,7 +326,8 @@ bool ObjectTableSettings::add_missed_options(ModelConfig* config_to, const Dynam
     {
         if (config_to->has("sparse_infill_density") && !config_to->has("sparse_infill_pattern"))
         {
-            if (config_from.option<ConfigOptionPercent>("sparse_infill_density")->value == 100) {
+            if (config_from.option<ConfigOptionPercent>("sparse_infill_density")->value == 100 ||
+                config_from.opt_string("sparse_infill_rotate_template") != "") {
                 config_to->set_key_value("sparse_infill_pattern", config_from.option("sparse_infill_pattern")->clone());
                 is_added = true;
             }
