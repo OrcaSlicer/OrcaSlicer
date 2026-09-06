@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend Carbon Fiber @MK3S",
+    "inherits": "fdm_filament_pccf",
+    "from": "system",
+    "setting_id": "d9bHnNlPCrWYi9qR",
+    "filament_id": "Prusament PC Blend Carbon Fiber @MK3S",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK3S 0.25 nozzle",
+        "Prusa MK3S 0.4 nozzle",
+        "Prusa MK3S 0.6 nozzle",
+        "Prusa MK3S 0.8 nozzle"
+    ],
+    "filament_cost": [
+        "74.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_spool_weight": [
+        "278"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\nM900 K{if printer_notes=~/.*PRINTER_MODEL_MINI.*/ and nozzle_diameter[0]==0.6}0.12{elsif printer_notes=~/.*PRINTER_MODEL_MINI.*/ and nozzle_diameter[0]==0.8}0.06{elsif printer_notes=~/.*PRINTER_MODEL_MINI.*/}0.2{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.6}0.02{else}0.04{endif} ; Filament gcode LA 1.5\n{if printer_notes=~/.*PRINTER_MODEL_MINI.*/};{elsif printer_notes=~/.*PRINTER_HAS_BOWDEN.*/}M900 K200{elsif nozzle_diameter[0]==0.6}M900 K12{elsif nozzle_diameter[0]==0.8};{else}M900 K20{endif} ; Filament gcode LA 1.0"
+    ],
+    "filament_type": [
+        "PC-CF"
+    ],
+    "filament_vendor": [
+        "Prusa Polymers"
+    ],
+    "hot_plate_temp": [
+        "115"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "nozzle_temperature": [
+        "285"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "285"
+    ]
+}

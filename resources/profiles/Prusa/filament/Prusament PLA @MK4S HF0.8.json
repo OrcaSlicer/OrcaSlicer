@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Prusament PLA @MK4S HF0.8",
+    "inherits": "Prusament PLA @MK4S",
+    "from": "system",
+    "setting_id": "7RNQ9AxcL9zZVpqX",
+    "filament_id": "Prusament PLA @MK4S HF0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.8 nozzle"
+    ],
+    "fan_cooling_layer_time": "25",
+    "fan_min_speed": "80",
+    "filament_max_volumetric_speed": [
+        "35"
+    ],
+    "slow_down_layer_time": "15",
+    "slow_down_min_speed": "15"
+}

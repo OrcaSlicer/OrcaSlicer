@@ -8,5 +8,5 @@
 	"bed_model": "mk3_bed.stl",
 	"bed_texture": "mk3.svg",
 	"hotend_model": "",
-	"default_materials": "Prusa Generic ABS;Prusa Generic PLA;Prusa Generic PLA-CF;Prusa Generic PETG;Prusa Generic TPU;Prusa Generic ASA;Prusa Generic PC;Prusa Generic PVA;Prusa Generic PA;Prusa Generic PA-CF"
+	"default_materials": "Prusa Generic ABS;Prusa Generic PLA;Prusa Generic PLA-CF;Prusa Generic PETG;Prusa Generic TPU;Prusa Generic ASA;Prusa Generic PC;Prusa Generic PVA;Prusa Generic PA;Prusa Generic PA-CF;Prusament PLA @MK3S;Prusament rPLA @MK3S;Prusament PETG @MK3S;Prusament ASA @MK3S;Prusament PC Blend @MK3S;Prusament PVB @MK3S;Prusament PC Blend Carbon Fiber @MK3S;Prusament PA11 Carbon Fiber @MK3S"
 }

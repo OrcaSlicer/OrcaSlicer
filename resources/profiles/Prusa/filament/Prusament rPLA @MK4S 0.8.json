@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Prusament rPLA @MK4S 0.8",
+    "inherits": "Prusament rPLA @MK4S",
+    "from": "system",
+    "setting_id": "ETHdABOm1ngNTAwE",
+    "filament_id": "Prusament rPLA @MK4S 0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.8 nozzle"
+    ],
+    "fan_cooling_layer_time": "25",
+    "fan_min_speed": "80",
+    "slow_down_layer_time": "15"
+}

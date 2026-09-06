@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend @MK4",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "ZGYW1dcpquZnrAvh",
+    "filament_id": "Prusament PC Blend @MK4",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4 0.25 nozzle",
+        "Prusa MK4 0.4 nozzle",
+        "Prusa MK4 0.6 nozzle",
+        "Prusa MK4 0.8 nozzle"
+    ],
+    "filament_cost": [
+        "51.53"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_spool_weight": [
+        "278"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\nM900 K{if nozzle_diameter[0]==0.4}0.03{elsif nozzle_diameter[0]==0.25}0.1{elsif nozzle_diameter[0]==0.3}0.06{elsif nozzle_diameter[0]==0.35}0.05{elsif nozzle_diameter[0]==0.5}0.03{elsif nozzle_diameter[0]==0.6}0.02{elsif nozzle_diameter[0]==0.8}0.01{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*PRINTER_MODEL_MK4IS.*/}\nM572 S{if nozzle_diameter[0]==0.4}0.02{elsif nozzle_diameter[0]==0.5}0.018{elsif nozzle_diameter[0]==0.6}0.012{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.25}0.09{elsif nozzle_diameter[0]==0.3}0.065{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S40 ; set heatbreak target temp"
+    ],
+    "filament_type": [
+        "PC"
+    ],
+    "filament_vendor": [
+        "Prusa Polymers"
+    ],
+    "hot_plate_temp": [
+        "115"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "nozzle_temperature": [
+        "275"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "275"
+    ]
+}

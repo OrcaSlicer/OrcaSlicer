@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Prusament PLA @MK4S 0.6",
+    "inherits": "Prusament PLA @MK4S",
+    "from": "system",
+    "setting_id": "ZEBOwRtl5qpCb9IG",
+    "filament_id": "Prusament PLA @MK4S 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.6 nozzle"
+    ],
+    "fan_cooling_layer_time": "22",
+    "nozzle_temperature": "210",
+    "slow_down_layer_time": "10"
+}
