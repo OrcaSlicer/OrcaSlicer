@@ -3695,7 +3695,7 @@ bool GUI_App::on_init_network(bool try_backup)
         }
     }
 
-    auto should_load_networking_plugin = app_config->get_bool("installed_networking");
+    auto should_load_networking_plugin = app_config->get_bool("installed_networking") && Slic3r::is_bambu_host_mode();
 
     // Normalize an older full-version identity to the AA.BB.CC series before it drives loading.
     migrate_network_plugin_config();

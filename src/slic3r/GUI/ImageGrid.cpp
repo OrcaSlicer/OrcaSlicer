@@ -124,6 +124,14 @@ void Slic3r::GUI::ImageGrid::SetSelecting(bool selecting)
     Refresh();
 }
 
+void Slic3r::GUI::ImageGrid::SetAllSelecting(bool selecting)
+{
+    m_selecting = selecting;
+    if (m_file_sys)
+        m_file_sys->SelectAll(true);
+    Refresh();
+}
+
 void Slic3r::GUI::ImageGrid::DoActionOnSelection(int action) { DoAction(-1, action); }
 
 void Slic3r::GUI::ImageGrid::ShowDownload(bool show)

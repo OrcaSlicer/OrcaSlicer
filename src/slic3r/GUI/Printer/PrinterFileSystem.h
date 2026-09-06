@@ -233,6 +233,8 @@ public:
     Status GetStatus() const { return m_status; }
     int GetLastError() const { return m_last_error; }
 
+    static bool isRetryOnError(int error_code) { return error_code == ERROR_TIME_OUT; }
+
     void Attached();
 
     void Start();

@@ -1817,6 +1817,42 @@ int MachineObject::command_ams_drying_stop()
     return this->publish_json(j);
 }
 
+int MachineObject::command_ams_drying_start(int ams_id, std::string filament_type, int temp, int duration_hour, bool rotate_tray, int cooling_temp)
+{
+    BOOST_LOG_TRIVIAL(info) << "command: ams_filament_drying start, ams_id=" << ams_id << " temp=" << temp << " hours=" << duration_hour;
+    json j;
+    j["print"]["command"]              = "ams_filament_drying";
+    j["print"]["sequence_id"]          = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]               = ams_id;
+    j["print"]["mode"]                 = 1; // DryCtrlMode::OnTime
+    j["print"]["filament"]             = filament_type;
+    j["print"]["temp"]                 = temp;
+    j["print"]["duration"]             = duration_hour;
+    j["print"]["humidity"]             = 0;
+    j["print"]["rotate_tray"]          = rotate_tray;
+    j["print"]["cooling_temp"]         = cooling_temp;
+    j["print"]["close_power_conflict"] = false;
+    return this->publish_json(j);
+}
+
+int MachineObject::command_ams_drying_stop(int ams_id)
+{
+    BOOST_LOG_TRIVIAL(info) << "command: ams_filament_drying stop, ams_id=" << ams_id;
+    json j;
+    j["print"]["command"]              = "ams_filament_drying";
+    j["print"]["sequence_id"]          = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]               = ams_id;
+    j["print"]["mode"]                 = 0; // DryCtrlMode::Off
+    j["print"]["filament"]             = "";
+    j["print"]["temp"]                 = 0;
+    j["print"]["duration"]             = 0;
+    j["print"]["humidity"]             = 0;
+    j["print"]["rotate_tray"]          = false;
+    j["print"]["cooling_temp"]         = 0;
+    j["print"]["close_power_conflict"] = false;
+    return this->publish_json(j);
+}
+
 int MachineObject::command_start_extrusion_cali(int tray_index, int nozzle_temp, int bed_temp, float max_volumetric_speed, std::string setting_id)
 {
     BOOST_LOG_TRIVIAL(trace) << "extrusion_cali: tray_id = " << tray_index << ", nozzle_temp = " << nozzle_temp << ", bed_temp = " << bed_temp
@@ -5356,6 +5392,7 @@ void MachineObject::parse_new_info(json print)
         is_support_pa_mode = (get_flag_bits_no_border(fun2, 3) == 1);
         is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
         is_support_check_track_switch_match_slice_printer = get_flag_bits_no_border(fun2, 19) == 1;
+<<<<<<< HEAD
 
         if (DevPrinterConfigUtil::support_print_check_firmware_for_tpu_left(printer_type)) {
             m_firmware_support_print_tpu_left = get_flag_bits_no_border(fun2, 7) == 1;
@@ -5370,6 +5407,10 @@ void MachineObject::parse_new_info(json print)
             new_mapping.push_back(static_cast<uint16_t>(v.get<unsigned>()));
         }
         print_job_filament_mapping = std::move(new_mapping);
+=======
+        is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
+        is_support_model_internal_storage = (get_flag_bits_no_border(fun2, 17) == 1);
+>>>>>>> 924b889e9 (Enable full Bambu (BBL) printer handling in OrcaSlicer)
     }
 
     /*aux*/

@@ -46,6 +46,8 @@ public:
 
     void SetSelecting(bool selecting);
 
+    void SetAllSelecting(bool selecting);
+
     bool IsSelecting() { return m_selecting; }
 
     void DoActionOnSelection(int action);
