@@ -1,6 +1,8 @@
 #include "SyncAmsInfoDialog.hpp"
 
+#include <algorithm>
 #include <thread>
+#include <wx/display.h>
 #include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
@@ -31,6 +33,9 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
 #include "FilamentBitmapUtils.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp" // Orca: durable per-device slot assignments (deal_ok())
+#include "libslic3r/FilamentInventory.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -38,9 +43,18 @@ using namespace Slic3r::GUI;
 #define OK_BUTTON_SIZE wxSize(FromDIP(90), FromDIP(24))
 #define CANCEL_BUTTON_SIZE wxSize(FromDIP(58), FromDIP(24))
 #define SyncAmsInfoDialogWidth  FromDIP(675)
-#define SyncAmsInfoDialogHeightMIN FromDIP(620)
-#define SyncAmsInfoDialogHeightMIDDLE FromDIP(630)
-#define SyncAmsInfoDialogHeightMAX FromDIP(700)
+// Orca: tall enough that mapping mode shows everything without scrolling (field request --
+// the fixed 700dip cap forced a scrollbar just to reach the advanced settings and the note),
+// clamped to the display so small screens get the scrollbar back instead of an off-screen
+// dialog. The reserve covers the dialog title bar, bottom buttons and the taskbar.
+static int sync_dialog_scrolled_height(wxWindow *w, int dip)
+{
+    const int avail = wxDisplay(wxDisplay::GetFromWindow(w)).GetClientArea().GetHeight() - w->FromDIP(160);
+    return std::min(w->FromDIP(dip), avail);
+}
+#define SyncAmsInfoDialogHeightMIN sync_dialog_scrolled_height(this, 700)
+#define SyncAmsInfoDialogHeightMIDDLE sync_dialog_scrolled_height(this, 920)
+#define SyncAmsInfoDialogHeightMAX sync_dialog_scrolled_height(this, 960)
 #define SyncLabelWidth FromDIP(640)
 #define SyncAttentionTipWidth FromDIP(550)
 namespace Slic3r { namespace GUI {
@@ -217,6 +231,31 @@ void SyncAmsInfoDialog::deal_ok()
             }
             else{
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
+            }
+        }
+
+        // Orca: durable per-device slot assignments -- a toolchanger's tray IDs are its physical
+        // tool IDs by construction (see sync_ams_mapping_result), so persist the sync result keyed
+        // by the current physical device, so it survives closing/reopening the project before the
+        // device reconnects. The device key must come from the session's live machine, not
+        // whatever preset is merely selected (see Sidebar::update_sync_ams_btn_enable).
+        MachineObject *obj_ = active_printer_session().live_machine();
+        if (obj_ && obj_->GetFilaSystem() && obj_->GetFilaSystem()->IsAllToolchanger() && m_plater) {
+            const Preset  &printer    = active_printer_session().profile();
+            const std::string &device_key = printer.name; // inventories are keyed by printer preset
+            if (!device_key.empty()) {
+                std::vector<SlotAssignment> assignments;
+                for (const auto &fi : m_ams_mapping_result) {
+                    int tool = fi.get_ams_id(); // tray n == tool n by construction
+                    if (fi.id >= 0 && tool >= 0)
+                        assignments.push_back({fi.id, tool, 0});
+                }
+                Model &model = m_plater->model();
+                if (!model.model_info)
+                    model.model_info = std::make_shared<ModelInfo>();
+                auto by_device = load_slot_assignments(model.model_info->metadata_items["physical_slot_assignments"]);
+                by_device[device_key] = std::move(assignments);
+                model.model_info->metadata_items["physical_slot_assignments"] = dump_slot_assignments(by_device);
             }
         }
     }
@@ -928,6 +967,25 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         tip_sizer->AddSpacer(FromDIP(20));
         bSizer->Add(tip_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
 
+        {
+            // Orca: whole-map quick actions (field request), mirroring the print dialog's
+            // Reset/Automatic pair. Clear unmaps every tool; Automatic restores the initial
+            // proposal, which is the auto-match (same material family, closest color) the
+            // dialog opened with -- a tool with no close-enough match stays unmapped.
+            wxBoxSizer *map_btns  = new wxBoxSizer(wxHORIZONTAL);
+            auto       *clear_btn = new Button(m_scrolledWindow, _L("Clear"));
+            clear_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            clear_btn->SetToolTip(_L("Unassign every tool so no filament is mapped."));
+            clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { clear_all_ams_info(); });
+            map_btns->Add(clear_btn, 0);
+            auto *auto_btn = new Button(m_scrolledWindow, _L("Automatic"));
+            auto_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            auto_btn->SetToolTip(_L("Restore the automatic match: same material family and closest color."));
+            auto_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { reset_all_ams_info(); });
+            map_btns->Add(auto_btn, 0, wxLEFT, FromDIP(8));
+            bSizer->Add(map_btns, 0, wxLEFT | wxTOP, FromDIP(25));
+        }
+
         add_two_image_control();
 
         wxBoxSizer * more_setting_sizer = new wxBoxSizer(wxVERTICAL);
@@ -1171,6 +1229,22 @@ void SyncAmsInfoDialog::finish_mode()
 
 void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &result)
 {
+    // Orca: honest per-tool wording for Moonraker toolchangers -- bypass transition_tridid()'s
+    // "A1"/"B2" lettering below in favor of "T%d" tool labels. transition_tridid() itself is
+    // shared with BBL callers and is left untouched.
+    bool is_toolchanger = false;
+    {
+        DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+        MachineObject  *obj_ = dev ? dev->get_selected_machine() : nullptr;
+        is_toolchanger = obj_ && obj_->GetFilaSystem()->IsAllToolchanger();
+    }
+
+    // Keep every tile's tooltip wording honest for the printer kind ("tool" vs "AMS"),
+    // including rows the result loop below never visits.
+    for (auto &kv : m_materialList)
+        if (kv.second->item)
+            kv.second->item->set_toolchanger(is_toolchanger);
+
     m_back_ams_mapping_result = result;
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
@@ -1199,8 +1273,8 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
-                    // ams_id = wxString::Format("%02d", f->tray_id + 1);
+                    // Orca: shared tray_display_label (GUI_App).
+                    ams_id = wxGetApp().tray_display_label(f->tray_id, is_toolchanger);
                 } else {
                     ams_id = "-";
                 }
@@ -1312,20 +1386,30 @@ void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
         return;
     if (!m_append_color_text) { return; }
     bool only_exist_ext_spool_flag = m_only_exist_ext_spool_flag = !obj_->GetFilaSystem()->HasAms();
-    SetTitle(only_exist_ext_spool_flag ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
-    m_append_color_text->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
+    // Orca: Moonraker toolchangers (Snapmaker U1 and similar) report real per-tool AMS units
+    // (see DevAmsType::TOOLCHANGER), so only_exist_ext_spool_flag stays false for them; branch
+    // the "AMS" wording to "Tool" separately instead of folding it into that flag.
+    bool is_toolchanger = obj_->GetFilaSystem()->IsAllToolchanger();
+    SetTitle((only_exist_ext_spool_flag || is_toolchanger) ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
+    m_append_color_text->SetLabel((only_exist_ext_spool_flag || is_toolchanger) ? _L("Add unused filaments to filaments list.") :
                                                               _L("Add unused AMS filaments to filaments list."));
     if (m_map_mode == MapModeEnum::ColorMap) {
-        m_tip_attention_color_map = only_exist_ext_spool_flag ? _L("Only synchronize filament type and color, not including slot information.") :
-                                                                _L("Only synchronize filament type and color, not including AMS slot information.");
+        // Orca: on a toolchanger, confirming this dialog also saves the current per-filament tool
+        // selections into the project for slice-time auto-mapping, so it gets its own wording.
+        if (is_toolchanger)
+            m_tip_attention_color_map = _L("Synchronizes filament type and color, and saves the current tool selections for automatic mapping.");
+        else if (only_exist_ext_spool_flag)
+            m_tip_attention_color_map = _L("Only synchronize filament type and color, not including slot information.");
+        else
+            m_tip_attention_color_map = _L("Only synchronize filament type and color, not including AMS slot information.");
         m_tip_text->SetLabel(m_tip_attention_color_map);
 
     }
     if (m_ams_or_ext_text_in_colormap) {
-        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
     if (m_ams_or_ext_text_in_override) {
-        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
 }
 
@@ -2398,6 +2482,22 @@ void SyncAmsInfoDialog::reset_ams_material()
     }
 }
 
+void SyncAmsInfoDialog::clear_all_ams_info()
+{
+    // Mirrors the per-row erase button inside the tile dropdown (the popup's reset callback):
+    // same helper, same refresh steps, just applied to every row. Deliberately NO
+    // sync_ams_mapping_result here -- it re-renders every tile from the result's tray_id,
+    // which would put the tool label right back on the rows this just cleared (field
+    // report), and it also snapshots its input as the backup the Automatic button restores.
+    for (int i = 0; i < (int) m_ams_mapping_result.size(); i++) {
+        reset_one_ams_material(std::to_string(i + 1), false);
+    }
+    update_final_thumbnail_data();
+    if (m_reset_all_btn && !m_reset_all_btn->IsShown())
+        m_reset_all_btn->Show();
+    Refresh();
+}
+
 void SyncAmsInfoDialog::reset_all_ams_info()
 {
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -2431,6 +2531,11 @@ void SyncAmsInfoDialog::reset_one_ams_material(const std::string &index_str, boo
                     m_ams_mapping_result[index].ams_id = "";
                     m_ams_mapping_result[index].slot_id = "";
                     m_ams_mapping_result[index].color = "";
+                    // tray_id is what sync_ams_mapping_result renders the tool label from --
+                    // leaving it set kept the tile showing "T%d" after a clear (field report);
+                    // -1 is the "-"/Unmapped signal throughout this dialog.
+                    m_ams_mapping_result[index].tray_id = -1;
+                    m_ams_mapping_result[index].colors.clear();
                 }
             }
             break;

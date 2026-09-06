@@ -2,15 +2,16 @@
 #define __I_PRINTER_AGENT_HPP__
 
 #include "bambu_networking.hpp"
-// why: these extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
+// These extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
 // flows through the same int domain callers already compare against BAMBU_NETWORK_SUCCESS.
 // They live here and not in bambu_networking.hpp because that file is a vendor header replaced
-// wholesale by header-sync commits (see c09252ce11), which would silently clobber them.
+// wholesale by header-sync commits, which would silently clobber them.
 // -70xx is free: the vendor occupies -1..-25 and -10xx through -60xx.
 #define ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED -7010 // no translation exists for this command
 #define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace Slic3r {
 
@@ -290,6 +291,74 @@ public:
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
     virtual bool fetch_filament_info(std::string dev_id) { return false; }
+
+    /**
+     * A physical filament assignment for one tool/slot, in printer-neutral terms. Used by
+     * push_filament_info(); agents translate to their own dialect (e.g. Snapmaker's
+     * SET_PRINT_FILAMENT_CONFIG, Bambu's ams_filament_setting).
+     */
+    struct FilamentSlotInfo
+    {
+        int         slot = 0;    ///< 0-based physical tool / lane index
+        std::string vendor;      ///< filament vendor ("" = unspecified)
+        std::string type;        ///< base material type, e.g. "PLA"
+        std::string sub_type;    ///< vendor product line, e.g. "SnapSpeed" ("" = none)
+        std::string color_rgba;  ///< RRGGBBAA
+    };
+
+    /**
+     * Whether this agent can write filament slot configuration back to the printer.
+     * Mirror of the fetch_filament_info() read seam. Slots whose read-side data came from an
+     * NFC/RFID tag (DevAmsTray::tag_uid non-zero) should not be pushed -- the tag is
+     * authoritative.
+     */
+    virtual bool supports_filament_push() const { return false; }
+
+    /**
+     * Write one slot's filament configuration to the printer. Blocking, like
+     * fetch_filament_info(). Returns true on printer-confirmed success.
+     */
+    virtual bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) { return false; }
+
+    /**
+     * Whether this agent needs the send-time filament->tool mapping delivered as its own step,
+     * separate from the start_print()/start_local_print() call it accompanies. Printers whose
+     * mapping is owned by the device's own controller (e.g. a physical toolchanger's firmware,
+     * as opposed to a slicer-driven AMS/MMU) use this seam; every other agent leaves it false and
+     * the mapping never reaches send_filament_mapping().
+     */
+    virtual bool supports_print_time_mapping() const { return false; }
+
+    /**
+     * Deliver the filament->tool mapping for the upcoming print job. tool_to_slot[i] is the
+     * 1-based slot assigned to tool i (0-based tool index; 0 means "leave unassigned"), the same
+     * shape the filament-map UI collects from the user.
+     *
+     * TIMING is entirely the agent's choice, which is the point of this seam: an agent whose
+     * dialect folds the mapping into its own print-start call (e.g. Snapmaker's
+     * SDCARD_PRINT_FILE_WITH_PARAMETERS macro) may just stash it here and apply it inside its
+     * start_local_print() override; an agent whose dialect sends the mapping as a distinct
+     * message (e.g. a "SET_MAP" gcode issued right after upload) can act on it immediately. The
+     * caller must call this -- when supports_print_time_mapping() is true -- before the
+     * print-start call it is meant to affect.
+     *
+     * Returns true once accepted for delivery, not necessarily confirmed applied.
+     */
+    virtual bool send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot)
+    {
+        (void) dev_id;
+        (void) tool_to_slot;
+        return false;
+    }
+
+    /**
+     * Point this agent's REST state at a printer's address, without opening the status stream
+     * connect_printer() does. The caller owns the printer's connection settings and pushes them
+     * here; an agent must not go looking for them itself. Returns true once the agent is able to
+     * address dev_id. No-op (true) when it already is.
+     */
+    virtual bool bind_device_connection(const std::string& dev_id, const std::string& address,
+                                        const std::string& access_code, bool use_ssl) { return false; }
 };
 
 } // namespace Slic3r

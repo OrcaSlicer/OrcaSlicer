@@ -356,6 +356,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "extruder_nozzle_stats"
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
+            || opt_key == "filament_physical_map"
             || opt_key == "filament_nozzle_map"
             || opt_key == "filament_volume_map"
             || opt_key == "filament_adhesiveness_category"
@@ -1339,6 +1340,39 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return e < is_mixed.size() && is_mixed[e] && e < gradient.size() && gradient[e]; }))
             warn(L("A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."),
                  "enable_mixed_color_sublayer");
+    }
+
+    // Orca: when the PRINTER resolves the filament->tool assignment the project may hold more
+    // filaments than the printer has tools, but a single plate is still bounded by how many
+    // logical tools that firmware can route (see protocol_max_plate_filaments). The g-code
+    // addresses one logical tool per filament, so the plate needs tool indices up to its
+    // highest-numbered used filament; anything beyond the limit would reach the printer as a
+    // tool command it has no macro for.
+    // Read both from the FULL config, never from m_config: filament_mapping_protocol is a printer
+    // option with no member in the static PrintConfig struct, so m_config.option() always returns
+    // null for it and the protocol silently reads as fmpNone. That capped a Snapmaker U1 -- which
+    // routes 32 logical filaments onto its 4 heads -- at 4, rejecting the 5-on-4 plate its
+    // firmware handles natively. enable_filament_mapping does have a member, which is why the gate
+    // itself still fired.
+    const DynamicPrintConfig& printer_config = this->full_print_config();
+    if (device_resolves_filament_mapping(printer_config)) {
+        const size_t max_plate_filaments = protocol_max_plate_filaments(filament_mapping_protocol_of(printer_config), nozzles);
+        // A mixed (virtual) slot never reaches the printer: ToolOrdering resolves it to its
+        // component filaments and only those are commanded as tools. Bound the components, not
+        // the slot's own number -- a project's mixes are numbered after every physical filament,
+        // so counting them rejected a four-filament plate on a four-tool printer.
+        const std::vector<unsigned int> physical_extruders = has_any_mixed_filament(m_config.filament_is_mixed.values)
+            ? expand_mixed_filaments(extruders, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values)
+            : extruders;
+        // Sorted and deduplicated, so the last entry is the highest used filament (0-based); +1 is
+        // both the count of logical tools the g-code will address and the filament's 1-based number
+        // as the user sees it.
+        const size_t highest_used_filament = physical_extruders.empty() ? 0 : size_t(physical_extruders.back()) + 1;
+        if (highest_used_filament > max_plate_filaments)
+            return {(boost::format(L("This plate uses filament %1%, but this printer can only address %2% filaments on one plate. "
+                                     "Reduce the number of filaments used on this plate, or renumber them so they fit within the "
+                                     "first %2%."))
+                     % highest_used_filament % max_plate_filaments).str()};
     }
 
     if (nozzles < 2 && extruders.size() > 1) {
@@ -4275,8 +4309,13 @@ void Print::_make_wipe_tower()
 
         wipe_tower.set_used_filament_ids(std::vector<int>(used_filament_ids.begin(), used_filament_ids.end()));
 
+        // filament_adhesiveness_category defaults to a single element, so a config that does
+        // not list every filament would hand the tower a short vector whose per-filament reads
+        // (wall-filament selection, skip points) index past the end -- heap-dependent wall
+        // choices, the same class as the change-length reads guarded in WipeTower.cpp. Size it
+        // to the filament count through get_at()'s clamping instead.
         std::vector<int> categories;
-        for (size_t i = 0; i < m_config.filament_adhesiveness_category.values.size(); ++i) {
+        for (size_t i = 0; i < number_of_extruders; ++i) {
             categories.push_back(m_config.filament_adhesiveness_category.get_at(i));
         }
         wipe_tower.set_filament_categories(categories);

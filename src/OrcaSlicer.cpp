@@ -1263,12 +1263,49 @@ int CLI::run(int argc, char **argv)
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {
                 const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
                 }
             }
             #endif
+
+            // WSLg fallback: WSL's compositor is a fork of old Weston, the strictest
+            // xdg-shell implementation around. It terminates the client (Gdk "Error 71
+            // (Protocol error)") on the nested popup windows wx builds for cascading
+            // dropdowns/flyouts, and its Mesa stack cannot provide a hardware EGL context
+            // on native Wayland either (zink "failed to choose pdev"), so the 3D view runs
+            // degraded at best. XWayland is fully functional there and is what WSLg
+            // actually optimizes for. Detect WSL (kernel osrelease carries "microsoft")
+            // on a Wayland session and select the X11 path before GTK initializes.
+            // GDK_BACKEND set by the user still wins: this runs only when it was unset.
+            {
+                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
+                    bool is_wsl = false;
+                    if (boost::nowide::ifstream osrelease("/proc/sys/kernel/osrelease"); osrelease) {
+                        std::string kernel_release;
+                        std::getline(osrelease, kernel_release);
+                        is_wsl = boost::algorithm::icontains(kernel_release, "microsoft");
+                    }
+                    if (is_wsl) {
+                        BOOST_LOG_TRIVIAL(warning) << "WSL detected on a Wayland session; forcing the X11/XWayland backend "
+                                                      "(WSLg's compositor rejects nested popup windows and lacks native-Wayland EGL).";
+                        ::setenv("GDK_BACKEND", "x11", true);
+                        #if __has_include(<X11/Xlib.h>)
+                        XInitThreads();
+                        #endif
+                    }
+                }
+            }
 
             // WebKit2GTK compositing can fail under XWayland on older
             // WebKit releases. Disable it only when both DISPLAY and
@@ -5896,7 +5933,16 @@ int CLI::run(int argc, char **argv)
                                 flush_and_exit(CLI_ONLY_ONE_TPU_SUPPORTED);
                             }
 
-                            if (new_extruder_count > 1) {
+                            // Device-resolved mapping (a native protocol, or enable_filament_mapping):
+                            // the printer routes logical tools itself, so leave --filament-map alone
+                            // and skip the CLI-side mapping validation, matching normalize_fdm_1's
+                            // identity-map enforcement.
+                            bool is_device_owned_mapping_protocol = device_resolves_filament_mapping(m_print_config);
+
+                            if (new_extruder_count > 1 && is_device_owned_mapping_protocol) {
+                                BOOST_LOG_TRIVIAL(info) << "device-owned mapping protocol: CLI leaves filament maps to the printer";
+                            }
+                            else if (new_extruder_count > 1) {
                                 std::vector<std::vector<int>> unprintable_filament_vec;
                                 for (const std::set<int>& filamnt_ids : unprintable_filament_ids) {
                                     unprintable_filament_vec.emplace_back(std::vector<int>(filamnt_ids.begin(), filamnt_ids.end()));

@@ -1085,6 +1085,37 @@ bool GuideFrame::run()
         return false;
 }
 
+// Orca: read `key` from a machine profile, following `inherits` when the leaf does not declare
+// it. Mirrors GetFilamentInfo's chain walk for filaments; machine profiles were being read raw,
+// so an inherited key came back null. `machine_by_name` maps a profile name to its machine_list
+// entry (which carries sub_path). Depth-bounded: a malformed profile set can name a cycle, and
+// this runs before any of it has been validated.
+static json GetMachineValue(const boost::filesystem::path& vendor_dir, const json& machine_by_name, const json& profile, const char* key, int depth = 0)
+{
+    if (profile.contains(key) && !profile[key].is_null())
+        return profile[key];
+    if (depth >= 16 || !profile.contains("inherits") || !profile["inherits"].is_string())
+        return json();
+
+    const std::string parent_name = profile["inherits"].get<std::string>();
+    if (!machine_by_name.contains(parent_name) || !machine_by_name[parent_name].contains("sub_path"))
+        return json();
+
+    const boost::filesystem::path parent_path =
+        boost::filesystem::absolute(vendor_dir / machine_by_name[parent_name]["sub_path"].get<std::string>()).make_preferred();
+    if (!boost::filesystem::exists(parent_path))
+        return json();
+
+    std::string contents;
+    if (!GuideFrame::LoadFile(parent_path.string(), contents))
+        return json();
+    const json parent = json::parse(contents, nullptr, false);
+    if (parent.is_discarded())
+        return json();
+
+    return GetMachineValue(vendor_dir, machine_by_name, parent, key, depth + 1);
+}
+
 int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType)
 {
     //GetStardardFilePath(filepath);
@@ -1663,6 +1694,15 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
         json pmachine = jLocal["machine_list"];
         nsize         = pmachine.size();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(",  got %1% machines") % nsize;
+        // Orca: machine profiles inherit, so a leaf that only overrides a few settings does not
+        // repeat its parent's keys -- exactly like filament profiles, which GetFilamentInfo
+        // already walks. Index the list by name so the walk below can find each parent's file.
+        json machine_by_name = json::object();
+        for (int n = 0; n < nsize; n++) {
+            json OneMachine = pmachine.at(n);
+            if (OneMachine.contains("name") && OneMachine["name"].is_string())
+                machine_by_name[OneMachine["name"].get<std::string>()] = OneMachine;
+        }
         for (int n = 0; n < nsize; n++) {
             json OneMachine = pmachine.at(n);
 
@@ -1677,10 +1717,26 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
             LoadFile(sub_file, contents);
             json pm = json::parse(contents);
 
-            std::string strInstant = pm["instantiation"];
+            std::string strInstant = pm.value("instantiation", std::string());
             if (strInstant.compare("true") == 0) {
-                OneMachine["model"] = pm["printer_model"];
-                OneMachine["nozzle"] = pm["nozzle_diameter"][0];
+                // Resolve through the inherits chain: a printer profile is free to take its
+                // model or nozzle sizes from its parent. Reading the leaf's raw json instead
+                // yielded null here, and the null then reached the compatible_printers loop
+                // below as a std::string conversion, throwing type_error.302 and aborting the
+                // WHOLE vendor family -- which is how one printer profile silently removed
+                // every one of its vendor's filaments from this dialog.
+                const json model  = GetMachineValue(vendor_dir, machine_by_name, pm, "printer_model");
+                const json nozzle = GetMachineValue(vendor_dir, machine_by_name, pm, "nozzle_diameter");
+                if (!model.is_string() || !nozzle.is_array() || nozzle.empty() || !nozzle.at(0).is_string()) {
+                    // Still unusable after the walk (a broken or missing parent). Skip this one
+                    // printer rather than letting it take its vendor down with it.
+                    BOOST_LOG_TRIVIAL(warning)
+                        << __FUNCTION__ << ": machine " << s1
+                        << " has no usable printer_model/nozzle_diameter even through inherits; skipping";
+                    continue;
+                }
+                OneMachine["model"]  = model;
+                OneMachine["nozzle"] = nozzle.at(0);
 
                 m_ProfileJson["machine"][s1]=OneMachine;
             }

@@ -1705,9 +1705,10 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
     std::vector<int> ret(filament_nums, master_extruder_id);
 
     // Non-BBL multi-extruder printers do not support filament grouping: filament id == extruder id.
+    // Shared with normalize_fdm_1's device-owned-protocol clause via
+    // non_bbl_identity_filament_extruder_map(); the two must stay byte-identical.
     if (has_multiple_extruder && !print->is_BBL_printer()) {
-        for (size_t i = 0; i < filament_nums && i < extruder_nums; i++)
-            ret[i] = (int)i;
+        ret = non_bbl_identity_filament_extruder_map(filament_nums, extruder_nums, master_extruder_id);
         auto result_opt = LayeredNozzleGroupResult::create(ret, nozzle_list, used_filaments);
         return result_opt ? *result_opt : LayeredNozzleGroupResult();
     }

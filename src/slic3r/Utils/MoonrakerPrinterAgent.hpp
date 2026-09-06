@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
+class Http;
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -72,6 +73,7 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id) override;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -86,6 +88,8 @@ protected:
         std::string version;
         std::string klippy_state;
         bool        use_ssl = false;
+        std::string ca_file;                       // printhost_cafile
+        bool        ssl_revoke_best_effort = false; // printhost_ssl_ignore_revoke
     } device_info;
 
     // Tray data for AMS payload building
@@ -97,14 +101,37 @@ protected:
         std::string tray_info_idx;       // Setting ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
+        std::string tag_uid;             // Non-empty when the slot's data came from an NFC/RFID
+                                         // tag (Bambu tag_uid convention); such slots are
+                                         // authoritative and excluded from filament pushes.
     };
 
+    // Shape of the AMS units build_ams_payload() emits:
+    //  - Toolchanger: one 1-slot TOOLCHANGER unit per lane (honest per-tool presentation).
+    //    ams_count is the tool/lane count.
+    //  - Box4: one AMS_LITE unit per up-to-4 lanes, chunked (legacy MMU-box presentation).
+    //    ams_count is the number of 4-slot boxes.
+    enum class AmsUnitShape { Toolchanger, Box4 };
+
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                            AmsUnitShape shape = AmsUnitShape::Box4);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+
+    // Builds the gcode macro start_local_print() sends once the upload has finished. Generic by
+    // default (plain Klipper SD-print start); a dialect-specific agent (e.g. SnapmakerPrinterAgent)
+    // overrides this to fold in whatever a prior send_filament_mapping() call stashed, instead of
+    // this class knowing about any vendor's print-start dialect.
+    virtual std::string build_start_print_gcode(const std::string& upload_filename) const;
+
+    // Fallback for a REST entry point reached with a dev_id that was never bound through
+    // bind_device_connection(): rebuilds device_info from the MachineObject's persisted state.
+    // No-op if device_info is already current. See bind_device_connection() for why the bound
+    // address is the better source, and ActivePrinterSession for who binds it.
+    bool ensure_device_info(const std::string& dev_id);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
@@ -126,6 +153,8 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
+    // Auth + TLS options for one request, from device_info (see Moonraker::set_auth in the printhost layer).
+    void set_auth(Http& http, const std::string& api_key) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
@@ -146,10 +175,15 @@ private:
     int resume_print(const std::string& dev_id);
     int cancel_print(const std::string& dev_id);
 
-    // File upload
+    // File upload. When confirmed_filename is non-null, it's set to the storage-relative name
+    // Moonraker's response (result.item.path) confirms the file was actually stored under --
+    // which can differ from `filename` on a server-side collision rename -- or left untouched if
+    // the response doesn't include one. Callers that go on to reference the uploaded file by name
+    // (e.g. a print-start command) should prefer this confirmed value over `filename` itself.
     bool upload_gcode(const std::string& local_path, const std::string& filename,
                       const std::string& base_url, const std::string& api_key,
-                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn,
+                      std::string* confirmed_filename = nullptr);
 
     // JSON-RPC helper
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,

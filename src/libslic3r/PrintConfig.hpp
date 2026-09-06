@@ -97,6 +97,13 @@ enum class WipeTowerType {
     Type2,
 };
 
+// A printer that owns filament mapping natively (talks to the slicer over its own
+// protocol instead of consuming slicer-computed tool numbers).
+enum class FilamentMappingProtocol {
+    fmpNone = 0,
+    fmpSnapmaker,
+};
+
 enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
@@ -666,6 +673,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FilamentMappingProtocol)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
@@ -1556,6 +1564,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                required_nozzle_HRC))
     ((ConfigOptionEnum<FilamentMapMode>, filament_map_mode))
     ((ConfigOptionInts,                filament_map))
+    ((ConfigOptionInts,                filament_physical_map)) // per project filament, the id of the physical filament it resolves to (0 = unassigned)
     ((ConfigOptionInts,                filament_volume_map))
     ((ConfigOptionInts,                filament_nozzle_map))
     ((ConfigOptionInts,                filament_map_2)) //used for multi nozzle, map filament to the index identified by extruder+nozzle_volume_type
@@ -1618,6 +1627,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    ((ConfigOptionBool,                enable_filament_mapping))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
@@ -2479,6 +2489,58 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
+
+// The printer's configured filament_mapping_protocol (fmpNone if the option is absent).
+// The one accessor for "which protocol" -- everything that needs to know should call this
+// (or device_owned_mapping_protocol() below) instead of re-deriving the option lookup.
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config);
+
+// True when the printer routes logical tools itself over a native protocol instead of
+// consuming slicer-computed tool numbers (filament_mapping_protocol != fmpNone).
+bool device_owned_mapping_protocol(const ConfigBase& printer_config);
+
+// True when the PRINTER resolves filament->tool assignment rather than the slicer: either a
+// native protocol (filament_mapping_protocol) or the printer-agnostic enable_filament_mapping
+// opt-in for firmware that maps on its own with nothing for the slicer to send. The engine
+// treats both identically -- logical tool space, pinned identity map, filament count free of
+// the tool count.
+bool device_resolves_filament_mapping(const ConfigBase& printer_config);
+
+// The largest number of logical tools one plate may address on a printer that resolves the
+// mapping itself. Count decoupling (the project may hold more filaments than the printer has
+// tools) and per-plate routing capacity are separate capabilities: a printer whose firmware only
+// permutes its tools has no macro past T(tool_count-1). Only meaningful when
+// device_resolves_filament_mapping() is true -- the slicer-mapped path is bounded by its own
+// mapping machinery instead. See Print::validate().
+size_t protocol_max_plate_filaments(FilamentMappingProtocol protocol, size_t tool_count);
+
+// True when filament-count decoupling / physical-filament inventory UI should be
+// offered: the printer owns the mapping natively via filament_mapping_protocol.
+// More project filaments than tools is the point.
+bool physical_filament_features_enabled(const ConfigBase& printer_config);
+
+// True when the printer's filament count is not tied to its nozzle count: a single-extruder
+// multi-material machine (AMS / MMU, any number of spools through one nozzle) or a printer
+// whose device resolves the filament->tool mapping. On these a project may legitimately carry
+// more filaments than the machine has nozzles.
+bool filament_count_decoupled_from_nozzles(const ConfigBase& printer_config);
+
+// The identity/master-extruder-fallback filament->extruder assignment used by non-BBL
+// multi-extruder printers that don't support filament grouping: filament id == extruder id
+// up to the physical extruder count, every filament beyond that falls back to
+// master_extruder_id_0based, which is clamped to >= 0 here so callers don't each need to guard a
+// malformed (e.g. 0) master_extruder_id. Returns one 0-based extruder index per filament (size
+// filament_count). Shared by ToolOrdering::get_recommended_filament_maps()'s non-BBL branch,
+// normalize_fdm_1's device-owned-protocol clause, and PresetBundle::full_fff_config's -- all must
+// stay byte-identical (a mismatch becomes a permanent full_config_diff on every Print::apply, see
+// Print::update_filament_maps_to_config).
+std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based);
+
+// Normalize a per-plate filament_map loaded from a 3mf against the project's own
+// filament/nozzle counts: pad (never truncate) short maps with 1, clamp every entry
+// into [1, nozzle_count], and leave an empty map empty (see PartPlate::get_real_filament_maps,
+// where an empty per-plate map means "use the global filament_map").
+void normalize_plate_filament_map(std::vector<int>& values, size_t filament_count, size_t nozzle_count);
 
 } // namespace Slic3r
 

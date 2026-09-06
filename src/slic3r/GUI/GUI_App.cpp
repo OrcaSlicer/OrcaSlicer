@@ -3,6 +3,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "ActivePrinterSession.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/GUI/UserManager.hpp"
@@ -3943,9 +3944,7 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     if (!m_agent)
         return;
 
-    // why: tearing down the old machine selection is only ever the prefix of setting the live
-    // agent (to a new one, or to null when the selection is missing) - so it lives here, not as
-    // a standalone helper. Pass nullptr to clear the selection.
+    // why: pass nullptr to clear the selection (e.g. when the agent's provider is gone).
     if (DeviceManager* dev = getDeviceManager())
     {
         dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
@@ -4022,19 +4021,17 @@ void GUI_App::switch_printer_agent()
         // preset targets a different host, otherwise filament sync keeps hitting the old
         // printer. (#12506)
         if (effective_agent_id != BBL_PRINTER_AGENT_ID && m_device_manager && preset_bundle) {
-            const std::string print_host = config.opt_string("print_host");
-            if (!print_host.empty()) {
-                const std::string dev_id = MachineObject::dev_id_from_address(print_host, config.opt_string("printhost_port"));
-                MachineObject*    sel    = m_device_manager->get_selected_machine();
-                if (!sel || sel->get_dev_id() != dev_id)
+            const auto conn = active_printer_session().connection();
+            if (conn.configured()) {
+                MachineObject* sel = m_device_manager->get_selected_machine();
+                if (!sel || sel->get_dev_id() != conn.dev_id)
                     select_machine(effective_agent_id);
             }
         }
         return;
     }
 
-    // Swap the agent; set_live_printer_agent resets the device selection so the new
-    // agent starts clean (#124).
+    // Swap the agent; set_live_printer_agent resets the device selection so the new agent starts clean.
     set_live_printer_agent(new_printer_agent);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
@@ -4059,18 +4056,12 @@ void GUI_App::select_machine(const std::string& agent_id)
         return;
     }
 
-    // Get config source (preset or physical printer)
-    const auto& preset = preset_bundle->printers.get_edited_preset();
-    const DynamicPrintConfig* host_cfg = &preset.config;
-
-    std::string print_host = host_cfg->opt_string("print_host");
-    if (print_host.empty()) {
+    const ActivePrinterSession&            session = active_printer_session();
+    const ActivePrinterSession::Connection conn    = session.connection();
+    if (!conn.configured()) {
         return;
     }
-    std::string port = host_cfg->opt_string("printhost_port");
-
-    // Generate dev_id from host and port
-    std::string dev_id = MachineObject::dev_id_from_address(print_host, port);
+    const std::string& dev_id = conn.dev_id;
 
     // Check if already exists by dev_id
     MachineObject* existing = m_device_manager->get_local_machine(dev_id);
@@ -4086,6 +4077,15 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
+    // The machine's printer_type is compared with Preset::get_printer_type() -- the vendor MODEL
+    // ID -- by is_blocking_printing() and Plater's same-printer checks, so that is what it has to
+    // carry. It was stamped with the display name, which only matches where a vendor uses the
+    // name as the id (WonderMaker does, Snapmaker does not: "Snapmaker U1" vs "797581801"), so the
+    // U1 read as a different printer than its own profile and filament sync stayed unavailable.
+    const std::string model_name = session.profile().config.opt_string("printer_model");
+    const std::string model_id   = session.printer_type();
+    const std::string machine_type = model_id.empty() ? model_name : model_id;
+
     // If machine doesn't exist, create it first
     if (!existing) {
         BBLocalMachine machine;
@@ -4093,15 +4093,10 @@ void GUI_App::select_machine(const std::string& agent_id)
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = preset.config.opt_string("printer_model");
-        auto access_code = preset.config.opt_string("printhost_apikey");
-        // Orca expect non empty access code
-        if (access_code.empty()) {
-            access_code = "88888888";
-        }
+        machine.printer_type = machine_type;
 
         existing = m_device_manager->insert_local_device(
-            machine, "lan", "free", "", access_code);
+            machine, "lan", "free", "", conn.access_code());
 
         if (!existing) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
@@ -4109,7 +4104,15 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
     }
-    existing->local_use_ssl = boost::istarts_with(print_host, "https://");
+    existing->local_use_ssl = conn.use_ssl;
+    // A machine this session created earlier under the display name is healed the same way.
+    if (existing->printer_type == model_name && machine_type != model_name)
+        existing->printer_type = machine_type;
+
+    // The agent's REST calls have to dial the same address this selection just resolved, so bind
+    // it here rather than leaving each REST entry point to work it out from the machine's own
+    // (possibly restored-from-a-previous-session) dev_ip.
+    session.bind_agent();
 
     // Use MonitorPanel::select_machine() to trigger full selection flow
     // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
@@ -4935,6 +4938,11 @@ wxString GUI_App::transition_tridid(int trid_id) const
         int id_suffix = trid_id % 4 + 1;
         return wxString::Format("%s%d", maping_dict[id_index], id_suffix);
     }
+}
+
+wxString GUI_App::tray_display_label(int tray_id, bool is_toolchanger) const
+{
+    return is_toolchanger ? wxString::Format("T%d", tray_id + 1) : transition_tridid(tray_id);
 }
 
 //BBS
@@ -8903,7 +8911,10 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();
     // ORCA: Sync filament count with the printer's nozzle count before loading presets for multi-tool printers.
     // This ensures filament_presets vector is properly sized when combo boxes are created/updated.
-    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
+    // Mapped printers (slicer- or device-owned) keep their own filament count; resyncing
+    // to nozzle count would delete filament slots a toolchanger protocol is managing.
+    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")
+        && !physical_filament_features_enabled(edited_printer_preset.config)) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
             // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no

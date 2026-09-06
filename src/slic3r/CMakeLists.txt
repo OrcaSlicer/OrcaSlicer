@@ -270,8 +270,18 @@ set(SLIC3R_GUI_SOURCES
     GUI/CapsuleButton.hpp
     GUI/FilamentMapPanel.cpp
     GUI/FilamentMapPanel.hpp
+    GUI/FilamentMapRowsView.cpp
+    GUI/FilamentMapRowsView.hpp
+    GUI/FilamentMapRowsPanel.cpp
+    GUI/FilamentMapRowsPanel.hpp
     GUI/FilamentMapDialog.cpp
     GUI/FilamentMapDialog.hpp
+    GUI/ActivePrinterSession.cpp
+    GUI/ActivePrinterSession.hpp
+    GUI/FilamentInventoryStore.cpp
+    GUI/FilamentInventoryStore.hpp
+    GUI/FilamentInventoryEditor.cpp
+    GUI/FilamentInventoryEditor.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
     GUI/ImageGrid.cpp
@@ -437,6 +447,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrinterWebViewHandler.cpp
     GUI/PrinterWebViewHandler.hpp
     GUI/PrinterWebView.hpp
+    GUI/DevicePrintOptionsDialog.cpp
+    GUI/DevicePrintOptionsDialog.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
     GUI/PrintOptionsDialog.cpp

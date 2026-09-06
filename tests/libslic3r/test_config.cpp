@@ -1091,3 +1091,36 @@ TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][F
         REQUIRE(displayed == "Sup.PLA");
     }
 }
+TEST_CASE("A json config with one bad value still loads every other key", "[Config]")
+{
+    // A project_settings.config written by another vendor's fork can type a single option
+    // differently -- a WonderMaker-vendor export writes bed_mesh_max as the scalar "290" where
+    // this tree defines a point. One alien value must cost only its own key: the loader used to
+    // abandon the whole file at the throw, and since nlohmann iterates keys alphabetically,
+    // everything after "bed_mesh_max" (filament_colour included) silently vanished -- which a
+    // blind dereference in the 3mf open path then turned into a crash.
+    ScopedTemporaryFile file(".json");
+    {
+        boost::nowide::ofstream out(file.path().string());
+        out << R"({
+            "bed_mesh_max": "290",
+            "filament_colour": ["#112233", "#445566"],
+            "layer_height": "0.28"
+        })";
+    }
+
+    DynamicPrintConfig                 config;
+    ConfigSubstitutionContext          substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    const int ret = config.load_from_json(file.path().string(), substitutions, true, key_values, reason);
+
+    // The load as a whole succeeds; only the bad key is dropped.
+    CHECK(ret == 0);
+    CHECK(config.option("bed_mesh_max") == nullptr);
+    REQUIRE(config.option<ConfigOptionStrings>("filament_colour") != nullptr);
+    CHECK(config.option<ConfigOptionStrings>("filament_colour")->values ==
+          std::vector<std::string>{"#112233", "#445566"});
+    REQUIRE(config.option("layer_height") != nullptr);
+    CHECK(config.option<ConfigOptionFloat>("layer_height")->value == Catch::Approx(0.28));
+}

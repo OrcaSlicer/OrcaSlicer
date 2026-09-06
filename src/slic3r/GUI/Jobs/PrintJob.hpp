@@ -3,6 +3,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <vector>
 #include "libslic3r/PrintConfig.hpp"
 #include "Job.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
@@ -65,6 +66,12 @@ public:
     std::string task_ams_mapping;
     std::string task_ams_mapping2;
     std::string task_ams_mapping_info;
+    // Device-owned mapping protocol (e.g. Snapmaker U1): a distinct field from the AMS mapping
+    // above, delivered to the agent via IPrinterAgent::send_filament_mapping() rather than baked
+    // into PrintParams -- see the seam's contract in IPrinterAgent.hpp. 1-based filament->tool
+    // over the full project filament list, matching FilamentMapDialog's filament_map convention;
+    // empty for every printer whose agent doesn't support it.
+    std::vector<int> task_device_map_table;
     std::string task_nozzles_info;
     std::string connection_type;
     std::string m_print_type;

@@ -254,6 +254,7 @@ public:
 
     std::vector<int> get_real_filament_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr)const;
     std::vector<int> get_real_filament_volume_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr) const;
+    std::vector<int> get_real_physical_filament_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr) const;
     FilamentMapMode  get_real_filament_map_mode(const DynamicConfig& g_config,bool * use_global_param = nullptr) const;
 
     FilamentMapMode get_filament_map_mode() const;
@@ -262,6 +263,9 @@ public:
     // get filament map, 0 based filament ids, 1 based extruder ids
     std::vector<int> get_filament_maps() const;
     void set_filament_maps(const std::vector<int>& f_maps);
+
+    // per project filament, the id of the physical filament it resolves to (0 = unassigned)
+    std::vector<int> get_physical_filament_maps() const;
 
     // per-filament nozzle-volume choice (NozzleVolumeType values, 0 based filament ids)
     std::vector<int> get_filament_volume_maps() const;
@@ -909,7 +913,11 @@ public:
     * if with_gcode = true and specify plate_idx, export plate_idx gcode only
     */
     int store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool with_slice_info = true, int plate_idx = -1);
-    int load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count = 1);
+    // nozzle_count < 0 means "use the currently active printer preset's extruder count"
+    // (only correct when no project printer preset is pending application, e.g. non-3mf imports).
+    // Callers loading a project 3mf should pass the LOADED project's nozzle count instead, since
+    // the project's printer preset is applied only after this call returns.
+    int load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count = 1, int nozzle_count = -1);
     //load gcode files
     int load_gcode_files();
 

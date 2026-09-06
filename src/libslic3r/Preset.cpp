@@ -479,6 +479,10 @@ void Preset::normalize(DynamicPrintConfig &config)
     if (config.option("filament_diameter") != nullptr) {
         // This config contains single or multiple filament presets.
         // Ensure that the filament preset vector options contain the correct number of values.
+        // Orca: on the non-SEMM branch above n is the EXTRUDER count; with filament-tool
+        // decoupling a project can carry more filaments than extruders. Filament count is
+        // authoritative for filament-indexed options, so never shrink below it.
+        n = std::max(n, dynamic_cast<const ConfigOptionFloats*>(config.option("filament_diameter"))->values.size());
         const auto &defaults = FullPrintConfig::defaults();
         for (const std::string &key : Preset::filament_options()) {
             if (key == "compatible_prints" || key == "compatible_printers")
@@ -1427,7 +1431,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
     "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
      "gcode_skip_config_block", "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
-    "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
+    "single_extruder_multi_material", "manual_filament_change", "enable_filament_mapping", "filament_mapping_protocol", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
     "nozzle_height", "master_extruder_id",
@@ -2635,6 +2639,15 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         it = this->find_preset_renamed(original_name);
         found = it != m_presets.end();
     }*/
+    if (found && !profile_print_params_same(it->config, cfg)) {
+        // Orca: when a matching-named preset is about to be shadowed by a project-embedded
+        // external copy, log which keys drove the mismatch -- external-preset materialization
+        // is otherwise undiagnosable from the logs.
+        std::string diff_keys;
+        for (const std::string &k : it->config.diff(cfg))
+            diff_keys += k + " ";
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" preset %1% found but differs from project values in: %2%") % original_name % diff_keys;
+    }
     if (found && profile_print_params_same(it->config, cfg)) {
         // The preset exists and it matches the values stored inside config.
         if (select == LoadAndSelect::Always)

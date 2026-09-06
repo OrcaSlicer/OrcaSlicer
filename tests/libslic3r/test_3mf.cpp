@@ -9,6 +9,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/FilamentInventory.hpp"
 
 #include "test_utils.hpp"
 
@@ -234,6 +235,70 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
     }
 }
 
+// Per-plate project-filament -> physical-filament-id map. Locks the
+// physical_filament_maps 3mf plate attribute round-trip: stored values must come back intact,
+// entries are ids (not clamped to the tool count) and a plate with none of the metadata gets an
+// empty map back (falls back to the project-level filament_physical_map, mirroring filament_map).
+SCENARIO("physical_filament_maps .3mf plate round-trip", "[3mf][MultiNozzle]") {
+    GIVEN("a plate carrying a project-filament to physical-filament-id map") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        std::string backup_dir =
+            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_pfm_%%%%%%%%")).string();
+        boost::filesystem::create_directories(backup_dir);
+        model.set_backup_path(backup_dir);
+
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+
+        PlateData* plate = new PlateData();
+        plate->plate_index = 0;
+        // filament_map_mode gates the metadata writer alongside filament_map/filament_volume_map.
+        plate->config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+        plate->config.set_key_value("filament_physical_map", new ConfigOptionInts({ 3, 0, 7 }));
+
+        WHEN("stored to and reloaded from a .3mf") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/pfm_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.plate_data_list.push_back(plate);
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            boost::filesystem::remove(test_file);
+
+            THEN("physical_filament_map round-trips intact") {
+                REQUIRE(loaded);
+                REQUIRE(dst_plates.size() >= 1);
+                PlateData* rt = dst_plates.front();
+
+                auto* pmap = rt->config.option<ConfigOptionInts>("filament_physical_map");
+                REQUIRE(pmap != nullptr);
+                REQUIRE(pmap->values == std::vector<int>({ 3, 0, 7 }));
+            }
+
+            release_PlateData_list(dst_plates);
+        }
+        delete plate; // store_bbs_3mf does not take ownership of the source plate
+        boost::filesystem::remove_all(backup_dir);
+    }
+}
+
 // Saved nozzle diameter for a single-nozzle-per-extruder printer with a non-standard nozzle.
 // The grouping result rounds every nozzle diameter to the nearest of {0.2,0.4,0.6,0.8} for its
 // internal matching key. That rounded value must NOT reach the saved <filament>/<nozzle> metadata on
@@ -312,6 +377,75 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
     }
 }
 
+// Durable per-device slot assignments ride the existing
+// generic Model-level metadata round-trip (3D/3dmodel.model's <metadata name="..."> tags,
+// Model::model_info->metadata_items): every metadata key is captured unconditionally on load
+// (bbs_3mf.cpp's _handle_end_config_metadata) and re-emitted on save, with no bbs_3mf.cpp change
+// needed for a new key. This locks that route for "physical_slot_assignments" specifically, and
+// proves an unrecognized key is otherwise inert -- the same property an OLDER Orca relies on to
+// ignore it cleanly.
+SCENARIO("physical_slot_assignments .3mf model-metadata round-trip", "[3mf]") {
+    GIVEN("a model carrying a durable slot-assignments blob") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        std::string backup_dir =
+            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_psa_%%%%%%%%")).string();
+        boost::filesystem::create_directories(backup_dir);
+        model.set_backup_path(backup_dir);
+
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+
+        model.model_info = std::make_shared<ModelInfo>();
+        std::map<std::string, std::vector<SlotAssignment>> assignments;
+        assignments["hwid:abc123"] = { {0, 1, 0}, {1, 2, 0} };
+        model.model_info->metadata_items["physical_slot_assignments"] = dump_slot_assignments(assignments);
+
+        WHEN("stored to and reloaded from a .3mf") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/psa_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            boost::filesystem::remove(test_file);
+
+            THEN("the blob round-trips intact, unrecognized by any hardcoded key") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info);
+                auto it = dst_model.model_info->metadata_items.find("physical_slot_assignments");
+                REQUIRE(it != dst_model.model_info->metadata_items.end());
+
+                auto back = load_slot_assignments(it->second);
+                REQUIRE(back.count("hwid:abc123") == 1);
+                REQUIRE(back["hwid:abc123"].size() == 2);
+                CHECK(back["hwid:abc123"][0].filament_idx == 0);
+                CHECK(back["hwid:abc123"][0].tool == 1);
+                CHECK(back["hwid:abc123"][1].filament_idx == 1);
+                CHECK(back["hwid:abc123"][1].tool == 2);
+            }
+
+            release_PlateData_list(dst_plates);
+        }
+        boost::filesystem::remove_all(backup_dir);
+    }
+}
+
 // A legacy / foreign project (no multi-nozzle metadata) must load crash-safe through the BBS
 // importer and must not fabricate a filament_volume_map.
 SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]") {
@@ -338,6 +472,82 @@ SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]
             }
             release_PlateData_list(plates);
         }
+    }
+}
+
+// The per-object extruder clamp must bound against filament_colour (the authoritative filament
+// count), not filament_settings_id, because filament_settings_id is sometimes absent from the
+// project config (see PresetBundle::load_config_file_config). When it's absent the clamp must not
+// fall back to "no bound".
+SCENARIO("Object extruder id is clamped against filament_colour when filament_settings_id is absent", "[3mf]") {
+    GIVEN("an object whose extruder id exceeds the filament_colour count, and no filament_settings_id") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+        model.objects.front()->config.set_key_value("extruder", new ConfigOptionInt(7));
+
+        std::string backup_dir =
+            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_ex_%%%%%%%%")).string();
+        boost::filesystem::create_directories(backup_dir);
+        model.set_backup_path(backup_dir);
+
+        // Two filaments via filament_colour; filament_settings_id deliberately not set, so the
+        // project config never carries that key (erase, not just leave default).
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000", "#00FF00" }));
+        config.erase("filament_settings_id");
+        REQUIRE(config.option("filament_settings_id") == nullptr);
+
+        PlateData* plate = new PlateData();
+        plate->plate_index    = 0;
+        plate->is_sliced_valid = true;
+        plate->filament_maps  = { 1 };
+
+        WHEN("stored to and reloaded from a .3mf") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/extruder_clamp_roundtrip.3mf";
+
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &config;
+            store_params.plate_data_list.push_back(plate);
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            // load_bbs_3mf extracts project_settings.config to a temp file under the model's
+            // backup path; point it at a writable temp dir (the default lives under a read-only
+            // root in CI), same as the store side above.
+            std::string dst_backup_dir =
+                (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_ex_dst_%%%%%%%%")).string();
+            boost::filesystem::create_directories(dst_backup_dir);
+
+            Model dst_model;
+            dst_model.set_backup_path(dst_backup_dir);
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            boost::filesystem::remove(test_file);
+
+            THEN("the object's extruder id is clamped to 1, not left at the out-of-range 7") {
+                REQUIRE(loaded);
+                REQUIRE(dst_config.option("filament_settings_id") == nullptr);
+                REQUIRE(dst_model.objects.size() >= 1);
+                ModelObject* loaded_object = dst_model.objects.front();
+                REQUIRE(loaded_object->config.opt_int("extruder") == 1);
+            }
+
+            release_PlateData_list(dst_plates);
+            boost::filesystem::remove_all(dst_backup_dir);
+        }
+        delete plate; // store_bbs_3mf does not take ownership of the source plate
+        boost::filesystem::remove_all(backup_dir);
     }
 }
 
