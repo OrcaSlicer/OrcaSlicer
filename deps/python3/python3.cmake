@@ -153,8 +153,8 @@ elseif(APPLE)
              mkdir -p '${_python_build_python_dir}' && \
              cd '${_python_build_python_dir}' && \
              env \
-               CC='${CMAKE_C_COMPILER}' \
-               CXX='${CMAKE_CXX_COMPILER}' \
+               CC='${DEP_CC}' \
+               CXX='${DEP_CXX}' \
                CFLAGS='${_python_build_arch_flags}' \
                CXXFLAGS='${_python_build_arch_flags}' \
                LDFLAGS='${_python_build_ldflags}' \
@@ -168,8 +168,8 @@ elseif(APPLE)
              make -j${NPROC} python && \
              cd '<SOURCE_DIR>' && \
              env \
-               CC='${CMAKE_C_COMPILER}' \
-               CXX='${CMAKE_CXX_COMPILER}' \
+               CC='${DEP_CC}' \
+               CXX='${DEP_CXX}' \
                CFLAGS='${_python_arch_flags}' \
                CXXFLAGS='${_python_arch_flags}' \
                LDFLAGS='${_python_ldflags}' \
@@ -189,8 +189,8 @@ elseif(APPLE)
         set(_python_build_tgt --build=${_python_host_arch}-apple-darwin)
         set(_conf_cmd
             env
-            "CC=${CMAKE_C_COMPILER}"
-            "CXX=${CMAKE_CXX_COMPILER}"
+            "CC=${DEP_CC}"
+            "CXX=${DEP_CXX}"
             "CFLAGS=${_python_arch_flags}"
             "CXXFLAGS=${_python_arch_flags}"
             "LDFLAGS=${_python_ldflags}"
@@ -241,7 +241,7 @@ else()
     # in-tree pre-relocation -- and, critically, it reserves enough RUNPATH
     # bytes for the in-place $ORIGIN rewrite at install time (Flatpak's
     # DESTDIR is the short /app) -- see relocate_linux.cmake.
-    set(_conf_cmd ./configure
+    set(_conf_cmd env "CC=${DEP_CC}" "CXX=${DEP_CXX}" ./configure
         --prefix=${_python_prefix}
         --enable-shared
         --enable-optimizations

@@ -24,6 +24,7 @@ REQUIRED_DEV_PACKAGES=(
     libudev-dev
     clang
     lld
+    llvm
     ninja-build
     texinfo
     wget
