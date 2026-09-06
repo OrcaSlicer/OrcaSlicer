@@ -278,6 +278,9 @@ jobs:
         echo "ver_pure=$ver_pure" >> $GITHUB_ENV
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
+        # Standardized arch token for the asset filename (x86_64 -> x86-64); the
+        # flatpak-builder `arch:` input below still uses the real matrix arch.
+        echo "arch_std=${{ matrix.variant.arch == 'x86_64' && 'x86-64' || matrix.variant.arch }}" >> $GITHUB_ENV
       shell: bash
     - name: Compute the flatpak-builder cache key
       id: fp_cache_key
@@ -316,7 +319,7 @@ jobs:
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
       with:
-        bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
+        bundle: OrcaSlicer_Linux_Flatpak_${{ env.arch_std }}_${{ env.ver }}.flatpak
         manifest-path: scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
         cache: false
         arch: ${{ matrix.variant.arch }}
@@ -324,15 +327,15 @@ jobs:
     - name: Upload artifacts Flatpak
       uses: actions/upload-artifact@v7
       with:
-        name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
+        name: OrcaSlicer_Linux_Flatpak_${{ env.arch_std }}_${{ env.ver }}.flatpak
+        path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer_Linux_Flatpak_${{ env.arch_std }}_${{ env.ver }}.flatpak'
     - name: Deploy Flatpak to nightly release
       if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer')
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
         release_id: 137995723
-        asset_path: /__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
+        asset_path: /__w/OrcaSlicer/OrcaSlicer/OrcaSlicer_Linux_Flatpak_${{ env.arch_std }}_${{ env.ver }}.flatpak
+        asset_name: OrcaSlicer_Linux_Flatpak_${{ env.arch_std }}${{ env.nightly_suffix }}_nightly.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
