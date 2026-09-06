@@ -652,6 +652,56 @@ TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament 
     }
 }
 
+TEST_CASE("AMS overwrite sync keeps a slot for every printer extruder", "[Preset][Bundle][AMS][Regression]")
+{
+    PresetBundle bundle;
+
+    Preset &printer = add_inmemory_preset(bundle.printers, "Dual Extruder Printer");
+    printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = { 0.4, 0.4 };
+    bundle.printers.select_preset_by_name(printer.name, true);
+
+    Preset &filament = add_inmemory_preset(bundle.filaments, "Test PLA");
+    filament.filament_id = "GFSL00";
+    filament.config.option<ConfigOptionStrings>("filament_type", true)->values = { "PLA" };
+    bundle.filaments.select_preset_by_name(filament.name, true);
+
+    bundle.set_num_filaments(2u, std::string("#000000"));
+    bundle.filament_presets.assign(2, filament.name);
+
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_id", new ConfigOptionStrings{ filament.filament_id });
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{ "#123456" });
+    tray.set_key_value("filament_colour_type", new ConfigOptionStrings{ "1" });
+    tray.set_key_value("filament_multi_colour", new ConfigOptionStrings{ "#123456" });
+    tray.set_key_value("filament_type", new ConfigOptionStrings{ "PLA" });
+    tray.set_key_value("ams_id", new ConfigOptionStrings{ "0" });
+    tray.set_key_value("slot_id", new ConfigOptionStrings{ "0" });
+    bundle.filament_ams_list.emplace(0, std::move(tray));
+
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    std::map<int, AMSMapInfo> maps;
+    MergeFilamentInfo merge_info;
+    const size_t filament_count = bundle.sync_ams_list(unknowns, false, maps, false, merge_info, false);
+
+    REQUIRE(filament_count == 2);
+    CHECK(unknowns.empty());
+    CHECK(bundle.filament_presets.size() == filament_count);
+    for (const char *key : { "filament_colour", "filament_multi_colour", "filament_colour_type" }) {
+        DYNAMIC_SECTION(key << " follows the final filament count") {
+            CHECK(bundle.project_config.option<ConfigOptionStrings>(key)->values.size() == filament_count);
+        }
+    }
+    for (const char *key : { "filament_map", "filament_nozzle_map", "filament_volume_map" }) {
+        DYNAMIC_SECTION(key << " follows the final filament count") {
+            CHECK(bundle.project_config.option<ConfigOptionInts>(key)->values.size() == filament_count);
+        }
+    }
+
+    const auto &colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    CHECK(colors[0] == "#123456");
+    CHECK(colors[1] == "#123456");
+}
+
 // A mix is described by 1-based indices into the project's filament list, which Orca rebuilds
 // from the selected printer's snapshot (filament_%02u / filament_colors) at startup and on every
 // printer selection. Held anywhere but that same per-printer snapshot, the mixed arrays end up

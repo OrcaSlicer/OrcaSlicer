@@ -5916,7 +5916,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     ConfigOptionStrings* color_opt = project_config.option<ConfigOptionStrings>("filament_colour");
     for (int i = 0; i < p->combos_filament.size(); ++i) {
         is_support_before.push_back(is_support_filament(i));
-        color_before_sync.push_back(color_opt->values[i]);
+        color_before_sync.push_back(i < color_opt->values.size() ? color_opt->values[i] : std::string{});
     }
     MergeFilamentInfo merge_info;
     std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
@@ -5967,13 +5967,13 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     // BBS:Synchronized consumables information
     // auto calculation of flushing volumes
     for (int i = 0; i < p->combos_filament.size(); ++i) {
-        if (i >= color_before_sync.size()) {
+        if (i >= color_before_sync.size() || i >= color_opt->values.size()) {
             auto_calc_flushing_volumes(i);
         }
         else if(color_before_sync[i] != color_opt->values[i] && wxGetApp().app_config->get("auto_calculate_flush") != "disabled"){
             auto_calc_flushing_volumes(i);
         }
-        else if(is_support_filament(i) !=is_support_before[i] && wxGetApp().app_config->get("auto_calculate_flush") == "all"){
+        else if(i < is_support_before.size() && is_support_filament(i) != is_support_before[i] && wxGetApp().app_config->get("auto_calculate_flush") == "all"){
             auto_calc_flushing_volumes(i);
         }
     }

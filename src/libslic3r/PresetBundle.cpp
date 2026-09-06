@@ -3586,6 +3586,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
+    ConfigOptionInts *   filament_nozzle_map = project_config.option<ConfigOptionInts>("filament_nozzle_map");
     ConfigOptionInts *   filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
     // Snapshot and temporarily strip mixed filament slots so AMS sync operates on physical
@@ -3927,9 +3928,41 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         }
     }
 
-    // Update ams_multi_color_filment
-    update_filament_multi_color();
+    // A multi-extruder printer may require more project filament slots than the AMS sync returned
+    // (for example, an X2D with only one loaded source). The preset updater enforces that minimum
+    // on filament_presets, so extend every parallel array to the same final size before returning.
     update_multi_material_filament_presets();
+
+    const size_t final_filament_count = this->filament_presets.size();
+    const std::string fallback_color = filament_color->values.empty() ? "#CECECE" : filament_color->values.back();
+    const std::string fallback_color_type = filament_color_type->values.empty() ? "1" : filament_color_type->values.back();
+    const std::vector<std::string> fallback_multi_color =
+        ams_multi_color_filment.empty() || ams_multi_color_filment.back().empty()
+            ? std::vector<std::string>{fallback_color}
+            : ams_multi_color_filment.back();
+
+    filament_color->values.resize(final_filament_count, fallback_color);
+    filament_color_type->values.resize(final_filament_count, fallback_color_type);
+    ams_multi_color_filment.resize(final_filament_count, fallback_multi_color);
+    filament_map->values.resize(final_filament_count, 1);
+    filament_nozzle_map->values.resize(final_filament_count, 0);
+    filament_volume_map->values.resize(final_filament_count, static_cast<int>(NozzleVolumeType::nvtStandard));
+    if (is_mixed_opt)
+        is_mixed_opt->values.resize(final_filament_count, (unsigned char)false);
+    if (mixed_comp_opt)
+        mixed_comp_opt->values.resize(final_filament_count);
+    if (mixed_ratios_opt)
+        mixed_ratios_opt->values.resize(final_filament_count);
+    if (mixed_gradient_opt)
+        mixed_gradient_opt->values.resize(final_filament_count, (unsigned char)false);
+    if (mixed_grad_range_opt)
+        mixed_grad_range_opt->values.resize(final_filament_count);
+    if (mixed_grad_curve_opt)
+        mixed_grad_curve_opt->values.resize(final_filament_count);
+    if (mixed_per_part_opt)
+        mixed_per_part_opt->values.resize(final_filament_count, (unsigned char)false);
+
+    update_filament_multi_color();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish sync ams list";
     return this->filament_presets.size();
 }
