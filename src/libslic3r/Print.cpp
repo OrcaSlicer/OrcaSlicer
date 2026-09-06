@@ -213,6 +213,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "required_nozzle_HRC",
         "upward_compatible_machine",
         "is_infill_first",
+        "even_loops_flow_ratio", "loop_sequence", "even_loops_speed", "outermost_wall_control",
         // Orca
         "chamber_temperature",
         "chamber_minimal_temperature",
@@ -417,7 +418,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             //BBS: when enable arc fitting, we must re-generate perimeter
             || opt_key == "enable_arc_fitting"
             || opt_key == "print_order"
-            || opt_key == "wall_sequence") {
+            || opt_key == "wall_sequence"
+            || opt_key == "even_loops_speed"
+            || opt_key == "loop_sequence"
+            || opt_key == "outermost_wall_control"
+            || opt_key == "even_loops_flow_ratio" ) {
             osteps.emplace_back(posPerimeters);
             osteps.emplace_back(posEstimateCurledExtrusions);
             osteps.emplace_back(posInfill);
@@ -1879,7 +1884,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     return warning_key;
                 };
                 std::string warning_key;
-
                 const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0]; // TODO: fix this
                 const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
 
@@ -1982,6 +1986,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         }
                    }
                 }
+                
+                // check minimum walls
+                if (m_default_region_config.wall_loops < 3 && 
+                        (m_default_region_config.wall_sequence == WallSequence::OddEven ||
+                        m_default_region_config.wall_sequence == WallSequence::InnerOuterInner)) {
+                    WallSequence _wall_sequence = m_default_region_config.wall_sequence;
+                    warn(format(L("The number of perimeters is %d, which is not enough for a full-fledged generation in the %s order.\n"
+                                  "Minimum is 3. %s" "Otherwise, make sure that the order of the walls matches the desired result. "), m_default_region_config.wall_loops, 
+                                  _wall_sequence == WallSequence::InnerOuterInner ? L("Inner/Outer/Inner") : L("Odd-Even"),
+                                  _wall_sequence == WallSequence::InnerOuterInner ? "" : L("To ensure rigidity and solidity, it is recommended to use 5 or more perimeters. ")), "wall_loops");
+                }
 
                 // check speed
                 // Orca: disable the speed check for now as we don't cap the speed
@@ -2006,7 +2021,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
             // check wall sequence and precise outer wall
             if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter)
-                warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
+                warn(L("The precise wall option will be ignored for outer-inner, inner-outer-inner or odd-even (without outermost control) wall sequences. "),
+                     "precise_outer_wall");
 
             // check adaptive pressure advance model
             for (unsigned int extruder_id : extruders) {
