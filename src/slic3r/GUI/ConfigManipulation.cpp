@@ -1182,6 +1182,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+
+    bool supports_multi_bed_types = preset_bundle->printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
+    toggle_field("curr_bed_type", supports_multi_bed_types || is_BBL_Printer);
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)
