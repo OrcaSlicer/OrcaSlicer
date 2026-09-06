@@ -232,6 +232,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "accel_to_decel_enable",
         "accel_to_decel_factor",
         "wipe_on_loops",
+        "wipe_inward",
+        "wipe_inward_distance",
         "gcode_comments",
         "gcode_label_objects", 
         "exclude_object",

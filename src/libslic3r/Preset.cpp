@@ -1268,6 +1268,8 @@ static std::vector<std::string> s_Preset_print_options{
     "accel_to_decel_enable",
     "accel_to_decel_factor",
     "wipe_on_loops",
+    "wipe_inward",
+    "wipe_inward_distance",
     "wipe_before_external_loop",
     "bridge_density",
     "internal_bridge_density",

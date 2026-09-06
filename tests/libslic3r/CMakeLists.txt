@@ -39,6 +39,7 @@ add_executable(${_TEST_NAME}_tests
     test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
+    test_wipe_path.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     # test_png_io.cpp
