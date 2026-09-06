@@ -154,12 +154,67 @@ void GLGizmoPainterBase::render_cursor()
             }
         }
     }
-    // Raycast and return if there's no hit.
+    // Raycast (always updates m_rr, even for off-mesh ghost previews below).
     update_raycast_cache(m_parent.get_local_mouse_position(), camera, trafo_matrices);
+
+    //ORCA: ghost previews for LINE / RECTANGLE / GRID — render BEFORE the off-mesh
+    //      early return so the rubber-band still shows when the cursor is off the
+    //      part. We use ImGui's foreground draw list (2D screen space) so we don't
+    //      have to set up a shader for a single line/rect.
+    const Vec2d cur_screen = m_parent.get_local_mouse_position();
+    ImDrawList *fg          = ImGui::GetForegroundDrawList();
+    const ImU32 ghost_color = IM_COL32(0, 150, 136, 220);   // teal, matches the SVG accent
+    if (m_tool_type == ToolType::LINE && m_line_pending && m_line_first_mesh_idx >= 0
+        && m_line_first_mesh_idx < int(trafo_matrices.size())) {
+        // Project the anchor from mesh-local → world → screen.
+        const Transform3d &trafo = trafo_matrices[m_line_first_mesh_idx];
+        const Vec3d anchor_world = trafo * m_line_first_hit.cast<double>();
+        const Vec4d clip = camera.get_projection_matrix() * camera.get_view_matrix()
+                         * Vec4d(anchor_world.x(), anchor_world.y(), anchor_world.z(), 1.0);
+        if (clip.w() > 0.0) {
+            const std::array<int, 4> &vp = camera.get_viewport();
+            const double sx = (clip.x() / clip.w() * 0.5 + 0.5) * vp[2] + vp[0];
+            const double sy = (1.0 - (clip.y() / clip.w() * 0.5 + 0.5)) * vp[3] + vp[1];
+            fg->AddLine(ImVec2(float(sx), float(sy)),
+                        ImVec2(float(cur_screen.x()), float(cur_screen.y())),
+                        ghost_color, 2.0f);
+            fg->AddCircleFilled(ImVec2(float(sx), float(sy)), 4.0f, ghost_color);
+        }
+    }
+    if ((m_tool_type == ToolType::RECTANGLE || m_tool_type == ToolType::GRID) && m_rect_pending) {
+        const ImVec2 a(float(m_rect_first_screen.x()), float(m_rect_first_screen.y()));
+        const ImVec2 b(float(cur_screen.x()), float(cur_screen.y()));
+        fg->AddRect(ImVec2(std::min(a.x, b.x), std::min(a.y, b.y)),
+                    ImVec2(std::max(a.x, b.x), std::max(a.y, b.y)),
+                    ghost_color, 0.0f, 0, 2.0f);
+        fg->AddCircleFilled(a, 4.0f, ghost_color);
+    }
+    if (m_tool_type == ToolType::POLYGON && !m_polygon_points.empty()) {
+        // Connect all anchored points + a dashed-ish trailing line to the cursor.
+        for (size_t i = 0; i + 1 < m_polygon_points.size(); ++i) {
+            fg->AddLine(ImVec2(float(m_polygon_points[i].x()),   float(m_polygon_points[i].y())),
+                        ImVec2(float(m_polygon_points[i+1].x()), float(m_polygon_points[i+1].y())),
+                        ghost_color, 2.0f);
+        }
+        const ImVec2 last(float(m_polygon_points.back().x()), float(m_polygon_points.back().y()));
+        fg->AddLine(last, ImVec2(float(cur_screen.x()), float(cur_screen.y())),
+                    IM_COL32(0, 150, 136, 120), 2.0f);
+        // Optional close-line preview from cursor back to first point.
+        if (m_polygon_points.size() >= 2) {
+            const ImVec2 first(float(m_polygon_points.front().x()), float(m_polygon_points.front().y()));
+            fg->AddLine(ImVec2(float(cur_screen.x()), float(cur_screen.y())), first,
+                        IM_COL32(0, 150, 136, 60), 1.5f);
+        }
+        for (const Vec2d &p : m_polygon_points)
+            fg->AddCircleFilled(ImVec2(float(p.x()), float(p.y())), 4.0f, ghost_color);
+    }
+
     if (m_rr.mesh_id == -1)
         return;
 
-    if (m_tool_type == ToolType::BRUSH) {
+    if (m_tool_type == ToolType::BRUSH || m_tool_type == ToolType::LINE) {
+        //ORCA: LINE tool reuses the CIRCLE brush preview so the operator sees
+        //      where the second click will end the swept stroke.
         if (m_cursor_type == TriangleSelector::SPHERE)
             render_cursor_sphere(trafo_matrices[m_rr.mesh_id]);
         else if (m_cursor_type == TriangleSelector::CIRCLE)
@@ -776,6 +831,72 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                 part_volumes.push_back(mv);
             }
 
+        //ORCA: POLYGON — N-click closed shape. Left-click appends a point,
+        //      right-click cancels the in-progress polygon, the UI "Close"
+        //      button calls close_and_paint_polygon() to finalize. We swallow
+        //      both clicks here so the early-return-on-mesh-miss further down
+        //      doesn't drop a point.
+        if (m_tool_type == ToolType::POLYGON) {
+            if (action == SLAGizmoEventType::RightDown) {
+                m_polygon_points.clear();
+            } else {
+                m_polygon_points.emplace_back(_mouse_position);
+            }
+            m_last_mouse_click = _mouse_position;
+            return true;
+        }
+
+        //ORCA: RECTANGLE / GRID — two-click screen-space box. The first click
+        //      stores the screen position (anchor); the second click computes the
+        //      screen-space bbox, samples it at a step size (8 px for RECTANGLE,
+        //      operator-controlled m_grid_spacing_px for GRID), and for every
+        //      sample that raycasts to a mesh splats a CIRCLE-cursor paint at
+        //      the hit. RECTANGLE's dense sample fills the projected area;
+        //      GRID's coarser sample produces a regular dot pattern.
+        if (m_tool_type == ToolType::RECTANGLE || m_tool_type == ToolType::GRID) {
+            if (!m_rect_pending) {
+                // First click — just record the screen-space anchor. No paint.
+                m_rect_first_screen = _mouse_position;
+                m_rect_pending      = true;
+            } else {
+                // Second click — sample the rectangle and splat at every hit.
+                const Vec2d a = m_rect_first_screen;
+                const Vec2d b = _mouse_position;
+                const double xmin = std::min(a.x(), b.x());
+                const double xmax = std::max(a.x(), b.x());
+                const double ymin = std::min(a.y(), b.y());
+                const double ymax = std::max(a.y(), b.y());
+                const double step = (m_tool_type == ToolType::RECTANGLE)
+                                    ? 8.0
+                                    : double(std::max(2.0f, m_grid_spacing_px));
+
+                for (double y = ymin; y <= ymax + 0.5; y += step) {
+                    for (double x = xmin; x <= xmax + 0.5; x += step) {
+                        const Vec2d sample(x, y);
+                        update_raycast_cache(sample, camera, trafo_matrices);
+                        if (m_rr.mesh_id < 0) continue;
+                        const int mid = m_rr.mesh_id;
+                        const Transform3d &trafo_m     = trafo_matrices[mid];
+                        const Transform3d &trafo_no_t  = trafo_matrices_not_translate[mid];
+                        const Vec3f cam_pos_mesh       = (trafo_m.inverse() * camera.get_position()).cast<float>();
+                        const TriangleSelector::ClippingPlane &clp_m = this->get_clipping_plane_in_volume_coordinates(trafo_m);
+                        std::unique_ptr<TriangleSelector::Cursor> cursor =
+                            TriangleSelector::SinglePointCursor::cursor_factory(
+                                m_rr.hit, cam_pos_mesh, m_cursor_radius,
+                                TriangleSelector::CursorType::CIRCLE, trafo_m, clp_m);
+                        m_triangle_selectors[mid]->select_patch(
+                            int(m_rr.facet), std::move(cursor), new_state, trafo_no_t,
+                            m_triangle_splitting_enabled,
+                            m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f);
+                        m_triangle_selectors[mid]->request_update_render_data(true);
+                    }
+                }
+                m_rect_pending = false;
+            }
+            m_last_mouse_click = _mouse_position;
+            return true;
+        }
+
         // BBS
         if (m_tool_type == ToolType::BRUSH && m_cursor_type == TriangleSelector::CursorType::HEIGHT_RANGE)
         {
@@ -864,6 +985,37 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                         m_triangle_selectors[mesh_idx]->bucket_fill_select_triangles(mesh_hit, facet_idx, clp, m_smart_fill_angle, true, true);
 
                     m_seed_fill_last_mesh_id = -1;
+                }
+            } else if (m_tool_type == ToolType::LINE) {
+                //ORCA: LINE tool — two-click swept stroke. First click stores the
+                //      anchor and waits; second click paints the swept region from
+                //      anchor → current hit using DoublePointCursor (same machinery
+                //      a drag-stroke uses between adjacent frames). Right-click and
+                //      tool-switch cancel a pending anchor (handled elsewhere).
+                const ProjectedMousePosition &hit = projected_mouse_positions.front();
+                if (!m_line_pending) {
+                    // First click — just record the anchor.
+                    m_line_first_hit       = hit.mesh_hit;
+                    m_line_first_facet_idx = int(hit.facet_idx);
+                    m_line_first_mesh_idx  = mesh_idx;
+                    m_line_pending         = true;
+                } else if (mesh_idx == m_line_first_mesh_idx) {
+                    // Second click on the same mesh — paint A→B.
+                    std::unique_ptr<TriangleSelector::Cursor> cursor =
+                        TriangleSelector::DoublePointCursor::cursor_factory(
+                            m_line_first_hit, hit.mesh_hit, camera_pos,
+                            m_cursor_radius, m_cursor_type, trafo_matrix, clp);
+                    m_triangle_selectors[mesh_idx]->select_patch(
+                        m_line_first_facet_idx, std::move(cursor), new_state,
+                        trafo_matrix_not_translate, m_triangle_splitting_enabled,
+                        m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f);
+                    m_line_pending = false;
+                } else {
+                    // Second click on a different mesh — silently restart on the new mesh.
+                    m_line_first_hit       = hit.mesh_hit;
+                    m_line_first_facet_idx = int(hit.facet_idx);
+                    m_line_first_mesh_idx  = mesh_idx;
+                    // m_line_pending stays true — the next click on this mesh completes the line.
                 }
             } else if (m_tool_type == ToolType::BRUSH) {
                 assert(m_cursor_type == TriangleSelector::CursorType::CIRCLE || m_cursor_type == TriangleSelector::CursorType::SPHERE);
@@ -1900,6 +2052,83 @@ void TriangleSelectorGUI::render_paint_contour(const Transform3d& matrix)
 
     if (curr_shader != nullptr)
         curr_shader->start_using();
+}
+
+//ORCA: standard ray-casting point-in-polygon (works for convex + concave shapes
+//      including self-intersecting via even-odd rule; operator's intent is
+//      almost always a simple polygon though).
+static bool point_in_polygon(const Vec2d &p, const std::vector<Vec2d> &poly)
+{
+    if (poly.size() < 3) return false;
+    bool inside = false;
+    for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
+        const double xi = poly[i].x(), yi = poly[i].y();
+        const double xj = poly[j].x(), yj = poly[j].y();
+        if (((yi > p.y()) != (yj > p.y())) &&
+            (p.x() < (xj - xi) * (p.y() - yi) / (yj - yi) + xi))
+            inside = !inside;
+    }
+    return inside;
+}
+
+//ORCA: close the in-progress polygon and splat paint at every raycast hit
+//      that lands inside the polygon. Returns true if anything was painted.
+bool GLGizmoPainterBase::close_and_paint_polygon(bool enforcer)
+{
+    if (m_polygon_points.size() < 3) return false;
+    if (m_triangle_selectors.empty()) return false;
+
+    // Build transforms list — same shape as the click handler does.
+    const Camera        &camera    = wxGetApp().plater()->get_camera();
+    const Selection     &selection = m_parent.get_selection();
+    const ModelObject   *mo        = m_c->selection_info()->model_object();
+    const ModelInstance *mi        = mo->instances[selection.get_instance_idx()];
+    const Transform3d    instance_trafo               = mi->get_transformation().get_matrix();
+    const Transform3d    instance_trafo_not_translate = mi->get_transformation().get_matrix_no_offset();
+
+    std::vector<Transform3d> trafo_matrices, trafo_matrices_not_translate;
+    for (const ModelVolume *mv : mo->volumes) {
+        if (!mv->is_model_part()) continue;
+        trafo_matrices.emplace_back(instance_trafo * mv->get_matrix());
+        trafo_matrices_not_translate.emplace_back(instance_trafo_not_translate * mv->get_matrix_no_offset());
+    }
+
+    // Bounding box of the polygon points in screen space — sample inside it.
+    Vec2d pmin = m_polygon_points.front(), pmax = m_polygon_points.front();
+    for (const Vec2d &p : m_polygon_points) {
+        pmin.x() = std::min(pmin.x(), p.x()); pmin.y() = std::min(pmin.y(), p.y());
+        pmax.x() = std::max(pmax.x(), p.x()); pmax.y() = std::max(pmax.y(), p.y());
+    }
+    const EnforcerBlockerType new_state = enforcer ? get_left_button_state_type()
+                                                   : get_right_button_state_type();
+    const double step    = 8.0;
+    bool         painted = false;
+    for (double y = pmin.y(); y <= pmax.y() + 0.5; y += step) {
+        for (double x = pmin.x(); x <= pmax.x() + 0.5; x += step) {
+            const Vec2d s(x, y);
+            if (!point_in_polygon(s, m_polygon_points)) continue;
+            update_raycast_cache(s, camera, trafo_matrices);
+            if (m_rr.mesh_id < 0) continue;
+            const int mid = m_rr.mesh_id;
+            const Transform3d &trafo_m    = trafo_matrices[mid];
+            const Transform3d &trafo_no_t = trafo_matrices_not_translate[mid];
+            const Vec3f cam_pos_mesh      = (trafo_m.inverse() * camera.get_position()).cast<float>();
+            const TriangleSelector::ClippingPlane &clp = get_clipping_plane_in_volume_coordinates(trafo_m);
+            std::unique_ptr<TriangleSelector::Cursor> cursor =
+                TriangleSelector::SinglePointCursor::cursor_factory(
+                    m_rr.hit, cam_pos_mesh, m_cursor_radius,
+                    TriangleSelector::CursorType::CIRCLE, trafo_m, clp);
+            m_triangle_selectors[mid]->select_patch(
+                int(m_rr.facet), std::move(cursor), new_state, trafo_no_t,
+                m_triangle_splitting_enabled,
+                m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f);
+            m_triangle_selectors[mid]->request_update_render_data(true);
+            painted = true;
+        }
+    }
+    m_polygon_points.clear();
+    m_parent.set_as_dirty();
+    return painted;
 }
 
 } // namespace Slic3r::GUI
