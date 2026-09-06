@@ -1,0 +1,19 @@
+{
+    "type": "machine",
+    "name": "KINARB 1HB 0.5 nozzle",
+    "setting_id": "KINARB 1HB 0.5 nozzle",
+    "instantiation": "true",
+    "printer_model": "KINARB 1HB",
+    "inherits": "kinarb_machine_common",
+    "from": "system",
+    "printer_variant": "0.5",
+    "nozzle_diameter": [
+        "0.5"
+    ],
+    "default_print_profile": "0.25mm Draft @Pragostroj 0.5",
+    "default_filament_profile": [
+        "Fillamentum PLA Concret Grey @Pragostroj 330 AWD 0.4 nozzle"
+    ],
+    "is_custom_defined": "1",
+    "version": "2.2.0.4"
+}
