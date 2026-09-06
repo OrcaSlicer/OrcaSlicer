@@ -193,6 +193,11 @@ public:
     void data_changed(bool is_serializing) override;
     virtual bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
 
+    // Orca: adjusts the active tool's brush parameter (cursor radius, height range,
+    // smart-fill angle or gap-fill area, depending on the current tool/cursor type) by one step.
+    // Shared by the Ctrl+MouseWheel handler and the '[' / ']' keyboard shortcuts.
+    bool change_tool_size(bool increase);
+
     // Following function renders the triangles and cursor. Having this separated
     // from usual on_render method allows to render them before transparent
     // objects, so they can be seen inside them. The usual on_render is called
@@ -277,6 +282,8 @@ protected:
     bool     m_triangle_splitting_enabled = true;
     ToolType m_tool_type                  = ToolType::BRUSH;
     float    m_smart_fill_angle           = 30.f;
+    // Orca: despeckle the Smart Fill selection boundary (see TriangleSelector::smooth_seed_fill_boundary).
+    bool     m_smart_fill_smooth_edges    = true;
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
