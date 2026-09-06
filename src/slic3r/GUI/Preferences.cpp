@@ -1816,6 +1816,12 @@ void PreferencesDialog::create_items()
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
 
+    auto item_disable_3dmouse = create_item_checkbox(
+        _L("Disable 3D mouse support"),
+        _L("Disables 3D mouse device detection and input."),
+        "disable_3dmouse", _L("(Requires restart)"));
+    g_sizer->Add(item_disable_3dmouse);
+
     std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
     auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_left_mouse_drag);
