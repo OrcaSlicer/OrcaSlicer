@@ -5,12 +5,16 @@
 
 #include "../libslic3r.h"
 
+#include <functional>
+#include <map>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
 #include "../FilamentGroup.hpp"
+#include "../FilamentMixer.hpp"
 #include "../MultiNozzleUtils.hpp"
 #include "../ExtrusionEntity.hpp"
+#include "../ObjectID.hpp"
 #include "../PrintConfig.hpp"
 
 namespace Slic3r {
@@ -172,6 +176,65 @@ public:
     // Custom G-code (color change, extruder switch, pause) to be performed before this layer starts to print.
     const CustomGCode::Item    *custom_gcode = nullptr;
 
+    // 0-based mixed filament slot → 0-based resolved physical filament for this layer.
+    // Populated by ToolOrdering::resolve_mixed_filaments(). Empty when no mixed filaments.
+    std::map<unsigned int, unsigned int> mixed_filament_resolution;
+
+    unsigned int resolve_mixed(unsigned int filament_0based) const {
+        auto it = mixed_filament_resolution.find(filament_0based);
+        return (it != mixed_filament_resolution.end()) ? it->second : filament_0based;
+    }
+
+    struct MixedSubLayerGroup {
+        unsigned int              mixed_slot_0based;
+        std::vector<unsigned int> components_0based;
+        std::vector<double>       sub_heights;       // per-component, sum ≈ layer_height
+        double                    layer_height = 0.;  // the actual lh used to compute sub_heights
+        bool                      is_gradient = false;
+        int                       gradient_first_sorted_idx = 0; // index of "first" config component after sorting
+
+        struct ObjectGradient {
+            size_t        total_layers;
+            size_t        current_idx;
+            double        gradient_start;
+            double        gradient_end;
+            GradientCurve curve;    // empty -> linear fallback (start, end); non-empty wins
+        };
+        std::map<const PrintObject*, ObjectGradient> per_object_gradient;
+
+        // Per-volume gradient: same metadata layout as ObjectGradient but keyed by
+        // (PrintObject*, ModelVolume id). Populated only when filament_mixed_gradient_per_part is
+        // enabled for this slot AND the corresponding ModelObject contains >=2 model-part volumes
+        // using this slot. When non-empty for a given (PrintObject*), GCode emission takes the
+        // per-volume path for tagged regions; untagged regions (modifier/painted/fuzzy_skin) still
+        // use per_object_gradient. Both maps are populated in parallel to keep run states correct.
+        struct VolumeKey {
+            const PrintObject* obj;
+            ObjectID           volume_id;
+            bool operator<(const VolumeKey &o) const {
+                if (obj != o.obj) return std::less<const PrintObject*>{}(obj, o.obj);
+                return volume_id < o.volume_id;
+            }
+            bool operator==(const VolumeKey &o) const {
+                return obj == o.obj && volume_id == o.volume_id;
+            }
+        };
+        using VolumeGradient = ObjectGradient;
+        std::map<VolumeKey, VolumeGradient> per_volume_gradient;
+    };
+    std::vector<MixedSubLayerGroup> mixed_sub_layer_groups;
+
+    const MixedSubLayerGroup* mixed_group_by_slot(unsigned int slot_id) const {
+        for (const auto &g : mixed_sub_layer_groups)
+            if (g.mixed_slot_0based == slot_id)
+                return &g;
+        return nullptr;
+    }
+
+    bool is_mixed_slot(unsigned int slot_id) const {
+        return mixed_group_by_slot(slot_id) != nullptr;
+    }
+
     WipingExtrusions& wiping_extrusions() {
         m_wiping_extrusions.set_layer_tools_ptr(this);
         return m_wiping_extrusions;
@@ -227,6 +290,9 @@ public:
 
     // For a multi-material print, the printing extruders are ordered in the order they shall be primed.
     const std::vector<unsigned int>& all_extruders() const { return m_all_printing_extruders; }
+    // 0-based mixed (virtual) slots that appeared on layers before resolve_mixed_filaments
+    // expanded them to physical components.
+    const std::vector<unsigned int>& used_mixed_filaments() const { return m_used_mixed_filaments; }
 
     // Find LayerTools with the closest print_z.
     const LayerTools&	tools_for_layer(coordf_t print_z) const;
@@ -299,6 +365,8 @@ private:
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
     void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);
+    void                resolve_mixed_filaments(const PrintConfig &config);
+    void                enforce_mixed_component_order();
 
     // BBS
     std::vector<unsigned int> generate_first_layer_tool_order(const Print& print);
@@ -311,8 +379,26 @@ private:
     unsigned int               m_last_printing_extruder  = (unsigned int)-1;
     // All extruders, which extrude some material over m_layer_tools.
     std::vector<unsigned int>  m_all_printing_extruders;
+    std::vector<unsigned int>  m_used_mixed_filaments;
     const DynamicPrintConfig*  m_print_full_config = nullptr;
     const PrintConfig*         m_print_config_ptr = nullptr;
+
+    // Per-object gradient tracking: slot(0-based) -> PrintObject* -> list of layer indices
+    // where that object uses the slot. Populated by collect_extruders, consumed by resolve_mixed_filaments.
+    std::map<unsigned int, std::map<const PrintObject*, std::vector<size_t>>> m_mixed_object_layers;
+
+    // All layer indices (in m_layer_tools) where each object has any layer.
+    // Used by gradient run detection to distinguish real gaps (object has a layer
+    // that doesn't use the slot) from spurious gaps (another object's layer).
+    std::map<const PrintObject*, std::vector<size_t>> m_object_all_layer_indices;
+
+    // Per-volume gradient tracking: slot(0-based) -> (PrintObject*, ModelVolume id) -> list of
+    // layer indices where the given volume contributes to the slot. Populated by collect_extruders
+    // alongside m_mixed_object_layers when per_part gradient is enabled for the slot AND the
+    // ModelObject has >=2 model-part volumes using the slot. Empty for all other configurations,
+    // which keeps every legacy per-object code path bit-identical (loops over an empty map are
+    // no-ops; downstream emission falls through to the per-object branch).
+    std::map<unsigned int, std::map<LayerTools::MixedSubLayerGroup::VolumeKey, std::vector<size_t>>> m_gradient_volume_layers;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;

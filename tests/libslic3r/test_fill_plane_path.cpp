@@ -27,6 +27,31 @@ public:
     }
 };
 
+class TestableOctagramSpiral : public FillOctagramSpiral
+{
+public:
+    Points generate_points(double resolution, double smooth_factor = 0., coord_t max_coordinate = 7)
+    {
+        InfillPolylineOutput output(output_scale);
+        FillParams params;
+        params.smooth_factor = smooth_factor;
+        FillOctagramSpiral::generate(-max_coordinate, -max_coordinate, max_coordinate, max_coordinate, resolution, params, output);
+        return std::move(output.result());
+    }
+};
+
+// Cosine of the sharpest turn of a path, 1 meaning it has no turn at all.
+double sharpest_turn_cosine(const Points &points)
+{
+    double sharpest = 1.;
+    for (size_t i = 1; i + 1 < points.size(); ++i) {
+        const Vec2d incoming = (points[i] - points[i - 1]).cast<double>().normalized();
+        const Vec2d outgoing = (points[i + 1] - points[i]).cast<double>().normalized();
+        sharpest = std::min(sharpest, incoming.dot(outgoing));
+    }
+    return sharpest;
+}
+
 double path_length(const Points &points)
 {
     double length = 0.;
@@ -144,6 +169,35 @@ TEST_CASE("Hilbert smoothing joins straight segments with continuous curvature",
     const double fine_entry_curvature   = discrete_curvature_at(fine, first_curve_entry);
     REQUIRE(coarse_entry_curvature > 0.);
     REQUIRE(fine_entry_curvature < 0.25 * coarse_entry_curvature);
+}
+
+TEST_CASE("Octagram spiral smoothing rounds the turns of the spiral", "[FillPlanePath]")
+{
+    const Points sharp  = TestableOctagramSpiral().generate_points(0.005);
+    const Points smooth = TestableOctagramSpiral().generate_points(0.005, 1.);
+
+    REQUIRE(smooth.size() > sharp.size());
+    REQUIRE(smooth.front() == sharp.front());
+    REQUIRE(smooth.back() == sharp.back());
+    // The spiral alternates between 90 and 135 degree turns; both are rounded into gentle ones.
+    REQUIRE(sharpest_turn_cosine(sharp) < -0.7);
+    REQUIRE(sharpest_turn_cosine(smooth) > 0.9);
+
+    for (size_t i = 1; i < smooth.size(); ++i)
+        REQUIRE((smooth[i] - smooth[i - 1]).cast<double>().squaredNorm() > 0.);
+}
+
+TEST_CASE("Octagram spiral smooth factor controls corner curvature", "[FillPlanePath]")
+{
+    const Points sharp          = TestableOctagramSpiral().generate_points(0.005);
+    const Points half_smooth    = TestableOctagramSpiral().generate_points(0.005, 0.5);
+    const Points full_smooth    = TestableOctagramSpiral().generate_points(0.005, 1.);
+    const Points invalid_factor = TestableOctagramSpiral().generate_points(
+        0.005, std::numeric_limits<double>::quiet_NaN());
+
+    REQUIRE(path_length(full_smooth) < path_length(half_smooth));
+    REQUIRE(path_length(half_smooth) < path_length(sharp));
+    REQUIRE(invalid_factor == sharp);
 }
 
 TEST_CASE("Hilbert curve smooth factor controls corner curvature", "[FillPlanePath]")

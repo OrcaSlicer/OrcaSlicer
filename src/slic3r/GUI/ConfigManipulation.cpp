@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <wx/msgdlg.h>
 
@@ -250,6 +251,59 @@ void ConfigManipulation::check_chamber_minimal_temperature(DynamicPrintConfig* c
     }
 }
 
+void ConfigManipulation::layer_height_limits(double& min_layer_height, double& max_layer_height) const
+{
+    const DynamicPrintConfig& printer_config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const std::vector<double>& min_limits = printer_config.option<ConfigOptionFloats>("min_layer_height")->values;
+    const std::vector<double>& max_limits = printer_config.option<ConfigOptionFloats>("max_layer_height")->values;
+    min_layer_height = *std::min_element(min_limits.begin(), min_limits.end());
+    max_layer_height = *std::max_element(max_limits.begin(), max_limits.end());
+}
+
+bool ConfigManipulation::check_layer_height(DynamicPrintConfig* config)
+{
+    double min_layer_height = 0., max_layer_height = 0.;
+    layer_height_limits(min_layer_height, max_layer_height);
+    const double layer_height = config->opt_float("layer_height");
+
+    if (min_layer_height > EPSILON && layer_height < EPSILON) {
+        const wxString msg_text = wxString::Format(_L("Layer height is too small. It will be set to the minimum (%g mm)."), min_layer_height);
+        MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxOK);
+        dialog.SetButtonLabel(wxID_OK, _L("OK"));
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("layer_height", new ConfigOptionFloat(min_layer_height));
+        apply(config, &new_conf);
+        return true;
+    }
+    if (max_layer_height > EPSILON && layer_height > max_layer_height + EPSILON)
+        return layer_height_out_of_range_dialog(config, max_layer_height);
+    if (min_layer_height > EPSILON && layer_height < min_layer_height - EPSILON)
+        return layer_height_out_of_range_dialog(config, min_layer_height);
+    return false;
+}
+
+bool ConfigManipulation::layer_height_out_of_range_dialog(DynamicPrintConfig* config, double clamp_to)
+{
+    wxString msg_text = _(L("Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, "
+                            "this may cause printing quality issues."));
+    msg_text += "\n\n" + wxString::Format(_L("Adjust it to the limit (%g mm) automatically?"), clamp_to);
+    MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
+    dialog.SetButtonLabel(wxID_YES, _L("Adjust"));
+    dialog.SetButtonLabel(wxID_NO, _L("Ignore"));
+    is_msg_dlg_already_exist = true;
+    const bool adjust = dialog.ShowModal() == wxID_YES;
+    if (adjust) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("layer_height", new ConfigOptionFloat(clamp_to));
+        apply(config, &new_conf);
+    }
+    is_msg_dlg_already_exist = false;
+    return adjust;
+}
+
 void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config, const bool is_plate_config)
 {
     // #ys_FIXME_to_delete
@@ -264,7 +318,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     // layer_height shouldn't be equal to zero
     auto layer_height = config->opt_float("layer_height");
-    auto gpreset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
     if (layer_height < EPSILON)
     {
         const wxString msg_text = _(L("Layer height too small\nIt has been reset to 0.2"));
@@ -273,20 +326,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = true;
         dialog.ShowModal();
         new_conf.set_key_value("layer_height", new ConfigOptionFloat(0.2));
-        apply(config, &new_conf);
-        is_msg_dlg_already_exist = false;
-    }
-
-    //BBS: limite the max layer_herght
-    auto max_lh = gpreset.config.opt_float("max_layer_height",0);
-    if (max_lh > 0.2 && layer_height > max_lh+ EPSILON)
-    {
-        const wxString msg_text = wxString::Format(L"Too large layer height.\nReset to %0.3f.", max_lh);
-        MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
-        DynamicPrintConfig new_conf = *config;
-        is_msg_dlg_already_exist = true;
-        dialog.ShowModal();
-        new_conf.set_key_value("layer_height", new ConfigOptionFloat(max_lh));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
@@ -414,7 +453,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->opt_bool("alternate_extra_wall") &&
         (config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstAll)) {
-        wxString msg_text = _(L("Alternate extra wall does't work well when ensure vertical shell thickness is set to All."));
+        wxString msg_text = _(L("Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."));
 
         if (is_global_config)
             msg_text += "\n\n" + _(L("Change these settings automatically?\n"
@@ -538,27 +577,72 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    static const char* keys[] = { "support_filament", "support_interface_filament"};
-    for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        std::string key = std::string(keys[i]);
+    // Reset filament overrides pointing at a slot that no longer exists. Support and the wipe
+    // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
+    // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
+    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament" };
+    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
+                                          "sparse_infill_filament_id", "internal_solid_filament_id",
+                                          "top_surface_filament_id", "bottom_surface_filament_id" };
+    auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
-        if (opt != nullptr) {
-            if (opt->getInt() > filament_cnt) {
-                DynamicPrintConfig new_conf = *config;
-                const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
-                int new_value = 0;
-                if (conf_temp != nullptr && conf_temp->has(key)) {
-                    new_value = conf_temp->opt_int(key);
+        if (opt == nullptr)
+            return;
+        const int  val          = opt->getInt();
+        const bool out_of_range = val > filament_cnt;
+        const bool is_mixed     = !allow_mixed && val > 0 && val <= filament_cnt &&
+                                  wxGetApp().preset_bundle->is_mixed_filament(val - 1);
+        if (!out_of_range && !is_mixed)
+            return;
+        DynamicPrintConfig new_conf = *config;
+        int new_value = 0;
+        if (out_of_range) {
+            const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
+            if (conf_temp != nullptr && conf_temp->has(key))
+                new_value = conf_temp->opt_int(key);
+        }
+        new_conf.set_key_value(key, new ConfigOptionInt(new_value));
+        apply(config, &new_conf);
+    };
+    for (const char* key : physical_only_keys)
+        reset_invalid_filament(key, false);
+    for (const char* key : feature_keys)
+        reset_invalid_filament(key, true);
+
+    // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
+    // those sub-layer heights vary per layer, which degrades the blend. Warn once per enable.
+    {
+        static bool s_mixed_sublayer_warned = false;
+        bool sublayer_on = config->opt_bool("enable_mixed_color_sublayer");
+        if (sublayer_on && !s_mixed_sublayer_warned &&
+            wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            bool has_variable_layer = false;
+            for (const auto* obj : wxGetApp().model().objects) {
+                if (obj->layer_height_profile.get().size() > 4) {
+                    has_variable_layer = true;
+                    break;
                 }
-                new_conf.set_key_value(key, new ConfigOptionInt(new_value));
-                apply(config, &new_conf);
+            }
+            if (has_variable_layer) {
+                MessageDialog dialog(m_msg_dlg_parent,
+                    _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                    "", wxICON_WARNING | wxOK);
+                dialog.show_dsa_button();
+                is_msg_dlg_already_exist = true;
+                dialog.ShowModal();
+                is_msg_dlg_already_exist = false;
+                if (dialog.get_checkbox_state())
+                    wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+                s_mixed_sublayer_warned = true;
             }
         }
+        if (!sublayer_on)
+            s_mixed_sublayer_warned = false;
     }
 
     if (config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None &&
         config->get_abs_value("seam_slope_start_height") >= layer_height) {
-        const wxString     msg_text = _(L("seam_slope_start_height need to be smaller than layer_height.\nReset to 0."));
+        const wxString     msg_text = _(L("seam_slope_start_height needs to be smaller than layer_height.\nReset to 0."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -572,7 +656,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     float skin_depth = config->opt_float("skin_infill_depth");
     if (config->opt_float("infill_lock_depth") > skin_depth) {
         // xgettext:no-c-format, no-boost-format
-        const wxString     msg_text = _(L("Lock depth should smaller than skin depth.\nReset to 50% of skin depth."));
+        const wxString     msg_text = _(L("Lock depth should be smaller than skin depth.\nReset to 50% of skin depth."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -713,7 +797,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_top_shell    = has_top_shell_layers && config->option<ConfigOptionPercent>("top_surface_density")->value > 0;
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
     bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
-    toggle_line("sparse_infill_smooth_factor", pattern == ipHilbertCurve);
+    toggle_line("sparse_infill_smooth_factor", is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")));
     toggle_field("top_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell_layers);

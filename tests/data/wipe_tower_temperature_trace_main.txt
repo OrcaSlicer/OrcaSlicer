@@ -2,6 +2,11 @@
 # captured from the main branch at a10d9e77cf. Regeneration is described
 # at the test that reads this file: "Toolchange temperature commands are unchanged
 # when the wipe tower wait is off" in tests/fff_print/test_multifilament.cpp.
+#
+# The "time:" and "lead" values are toolchain-specific -- GCC, Clang and MSVC each produce
+# slightly different estimates from an identical toolpath -- so they are compared with a
+# tolerance, not exactly. Do not regenerate this file to resolve a mismatch in them: no single
+# capture satisfies all three, and recapturing just moves the failure to other platforms.
 M104 S215 T0 ; set nozzle temperature
 M104 S215 T1 ; set nozzle temperature
 ; CP PRIMING START

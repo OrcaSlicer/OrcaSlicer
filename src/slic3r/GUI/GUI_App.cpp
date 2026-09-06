@@ -9,6 +9,7 @@
 #include "slic3r/GUI/TaskManager.hpp"
 #include "format.hpp"
 #include "libslic3r_version.h"
+#include "BuildCommit.hpp"
 #include "Downloader.hpp"
 #include <boost/chrono/duration.hpp>
 #include <boost/log/detail/native_typeof.hpp>
@@ -521,10 +522,10 @@ static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
     /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
-    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".gltf"sv, ".glb"sv, ".fbx"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
 #else
     /* FT_MODEL */
-    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".gltf"sv, ".glb"sv, ".fbx"sv, ".drc"sv}},
 #endif
     /* FT_ZIP */     { L("ZIP files"),       { ".zip"sv } },
     /* FT_PROJECT */ { L("Project files"),   { ".3mf"sv} },
@@ -813,12 +814,12 @@ void GUI_App::post_init()
             m_open_method = "url";
         } else {
             if (this->init_params->input_gcode) {
-                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+                mainframe->select_tab(TAB_ID_PREPARE);
                 plater_->select_view_3D("3D");
                 this->plater()->load_gcode(from_u8(this->init_params->input_files.front()));
                 m_open_method = "gcode";
             } else {
-                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+                mainframe->select_tab(TAB_ID_PREPARE);
                 plater_->select_view_3D("3D");
                 wxArrayString input_files;
                 for (auto& file : this->init_params->input_files) {
@@ -852,7 +853,7 @@ void GUI_App::post_init()
         mainframe->Freeze();
 #endif
         plater_->canvas3D()->enable_render(false);
-        mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+        mainframe->select_tab(TAB_ID_PREPARE);
         plater_->select_view_3D("3D");
         //BBS init the opengl resource here
         if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
@@ -890,9 +891,9 @@ void GUI_App::post_init()
             }
         }
         if (is_editor())
-            mainframe->select_tab(size_t(0));
+            mainframe->select_tab(TAB_ID_HOME);
         if (app_config->get("default_page") == "1")
-            mainframe->select_tab(size_t(1));
+            mainframe->select_tab(TAB_ID_PREPARE);
 #ifndef __linux__
         mainframe->Thaw();
 #endif
@@ -1829,10 +1830,10 @@ bool GUI_App::hot_reload_network_plugin()
     wxWindowDisabler disabler;
 
     if (mainframe) {
-        int current_tab = mainframe->m_tabpanel->GetSelection();
-        if (current_tab == MainFrame::TabPosition::tpMonitor) {
+        wxString current_tab = mainframe->m_tabpanel->GetSelectedPageName();
+        if (current_tab == TAB_ID_MONITOR) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": navigating away from Monitor tab before unload";
-            mainframe->m_tabpanel->SetSelection(MainFrame::TabPosition::tp3DEditor);
+            mainframe->m_tabpanel->SelectPageByName(TAB_ID_PREPARE);
         }
     }
 
@@ -2166,7 +2167,6 @@ void GUI_App::init_networking_callbacks()
                     obj->is_tunnel_mqtt = tunnel;
                     obj->command_request_push_all(true);
                     obj->command_get_version();
-                    obj->erase_user_access_code();
                     obj->command_get_access_code();
                     if (m_agent)
                         m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
@@ -2216,7 +2216,6 @@ void GUI_App::init_networking_callbacks()
                                 wxString text;
                                 if (msg == "5") {
                                     obj->set_access_code("");
-                                    obj->erase_user_access_code();
                                     text = wxString::Format(_L("Incorrect password"));
                                     wxGetApp().show_dialog(text);
                                 } else {
@@ -2582,7 +2581,7 @@ void GUI_App::init_app_config()
     set_log_path_and_level(log_filename, 3);
 #endif
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % GIT_COMMIT_HASH;
+    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % build_commit_label;
 
     //BBS: remove GCodeViewer as seperate APP logic
 	if (!app_config)
@@ -2643,7 +2642,7 @@ std::string GUI_App::get_bbl_client_version()
 void GUI_App::on_start_subscribe_again(std::string dev_id)
 {
     auto start_subscribe_timer = new wxTimer(this, wxID_ANY);
-    Bind(wxEVT_TIMER, [this, start_subscribe_timer, dev_id](auto& e) {
+    Bind(wxEVT_TIMER, [start_subscribe_timer, dev_id](auto& e) {
         start_subscribe_timer->Stop();
         Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (!dev) return;
@@ -2853,6 +2852,16 @@ void GUI_App::init_plugin_gui_wiring()
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
     plugin_mgr.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
+        if (wxTheApp == nullptr || wxGetApp().is_closing() || wxGetApp().mainframe == nullptr)
+            return;
+        wxGetApp().mainframe->plugin_pages().on_plugin_register(plugin_key);
+    });
+    plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
+        if (wxTheApp == nullptr || wxGetApp().is_closing() || wxGetApp().mainframe == nullptr)
+            return;
+        wxGetApp().mainframe->plugin_pages().on_plugin_deregister(plugin_key);
+    });
     plugin_mgr.subscribe_on_load_callback(refresh_printer_agent_dropdown_after_load);
     plugin_mgr.subscribe_on_unload_callback(switch_printer_agent_after_unload);
     plugin_mgr.subscribe_on_capability_load_callback(
@@ -2868,11 +2877,15 @@ void GUI_App::init_plugin_gui_wiring()
                     if (Plater* plater = wxGetApp().plater())
                         plater->revalidate_current_plate_if_plugins_missing();
                 });
+            if (capability.type == PluginCapabilityType::Pages && wxTheApp && !wxGetApp().is_closing() && wxGetApp().mainframe)
+                wxGetApp().mainframe->plugin_pages().on_cap_register(capability);
         });
     plugin_mgr.subscribe_on_capability_unload_callback(
         [refresh_plugins_dialog, switch_printer_agent_after_unload](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
+            if (capability.type == PluginCapabilityType::Pages && wxTheApp && !wxGetApp().is_closing() && wxGetApp().mainframe)
+                wxGetApp().mainframe->plugin_pages().on_cap_deregister(capability);
             refresh_plugins_dialog();
             switch_printer_agent_after_unload(capability.plugin_key);
         });
@@ -3219,7 +3232,7 @@ bool GUI_App::on_init_inner()
                 }
             });
 
-        Bind(EVT_SHOW_NO_NEW_VERSION, [this](const wxCommandEvent& evt) {
+        Bind(EVT_SHOW_NO_NEW_VERSION, [](const wxCommandEvent& evt) {
             wxString msg = _L("This is the newest version.");
             InfoDialog dlg(nullptr, _L("Info"), msg);
             dlg.ShowModal();
@@ -3275,14 +3288,11 @@ bool GUI_App::on_init_inner()
         }
     } */
 
-    copy_network_if_available();
 
     if (scrn) {
         scrn->SetText(_L("Loading Plugins") + dots, 20);
         wxYield();
     }
-
-    on_init_network();
 
     // Initialize plugins after network then register on_load callbacks so once the plugin loads finish, it gets registered automatically.
     // initialize() also installs the libslic3r hooks (capability resolver,
@@ -3311,6 +3321,9 @@ bool GUI_App::on_init_inner()
             BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
         }
     }
+
+    copy_network_if_available();
+    on_init_network();
 
     if (m_agent)
         plugin_mgr.set_cloud_agent(std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent()));
@@ -3384,7 +3397,7 @@ bool GUI_App::on_init_inner()
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
     if (is_editor()) {
-        mainframe->select_tab(size_t(0));
+        mainframe->select_tab(TAB_ID_HOME);
     }
 
     sidebar().obj_list()->init();
@@ -3939,7 +3952,13 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
         m_agent->set_user_selected_machine("");
         // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
         dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
-        dev->clear_other_devices(); // why: drop stale LAN discoveries; keep My Devices
+        // why: drop stale LAN discoveries; keep My Devices, but only those belonging to the
+        // agent we're about to swap to, so a device stamped by the outgoing agent doesn't
+        // linger hidden - the new agent's start_discovery re-inserts and re-stamps it fresh.
+        // agent is null when clearing the live agent entirely (e.g. plugin unload); there's no
+        // target to filter against then, so fall back to the original "keep all My Devices"
+        // behavior rather than guessing.
+        dev->clear_other_devices(agent ? agent->get_agent_info().id : std::string());
     }
 
     m_agent->set_printer_agent(agent);
@@ -4592,7 +4611,7 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     mainframe = new MainFrame();
     if (is_editor())
         // hide settings tabs after first Layout
-        mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+        mainframe->select_tab(TAB_ID_PREPARE);
     // Propagate model objects to object list.
     sidebar().obj_list()->init();
     //sidebar().aux_list()->init_auxiliary();
@@ -5238,7 +5257,7 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 }
             }
             else if (command_str.compare("begin_network_plugin_download") == 0) {
-                CallAfter([this] { wxGetApp().ShowDownNetPluginDlg(); });
+                CallAfter([] { wxGetApp().ShowDownNetPluginDlg(); });
             }
             else if (command_str.compare("get_web_shortcut") == 0) {
                 if (root.get_child_optional("key_event") != boost::none) {
@@ -6799,6 +6818,12 @@ void GUI_App::add_pending_vendor_preset(const std::pair<std::string, std::map<st
 
     // Add the corresponding vendor
     std::string vendor_name = PresetBundle::find_preset_vendor(inherits_name, type);
+    if (vendor_name.empty()) {
+        // No vendor ships this preset's parent. An unnamed entry here becomes an
+        // unnamed bundle at install time, which nothing can install.
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no vendor carries " << inherits_name << ", skipping";
+        return;
+    }
     if (need_add_vendors.find(vendor_name) == need_add_vendors.end())
         need_add_vendors[vendor_name] = std::map<std::string, std::set<std::string>>();
 
@@ -8273,7 +8298,7 @@ bool GUI_App::show_modal_ip_address_enter_dialog(bool input_sn, wxString title)
     dlg.set_machine_obj(obj);
     if (!title.empty()) dlg.update_title(title);
 
-    dlg.Bind(EVT_ENTER_IP_ADDRESS, [this, obj](wxCommandEvent& e) {
+    dlg.Bind(EVT_ENTER_IP_ADDRESS, [obj](wxCommandEvent& e) {
         auto selection_data_arr = wxSplit(e.GetString().ToStdString(), '|');
 
         if (selection_data_arr.size() == 2) {
@@ -8286,7 +8311,7 @@ bool GUI_App::show_modal_ip_address_enter_dialog(bool input_sn, wxString title)
                 wxGetApp().app_config->save();
 
                 obj->set_dev_ip(ip_address.ToStdString());
-                obj->set_user_access_code(access_code.ToStdString());
+                obj->set_access_code(access_code.ToStdString());
             }
         }
     });
@@ -8753,7 +8778,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
         if (!no_need_change && dlg.ShowModal() == wxID_CANCEL)
             return false;
 
-        auto reset_modifications = [this, is_called_from_configwizard]() {
+        auto reset_modifications = [this]() {
             //if (is_called_from_configwizard)
             //    return; // no need to discared changes. It will be done fromConfigWizard closing
 
@@ -8881,7 +8906,17 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
-            preset_bundle->set_num_filaments(nozzle_diameter->values.size());
+            // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no
+            // nozzle of their own and the count has to allow for them. Only ever grow: this sizes
+            // the list so the combo boxes have something to bind to, and set_num_filaments() trims
+            // at the raw tail, so shrinking here would eat the mixes rather than the surplus
+            // physical slots. A list longer than the nozzle count is a state the app reaches
+            // legitimately - raising the extruder count and not saving the printer preset leaves
+            // exactly that on the next start - and losing the project's mixes to it is worse than
+            // carrying a filament the printer has no nozzle for until the count is next changed.
+            const size_t target = nozzle_diameter->values.size() + preset_bundle->num_mixed_filaments();
+            if (target > preset_bundle->filament_presets.size())
+                preset_bundle->set_num_filaments(target);
         }
     }
 	this->plater()->set_printer_technology(printer_technology);
@@ -9851,7 +9886,7 @@ bool GUI_App::check_url_association(std::wstring url_prefix, std::wstring& reg_b
 {
     reg_bin = L"";
 #ifdef WIN32
-    wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
+    wxRegKey key_full(wxRegKey::HKCU, L"Software\\Classes\\" + url_prefix + L"\\shell\\open\\command");
     if (!key_full.Exists()) {
         return false;
     }
@@ -9877,8 +9912,8 @@ void GUI_App::associate_url(std::wstring url_prefix)
 
     wxString key_string = "\"" + wbinary + "\" \"%1\"";
 
-    wxRegKey key_first(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix);
-    wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
+    wxRegKey key_first(wxRegKey::HKCU, L"Software\\Classes\\" + url_prefix);
+    wxRegKey key_full(wxRegKey::HKCU, L"Software\\Classes\\" + url_prefix + L"\\shell\\open\\command");
     if (!key_first.Exists()) {
         key_first.Create(false);
     }
@@ -9898,7 +9933,7 @@ void GUI_App::disassociate_url(std::wstring url_prefix)
 #ifdef WIN32
     if (is_running_in_msix())
         return;
-    wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
+    wxRegKey key_full(wxRegKey::HKCU, L"Software\\Classes\\" + url_prefix + L"\\shell\\open\\command");
     if (!key_full.Exists()) {
         return;
     }

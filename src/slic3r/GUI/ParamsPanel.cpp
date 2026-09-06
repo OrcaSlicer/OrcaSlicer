@@ -128,7 +128,7 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     m_show_again = wxGetApp().app_config->has(param);
     checkbox->SetValue(m_show_again);
 
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, param](wxCommandEvent &e) {
         m_show_again = m_show_again ? false : true;
         e.Skip();
     });
@@ -290,11 +290,11 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_compare_btn->SetToolTip(_L("Compare presets"));
-        m_compare_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
+        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_setting_btn->SetToolTip(_L("View all object's settings"));
-        m_setting_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
+        m_setting_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
 
         m_highlighter.set_timer_owner(this, 0);
         this->Bind(wxEVT_TIMER, [this](wxTimerEvent &)

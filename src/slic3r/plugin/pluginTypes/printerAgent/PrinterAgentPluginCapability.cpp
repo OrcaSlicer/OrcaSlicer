@@ -13,10 +13,8 @@ namespace py = pybind11;
 
 namespace Slic3r {
 
-void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module, pybind11::enum_<PluginCapabilityType>& pluginTypes)
+void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
 {
-    (void) pluginTypes;
-
     auto printer_agent_module = module.def_submodule("printer_agent", "Printer Agent API");
 
     py::enum_<FilamentSyncMode>(printer_agent_module, "FilamentSyncMode")
