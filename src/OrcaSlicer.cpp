@@ -1993,7 +1993,13 @@ int CLI::run(int argc, char **argv)
             if (from_iter != key_values.end()) {
                 config_from = from_iter->second;
             }
-            if ((config_from != "system")&&(config_from != "User")&&(config_from != "user")) {
+            // Accept "System" as well.  183 of the shipped presets spell it
+            // with a capital S -- every SeeMeCNC profile and one Flashforge --
+            // and were refused here, so none of them could be loaded from the
+            // command line at all.  The user spelling was already accepted
+            // both ways on this very line.
+            if (!boost::iequals(config_from, "system") &&
+                !boost::iequals(config_from, "user")) {
                 boost::nowide::cerr <<__FUNCTION__ << boost::format(":file %1%'s from %2% unsupported") % file % config_from;
                 return CLI_CONFIG_FILE_ERROR;
             }
@@ -2057,7 +2063,7 @@ int CLI::run(int argc, char **argv)
                 flush_and_exit(CLI_CONFIG_FILE_ERROR);
             }
             new_printer_name = config_name;
-            if (config_from == "system") {
+            if (boost::iequals(config_from, "system")) {
                 new_printer_system_name = new_printer_name;
                 new_printer_config_is_system = true;
             }
@@ -2097,7 +2103,7 @@ int CLI::run(int argc, char **argv)
                 flush_and_exit(CLI_CONFIG_FILE_ERROR);
             }
             new_process_name = config_name;
-            if (config_from == "system") {
+            if (boost::iequals(config_from, "system")) {
                 new_process_system_name = new_process_name;
                 new_process_config_is_system = true;
             }
