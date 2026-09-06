@@ -683,6 +683,15 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
+
+    if (config->opt_bool("alternate_internal_walls") && !config->opt_bool("staggered_inner_seams")) {
+        const wxString     msg_text = _(L("Reverse interanal walls should be used with Staggered inner seams option.\n Set to on."));
+        MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+        DynamicPrintConfig new_conf = *config;
+        dialog.ShowModal();
+        new_conf.set_key_value("staggered_inner_seams", new ConfigOptionBool(true));
+        apply(config, &new_conf);
+    }
 }
 
 void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase *, ModelConfig *> const &configs)
@@ -1125,14 +1134,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
     bool allow_overhang_reverse   = !has_spiral_vase;
     toggle_line("overhang_reverse", allow_overhang_reverse);
-    toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse);
-    bool has_overhang_reverse_internal_only = config->opt_bool("overhang_reverse_internal_only");
-    if (has_overhang_reverse_internal_only){
-        DynamicPrintConfig new_conf = *config;
-        new_conf.set_key_value("overhang_reverse_threshold", new ConfigOptionFloatOrPercent(0,true));
-        apply(config, &new_conf);
-    }
-    toggle_line("overhang_reverse_threshold", has_detect_overhang_wall && allow_overhang_reverse && has_overhang_reverse && !has_overhang_reverse_internal_only);
+    toggle_field("alternate_internal_walls", !has_spiral_vase && (config->opt_int("wall_loops") > 1));
+    toggle_line("overhang_reverse_threshold", has_detect_overhang_wall && allow_overhang_reverse && has_overhang_reverse);
     toggle_line("timelapse_type", is_BBL_Printer);
 
 
