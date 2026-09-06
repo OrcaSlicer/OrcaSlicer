@@ -2272,6 +2272,7 @@ Sidebar::Sidebar(Plater *parent)
     p->m_color_mixing_icon = new ScalableButton(p->m_panel_color_mixing_title, wxID_ANY, "filament");
     auto *mix_title = new Label(p->m_panel_color_mixing_title, _L("Color Mixing"), LB_PROPAGATE_MOUSE_EVENT);
     mix_title_sizer->Add(p->m_color_mixing_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+    mix_title->SetToolTip(_L("Mix 5+ are painted on the model (Color Painting), not extra nozzles. Select the object, click Color Painting, then pick Mix 5."));
     mix_title_sizer->Add(mix_title, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
     mix_title_sizer->SetMinSize(-1, FromDIP(30));
     mix_title_sizer->AddStretchSpacer(1);
@@ -2292,7 +2293,7 @@ Sidebar::Sidebar(Plater *parent)
 
     Button *mix_palette = new Button(p->m_panel_color_mixing_title, _L("Palette…"));
     mix_palette->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
-    mix_palette->SetToolTip(_L("Open printable mix palette"));
+    mix_palette->SetToolTip(_L("Browse printable Mix 5+ colors and click to add. Then paint them on the model with Color Painting."));
     mix_palette->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { open_color_mixing_dialog(-1); });
     p->m_bpButton_palette_mix = mix_palette;
 
@@ -2339,6 +2340,11 @@ Sidebar::Sidebar(Plater *parent)
 
     scrolled_sizer->Add(p->m_panel_color_mixing_content, 0,
                         wxEXPAND | wxTOP | wxBOTTOM, FromDIP(SidebarProps::ContentMarginV()));
+    auto *mix_hint = new Label(p->scrolled,
+        _L("Paint Mix 5+ on the model. Select the object → Color Painting → Mix 5."));
+    mix_hint->SetForegroundColour(wxColour(0x6B, 0x6B, 0x6B));
+    scrolled_sizer->Add(mix_hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM,
+                        FromDIP(SidebarProps::ContentMarginV()));
     }
 
     {
@@ -3486,7 +3492,7 @@ void Sidebar::refresh_color_mixing_list()
         p->m_sizer_color_mixing_rows->Add(row, 0, wxEXPAND);
     }
 
-    const int visible = 5;
+    const int visible = 12;
     const int n       = int(rows.size());
     const int h       = std::max(1, std::min(n == 0 ? 1 : n, visible)) * row_h;
     p->m_panel_color_mixing_content->SetMaxSize(wxSize{-1, visible * row_h});
