@@ -16,6 +16,12 @@ public:
 #endif
     static void LoadUrl(wxWebView * webView, wxString const &url);
 
+    // Register a named script message handler on an existing webview, serialized against the
+    // factory's own "wx" registration. Deferred (never re-enters), so it is safe to call during
+    // window construction. Use this instead of wxWebView::AddScriptMessageHandler for factory-created
+    // webviews that need an extra channel (e.g. the Printago tab's "printago").
+    static void AddScriptMessageHandler(wxWebView * webView, wxString const & name);
+
     static bool RunScript(wxWebView * webView, wxString const & msg);
 
     // Marks "wx" as registered so CreateWebView's deferred add skips the duplicate.

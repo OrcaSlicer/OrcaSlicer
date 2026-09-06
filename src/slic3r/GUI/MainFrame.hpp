@@ -360,6 +360,9 @@ public:
     void RunScript(wxString js);
 
     //SoftFever
+    void show_device(bool bBBLPrinter);
+    // Printago: add/remove the Printago web tab (hosting the embedded Printago app).
+    void show_printago(bool show, bool select_tab = false);
     void show_device(bool should_use_native);
     void fit_tab_labels(); // ORCA
     // True while either of the two tabs backed by m_plater is selected.
@@ -390,6 +393,7 @@ public:
     CalibrationPanel*     m_calibration{ nullptr };
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
+    PrinterWebView*       m_printago_view{nullptr};
     PluginPages           m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS

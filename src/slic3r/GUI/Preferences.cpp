@@ -1068,6 +1068,27 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 }
             }
         }
+        else if (param == "enable_printago") {
+            // Enabling shows a consent dialog then opens the Printago tab; disabling hides it.
+            // Do this on CallAfter, NOT inline: opening a modal dialog synchronously inside the
+            // toggle-button handler desyncs the button's value/visual on macOS (the consent prompt
+            // would then appear even when disabling). Deliberately DON'T return early here: the
+            // handler must fall through to the e.Skip() at the end so the CheckBox's own toggle
+            // handler runs update() and repaints the check mark. By CallAfter time the click has
+            // committed, so GetValue() is correct; SetValue() below refreshes the bitmap on revert.
+            CallAfter([this, checkbox]() {
+                if (checkbox->GetValue()) {
+                    if (!wxGetApp().printago_connect(this)) {
+                        // User cancelled consent: revert the toggle (SetValue refreshes the visual).
+                        checkbox->SetValue(false);
+                        app_config->set_bool("enable_printago", false);
+                        app_config->save();
+                    }
+                } else {
+                    wxGetApp().printago_disconnect();
+                }
+            });
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -2001,6 +2022,14 @@ void PreferencesDialog::create_items()
 
     auto item_bambu_cloud     = create_item_bambu_cloud(_L("Enable Bambu Cloud"), _L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
     g_sizer->Add(item_bambu_cloud);
+
+    //// ONLINE > Print Farm Automation
+    g_sizer->Add(create_item_title(_L("Print Farm Automation")), 1, wxEXPAND);
+
+    auto item_enable_printago = create_item_checkbox(_L("Enable Printago"),
+        _L("Connect OrcaSlicer to Printago, a cloud print-farm service. Enabling adds the Printago tab where you sign in to app.printago.io; OrcaSlicer communicates with Printago over the internet. Disabling removes the connection."),
+        "enable_printago");
+    g_sizer->Add(item_enable_printago);
 
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);

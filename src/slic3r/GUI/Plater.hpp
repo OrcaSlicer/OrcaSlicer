@@ -530,6 +530,10 @@ public:
     //BBS
     void publish_project();
 
+    // Export the current project to a temp 3MF and open a Printago webview dialog at the given URL
+    // (e.g. the "Save to Printago" or "Save & Queue to Printago" page).
+    void send_to_printago(const wxString& url);
+
     void reload_from_disk();
     void replace_with_stl();
     void replace_all_with_stl();

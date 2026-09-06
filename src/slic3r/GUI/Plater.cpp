@@ -137,6 +137,7 @@
 #include "MsgDialog.hpp"
 #include "Widgets/MultiNozzleSync.hpp"           // NozzleOption, tryPopUpMultiNozzleDialog, setExtruderNozzleCount
 #include "DeviceCore/DevNozzleSystem.h"          // DevNozzle, GetExtNozzles / GetRackNozzles
+#include "PrintagoSendDialog.hpp"
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
@@ -15155,6 +15156,48 @@ void Plater::load_project(wxString const& filename2,
 }
 
 // BBS: save logic
+void Plater::send_to_printago(const wxString& url)
+{
+    if (model().objects.empty()) {
+        MessageDialog(this, _L("Add a model to the plate before saving to Printago."), _L("Printago"),
+                      wxOK | wxICON_INFORMATION)
+            .ShowModal();
+        return;
+    }
+
+    // Export a full project 3MF (all plates + settings) to a temp file, silently (no dialogs). Mirrors
+    // save_project()'s strategy, plus Silence.
+    namespace fs        = boost::filesystem;
+    const fs::path tmp  = fs::temp_directory_path() / (fs::unique_path().string() + ".3mf");
+    const auto  strategy = SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::ShareMesh;
+    if (export_3mf(tmp, strategy) < 0) {
+        MessageDialog(this, _L("Failed to export the project for Printago."), _L("Printago"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        boost::system::error_code ec;
+        fs::remove(tmp, ec);
+        return;
+    }
+
+    GUI::PrintagoProject project;
+    project.file_path = tmp.string();
+    const wxString proj_file = get_project_filename(".3mf");
+    project.file_name = proj_file.IsEmpty() ? into_u8(get_project_name()) + ".3mf"
+                                            : fs::path(into_u8(proj_file)).filename().string();
+    project.project_name = into_u8(get_project_name());
+    boost::system::error_code size_ec;
+    project.file_size_bytes = static_cast<unsigned long long>(fs::file_size(tmp, size_ec));
+    project.plate_count     = get_partplate_list().get_plate_count();
+
+    {
+        GUI::PrintagoSendDialog dlg(this, project, url);
+        dlg.ShowModal();
+    }
+
+    // The temp 3MF has served its purpose (uploaded natively while the dialog was open).
+    boost::system::error_code rm_ec;
+    fs::remove(tmp, rm_ec);
+}
+
 int Plater::save_project(bool saveAs)
 {
     //if (up_to_date(false, false)) // should we always save
@@ -15191,6 +15234,14 @@ int Plater::save_project(bool saveAs)
 
     wxGetApp().update_saved_preset_from_current_preset();
     reset_project_dirty_after_save();
+
+    // Printago "replace on save": a plain Save of an active Edit-in-Orca session pushes the changes
+    // back to the linked part via the replace-confirmation dialog. Save-As changed the project path
+    // above, which ends the edit session, so it never triggers this (by design).
+    if (!saveAs && !wxGetApp().printago_edit_part().empty()) {
+        CallAfter([]() { wxGetApp().printago_request_replace("save"); });
+    }
+
     try {
         json j;
         boost::uintmax_t size = boost::filesystem::file_size(into_path(filename));

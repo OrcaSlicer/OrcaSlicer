@@ -87,6 +87,9 @@
 #include "GUI_Utils.hpp"
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
+#include "MsgDialog.hpp"
+#include "slic3r/Utils/Printago.hpp"
+#include "PrintagoTabBridge.hpp"
 #include "Plater.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
@@ -763,6 +766,105 @@ void GUI_App::toggle_show_gcode_window()
     app_config->set_bool("show_gcode_window", m_show_gcode_window);
 }
 
+// Process-wide Printago client (holds the securely-stored session token).
+static Slic3r::Printago& printago_instance()
+{
+    static Slic3r::Printago s_printago;
+    return s_printago;
+}
+
+bool GUI_App::printago_connected()
+{
+    return is_printago_enabled() && printago_instance().is_connected();
+}
+
+bool GUI_App::printago_connect(wxWindow* parent)
+{
+    // Consent: enabling Printago means OrcaSlicer will talk to the internet. Authentication itself
+    // happens inside the embedded Printago tab (Firebase login on app.printago.io); the session
+    // token is captured from the orcaslicer:// callback via printago_handle_nav().
+    MessageDialog consent(parent,
+        _L("Printago is a cloud print-farm service. Enabling it opens the Printago tab where you sign in, and lets OrcaSlicer communicate with Printago over the internet.\n\nOrcaSlicer stays connected until you disable Printago."),
+        _L("Enable Printago"),
+        wxOK | wxCANCEL | wxICON_INFORMATION);
+    if (consent.ShowModal() != wxID_OK)
+        return false;
+
+    app_config->set_bool("enable_printago", true);
+    app_config->save();
+    // NOTE: do not touch the main-window tabs here — this runs inside the modal Preferences
+    // dialog. The Printago tab is synced once Preferences closes (see show_preferences()).
+    return true;
+}
+
+void GUI_App::printago_disconnect()
+{
+    printago_instance().clear_session_token();
+    app_config->set_bool("enable_printago", false);
+    app_config->save();
+    // Tab is hidden after Preferences closes (see show_preferences()).
+}
+
+// Called by the Printago tab's webview on every navigation. If the URL is the orcaslicer:// auth
+// callback, capture (and securely store) the session token and veto the navigation.
+bool GUI_App::printago_handle_nav(const wxString& url)
+{
+    auto token = Slic3r::Printago::parse_callback_token(into_u8(url));
+    if (!token)
+        return false;
+    printago_instance().save_session_token(*token);
+    BOOST_LOG_TRIVIAL(info) << "Printago: captured session token from webview callback";
+    return true;
+}
+
+// URL the Printago tab should load: the full Printago web app (web_base root). The user signs in
+// inside the tab and the login persists in the webview's own storage (same self-authenticating
+// model as the Send dialog), so no session token / gated /orca route is needed here.
+wxString GUI_App::printago_tab_url()
+{
+    return from_u8(printago_instance().endpoints().web_base);
+}
+
+// URL for the modal "Send to Printago" dialog. The embedded page authenticates itself inside the
+// webview (its login persists in the webview's own storage), so no session token is needed here.
+wxString GUI_App::printago_send_url()
+{
+    return from_u8(printago_instance().send_url());
+}
+
+// URL for the "Save & Queue to Printago" dialog (exports + queues in one step).
+wxString GUI_App::printago_queue_url()
+{
+    return from_u8(printago_instance().queue_url());
+}
+
+// "Edit in Orca Slicer" round trip: the current edit session's partId (empty if the active project is
+// not a downloaded Printago part), and a request to push the current project back to its part.
+std::string GUI_App::printago_edit_part()
+{
+    auto* bridge = PrintagoTabBridge::active();
+    return bridge ? bridge->active_edit_part() : std::string();
+}
+
+// Per the embedded-pages spec, save-back is a DIALOG: open /orca/replace?partId=<id>, wired exactly
+// like the send dialog (host:init + project:info of the freshly exported 3MF, then the upload leg,
+// then part:replaced + dialog:close from the page). intent "queue" is forwarded as an extra query
+// param (page support pending).
+bool GUI_App::printago_request_replace(const std::string& intent)
+{
+    const std::string part_id = printago_edit_part();
+    if (part_id.empty() || plater_ == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << "Printago: replace requested but no active edit session";
+        return false;
+    }
+    std::string url = printago_instance().endpoints().replace_url(part_id);
+    if (intent == "queue")
+        url += "&intent=queue";
+    BOOST_LOG_TRIVIAL(info) << "Printago: opening replace dialog " << url;
+    plater_->send_to_printago(from_u8(url));
+    return true;
+}
+
 std::vector<std::string> GUI_App::split_str(std::string src, std::string separator)
 {
     std::string::size_type pos;
@@ -783,6 +885,11 @@ std::vector<std::string> GUI_App::split_str(std::string src, std::string separat
     return result;
 }
 
+// Deep link (orcaslicer://open/?file=...) that arrived before startup finished; queued by
+// start_download() and replayed below. File-local on purpose: a GUI_App.hpp member would
+// recompile the whole GUI.
+static std::string s_pending_deep_link_url;
+
 void GUI_App::post_init()
 {
     assert(initialized());
@@ -800,6 +907,15 @@ void GUI_App::post_init()
 
     m_open_method = "double_click";
     bool switch_to_3d = false;
+
+    // Replay a deep link that arrived during startup (see start_download). Deferred one event-loop
+    // turn so the rest of post_init completes first.
+    if (!s_pending_deep_link_url.empty()) {
+        std::string url = std::move(s_pending_deep_link_url);
+        s_pending_deep_link_url.clear();
+        m_open_method = "url";
+        CallAfter([this, url]() { start_download(url); });
+    }
 
     if (!this->init_params->input_files.empty()) {
 
@@ -8601,6 +8717,8 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
     const std::string previous_opengl_fps_cap = app_config->get(opengl_fps_cap_setting_key);
     const std::string previous_opengl_show_fps_overlay = app_config->get(opengl_show_fps_overlay_setting_key);
 
+    const bool printago_enabled_before = is_printago_enabled();
+
     bool need_recreate_gui = false;
     std::string pending_language;
     {
@@ -8638,6 +8756,11 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
 #endif // _WIN32
         }
     }
+
+    // Sync the Printago tab to the (possibly changed) enabled state now that the modal is gone.
+    // Doing this inside the dialog crashes the custom Notebook when the active tab is removed.
+    if (mainframe && is_printago_enabled() != printago_enabled_before)
+        mainframe->show_printago(is_printago_enabled(), /*select_tab*/ is_printago_enabled());
 
     const bool opengl_fxaa_changed = app_config->get(opengl_fxaa_setting_key) != previous_opengl_fxaa;
     const bool opengl_fps_cap_changed = app_config->get(opengl_fps_cap_setting_key) != previous_opengl_fps_cap;
@@ -9944,8 +10067,12 @@ void GUI_App::disassociate_url(std::wstring url_prefix)
 
 void GUI_App::start_download(std::string url)
 {
-    if (!plater_) {
-        BOOST_LOG_TRIVIAL(error) << "Could not start URL download: plater is nullptr.";
+    if (!m_post_initialized || !plater_) {
+        // macOS delivers deep links as Apple Events that can arrive while the app is still starting
+        // (cold start via a browser's "Open with Orca"). Dropping the URL here loses the user's
+        // click; queue it and let post_init() replay it once the plater exists.
+        BOOST_LOG_TRIVIAL(info) << "start_download: app not ready, queueing deep link for post_init";
+        s_pending_deep_link_url = std::move(url);
         return;
     }
     //lets always init so if the download dest folder was changed, new dest is used

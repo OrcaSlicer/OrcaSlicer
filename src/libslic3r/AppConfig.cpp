@@ -128,6 +128,11 @@ void AppConfig::set_defaults()
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
 
+        // Printago print-farm integration: off by default. When enabled, a "Printago" web tab
+        // is shown and the "Upload to Printago" menu actions become available.
+        if (get("enable_printago").empty())
+            set_bool("enable_printago", false);
+
 #ifdef _WIN32
         if (get("associate_3mf").empty())
             set_bool("associate_3mf", false);
