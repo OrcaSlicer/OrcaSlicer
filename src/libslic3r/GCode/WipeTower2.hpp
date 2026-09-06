@@ -263,7 +263,7 @@ private:
     float           m_parking_pos_retraction    = 0.f;
     float           m_extra_loading_move        = 0.f;
     float           m_bridging                  = 0.f;
-    bool            m_no_sparse_layers          = false;
+    bool            m_sparse_layers_skipped     = false;
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;

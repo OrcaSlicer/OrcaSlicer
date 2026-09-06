@@ -1050,7 +1050,13 @@ void PartPlate::render_grid(bool bottom) {
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 {
-	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
+	// Orca: a prime tower compacted by "No sparse layers" drags the nozzle back down to the plate on
+	// every toolchange, so the rod and the lid limit how tall a neighbouring object may be exactly as
+	// they do in sequential printing. The reference lines are just as useful there.
+	const bool relevant_for_print_mode = m_print && (m_print->config().print_sequence == PrintSequence::ByObject ||
+	                                                 (m_print->config().print_sequence == PrintSequence::ByLayer &&
+	                                                  wipe_tower_sparse_layers_skipped(m_print->config()) && m_print->has_wipe_tower()));
+	if (relevant_for_print_mode && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
 	    // ORCA: OpenGL Core Profile

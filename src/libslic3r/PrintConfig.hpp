@@ -1781,6 +1781,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              slow_down_for_layer_cooling))
     ((ConfigOptionInts,               close_fan_the_first_x_layers))
     ((ConfigOptionEnum<DraftShield>,  draft_shield))
+    ((ConfigOptionFloat,              extruder_clearance_dist_to_rod))//BBS
     ((ConfigOptionFloat,              extruder_clearance_height_to_rod))//BBs
     ((ConfigOptionFloat,              extruder_clearance_height_to_lid))//BBS
     ((ConfigOptionFloat,              extruder_clearance_radius))
