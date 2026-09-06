@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Rojo",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "T7KgVGjCph4fXMdp",
+	"filament_id": "PRTABS04",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#E00000"
+	]
+}

@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Piel",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "jM2SVI3vXi9Uk3Kr",
+	"filament_id": "PRTABS11",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#E7B98F"
+	]
+}

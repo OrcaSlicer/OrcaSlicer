@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "PlastAR PLA Blanco",
+	"inherits": "PlastAR PLA @base",
+	"from": "system",
+	"setting_id": "gVE8D6jGHWaVIzFZ",
+	"filament_id": "PLSTAR01",
+	"instantiation": "true",
+	"filament_vendor": [
+		"PlastAR"
+	],
+	"default_filament_colour": [
+		"#FFFFFF"
+	]
+}

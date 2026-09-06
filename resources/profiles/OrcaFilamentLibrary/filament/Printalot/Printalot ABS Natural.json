@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Natural",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "lJL9Kfthk5Lj504i",
+	"filament_id": "PRTABS12",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#E8E4D8"
+	]
+}
