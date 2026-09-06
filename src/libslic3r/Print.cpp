@@ -352,6 +352,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
             || opt_key == "toolchange_ordering"
+            || opt_key == "toolchange_cyclic_order"
+            || opt_key == "toolchange_cyclic_first_layer"
             || opt_key == "extruder_ams_count"
             || opt_key == "extruder_nozzle_stats"
             || opt_key == "filament_map_mode"
