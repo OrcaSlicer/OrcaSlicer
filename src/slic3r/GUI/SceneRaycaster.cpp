@@ -99,8 +99,11 @@ void SceneRaycaster::remove_raycaster(std::shared_ptr<SceneRaycasterItem> item)
     }
 }
 
-SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Camera& camera, const ClippingPlane* clipping_plane) const
+SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Camera& camera,
+    const ClippingPlane* clipping_plane, SceneRaycaster::EHitMode mode) const
 {
+    // Orca: Picking may favor an already selected volume for interaction, while camera
+    // navigation must always use the geometrically closest visible scene surface.
     // helper class used to return currently selected volume as hit when overlapping with other volumes
     // to allow the user to click and drag on a selected volume
     class VolumeKeeper
@@ -110,7 +113,11 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
         bool m_selected_volume_already_found{ false };
 
     public:
-        VolumeKeeper() {
+        explicit VolumeKeeper(bool enabled) {
+            // Orca: Disable selected-volume bias for SceneOnly navigation raycasts.
+            if (!enabled)
+                return;
+
             const Selection& selection = wxGetApp().plater()->get_selection();
             if (selection.is_single_volume() || selection.is_single_modifier()) {
                 const GLVolume* volume = selection.get_first_volume();
@@ -135,7 +142,7 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
         }
     };
 
-    VolumeKeeper volume_keeper;
+    VolumeKeeper volume_keeper(mode == EHitMode::Picking);
 
     double closest_hit_squared_distance = std::numeric_limits<double>::max();
     auto is_closest = [&closest_hit_squared_distance, &volume_keeper](const Camera& camera, const Vec3f& hit) {
@@ -182,11 +189,14 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
         }
     };
 
-    if (!m_gizmos.empty())
-        test_raycasters(EType::Gizmo, mouse_pos, camera, ret);
+    // Orca: Gizmo geometry is an interaction target, not a valid depth anchor for camera movement.
+    if (mode == EHitMode::Picking) {
+        if (!m_gizmos.empty())
+            test_raycasters(EType::Gizmo, mouse_pos, camera, ret);
 
-    if (!m_fallback_gizmos.empty() && !ret.is_valid())
-        test_raycasters(EType::FallbackGizmo, mouse_pos, camera, ret);
+        if (!m_fallback_gizmos.empty() && !ret.is_valid())
+            test_raycasters(EType::FallbackGizmo, mouse_pos, camera, ret);
+    }
 
     if (!m_gizmos_on_top || !ret.is_valid()) {
         if (camera.is_looking_downward() && !m_bed.empty())
