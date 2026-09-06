@@ -5644,17 +5644,20 @@ void GLCanvas3D::update_sequential_clearance()
             transform = v->get_instance_transformation();
     }
 
+    // The 2d hulls are inflated by shrink_factor (same amount as Print::sequential_print_horizontal_clearance_valid);
+    // the height check below shrinks the bounding boxes back by this amount to get the un-inflated ones.
+    auto [object_skirt_offset, _] = fff_print()->object_skirt_offset();
+    float shrink_factor;
+    if (fff_print()->is_all_objects_are_short())
+        shrink_factor = scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1);
+    else
+        shrink_factor = static_cast<float>(scale_(0.5 * fff_print()->config().extruder_clearance_radius.value + object_skirt_offset - 0.1));
+
     // calculates objects 2d hulls (see also: Print::sequential_print_horizontal_clearance_valid())
     // this is done only the first time this method is called while moving the mouse,
     // the results are then cached for following displacements
     if (m_sequential_print_clearance_first_displacement) {
         m_sequential_print_clearance.m_hull_2d_cache.clear();
-        auto [object_skirt_offset, _] = fff_print()->object_skirt_offset();
-        float shrink_factor;
-        if (fff_print()->is_all_objects_are_short())
-            shrink_factor = scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1);
-        else
-            shrink_factor = static_cast<float>(scale_(0.5 * fff_print()->config().extruder_clearance_radius.value + object_skirt_offset - 0.1));
 
         double mitter_limit = scale_(0.1);
         m_sequential_print_clearance.m_hull_2d_cache.reserve(m_model->objects.size());
@@ -5739,58 +5742,28 @@ void GLCanvas3D::update_sequential_clearance()
                 return (ly1 < ry1);
         });
 
-    /*bool has_interlaced_objects = false;
-    for (int k = 0; k < bounding_box_count; k++)
-    {
-        Polygon& convex = convex_and_bounding_boxes[k].hull_polygon;
-        BoundingBox& bbox = convex_and_bounding_boxes[k].bounding_box;
-        auto iy1 = bbox.min.y();
-        auto iy2 = bbox.max.y();
-
-        for (int i = k+1; i < bounding_box_count; i++)
-        {
-            Polygon&     next_convex = convex_and_bounding_boxes[i].hull_polygon;
-            BoundingBox& next_bbox   = convex_and_bounding_boxes[i].bounding_box;
-            auto py1 = next_bbox.min.y();
-            auto py2 = next_bbox.max.y();
-            auto inter_min = std::max(iy1, py1); // min y of intersection
-            auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-            if (inter_max - inter_min > 0) {
-                has_interlaced_objects = true;
-                break;
-            }
-        }
-        if (has_interlaced_objects)
-            break;
-    }*/
-
+    // Dynamic max height for "by object" printing, mirroring Print::sequential_print_vertical_clearance_valid():
+    // a gantry parallel to the X axis only collides with instances sharing their Y band with a later-printed
+    // instance (side by side along X); instances in their own Y band may use the full build volume height.
+    // Delta printers are excluded (their arms sweep over the whole plate), and the last-printed instance
+    // may always use the full height. The bounding boxes of the cached (inflated) hulls are shrunk back by
+    // shrink_factor to the un-inflated ones, which is exact for convex hulls.
     int bounding_box_count = convex_and_bounding_boxes.size();
     double printable_height = fff_print()->config().printable_height;
     double hc1 = fff_print()->config().extruder_clearance_height_to_lid;
     double hc2 = fff_print()->config().extruder_clearance_height_to_rod;
+    const bool dynamic_max_height = fff_print()->config().printer_structure.value != psDelta;
+    const coord_t shrink = static_cast<coord_t>(shrink_factor);
     for (int k = 0; k < bounding_box_count; k++)
     {
         Polygon& convex = convex_and_bounding_boxes[k].hull_polygon;
-        BoundingBox& bbox = convex_and_bounding_boxes[k].bounding_box;
+        BoundingBox bbox = convex_and_bounding_boxes[k].bounding_box.inflated(-shrink);
         auto iy1 = bbox.min.y();
         auto iy2 = bbox.max.y();
-        double height = (k == (bounding_box_count - 1))?printable_height:hc1;
-
-        /*if (has_interlaced_objects) {
-            if ((k < (bounding_box_count - 1)) && (convex_and_bounding_boxes[k].instance_height > hc2)) {
-                height_polygons.emplace_back(std::make_pair(convex, hc2));
-            }
-        }
-        else {
-            if ((k < (bounding_box_count - 1)) && (convex_and_bounding_boxes[k].instance_height > hc1)) {
-                height_polygons.emplace_back(std::make_pair(convex, hc1));
-            }
-        }*/
-
+        double height = (dynamic_max_height || k == (bounding_box_count - 1)) ? printable_height : hc1;
         for (int i = k+1; i < bounding_box_count; i++)
         {
-            Polygon&     next_convex = convex_and_bounding_boxes[i].hull_polygon;
-            BoundingBox& next_bbox   = convex_and_bounding_boxes[i].bounding_box;
+            BoundingBox next_bbox = convex_and_bounding_boxes[i].bounding_box.inflated(-shrink);
             auto py1 = next_bbox.min.y();
             auto py2 = next_bbox.max.y();
             auto inter_min = std::max(iy1, py1); // min y of intersection
