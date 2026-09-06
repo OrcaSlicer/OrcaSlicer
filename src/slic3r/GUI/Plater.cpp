@@ -180,6 +180,7 @@
 
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "Elegoo/PrintSendDialogEx.hpp"
 #include "PlateSettingsDialog.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
@@ -19175,6 +19176,39 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
                                           ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
+        // Elegoo CC/CC2 use the exact WebView dialog as ElegooSlicer (model preview, CANVAS filament mapping, print options)
+        if (host_type == htElegooLink && PrintHost::support_device_list_management(*physical_printer_config)) {
+            auto pDlg = std::make_unique<PrintSendDialogEx>(this, get_partplate_list().get_curr_plate_index(), default_output_file);
+            pDlg->init();
+            if (pDlg->ShowModal() != wxID_OK) return;
+            upload_job.switch_to_device_tab = pDlg->getSwitchToDeviceTab();
+            upload_job.upload_data.upload_path = pDlg->filename();
+            upload_job.upload_data.post_action = pDlg->getPostAction();
+            upload_job.upload_data.extended_info = pDlg->getExtendedInfo();
+            if (use_3mf) {
+                const int plateindex = (plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx) + 1;
+                upload_job.upload_data.extended_info["plateindex"] = std::to_string(plateindex);
+            }
+            // Continue to PrusaConnect check and export below - set dummy pDlg to keep flow
+            // We'll skip the generic pDlg handling by jumping to after the else block via early handling
+            // Instead, we handle the rest of the function inline and return after upload
+            // For simplicity, we directly proceed to the upload preparation below (duplicate logic)
+            // Show "Is printer clean" dialog for StartPrint
+            if (upload_job.upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
+                // No extra check here - Elegoo handles it in dialog
+            }
+            if (use_3mf) {
+                const int result = send_gcode(resolved_plate_idx, nullptr);
+                if (result < 0) {
+                    wxString msg = _L("Abnormal print file data. Please slice again");
+                    show_error(this, msg, false);
+                    return;
+                }
+                upload_job.upload_data.source_path = p->m_print_job_data._3mf_path;
+            }
+            p->export_gcode(fs::path(), false, std::move(upload_job));
+            return;
+        }
         std::unique_ptr<PrintHostSendDialog> pDlg;
         if (host_type == htElegooLink) {
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,

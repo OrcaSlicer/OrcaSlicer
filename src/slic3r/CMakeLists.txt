@@ -439,6 +439,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrinterWebView.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
+    GUI/Elegoo/PrintSendDialogEx.cpp
+    GUI/Elegoo/PrintSendDialogEx.hpp
     GUI/PrintOptionsDialog.cpp
     GUI/PrintOptionsDialog.hpp
     GUI/PrivacyUpdateDialog.cpp
@@ -690,6 +692,11 @@ set(SLIC3R_GUI_SOURCES
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
     Utils/ElegooLink.hpp
+    Utils/WebviewIPCManager.cpp
+    Utils/WebviewIPCManager.h
+    Utils/IPCMessage.cpp
+    Utils/IPCMessage.hpp
+    Utils/JsonUtils.hpp
     Utils/EmbossStyleManager.cpp
     Utils/EmbossStyleManager.hpp
     Utils/ESP3D.cpp
