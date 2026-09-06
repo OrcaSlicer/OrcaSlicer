@@ -1470,6 +1470,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "fuzzy_skin_octaves"
             || opt_key == "fuzzy_skin_persistence"
             || opt_key == "detect_overhang_wall"
+            || opt_key == "unsupported_wall_last"
             || opt_key == "overhang_reverse"
             || opt_key == "overhang_reverse_internal_only"
             || opt_key == "overhang_reverse_threshold"
