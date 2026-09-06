@@ -191,6 +191,7 @@ struct DrawBoxOptArgs
     double height;
     double line_width;
     double speed;
+    bool should_retract = true; // retract by default, but when drawing the tab for the numbers we will disable unneccesary retractions
 };
 class CalibPressureAdvance
 {
@@ -207,7 +208,7 @@ protected:
 
     void delta_scale_bed_ext(BoundingBoxf &bed_ext) const { bed_ext.scale(1.0f / 1.41421f); }
 
-    std::string move_to(Vec2d pt, GCodeWriter &writer, std::string comment = std::string(), double z = 0, double layer_height = -1);
+    std::string move_to(Vec2d pt, GCodeWriter &writer, std::string comment = std::string(), double z = 0, double layer_height = -1, bool should_retract = true);
     double e_per_mm(double line_width, double layer_height, float nozzle_diameter, float filament_diameter, float print_flow_ratio) const;
     double speed_adjust(int speed) const { return speed * 60; };
 

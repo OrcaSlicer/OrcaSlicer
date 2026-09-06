@@ -22,11 +22,12 @@ float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &conf
     return std::floor(pa_speed);
 }
 
-std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::string comment, double z, double layer_height)
+std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::string comment, double z, double layer_height, bool should_retract)
 {
     std::stringstream gcode;
-
-    gcode << writer.retract(); // retract before z move or move
+    if (should_retract) {
+        gcode << writer.retract(); // retract before z move or move    
+    }
     if(z > EPSILON && layer_height >= 0){
         gcode << writer.travel_to_z(z, "Z-hop"); // Perform z hop
         gcode << writer.travel_to_xy(pt, comment); // Travel with z move
@@ -34,8 +35,9 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
     }else {
         gcode << writer.travel_to_xy(pt, comment);
     }
-    gcode << writer.unretract(); // unretract after z move is complete
-
+    if (should_retract) {
+        gcode << writer.unretract(); // unretract after z move is complete
+    }
     m_last_pos = Vec3d(pt.x(), pt.y(), 0);
 
     return gcode.str();
@@ -338,7 +340,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
             if (i % 2 == 0) {
                 x += spacing_45;
                 y = y_min_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                 y += x - x_min_bound;
                 x                     = x_min_bound;
@@ -347,7 +349,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
             } else {
                 y += spacing_45;
                 x = x_min_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                 x += y - y_min_bound;
                 y                     = y_min_bound;
@@ -360,7 +362,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 if (i % 2 == 0) {
                     x += spacing_45;
                     y = y_min_bound;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                     x -= y_max_bound - y_min_bound;
                     y                     = y_max_bound;
@@ -374,7 +376,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                         x += spacing_45;
                     }
                     y = y_max_bound;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                     x += y_max_bound - y_min_bound;
                     y                     = y_min_bound;
@@ -391,7 +393,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     } else {
                         y += spacing_45;
                     }
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                     x = x_min_bound;
                     y += x_max_bound - x_min_bound;
@@ -400,7 +402,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     x = x_min_bound;
                     y += spacing_45;
-                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                    gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                     x = x_max_bound;
                     y -= x_max_bound - x_min_bound;
@@ -416,7 +418,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 } else {
                     y += spacing_45;
                 }
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step up", 0, -1, opt_args.should_retract);
 
                 x -= y_max_bound - y;
                 y                     = y_max_bound;
@@ -429,7 +431,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x += spacing_45;
                 }
                 y = y_max_bound;
-                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right");
+                gcode << move_to(Vec2d(x, y), writer, "Fill: Step right", 0, -1, opt_args.should_retract);
 
                 y -= x_max_bound - x;
                 x                     = x_max_bound;
@@ -561,6 +563,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
         DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
         //Draw box
         default_box_opt_args.is_filled = true;
+        default_box_opt_args.should_retract = false;
         gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
         gcode << draw_box(writer, box_start_x, start_y - m_space_y,
                           number_spacing() * 8, (num + 1) * m_space_y, default_box_opt_args);
@@ -621,11 +624,13 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     gcode << "; start pressure advance pattern for layer\n";
 
         refresh_setup(config, is_bbl_machine, object, origin);
-
+    
+  
+    
     gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), m_writer, "Move to start XY position");
     gcode << m_writer.travel_to_z(height_first_layer() + height_z_offset(), "Move to start Z position");
     gcode << m_writer.set_pressure_advance(m_params.start);
-
+    
     const DrawBoxOptArgs default_box_opt_args(wall_count(), height_first_layer(), line_width_first_layer(),
                                               speed_adjust(speed_first_layer()));
 
@@ -638,6 +643,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     DrawBoxOptArgs draw_box_opt_args = default_box_opt_args;
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
+    draw_box_opt_args.should_retract = false; 
     //draw box as bottom surface, so numbers are clearly visible on top
     gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n"; 
     gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
@@ -646,7 +652,6 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
 
     std::vector<CustomGCode::Item> gcode_items;
     const int                      num_patterns = get_num_patterns(); // "cache" for use in loops
-
     const double zhop_config_value = m_config.option<ConfigOptionFloats>("z_hop")->get_at(0);
     const auto accel = accel_perimeter();
 
