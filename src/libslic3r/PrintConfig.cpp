@@ -12332,7 +12332,8 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def = this->add("allow_rotations", coBool);
     def->label = L("Allow rotation when arranging");
     def->tooltip = L("If enabled, Arrange will allow rotation when placing objects.");
-    def->set_default_value(new ConfigOptionBool(true));
+    // Default OFF so --arrange is translate-only unless the caller opts in.
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("avoid_extrusion_cali_region", coBool);
     def->label = L("Avoid extrusion calibrate region when arranging");
