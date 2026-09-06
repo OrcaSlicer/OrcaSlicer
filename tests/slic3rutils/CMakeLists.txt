@@ -53,6 +53,18 @@ elseif (APPLE)
         COMMENT "Copying Python runtime for macOS plugin host API tests"
         VERBATIM
     )
+elseif (FLATPAK)
+    # Same <testdir>/python home as WIN32/APPLE; symlink since /app/libpython
+    # already ships in the flatpak (the test exe links libpython3.12.so from it).
+    add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf
+            "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${CMAKE_PREFIX_PATH}/libpython"
+            "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMENT "Linking Python runtime for flatpak plugin host API tests"
+        VERBATIM
+    )
 endif()
 
 orcaslicer_discover_tests(${_TEST_NAME}_tests)

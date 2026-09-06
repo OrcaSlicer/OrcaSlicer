@@ -207,7 +207,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -303,9 +303,13 @@ jobs:
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
-    - name: Inject git commit hash into Flatpak manifest
+    # ci_cache_buster (unique per run) forces the OrcaSlicer module to always
+    # rebuild so the test asset is always produced; deps modules stay cached.
+    - name: Inject commit hash and cache-buster into Flatpak manifest
+      env:
+        ci_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
       run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"\n        ci_cache_buster: \"$ci_cache_buster\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     - name: Check the manifest keeps orca_deps cacheable
@@ -321,6 +325,10 @@ jobs:
         cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+        # run-tests fires the module's build-only test-commands; keep-build-dirs
+        # retains the binaries for the packaging step below.
+        run-tests: true
+        keep-build-dirs: true
     - name: Upload artifacts Flatpak
       uses: actions/upload-artifact@v7
       with:
@@ -336,3 +344,43 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+    # The asset is /app (the exes link it at runtime) plus the build tree
+    # slimmed to what ctest needs.
+    - name: Package flatpak test asset
+      shell: bash
+      run: |
+        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+        find "$d/build_flatpak" -mindepth 1 -maxdepth 1 ! -name tests -exec rm -rf {} +
+        # Strip debug info (the SDK builds with -g, only the app gets stripped);
+        # the bounds checks are compiled in, so a stripped exe still catches them.
+        find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
+        # At runtime the tests read only tests/ (TEST_DATA_DIR) and scripts/.
+        find "$d" -mindepth 1 -maxdepth 1 -type d \
+          ! -name tests ! -name build_flatpak ! -name scripts -exec rm -rf {} +
+        tar -cf flatpak-test-asset.tar flatpak_app "$d"
+    - name: Upload flatpak test asset
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
+        path: flatpak-test-asset.tar
+        retention-days: 1
+    - name: Trim kept build dirs before caching
+      if: always()
+      shell: bash
+      run: rm -rf .flatpak-builder/build
+  unit_tests_flatpak_x86_64:
+    name: Flatpak x86_64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04
+      artifact: ${{ github.sha }}-flatpak-tests-x86_64
+  unit_tests_flatpak_aarch64:
+    name: Flatpak aarch64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04-arm
+      artifact: ${{ github.sha }}-flatpak-tests-aarch64
