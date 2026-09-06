@@ -674,6 +674,10 @@ void FlashforgePrintHostSendDialog::init()
     if (!timelapse.empty())
         m_time_lapse_video = timelapse == "1";
 
+    std::string flowcal = app_config->get("recent", CONFIG_KEY_FLOWCAL);
+    if (!flowcal.empty())
+        m_flow_calibration = flowcal == "1";
+
     // Flashforge local printing should default to IFS enabled when supported.
     // We don't revive an old stale "0" here.
     m_use_material_station = m_supports_material_station;
@@ -757,6 +761,8 @@ void FlashforgePrintHostSendDialog::init()
                             }
                             sync_mapping_section_visibility();
                         }, &m_checkbox_ifs);
+    add_option_checkbox(m_flashforge_options_sizer, _L("Flow calibration"), m_flow_calibration,
+                        [this](bool checked) { m_flow_calibration = checked; }, &m_checkbox_flowcal);
 
     if (m_checkbox_ifs != nullptr && !m_supports_material_station)
         m_checkbox_ifs->Enable(false);
@@ -837,6 +843,7 @@ void FlashforgePrintHostSendDialog::EndModal(int ret)
         app_config->set("recent", CONFIG_KEY_LEVELING, m_leveling_before_print ? "1" : "0");
         app_config->set("recent", CONFIG_KEY_TIMELAPSE, m_time_lapse_video ? "1" : "0");
         app_config->set("recent", CONFIG_KEY_IFS, m_use_material_station ? "1" : "0");
+        app_config->set("recent", CONFIG_KEY_FLOWCAL, m_flow_calibration ? "1" : "0");
     }
 
     PrintHostSendDialog::EndModal(ret);
@@ -877,6 +884,7 @@ std::map<std::string, std::string> FlashforgePrintHostSendDialog::extendedInfo()
         {"levelingBeforePrint", m_leveling_before_print ? "1" : "0"},
         {"timeLapseVideo", m_time_lapse_video ? "1" : "0"},
         {"useMatlStation", m_use_material_station ? "1" : "0"},
+        {"flowCalibration", m_flow_calibration ? "1" : "0"},
         {"gcodeToolCnt", std::to_string(mapped_count)},
         {"materialMappings", mappings.dump()}
     };
