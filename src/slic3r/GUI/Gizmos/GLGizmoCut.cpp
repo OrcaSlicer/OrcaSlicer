@@ -419,6 +419,52 @@ void GLGizmoCut3D::rotate_vec3d_around_plane_center(Vec3d&vec)
     vec = Transformation(translation_transform(m_plane_center) * m_rotation_m * translation_transform(-m_plane_center)).get_matrix() * vec;
 }
 
+void GLGizmoCut3D::sync_cut_rotation_from_matrix()
+{
+    m_cut_rotation = extract_euler_angles(m_rotation_m);
+}
+
+void GLGizmoCut3D::apply_cut_rotation(const Vec3d& euler_rad)
+{
+    const Transform3d new_m = rotation_transform(euler_rad);
+    if (m_rotation_m.isApprox(new_m))
+        return;
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
+    m_rotation_m = new_m;
+    m_start_dragging_m = m_rotation_m;
+    m_cut_rotation = euler_rad;
+    cut_rotation_changed();
+}
+
+void GLGizmoCut3D::apply_relative_cut_rotation(int axis, double delta_deg)
+{
+    if (is_approx(delta_deg, 0.))
+        return;
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Rotate cut plane"), UndoRedo::SnapshotType::GizmoAction);
+    // World-frame (extrinsic) composition, mirroring Selection::rotate in the
+    // default World mode (Selection.cpp transform_volume_relative):
+    // pre-multiply so each typed axis acts about the fixed world axes, and
+    // the Relative field stays a pure delta entry like the object Rotate
+    // overlay (m_new_rotation is always zero there too). m_rotation_m carries
+    // no translation, so no pivot handling is needed. Absolute keeps showing
+    // the extracted true orientation, exactly like their Absolute row.
+    Vec3d delta = Vec3d::Zero();
+    delta[axis] = deg2rad(delta_deg);
+    m_rotation_m = rotation_transform(delta) * m_rotation_m;
+    m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
+    cut_rotation_changed();
+}
+
+void GLGizmoCut3D::cut_rotation_changed()
+{
+    m_transformed_bounding_box = transformed_bounding_box(m_plane_center, m_rotation_m);
+    update_clipper();
+    check_and_update_connectors_state();
+    reset_cut_by_contours();
+    m_parent.request_extra_frame();
+}
+
 void GLGizmoCut3D::put_connectors_on_cut_plane(const Vec3d& cp_normal, double cp_offset)
 {
     ModelObject* mo = m_c->selection_info()->model_object();
@@ -689,6 +735,106 @@ void GLGizmoCut3D::render_move_center_input(int axis)
 
         reset_cut_by_contours();
     }
+}
+
+// Rotation block mirroring GizmoObjectManipulation::do_render_rotate_window:
+// identical caption/column/field math; only the header label, bound values,
+// commit actions and reset buttons are Cut-specific. Intentional deviations
+// from the original: no PushItemWidth(caption_max) before the caption (dead
+// weight, Text ignores item width), PopItemWidth after each field (theirs
+// omits the pops), commit via IsItemDeactivatedAfterEdit instead of their
+// ActiveID tracking (same Enter/defocus timing), panel-local reset icons,
+// and no World/Object/Part coordinate switch (the cut plane has one frame).
+void GLGizmoCut3D::render_cut_rotation_input()
+{
+    // Same item spacing as the object Rotate overlay (the panel default is
+    // much taller, which stretched our rows apart vertically).
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f));
+
+    float space_size = m_imgui->get_style_scaling() * 8;
+    // Same formula as the overlay (theirs captions this row "World").
+    float caption_max = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
+                                   m_imgui->calc_text_size(_L("Relative")).x,
+                                   m_imgui->calc_text_size(_L("Absolute")).x }) + 3.f * space_size;
+    float end_text_size = ImGui::CalcTextSize("°").x;
+
+    // Same field width basis as the overlay.
+    float unit_size = m_imgui->calc_text_size(std::string_view("9999.99")).x + space_size;
+
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Rotation"));
+    // Same centering as the overlay.
+    float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
+    static const ColorRGBA axis_colors[3] = { ColorRGBA::X(), ColorRGBA::Y(), ColorRGBA::Z() };
+    static const char* axis_labels[3] = { "X", "Y", "Z" };
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size + offset_to_center);
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(axis_colors[axis]), axis_labels[axis]);
+    }
+
+    static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
+    static const char* abs_ids[3] = { "##cut_rotation_abs_x", "##cut_rotation_abs_y", "##cut_rotation_abs_z" };
+
+    // Relative row: pending deltas, applied on commit (Enter / focus loss), then cleared.
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Relative"));
+    delete_negative_sign(m_cut_relative_deg);
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (std::isfinite(m_cut_relative_deg[axis]))
+                apply_relative_cut_rotation(axis, m_cut_relative_deg[axis]);
+            m_cut_relative_deg[axis] = 0.;
+        }
+    }
+    ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size);
+    m_imgui->text("°");
+
+    // Absolute row: plane orientation, applied on commit (Enter / focus loss).
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Absolute"));
+    bool abs_editing = false;
+    for (int axis = 0; axis < 3; ++axis) {
+        ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size);
+        ImGui::PushItemWidth(unit_size);
+        ImGui::BBLInputDouble(abs_ids[axis], &m_cut_absolute_deg[axis], 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        abs_editing = abs_editing || ImGui::IsItemActive();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            double new_value = m_cut_absolute_deg[axis];
+            if (std::isfinite(new_value)) {
+                while (new_value > 180.) new_value -= 360.;
+                while (new_value <= -180.) new_value += 360.;
+                Vec3d euler_rad = m_cut_rotation;
+                euler_rad[axis] = deg2rad(new_value);
+                apply_cut_rotation(euler_rad);
+            }
+        }
+    }
+    ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size);
+    m_imgui->text("°");
+    ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
+    m_imgui->disabled_begin(m_rotation_m.isApprox(Transform3d::Identity()));
+    if (render_reset_button("cut_rotation_absolute", _u8L("Reset cut plane rotation")))
+        apply_cut_rotation(Vec3d::Zero());
+    m_imgui->disabled_end();
+
+    if (!abs_editing) {
+        // Refresh the display buffer when the user is not editing it, so drags
+        // and relative commits show up immediately without clobbering typing.
+        for (int axis = X; axis <= Z; ++axis) {
+            double value = rad2deg(m_cut_rotation[axis]);
+            while (value > 180.) value -= 360.;
+            while (value <= -180.) value += 360.;
+            m_cut_absolute_deg[axis] = value;
+        }
+        delete_negative_sign(m_cut_absolute_deg);
+    }
+
+    ImGui::PopStyleVar();
 }
 
 bool GLGizmoCut3D::render_connect_type_radio_button(CutConnectorType type)
@@ -1349,6 +1495,7 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
         groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance);
 
     m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
 
     m_transformed_bounding_box = transformed_bounding_box(m_ar_plane_center, m_rotation_m);
     set_center_pos(m_ar_plane_center);
@@ -1409,6 +1556,7 @@ void GLGizmoCut3D::on_set_state()
         // initiate archived values
         m_ar_plane_center   = m_plane_center;
         m_start_dragging_m  = m_rotation_m;
+        sync_cut_rotation_from_matrix();
         reset_cut_by_contours();
 
         m_parent.request_extra_frame();
@@ -1756,6 +1904,7 @@ void GLGizmoCut3D::dragging_grabber_rotation(const GLGizmoBase::UpdateData &data
     if (m_angle < 0.0)
         m_angle += two_pi;
 
+    sync_cut_rotation_from_matrix();
     update_clipper();
 }
 
@@ -2487,6 +2636,7 @@ void GLGizmoCut3D::reset_cut_plane()
     m_transformed_bounding_box = transformed_bounding_box(m_bb_center);
     set_center(m_bb_center);
     m_start_dragging_m = m_rotation_m = Transform3d::Identity();
+    m_cut_rotation = Vec3d::Zero();
     m_ar_plane_center  = m_plane_center;
 
     reset_cut_by_contours();
@@ -2495,12 +2645,15 @@ void GLGizmoCut3D::reset_cut_plane()
 
 void GLGizmoCut3D::invalidate_cut_plane()
 {
-    m_rotation_m    = Transform3d::Identity();
-    m_plane_center  = Vec3d::Zero();
-    m_min_pos       = Vec3d::Zero();
-    m_max_pos       = Vec3d::Zero();
-    m_bb_center     = Vec3d::Zero();
-    m_center_offset = Vec3d::Zero();
+    m_rotation_m       = Transform3d::Identity();
+    m_cut_rotation     = Vec3d::Zero();
+    m_cut_relative_deg = Vec3d::Zero();
+    m_cut_absolute_deg = Vec3d::Zero();
+    m_plane_center     = Vec3d::Zero();
+    m_min_pos          = Vec3d::Zero();
+    m_max_pos          = Vec3d::Zero();
+    m_bb_center        = Vec3d::Zero();
+    m_center_offset    = Vec3d::Zero();
 }
 
 void GLGizmoCut3D::set_connectors_editing(bool connectors_editing)
@@ -2523,6 +2676,7 @@ void GLGizmoCut3D::flip_cut_plane()
 
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Flip cut plane"), UndoRedo::SnapshotType::GizmoAction);
     m_start_dragging_m = m_rotation_m;
+    sync_cut_rotation_from_matrix();
 
     update_clipper();
     m_part_selection.turn_over_selection();
@@ -2875,6 +3029,8 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
                 reset_cut_plane();
             }
         m_imgui->disabled_end();
+
+        render_cut_rotation_input();
 
         if (mode == CutMode::cutPlanar) {
             ImGui::Separator();
@@ -3797,6 +3953,7 @@ bool GLGizmoCut3D::process_cut_line(SLAGizmoEventType action, const Vec2d& mouse
                 set_center(new_plane_center);
                 m_start_dragging_m = m_rotation_m = m;
                 m_ar_plane_center = m_plane_center;
+                sync_cut_rotation_from_matrix();
             }
 
             m_angle_arc.reset();
