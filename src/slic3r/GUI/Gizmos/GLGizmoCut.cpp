@@ -736,71 +736,74 @@ void GLGizmoCut3D::render_move_center_input(int axis)
     }
 }
 
-// Rotation block styled after GizmoObjectManipulation::do_render_rotate_window:
-// a header row with colored axis names, plus Relative (pending deltas applied
-// on commit) and Absolute (plane orientation) rows.
+// Rotation block mirroring GizmoObjectManipulation::do_render_rotate_window:
+// identical caption/column/field math; only the header label, bound values,
+// commit actions and reset buttons are Cut-specific. Intentional deviations
+// from the original: no PushItemWidth(caption_max) before the caption (dead
+// weight, Text ignores item width), PopItemWidth after each field (theirs
+// omits the pops), commit via IsItemDeactivatedAfterEdit instead of their
+// ActiveID tracking (same Enter/defocus timing), panel-local reset icons,
+// and no World/Object/Part coordinate switch (the cut plane has one frame).
 void GLGizmoCut3D::render_cut_rotation_input()
 {
-    const float space_size  = m_imgui->get_style_scaling() * 8;
-    const float caption_max_meas = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
-                                              m_imgui->calc_text_size(_L("Relative")).x,
-                                              m_imgui->calc_text_size(_L("Absolute")).x });
+    float space_size = m_imgui->get_style_scaling() * 8;
+    // Same formula as the overlay (theirs captions this row "World").
+    float caption_max = std::max({ m_imgui->calc_text_size(_L("Rotation")).x,
+                                   m_imgui->calc_text_size(_L("Relative")).x,
+                                   m_imgui->calc_text_size(_L("Absolute")).x }) + 3.f * space_size;
+    float end_text_size = ImGui::CalcTextSize("°").x;
 
-    // Draw the header caption first and compare its rendered width against the
-    // measured one: toolbar font scaling can render text wider than
-    // calc_text_size reports, which used to slide fields under the captions.
+    // Same field width basis as the overlay.
+    float unit_size = m_imgui->calc_text_size(std::string_view("9999.99")).x + space_size;
+    int   index      = 1;
+    int   index_unit = 1;
+
     ImGui::AlignTextToFramePadding();
-    const float text_start_x = ImGui::GetCursorPosX();
     m_imgui->text(_L("Rotation"));
-    const float drawn_w = ImGui::GetCursorPosX() - text_start_x;
-    const float meas_w  = m_imgui->calc_text_size(_L("Rotation")).x;
-    const float wfix = (meas_w > 0.f) ? drawn_w / meas_w : 1.f;
-    const float caption_max = caption_max_meas * wfix + 2 * space_size;
-    const float unit_size = ImGui::CalcTextSize("-180.00").x + ImGui::GetStyle().FramePadding.x * 2.0f;
-    const float offset_to_center = (unit_size - ImGui::CalcTextSize("X").x) * 0.5f;
-
-    // Column x-positions for the three axis fields.
-    const float col_x[3] = { caption_max + 1 * space_size,
-                             caption_max + 1 * unit_size + 2 * space_size,
-                             caption_max + 2 * unit_size + 3 * space_size };
-    const float unit_x = col_x[2] + unit_size + space_size;
-
-    // Go to column x, but never move the cursor backwards: if a caption
-    // rendered wider than measured (font/scale discrepancies), the widget
-    // starts after the caption instead of overlapping it. The grid stays
-    // aligned whenever measurement is accurate.
-    auto same_line_no_overlap = [](float x) {
-        ImGui::SameLine();
-        if (ImGui::GetCursorPosX() < x)
-            ImGui::SetCursorPosX(x);
-    };
-
-    // Header row (caption already drawn above for width calibration).
-    same_line_no_overlap(col_x[0] + offset_to_center);
+    // Same centering as the overlay.
+    float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
+    ImGui::SameLine(caption_max + index * space_size + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X");
-    same_line_no_overlap(col_x[1] + offset_to_center);
+    ImGui::SameLine(caption_max + unit_size + (++index) * space_size + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y");
-    same_line_no_overlap(col_x[2] + offset_to_center);
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z");
 
     static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
     static const char* abs_ids[3] = { "##cut_rotation_abs_x", "##cut_rotation_abs_y", "##cut_rotation_abs_z" };
 
+    index      = 1;
+    index_unit = 1;
+
     // Relative row: pending deltas, applied on commit (Enter / focus loss), then cleared.
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Relative"));
     delete_negative_sign(m_cut_relative_deg);
-    for (int axis = X; axis <= Z; ++axis) {
-        same_line_no_overlap(col_x[axis]);
-        ImGui::PushItemWidth(unit_size);
-        ImGui::BBLInputDouble(rel_ids[axis], &m_cut_relative_deg[axis], 0.0, 0.0, "%.2f");
-        ImGui::PopItemWidth();
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            apply_relative_cut_rotation(axis, m_cut_relative_deg[axis]);
-            m_cut_relative_deg[axis] = 0.;
-        }
+    ImGui::SameLine(caption_max + index * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(rel_ids[X], &m_cut_relative_deg[X], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        apply_relative_cut_rotation(X, m_cut_relative_deg[X]);
+        m_cut_relative_deg[X] = 0.;
     }
-    same_line_no_overlap(unit_x);
+    ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(rel_ids[Y], &m_cut_relative_deg[Y], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        apply_relative_cut_rotation(Y, m_cut_relative_deg[Y]);
+        m_cut_relative_deg[Y] = 0.;
+    }
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(rel_ids[Z], &m_cut_relative_deg[Z], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        apply_relative_cut_rotation(Z, m_cut_relative_deg[Z]);
+        m_cut_relative_deg[Z] = 0.;
+    }
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + end_text_size);
     m_imgui->text("°");
     ImGui::SameLine();
     m_imgui->disabled_begin(is_approx(m_cut_relative_deg.x(), 0.) &&
@@ -810,26 +813,53 @@ void GLGizmoCut3D::render_cut_rotation_input()
         m_cut_relative_deg = Vec3d::Zero();
     m_imgui->disabled_end();
 
+    index      = 1;
+    index_unit = 1;
+
     // Absolute row: plane orientation, applied on commit (Enter / focus loss).
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Absolute"));
     bool abs_editing = false;
-    for (int axis = X; axis <= Z; ++axis) {
-        same_line_no_overlap(col_x[axis]);
-        ImGui::PushItemWidth(unit_size);
-        ImGui::BBLInputDouble(abs_ids[axis], &m_cut_absolute_deg[axis], 0.0, 0.0, "%.2f");
-        ImGui::PopItemWidth();
-        abs_editing = abs_editing || ImGui::IsItemActive();
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            double new_value = m_cut_absolute_deg[axis];
-            while (new_value > 180.) new_value -= 360.;
-            while (new_value <= -180.) new_value += 360.;
-            Vec3d euler_rad = m_cut_rotation;
-            euler_rad[axis] = deg2rad(new_value);
-            apply_cut_rotation(euler_rad);
-        }
+    ImGui::SameLine(caption_max + index * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(abs_ids[X], &m_cut_absolute_deg[X], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    abs_editing = abs_editing || ImGui::IsItemActive();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        double new_value = m_cut_absolute_deg[X];
+        while (new_value > 180.) new_value -= 360.;
+        while (new_value <= -180.) new_value += 360.;
+        Vec3d euler_rad = m_cut_rotation;
+        euler_rad[X] = deg2rad(new_value);
+        apply_cut_rotation(euler_rad);
     }
-    same_line_no_overlap(unit_x);
+    ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(abs_ids[Y], &m_cut_absolute_deg[Y], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    abs_editing = abs_editing || ImGui::IsItemActive();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        double new_value = m_cut_absolute_deg[Y];
+        while (new_value > 180.) new_value -= 360.;
+        while (new_value <= -180.) new_value += 360.;
+        Vec3d euler_rad = m_cut_rotation;
+        euler_rad[Y] = deg2rad(new_value);
+        apply_cut_rotation(euler_rad);
+    }
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
+    ImGui::PushItemWidth(unit_size);
+    ImGui::BBLInputDouble(abs_ids[Z], &m_cut_absolute_deg[Z], 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    abs_editing = abs_editing || ImGui::IsItemActive();
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        double new_value = m_cut_absolute_deg[Z];
+        while (new_value > 180.) new_value -= 360.;
+        while (new_value <= -180.) new_value += 360.;
+        Vec3d euler_rad = m_cut_rotation;
+        euler_rad[Z] = deg2rad(new_value);
+        apply_cut_rotation(euler_rad);
+    }
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + end_text_size);
     m_imgui->text("°");
     ImGui::SameLine();
     m_imgui->disabled_begin(m_rotation_m.isApprox(Transform3d::Identity()));
