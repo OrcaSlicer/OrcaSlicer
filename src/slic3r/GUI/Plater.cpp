@@ -9566,10 +9566,7 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
         }
 
         if (!auto_drop) {
-            for (size_t i = 0; i < object->instances.size(); ++i) {
-                ModelInstance* instance  = object->instances[i];
-                instance->auto_drop = auto_drop;
-            }
+            object->auto_drop = false;
 
             // if under the bed, move over the bed
             double dist_to_bed = std::min(object->min_z(), double(0));
@@ -10154,7 +10151,7 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
             return false;
         };
         bool split_auto_drop = auto_drop;
-        if (current_model_object->instances[0]->auto_drop && is_atleast_one_floating()) {
+        if (current_model_object->auto_drop && is_atleast_one_floating()) {
             MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
                                   _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
 

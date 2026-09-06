@@ -375,6 +375,9 @@ public:
     LayerHeightProfile      layer_height_profile;
     // Whether or not this object is printable
     bool                    printable { true };
+    // Whether this object is snapped to the build plate after transformations.
+    // Instance Z offsets are shared by all instances of an object.
+    bool                    auto_drop { true };
 
     // This vector holds position of selected support points for SLA. The data are
     // saved in mesh coordinates to allow using them for several instances.
@@ -681,7 +684,7 @@ private:
         Internal::StaticSerializationWrapper<ModelConfigObject const> config_wrapper(config);
         Internal::StaticSerializationWrapper<LayerHeightProfile const> layer_heigth_profile_wrapper(layer_height_profile);
         ar(name, module_name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper,
-            sla_support_points, sla_points_status, sla_drain_holes, printable, origin_translation, brim_points,
+            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, origin_translation, brim_points,
             m_bounding_box_approx, m_bounding_box_approx_valid, 
             m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
             m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
@@ -694,7 +697,7 @@ private:
         // BBS: add backup, check modify
         SaveObjectGaurd gaurd(*this);
         ar(name, module_name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper,
-            sla_support_points, sla_points_status, sla_drain_holes, printable, origin_translation, brim_points,
+            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, origin_translation, brim_points,
             m_bounding_box_approx, m_bounding_box_approx_valid, 
             m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
             m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
@@ -1272,7 +1275,6 @@ public:
     ModelInstanceEPrintVolumeState print_volume_state;
     // Whether or not this instance is printable
     bool printable;
-    bool auto_drop;
     bool use_loaded_id_for_label {false};
     int arrange_order = 0; // BBS
     size_t loaded_id = 0; // BBS
@@ -1402,7 +1404,7 @@ private:
 
     // Constructor, which assigns a new unique ID.
     explicit ModelInstance(ModelObject* object)
-        : print_volume_state(ModelInstancePVS_Inside), printable(true), auto_drop(true), object(object), m_assemble_initialized(false)
+        : print_volume_state(ModelInstancePVS_Inside), printable(true), object(object), m_assemble_initialized(false)
     {
         assert(this->id().valid());
     }
@@ -1413,7 +1415,6 @@ private:
         , m_offset_to_assembly(other.m_offset_to_assembly)
         , print_volume_state(ModelInstancePVS_Inside)
         , printable(other.printable)
-        , auto_drop(other.auto_drop)
         , object(object)
         , m_assemble_initialized(false) { assert(this->id().valid() && this->id() != other.id()); }
 
@@ -1427,7 +1428,7 @@ private:
 	ModelInstance() : ObjectBase(-1), object(nullptr) { assert(this->id().invalid()); }
     // BBS. Add added members to archive.
     template<class Archive> void serialize(Archive& ar) {
-        ar(m_transformation, print_volume_state, printable, auto_drop, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized);
+        ar(m_transformation, print_volume_state, printable, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized);
     }
 };
 
