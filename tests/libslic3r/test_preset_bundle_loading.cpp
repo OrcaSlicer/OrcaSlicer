@@ -538,6 +538,16 @@ TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset
         }
 }
 
+// Orca: Overhang preview metadata is a slicing-process choice. Keep it in print presets so the
+// opt-in survives preset changes without leaking into printer or filament preset schemas.
+TEST_CASE("Overhang metadata belongs only to print presets", "[Preset][Overhang]")
+{
+    const std::string key = "gcode_overhangs";
+    CHECK(contains(Preset::print_options(), key));
+    CHECK_FALSE(contains(Preset::printer_options(), key));
+    CHECK_FALSE(contains(Preset::filament_options(), key));
+}
+
 namespace {
 
 // A standalone filament collection that exposes the protected library masking builder, so the Orca

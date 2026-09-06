@@ -75,6 +75,12 @@ public:
     //
     EViewType get_view_type() const;
     void set_view_type(EViewType type);
+    // Orca: Select percentage coloring and legend units for Overhang; false uses angles from vertical.
+    bool is_overhang_percentage() const;
+    void set_overhang_percentage(bool value);
+    // Orca: Apply a zero-safe logarithmic scale to Overhang colors and legend stops in either unit mode.
+    bool is_overhang_logarithmic() const;
+    void set_overhang_logarithmic(bool value);
     //
     // Time mode
     // See: ETimeMode
@@ -175,6 +181,7 @@ public:
     // Valid view types are:
     // EViewType::Height
     // EViewType::Width
+    // Orca: EViewType::Overhang returns the fixed range for the selected units.
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
@@ -197,6 +204,7 @@ public:
     // Valid view types are:
     // EViewType::Height
     // EViewType::Width
+    // Orca: EViewType::Overhang applies the palette to both angular and percentage ranges.
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed

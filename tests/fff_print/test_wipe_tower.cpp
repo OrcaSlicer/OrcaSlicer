@@ -7,6 +7,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
@@ -181,4 +182,55 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(expected));
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
     }
+}
+
+// Orca: Wipe-tower output bypasses model-path metadata generation, so returning to a model must
+// force the producer to repeat its percentage even when the value is unchanged. A vertical cube
+// deliberately keeps the cached value at 0%, so omitting that reset would suppress the next tag.
+TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower][Overhang][Regression]")
+{
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({
+        {"gcode_overhangs", "1"},
+        {"enable_overhang_speed", "0"},
+        {"enable_overhang_bridge_fan", "0"},
+    });
+    const std::string exported = slice_with_prime_tower(config);
+
+    // Orca: Every first model extrusion after a tower must be preceded by a fresh scalar tag. The
+    // unchanged 0% value proves this came from the wipe-tower reset rather than a percentage change.
+    const std::string &tower_end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    const std::string &overhang_tag  = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
+    const std::string &role_tag      = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    bool awaiting_model_extrusion = false;
+    bool saw_fresh_percentage = false;
+    size_t checked_returns = 0;
+    std::string lines_after_tower;
+    ExtrusionRole role = erNone;
+    GCodeReader reader;
+    reader.parse_buffer(exported, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.comment().find(tower_end_tag) != std::string_view::npos) {
+            awaiting_model_extrusion = true;
+            saw_fresh_percentage = false;
+            lines_after_tower.clear();
+            return;
+        }
+        if (!awaiting_model_extrusion)
+            return;
+        lines_after_tower += line.raw() + "\n";
+        if (line.comment().find(overhang_tag) == 0) {
+            saw_fresh_percentage = true;
+            CHECK_THAT(std::stof(std::string(line.comment().substr(overhang_tag.size()))),
+                Catch::Matchers::WithinAbs(0.0, 1e-6));
+        }
+        if (role != erWipeTower && role != erNone && line.extruding(self) && (line.has_x() || line.has_y())) {
+            CAPTURE(lines_after_tower);
+            CHECK(saw_fresh_percentage);
+            ++checked_returns;
+            awaiting_model_extrusion = false;
+        }
+    });
+    REQUIRE(checked_returns > 0);
 }
