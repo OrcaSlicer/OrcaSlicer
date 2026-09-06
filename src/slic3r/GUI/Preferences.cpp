@@ -1740,6 +1740,11 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
+    auto item_bambu_connect_export = create_item_checkbox(_L("Show Bambu Connect export"),
+        _L("If enabled, adds an option to export the sliced plate and open it in Bambu Connect."),
+        "show_bambu_connect_export");
+    g_sizer->Add(item_bambu_connect_export);
+
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it

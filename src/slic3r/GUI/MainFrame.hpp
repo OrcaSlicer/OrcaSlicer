@@ -146,6 +146,7 @@ class MainFrame : public DPIFrame
     bool can_export_supports() const;
     bool can_export_gcode() const;
     bool can_export_all_gcode() const;
+    bool can_export_to_bambu_connect() const;
     bool can_print_3mf() const;
     bool can_send_gcode() const;
     //bool can_export_gcode_sd() const;
@@ -251,7 +252,8 @@ public:
         eSendToPrinterAll    = 6,
         eUploadGcode         = 7,
         eExportAllSlicedFile = 8,
-        ePrintMultiMachine   = 9
+        ePrintMultiMachine   = 9,
+        eBambuConnectExport  = 10,
     };
 
     void update_layout();

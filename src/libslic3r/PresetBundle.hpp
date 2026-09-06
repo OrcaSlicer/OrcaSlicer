@@ -302,9 +302,9 @@ public:
     std::optional<FilamentBaseInfo> get_filament_by_filament_id(const std::string& filament_id, const std::string& printer_name = std::string()) const;
 
     // Orca: get vendor type
-    VendorType get_current_vendor_type();
+    VendorType get_current_vendor_type() const;
     // Vendor related handy functions
-    bool is_bbl_vendor() { return get_current_vendor_type() == VendorType::Marlin_BBL; }
+    bool is_bbl_vendor() const { return get_current_vendor_type() == VendorType::Marlin_BBL; }
 
     // Whether using bbl network for print upload
     bool use_bbl_network();

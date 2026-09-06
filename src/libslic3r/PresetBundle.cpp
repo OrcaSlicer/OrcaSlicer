@@ -679,7 +679,7 @@ Semver PresetBundle::get_vendor_profile_version(std::string vendor_name)
     return result_ver;
 }
 
-VendorType PresetBundle::get_current_vendor_type()
+VendorType PresetBundle::get_current_vendor_type() const
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;

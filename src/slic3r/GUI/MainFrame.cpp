@@ -23,6 +23,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/AppConfig.hpp"
 
 #include "Tab.hpp"
 #include "ProgressStatusBar.hpp"
@@ -1808,6 +1809,12 @@ bool MainFrame::can_export_all_gcode() const
     return part_plate_list.is_all_slice_results_ready_for_print();
 }
 
+bool MainFrame::can_export_to_bambu_connect() const
+{
+    const PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    return preset_bundle && preset_bundle->is_bbl_vendor() && can_export_gcode();
+}
+
 bool MainFrame::can_print_3mf() const
 {
     if (m_plater && !m_plater->model().objects.empty()) {
@@ -2036,6 +2043,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
             else if (m_print_select == eExportAllSlicedFile)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE));
+            else if (m_print_select == eBambuConnectExport)
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_BAMBU_CONNECT_EXPORT));
             else if (m_print_select == eSendToPrinter)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER));
             else if (m_print_select == eSendToPrinterAll)
@@ -2215,6 +2224,18 @@ wxBoxSizer* MainFrame::create_side_tools()
                     p->Dismiss();
                     });
 
+                SideButton* bambu_connect_export_btn = new SideButton(p, _L("Bambu Connect: Export"), "");
+                bambu_connect_export_btn->SetCornerRadius(0);
+                bambu_connect_export_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Bambu Connect: Export"));
+                    m_print_select = eBambuConnectExport;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels();
+                    p->Dismiss();
+                    });
+
                 bool support_send = true;
                 bool support_print_all = true;
 
@@ -2257,6 +2278,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 }
                 p->append_button(export_sliced_file_btn);
                 p->append_button(export_all_sliced_file_btn);
+                if (wxGetApp().app_config->get_bool("show_bambu_connect_export"))
+                    p->append_button(bambu_connect_export_btn);
                 SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
                 export_gcode_btn->SetCornerRadius(0);
                 export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
@@ -2414,6 +2437,12 @@ bool MainFrame::get_enable_print_status()
         {
             enable = false;
         }
+    }
+    else if (m_print_select == eBambuConnectExport)
+    {
+        if (!current_plate->is_slice_result_ready_for_export())
+            enable = false;
+        enable = enable && !is_all_plates;
     }
     else if (m_print_select == ePrintMultiMachine)
     {
@@ -2885,6 +2914,13 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(export_menu, wxID_ANY, _L("Export all plate sliced file") + dots/* + "\t" + ctrl + "G"*/, _L("Export all plate sliced file"),
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE)); }, "menu_export_sliced_file", nullptr,
             [this]() {return can_export_all_gcode(); }, this);
+
+        wxMenuItem* bambu_connect_export_menu = append_menu_item(export_menu, wxID_ANY, _L("Bambu Connect: Export"), _L("Export current plate sliced file and open it in Bambu Connect"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_BAMBU_CONNECT_EXPORT)); }, "menu_export_sliced_file", nullptr,
+            [this]() { return can_export_to_bambu_connect(); }, this);
+        this->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) {
+            evt.Show(wxGetApp().app_config->get_bool("show_bambu_connect_export"));
+        }, bambu_connect_export_menu->GetId());
 
         append_menu_item(export_menu, wxID_ANY, _L("Export G-code") + dots/* + "\t" + ctrl + "G"*/, _L("Export current plate as G-code"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_gcode(false); }, "menu_export_gcode", nullptr,
