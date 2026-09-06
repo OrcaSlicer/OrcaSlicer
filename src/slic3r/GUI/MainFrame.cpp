@@ -387,19 +387,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         wxQueueEvent(wxGetApp().plater(), int_event);
 		e.Skip();
 	});
-#endif
-
-#ifdef __APPLE__
-    // Initialize the docker task bar icon.
-    switch (wxGetApp().get_app_mode()) {
-    default:
-    case GUI_App::EAppMode::Editor:
-        m_taskbar_icon = std::make_unique<OrcaSlicerTaskBarIcon>(wxTBI_DOCK);
-        m_taskbar_icon->SetIcon(wxIcon(Slic3r::var("OrcaSlicer-mac_256px.ico"), wxBITMAP_TYPE_ICO), "OrcaSlicer");
-        break;
-    case GUI_App::EAppMode::GCodeViewer:
-        break;
-    }
 #endif // __APPLE__
 
     // Load the icon either from the exe, or from the ico file.
