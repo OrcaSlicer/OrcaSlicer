@@ -10,8 +10,9 @@ namespace Slic3r {
 
 class PrintObject;
 
-// Extra spacing of bridge threads, in mm.
-#define BRIDGE_EXTRA_SPACING 0.05
+// Extra spacing for thick bridges lines, in mm. This is zero so that the
+// relative spacing doesn't change when the bridge diameter changes.
+#define BRIDGE_EXTRA_SPACING 0.0
 
 enum FlowRole {
     frExternalPerimeter,

@@ -7945,6 +7945,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         _mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
     } else if (path.role() == erBottomSurface) {
         _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
+    } else if (path.role() == erBridgeInfill && m_config.thick_bridges) {
+         // Only do this for thick_bridges because thin bridges directly adjust the flow.
+        _mm3_per_mm *= m_config.bridge_flow;
     } else if (path.role() == erInternalBridgeInfill) {
         _mm3_per_mm *= m_config.internal_bridge_flow;
     } else if (path.role() == erBrim) {
