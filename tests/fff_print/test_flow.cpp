@@ -10,10 +10,123 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/libslic3r.h"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
+
+TEST_CASE("Filament wall flow inherits and overrides the process gate", "[Flow][Regression]")
+{
+    const bool process_gate = GENERATE(false, true);
+    const std::string filament_gate = GENERATE(std::string("nil"), std::string("0"), std::string("1"));
+    const bool override_ratio = GENERATE(false, true);
+    auto config = multifilament_config(2, {
+        {"wall_loops", "1"}, {"sparse_infill_density", "0%"},
+        {"top_shell_layers", "0"}, {"bottom_shell_layers", "0"},
+        {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+        {"outer_wall_filament_id", "2"}, {"enable_arc_fitting", "0"},
+        {"brim_type", "no_brim"}, {"skirt_loops", "0"},
+        {"use_relative_e_distances", "1"}, {"seam_slope_type", "none"},
+        {"first_layer_flow_ratio", "1"}, {"outer_wall_flow_ratio", "1"},
+        {"set_other_flow_ratios", "0"},
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"}
+    });
+
+    const auto wall_extrusion = [&](const DynamicPrintConfig& cfg) {
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{cube(4)}, print, model, cfg, nullptr, false);
+        const std::string output = gcode(print);
+        GCodeReader reader;
+        reader.apply_config(cfg);
+        double extrusion = 0.;
+        reader.parse_buffer(output, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+            if (line.extruding(self) && line.dist_XY(self) > 0 &&
+                line.comment().find("perimeter") != std::string_view::npos)
+                extrusion += line.dist_E(self);
+        });
+        return extrusion;
+    };
+
+    // Leave defaults at one element: older and CLI configs need the get_at() fallback
+    // even when the path uses the second filament.
+    const double baseline = wall_extrusion(config);
+    REQUIRE(baseline > 0.);
+    config.set_deserialize_strict("set_other_flow_ratios", process_gate ? "1" : "0");
+    config.set_deserialize_strict("outer_wall_flow_ratio", "0.8");
+    config.set_deserialize_strict("filament_set_other_flow_ratios", filament_gate);
+    config.set_deserialize_strict("filament_outer_wall_flow_ratio", override_ratio ? "0.9,1.2" : "nil");
+    const bool effective_gate = filament_gate == "nil" ? process_gate : filament_gate == "1";
+    const double expected_ratio = effective_gate ? (override_ratio ? 1.2 : 0.8) : 1.;
+    REQUIRE_THAT(wall_extrusion(config) / baseline, Catch::Matchers::WithinRel(expected_ratio, 0.001));
+}
+
+TEST_CASE("Filament flow overrides follow nozzle variant expansion", "[Flow][H2C][Regression]")
+{
+    using namespace Slic3r::MultiNozzleUtils;
+    auto config = multifilament_config(1);
+    config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+    config.option<ConfigOptionStrings>("extruder_nozzle_stats", true)->values = {"Standard#1", "Standard#1|High Flow#2"};
+    config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+    config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtHybrid};
+    config.option<ConfigOptionInts>("filament_map", true)->values = {2};
+    config.option<ConfigOptionInts>("filament_volume_map", true)->values = {int(nvtStandard)};
+    config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {
+        "Direct Drive Standard,Direct Drive High Flow", "Direct Drive Standard,Direct Drive High Flow"};
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1, 1, 2, 2};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {
+        "Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"};
+    config.option<ConfigOptionInts>("filament_self_index", true)->values = {1, 1};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow"};
+
+    const std::vector<std::string> flow_keys = {
+        "filament_first_layer_flow_ratio", "filament_top_solid_infill_flow_ratio",
+        "filament_bottom_solid_infill_flow_ratio", "filament_outer_wall_flow_ratio",
+        "filament_inner_wall_flow_ratio", "filament_overhang_flow_ratio",
+        "filament_sparse_infill_flow_ratio", "filament_internal_solid_infill_flow_ratio",
+        "filament_gap_fill_flow_ratio", "filament_brim_flow_ratio",
+        "filament_support_flow_ratio", "filament_support_interface_flow_ratio"
+    };
+    for (const auto& key : flow_keys)
+        config.set_deserialize_strict(key, "0.8,1.2");
+    config.set_deserialize_strict("filament_set_other_flow_ratios", "nil,1");
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{cube(4)}, print, model, config, nullptr, false);
+    std::vector<NozzleInfo> nozzles(2);
+    for (auto& nozzle : nozzles) {
+        nozzle.diameter = "0.4";
+        nozzle.extruder_id = 1;
+    }
+    nozzles[0].volume_type = nvtStandard;
+    nozzles[0].group_id = 0;
+    nozzles[1].volume_type = nvtHighFlow;
+    nozzles[1].group_id = 1;
+    auto group = LayeredNozzleGroupResult::create({{0}, {1}}, nozzles, {0}, {{0}, {0}});
+    REQUIRE(group.has_value());
+    print.set_nozzle_group_result(std::make_shared<LayeredNozzleGroupResult>(*group));
+    print.update_to_config_by_nozzle_group_result(*group);
+
+    const size_t standard_slot = print.get_filament_config_indx(0, 0);
+    const size_t high_flow_slot = print.get_filament_config_indx(0, 1);
+    REQUIRE(standard_slot != high_flow_slot);
+    for (const auto& key : flow_keys) {
+        CAPTURE(key);
+        const auto* values = print.config().option<ConfigOptionFloatsNullable>(key);
+        REQUIRE(values != nullptr);
+        REQUIRE(values->size() > high_flow_slot);
+        REQUIRE_THAT(values->get_at(standard_slot), Catch::Matchers::WithinAbs(0.8, 1e-9));
+        REQUIRE_THAT(values->get_at(high_flow_slot), Catch::Matchers::WithinAbs(1.2, 1e-9));
+    }
+    const auto* gate = print.config().option<ConfigOptionBoolsNullable>("filament_set_other_flow_ratios");
+    REQUIRE(gate != nullptr);
+    REQUIRE(gate->size() > high_flow_slot);
+    REQUIRE(gate->is_nil(standard_slot));
+    REQUIRE(gate->get_at(high_flow_slot));
+}
 
 /// Test the expected behavior for auto-width,
 /// spacing, etc

@@ -1643,9 +1643,11 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Set other flow ratios");
     def->category = L("Advanced");
     def->tooltip = L("Filament-specific override for the \"Set other flow ratios\" option.\n\n"
-                     "When enabled, the flow ratio overrides below take effect for this filament, "
-                     "replacing the corresponding process-level values. When disabled, the process-level "
-                     "flow ratios are used as-is for this filament.");
+                     "When enabled, the additional flow ratios apply to this filament, using each "
+                     "filament override when set and the corresponding process value otherwise. "
+                     "When disabled, the additional flow ratios are not applied. "
+                     "When unset, the process-level \"Set other flow ratios\" is used. "
+                     "Top surface, bottom surface and brim flow ratios are unaffected by this option.");
     def->mode = comExpert;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable{ ConfigOptionBoolsNullable::nil_value() });

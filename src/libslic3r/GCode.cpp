@@ -7981,17 +7981,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     // calculate effective extrusion length per distance unit (e_per_mm)
-    // Orca: cache the filament config index once — RESOLVE_OPTION is expanded
-    // up to 13 times per ExtrusionPath, and get_filament_config_index does a
-    // per-layer map lookup each call.
+    // Resolve the active filament/variant once for all flow overrides.
     const size_t filament_idx = get_filament_config_index(m_writer.filament()->id());
     double filament_flow_ratio = m_config.filament_flow_ratio.get_at(filament_idx);
     // We set _mm3_per_mm to effectove flow = Geometric volume * print flow ratio * filament flow ratio * role-based-flow-ratios
     auto _mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio;
     _mm3_per_mm *= filament_flow_ratio;
 
+    // Match get_at()'s first-value fallback for unexpanded defaults in older/CLI configs.
     #define RESOLVE_OPTION(OPT) \
-        (m_config.filament_##OPT.is_nil(filament_idx) \
+        (m_config.filament_##OPT.is_nil(filament_idx < m_config.filament_##OPT.size() ? filament_idx : 0) \
             ? m_config.OPT \
             : m_config.filament_##OPT.get_at(filament_idx))
 
