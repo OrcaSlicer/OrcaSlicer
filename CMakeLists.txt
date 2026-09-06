@@ -505,6 +505,28 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if (APPLE)
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")
+    # On the Xcode 26 SDK (newer libc++), several Find modules for system libraries
+    # (ZLIB, EXPAT, BZip2, Iconv) resolve their *_INCLUDE_DIR to "<sdk>/usr/include".
+    # When that C-header directory is passed as an explicit -isystem path it shadows
+    # libc++'s own <math.h>/<stddef.h> wrappers, so the C signbit()/isnan() macros leak
+    # into <cmath> and break __math/traits.h ("expected unqualified-id"). Register the
+    # SDK's usr/include as an implicit include dir so CMake never emits it explicitly;
+    # the compiler still searches it via -isysroot, so nothing is lost.
+    set(_orca_sdk_path "${CMAKE_OSX_SYSROOT}")
+    if (NOT IS_ABSOLUTE "${_orca_sdk_path}")
+        if (_orca_sdk_path STREQUAL "")
+            set(_orca_sdk_path "macosx")
+        endif ()
+        execute_process(COMMAND xcrun --sdk "${_orca_sdk_path}" --show-sdk-path
+                        OUTPUT_VARIABLE _orca_sdk_path
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        ERROR_QUIET)
+    endif ()
+    if (_orca_sdk_path AND EXISTS "${_orca_sdk_path}/usr/include")
+        list(APPEND CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES   "${_orca_sdk_path}/usr/include")
+        list(APPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "${_orca_sdk_path}/usr/include")
+        message(STATUS "Marked ${_orca_sdk_path}/usr/include as implicit include dir (libc++ header-order fix)")
+    endif ()
     if (CMAKE_OSX_DEPLOYMENT_TARGET)
         message("OS X Deployment Target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
     else ()
@@ -575,7 +597,15 @@ if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR 
 
     if((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang") AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
         include(CheckCXXCompilerFlag)
+        # Probe with -Werror so an "unknown warning option" diagnostic fails the check.
+        # Xcode 26+ clang dropped the enum-constexpr-conversion warning name; without
+        # -Werror the probe only warns and yields a false positive, and the leftover
+        # -Wno-error=enum-constexpr-conversion then becomes fatal in sub-projects built
+        # with -Werror (e.g. bundled Clipper2).
+        set(_orca_saved_required_flags "${CMAKE_REQUIRED_FLAGS}")
+        string(APPEND CMAKE_REQUIRED_FLAGS " -Werror")
         check_cxx_compiler_flag(-Wno-error=enum-constexpr-conversion HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+        set(CMAKE_REQUIRED_FLAGS "${_orca_saved_required_flags}")
         if(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
             add_compile_options(-Wno-error=enum-constexpr-conversion)
         endif()
