@@ -3570,6 +3570,7 @@ void GCodeProcessor::reset()
     m_detect_layer_based_on_tag = false;
 
     m_seams_count = 0;
+    m_g29_time_added = false;
     m_preheat_time = 0.f;
     m_preheat_steps = 1;
 }
@@ -5938,15 +5939,12 @@ void GCodeProcessor::process_G4(const GCodeReader::GCodeLine& line)
 //BBS
 void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
 {
-    //BBS: hardcode 260 seconds for G29
-    //Todo: use a machine related setting when we have second kind of BBL printer
-    const float value_s = 260.0;
-    if (s_IsBBLPrinter){
-        if(m_measure_g29_time)
-            simulate_st_synchronize(value_s);
-    }
-    else{
-        simulate_st_synchronize(value_s);
+    // Firmware may split one bed-leveling sequence across multiple G29 subcommands.
+    constexpr float g29_time = 260.0f;
+    const bool should_add_time = !s_IsBBLPrinter || m_measure_g29_time;
+    if (should_add_time && !m_g29_time_added) {
+        simulate_st_synchronize(g29_time);
+        m_g29_time_added = true;
     }
 }
 
