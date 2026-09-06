@@ -1,21 +1,22 @@
 {
 	"type": "machine",
 	"name": "WonderMaker ZR Ultra 0.8 nozzle",
-	"inherits": "WonderMaker ZR Ultra 0.4 nozzle",
+	"inherits": "fdm_ultra_common",
 	"from": "system",
 	"setting_id": "SY9snlsMkurhEYWP",
 	"instantiation": "true",
+	"printer_model": "WonderMaker ZR Ultra",
+	"printer_variant": "0.8",
+	"default_print_profile": "0.40mm Standard @WonderMaker ZR Ultra 0.8 nozzle",
+	"default_bed_type": "4",
+	"max_layer_height": [
+		"0.56"
+	],
 	"nozzle_diameter": [
 		"0.8",
 		"0.8",
 		"0.8",
 		"0.8"
-	],
-	"printer_model": "WonderMaker ZR Ultra",
-	"printer_variant": "0.8",
-	"default_print_profile": "0.40mm Standard @WonderMaker ZR Ultra 0.8 nozzle",
-	"max_layer_height": [
-		"0.56"
 	],
 	"min_layer_height": [
 		"0.16"
