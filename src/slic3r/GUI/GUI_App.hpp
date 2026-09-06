@@ -798,10 +798,14 @@ private:
     bool            wait_for_network_idle(int timeout_ms);
     bool            check_older_app_config(Semver current_version, bool backup);
     void            copy_older_config();
+public:
+    // Saved-geometry helpers (app-config key "window_<name>"): the main frame's, and any dialog
+    // that should reopen where the user left it (the sidebar's Printer Material Settings).
     void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
     bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
     void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
+private:
 
     // Dynamic printer agent selection - internal helpers for switch_printer_agent
     // and the plugin load/unload callbacks (init_plugin_gui_wiring).
