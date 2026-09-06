@@ -56,6 +56,22 @@ void present_toplevel(wxFrame* frame)
         GtkWidget* widget = static_cast<GtkWidget*>(frame->GetHandle());
         if (widget && GTK_IS_WIDGET(widget)) {
             GdkWindow* gdkwin = gtk_widget_get_window(widget);
+            // REALIZE, then retry, rather than dropping to the fallback below. An unrealized
+            // widget has no GdkWindow, so there is nothing to read a server timestamp from —
+            // and the fallback is wxFrame::Raise(), which asks for activation with
+            // GDK_CURRENT_TIME. Zero is precisely the value focus-stealing prevention throws
+            // away; metacity says so out loud:
+            //
+            //   Buggy client sent a _NET_ACTIVE_WINDOW message with a timestamp of 0
+            //
+            // and mutter, same lineage, refuses it silently on the user's desktop. That refusal
+            // IS the reported bug: the field is on screen, never gets the keyboard, and Enter
+            // commits the as-drawn prefill. The timestamped call was already here; this is the
+            // path that was quietly bypassing it.
+            if (gdkwin == nullptr) {
+                gtk_widget_realize(widget);
+                gdkwin = gtk_widget_get_window(widget);
+            }
             if (gdkwin) {
                 gtk_window_present_with_time(GTK_WINDOW(widget),
                                              gdk_x11_get_server_time(gdkwin));
@@ -63,8 +79,13 @@ void present_toplevel(wxFrame* frame)
             }
         }
     }
-#endif
+    // Deliberately NOT falling back to Raise() on X11: a timestamp-0 activation is worse than
+    // no activation — it is refused anyway, and on some WMs it marks the window as demanding
+    // attention instead.
+    return;
+#else
     if (frame) frame->Raise();
+#endif
 }
 #else
 void present_toplevel(wxFrame* frame)
