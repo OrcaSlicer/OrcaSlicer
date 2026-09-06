@@ -17829,6 +17829,43 @@ void Plater::apply_cut_object_to_model(size_t obj_idx, const ModelObjectPtrs& ne
     // w.wait_for_idle();
 }
 
+// BBS: merge the selected volumes of one object into a single volume, in place.
+void Plater::merge(size_t obj_idx, std::vector<int>& vol_indeces)
+{
+    wxCHECK_RET(obj_idx < p->model.objects.size(), "obj_idx out of bounds");
+    auto* object = p->model.objects[obj_idx];
+
+    Plater::TakeSnapshot snapshot(this, _u8L("Merge"));
+
+    wxBusyCursor wait;
+
+    const auto new_objects = object->merge_volumes(vol_indeces);
+    if (new_objects.empty())
+        return;
+
+    remove(obj_idx);
+    p->load_model_objects(new_objects);
+
+    Selection& selection = p->get_selection();
+    size_t last_id = p->model.objects.size() - 1;
+    for (size_t i = 0; i < new_objects.size(); ++i)
+    {
+        const size_t loaded_idx = last_id - i;
+        // merge_volumes() puts the merged volume first, but load_model_objects()
+        // stable sorts the volumes by type, so it only stays first when nothing
+        // of an earlier type follows it. It keeps its place among its own type,
+        // so its index is the number of volumes sorting ahead of it.
+        int merged_idx = 0;
+        if (!new_objects[i]->volumes.empty()) {
+            const ModelVolumeType merged_type = new_objects[i]->volumes.front()->type();
+            for (const ModelVolume* v : p->model.objects[loaded_idx]->volumes)
+                if (v->type() < merged_type)
+                    ++merged_idx;
+        }
+        selection.add_volume((unsigned int)loaded_idx, merged_idx, 0, i == 0);
+    }
+}
+
 void Plater::export_gcode(bool prefer_removable)
 {
     if (p->model.objects.empty())
