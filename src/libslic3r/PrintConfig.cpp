@@ -3440,6 +3440,37 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionString());
 
 
+    def           = this->add("max_infill_bridge_length", coFloat);
+    def->label    = L("Max infill bridge length");
+    def->category = L("Strength");
+    def->tooltip  = L("Densify the sparse infill under top solid surfaces until no infill line is further than this "
+                      "from its neighbour, so the top shell never has to bridge a longer gap than this.\n\n"
+                      "This lets a model keep a low overall infill density without the top surface sagging: the extra "
+                      "density is added only in the layers just below a top shell, and only where a top shell is "
+                      "actually there. The density is raised in doubling steps, so every added line sits on the "
+                      "pattern the layer below already prints and is self supporting.\n\n"
+                      "Set to 0 to disable. Has no effect on Lightning infill, which already grows to support top "
+                      "surfaces on its own.");
+    def->sidetext = L("mm");
+    def->min      = 0;
+    def->max      = 100;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def           = this->add("sparse_infill_top_offset", coInt);
+    def->label    = L("Densified layers below top");
+    def->category = L("Strength");
+    def->tooltip  = L("How many layers each density step of \"Max infill bridge length\" is held for. The layers "
+                      "directly below a top shell get the full density, and every further block of this many layers "
+                      "below halves it again until the configured sparse infill density is reached.\n\n"
+                      "Higher values give the added infill lines more layers to stack up and stiffen before the top "
+                      "shell is printed, at the cost of more material.");
+    def->sidetext = L("layers");
+    def->min      = 1;
+    def->max      = 50;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(2));
+
     // Infill multiline
     def             = this->add("fill_multiline", coInt);
     def->label      = L("Fill Multiline");
