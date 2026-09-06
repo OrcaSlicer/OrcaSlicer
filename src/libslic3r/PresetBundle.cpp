@@ -220,20 +220,28 @@ DynamicPrintConfig PresetBundle::construct_full_config(
                 // BBS
                 ConfigOptionVectorBase *opt_vec_dst = static_cast<ConfigOptionVectorBase *>(opt_dst);
                 {
-                    if (apply_extruder) {
-                        std::vector<const ConfigOption *> filament_opts(num_filaments, nullptr);
-                        // Setting a vector value from all filament_configs.
-                        for (size_t i = 0; i < filament_opts.size(); ++i) filament_opts[i] = filament_temp_configs[i].option(key);
-                        opt_vec_dst->set(filament_opts);
-                    } else {
-                        for (size_t i = 0; i < num_filaments; ++i) {
-                            const ConfigOptionVectorBase *filament_option = static_cast<const ConfigOptionVectorBase *>(filament_temp_configs[i].option(key));
-                            if (i == 0)
-                                opt_vec_dst->set(filament_option);
-                            else
-                                opt_vec_dst->append(filament_option);
+                    // Skip if any filament option has no values (old preset missing this key).
+                    const bool any_empty = std::any_of(filament_temp_configs.begin(), filament_temp_configs.end(),
+                        [&key](const DynamicPrintConfig &cfg) {
+                            const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(cfg.option(key));
+                            return vec && vec->size() == 0;
+                        });
+                    if (!any_empty) {
+                        if (apply_extruder) {
+                            std::vector<const ConfigOption *> filament_opts(num_filaments, nullptr);
+                            // Setting a vector value from all filament_configs.
+                            for (size_t i = 0; i < filament_opts.size(); ++i) filament_opts[i] = filament_temp_configs[i].option(key);
+                            opt_vec_dst->set(filament_opts);
+                        } else {
+                            for (size_t i = 0; i < num_filaments; ++i) {
+                                const ConfigOptionVectorBase *filament_option = static_cast<const ConfigOptionVectorBase *>(filament_temp_configs[i].option(key));
+                                if (i == 0)
+                                    opt_vec_dst->set(filament_option);
+                                else
+                                    opt_vec_dst->append(filament_option);
 
-                            if (key == "filament_extruder_variant") filament_variant_count[i] = filament_option->size();
+                                if (key == "filament_extruder_variant") filament_variant_count[i] = filament_option->size();
+                            }
                         }
                     }
                 }
@@ -4500,23 +4508,31 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
                 // BBS
                 ConfigOptionVectorBase* opt_vec_dst = static_cast<ConfigOptionVectorBase*>(opt_dst);
                 {
-                    if (apply_extruder) {
-                        std::vector<const ConfigOption*> filament_opts(num_filaments, nullptr);
-                        // Setting a vector value from all filament_configs.
-                        for (size_t i = 0; i < filament_opts.size(); ++i)
-                            filament_opts[i] = filament_temp_configs[i].option(key);
-                        opt_vec_dst->set(filament_opts);
-                    }
-                    else {
-                        for (size_t i = 0; i < num_filaments; ++i) {
-                            const ConfigOptionVectorBase* filament_option = static_cast<const ConfigOptionVectorBase*>(filament_temp_configs[i].option(key));
-                            if (i == 0)
-                                opt_vec_dst->set(filament_option);
-                            else
-                                opt_vec_dst->append(filament_option);
+                    // Skip if any filament option has no values (old preset missing this key).
+                    const bool any_empty = std::any_of(filament_temp_configs.begin(), filament_temp_configs.end(),
+                        [&key](const DynamicPrintConfig &cfg) {
+                            const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(cfg.option(key));
+                            return vec && vec->size() == 0;
+                        });
+                    if (!any_empty) {
+                        if (apply_extruder) {
+                            std::vector<const ConfigOption*> filament_opts(num_filaments, nullptr);
+                            // Setting a vector value from all filament_configs.
+                            for (size_t i = 0; i < filament_opts.size(); ++i)
+                                filament_opts[i] = filament_temp_configs[i].option(key);
+                            opt_vec_dst->set(filament_opts);
+                        }
+                        else {
+                            for (size_t i = 0; i < num_filaments; ++i) {
+                                const ConfigOptionVectorBase* filament_option = static_cast<const ConfigOptionVectorBase*>(filament_temp_configs[i].option(key));
+                                if (i == 0)
+                                    opt_vec_dst->set(filament_option);
+                                else
+                                    opt_vec_dst->append(filament_option);
 
-                            if (key == "filament_extruder_variant")
-                                filament_variant_count[i] = filament_option->size();
+                                if (key == "filament_extruder_variant")
+                                    filament_variant_count[i] = filament_option->size();
+                            }
                         }
                     }
                 }
