@@ -1066,32 +1066,37 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             convex_hulls_temp.push_back(wipe_tower_polygon);
         }
     }
+    // Post-generation the mesh bottom already carries the brim; pre-generation grow the body
+    // by the brim only when its width is explicit — the auto estimate is sized by the tallest
+    // object and can overshoot (the exact footprint is re-checked in _make_wipe_tower).
+    const bool exact_footprint     = print.is_step_done(psWipeTower);
+    Polygons   tower_polys_checked = (!exact_footprint && config.prime_tower_brim_width.value >= 0) ?
+                                         offset(convex_hulls_temp, float(scale_(brim_width))) :
+                                         convex_hulls_temp;
+    // Object proximity stays a body-only warning: brim near-misses would newly warn on
+    // many setups that print fine.
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
             warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
         }
     }
-    if (!intersection(exclude_polys, convex_hulls_temp).empty()) {
+    if (!intersection(exclude_polys, tower_polys_checked).empty()) {
         /*if (warning) {
             warning->string += L("Prime Tower is too close to exclusion area, there may be collisions when printing.\n");
         }*/
         return {L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n")};
     }
-    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
+    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_checked).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
     }
     // Single-filament prints without smooth timelapse keep the config's tower position but
     // never emit one, so skip the check for them.
     if (filaments_count > 1 || print.enable_timelapse_print()) {
-        // Pre-generation, grow the body by the brim to match what the generator draws;
-        // post-generation the mesh already includes it.
         Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
         const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
         for (Polygon &p : printable_polys)
             p.translate(plate_shift);
-        Polygons tower_polys_with_brim = print.is_step_done(psWipeTower) ?
-            convex_hulls_temp : offset(convex_hulls_temp, float(scale_(brim_width)));
-        if (!diff(tower_polys_with_brim, printable_polys).empty())
+        if (!diff(tower_polys_checked, printable_polys).empty())
             return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     }
     return {};
@@ -4479,7 +4484,9 @@ void Print::_make_wipe_tower()
                                          wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
                                          config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value);
+                                         config().wipe_tower_fillet_wall.value,
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
+                                             (float) config().wipe_tower_cone_angle.value : 0.f);
         const Vec3d origin                      = Vec3d::Zero();
         // FakeWipeTower::pos is a bed-frame translation applied after rotation
         // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
@@ -4491,6 +4498,28 @@ void Print::_make_wipe_tower()
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
                                                   config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,
                                                   {scale_(origin.x()), scale_(origin.y())});
+    }
+
+    // The clamps and checks above work from estimates; re-test the exact generated footprint
+    // so an off-plate tower fails with a clear error instead of exporting unprintable G-code
+    // (validate() only sees the mesh on its next run).
+    if (m_wipe_tower_data.wipe_tower_mesh_data) {
+        Polygon footprint = m_wipe_tower_data.wipe_tower_mesh_data->bottom; // includes brim and rib offset
+        footprint.rotate(Geometry::deg2rad(m_config.wipe_tower_rotation_angle.value));
+        footprint.translate(Point(scale_(m_config.wipe_tower_x.get_at(m_plate_index)),
+                                  scale_(m_config.wipe_tower_y.get_at(m_plate_index))));
+        const Polygons printable_polys = this->get_extruder_shared_printable_polygon();
+        if (!printable_polys.empty() && !diff(Polygons{footprint}, printable_polys).empty()) {
+            const BoundingBox fp = get_extents(footprint);
+            const BoundingBox pr = get_extents(printable_polys);
+            BOOST_LOG_TRIVIAL(error) << boost::format("wipe tower footprint [%1%,%2%]-[%3%,%4%] leaves printable [%5%,%6%]-[%7%,%8%]") %
+                unscaled(fp.min.x()) % unscaled(fp.min.y()) % unscaled(fp.max.x()) % unscaled(fp.max.y()) %
+                unscaled(pr.min.x()) % unscaled(pr.min.y()) % unscaled(pr.max.x()) % unscaled(pr.max.y());
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n"));
+        }
+        // The cutter/purge corner is a physical obstacle — the brim must stay out like the body.
+        if (!intersection(get_bed_excluded_area(m_config), Polygons{footprint}).empty())
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n"));
     }
 }
 
@@ -6040,12 +6069,21 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
     }
     return wtels;
 }
-void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall)
+void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall, float cone_angle)
 {
     wipe_tower_mesh_data = WipeTowerMeshData{};
     float first_layer_height=0.08; //brim height
     if (width < EPSILON || depth < EPSILON || height < EPSILON) return;
-    if (!is_rib_wipe_tower || rib_length < EPSILON) {
+    if (cone_angle > EPSILON && (!is_rib_wipe_tower || rib_length < EPSILON)) {
+        // Cone tower: the base bulges past the body box; this bottom polygon feeds the
+        // containment checks, so it must carry the bulge and the brim (cone not lofted).
+        wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
+        wipe_tower_mesh_data->bottom               = WipeTower2::cone_base_polygon(width, depth, height, cone_angle);
+        auto brim_bottom                           = offset(wipe_tower_mesh_data->bottom, scaled(brim_width));
+        if (!brim_bottom.empty())
+            wipe_tower_mesh_data->bottom = brim_bottom.front();
+        wipe_tower_mesh_data->real_brim_mesh = WipeTower::its_make_rib_brim(wipe_tower_mesh_data->bottom, first_layer_height);
+    } else if (!is_rib_wipe_tower || rib_length < EPSILON) {
         wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
         wipe_tower_mesh_data->real_brim_mesh       = make_cube(width + 2 * brim_width, depth + 2 * brim_width, first_layer_height);
         wipe_tower_mesh_data->real_brim_mesh.translate({-brim_width, -brim_width, 0});
