@@ -3611,6 +3611,22 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(50));
+
+    def = this->add("minimum_cruise_ratio_enable", coBool);
+    def->label = L("Use minimum cruise ratio");
+    def->category = L("Speed");
+    def->tooltip = L("Use MINIMUM_CRUISE_RATIO instead of the legacy ACCEL_TO_DECEL command. Requires Klipper 0.13.0 or later. Leave disabled for older Klipper versions.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+    
+    def = this->add("minimum_cruise_ratio", coFloat);
+    def->label = L("Minimum cruise ratio");
+    def->category = L("Speed");
+    def->tooltip = L("Minimum fraction of a move spent cruising at a constant speed. Klipper reduces the peak speed of short moves to maintain this ratio. Set to 0 to disable this limit. The value must be less than 1.");
+    def->min = 0;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.5));
     
     def = this->add("default_jerk", coFloats);
     def->label = L("Default");
@@ -11649,6 +11665,9 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
 std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool under_cli)
 {
     std::map<std::string, std::string> error_message;
+    if (cfg.gcode_flavor.value == gcfKlipper && cfg.minimum_cruise_ratio_enable.value &&
+        !(cfg.minimum_cruise_ratio.value >= 0.0 && cfg.minimum_cruise_ratio.value < 1.0))
+        error_message.emplace("minimum_cruise_ratio", L("Minimum cruise ratio must be at least 0 and less than 1."));
     // --layer-height
     if (cfg.get_abs_value("layer_height") <= 0) {
         error_message.emplace("layer_height", L("invalid value ") + std::to_string(cfg.get_abs_value("layer_height")));

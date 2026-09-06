@@ -1654,6 +1654,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                use_relative_e_distances))
     ((ConfigOptionBool,                accel_to_decel_enable))
     ((ConfigOptionPercent,             accel_to_decel_factor))
+    ((ConfigOptionBool,                minimum_cruise_ratio_enable))
+    ((ConfigOptionFloat,               minimum_cruise_ratio))
     ((ConfigOptionFloatsOrPercentsNullable, initial_layer_travel_speed))
     ((ConfigOptionFloatsOrPercentsNullable, initial_layer_travel_acceleration))
     ((ConfigOptionFloatsOrPercentsNullable, initial_layer_travel_jerk))

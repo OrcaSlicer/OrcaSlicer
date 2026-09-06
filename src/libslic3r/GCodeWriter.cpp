@@ -367,7 +367,9 @@ std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned i
         gcode << (separate_travel ? "M204 T" : "M204 P") << acceleration;
     else if (FLAVOR_IS(gcfKlipper)) {
         gcode << "SET_VELOCITY_LIMIT ACCEL=" << acceleration;
-        if (this->config.accel_to_decel_enable) {
+        if (this->config.minimum_cruise_ratio_enable)
+            gcode << " MINIMUM_CRUISE_RATIO=" << this->config.minimum_cruise_ratio.value;
+        else if (this->config.accel_to_decel_enable) {
             gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
             if (GCodeWriter::full_gcode_comment)
                 gcode << " ; adjust ACCEL_TO_DECEL";
@@ -450,7 +452,9 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
     gcode << "SET_VELOCITY_LIMIT";
     if (acceleration != 0 && acceleration != m_last_acceleration) {
         gcode << " ACCEL=" << acceleration;
-        if (this->config.accel_to_decel_enable) {
+        if (this->config.minimum_cruise_ratio_enable)
+            gcode << " MINIMUM_CRUISE_RATIO=" << this->config.minimum_cruise_ratio.value;
+        else if (this->config.accel_to_decel_enable) {
             gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
         }
         m_last_acceleration = acceleration;

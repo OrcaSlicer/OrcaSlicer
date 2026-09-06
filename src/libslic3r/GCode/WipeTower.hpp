@@ -505,6 +505,8 @@ private:
     std::vector<unsigned int> m_travel_accels;
     std::vector<unsigned int> m_first_layer_travel_accels;
     unsigned int              m_max_accels;
+    bool                      m_minimum_cruise_ratio_enable;
+    float                     m_minimum_cruise_ratio;
     bool                      m_accel_to_decel_enable;
     float                     m_accel_to_decel_factor;
     bool                      m_enable_arc_fitting = true;

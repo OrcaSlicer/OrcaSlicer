@@ -1378,6 +1378,8 @@ public:
     void set_max_acceleration(unsigned int acceleration) { m_max_acceleration = acceleration; };
     void set_accel_to_decel_enable(bool enable) { m_accel_to_decel_enable = enable; }
     void set_accel_to_decel_factor(float factor) { m_accel_to_decel_factor = factor; }
+    void set_minimum_cruise_ratio_enable(bool enable) { m_minimum_cruise_ratio_enable = enable; }
+    void set_minimum_cruise_ratio(float ratio) { m_minimum_cruise_ratio = ratio; }
     void set_layer_id(int layer_id) { m_layer_id = layer_id; }
     void set_multi_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult *multi_nozzle_group_result) { m_multi_nozzle_group_result = multi_nozzle_group_result; }
     void set_physical_extruder_map(const std::vector<int> &physical_extruder_map) { m_physical_extruder_map = physical_extruder_map; }
@@ -1433,6 +1435,9 @@ private:
             // Use M204 P, we don't want to override travel acc by M204 S (which is deprecated anyway).
             gcode << "M204 P" << acceleration;
         }
+        else if (m_gcode_flavor == gcfKlipper && m_minimum_cruise_ratio_enable) {
+            gcode << "SET_VELOCITY_LIMIT ACCEL=" << acceleration << " MINIMUM_CRUISE_RATIO=" << m_minimum_cruise_ratio;
+        }
         else if (m_gcode_flavor == gcfKlipper && m_accel_to_decel_enable) {
             gcode << "SET_VELOCITY_LIMIT ACCEL_TO_DECEL=" << acceleration * m_accel_to_decel_factor / 100;
             gcode << "\nM204 S" << acceleration;
@@ -1451,6 +1456,8 @@ private:
     bool                      m_is_first_layer{false};
     unsigned int              m_max_acceleration{0};
     unsigned int              m_last_acceleration{0};
+    bool                      m_minimum_cruise_ratio_enable;
+    float                     m_minimum_cruise_ratio;
     bool                      m_accel_to_decel_enable;
     float                     m_accel_to_decel_factor;
     const MultiNozzleUtils::LayeredNozzleGroupResult *m_multi_nozzle_group_result{nullptr};
@@ -1811,6 +1818,8 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_tower_framework(config.prime_tower_enable_framework.value),
     // Orca: prime_tower_max_speed is named wipe_tower_max_purge_speed (same default/min)
     m_max_speed((float)config.wipe_tower_max_purge_speed.value*60.f),
+    m_minimum_cruise_ratio_enable(config.minimum_cruise_ratio_enable.value),
+    m_minimum_cruise_ratio(config.minimum_cruise_ratio.value),
     m_accel_to_decel_enable(config.accel_to_decel_enable.value),
     m_accel_to_decel_factor(config.accel_to_decel_factor.value),
     m_printable_height(config.extruder_printable_height.values),
@@ -2723,6 +2732,8 @@ void WipeTower::set_for_wipe_tower_writer(WipeTowerWriter &writer)
     writer.set_first_layer_travel_acceleration(m_first_layer_travel_accels);
     writer.set_max_acceleration(m_max_accels);
     writer.set_multi_nozzle_group_result(m_multi_nozzle_group_result);
+    writer.set_minimum_cruise_ratio_enable(m_minimum_cruise_ratio_enable);
+    writer.set_minimum_cruise_ratio(m_minimum_cruise_ratio);
     writer.set_accel_to_decel_enable(m_accel_to_decel_enable);
     writer.set_accel_to_decel_factor(m_accel_to_decel_factor);
     writer.set_first_layer(m_cur_layer_id == 0);

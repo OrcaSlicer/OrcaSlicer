@@ -318,6 +318,11 @@ void GCodeProcessor::TimeMachine::reset()
     travel_acceleration = 0.0f;
     max_travel_acceleration = 0.0f;
     extrude_factor_override_percentage = 1.0f;
+    klipper = false;
+    minimum_cruise_ratio = 0.5f;
+    requested_accel_to_decel = -1.0f;
+    klipper_junction_flush = 1.0f;
+    klipper_queue_priming = true;
     time = 0.0f;
     stop_times = std::vector<StopTime>();
     curr.reset();
@@ -433,16 +438,75 @@ GCodeProcessor::TimeMachine::AdditionalBuffer GCodeProcessor::TimeMachine::merge
     return merged;
 }
 
+// Klipper toolhead.py LookAheadQueue.flush: the pseudo-acceleration pass
+// reserves cruising distance across a sequence, not separately in each segment.
+size_t GCodeProcessor::TimeMachine::plan_klipper(bool lazy)
+{
+    klipper_junction_flush = requested_accel_to_decel >= 0.0f ? 0.250f : 0.150f;
+    klipper_queue_priming = false;
+    size_t flush_count = blocks.size();
+    bool update_flush_count = lazy;
+    float next_start_v2 = 0.0f;
+    float next_mcr_start_v2 = 0.0f;
+    float peak_cruise_v2 = 0.0f;
+    size_t pending = 0;
+    for (size_t i = blocks.size(); i-- > 0;) {
+        TimeBlock& block = blocks[i];
+        const float delta_v2 = 2.0f * block.distance * block.acceleration;
+        const float reachable_start_v2 = next_start_v2 + delta_v2;
+        const float start_v2 = std::min(sqr(block.max_entry_speed), reachable_start_v2);
+        const float reachable_mcr_v2 = next_mcr_start_v2 + block.mcr_delta_v2;
+        const float mcr_start_v2 = std::min(block.max_mcr_entry_speed_sqr, reachable_mcr_v2);
+        float cruise_v2 = -1.0f;
+        ++pending;
+        if (mcr_start_v2 < reachable_mcr_v2) {
+            if (mcr_start_v2 + block.mcr_delta_v2 > next_mcr_start_v2 || pending > 1) {
+                if (update_flush_count && peak_cruise_v2 > 0.0f) {
+                    flush_count = i + pending;
+                    update_flush_count = false;
+                }
+                peak_cruise_v2 = 0.5f * (mcr_start_v2 + reachable_mcr_v2);
+            }
+            cruise_v2 = std::min({0.5f * (start_v2 + reachable_start_v2),
+                                  sqr(block.feedrate_profile.cruise), peak_cruise_v2});
+            pending = 0;
+        }
+        // Until the forward pass, these fields hold v^2, not speeds; -1 marks
+        // an unassigned cruise speed. A lazy return leaves them in this state.
+        block.feedrate_profile.entry = start_v2;
+        block.feedrate_profile.exit = next_start_v2;
+        block.trapezoid.cruise_feedrate = cruise_v2;
+        next_start_v2 = start_v2;
+        next_mcr_start_v2 = mcr_start_v2;
+    }
+    if (update_flush_count)
+        return 0;
+    float prev_cruise_v2 = 0.0f;
+    for (size_t i = 0; i < flush_count; ++i) {
+        TimeBlock& block = blocks[i];
+        float cruise_v2 = block.trapezoid.cruise_feedrate;
+        if (cruise_v2 < 0.0f)
+            cruise_v2 = std::min(prev_cruise_v2, block.feedrate_profile.entry);
+        const float start_v2 = std::min(block.feedrate_profile.entry, cruise_v2);
+        const float end_v2 = std::min(block.feedrate_profile.exit, cruise_v2);
+        block.feedrate_profile.entry = std::sqrt(start_v2);
+        block.feedrate_profile.exit = std::sqrt(end_v2);
+        block.trapezoid.cruise_feedrate = std::sqrt(cruise_v2);
+        block.trapezoid.accelerate_until = (cruise_v2 - start_v2) / (2.0f * block.acceleration);
+        block.trapezoid.decelerate_after = block.distance - (cruise_v2 - end_v2) / (2.0f * block.acceleration);
+        prev_cruise_v2 = cruise_v2;
+    }
+    return flush_count;
+}
+
 void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time, EMoveType target_move_type, bool is_final)
 {
     if (!enabled)
         return;
-    // Orca: on the finalization pass, drain extra time that is still buffered (e.g. a
-    // trailing filament change) even with fewer than two blocks queued -- no later pass
-    // exists to attribute it on. Every other pass keeps the original >= 2 requirement,
-    // and an empty buffer keeps today's early-return unchanged (no behavior change).
+    // Drain buffered delays on the final pass, even with no motion left.
+    // A trailing filament change has no later move to receive its time.
     const bool drain_final = is_final && !m_additional_time_buffer.empty();
-    if (blocks.size() < 2 && !drain_final) {
+    if ((klipper ? blocks.empty() : blocks.size() < 2) && !drain_final) {
         // Not enough blocks to attribute the extra time to yet; buffer it so it is
         // applied on a later pass instead of being dropped.
         if (additional_time > 0.0f)
@@ -450,7 +514,7 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
         return;
     }
 
-    assert(keep_last_n_blocks <= blocks.size());
+    assert(klipper || keep_last_n_blocks <= blocks.size());
 
     // Merge any previously buffered extra time with this call's extra time. Each
     // entry is applied, in order, to the first block matching its target move type
@@ -460,19 +524,18 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
         additional_buffer.emplace_back(target_move_type, additional_time);
     additional_buffer = merge_adjacent_additional_time_blocks(additional_buffer);
 
-    // reverse_pass
-    for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i) {
-        planner_reverse_pass_kernel(blocks[i - 1], blocks[i]);
+    size_t n_blocks_process;
+    if (klipper) {
+        n_blocks_process = plan_klipper(keep_last_n_blocks != 0);
+        keep_last_n_blocks = blocks.size() - n_blocks_process;
+    } else {
+        for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i)
+            planner_reverse_pass_kernel(blocks[i - 1], blocks[i]);
+        for (size_t i = 0; i + 1 < blocks.size(); ++i)
+            planner_forward_pass_kernel(blocks[i], blocks[i + 1]);
+        recalculate_trapezoids(blocks);
+        n_blocks_process = blocks.size() - keep_last_n_blocks;
     }
-
-    // forward_pass
-    for (size_t i = 0; i + 1 < blocks.size(); ++i) {
-        planner_forward_pass_kernel(blocks[i], blocks[i + 1]);
-    }
-
-    recalculate_trapezoids(blocks);
-
-    const size_t n_blocks_process = blocks.size() - keep_last_n_blocks;
     size_t additional_buffer_idx = 0;
     for (size_t i = 0; i < n_blocks_process; ++i) {
         const TimeBlock& block = blocks[i];
@@ -629,14 +692,12 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
     if (keep_last_n_blocks) {
         blocks.erase(blocks.begin(), blocks.begin() + n_blocks_process);
 
-        // Ensure that the new first block's entry speed will be preserved to prevent discontinuity
-        // between the erased blocks' exit speed and the new first block's entry speed.
-        // Otherwise, the first block's entry speed could be recalculated on the next pass without
-        // considering that there are no more blocks before this first block. This could lead
-        // to discontinuity between the exit speed (of already processed blocks) and the entry
-        // speed of the first block.
-        TimeBlock &first_block = blocks.front();
-        first_block.max_entry_speed = first_block.feedrate_profile.entry;
+        // Preserve the boundary speed in the Marlin planner. Klipper only flushes
+        // moves whose cruise speed is already independent of future moves.
+        if (!klipper) {
+            TimeBlock& first_block = blocks.front();
+            first_block.max_entry_speed = first_block.feedrate_profile.entry;
+        }
     } else {
         blocks.clear();
     }
@@ -5060,7 +5121,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS: limite the cruise according to centripetal acceleration
         //Only need to handle when both prev and curr segment has movement in x-y plane
-        if ((prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
+        if (m_flavor != gcfKlipper && (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {
             Vec3f v1 = prev.exit_direction;
             v1(2, 0) = 0.0f;
@@ -5084,6 +5145,11 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
             }
         }
 
+        if (m_flavor == gcfKlipper && !is_extrusion_only_move(delta_pos)) {
+            const float max_velocity = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), X, m_machine_config_idx);
+            if (max_velocity > 0.0f)
+                curr.feedrate = std::min(curr.feedrate, max_velocity);
+        }
         // calculates block cruise feedrate
         float min_feedrate_factor = 1.0f;
         for (unsigned char a = X; a <= E; ++a) {
@@ -5110,6 +5176,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         // calculates block acceleration
         float acceleration =
+            (m_flavor == gcfKlipper && !is_extrusion_only_move(delta_pos)) ? get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) :
             (type == EMoveType::Travel) ? get_travel_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) :
             (is_extrusion_only_move(delta_pos) ?
                 get_retract_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) :
@@ -5123,6 +5190,13 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         }
 
         block.acceleration = acceleration;
+        if (m_flavor == gcfKlipper) {
+            block.junction_deviation = get_junction_deviation(static_cast<PrintEstimatedStatistics::ETimeMode>(i), acceleration);
+            const float cruise_acceleration = machine.requested_accel_to_decel >= 0.0f ?
+                std::min(machine.acceleration, machine.requested_accel_to_decel) :
+                machine.acceleration * (1.0f - machine.minimum_cruise_ratio);
+            block.mcr_delta_v2 = 2.0f * distance * std::min(acceleration, cruise_acceleration);
+        }
 
         static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
         const bool has_prev_move = !blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD;
@@ -5233,6 +5307,12 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         block.feedrate_profile.entry = std::min(vmax_junction, v_allowable);
 
         block.max_entry_speed = vmax_junction;
+        if (m_flavor == gcfKlipper && has_prev_move) {
+            const TimeBlock& previous = blocks.back();
+            block.max_entry_speed = std::min(block.max_entry_speed,
+                                             std::sqrt(sqr(previous.max_entry_speed) + 2.0f * previous.distance * previous.acceleration));
+            block.max_mcr_entry_speed_sqr = std::min(sqr(block.max_entry_speed), previous.max_mcr_entry_speed_sqr + previous.mcr_delta_v2);
+        }
         block.flags.nominal_length = (block.feedrate_profile.cruise <= v_allowable);
         block.flags.recalculate = true;
         block.safe_feedrate = curr.safe_feedrate;
@@ -5244,9 +5324,12 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         prev = curr;
 
         blocks.push_back(block);
+        if (m_flavor == gcfKlipper && blocks.size() > 1)
+            machine.klipper_junction_flush -= distance / curr.feedrate;
     }
 
-    if (m_time_processor.machines[0].blocks.size() > TimeProcessor::Planner::refresh_threshold)
+    if (m_flavor == gcfKlipper ? m_time_processor.machines[0].klipper_junction_flush <= 0.0f :
+        m_time_processor.machines[0].blocks.size() > TimeProcessor::Planner::refresh_threshold)
         calculate_time(m_result, TimeProcessor::Planner::queue_size);
 
     const Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
@@ -6305,6 +6388,19 @@ void GCodeProcessor::process_M203(const GCodeReader::GCodeLine& line)
 void GCodeProcessor::process_M204(const GCodeReader::GCodeLine& line)
 {
     float value;
+    if (m_flavor == gcfKlipper) {
+        if (!line.has_value('S', value)) {
+            float travel;
+            if (!line.has_value('P', value) || !line.has_value('T', travel))
+                return;
+            value = std::min(value, travel);
+        }
+        if (value > 0.0f) {
+            for (auto& machine : m_time_processor.machines)
+                machine.acceleration = machine.travel_acceleration = value;
+        }
+        return;
+    }
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal ||
             m_time_processor.machine_envelope_processing_enabled) {
@@ -6366,50 +6462,42 @@ void GCodeProcessor::process_M205(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_SET_VELOCITY_LIMIT(const GCodeReader::GCodeLine& line)
 {
-    // handle SQUARE_CORNER_VELOCITY
-    static const std::regex square_corner_velocity_pattern("\\sSQUARE_CORNER_VELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
-    std::smatch matches;
-    if (std::regex_search(line.raw(), matches, square_corner_velocity_pattern) && matches.size() == 2) {
-        float _jerk = 0;
-        try
-        {
-            _jerk = std::stof(matches[1]);
+    static const std::regex parameter_pattern(
+        R"(\s(VELOCITY|ACCEL|ACCEL_TO_DECEL|SQUARE_CORNER_VELOCITY|MINIMUM_CRUISE_RATIO)\s*=\s*([+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)(?=\s|;|$))",
+        std::regex::icase);
+    const std::string command = line.raw().substr(0, line.raw().find(';'));
+    for (std::sregex_iterator it(command.begin(), command.end(), parameter_pattern), end; it != end; ++it) {
+        float value;
+        try {
+            value = std::stof((*it)[2].str());
+        } catch (const std::exception&) {
+            continue;
         }
-        catch (...){}
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            set_option_value(m_time_processor.machine_limits.machine_max_jerk_x, i, _jerk);
-            set_option_value(m_time_processor.machine_limits.machine_max_jerk_y, i, _jerk);
-        }
-    }
-
-    static const std::regex accel_pattern("\\sACCEL\\s*=\\s*([0-9]*\\.*[0-9]*)");
-    if (std::regex_search(line.raw(), matches, accel_pattern) && matches.size() == 2) {
-        float _accl = 0;
-        try
-        {
-            _accl = std::stof(matches[1]);
-        }
-        catch (...) {}
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            set_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), _accl);
-            set_travel_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), _accl);
-        }
-    }
-
-    static const std::regex velocity_pattern("\\sVELOCITY\\s*=\\s*([0-9]*\\.*[0-9]*)");
-    if (std::regex_search(line.raw(), matches, velocity_pattern) && matches.size() == 2) {
-        float _speed = 0;
-        try
-        {
-            _speed = std::stof(matches[1]);
-        }
-        catch (...) {}
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-                set_option_value(m_time_processor.machine_limits.machine_max_speed_x, i, _speed);
-                set_option_value(m_time_processor.machine_limits.machine_max_speed_y, i, _speed);
+        if (!std::isfinite(value))
+            continue;
+        const std::string name = boost::to_upper_copy((*it)[1].str());
+        for (size_t i = 0; i < m_time_processor.machines.size(); ++i) {
+            TimeMachine& machine = m_time_processor.machines[i];
+            if (name == "ACCEL" && value > 0.0f)
+                machine.acceleration = machine.travel_acceleration = value;
+            else if (name == "MINIMUM_CRUISE_RATIO" && value >= 0.0f && value < 1.0f) {
+                if (machine.klipper_queue_priming && machine.requested_accel_to_decel >= 0.0f)
+                    machine.klipper_junction_flush -= 1.0f;
+                machine.minimum_cruise_ratio = value;
+                machine.requested_accel_to_decel = -1.0f;
+            } else if (name == "ACCEL_TO_DECEL" && value > 0.0f) {
+                if (machine.klipper_queue_priming && machine.requested_accel_to_decel < 0.0f)
+                    machine.klipper_junction_flush += 1.0f;
+                machine.requested_accel_to_decel = value;
+            } else if (name == "SQUARE_CORNER_VELOCITY" && value >= 0.0f) {
+                set_option_value(m_time_processor.machine_limits.machine_max_jerk_x, i, value);
+                set_option_value(m_time_processor.machine_limits.machine_max_jerk_y, i, value);
+            } else if (name == "VELOCITY" && value > 0.0f) {
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_x, i, value);
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_y, i, value);
+            }
         }
     }
-
 }
 
 void GCodeProcessor::process_M221(const GCodeReader::GCodeLine& line)
@@ -7202,12 +7290,12 @@ float GCodeProcessor::get_junction_deviation(PrintEstimatedStatistics::ETimeMode
 {
     const size_t id = static_cast<size_t>(mode);
 
-    // Klipper has no classic jerk: jd = scv^2 * (sqrt(2) - 1) / max_accel
-    // (toolhead.py::_calc_junction_deviation). Passing the block acceleration back in makes it cancel
-    // in calc_vmax_junction_deviation(), leaving the identity v == scv at a 90 degree corner.
+    // Klipper derives junction deviation from the live toolhead acceleration,
+    // before a move is constrained by Z or extruder limits.
     if (m_flavor == gcfKlipper) {
         // machine_max_jerk_x holds the square corner velocity; process_SET_VELOCITY_LIMIT() writes it.
         const float scv = get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id);
+        acceleration = m_time_processor.machines[id].acceleration;
         if (scv <= 0.0f || acceleration <= 0.0f)
             return 0.0f;
         return sqr(scv) * (std::sqrt(2.0f) - 1.0f) / acceleration;
@@ -7239,18 +7327,41 @@ float GCodeProcessor::calc_vmax_junction_deviation(const TimeBlock& block, const
                                                    const TimeMachine::State& curr, bool has_prev_move,
                                                    PrintEstimatedStatistics::ETimeMode mode) const
 {
+    if (m_flavor == gcfKlipper) {
+        if (!has_prev_move || curr.enter_direction.isZero() || prev.exit_direction.isZero())
+            return 0.0f;
+        const TimeBlock& previous = m_time_processor.machines[static_cast<size_t>(mode)].blocks.back();
+        float limit = std::min(sqr(block.feedrate_profile.cruise), sqr(prev.feedrate));
+        const float extrude_ratio_change = std::abs(curr.axis_feedrate[E] / curr.feedrate -
+                                                   prev.axis_feedrate[E] / prev.feedrate);
+        // Klipper's instantaneous_corner_velocity defaults to 1 mm/s.
+        // It is independent of machine_max_jerk_e; custom firmware values
+        // cannot be inferred from the slicer's jerk setting.
+        if (extrude_ratio_change > 0.0f)
+            limit = std::min(limit, sqr(1.0f / extrude_ratio_change));
+        const float cosine = std::clamp(-prev.exit_direction.dot(curr.enter_direction), -1.0f, 1.0f);
+        const float sin_half = std::sqrt(0.5f * (1.0f - cosine));
+        const float cos_half = std::sqrt(0.5f * (1.0f + cosine));
+        if (sin_half < 1.0f && cos_half > 0.0f) {
+            const float radius = sin_half / (1.0f - sin_half);
+            const float half_tan = 0.5f * sin_half / cos_half;
+            limit = std::min({limit,
+                radius * block.junction_deviation * block.acceleration,
+                radius * previous.junction_deviation * previous.acceleration,
+                half_tan * block.distance * block.acceleration,
+                half_tan * previous.distance * previous.acceleration});
+        }
+        return std::sqrt(limit);
+    }
     const float junction_deviation = get_junction_deviation(mode, block.acceleration);
     if (junction_deviation <= 0.0f)
         return -1.0f; // classic jerk machine, the caller keeps its own computation
     if (!has_prev_move)
         return 0.0f;  // starts from rest, the planner raises this on the reverse pass
 
-    // -1 for a straight continuation, +1 for a full reversal. Half angle identity, no acos()/sin().
-    // Both vectors are unit length over XYZE, so this really is a cosine: scaling by 1 / distance
-    // instead, as PrusaSlicer does, leaves an E term that makes extruding corners look straighter
-    // than they are. Marlin normalizes over XYZE for any extruding move (planner.cpp, esteps > 0)
-    // and Klipper keeps E out of the cosine entirely (toolhead.py::Move.calc_junction); both agree
-    // that the corner is planned by its geometry, and normalizing matches them to within 1e-5.
+    // Unit vectors over XYZE keep this a cosine. Scaling by 1 / XYZ distance
+    // leaves an E term that makes extruding corners appear straighter.
+    // Marlin normalizes over XYZE; the Klipper branch above uses XYZ only.
     float junction_cos_theta = (-prev.jd_unit_vec).dot(curr.jd_unit_vec);
     if (junction_cos_theta > 0.999999f)
         return 0.0f; // the path doubles back, the machine has to stop
@@ -7266,8 +7377,8 @@ float GCodeProcessor::calc_vmax_junction_deviation(const TimeBlock& block, const
     float vmax_junction_sqr = (junction_acceleration * junction_deviation * sin_theta_d2) / (1.0f - sin_theta_d2);
 
     // Marlin's JD_HANDLE_SMALL_SEGMENTS: a short move through a shallow corner is treated as an arc and
-    // capped by the centripetal acceleration it needs. Klipper has no equivalent.
-    if (m_flavor != gcfKlipper && block.distance < 1.0f && junction_cos_theta < -0.7071067812f) {
+    // capped by the centripetal acceleration it needs.
+    if (block.distance < 1.0f && junction_cos_theta < -0.7071067812f) {
         // Fast acos(-t), max. error +-0.033rad. MinMax polynomial by W. Randolph Franklin:
         // https://wrf.ecse.rpi.edu/Research/Short_Notes/arcsin/onlyelem.html
         const float neg = junction_cos_theta < 0.0f ? -1.0f : 1.0f;
@@ -7442,6 +7553,7 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
     std::vector<TimeMachine::ActualSpeedMove> actual_speed_moves;
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
+        machine.klipper = m_flavor == gcfKlipper;
         machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time, target_move_type, is_final);
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal)
             actual_speed_moves = std::move(machine.actual_speed_moves);
@@ -7499,6 +7611,14 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
 void GCodeProcessor::simulate_st_synchronize(float additional_time, EMoveType target_move_type)
 {
     calculate_time(m_result, 0, additional_time, target_move_type);
+    if (m_flavor == gcfKlipper) {
+        // ToolHead overrides the normal look-ahead window with BUFFER_TIME_HIGH
+        // at startup and after synchronization: 2 s on legacy, 1 s on modern Klipper.
+        for (TimeMachine& machine : m_time_processor.machines) {
+            machine.klipper_junction_flush = machine.requested_accel_to_decel >= 0.0f ? 2.0f : 1.0f;
+            machine.klipper_queue_priming = true;
+        }
+    }
 }
 
 void GCodeProcessor::update_estimated_times_stats()
