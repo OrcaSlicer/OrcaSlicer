@@ -141,7 +141,7 @@
     "filament_cooling_final_speed": "3.4",
     "filament_cooling_initial_speed": "2.2",
     "filament_cooling_moves": "4",
-    "filament_load_time": "0",
+    "filament_load_time": "1",
     "filament_loading_speed": "28",
     "filament_loading_speed_start": "3",
     "filament_multitool_ramming": "0",
