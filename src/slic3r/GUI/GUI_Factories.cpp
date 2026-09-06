@@ -1410,6 +1410,9 @@ void MenuFactory::create_default_menu()
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
 #endif
 
+    // Right clicking empty space clears the selection, so Copy would never be usable here.
+    append_menu_items_copy_paste(&m_default_menu, false);
+
     m_default_menu.AppendSeparator();
 
     append_menu_check_item(&m_default_menu, wxID_ANY, _L("Show Labels"), "",
@@ -1468,6 +1471,8 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_instance_to_object(&m_object_menu);
     m_object_menu.AppendSeparator();
     //append_menu_item_fill_bed(&m_object_menu);
+    // Object Copy / Paste
+    append_menu_items_copy_paste(&m_object_menu);
     // Object Clone
     append_menu_item_clone(&m_object_menu);
     // Object Repair
@@ -2098,6 +2103,22 @@ void MenuFactory::append_menu_item_clone(wxMenu* menu)
         }, m_parent);
 }
 
+void MenuFactory::append_menu_items_copy_paste(wxMenu* menu, bool with_copy)
+{
+#ifdef __APPLE__
+    static const wxString ctrl = ("Ctrl+");
+#else
+    static const wxString ctrl = _L("Ctrl+");
+#endif
+    if (with_copy)
+        append_menu_item(menu, wxID_ANY, _L("Copy") + "\t" + ctrl + "C", _L("Copy selection to clipboard"),
+            [](wxCommandEvent&) { plater()->copy_selection_to_clipboard(); }, "", nullptr,
+            []() { return plater()->can_copy_to_clipboard(); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Paste") + "\t" + ctrl + "V", _L("Paste clipboard"),
+        [](wxCommandEvent&) { plater()->paste_from_clipboard(); }, "", nullptr,
+        []() { return plater()->can_paste_from_clipboard(); }, m_parent);
+}
+
 void MenuFactory::append_menu_item_simplify(wxMenu* menu)
 {
     wxMenuItem* menu_item = append_menu_item(menu, wxID_ANY, _L("Simplify Model"), "",
@@ -2415,7 +2436,7 @@ void MenuFactory::update_object_menu()
 
 void MenuFactory::update_default_menu()
 {
-    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Show Labels") }) {
+    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Paste"), _L("Show Labels") }) {
         const auto menu_item_id = m_default_menu.FindItem(name);
         if (menu_item_id != wxNOT_FOUND)
             m_default_menu.Destroy(menu_item_id);
