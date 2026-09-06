@@ -324,45 +324,34 @@ def calibrate_here():
 PACE = 1.0
 
 
-def field_win():
-    """The open in-canvas value field as (x, y, w, h) in SCREEN pixels, or None.
+def field_open():
+    """Is a sketch value field open? Asked of the APP, not of the window list.
 
-    It is a top-level window of its own, not a child of the canvas (a native child cannot be
-    composited over the double-buffered wxGLCanvas), so it is found by enumerating windows rather
-    than by looking inside the app's frame. Two other small top-levels exist: the status chip,
-    which lives on the bottom edge, and 1x1/10x10 helpers.
+    It used to be answered by hunting for a small top-level window, because the field WAS one.
+    It is not any more — it is drawn by ImGui inside the GL canvas precisely so that no window
+    manager gets a vote on whether it may hold the keyboard. Enumerating windows now always
+    answers "no field", which turns every check built on it into one that cannot fail.
+
+    sketch_describe's `editing` is DesignSketchTool::value_field_open(), i.e. the app's own
+    answer to the same question.
     """
-    _, X, Y, W, H = win()
-    for w in sh(f"DISPLAY={DISP} xdotool search --onlyvisible --class '.'").split():
-        g = dict(l.split("=", 1) for l in
-                 sh(f"DISPLAY={DISP} xdotool getwindowgeometry --shell {w}").strip().splitlines()
-                 if "=" in l)
-        if "WIDTH" not in g:
-            continue
-        x, y, ww, hh = int(g["X"]), int(g["Y"]), int(g["WIDTH"]), int(g["HEIGHT"])
-        if ww >= W or hh < 24 or hh > 120 or ww < 40:
-            continue
-        if y > Y + H - 80:                 # the status chip, pinned to the bottom edge
-            continue
-        return (x, y, ww, hh)
-    return None
+    d = try_call("sketch_describe")
+    return bool(d and d.get("editing"))
 
 
 def focus_field():
-    """Put the keyboard in the value field, by clicking it.
+    """Deliberately nothing.
 
-    WITHOUT THIS THE TYPED VALUE IS SILENTLY DISCARDED. The field is shown and raised but the
-    window manager does not give it the keyboard, so xdotool's digits go to the canvas and Return
-    commits the value the field opened with — the pre-filled as-drawn number. The failure is
-    invisible from the outside: a constraint IS created, the solve succeeds, and the sketch simply
-    holds the dimension you did not ask for (typed 40, got 54.94). One click fixes it.
+    This used to click into the value field before typing, and its old docstring explained why:
+    "WITHOUT THIS THE TYPED VALUE IS SILENTLY DISCARDED ... the window manager does not give it
+    the keyboard, so xdotool's digits go to the canvas". That was a workaround for the field
+    being a separate top-level window, and it is also what made this ladder blind to the very
+    defect the user reported — a suite that clicks the field first can never see that typing
+    without clicking is broken.
+
+    The field is now inside the canvas and the canvas has the keyboard, so typing just works and
+    there is nothing to click. Kept as a no-op so the call sites still read in order.
     """
-    r = field_win()
-    if r is None:
-        return False
-    x, y, w, h = r
-    xdo(f"mousemove {x + w // 2} {y + h // 2} click --delay 120 1")
-    time.sleep(0.3)
     return True
 
 
@@ -1732,7 +1721,7 @@ def rung_type_guards():
     clickmm(*rim(cs[0])); clickmm(*rim(cs[1]))
     click(*CON_BTN["angle"])
     time.sleep(1.0)
-    check("ANGLE", field_win() is None,
+    check("ANGLE", not field_open(),
           "Angle on two circles opened no value field")
     key("Escape", 0.6)
     d2 = confirm_and_reopen()
