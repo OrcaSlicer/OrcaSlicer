@@ -802,7 +802,7 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
-UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle)
+UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 caption,
@@ -812,7 +812,7 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
     , m_buttons(ActionButtons::SAVE | ActionButtons::DONT_SAVE)
 {
     SyncExtruderParams params { config, from, to, left_to_right, nozzle };
-    build(Preset::TYPE_PRINT, reinterpret_cast<PresetCollection*>(&params), "SyncExtruderParams", header);
+    build(type, reinterpret_cast<PresetCollection*>(&params), "SyncExtruderParams", header);
     this->CenterOnScreen();
     wxGetApp().UpdateDlgDarkUI(this);
 }
@@ -1705,19 +1705,27 @@ std::string UnsavedChangesDialog::subreplace(std::string resource_str, std::stri
     return dst_str;
 }
 
+// Option's display name, from its definition.
+static wxString sync_option_label(const std::string &opt_key)
+{
+    const ConfigOptionDef *od = print_config_def.get(opt_key);
+    return od ? from_u8(_utf8(od->full_label.empty() ? od->label : od->full_label)) : from_u8(opt_key);
+}
+
 void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config, int from, int to)
 {
     Search::OptionsSearcher &searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
 
     for (const std::string &opt_key : config->keys()) {
-        int                   variant_index = -2;
-        const Search::Option &option        = searcher.get_option(opt_key, type, variant_index);
-        auto category = option.category_local;
+        // The searcher's flat option list mislabels absent keys, so resolve from the def and group map.
+        wxString label = sync_option_label(opt_key);
+        Search::GroupAndCategory gc = searcher.get_group_and_category(opt_key, type);
+        wxString category = Tab::translate_category(gc.category, type);
+        wxString group = _(gc.group);
         auto opt = dynamic_cast<ConfigOptionVectorBase*>(config->option(opt_key));
         std::string           value_from    = opt->vserialize()[from];
         std::string           value_to    = opt->vserialize()[to];
-        PresetItem            pi            = {type, opt_key, category, option.group_local, option.label_local, into_u8(value_from), into_u8(value_to)};
+        PresetItem            pi            = {type, opt_key, category, group, label, into_u8(value_from), into_u8(value_to)};
         m_presetitems.push_back(pi);
     }
 }

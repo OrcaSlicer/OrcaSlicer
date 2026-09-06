@@ -362,6 +362,15 @@ const Option &OptionsSearcher::get_option(const std::string &opt_key, Preset::Ty
     return options[it - options.begin()];
 }
 
+GroupAndCategory OptionsSearcher::get_group_and_category(const std::string &opt_key, Preset::Type type) const
+{
+    // Per-extruder options are registered under "#0"; scalars under the bare key.
+    auto it = groups_and_categories.find(get_key(opt_key + "#0", type));
+    if (it == groups_and_categories.end() || it->second.category.IsEmpty())
+        it = groups_and_categories.find(get_key(opt_key, type));
+    return it == groups_and_categories.end() ? GroupAndCategory{} : it->second;
+}
+
 static Option create_option(const std::string &opt_key, const wxString &label, Preset::Type type, const GroupAndCategory &gc)
 {
     wxString suffix;
