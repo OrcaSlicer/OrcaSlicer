@@ -513,7 +513,7 @@ void PresetUpdater::priv::sync_resources(std::string http_url, std::map<std::str
                 cancel_http = true;
             }
         })
-        .on_complete([this, &resource_list, resources](std::string body, unsigned) {
+        .on_complete([&resource_list, resources](std::string body, unsigned) {
             try {
                 BOOST_LOG_TRIVIAL(info) << "[Orca Updater]: request_resources, body=" << body;
 
@@ -1198,7 +1198,7 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
                     version.config_version = cache_ver;
                     version.comment        = description;
                     // Orca: update vendor.json
-                    updates.updates.emplace_back(std::move(file_path), std::move(path_in_vendor.string()), std::move(version), vendor_name, changelog, "", force_update, false);
+                    updates.updates.emplace_back(std::move(file_path), path_in_vendor.string(), std::move(version), vendor_name, changelog, "", force_update, false);
                     //Orca: update vendor folder
                     updates.updates.emplace_back(cache_profile_path / vendor_name, vendor_path / vendor_name, Version(), vendor_name, "", "", force_update, true);
                 } else {

@@ -47,6 +47,8 @@ namespace cereal {
 }
 
 namespace Slic3r {
+
+struct TexturedMesh;
 enum class ConversionType;
 
 class BuildVolume;
@@ -740,6 +742,9 @@ public:
                                                        EnforcerBlockerType max_type,
                                                        EnforcerBlockerType to_delete_filament = EnforcerBlockerType::NONE,
                                                        EnforcerBlockerType replace_filament = EnforcerBlockerType::NONE);
+    // Shift painted filament indices >= threshold by delta. Used when a physical filament is
+    // inserted ahead of existing slots (mixed-color slots are kept at the end of the list).
+    void                 shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta);
     indexed_triangle_set get_facets_strict(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool has_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool empty() const { return m_data.triangles_to_split.empty(); }
@@ -932,7 +937,8 @@ public:
     // BBS
     std::vector<int>    get_extruders() const;
     void                update_extruder_count(size_t extruder_count);
-    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1);
+    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1,
+                                                                   const std::vector<unsigned char> &filament_is_mixed = {});
 
     // Split this volume, append the result to the object owning this volume.
     // Return the number of volumes created from this one.
@@ -1548,6 +1554,10 @@ public:
     std::shared_ptr<ModelDesignInfo> design_info = nullptr;
     std::shared_ptr<ModelInfo> model_info = nullptr;
     std::shared_ptr<ModelProfileInfo> profile_info = nullptr;
+
+    // Textured mesh data for texture-to-painting import. Populated by the loader when a mesh
+    // arrives with usable UVs and a texture map; consumed (and reset) by the import dialog.
+    std::shared_ptr<TexturedMesh> texture_mesh;
 
     //makerlab information
     std::string mk_name;

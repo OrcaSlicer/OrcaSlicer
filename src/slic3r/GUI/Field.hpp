@@ -385,7 +385,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
     /// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void	        propagate_value() ;
+    void	        propagate_value() override;
 
     void			set_value(const std::string& value, bool change_event = false) {
 		m_disable_change_event = !change_event;
@@ -440,7 +440,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
 	// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-	void			propagate_value();
+	void			propagate_value() override;
 
     /* Under OSX: wxBitmapComboBox->GetWindowStyle() returns some weard value, 
      * so let use a flag, which has TRUE value for a control without wxCB_READONLY style

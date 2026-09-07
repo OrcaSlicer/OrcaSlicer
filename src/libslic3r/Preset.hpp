@@ -840,13 +840,12 @@ public:
 
 protected:
     PresetCollection() = default;
-    // Copy constructor and copy operators are not to be used from outside PresetBundle,
-    // as the Profile::vendor points to an instance of VendorProfile stored at parent PresetBundle!
-    PresetCollection(const PresetCollection &other) = default;
-    //BBS: add operator= logic insteadof default
+    // Deleted by the std::recursive_mutex member. PresetBundle copies by assignment.
+    PresetCollection(const PresetCollection &other) = delete;
+    //BBS: hand-written because m_mutex cannot be copy-assigned.
     PresetCollection& operator=(const PresetCollection &other);
-    // After copying a collection with the default operators above, call this function
-    // to adjust Profile::vendor pointers.
+    // Copying leaves every Preset::vendor pointing into the source bundle's vendor map.
+    // This re-points them at the matching entries in vendors.
     void            update_vendor_ptrs_after_copy(const VendorMap &vendors);
 
     // Select a preset, if it exists. If it does not exist, select an invalid (-1) index.
@@ -984,7 +983,8 @@ public:
     bool            only_default_printers() const;
 private:
     PrinterPresetCollection() = default;
-    PrinterPresetCollection(const PrinterPresetCollection &other) = default;
+    // Deleted along with the base copy constructor.
+    PrinterPresetCollection(const PrinterPresetCollection &other) = delete;
     PrinterPresetCollection& operator=(const PrinterPresetCollection &other) = default;
 
     friend class PresetBundle;

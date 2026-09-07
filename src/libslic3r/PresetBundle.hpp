@@ -326,8 +326,9 @@ public:
     // Export selections (current print, current filaments, current printer) into config.ini
     void            export_selections(AppConfig &config);
 
-    // BBS
-    void            set_num_filaments(unsigned int n, std::vector<std::string> new_colors);
+    // n is the total slot count, and growth appends at the raw tail - which is where the mixed
+    // slots live. A caller adding physical filaments has to add num_mixed_filaments() on top and
+    // then move the new slots ahead of the mixed tail, as Sidebar::add_custom_filament does.
     void            set_num_filaments(unsigned int n, std::string new_col = "");
     void         update_num_filaments(unsigned int to_del_flament_id);
 
@@ -497,6 +498,14 @@ public:
     // Read out the number of extruders from an active printer preset,
     // update size and content of filament_presets.
     void                        update_multi_material_filament_presets(size_t to_delete_filament_id = size_t(-1));
+    // Mixed-color filament slots: virtual slots realized from 2-3 physical filaments.
+    bool                        is_mixed_filament(size_t idx) const;
+    std::vector<size_t>         physical_filament_config_indices() const;
+    // How many slots are mixed. They sit at the tail of the filament list and have no nozzle of
+    // their own, so any resize driven by the printer's extruder count has to add this on top.
+    size_t                      num_mixed_filaments() const;
+    // How many slots hold a real filament, i.e. everything ahead of the mixed tail.
+    size_t                      num_physical_filaments() const;
 
     void                        on_extruders_count_changed(int extruder_count);
 

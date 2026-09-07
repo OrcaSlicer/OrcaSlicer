@@ -86,11 +86,8 @@ private:
 
 	/* side tools */
     SideTools*      m_side_tools{nullptr};
-    wxStaticBitmap* m_bitmap_printer_type;
     wxStaticBitmap* m_bitmap_arrow;
-    wxStaticText*   m_staticText_printer_name;
     wxStaticBitmap* m_bitmap_wifi_signal;
-    wxBoxSizer *    m_side_tools_sizer;
     SelectMachinePopup m_select_machine;
 
 	/* images */
@@ -101,7 +98,6 @@ private:
     wxBitmap m_printer_img;
     wxBitmap m_arrow_img;
 
-    int last_wifi_signal = -1;
     int last_status;
     bool m_initialized { false };
     bool update_flag{false};

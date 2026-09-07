@@ -88,7 +88,6 @@ private:
     Button*                 m_task_name{ nullptr };
     Button*                 m_status{ nullptr };
     Button*                 m_action{ nullptr };
-    Button*                 m_stop_all_botton{nullptr};
 
     // tip when no device
     wxStaticText*           m_tip_text{ nullptr };

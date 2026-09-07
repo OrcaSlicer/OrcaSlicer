@@ -109,7 +109,6 @@ public:
     void    decrease_fan_speeds();
 private:
     int     m_current_speeds;
-    int     m_target_speed;
     int     m_min_speeds;
     int     m_max_speeds;
     ScalableBitmap   m_bitmap_add;

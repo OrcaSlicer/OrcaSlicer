@@ -162,6 +162,8 @@ enum class NotificationType
 	//BBL: plugin install hint
 	BBLPluginInstallHint,
     BBLFlushingVolumeZero,
+    // A mixed-color filament references a deleted component, or its components disagree in type.
+    BBLMixedFilamentBroken,
 	BBLPluginUpdateAvailable,
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,
@@ -172,6 +174,8 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    // A mixed-color filament is printed on a single-nozzle printer (frequent changes and purging).
+    BBLSingleExtruderMixedFilamentRisk,
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
