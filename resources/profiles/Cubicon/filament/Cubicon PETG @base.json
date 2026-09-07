@@ -23,7 +23,7 @@
 		"80"
 	],
 	"hot_plate_temp_initial_layer": [
-		"80"
+		"85"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -62,12 +62,45 @@
 		"70"
 	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"220"
 	],
 	"nozzle_temperature_range_high": [
 		"250"
 	],
 	"additional_cooling_fan_speed": [
 		"0"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.08"
+	],
+	"filament_retraction_length": [
+		"2.0"
+	],
+	"filament_z_hop": [
+		"0"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_deretraction_speed": [
+		"25"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"2"
+	],
+	"filament_retract_before_wipe": [
+		"70%"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"255"
 	]
 }

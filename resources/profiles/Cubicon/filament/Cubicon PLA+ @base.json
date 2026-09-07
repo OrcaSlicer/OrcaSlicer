@@ -16,7 +16,7 @@
 		"Cubicon PLA+ @base"
 	],
 	"filament_type": [
-		"PLA"
+		"PLA+"
 	],
 	"filament_vendor": [
 		"Cubicon"
@@ -26,5 +26,14 @@
 	],
 	"nozzle_temperature_range_high": [
 		"220"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.025"
 	]
 }
