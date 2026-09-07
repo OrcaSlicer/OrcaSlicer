@@ -513,7 +513,7 @@ void PresetUpdater::priv::sync_resources(std::string http_url, std::map<std::str
                 cancel_http = true;
             }
         })
-        .on_complete([this, &resource_list, resources](std::string body, unsigned) {
+        .on_complete([&resource_list, resources](std::string body, unsigned) {
             try {
                 BOOST_LOG_TRIVIAL(info) << "[Orca Updater]: request_resources, body=" << body;
 

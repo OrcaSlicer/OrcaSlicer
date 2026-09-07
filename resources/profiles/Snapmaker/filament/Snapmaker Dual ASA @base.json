@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "1247172706",
+	"filament_id": "OFKUEXPA",
 	"instantiation": "false",
 	"hot_plate_temp": [
 		"110"

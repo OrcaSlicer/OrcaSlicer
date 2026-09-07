@@ -3,7 +3,7 @@
 	"name": "COEX PLA+Silk @base",
 	"inherits": "fdm_filament_pla_silk",
 	"from": "system",
-	"filament_id": "CXPLSB03",
+	"filament_id": "OF0pzFLc",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

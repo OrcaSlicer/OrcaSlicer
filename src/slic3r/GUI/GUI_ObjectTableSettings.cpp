@@ -184,7 +184,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
             btn->Bind(EVT_LOCK_ENABLE, [this, btn](auto &e) { btn->SetBitmap(m_bmp_reset_focus.bmp()); });
             #endif
 
-            btn->Bind(wxEVT_BUTTON, [btn, opt_key, this, is_object, object, config, group_category](wxEvent &event) {
+            btn->Bind(wxEVT_BUTTON, [opt_key, this, is_object, object, config, group_category](wxEvent &event) {
                 //wxGetApp().plater()->take_snapshot(from_u8((boost::format(_utf8(L("Reset Option %s"))) % opt_key).str()));
                 config->erase(opt_key);
                 //btn->Hide();
@@ -204,10 +204,13 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
                 this->m_parent->Thaw();
 
                 #ifdef __WXOSX_MAC__
-                if (!btn->IsEnabled()) {
-                    btn->SetBitmap(m_bmp_reset_disable.bmp());
-                } else {
-                    btn->SetBitmap(m_bmp_reset_focus.bmp());
+                // The handler is bound on the button, so the event source is that button.
+                if (auto *btn = dynamic_cast<ScalableButton *>(event.GetEventObject())) {
+                    if (!btn->IsEnabled()) {
+                        btn->SetBitmap(m_bmp_reset_disable.bmp());
+                    } else {
+                        btn->SetBitmap(m_bmp_reset_focus.bmp());
+                    }
                 }
                 #endif
             });
@@ -284,13 +287,13 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         m_settings_list_sizer->Add(optgroup->sizer, 0, wxEXPAND | wxALL, 0);
         m_og_settings.push_back(optgroup);
 
-        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index)
+        auto toggle_field = [optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index)
         {
             Field* field = optgroup->get_fieldc(opt_key, opt_index);;
             if (field)
                 field->toggle(toggle);
         };
-        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
+        auto toggle_line = [optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
         {
             Line* line = optgroup->get_line(opt_key);
             if (line) line->toggle_visible = toggle;

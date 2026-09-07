@@ -3,7 +3,7 @@
 	"name": "Generic PPS @base",
 	"inherits": "fdm_filament_pps",
 	"from": "system",
-	"filament_id": "GFT97",
+	"filament_id": "OFq9svOz",
     "instantiation": "false",
     "filament_dev_chamber_drying_bed_temperature": [
         "90"

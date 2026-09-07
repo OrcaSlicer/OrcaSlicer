@@ -4,6 +4,7 @@
 	"inherits": "Generic ASA @base",
 	"from": "system",
 	"setting_id": "S5kHIMcORjlPRnVs",
+	"filament_id": "OF53eLVD",
 	"instantiation": "true",
 	"filament_type": [
 		"ASA-CF"

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Galaxy @EN4 Series",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Galaxy @base",
 	"from": "system",
 	"setting_id": "rDOS8SneslZCJyiY",
 	"instantiation": "true",

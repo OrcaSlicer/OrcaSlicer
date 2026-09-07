@@ -1,0 +1,607 @@
+{
+  "bambustudio_commit": "66e405477",
+  "filaments": {
+    "OF0UJcb6": {
+      "bambu_id": "GFG60",
+      "name": "PolyLite PETG",
+      "type": "PETG",
+      "vendor": "Polymaker"
+    },
+    "OF0wBGNx": {
+      "bambu_id": "GFB51",
+      "name": "Bambu ASA-CF",
+      "type": "ASA-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OF1UNk9P": {
+      "bambu_id": "GFP97",
+      "name": "Generic PP",
+      "type": "PP",
+      "vendor": "Generic"
+    },
+    "OF2GCW1l": {
+      "bambu_id": "GFSNL08",
+      "name": "SUNLU PETG",
+      "type": "PETG",
+      "vendor": "SUNLU"
+    },
+    "OF2VFe4J": {
+      "bambu_id": "GFN04",
+      "name": "Bambu PAHT-CF",
+      "type": "PA-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OF342jVN": {
+      "bambu_id": "GFA10",
+      "name": "Bambu PLA Tough+",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OF4RvVuU": {
+      "bambu_id": "GFT02",
+      "name": "Bambu PPS-CF",
+      "type": "PPS-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OF54B0S0": {
+      "bambu_id": "GFN06",
+      "name": "Bambu PPA-CF",
+      "type": "PPA-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OF5CgdDq": {
+      "bambu_id": "GFL00",
+      "name": "PolyLite PLA",
+      "type": "PLA",
+      "vendor": "Polymaker"
+    },
+    "OF6rdQ6M": {
+      "bambu_id": "GFT98",
+      "name": "Generic PPS-CF",
+      "type": "PPS-CF",
+      "vendor": "Generic"
+    },
+    "OF74KeQR": {
+      "bambu_id": "GFR98",
+      "name": "Generic PHA",
+      "type": "PHA",
+      "vendor": "Generic"
+    },
+    "OF7lOgYF": {
+      "bambu_id": "GFG96",
+      "name": "Generic PETG HF",
+      "type": "PETG",
+      "vendor": "Generic"
+    },
+    "OF8Tlg47": {
+      "bambu_id": "GFN96",
+      "name": "Generic PPA-GF",
+      "type": "PPA-GF",
+      "vendor": "Generic"
+    },
+    "OF8tPByX": {
+      "bambu_id": "GFN97",
+      "name": "Generic PPA-CF",
+      "type": "PPA-CF",
+      "vendor": "Generic"
+    },
+    "OF9OlTWH": {
+      "bambu_id": "GFA07",
+      "name": "Bambu PLA Marble",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFAnyRUI": {
+      "bambu_id": "GFS02",
+      "name": "Bambu Support For PLA",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFBSW57R": {
+      "bambu_id": "GFA11",
+      "name": "Bambu PLA Aero",
+      "type": "PLA-AERO",
+      "vendor": "Bambu Lab"
+    },
+    "OFBw6eEG": {
+      "bambu_id": "GFL05",
+      "name": "Overture Matte PLA",
+      "type": "PLA",
+      "vendor": "Overture"
+    },
+    "OFCD8qiU": {
+      "bambu_id": "GFR99",
+      "name": "Generic EVA",
+      "type": "EVA",
+      "vendor": "Generic"
+    },
+    "OFDGigEI": {
+      "bambu_id": "GFA13",
+      "name": "Bambu PLA Dynamic",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFDSrzZ8": {
+      "bambu_id": "GFL99",
+      "name": "Generic PLA",
+      "type": "PLA",
+      "vendor": "Generic"
+    },
+    "OFDvXujf": {
+      "bambu_id": "GFS99",
+      "name": "Generic PVA",
+      "type": "PVA",
+      "vendor": "Generic"
+    },
+    "OFDxfPgH": {
+      "bambu_id": "GFA08",
+      "name": "Bambu PLA Sparkle",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFEGNJD4": {
+      "bambu_id": "GFA05",
+      "name": "Bambu PLA Silk",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFEkPBwx": {
+      "bambu_id": "GFA12",
+      "name": "Bambu PLA Glow",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFEswT5W": {
+      "bambu_id": "GFA50",
+      "name": "Bambu PLA-CF",
+      "type": "PLA-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OFFNYwWR": {
+      "bambu_id": "GFN03",
+      "name": "Bambu PA-CF",
+      "type": "PA-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OFFbSnCD": {
+      "bambu_id": "GFA17",
+      "name": "Bambu PLA Translucent",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFFvzqcd": {
+      "bambu_id": "GFG00",
+      "name": "Bambu PETG Basic",
+      "type": "PETG",
+      "vendor": "Bambu Lab"
+    },
+    "OFHWSM21": {
+      "bambu_id": "GFL54",
+      "name": "Fiberon PET-CF",
+      "type": "PET-CF",
+      "vendor": "Polymaker"
+    },
+    "OFHa48An": {
+      "bambu_id": "GFT01",
+      "name": "Bambu PET-CF",
+      "type": "PET-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OFHmPYRy": {
+      "bambu_id": "GFSNL04",
+      "name": "SUNLU PLA+ 2.0",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFIBbYO5": {
+      "bambu_id": "GFU02",
+      "name": "Bambu TPU for AMS",
+      "type": "TPU-AMS",
+      "vendor": "Bambu Lab"
+    },
+    "OFIfnzxC": {
+      "bambu_id": "GFS05",
+      "name": "Bambu Support For PLA/PETG",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFKhMPeX": {
+      "bambu_id": "GFC00",
+      "name": "Bambu PC",
+      "type": "PC",
+      "vendor": "Bambu Lab"
+    },
+    "OFLJ8S6I": {
+      "bambu_id": "GFSNL07",
+      "name": "SUNLU Wood PLA",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFLPAxz3": {
+      "bambu_id": "GFB98",
+      "name": "Generic ASA",
+      "type": "ASA",
+      "vendor": "Generic"
+    },
+    "OFLakOUI": {
+      "bambu_id": "GFC99",
+      "name": "Generic PC",
+      "type": "PC",
+      "vendor": "Generic"
+    },
+    "OFMTK0UC": {
+      "bambu_id": "GFS03",
+      "name": "Bambu Support For PA/PET",
+      "type": "PA",
+      "vendor": "Bambu Lab"
+    },
+    "OFMUWNkp": {
+      "bambu_id": "GFSNL03",
+      "name": "SUNLU PLA+",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFMjtqTC": {
+      "bambu_id": "GFA16",
+      "name": "Bambu PLA Wood",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFNk8bxk": {
+      "bambu_id": "GFN08",
+      "name": "Bambu PA6-GF",
+      "type": "PA-GF",
+      "vendor": "Bambu Lab"
+    },
+    "OFOvv91M": {
+      "bambu_id": "GFB60",
+      "name": "PolyLite ABS",
+      "type": "ABS",
+      "vendor": "Polymaker"
+    },
+    "OFPklMI1": {
+      "bambu_id": "GFP99",
+      "name": "Generic PE",
+      "type": "PE",
+      "vendor": "Generic"
+    },
+    "OFQ3e56w": {
+      "bambu_id": "GFA15",
+      "name": "Bambu PLA Galaxy",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFQHiNJs": {
+      "bambu_id": "GFS01",
+      "name": "Bambu Support G",
+      "type": "PA",
+      "vendor": "Bambu Lab"
+    },
+    "OFQLcbps": {
+      "bambu_id": "GFN98",
+      "name": "Generic PA-CF",
+      "type": "PA-CF",
+      "vendor": "Generic"
+    },
+    "OFS2tn6G": {
+      "bambu_id": "GFL53",
+      "name": "Fiberon PA612-CF",
+      "type": "PA",
+      "vendor": "Polymaker"
+    },
+    "OFTHDCqA": {
+      "bambu_id": "GFA19",
+      "name": "Bambu PLA Pure",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFTRZ8Y4": {
+      "bambu_id": "GFG50",
+      "name": "Bambu PETG-CF",
+      "type": "PETG-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OFUanySo": {
+      "bambu_id": "GFA06",
+      "name": "Bambu PLA Silk+",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFVCkX5w": {
+      "bambu_id": "GFU01",
+      "name": "Bambu TPU 95A",
+      "type": "TPU",
+      "vendor": "Bambu Lab"
+    },
+    "OFW29a9R": {
+      "bambu_id": "GFL01",
+      "name": "PolyTerra PLA",
+      "type": "PLA",
+      "vendor": "Polymaker"
+    },
+    "OFWbdGsC": {
+      "bambu_id": "GFL98",
+      "name": "Generic PLA-CF",
+      "type": "PLA-CF",
+      "vendor": "Generic"
+    },
+    "OFX0ycRQ": {
+      "bambu_id": "GFL52",
+      "name": "Fiberon PA12-CF",
+      "type": "PA-CF",
+      "vendor": "Polymaker"
+    },
+    "OFXIbw5D": {
+      "bambu_id": "GFA01",
+      "name": "Bambu PLA Matte",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFXkm8q1": {
+      "bambu_id": "GFP96",
+      "name": "Generic PP-CF",
+      "type": "PP-CF",
+      "vendor": "Generic"
+    },
+    "OFXzQ4yL": {
+      "bambu_id": "GFB02",
+      "name": "Bambu ASA-Aero",
+      "type": "ASA-AERO",
+      "vendor": "Bambu Lab"
+    },
+    "OFY9muEs": {
+      "bambu_id": "GFB99",
+      "name": "Generic ABS",
+      "type": "ABS",
+      "vendor": "Generic"
+    },
+    "OFYPdQJh": {
+      "bambu_id": "GFG99",
+      "name": "Generic PETG",
+      "type": "PETG",
+      "vendor": "Generic"
+    },
+    "OFaQMgRH": {
+      "bambu_id": "GFA09",
+      "name": "Bambu PLA Tough",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFc3xdm9": {
+      "bambu_id": "GFL04",
+      "name": "Overture PLA",
+      "type": "PLA",
+      "vendor": "Overture"
+    },
+    "OFcytyoA": {
+      "bambu_id": "GFL06",
+      "name": "Fiberon PETG-ESD",
+      "type": "PETG",
+      "vendor": "Polymaker"
+    },
+    "OFd0Fv0k": {
+      "bambu_id": "GFP98",
+      "name": "Generic PE-CF",
+      "type": "PE-CF",
+      "vendor": "Generic"
+    },
+    "OFdyfQvU": {
+      "bambu_id": "GFG03",
+      "name": "Bambu PETG Matte",
+      "type": "PETG",
+      "vendor": "Bambu Lab"
+    },
+    "OFesA6rF": {
+      "bambu_id": "GFL96",
+      "name": "Generic PLA Silk",
+      "type": "PLA",
+      "vendor": "Generic"
+    },
+    "OFf6mfQO": {
+      "bambu_id": "GFS06",
+      "name": "Bambu Support for ABS",
+      "type": "ABS",
+      "vendor": "Bambu Lab"
+    },
+    "OFfBpSRI": {
+      "bambu_id": "GFB01",
+      "name": "Bambu ASA",
+      "type": "ASA",
+      "vendor": "Bambu Lab"
+    },
+    "OFg57Nmc": {
+      "bambu_id": "GFC01",
+      "name": "Bambu PC FR",
+      "type": "PC",
+      "vendor": "Bambu Lab"
+    },
+    "OFg8ndtj": {
+      "bambu_id": "GFN99",
+      "name": "Generic PA",
+      "type": "PA",
+      "vendor": "Generic"
+    },
+    "OFgbpcy9": {
+      "bambu_id": "GFU99",
+      "name": "Generic TPU",
+      "type": "TPU",
+      "vendor": "Generic"
+    },
+    "OFhuaUQB": {
+      "bambu_id": "GFB00",
+      "name": "Bambu ABS",
+      "type": "ABS",
+      "vendor": "Bambu Lab"
+    },
+    "OFk8t9mz": {
+      "bambu_id": "GFL55",
+      "name": "Fiberon PETG-rCF",
+      "type": "PETG-CF",
+      "vendor": "Polymaker"
+    },
+    "OFkOviHk": {
+      "bambu_id": "GFL50",
+      "name": "Fiberon PA6-CF",
+      "type": "PA6-CF",
+      "vendor": "Polymaker"
+    },
+    "OFknl9Iz": {
+      "bambu_id": "GFB50",
+      "name": "Bambu ABS-GF",
+      "type": "ABS-GF",
+      "vendor": "Bambu Lab"
+    },
+    "OFlfuj2k": {
+      "bambu_id": "GFU04",
+      "name": "Bambu TPU 85A",
+      "type": "TPU",
+      "vendor": "Bambu Lab"
+    },
+    "OFmN2lvw": {
+      "bambu_id": "GFU98",
+      "name": "Generic TPU for AMS",
+      "type": "TPU-AMS",
+      "vendor": "Generic"
+    },
+    "OFmpMwxS": {
+      "bambu_id": "GFL95",
+      "name": "Generic PLA High Speed",
+      "type": "PLA",
+      "vendor": "Generic"
+    },
+    "OFnfxTvi": {
+      "bambu_id": "GFA18",
+      "name": "Bambu PLA Lite",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFniMuTN": {
+      "bambu_id": "GFN05",
+      "name": "Bambu PA6-CF",
+      "type": "PA6-CF",
+      "vendor": "Bambu Lab"
+    },
+    "OFo2UF2C": {
+      "bambu_id": "GFS97",
+      "name": "Generic BVOH",
+      "type": "BVOH",
+      "vendor": "Generic"
+    },
+    "OFoYSJKi": {
+      "bambu_id": "GFG98",
+      "name": "Generic PETG-CF",
+      "type": "PETG-CF",
+      "vendor": "Generic"
+    },
+    "OFoiVqVM": {
+      "bambu_id": "GFA00",
+      "name": "Bambu PLA Basic",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFovEIbw": {
+      "bambu_id": "GFG02",
+      "name": "Bambu PETG HF",
+      "type": "PETG",
+      "vendor": "Bambu Lab"
+    },
+    "OFpPGSKG": {
+      "bambu_id": "GFSNL05",
+      "name": "SUNLU Silk PLA+",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFpW4gdi": {
+      "bambu_id": "GFSNL02",
+      "name": "SUNLU PLA Matte",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFq9svOz": {
+      "bambu_id": "GFT97",
+      "name": "Generic PPS",
+      "type": "PPS",
+      "vendor": "Generic"
+    },
+    "OFqINlYj": {
+      "bambu_id": "GFL03",
+      "name": "eSUN PLA+",
+      "type": "PLA",
+      "vendor": "eSUN"
+    },
+    "OFrKLeE3": {
+      "bambu_id": "GFA02",
+      "name": "Bambu PLA Metal",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFsFon5l": {
+      "bambu_id": "GFS98",
+      "name": "Generic HIPS",
+      "type": "HIPS",
+      "vendor": "Generic"
+    },
+    "OFsHSVZc": {
+      "bambu_id": "GFS00",
+      "name": "Bambu Support W",
+      "type": "PLA",
+      "vendor": "Bambu Lab"
+    },
+    "OFsijjtH": {
+      "bambu_id": "GFP95",
+      "name": "Generic PP-GF",
+      "type": "PP-GF",
+      "vendor": "Generic"
+    },
+    "OFtkLO6q": {
+      "bambu_id": "GFU03",
+      "name": "Bambu TPU 90A",
+      "type": "TPU",
+      "vendor": "Bambu Lab"
+    },
+    "OFu1evlr": {
+      "bambu_id": "GFG97",
+      "name": "Generic PCTG",
+      "type": "PCTG",
+      "vendor": "Generic"
+    },
+    "OFvKUnLh": {
+      "bambu_id": "GFU00",
+      "name": "Bambu TPU 95A HF",
+      "type": "TPU",
+      "vendor": "Bambu Lab"
+    },
+    "OFvrXuV7": {
+      "bambu_id": "GFB61",
+      "name": "PolyLite ASA",
+      "type": "ASA",
+      "vendor": "Polymaker"
+    },
+    "OFwPrlCM": {
+      "bambu_id": "GFG01",
+      "name": "Bambu PETG Translucent",
+      "type": "PETG",
+      "vendor": "Bambu Lab"
+    },
+    "OFwaYjL6": {
+      "bambu_id": "GFL51",
+      "name": "Fiberon PA6-GF",
+      "type": "PA-GF",
+      "vendor": "Polymaker"
+    },
+    "OFxUwUeW": {
+      "bambu_id": "GFSNL06",
+      "name": "SUNLU PLA Marble",
+      "type": "PLA",
+      "vendor": "SUNLU"
+    },
+    "OFzyIxba": {
+      "bambu_id": "GFS04",
+      "name": "Bambu PVA",
+      "type": "PVA",
+      "vendor": "Bambu Lab"
+    }
+  },
+  "generated": "2026-09-04",
+  "source": "https://github.com/bambulab/BambuStudio"
+}

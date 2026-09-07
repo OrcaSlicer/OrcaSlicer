@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Prusa CORE One 0.8",
+	"inherits": "Generic PLA @Prusa CORE One",
+	"renamed_from": "Prusa Generic PLA @CORE One 0.8;Prusa Generic PLA CORE One 0.8",
+	"from": "system",
+	"setting_id": "aBengWdqRXg9i2sx",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.8 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"19"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"slow_down_layer_time": [
+		"17"
+	]
+}

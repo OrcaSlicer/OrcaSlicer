@@ -3,7 +3,7 @@
 	"name": "Generic PA @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFN99",
+	"filament_id": "OFg8ndtj",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"chamber_temperatures": [

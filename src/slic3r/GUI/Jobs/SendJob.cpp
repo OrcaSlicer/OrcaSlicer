@@ -213,7 +213,6 @@ void SendJob::process(Ctl &ctl)
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt = m_local_use_ssl;
-    wxString error_text;
     std::string msg_text;
 
     const int StagePercentPoint[(int)PrintingStageFinished + 1] = {
@@ -227,7 +226,7 @@ void SendJob::process(Ctl &ctl)
     };
 
     auto update_fn = [this, &ctl,
-        &msg, &curr_percent, &error_text, StagePercentPoint](int stage, int code, std::string info) {
+        &msg, &curr_percent, StagePercentPoint](int stage, int code, std::string info) {
                         if (stage == SendingPrintJobStage::PrintingStageCreate) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending G-code file over LAN");

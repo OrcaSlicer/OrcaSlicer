@@ -3,7 +3,7 @@
 	"name": "Numakers PLA+ @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFNMK00",
+	"filament_id": "OFqGRZyH",
 	"instantiation": "false",
 	"filament_cost": [
 		"20.99"

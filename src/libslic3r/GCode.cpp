@@ -8197,9 +8197,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
-                for (ProcessedPoint &point : new_points)
-                    point.speed = speed;
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                if (!NOZZLE_CONFIG(enable_overhang_speed))
+                    for (ProcessedPoint &point : new_points)
+                        point.speed = speed;
                 variable_speed = new_points.size() > 1;
             }
     }

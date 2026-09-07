@@ -684,7 +684,6 @@ public:
 
 private:
     int             m_nozzle_num           = {1};
-    AMSRoadShowMode m_single_ext_rode_mode = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     AMSRoadShowMode m_left_rode_mode       = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     AMSRoadShowMode m_right_rode_mode      = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     bool            m_selected             = {false};
@@ -693,7 +692,6 @@ private:
     int             m_right_road_length    = {-1};
     int             m_passroad_width       = {6};
     double          m_radius               = {4};
-    AMSPassRoadType m_pass_road_type       = {AMSPassRoadType::AMS_ROAD_TYPE_NONE};
     AMSPassRoadSTEP m_pass_road_left_step  = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
     AMSPassRoadSTEP m_pass_road_right_step = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
 
@@ -866,11 +864,7 @@ private:
     AMSinfo         m_info;
     wxBoxSizer *    sizer_can = {nullptr};
     wxGridSizer*    sizer_can_extra = { nullptr };
-    wxBoxSizer *    sizer_humidity = { nullptr };
     wxBoxSizer *    sizer_item = { nullptr };
-    wxBoxSizer *    sizer_can_middle = {nullptr};
-    wxBoxSizer *    sizer_can_left = {nullptr};
-    wxBoxSizer *    sizer_can_right = {nullptr};
     AMSExtImage*    m_ext_image = { nullptr };      //the ext image upon the ext ams
     AMSExtText* m_ext_text = { nullptr };       //the ext text upon the ext ams
 };
