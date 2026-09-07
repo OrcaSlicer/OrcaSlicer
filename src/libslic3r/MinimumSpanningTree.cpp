@@ -60,10 +60,15 @@ auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGr
         //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
         //However that requires an implementation of a heap that supports the decreaseKey operation, which is not in the std library.
         //TODO: Implement this?
+        // Break equal-distance ties on coordinates: the map is keyed by address, so its
+        // iteration order (and therefore the first minimum) would otherwise depend on where
+        // the vertices were allocated.
         using MapValue = std::pair<const Point*, coordf_t>;
         const auto closest = std::min_element(smallest_distance.begin(), smallest_distance.end(),
                                               [](const MapValue& a, const MapValue& b) {
-                                                  return a.second < b.second;
+                                                  if (a.second != b.second)
+                                                      return a.second < b.second;
+                                                  return *a.first < *b.first;
                                               });
 
         //Add this point to the graph and remove it from the candidates.
