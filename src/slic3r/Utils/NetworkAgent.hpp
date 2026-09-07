@@ -133,6 +133,7 @@ public:
     int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
 
     // Printer agent methods
+    // Discovery is delivered through queue_on_main_fn, scoped to the live agent session.
     int set_on_ssdp_msg_fn(OnMsgArrivedFn fn);
     int set_on_printer_connected_fn(OnPrinterConnectedFn fn);
     int set_on_subscribe_failure_fn(GetSubscribeFailureFn fn);
@@ -183,6 +184,9 @@ private:
 
     void apply_printer_callbacks(const std::shared_ptr<IPrinterAgent>& printer_agent,
                                  const PrinterCallbacks& callbacks);
+    int apply_discovery_callback(const std::shared_ptr<IPrinterAgent>& printer_agent,
+                                 const PrinterCallbacks& callbacks);
+    std::shared_ptr<int> m_discovery_session = std::make_shared<int>(0);
     PrinterCallbacks m_printer_callbacks;
     bool enable_track = false;
 

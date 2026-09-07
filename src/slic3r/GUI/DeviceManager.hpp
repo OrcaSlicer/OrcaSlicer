@@ -113,6 +113,7 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
+    bool m_access_revoked = false;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -224,6 +225,7 @@ public:
 
     /*access code*/
     bool has_access_right() const;
+    void revoke_access();
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
 

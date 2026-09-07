@@ -26,6 +26,24 @@ TEST_CASE("Moonraker permits an empty access code", "[DeviceAccess]")
     REQUIRE(machine.has_access_right());
 }
 
+TEST_CASE("Moonraker logout revokes access until explicitly rebound", "[DeviceAccess]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+    machine.printer_agent_id = MOONRAKER_PRINTER_AGENT_ID;
+    const std::string code = GENERATE("", "configured-key");
+    machine.set_access_code(code, false);
+    REQUIRE(machine.has_access_right());
+
+    machine.revoke_access();
+    REQUIRE(machine.get_access_code().empty());
+    REQUIRE_FALSE(machine.has_access_right());
+    REQUIRE(machine.connect(false) == -1);
+
+    machine.set_access_code(code, false);
+    REQUIRE(machine.has_access_right());
+    REQUIRE(machine.get_access_code() == code);
+}
+
 TEST_CASE("Other printer agents require an access code", "[DeviceAccess]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test_dev", "127.0.0.1");

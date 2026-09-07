@@ -241,7 +241,7 @@ namespace Slic3r
             std::string connect_type    = j["connect_type"].get<std::string>();
             std::string bind_state      = j["bind_state"].get<std::string>();
 
-            // Discovery may be queued by the outgoing agent. Only explicit binding may replace its saved record.
+            // Passive discovery must not replace another agent's saved binding.
             if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
                 if (AppConfig* config = GUI::wxGetApp().app_config) {
                     const auto& machines = config->get_local_machines();
