@@ -443,6 +443,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      auto m_st_privacy_title = new Label(m_panel_agreement, _L("Read and accept"));
      m_st_privacy_title->SetFont(Label::Body_13);
      m_st_privacy_title->SetForegroundColour(wxColour(38, 46, 48));
+     m_checkbox_privacy->BindLabel(m_st_privacy_title);
 
      // ORCA standardized HyperLink
      auto m_link_Terms_title = new HyperLink(m_panel_agreement, _L("Terms and Conditions"));
@@ -500,6 +501,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      auto m_st_notice_title = new Label(m_panel_agreement, notice_title);
      m_st_notice_title->SetFont(Label::Body_13);
      m_st_notice_title->SetForegroundColour(wxColour(38, 46, 48));
+     m_checkbox_notice->BindLabel(m_st_notice_title);
 
      // ORCA standardized HyperLink
      auto m_link_notice_title = new HyperLink(m_panel_agreement, notice_link_title);

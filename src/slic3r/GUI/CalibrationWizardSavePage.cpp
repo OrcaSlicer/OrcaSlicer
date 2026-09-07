@@ -1665,12 +1665,7 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
 
     auto cb_text = new Label(checkBox_panel, _L("Skip Calibration2"));
     cb_sizer->Add(cb_text);
-    cb_text->Bind(wxEVT_LEFT_DOWN, [this](auto&) {
-        m_checkBox_skip_calibration->SetValue(!m_checkBox_skip_calibration->GetValue());
-        wxCommandEvent event(wxEVT_TOGGLEBUTTON);
-        event.SetEventObject(m_checkBox_skip_calibration);
-        m_checkBox_skip_calibration->GetEventHandler()->ProcessEvent(event);
-        });
+    m_checkBox_skip_calibration->BindLabel(cb_text);
 
     m_top_sizer->Add(checkBox_panel, 0, 0, 0);
 

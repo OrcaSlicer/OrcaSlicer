@@ -144,26 +144,18 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         if (!can_detach) {
             detach_checkbox->Disable();
             detach_label->SetForegroundColour(wxColour("#6B6B6B"));
-        } 
+        }
         else {
             // Set initial state (unchecked by default)
             detach_checkbox->SetValue(m_detach);
             // Bind the checkbox event to update the detach state for this item
-            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent& event) {
-                m_detach = detach_checkbox->GetValue();
-                event.Skip(); // Let CheckBox update its bitmap for the new state.
+            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { 
+              m_detach = detach_checkbox->GetValue(); 
+              event.Skip(); // Let CheckBox update its bitmap for the new state.
             });
+            detach_checkbox->BindLabel(detach_label);
 
             detach_label->SetForegroundColour(wxColour("#363636"));
-
-            auto on_toggle = [detach_checkbox]() {
-                detach_checkbox->SetValue(!detach_checkbox->GetValue());
-                wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
-                ev.SetEventObject(detach_checkbox);
-                detach_checkbox->GetEventHandler()->ProcessEvent(ev);
-            };
-            detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-            detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
         }
     }
     

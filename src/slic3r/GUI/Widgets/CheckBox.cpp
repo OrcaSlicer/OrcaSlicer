@@ -50,6 +50,26 @@ void CheckBox::SetHalfChecked(bool value)
 	update();
 }
 
+void CheckBox::BindLabel(wxWindow *label)
+{
+    if (label == nullptr)
+        return;
+    auto toggle = [this](wxMouseEvent &e) {
+        if (!IsEnabled()) {
+            e.Skip();
+            return;
+        }
+        SetValue(!GetValue());
+        // Notify the handlers bound to the box itself, exactly as a click on the box would.
+        wxCommandEvent evt(wxEVT_TOGGLEBUTTON, GetId());
+        evt.SetEventObject(this);
+        evt.SetInt(GetValue() ? 1 : 0);
+        GetEventHandler()->ProcessEvent(evt);
+    };
+    label->Bind(wxEVT_LEFT_DOWN, toggle);
+    label->Bind(wxEVT_LEFT_DCLICK, toggle); // a double click toggles twice, as it does on the box
+}
+
 void CheckBox::Rescale()
 {
     m_on.msw_rescale();

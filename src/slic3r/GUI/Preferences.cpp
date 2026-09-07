@@ -1023,6 +1023,8 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         sec_title->SetFont(::Label::Body_14);
         sec_title->Wrap(-1);
         sec_title->SetToolTip(tip);
+        // The secondary title sits to the right of the box, close enough to be part of it
+        checkbox->BindLabel(sec_title);
         m_sizer->Add(sec_title, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     }
 

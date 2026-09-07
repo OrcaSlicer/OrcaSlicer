@@ -123,6 +123,7 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     checkbox_title->SetForegroundColour(wxColour(144, 144, 144));
     checkbox_title->SetFont(::Label::Body_13);
     checkbox_title->Wrap(-1);
+    checkbox->BindLabel(checkbox_title);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
     m_show_again = wxGetApp().app_config->has(param);
