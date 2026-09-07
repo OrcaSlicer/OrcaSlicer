@@ -4,6 +4,9 @@
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"instantiation": "false",
+	"filament_vendor": [
+		"Snapmaker"
+	],
 	"filament_is_support": [
 		"1"
 	],

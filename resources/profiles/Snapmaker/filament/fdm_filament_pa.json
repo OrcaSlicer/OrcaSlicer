@@ -4,6 +4,9 @@
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"instantiation": "false",
+	"filament_vendor": [
+		"Snapmaker"
+	],
 	"required_nozzle_HRC": [
 		"40"
 	],

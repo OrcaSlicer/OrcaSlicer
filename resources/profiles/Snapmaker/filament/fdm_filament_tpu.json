@@ -4,6 +4,9 @@
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"instantiation": "false",
+	"filament_vendor": [
+		"Snapmaker"
+	],
 	"hot_plate_temp": [
 		"40"
 	],
