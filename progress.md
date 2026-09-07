@@ -1,5 +1,89 @@
 # 进度日志
 
+## 会话：2026-09-04
+
+### 导入颜色衔接修复（用户已批准）
+
+- 继续当前分支和工作树，保留补包及既有资料；不改智能切片、供应商配置，不发付费请求。
+- 使用 Code、brainstorming、writing-plans 和文件规划，比较后选择恢复显式 OBJ 回调，普通无回调导入继续原生纹理路径。
+- 当前旧 ObjColorDialog 本身也会自动聚类，所以不能只恢复回调；专用手动路径还必须保留离散输入色，依据真实上色结果回传状态并处理取消。
+- 会话恢复仍指向旧 PPT；以当前根目录计划、Git 分支和上一轮实际 GUI 证据为准。开始补实际 Model::read_from_file 入口回归。
+- 原生测试已启用并完整构建 libslic3r_tests；使用修复前核心库的红测为 3 用例、19 断言，其中 7 个参数化断言失败，全部为显式回调调用次数 0；普通纹理路径用例通过。
+- 已实现显式回调/取消、专用手动输入 RGB 保留、实际颜色计数和真实上色状态；普通导入/重载不注入旧默认回调。补充取消、面色和相近色保真测试，开始绿色构建。
+- 45 项集成边界测试通过。上一轮 GUI 测试场景已正常另存为 `build/environment-repair/gui-acceptance/pre-colorfix-test-scene.3mf`（30,134,504 字节），未覆盖已保存工程。
+- 补充保色窗口的 RGB 字节四舍五入（避免 OBJ 小数截断导致 1/255 偏移）、缺失材质错误页空指针保护，以及自动修复回退导入的取消状态。
+- 首次全量 Python 命令用了 `-I -m unittest discover`，23 个按 `tools.ai` 导入的模块因源码根目录未加入 sys.path 而加载失败；改为 `-I -B -c` 显式加入源码根目录重新运行，保持供应商环境隔离，不改测试逻辑。
+- 已通过正常窗口关闭旧程序 PID 274932，其生产 sidecar PID 361892 随之退出。向默认本地模型库复制四个全新六色试块文件（OBJ、元数据、颜色意图、PNG），均先检查不存在，未覆盖历史记录；模型标题为“GUI 六色通道试块（六色全部使用）”。
+- 修正测试运行路径后，捆绑 Python 3.12.13 下全量 **634 项通过，198.164 秒**；`verify_ai_integration.py --json --skip-git` 通过。绿色原生构建核心库已完成，继续重编测试目标。
+- 原生绿色构建返回 0；`libslic3r_tests.exe '[OBJ]' --reporter compact` **8 用例 / 854 断言通过**，包括 1～6 色实际回调、普通路径、单色空回调、取消、面色、相近 RGB 保留及显式降色。最终源代码边界复检 45 项通过（7.930 秒）。
+- 原生定向测试完成后把本机构建缓存 `BUILD_TESTS` 恢复原 OFF（测试二进制和日志保留），开始完整生产 `ALL_BUILD Release`；本次运行包修订号为 `model-v2-colorhandoff-dev`，不绕过生产目标。
+- 完整 `ALL_BUILD Release` 已返回 0：GUI 库、主 EXE/DLL、Python bridge / stubgen、profile validator、dev-utils 全部构建完成；捆绑 Python/Pillow/原生 PNG 自动校验通过。当前通过 CMake install 更新完整开发目录，准备真实 GUI 复验。
+- 已补跑 `[3mf]`：8 用例 / 80 断言通过；OBJ 用例按随机顺序、种子 6 重跑：8 用例 / 854 断言仍全部通过。
+- CMake install 返回 0，完整开发目录修订为 `model-v2-colorhandoff-dev`；安装目录与新构建 DLL SHA-256 一致（`637affc0…93d3691`），Python 3.12.13 / Pillow 12.2.0 隔离校验通过，无内部凭据文件。
+- 真实 GUI PID 413228 正常启动并自动拉起捆绑 pythonw PID 369900；14:09:31 认证挑战与健康检查成功。六色 schema 6 本地历史试块预览和颜色意图恢复通过。
+- 六色手动窗口默认/推荐 6，四色历史人像默认/推荐 4，均未重算；确认后日志分别为 source/mapped=6/6、4/4 且 applied=true，侧栏正确完成，两个 P1 均复验通过。
+- 单色模式无配色窗口并正确显示单色完成；自动映射无手动窗口，source=6、mapped=5、applied=true；取消不增加对象且可重试。各成功模式停在准备页，切片/G-code 均等待。
+- 普通文件导入仍使用原生纹理窗口；只观察其原有自动三色行为并关闭，未应用。保存的 3MF 有 4 个模型，自动试块仅使用 1、2、4、5、6 槽，手动六色试块使用既有 8～13 槽；源色保留不等于现有耗材 RGB 完全一致。
+- 测试场景已另存为 `build/environment-repair/gui-acceptance/post-colorfix-test-scene.3mf`（30,290,579 字节），旧场景未覆盖；程序保持运行且无未保存标记。现场模型重叠、擦拭塔越界警告保留，不作为打印工程交付。
+- 本轮 GUI 服务共 16 个 HTTP 请求：10 GET、6 本地 journey-events POST，无新预处理/推荐/生成或 provider 事件。取消后 98% 进度与快照脏标记仍是未修的显示细节；完整新 1/4/5/6 色清单下载 GUI 矩阵及物理通道矩阵仍待验。
+- 修复实施计划 Task 1～3 complete；更新截图、日志、哈希和未验边界，`git diff --check` 通过。未提交、合并或推送。
+- 收尾发现本轮未编辑的 `openai_preprocessor.py` / `test_openai_preprocessor.py` 在 14:24～14:26 发生并发修改；已保留，不重新安装混入已验收目录。634 项全量结果不覆盖这些后续改动，本轮 C++ 文件时间戳均早于完整构建完成。
+
+### 真实 GUI 续验（用户要求验证此版本）
+
+- 通过文件管理器正常打开完整开发目录，未修改生产代码或供应商配置，未覆盖已保存工程；后续原生导入会向当前未保存测试项目添加耗材槽，未主动保存打印预设。
+- 自动启动链路通过：应用 PID 274932 → 捆绑 pythonw PID 361892 → 生产 sidecar v9，认证健康检查成功；不再需要用户手动启动 AI 服务。
+- 完成艺术预设与 1/5/6 色控件检查，截图保存于 `build/environment-repair/gui-acceptance/evidence/`；模型库和四色历史模型预览正常。
+- 四色模型进入原生导入窗口默认变二色；六个实际色区试块默认变三色。手动指定 4/6 并应用后均能导入。六色重算有部分 RGB 分量 1/255 偏移，不能声称精确色板原样保留。
+- 导入停在准备页、切片和 G-code 保持等待；但实际已上色仍提示“颜色匹配未完成”。源码与日志确认：新纹理导入绕过旧 OBJ 回调，自动重算色数，并未回传适配器的颜色结果。
+- 新 1/4/5/6 色清单 GUI 全链路和物理通道约束仍未完成；本次不调用生成或切片。生产服务 10 个 HTTP 请求中只有 7 个 GET 与 3 个本地 journey-events POST，无 provider 事件。
+- 应用保留在未保存测试项目（历史模型及六色试块）中，未覆盖原始模型或已保存工程；当前原生配置有擦拭塔越界提示，未更改打印配置来规避该提示。
+- **本轮结论：** AI 运行包与真实自动启动验收通过；整版因二次限色和颜色状态回传问题尚未通过。更新完整报告及根目录跟踪文件，不在“验证”请求下继续实现修复。
+- 收尾使用完整目录捆绑 Python 重跑打包隔离测试：2 项通过（1.388 秒）；`git diff --check` 通过。未重复全量 633 项，先前全量结果与本次 GUI 结果分别记录。
+
+### AI 运行包修复
+
+- **状态：** complete（真实 GUI 自动启动已由上方续验补齐；导入功能问题另行跟踪）
+- 用户批准继续修复。按 `Docs/plans/2026-09-04-ai-runtime-packaging-repair.md` 实施，先加失败回归，再补清单和独立安装目录，最后验真实自动启动。
+- 文件规划恢复仍指向旧 PPT 会话，继续以当前分支和根目录文件为准；保留上一轮未提交改动及所有无关文件。
+- 不改普通构建默认值，不复制凭据，不调用付费生成，不进行正式发布。
+- 清单闭包与仅打包文件隔离导入两项红测均准确发现 `color_intent.py` 缺失；已最小化补入 CMake 运行文件清单。
+- 修复后 2 项打包测试、既有 bootstrap / integration 守卫及运行时验证共 60 项通过。首次组合命令的 runtime 测试因按模块调用缺少 `tools/ai` 搜索路径报 ImportError，改用原目录 discovery 后 2 项通过，未修改该测试。
+- 本机显式开启 AI 组装选项，开发修订号 `model-v2-runtimefix-dev`；完整增量 ALL_BUILD 已通过，正在由原有 install 规则复制完整程序到 `build/model-generation-v2-app/`。
+- CMake 安装组装完成并返回 0，开发目录有 bootstrap、color_intent、构建身份与全部依赖；确认未包含 `orca_ai_internal_defaults.json`。原始 build/src/Release 仍是普通构建布局，不再作为独立 AI 程序交接。
+- 完整目录的 Python/Pillow/PNG 校验通过；实际安装 bootstrap 在捆绑 Python 下启动生产 v9 服务成功，认证健康检查通过，无认证请求被拒绝，关闭返回 0；测试只用独立数据目录，生成请求数为 0。
+- Computer Use 标准 `launch_app` 两次均超时，刷新窗口和进程没有发现 OrcaSlicer；未用其他方式继续启动。GUI 自动连接仍未验证，需手动打开 `build/model-generation-v2-app/orca-slicer.exe`。
+- 修复后捆绑 Python 3.12.13 完整回归 **633 项通过（147.219 秒）**。真实生产服务 smoke 使用独立无凭据进程，不发生成请求；握手、拒绝无认证请求、正常关闭全部通过。
+- 最终集成边界检查和 `git diff --check` 通过；未改 C++、打印预设、3MF 或会话认证逻辑，未提交、合并或推送。仍需人工启动后完成 GUI 项，不将运行包/服务 smoke 当作全部 GUI 验收。
+
+### Windows Release 与真实 GUI 验收
+
+- **状态：** in_progress
+- 用户明确要求解决环境问题并完成完整 Release 构建及真实 GUI 样例验收。
+- 基线为 `codex/model-generation-v2@6e3c6e658d`；已跟踪工作树干净，保留所有既有未跟踪资料。
+- 确认 CMake 要求精确的 Python 3.12.13，而依赖前缀下的 `libpython` 目录缺失；将按仓库 `deps/python3` 的源码构建和 staging 配方恢复，不替换成系统 Python 版本。
+- 付费 API 和新模型生成仍需单独确认，本批先使用本地样例验证真实 GUI；不操作智能切片功能。
+- 文件规划恢复报告仍指向旧 PPT 任务，按当前 Git 和根目录计划继续，不执行陈旧恢复内容。
+- 已使用官方源码及仓库固定 SHA-256 完成 x64 Python 3.12.13 Release 构建、开发头/导入库 staging；隔离启动及 `ssl`、`sqlite3`、`ctypes` 导入通过。
+- 已补建真实 wxInspector 1.0.0 与 Assimp 5.4.3，均安装到现有依赖前缀；没有修改生产源码或使用测试桩绕过依赖。
+- 主配置继续暴露旧依赖包中缺失的 FFmpeg 导入库，正使用仓库固定的 Windows 二进制包补齐。全部环境日志保存在 `build/environment-repair/`。
+- 既有原生测试执行通过：契约 136、presentation 145、色板快照 35 个断言；集成边界检查通过。完整 Python 回归进行中。
+- FFmpeg 7.0.3 固定 Windows 包已校验并安装，主 CMake 配置/生成全部通过；`ALL_BUILD Release /m:2` 正在构建，编译器并行限制为 `/MP4` 以适应 32 GB 内存。
+- 首轮 Python 630 项有一项诊断测试失败：继承的 `OPENAI_PRO_*` 优先于测试设置的 OpenAI 本地地址。测试已过滤供应商及 AI 环境变量、排除包内凭据文件，并增加针对性回归；2 项通过。首轮曾尝试真实预处理服务，只有合成小图、未进入 3D 生成，本地不能确认计费。
+- 清理测试进程环境时发现 PowerShell 的 .NET 调用留下空字符串而非删除变量，造成第二轮 1 项 503；改为 `Remove-Item Env:<已枚举名称>`，确认供应商变量数量为 0，原失败项通过，再跑全量。
+- 本地 GUI 验收夹具使用既有 14,502 面人像网格的副本，经生产 OBJ/图片限色和清单生成代码处理；准备旧四色无清单与 1/4/5/6 色清单样例。夹具不评判新艺术风格的生成质量，也不接触付费服务。
+- 真正删除测试子进程供应商变量后，完整 Python 回归 **631 项全部通过（160.144 秒）**；日志 `build/environment-repair/python-regression-clean.log`。
+- 隔离 loopback 回放服务的 1/4/5/6 色链路预检通过：全部达到 ready，下载 OBJ 与清单的 SHA-256 均匹配；服务 PID 133484、端口 18769，只用于本轮验收。
+- 按仓库固定 wheel/hash 补齐捆绑 Python 的 Pillow 12.2.0；`verify_bundled_runtime.py` 以 `-I` 验证 Python 3.12.13、Pillow 路径和原生 PNG roundtrip 均通过。正在用该运行时执行完整 631 项回归。
+- 捆绑 Python 3.12.13 + Pillow 12.2.0 下完整 **631 项回归通过（216.575 秒）**，日志 `build/environment-repair/python31213-regression.log`。
+- 10:26 已完成新 `libslic3r.lib`（782,905,622 字节）及 libnest2d，进入完整 GUI 预编译头和界面编译；仍未跳过任何必需目标。
+- 完整 GUI 的 443 个编译单元及 `libslic3r_gui.lib` 已完成，包括本次模型生成面板、客户端和制品流；当前进入主程序与 Python bridge 构建、最终链接。
+- 完整 `ALL_BUILD Release` 返回 0；11:06 生成新主程序、OrcaSlicer.dll、Python bridge / stubgen、profile validator 和 dev-utils。没有跳过目标；非阻断 CMake/编译/链接警告保留在日志。
+- 已验证程序目录中新复制的 Python 3.12.13 + Pillow 12.2.0，隔离路径与 PNG roundtrip 通过；新 EXE/DLL 大小和 SHA-256 已写入验收报告。
+- GUI 测试实例启动被执行工具以 `blocked by policy` 拒绝；加入显式后台窗口选项仍被拒绝，未继续绕路重试。检查确认没有启动 OrcaSlicer，GUI 仍待验收；不把 HTTP 回放预检计为 GUI 通过。
+- 本轮完成环境恢复和完整构建；等待人工协助启动测试实例后继续 GUI 检查。既有模型、用户配置和无关未跟踪文件保持不变。
+- 已核验完整命令行并关闭本轮 loopback 夹具服务 PID 133484；所有夹具和日志保留，后续验收需重新启动服务。最终 `git diff --check` 通过；未提交、合并或推送。
+
 ## 会话：2026-09-03
 
 ### 形体参考与打印配色解耦启动

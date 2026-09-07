@@ -246,6 +246,20 @@ $portableHash = (Get-FileHash -LiteralPath $portablePackage -Algorithm SHA256).H
 $portableHashFile = "$portablePackage.sha256"
 Set-Content -LiteralPath $portableHashFile -Value "$portableHash  $portableName" -Encoding ascii
 
+# Inspect each completed artifact; source/defaults checks do not establish payload contents.
+foreach ($artifact in @($finalInstaller, $portablePackage)) {
+    & $bundledPython -I (Join-Path $repoRoot 'release\verify_package_contents.py') $artifact --report "$artifact.contents.json"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Publication blocked: actual package inspection found credentials or could not complete. Review $artifact.contents.json. Local development remains permitted."
+    }
+    $inspection = Get-Content -LiteralPath "$artifact.contents.json" -Raw | ConvertFrom-Json
+    $expectedHash = if ($artifact -eq $finalInstaller) { $hash } else { $portableHash }
+    if ($inspection.status -ne 'NOT_DETECTED_WITHIN_SCOPE' -or $inspection.sha256 -ne $expectedHash -or
+        (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash -ne $expectedHash) {
+        throw 'Package inspection identity changed. Do not publish this artifact.'
+    }
+}
+
 $integrationLockPath = Join-Path $repoRoot 'docs\architecture\ai-integration-lock.json'
 if (-not (Test-Path -LiteralPath $integrationLockPath -PathType Leaf)) {
     throw "AI integration lock is missing: $integrationLockPath"
@@ -266,7 +280,12 @@ $releaseManifest = [ordered]@{
         source = 'machine_or_user_environment'
         image_primary = @('OPENAI_PRO_API', 'OPENAI_PRO_URL')
         image_legacy_fallback = @('OPENAI_API_KEY', 'OPENAI_BASE_URL')
-        packaged_credentials = $false
+        packaged_credentials = $null
+        inspection_result = 'not_detected_within_recorded_scope'
+    }
+    content_inspection = [ordered]@{
+        installer_report = "$finalName.contents.json"
+        portable_report = "$portableName.contents.json"
     }
     portable = $portableName
     portable_sha256 = $portableHash

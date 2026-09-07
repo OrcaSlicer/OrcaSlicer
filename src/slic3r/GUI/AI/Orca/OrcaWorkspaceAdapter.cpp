@@ -5,6 +5,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/ObjColorDialog.hpp"
+#include "slic3r/GUI/ModelColorImportResult.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Widgets/ProgressDialog.hpp"
 #include "libslic3r/Format/OBJ.hpp"
@@ -21,6 +22,7 @@
 #include <algorithm>
 #include <cctype>
 #include <limits>
+#include <set>
 #include <utility>
 
 namespace Slic3r::GUI {
@@ -70,21 +72,10 @@ ObjImportColorFn make_obj_color_mapper(const std::vector<std::string>& extruder_
         applied = false;
         source_colour_count = 0;
         mapped_colour_count = 0;
-        if (!in_out.deal_vertex_color || in_out.model == nullptr || in_out.input_colors.empty() || decoded_colours.empty())
+        if (in_out.model == nullptr || in_out.input_colors.empty() || decoded_colours.empty())
             return;
 
-        std::vector<RGBA> source_colours;
-        source_colours.reserve(in_out.input_colors.size());
-        for (const RGBA& vertex_colour : in_out.input_colors) {
-            if (std::none_of(source_colours.begin(), source_colours.end(), [&vertex_colour](const RGBA& colour) {
-                    return calc_color_distance(vertex_colour, colour) < 1.0f;
-                })) {
-                source_colours.emplace_back(vertex_colour);
-                if (source_colours.size() > 1)
-                    break;
-            }
-        }
-        source_colour_count = source_colours.size();
+        source_colour_count = std::set<RGBA>(in_out.input_colors.begin(), in_out.input_colors.end()).size();
 
         std::vector<size_t> usage(decoded_colours.size(), 0);
         in_out.filament_ids.clear();
@@ -106,7 +97,9 @@ ObjImportColorFn make_obj_color_mapper(const std::vector<std::string>& extruder_
 
         const auto dominant = std::max_element(usage.begin(), usage.end());
         in_out.first_extruder_id = decoded_colours[std::distance(usage.begin(), dominant)].filament_id;
-        applied = Model::obj_import_vertex_color_deal(in_out.filament_ids, in_out.first_extruder_id, in_out.model);
+        applied = in_out.deal_vertex_color
+            ? Model::obj_import_vertex_color_deal(in_out.filament_ids, in_out.first_extruder_id, in_out.model)
+            : Model::obj_import_face_color_deal(in_out.filament_ids, in_out.first_extruder_id, in_out.model);
         if (!applied) {
             in_out.filament_ids.clear();
             mapped_colour_count = 0;
@@ -250,8 +243,23 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
     workflow.start_ai_workflow(_L("正在导入 AI 生成模型"));
     workflow.update_ai_workflow_step(Sidebar::AIImportModel, Sidebar::AIWorkflowStatus::Running, _L("读取 OBJ"));
 
-    auto load_model = [this, &path](const char* snapshot_name, AI::ImportColorMode color_mode, bool& colors_applied,
+    bool import_cancelled = false;
+    auto load_model = [this, &path, &import_cancelled](const char* snapshot_name, AI::ImportColorMode color_mode, bool& colors_applied,
                                     size_t& source_color_count, size_t& mapped_color_count) {
+        import_cancelled = false;
+        if (color_mode == AI::ImportColorMode::NativeMatch) {
+            // An OBJ callback bypasses the native texture matcher for vertex and
+            // face colors. Leave it unset so AI imports use the same preview,
+            // mixed-filament recipes and undo transaction as regular OBJ imports.
+            Plater::TakeSnapshot snapshot(m_plater, snapshot_name);
+            ModelColorImportResult color_result;
+            auto loaded = m_plater->load_files({path}, LoadStrategy::LoadModel, false, nullptr, &color_result);
+            import_cancelled = color_result.cancelled;
+            colors_applied = color_result.colors_applied;
+            source_color_count = color_result.source_color_count;
+            mapped_color_count = color_result.mapped_color_count;
+            return loaded;
+        }
         ObjImportColorFn color_mapper;
         const AI::PrintablePaletteSnapshot palette = printable_palette();
         if (color_mode == AI::ImportColorMode::AutoMap) {
@@ -259,26 +267,17 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
                                                  source_color_count, mapped_color_count);
         } else if (color_mode == AI::ImportColorMode::ManualMatch) {
             color_mapper = [extruder_colors = palette.project_colors, &colors_applied, &source_color_count,
-                            &mapped_color_count](ObjDialogInOut& in_out) {
+                            &mapped_color_count, &import_cancelled](ObjDialogInOut& in_out) {
                 colors_applied = false;
-                source_color_count = 0;
                 mapped_color_count = 0;
-                std::vector<RGBA> distinct_source_colors;
-                for (const RGBA& color : in_out.input_colors) {
-                    if (std::none_of(distinct_source_colors.begin(), distinct_source_colors.end(),
-                                     [&color](const RGBA& existing) {
-                                         return calc_color_distance(color, existing) < 1.0f;
-                                     })) {
-                        distinct_source_colors.emplace_back(color);
-                        if (distinct_source_colors.size() > 1)
-                            break;
-                    }
-                }
-                source_color_count = distinct_source_colors.size();
+                source_color_count = std::set<RGBA>(in_out.input_colors.begin(), in_out.input_colors.end()).size();
+                in_out.preserve_input_colors = true;
 
                 ObjColorDialog color_dialog(nullptr, in_out, extruder_colors, Sidebar::should_show_SEMM_buttons());
                 if (color_dialog.ShowModal() != wxID_OK) {
                     in_out.filament_ids.clear();
+                    in_out.cancelled = true;
+                    import_cancelled = true;
                     return;
                 }
                 std::vector<unsigned char> used_filaments;
@@ -288,7 +287,11 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
                         used_filaments.emplace_back(filament_id);
                 }
                 mapped_color_count = used_filaments.size();
-                colors_applied = !in_out.filament_ids.empty();
+                colors_applied = in_out.deal_vertex_color
+                    ? Model::obj_import_vertex_color_deal(in_out.filament_ids, in_out.first_extruder_id, in_out.model)
+                    : Model::obj_import_face_color_deal(in_out.filament_ids, in_out.first_extruder_id, in_out.model);
+                if (!colors_applied)
+                    mapped_color_count = 0;
             };
         } else {
             color_mapper = [](ObjDialogInOut&) {};
@@ -303,42 +306,47 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
     if (loaded.empty() || m_plater->model().objects.size() <= before) {
         if (!loaded.empty() && m_plater->model().objects.size() > before)
             m_plater->undo();
-        result.outcome = AI::ModelImportOutcome::ImportFailed;
-        result.error = "OBJ import failed.";
-        workflow.update_ai_workflow_step(Sidebar::AIImportModel, Sidebar::AIWorkflowStatus::Failed,
-                                         _L("OBJ 导入失败"));
-        workflow.finish_ai_workflow(false, _L("模型导入失败"));
+        result.outcome = import_cancelled ? AI::ModelImportOutcome::Cancelled : AI::ModelImportOutcome::ImportFailed;
+        result.error = import_cancelled ? "OBJ import cancelled." : "OBJ import failed.";
+        workflow.update_ai_workflow_step(Sidebar::AIImportModel,
+            import_cancelled ? Sidebar::AIWorkflowStatus::Warning : Sidebar::AIWorkflowStatus::Failed,
+            import_cancelled ? _L("已取消导入。") : _L("OBJ 导入失败"));
+        workflow.finish_ai_workflow(false, import_cancelled ? _L("已取消导入。") : _L("模型导入失败"));
         return result;
     }
 
     workflow.update_ai_workflow_step(Sidebar::AIImportModel, Sidebar::AIWorkflowStatus::Success);
     workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Running);
 
-    result.color_mapping_collapsed = request.color_mode != AI::ImportColorMode::SingleColor && result.colors_applied &&
-                                     result.source_color_count > 1 && result.mapped_color_count < 2;
-    result.manual_coloring_required = request.color_mode != AI::ImportColorMode::SingleColor &&
-                                      (!result.colors_applied || result.color_mapping_collapsed);
-    BOOST_LOG_TRIVIAL(info) << "AI OBJ color import: mode=" << static_cast<int>(request.color_mode)
-                            << ", source_colours=" << result.source_color_count
-                            << ", mapped_colours=" << result.mapped_color_count
-                            << ", applied=" << result.colors_applied
-                            << ", collapsed=" << result.color_mapping_collapsed;
+    auto update_color_status = [&]() {
+        result.color_mapping_collapsed = request.color_mode != AI::ImportColorMode::SingleColor && result.colors_applied &&
+                                         result.source_color_count > 1 && result.mapped_color_count < 2;
+        result.manual_coloring_required = request.color_mode != AI::ImportColorMode::SingleColor &&
+                                          (!result.colors_applied || result.color_mapping_collapsed);
+        BOOST_LOG_TRIVIAL(info) << "AI OBJ color import: mode=" << static_cast<int>(request.color_mode)
+                                << ", source_colours=" << result.source_color_count
+                                << ", mapped_colours=" << result.mapped_color_count
+                                << ", applied=" << result.colors_applied
+                                << ", collapsed=" << result.color_mapping_collapsed;
 
-    if (request.color_mode == AI::ImportColorMode::ManualMatch) {
-        workflow.update_ai_workflow_step(
-            Sidebar::AIProcessColors,
-            result.manual_coloring_required ? Sidebar::AIWorkflowStatus::Warning : Sidebar::AIWorkflowStatus::Success,
-            result.manual_coloring_required ? _L("颜色匹配未完成") : _L("已确认模型颜色与耗材槽"));
-    } else if (request.color_mode == AI::ImportColorMode::SingleColor) {
-        workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Success,
-                                         _L("单色导入"));
-    } else if (result.colors_applied) {
-        workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Success,
-                                         _L("已映射耗材颜色"));
-    } else {
-        workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Warning,
-                                         _L("需要手动上色"));
-    }
+        if (request.color_mode == AI::ImportColorMode::ManualMatch ||
+            request.color_mode == AI::ImportColorMode::NativeMatch) {
+            workflow.update_ai_workflow_step(
+                Sidebar::AIProcessColors,
+                result.manual_coloring_required ? Sidebar::AIWorkflowStatus::Warning : Sidebar::AIWorkflowStatus::Success,
+                result.manual_coloring_required ? _L("颜色匹配未完成") : _L("已确认模型颜色与耗材槽"));
+        } else if (request.color_mode == AI::ImportColorMode::SingleColor) {
+            workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Success,
+                                             _L("单色导入"));
+        } else if (result.colors_applied) {
+            workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Success,
+                                             _L("已映射耗材颜色"));
+        } else {
+            workflow.update_ai_workflow_step(Sidebar::AIProcessColors, Sidebar::AIWorkflowStatus::Warning,
+                                             _L("需要手动上色"));
+        }
+    };
+    update_color_status();
 
     bool requires_repair = false;
     for (size_t object_index : loaded) {
@@ -399,13 +407,18 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
             if (manual_loaded.empty() || m_plater->model().objects.size() <= manual_before) {
                 if (!manual_loaded.empty() && m_plater->model().objects.size() > manual_before)
                     m_plater->undo();
-                result.outcome = AI::ModelImportOutcome::ImportFailed;
-                result.error = "Manual OBJ import failed after automatic repair.";
-                workflow.update_ai_workflow_step(Sidebar::AIImportModel, Sidebar::AIWorkflowStatus::Failed,
-                                                 _L("手动导入失败"));
-                workflow.finish_ai_workflow(false, _L("模型导入失败"));
+                result.outcome = import_cancelled ? AI::ModelImportOutcome::Cancelled : AI::ModelImportOutcome::ImportFailed;
+                result.error = import_cancelled ? "OBJ import cancelled." : "Manual OBJ import failed after automatic repair.";
+                workflow.update_ai_workflow_step(Sidebar::AIImportModel,
+                    import_cancelled ? Sidebar::AIWorkflowStatus::Warning : Sidebar::AIWorkflowStatus::Failed,
+                    import_cancelled ? _L("已取消导入。") : _L("手动导入失败"));
+                workflow.finish_ai_workflow(false, import_cancelled ? _L("已取消导入。") : _L("模型导入失败"));
                 return result;
             }
+            result.colors_applied = manual_colors_applied;
+            result.source_color_count = manual_source_color_count;
+            result.mapped_color_count = manual_mapped_color_count;
+            update_color_status();
             result.manual_repair_required = true;
             workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Warning,
                                              _L("需要手动修复"));

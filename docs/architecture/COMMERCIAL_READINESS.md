@@ -10,7 +10,7 @@
 
 The product direction is viable. Orca already supplies the mature local workspace and slicing engine; model generation and smart slicing can remain optional modules; the Sidecar provides a practical boundary for Python, preprocessing and provider integration. A desktop modular monolith avoids unnecessary runtime complexity and retains a workable upstream path.
 
-The current implementation should continue as a controlled internal beta, not be shipped publicly with shared provider credentials. Commercial viability depends on adding the server-side trust boundary, qualifying the implemented local authentication and paid-job recovery, making CI/release evidence repeatable, and approving privacy, licensing and printer-quality gates. These are incremental changes rather than a rewrite.
+The current implementation should continue as an internal beta. Under the latest 2026-09-07 direction (INS-20260907-006), public EXE/ZIP packages contain no provider credentials; test configuration is delivered separately through an access-controlled channel. The earlier anonymous-download credential exception is historical and superseded for subsequent work; see the [dated record](../../Docs/coordination/model-generation/internal-test-authorization-20260905.md). This does not qualify a commercial release. Commercial viability still depends on the server-side trust boundary, local authentication and paid-job recovery qualification, repeatable CI/release evidence, and privacy, licensing and printer-quality gates.
 
 The current AI commercial target is **Windows only**. Shared native code should remain cross-platform, but macOS/Linux AI packages are outside the supported commercial matrix until their Sidecar runtime, installer/signing and printer qualification are explicitly funded and passed.
 
@@ -52,7 +52,7 @@ The remaining P0 items below—especially Gateway-held provider credentials, ser
 
 | Quality | Requirement |
 |---|---|
-| Security | No provider secret in public artifacts; authenticated local IPC; short-lived authorization; least privilege; signed release and dependency provenance. |
+| Security | No provider secret in public artifacts or public repositories. Test configuration is delivered separately to identified recipients through an access-controlled channel. Authenticated local IPC, short-lived authorization, least privilege, signed release and dependency provenance remain requirements. |
 | Privacy | Explicit consent for remote processing; documented data classes, regions and retention; deletion/export behavior; user content excluded from logs by default. |
 | Reliability | No duplicate paid work under retries/restarts; durable job reconciliation; bounded retries; non-AI fallback; tested disk-full and process-restart behavior. |
 | Compatibility | Representative old 3MF/profile projects, target printer profiles and feature-off behavior remain compatible across upgrade and rollback. |

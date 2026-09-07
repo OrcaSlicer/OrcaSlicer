@@ -308,7 +308,22 @@ Model Model::read_from_file(const std::string&                                  
         ObjInfo                 obj_info;
         ObjParser::MtlData      mtl_data;
         result = load_obj(input_file.c_str(), &model, obj_info, message, nullptr, &mtl_data);
-        if (result && obj_info.has_uv_png && !obj_info.uvs.empty() && !model.objects.empty()) {
+        if (result && objFn && (!obj_info.vertex_colors.empty() ||
+                               (!obj_info.face_colors.empty() && !obj_info.has_uv_png))) {
+            // An explicit importer owns the color policy and its result (for example,
+            // an already limited generated model). Do not quantize it a second time.
+            ObjDialogInOut in_out{};
+            in_out.model = &model;
+            in_out.first_extruder_id = 1;
+            in_out.deal_vertex_color = !obj_info.vertex_colors.empty();
+            in_out.is_single_color = !in_out.deal_vertex_color && obj_info.is_single_mtl;
+            in_out.lost_material_name = obj_info.lost_material_name;
+            in_out.input_colors = in_out.deal_vertex_color ? std::move(obj_info.vertex_colors)
+                                                          : std::move(obj_info.face_colors);
+            objFn(in_out);
+            is_cb_cancel = in_out.cancelled;
+        }
+        else if (result && obj_info.has_uv_png && !obj_info.uvs.empty() && !model.objects.empty()) {
             // Textured OBJ: hand the mesh + materials to the texture-to-color importer
             // instead of the flat per-face colour dialog.
             auto tex_mesh = std::make_shared<TexturedMesh>();

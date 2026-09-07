@@ -1,5 +1,58 @@
 # 发现与决策
 
+## 2026-09-04：导入衔接修复设计
+
+- `ObjImportColorFn` 仍保留在 Model 和 Plater API，但 Model 当前没有调用；恢复显式调用可以同时恢复单色/自动映射/手动匹配的原有边界。
+- Plater 为普通导入和重载注入了已失效的旧默认回调；恢复入口时需去掉这种默认注入，避免普通导入回退旧窗口。
+- 旧 ObjColorDialog 也会调用 K-means；模型生成专用路径必须直接保留输入的离散 RGB 分组，不能只恢复回调后宣称二次限色已修复。
+- 两种方案中选择显式回调与最小保色选项；不把模型生成业务耦合进 TextureImportDialog，不改其普通用户默认行为。
+- 即使跳过聚类，通用 `convert_to_wxColour` 的截断转换仍会使六位小数 OBJ 的颜色字节少 1；只在专用保色窗口按字节四舍五入，复用该结果作为新增耗材颜色，不改变共享 GUI 转换规则。
+
+### 修复后实测（14:09 起）
+
+- 新完整目录 `model-v2-colorhandoff-dev` 已构建安装；GUI 自动启动真实 sidecar 并完成认证健康检查，无需用户另启服务。
+- 历史四色人像和六色带清单试块的手动窗口分别默认 4/6，不再自动减色；确认后真实日志分别为 source/mapped=4/4、6/6、applied=true，界面状态正确。
+- 自动模式按当前兼容前六槽映射，六个源色实际使用 1、2、4、5、6 五槽；保存的 3MF 与日志一致。手动模式可选择当前更多既有槽，因此手动六色不等于物理六槽约束。
+- 单色无纹理/配色窗口，取消不增加模型，普通导入继续原生 TextureImportDialog。取消进度仍显示 98% 并有快照脏标记，未把这项视觉残留说成完全解决。
+- GUI、保存工程及日志共同确认本轮两个 P1 已关闭；保留源色数不代表已有耗材 RGB 精确相等。634 项 Python、854 个 OBJ 断言、80 个 3MF 断言通过。
+- 本轮无新付费生成、自动切片或实物打印；完整新清单下载矩阵和全部物理通道配置仍待验。测试场景独立另存，未覆盖旧工程。
+
+## 2026-09-04：真实 GUI 续验
+
+- 从资源管理器正常双击完整目录 EXE，12:20:50 启动应用 PID 274932；其子进程 PID 361892 来自同目录捆绑 pythonw.exe，并监听 127.0.0.1:18764。
+- 生产 sidecar v9 在 12:21:09 开始监听，12:21:17 的 session-challenge、health 和最近任务请求均返回 200，历史模型下载、解析和渲染成功；此前“本地 AI 服务未启动”的运行包问题已在真实 GUI 链路验证解决。
+- 已实测肖像速写、水墨版画浮雕、1/5/6 色选择以及默认 4 色；完整下拉菜单包含 1～6 色。选择设置不提交生成请求。
+- 历史四色模型 a4d1c1fc 已加载，1927448 面、4 个颜色组、实测加载 9.09 秒，OpenGL 错误码为 0；元数据 schema 4，无颜色意图字段。服务查任务 404 后本地库仍恢复成功。
+- 真实 GUI 发现两项衔接问题：原生导入自动将四色变二色、六色试块变三色；手动指定 4/6 后虽能导入，模型生成流程仍报告“颜色匹配未完成”。六色试块重算 RGB 部分分量偏差 1/255，不计精确色板保真通过。
+- 根因已对照源码和日志：`Model.cpp` 的彩色 OBJ 走 `texture_mesh`，`objFn` 只保留形参而未调用；`TextureImportDialog::ShowModal()` 默认自动限色；适配器仍依赖旧回调更新 `colors_applied`。实际日志已应用颜色，但适配器记录 source/mapped=0、applied=false。
+- 六个色区导入成功不等于 1～6 物理通道约束通过；原生窗口向临时项目新增耗材，两次导入后总计 13 槽。新清单全链路、自动映射与单色导入仍须补验。
+- 导入停在准备页，切片/G-code 均等待；没有操作切片。既有擦拭塔越界警告保持不动，未将测试场景当作可打印项目。
+- 本次 GUI 服务日志只有 7 个 GET 与 3 个本地 journey-events POST，没有新预处理、推荐或生成请求。应用保持打开，未保存测试项目含历史模型及六色试块；未覆盖已保存工程或修改供应商配置。
+- 当前结论：运行包/自动启动通过，整版导入功能验收未通过；只更新验收记录，没有继续修生产代码。
+
+## 2026-09-04：AI 运行包修复
+
+- 用户手动启动的新日志明确记录 `python=true, bootstrap=false`，缺项位于 `resources/tools/ai/orca_ai_installed_bootstrap.py`；不是 Python 解释器本身失败。
+- `ORCA_AI_WINDOWS_INSTALLER=OFF` 的普通构建不组装 AI 服务；CMake 安装清单又遗漏 sidecar 新增依赖 `color_intent.py`。
+- `build/src/Release/resources` 联接到源码 resources，不能往此处手抄临时运行包。采用现有 CMake install 组装 `build/model-generation-v2-app/`，保留普通构建默认值。
+- 现有 bootstrap 测试直接使用完整源码，无法发现安装清单漏模块；新增只复制实际清单的隔离导入和依赖闭包测试。
+- `package_internal_fast.ps1` 仅用于已验收集成线正式发布；本轮不调用或放宽其分支/干净工作树限制，只做本地开发目录验收。
+- 默认用户模型目录目前只有两项 ready 和一项 awaiting_confirmation，没有 queued/running 或待恢复失败任务；正常打开 GUI 不会自动提交这些任务。验收只检查服务连接和本地入口，不确认生成。
+- CMake 安装目录现已组装成功，真实 bootstrap 的隔离启动、认证健康检查及关闭通过；正式 GUI 路径应为 `build/model-generation-v2-app/orca-slicer.exe`，而不是无 sidecar 的原始 build/src/Release 入口。
+- 新增打包测试后的全量回归为 633 项通过。桌面工具 `launch_app` 两次超时，GUI 自动连接仍未计为通过。
+
+## 2026-09-04：完整构建环境复核
+
+- 主构建缓存固定了 `deps/build/OrcaSlicer_dep/usr/local/libpython` 中的 Python 3.12.13 解释器、开发头和导入库，但该目录当前不存在。
+- 仓库提供 `deps/python3/python3.cmake` 与 `stage_windows.cmake`，会校验源码 SHA-256、使用 x64 MSBuild 构建，并输出包含开发文件的可嵌入运行时；优先恢复这条标准路径。
+- 现有 deps 缓存来自另一版 CMake，当前 Release 产物早于本批功能 SHA，不能作为本次验收结果。
+- 修复后的捆绑解释器报告 `3.12.13 [MSC v.1944 64 bit (AMD64)]`，SSL、SQLite 和 ctypes 正常；主 CMake 已找到精确版本的 `Interpreter` 与 `Development.Embed`。
+- 旧依赖包除 Python 外还缺 wxInspector、Assimp 和 FFmpeg。分别按仓库版本/哈希恢复；不重建或替换无关依赖，不改系统 PATH/Python。
+- 新建隔离 deps 构建目录以避开旧缓存搬迁路径，仅指定缺失依赖目标；GUI 将使用独立数据目录与 loopback 本地样例，不调用付费供应商。
+- 2026-09-04 完整 `ALL_BUILD Release` 返回 0；新主程序目录的 Python 3.12.13/Pillow 12.2.0 通过隔离原生图片读写验证，原有构建环境阻塞已解除。
+- 真实 GUI 尚未执行：带独立配置的测试实例启动被工具策略拦截。当前应区分“已完整构建”“HTTP 夹具预检通过”和“未完成 GUI 验收”，不能混记。
+- 诊断失败回归会继承高优先级 `OPENAI_PRO_*` 配置；本轮已修复环境与包内凭据隔离。首轮曾发生真实预处理服务访问尝试，计费未知，见当日验收报告。
+
 ## 当前基线
 
 - 当前开发分支：`codex/model-generation-v2`

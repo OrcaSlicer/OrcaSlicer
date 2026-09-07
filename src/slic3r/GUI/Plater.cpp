@@ -173,11 +173,11 @@
 #include "WipeTowerDialog.hpp"
 #include "MixedFilamentDialog.hpp"
 #include "TextureImportDialog.hpp"
+#include "ModelColorImportResult.hpp"
 #include "libslic3r/TexturePainting.hpp"
 #include "ColorDecomposeSupport.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
-#include "ObjColorDialog.hpp"
 
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Platform.hpp"
@@ -2479,7 +2479,6 @@ Sidebar::Sidebar(Plater *parent)
     m_ai_workflow_summary = new wxStaticText(m_ai_workflow_panel, wxID_ANY, _L("等待开始"));
     m_ai_workflow_summary->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     ai_workflow_sizer->Add(m_ai_workflow_summary, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
-
     const std::array<wxString, AIWorkflowStepCount> ai_step_names {
         _L("模型导入"), _L("网格检查/修复"), _L("颜色处理"),
         _L("自动摆放"), _L("切片"), _L("G-code")
@@ -7042,7 +7041,7 @@ struct Plater::priv
     std::vector<size_t> load_files(const std::vector<fs::path>& input_files,
                                    LoadStrategy strategy,
                                    bool ask_multi = false,
-                                   ObjImportColorFn obj_color_fn = nullptr);
+                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr);
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     // Texture-to-color import: a mesh loaded with UVs + a texture map gets its faces clustered
@@ -8390,8 +8389,9 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
 std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files,
                                              LoadStrategy strategy,
                                              bool ask_multi,
-                                             ObjImportColorFn obj_color_fn)
+                                             ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result)
 {
+    if (color_result != nullptr) *color_result = {};
     std::vector<size_t> empty_result;
     bool dlg_cont = true;
     bool is_user_cancel = false;
@@ -9103,17 +9103,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 bool                  is_xxx;
                 Semver                file_version;
 
-                ObjImportColorFn obj_color_fun = obj_color_fn;
-                if (!obj_color_fun) {
-                    obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
-                        if (!boost::iends_with(path.string(), ".obj"))
-                            return;
-                        const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-                        ObjColorDialog color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
-                        if (color_dlg.ShowModal() != wxID_OK)
-                            in_out.filament_ids.clear();
-                    };
-                }
+                // Only feature callers supply a custom color policy. Ordinary imports
+                // keep Model::texture_mesh and use the native texture import dialog below.
                 if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
                         double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
@@ -9180,7 +9171,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             cont          = dlg.Update(progress_percent, msg);
                             cancel        = !cont;
                     },
-                    nullptr, 0, obj_color_fun);
+                    nullptr, 0, obj_color_fn);
+                    if (obj_color_fn && model.objects.empty()) {
+                        q->skip_thumbnail_invalid = false;
+                        return empty_result;
+                    }
                 }
 
                 if (designer_model_id.empty() && boost::algorithm::iends_with(path.string(), ".stl")) {
@@ -9364,6 +9359,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     return dlg_cont;
                 };
                 if (!run_textured_mesh_import_dialog(model, texture_import_result, cancel_cb, progress_cb)) {
+                    if (color_result != nullptr) color_result->cancelled = true;
                     q->skip_thumbnail_invalid = false;
                     return empty_result;
                 }
@@ -9381,6 +9377,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     };
                     apply_textured_mesh_import_result(model, texture_object_idxs, texture_import_result,
                                                       apply_progress_cb, false);
+                    collect_model_color_import_result(color_result, model, texture_import_result.painted.cluster_colors.size());
                 }
             }
 
@@ -11443,14 +11440,6 @@ void Plater::priv::reload_from_disk()
     // load one file at a time
     for (size_t i = 0; i < input_paths.size(); ++i) {
         const auto& path = input_paths[i].string();
-        auto        obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
-            if (!boost::iends_with(path, ".obj")) { return; }
-            const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-            ObjColorDialog                 color_dlg(nullptr, in_out, extruder_colours, Sidebar::should_show_SEMM_buttons());
-            if (color_dlg.ShowModal() != wxID_OK) {
-                in_out.filament_ids.clear();
-            }
-        };
         wxBusyCursor wait;
         wxBusyInfo info(_L("Reload from:") + " " + from_u8(path), q->get_current_canvas3D()->get_wxglcanvas());
 
@@ -11470,7 +11459,7 @@ void Plater::priv::reload_from_disk()
                 bool   is_split = wxGetApp().app_config->get_bool("is_split_compound");
                 new_model       = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, nullptr, linear, angle, is_split);
             }else {
-                new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, &plate_data, &project_presets, nullptr, nullptr, nullptr, nullptr, nullptr, 0, obj_color_fun);
+                new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, &plate_data, &project_presets);
             }
 
 
@@ -16958,12 +16947,12 @@ void Plater::force_update_all_plate_thumbnails()
 std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
                                        LoadStrategy strategy,
                                        bool ask_multi,
-                                       ObjImportColorFn obj_color_fn) {
+                                       ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result) {
     //BBS: wish to reset state when load a new file
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
-    return p->load_files(input_files, strategy, ask_multi, std::move(obj_color_fn));
+    return p->load_files(input_files, strategy, ask_multi, std::move(obj_color_fn), color_result);
 }
 
 // To be called when providing a list of files to the GUI slic3r on command line.

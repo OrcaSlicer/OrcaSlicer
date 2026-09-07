@@ -354,12 +354,13 @@ void AIModelGenerationClient::recommend_text_palette(const std::string& request_
                                                        const std::string& style, const std::string& custom_style,
                                                        size_t palette_color_count,
                                                        const ImagePrintSettings& print_settings,
-                                                       StatusFn on_complete, ErrorFn on_error)
+                                                       StatusFn on_complete, ErrorFn on_error, bool generate_image)
 {
     post_json("/v1/orcaslicer/model-jobs/recommend-text-palette",
               json::object({ { "request_id", request_id }, { "prompt", prompt }, { "style", style },
                              { "custom_style", custom_style },
                              { "palette_color_count", palette_color_count },
+                             { "generate_image", generate_image },
                              { "print", serialize_print_settings(print_settings) } }),
               std::move(on_complete), std::move(on_error));
 }
@@ -369,7 +370,7 @@ void AIModelGenerationClient::recommend_image_palette(const std::string& request
                                                         const std::string& style, const std::string& custom_style,
                                                         size_t palette_color_count,
                                                         const ImagePrintSettings& print_settings,
-                                                        StatusFn on_complete, ErrorFn on_error)
+                                                        StatusFn on_complete, ErrorFn on_error, bool generate_image)
 {
     cancel_current();
     if (!is_loopback_endpoint(m_endpoint)) {
@@ -387,6 +388,7 @@ void AIModelGenerationClient::recommend_image_palette(const std::string& request
         .form_add("style", style)
         .form_add("custom_style", custom_style)
         .form_add("palette_color_count", std::to_string(palette_color_count))
+        .form_add("generate_image", generate_image ? "true" : "false")
         .form_add("print", serialize_print_settings(print_settings).dump())
         .form_add_file("image", image_path, image_path.filename().string());
     http.on_complete([this, on_complete = std::move(on_complete), on_error](std::string body, unsigned) mutable {
@@ -597,7 +599,7 @@ void AIModelGenerationClient::download_image_output(const std::string& job_id, c
                                                       PathFn on_complete, ErrorFn on_error)
 {
     static const std::vector<std::string> allowed {
-        "raw-preview", "strict-preview", "preview", "model-reference", "heatmap"
+        "raw-preview", "strict-preview", "preview", "model-reference", "heatmap", "model-view-sheet"
     };
     if (std::find(allowed.begin(), allowed.end(), output) == allowed.end()) {
         if (on_error)
@@ -809,6 +811,8 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
             return outputs.contains(name) && outputs[name].is_object() && outputs[name].value("ready", false);
         };
         status.raw_preview_ready = ready("raw_preview");
+        if (job.contains("model_views") && job["model_views"].is_object())
+            status.model_views_ready = job["model_views"].value("ready", false);
         status.strict_preview_ready = ready("strict_preview");
         status.model_reference_ready = ready("model_reference");
         status.heatmap_ready = ready("heatmap");
@@ -828,7 +832,8 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
         status.largest_subject_component_ratio = metrics.value("largest_subject_component_ratio", 0.0);
         status.largest_detached_subject_diagonal_ratio = metrics.value(
             "largest_detached_subject_diagonal_ratio", 0.0);
-        status.palette_quality_ok = metrics.value("palette_quality_ok", true);
+        status.palette_quality_ok = metrics.value("design_reference", std::string()) == "ai-design-v1" ||
+                                    metrics.value("palette_quality_ok", true);
         status.material_fragmentation_ok = metrics.value("material_fragmentation_ok", true);
         // The generic preview check runs before the portrait-specific geometry
         // reference is built.  Prefer the later paid-task preflight result when

@@ -4,6 +4,8 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
+#include <algorithm>
+
 namespace Slic3r::GUI::ModelGenerationStatusText {
 
 wxString localized_service_error(const std::string& error)
@@ -49,6 +51,10 @@ wxString localized_job_status(const AIModelGenerationClient::JobStatus& status)
         return _L("AI 正在准备提示词和图片预览...");
     if (status.state == "awaiting_confirmation" && status.phase == "multiview_retry")
         return _L("四视图准备未通过，本次尚未创建付费 Tripo 任务；当前图片已保留，可直接重试。");
+    if (status.state == "awaiting_confirmation" && status.palette_quality_ok && status.model_input_eligible &&
+        std::find(status.model_input_warnings.begin(), status.model_input_warnings.end(),
+                  "reference_visual_review_unavailable") != status.model_input_warnings.end())
+        return _L("图片已生成；AI 视觉复核暂不可用。本地输入检查已通过，请对照原图确认后继续。");
     if (status.state == "awaiting_confirmation")
         return status.palette_quality_ok && status.model_input_eligible
             ? _L("预览已准备完成，请确认后继续生成 3D 模型。")
@@ -93,8 +99,12 @@ wxString localized_job_status(const AIModelGenerationClient::JobStatus& status)
         wxString message;
         if (status.provider_error_code == "image_rate_limited")
             message = _L("图片服务请求较多，请稍后点击“重新生成图片预览”。不会自动重复调用。");
+        else if (status.provider_error_code == "image_auth_failed")
+            message = _L("图片服务认证或模型权限异常，请检查服务配置后重试。");
         else if (status.provider_error_code == "image_rejected")
-            message = _L("图片服务拒绝了当前内容，请调整图片或描述后重新生成。");
+            message = _L("图片服务拒绝了请求，请检查图片格式、描述和模型参数；详细原因见诊断日志。");
+        else if (status.provider_error_code == "image_download_failed")
+            message = _L("服务已返回图片，但结果下载失败。请检查网络并保留诊断 ID；重新生图会再次消耗额度。");
         else if (status.provider_error_code == "image_service_unavailable")
             message = _L("图片服务暂时不可用，本次结果可能不明确。程序不会自动重试，请稍后手动重新生成。");
         else if (status.provider_error_code == "image_connection_failed")

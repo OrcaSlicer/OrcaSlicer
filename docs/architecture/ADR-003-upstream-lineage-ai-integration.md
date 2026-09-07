@@ -4,7 +4,7 @@
 **Date:** 2026-08-21
 **Upstream baseline:** `6ef02a67dbb22ae1a019d9f485f46bfc3e1b44aa`
 
-**Current locked upstream (2026-08-29):** `db29f570bd2f77742ab04e0bb8f0aa55237bd70a`; the original baseline above remains the branch-creation record.
+**Historical locked upstream (2026-08-29):** `db29f570bd2f77742ab04e0bb8f0aa55237bd70a`; the original baseline above remains the branch-creation record. The current pinned SHA is maintained in [ai-integration-lock.json](ai-integration-lock.json), under `upstream.sha`.
 
 ## Context
 
@@ -48,7 +48,7 @@ Each integration cycle records:
 
 The installed product uses **18764** as its single default Sidecar port. A branch name or developer role must never silently change the product endpoint.
 
-The current installed AI product contract is Sidecar v8 / protocol v2. Protocol changes update the machine-readable lock and both native/Python contract tests in the same reviewed change.
+The current AI runtime contract is maintained in [ai-integration-lock.json](ai-integration-lock.json), under `runtime_contract`, and checked against native/Python source constants. The Sidecar v8 / protocol v2 value previously recorded here is historical; a source contract does not by itself prove the identity of an installed package. Protocol changes update the machine-readable lock and both native/Python contract tests in the same reviewed change.
 
 Concurrent development instances use separate build directories, `--datadir` values, output roots and explicit endpoint overrides. Ports 18765, 18766 and 18767 are development examples only; they are not alternate product defaults and must not appear as implicit release behavior.
 

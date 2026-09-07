@@ -39,6 +39,12 @@ wxString thin_local_region_status(
     bool threshold_available,
     double minimum_wall_thickness_mm);
 AIModelGenerationClient::PaletteRoles automatic_palette_roles(const std::vector<std::string>& palette);
+void synchronize_palette_roles(const std::vector<std::string>& current_palette,
+                               AIModelGenerationClient::PaletteRoles& current_roles,
+                               const std::vector<std::string>& submitted_palette,
+                               const AIModelGenerationClient::PaletteRoles& submitted_roles,
+                               const std::vector<std::string>& returned_palette,
+                               const AIModelGenerationClient::PaletteRoles& returned_roles);
 bool same_palette_color(const std::string& left, const std::string& right);
 wxString palette_role_label(const std::string& role);
 double minimum_palette_distance(const std::vector<std::string>& palette);
@@ -66,6 +72,8 @@ boost::filesystem::path library_image_path(const nlohmann::json& metadata,
 wxString model_load_summary(size_t triangle_count, double load_seconds);
 wxString style_label(const std::string& style);
 int style_selection(const std::string& style);
+int stylized_style_selection(const std::string& style);
+std::string selected_style(int family, int stylized);
 bool style_uses_printable_colors(const std::string& style);
 wxString style_recommendation_reason(const std::string& reason);
 wxStaticText* section_label(wxWindow* parent, const wxString& text);

@@ -166,6 +166,7 @@ public:
         bool        input_ready { false };
         bool        preview_ready { false };
         bool        raw_preview_ready { false };
+        bool        model_views_ready { false };
         bool        strict_preview_ready { false };
         bool        model_reference_ready { false };
         bool        heatmap_ready { false };
@@ -234,13 +235,13 @@ public:
                                 const std::string& style, const std::string& custom_style,
                                 size_t palette_color_count,
                                 const ImagePrintSettings& print_settings,
-                                StatusFn on_complete, ErrorFn on_error);
+                                StatusFn on_complete, ErrorFn on_error, bool generate_image = false);
     void recommend_image_palette(const std::string& request_id, const std::string& instruction,
                                  const boost::filesystem::path& image_path,
                                  const std::string& style, const std::string& custom_style,
                                  size_t palette_color_count,
                                  const ImagePrintSettings& print_settings,
-                                 StatusFn on_complete, ErrorFn on_error);
+                                 StatusFn on_complete, ErrorFn on_error, bool generate_image = false);
     void recommend_image_style(const std::string& prompt,
                                const boost::filesystem::path& image_path,
                                StyleRecommendationFn on_complete, ErrorFn on_error);

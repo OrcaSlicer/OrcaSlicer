@@ -4,7 +4,47 @@ This directory is the portable runbook and script entry point for building and
 publishing the Windows internal release from `codex/orca-integration-v2`.
 All paths that vary by computer are supplied through a local configuration file.
 
-## Public repository boundary
+## Public packages and private test configuration
+
+**Current direction (2026-09-07, INS-20260907-006):** public installers and portable
+ZIPs contain no provider credentials, including anonymous 3dprint.beer downloads.
+Test configuration is delivered separately through an access-controlled channel to
+identified testers. The earlier public credential-bearing exception is superseded
+for subsequent operations; do not implement an override for it. Its exact historical
+record remains in the [authorization archive](../Docs/coordination/model-generation/internal-test-authorization-20260905.md).
+
+The existing CMake/build/package path rejects embedded defaults. The uploader
+requires fresh actual EXE/ZIP inspection before any network operation. Findings,
+missing extraction tools and incomplete inspection block publication. Keep each
+report bound to the artifact SHA-256 and preserve actual findings; a scoped
+`NOT_DETECTED_WITHIN_SCOPE` result is not proof against every possible encoding.
+
+This change does not itself replace or withdraw old public files, change server
+access controls or rotate keys. Those actions need concrete object/operation
+scope. It does not clear historical platform findings or unresolved review blocks.
+See the [implementation record](../Docs/coordination/model-generation/credential-free-distribution-20260907.md).
+
+Offline inspection (Python 3.11+; EXE extraction additionally needs 7-Zip):
+
+```powershell
+python -I release/verify_package_contents.py <artifact.exe-or.zip> --report <report.json>
+python -m unittest discover -s release -p test_verify_package_contents.py
+```
+
+The scanner recognizes credential fields, literal assignments and selected
+token/private-key patterns. It does not establish validity or revocation; encoded
+or unrecognized secrets can evade detection. No full secret values are emitted.
+Inspect both reports, not just a source scan or an archive integrity test.
+Any alternate ZIP upload/site-promotion path must check its own exact artifact
+through this gate; this script does not authorize that operation. Copies in other
+worktrees retain their old behavior until reviewed integration. See the dated
+[investigation](../Docs/coordination/model-generation/release-boundary-20260907/report.md).
+
+The tooltip JavaScript bundle has a public emoji dictionary entry named `secret`
+(U+3299 U+FE0F). The inspector records it as `PUBLIC_EMOJI_NAME_MAPPING` only for
+the exact audited bundle SHA-256 pinned in the scanner. It still scans the entire
+file; changed bytes, other values and credentials elsewhere remain blocked.
+Keep the original finding reports when rechecking this corrected classification.
 
 This GitHub repository is public. Commit only scripts, examples, and the
 non-secret server directory contract. Never commit:
@@ -14,7 +54,11 @@ non-secret server directory contract. Never commit:
 - `release/config.local.ps1` or any `release/*.local.json` file;
 - generated installers, manifests, build directories, or deployment logs.
 
-Provider credentials are never packaged. Installers read machine/user environment
+Provider credentials are never included in the public package path. Configuration
+bundles are private test assets, not installer components or website release assets.
+Do not include them in public upload commands, shared release directories or logs.
+
+For the default package path, installers read machine/user environment
 variables at runtime: Image2 prefers `OPENAI_PRO_API` plus `OPENAI_PRO_URL`, while
 legacy `OPENAI_API_KEY` plus `OPENAI_BASE_URL` remains a compatibility fallback
 only when both PRO settings are absent.
@@ -55,6 +99,31 @@ matching removal command deletes only the two current-user PRO variables.
 The provisioner never calls a generation endpoint. Its network check is limited
 to DNS and TCP connectivity, and its log at
 `%LOCALAPPDATA%\OrcaSlicer\logs\ai-config-install.log` contains no credential.
+
+## Other test-provider configuration
+
+The existing one-click configuration ZIP covers **Image2 PRO only**. It does not
+configure the text/vision or Tripo services and is not an encrypted container.
+Recipients can extract its contents; access control belongs to the delivery channel.
+
+| Service | Runtime configuration names | Current separate setup |
+| --- | --- | --- |
+| Image2 | `OPENAI_PRO_API`, `OPENAI_PRO_URL`; optional `OPENAI_IMAGE_MODEL` | Existing private PRO provisioner covers the key and URL; optional model remains a runtime setting. |
+| Text/vision | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, optional `OPENAI_TEXT_MODEL` | Supply the approved values privately; the tester sets the named current-user environment variables. |
+| Tripo | `TRIPO_API_KEY`, `TRIPO_API_BASE`, optional `TRIPO_MODEL` | Supply the approved values privately; the tester sets the named current-user environment variables. |
+
+For manual setup, use Windows “Edit environment variables for your account” and
+enter only the supplied names/values. Fully restart OrcaSlicer afterwards. Do not
+put actual values in a command line, screenshot, support log, issue or public file.
+The application already reads these variables; no new generation API or server
+service is needed for this distribution change. The PRO removal command affects
+only its two PRO variables, not independently configured text/vision/Tripo values.
+
+Before sending any real configuration, identify the intended tester and an approved
+channel with recipient authentication/access control (for example an existing
+restricted secret share or internal file service). An unlisted anonymous URL is
+not an access-controlled channel. No concrete private delivery destination has
+been configured by this change; no real configuration bundle was exported or sent.
 
 ## One-time setup on each Windows computer
 
@@ -108,16 +177,9 @@ the AI integration verifier, and focused model-generation/smart-slicing tests.
 It then checks the installer and portable ZIP identities and SHA-256 values,
 optional 7-Zip integrity, and Authenticode status.
 
-The preferred restricted mode verifies the server-bound employee identity, then
-uploads resumable 4 MiB chunks through separate forced SSH commands. Each chunk
-has its own size, offset, and SHA-256 check. Re-running the same upload resumes at
-the last committed chunk, so a network or terminal timeout does not require
-starting a large installer again. The unprivileged server account also checks the
-final filename, size, SHA-256, source identity, revision, and `MZ` header; a
-root-owned helper repeats the final checks before an atomic no-overwrite
-installation. The legacy administrator mode still uses SCP and explicitly
-configured owner/group values. `-AllowSourceMismatch` exists only for
-`-ValidateOnly` inspection of an older artifact; never use it for upload.
+The credential-bearing-cache rejection is required by the current public-package
+policy. Use a clean build configured with an empty `ORCA_AI_INTERNAL_DEFAULTS_FILE`;
+never remove only the manifest flag or weaken the final archive inspection.
 
 ## Restricted publisher enrollment
 

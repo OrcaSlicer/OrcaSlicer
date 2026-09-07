@@ -196,6 +196,37 @@ if ($localHash -ne $manifest.installer_sha256) {
     throw 'Installer SHA-256 does not match the release manifest.'
 }
 
+# Fresh offline checks precede ValidateOnly, readiness and every network operation.
+# Historical manifests and an internal channel label are not credential clearance.
+$pythonCommand = Get-Command python.exe -ErrorAction SilentlyContinue
+if (-not $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
+if (-not $pythonCommand) { throw 'Python 3.11+ is required for actual package inspection. Publication is blocked.' }
+$artifactsToInspect = @($installerPath)
+if ($manifest.PSObject.Properties['portable']) {
+    if ($manifest.portable -notmatch '^[0-9A-Za-z._-]+\.zip$' -or
+        -not $manifest.PSObject.Properties['portable_sha256']) {
+        throw 'Invalid portable package identity in release manifest.'
+    }
+    $portablePath = Join-Path (Split-Path -Parent $resolvedManifest) $manifest.portable
+    if (-not (Test-Path -LiteralPath $portablePath -PathType Leaf) -or
+        (Get-FileHash -LiteralPath $portablePath -Algorithm SHA256).Hash -ne $manifest.portable_sha256) {
+        throw 'Portable package is missing or its hash does not match the manifest.'
+    }
+    $artifactsToInspect += $portablePath
+}
+foreach ($artifact in $artifactsToInspect) {
+    & $pythonCommand.Source -I (Join-Path $PSScriptRoot 'verify_package_contents.py') $artifact --report "$artifact.contents.json"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Publication blocked: package findings or incomplete inspection. Review $artifact.contents.json. No network operation performed."
+    }
+    $inspection = Get-Content -LiteralPath "$artifact.contents.json" -Raw | ConvertFrom-Json
+    $expectedHash = if ($artifact -eq $installerPath) { $manifest.installer_sha256 } else { $manifest.portable_sha256 }
+    if ($inspection.status -ne 'NOT_DETECTED_WITHIN_SCOPE' -or $inspection.sha256 -ne $expectedHash -or
+        (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash -ne $expectedHash) {
+        throw 'Package inspection identity changed or does not match the manifest. Publication blocked.'
+    }
+}
+
 $gitHead = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $gitHead -notmatch '^[0-9a-f]{40}$') {
     throw 'Unable to read the current repository source identity.'

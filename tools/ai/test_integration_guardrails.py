@@ -55,6 +55,16 @@ class IntegrationGuardrailTests(unittest.TestCase):
     def test_repository_neutral_contract_layout_passes(self) -> None:
         self.assertEqual([], GUARDRAILS.validate_contract_layout(REPO_ROOT))
 
+    def test_generated_obj_colors_use_explicit_policy_without_changing_default_import(self) -> None:
+        plater = (REPO_ROOT / "src/slic3r/GUI/Plater.cpp").read_text(encoding="utf-8")
+        adapter = (REPO_ROOT / "src/slic3r/GUI/AI/Orca/OrcaWorkspaceAdapter.cpp").read_text(encoding="utf-8")
+        self.assertNotIn("ObjColorDialog", plater)
+        self.assertIn("nullptr, 0, obj_color_fn)", plater)
+        self.assertIn("if (obj_color_fn && model.objects.empty())", plater)
+        self.assertIn("in_out.preserve_input_colors = true;", adapter)
+        self.assertIn("in_out.cancelled = true;", adapter)
+        self.assertNotIn("colors_applied = !in_out.filament_ids.empty()", adapter)
+
     def test_contract_layout_rejects_nonforwarding_legacy_header(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -140,19 +150,21 @@ class IntegrationGuardrailTests(unittest.TestCase):
         region_colors = next(line for line in panel_header.splitlines() if "m_region_color_buttons" in line)
         self.assertIn("Slic3r::AI::kMaxPhysicalColorChannels", region_colors)
 
-        self.assertIn('palette_sources.Add(_L("自定义 1–6 种颜色"))', panel_source)
+        self.assertIn('palette_sources.Add(_L("不限制颜色"))', panel_source)
+        self.assertIn('palette_sources.Add(_L("读取耗材颜色"))', panel_source)
         self.assertIn("它不等同于物理进料通道数", panel_source)
         self.assertIn('"palette_color_count", palette_color_count', client_source)
         self.assertIn('.form_add("palette_color_count", std::to_string(palette_color_count))', client_source)
         self.assertNotIn("1–4", panel_source)
         self.assertNotIn("四色", panel_source)
 
-    def test_model_generation_gui_distinguishes_shape_and_material_references(self) -> None:
+    def test_model_generation_gui_shows_design_and_optional_multiview_only(self) -> None:
         panel_source = (REPO_ROOT / "src/slic3r/GUI/ModelGenerationPanel.cpp").read_text(encoding="utf-8")
 
-        self.assertIn('preview_stages.Add(_L("造型参考（决定形体）"))', panel_source)
-        self.assertIn('preview_stages.Add(_L("打印配色草图（决定材质）"))', panel_source)
-        self.assertIn("连续色调造型参考", panel_source)
+        self.assertIn('preview_stages.Add(_L("AI 设计图"))', panel_source)
+        self.assertIn('preview_stages.Add(_L("模型多视图"))', panel_source)
+        self.assertNotIn("严格色版", panel_source)
+        self.assertNotIn('preview_stages.Add(_L("打印配色草图（决定材质）"))', panel_source)
         self.assertIn("调用 1 次图片服务", panel_source)
         self.assertNotIn("单色雕塑建模参考", panel_source)
         self.assertNotIn("几何使用当前单色雕塑参考", panel_source)

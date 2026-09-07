@@ -61,7 +61,7 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
                  mock.patch.object(
                      sidecar,
                      "generate_geometry_reference_image",
-                     side_effect=lambda _instruction, output, *_args: synthetic_preview(output),
+                     side_effect=lambda _instruction, output, *_args, **_kwargs: synthetic_preview(output),
                  ) as generate:
                 sidecar._preprocess_text_job(job, job.user_prompt)
 
@@ -75,12 +75,12 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
             self.assertGreater(job.image_metrics["minimum_feature_px"], 1)
             self.assertTrue(job.image_metrics["model_input_quality"]["model_input_eligible"])
             self.assertTrue(job.image_metrics["generation_input_quality"]["model_input_eligible"])
-            self.assertEqual(job.image_metrics["generation_reference"], "model_reference")
+            self.assertEqual(job.image_metrics["generation_reference"], "ai_design")
             self.assertEqual(generate.call_args.args[0], job.user_prompt)
             self.assertEqual(generate.call_args.args[-2], job.style)
             self.assertEqual(generate.call_args.args[-1], "")
 
-    def test_image_job_uses_detail_preserving_model_reference_and_clean_preview_for_review(self):
+    def test_image_job_uses_ai_design_and_retains_internal_material_outputs(self):
         with tempfile.TemporaryDirectory() as directory:
             job = self.make_job(directory, "image")
             input_path = Path(directory) / "input.png"
@@ -92,7 +92,7 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
             self.assertNotEqual(job.raw_preview_path, job.preview_path)
             self.assertTrue(job.geometry_reference_path.is_file())
             self.assertEqual(job.preview_path.name, "clean_preview.png")
-            self.assertEqual(sidecar._model_generation_reference(job), job.model_reference_path)
+            self.assertEqual(sidecar._model_generation_reference(job), job.raw_preview_path)
             with Image.open(job.preview_path) as preview:
                 self.assertEqual(preview.mode, "RGBA")
                 self.assertLessEqual(
@@ -182,6 +182,21 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
             restored.source = "image"
             restored.user_prompt = sidecar.DEFAULT_IMAGE_INSTRUCTION
             self.assertEqual(sidecar._public_job(restored)["user_prompt"], "")
+
+    def test_unavailable_visual_review_warns_without_replacing_local_quality_decisions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            job = self.make_job(directory, "image")
+            for key in ("model_input_quality", "generation_input_quality"):
+                job.image_metrics[key] = {"model_input_eligible": False, "blockers": ["subject_cropped"], "warnings": []}
+            for _ in range(2):
+                sidecar._apply_preview_visual_quality_gate(job, {"status": "unavailable"})
+            for key in ("model_input_quality", "generation_input_quality"):
+                quality = job.image_metrics[key]
+                self.assertFalse(quality["model_input_eligible"])
+                self.assertEqual(quality["blockers"], ["subject_cropped"])
+                self.assertEqual(quality["warnings"], ["reference_visual_review_unavailable"])
+            sidecar._apply_preview_visual_quality_gate(job, {"status": "pass"})
+            self.assertEqual(job.image_metrics["model_input_quality"]["warnings"], [])
 
     def test_portrait_pipeline_persists_recovered_skin_and_garment_roles(self):
         with tempfile.TemporaryDirectory() as directory:

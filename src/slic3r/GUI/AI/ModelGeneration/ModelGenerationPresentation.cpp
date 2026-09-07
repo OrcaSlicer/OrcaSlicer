@@ -263,13 +263,13 @@ wxString model_load_summary(size_t triangle_count, double load_seconds)
 wxString style_label(const std::string& style)
 {
     if (style == "realistic" || style == "enamel_inlay")
-        return _L("写实微缩");
+        return _L("多色写实");
     if (style == "portrait_sketch")
         return _L("肖像速写");
     if (style == "cartoon" || style == "q_cartoon" || style == "cel_shaded")
         return _L("手办");
     if (style == "sculpture")
-        return _L("单色雕塑");
+        return _L("单色写实");
     if (style == "low_poly")
         return _L("低多边形");
     if (style == "relief")
@@ -280,7 +280,7 @@ wxString style_label(const std::string& style)
         return _L("微缩场景");
     if (style == "custom")
         return _L("自定义风格");
-    return _L("单色雕塑");
+    return _L("单色写实");
 }
 
 wxString style_recommendation_reason(const std::string& reason)

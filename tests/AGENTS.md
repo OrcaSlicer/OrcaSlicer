@@ -8,7 +8,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `fff_print`: the FFF slicing pipeline, from a `Model` plus config through `Print` and `PrintObject` to emitted G-code.
 - `sla_print`: SLA support-tree and pad geometry, support-point generation, raycast.
 - `libnest2d`: 2D nesting and packing.
-- `slic3rutils`: the Python plugin system and its slicing-pipeline bindings.
+- `slic3rutils`: the Python plugin system and its slicing-pipeline bindings; also the AI contracts, Sidecar client, model-generation presentation/palette helpers, and smart-slicing coordinator/workflow tests registered in `slic3rutils/CMakeLists.txt`.
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
 
 ## Building and running

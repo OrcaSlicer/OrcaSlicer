@@ -11,13 +11,14 @@ enum class ImportColorMode
 {
     ManualMatch,
     AutoMap,
-    SingleColor
+    SingleColor,
+    NativeMatch
 };
 
 struct ModelImportRequest
 {
     GeneratedModelArtifact artifact;
-    ImportColorMode         color_mode { ImportColorMode::ManualMatch };
+    ImportColorMode         color_mode { ImportColorMode::NativeMatch };
 };
 
 enum class ModelImportOutcome
@@ -25,13 +26,14 @@ enum class ModelImportOutcome
     Imported,
     InvalidArtifact,
     ImportFailed,
-    RepairFailed
+    RepairFailed,
+    Cancelled
 };
 
 struct ModelImportResult
 {
     ModelImportOutcome outcome { ModelImportOutcome::ImportFailed };
-    ImportColorMode    color_mode { ImportColorMode::ManualMatch };
+    ImportColorMode    color_mode { ImportColorMode::NativeMatch };
     bool               colors_applied { false };
     bool               color_mapping_collapsed { false };
     bool               manual_coloring_required { false };

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 //#include "libslic3r/FlushVolCalc.hpp"
 #include "ObjColorDialog.hpp"
@@ -42,6 +43,16 @@ static void update_ui(wxWindow* window)
 static const char g_min_cluster_color = 1;
 static const char g_max_color = (int) EnforcerBlockerType::ExtruderMax;
 
+static wxColour obj_palette_colour(const RGBA& color, bool preserve)
+{
+    if (!preserve)
+        return convert_to_wxColour(color);
+    // OBJ decimal serialization may land just below an exact byte value. Round
+    // confirmed palette colors without changing the shared GUI conversion policy.
+    auto channel = [](float value) { return static_cast<unsigned char>(std::lround(std::clamp(value, 0.f, 1.f) * 255.f)); };
+    return wxColour(channel(color[0]), channel(color[1]), channel(color[2]), channel(color[3]));
+}
+
 wxBoxSizer* ObjColorDialog::create_btn_sizer(long flags,bool exist_error)
 {
     auto btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -63,7 +74,8 @@ wxBoxSizer* ObjColorDialog::create_btn_sizer(long flags,bool exist_error)
 
 void ObjColorDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_panel_ObjColor->msw_rescale();
+    if (m_panel_ObjColor)
+        m_panel_ObjColor->msw_rescale();
     this->Refresh();
 }
 void ObjColorDialog::update_layout() {
@@ -72,6 +84,8 @@ void ObjColorDialog::update_layout() {
 }
 
 bool ObjColorDialog::Show(bool show) {
+    if (!m_panel_ObjColor)
+        return DPIDialog::Show(show);
     if (m_panel_ObjColor->do_show(show)) {
         return DPIDialog::Show(true);
     } else {
@@ -199,7 +213,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
     }
     if (in_out.is_single_color && in_out.input_colors.size() >= 1) {
         m_cluster_colors_from_algo.emplace_back(in_out.input_colors[0]);
-        m_cluster_colours.emplace_back(convert_to_wxColour(in_out.input_colors[0]));
+        m_cluster_colours.emplace_back(obj_palette_colour(in_out.input_colors[0], in_out.preserve_input_colors));
         m_cluster_labels_from_algo.reserve(m_input_colors_size);
         for (size_t i = 0; i < m_input_colors_size; i++) {
             m_cluster_labels_from_algo.emplace_back(0);
@@ -740,12 +754,13 @@ void ObjColorPanel::deal_algo(char cluster_number, bool redraw_ui)
     }
     wxBusyCursor cursor;
     m_last_cluster_number = cluster_number;
-    obj_color_deal_algo(m_input_colors, m_cluster_colors_from_algo, m_cluster_labels_from_algo, cluster_number,g_max_color);
+    obj_color_deal_algo(m_input_colors, m_cluster_colors_from_algo, m_cluster_labels_from_algo, cluster_number,
+                        g_max_color, m_obj_in_out.preserve_input_colors);
 
     m_cluster_colours.clear();
     m_cluster_colours.reserve(m_cluster_colors_from_algo.size());
     for (size_t i = 0; i < m_cluster_colors_from_algo.size(); i++) {
-        m_cluster_colours.emplace_back(convert_to_wxColour(m_cluster_colors_from_algo[i]));
+        m_cluster_colours.emplace_back(obj_palette_colour(m_cluster_colors_from_algo[i], m_obj_in_out.preserve_input_colors));
     }
     if (m_cluster_colours.size() == 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ",m_cluster_colours.size() = 0\n";
@@ -876,7 +891,7 @@ bool ObjColorPanel::deal_add_btn()
             is_exceed = true;
             break;
         }
-        wxColour cur_color = convert_to_wxColour(m_cluster_colors_from_algo[i]);
+        wxColour cur_color = m_cluster_colours[i];
         m_new_add_colors.emplace_back(cur_color);
         new_icons.emplace_back(get_extruder_color_icon(cur_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString(),
                 std::to_string(new_index), m_combox_icon_width, m_combox_icon_height));

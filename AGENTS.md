@@ -1,6 +1,16 @@
-# CLAUDE.md
+# AGENTS.md
 
 OrcaSlicer — open-source C++17 3D slicer. wxWidgets GUI, CMake build system.
+
+## Project scope and AI navigation
+
+This fork adds model generation and a separate smart-slicing workbench to OrcaSlicer. For AI work, start with [Docs/AI_ENGINEERING.md](Docs/AI_ENGINEERING.md), then load only the relevant module, decision and verification entry.
+
+- Model generation delivers artifacts; smart slicing owns proposals/trial slicing/application through Orca adapters. Keep provider policy out of `libslic3r` and preserve manual Orca behavior.
+- C++ contracts: `src/slic3r/AI/Contracts`; smart slicing: `src/slic3r/AI/SmartSlicing`; desktop adapters: `src/slic3r/GUI/AI`; Python generation: `tools/ai`.
+- Runtime versions, integration ownership and architecture budgets: [AI integration lock](docs/architecture/ai-integration-lock.json). Verify with `python scripts/verify_ai_integration.py --json`; do not copy changing values into instructions.
+- Project workflows: [model evaluation](.agents/skills/model-generation-evaluation/SKILL.md) for existing artifacts; [Symphony](.agents/skills/symphony/SKILL.md) for task evidence and instruction records. Use them when the task applies.
+- Product/color boundaries: [printing and color](Docs/domain/printing-color-boundaries.md). Designs and historical reports do not prove current implementation or print qualification.
 
 ## Build Commands
 
@@ -19,11 +29,7 @@ cmake --build . --config %build_type% --target ALL_BUILD -- -m
 
 Catch2 framework. Tests in `tests/`; see [tests/AGENTS.md](tests/AGENTS.md) for where a new test belongs and the conventions to follow.
 
-```bash
-cd build && ctest --output-on-failure           # all tests
-ctest --test-dir ./tests/libslic3r              # individual suite
-ctest --test-dir ./tests/fff_print
-```
+Tests must be enabled in the build. Use the platform-specific commands in `tests/AGENTS.md`; multi-configuration generators need `-C Release`. AI Python tests live in `tools/ai/test_*.py`; choose the affected module or the integration suite via the AI navigation above.
 
 ## Code Style
 
@@ -61,31 +67,22 @@ ctest --test-dir ./tests/fff_print
 
 ## Localization & translations
 
-Catalogs live in `localization/i18n/<lang>/OrcaSlicer_<lang>.po`; the template is `OrcaSlicer.pot`.
-See the [Localization guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_guide.md) for the human-facing version of these principles.
+For translation work, read [localization/AGENTS.md](localization/AGENTS.md) before editing catalogs or regenerating translations.
 
-### Terminology
+## Model-generation task coordination
 
-- Use the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) as the source of truth for recurring terms, so the same English term is always rendered the same way within a language, and terms that must stay in English (brand/product names, acronyms, materials, file formats, G-code tokens, macros/variables/identifiers) are not translated.
-- If a term's established translation changes, update both the affected `.po` files and the glossary (`localization_glossary.tsv`, then regenerate) so they stay in sync.
-- Translate the *meaning*, not the words. Check what the string actually controls before translating it — English reuses one word for different things. `Flow ratio` (multiplier), `Flow Rate` (throughput) and `Flow Dynamics` (pressure compensation) are three different terms; `extruder` may mean the toolhead, the feeder motor, or the nozzle depending on the string.
-- Reuse one template per recurring message shape (`Failed to connect to …`, `Are you sure you want to …?`), even where the English wording varies.
+For the user-established model-generation team, read `Docs/coordination/model-generation/README.md` before accepting work. The coordinator maintains the live task registry at `D:/Workspace/06_3DDY_claude/Docs/coordination/model-generation/registry.json`; copied registries in worker worktrees may be older snapshots. This applies only to the model-generation team, not automatically to unrelated projects.
 
-### Editing rules
+- The coordinator receives requirements, dispatches to the registered owner, reviews results, and hands accepted commits to the existing cross-project integration task.
+- Workers operate only in their assigned worktree and role scope. Shared entry points and cross-feature contracts require coordination; a role title alone does not authorize changes outside that scope.
+- Initial team setup authorizes environment checks and readiness reports, not open-ended optimization, paid generation, release, or deployment. Follow subsequent concrete assignments and the user's existing authorization.
+- Preserve compatibility, existing user work, and the project ownership rules above. Record role-specific progress separately instead of merging concurrent edits to the root planning files.
 
-- Only edit `msgstr` — **never** change `msgid`, and never "fix" wrong English in the translation alone. Report the source string instead.
-- Preserve exactly: placeholders (`%s`, `%d`, `%1%`, `%zu`, `%%`), every `\n` (count *and* position, including leading/trailing), leading/trailing spaces, HTML tags, `℃`, and the file's encoding and line endings.
-- **Never reorder positional arguments** in a `c-format` string. If the msgid is `%d` then `%s`, that order must hold — swapping them breaks at runtime.
-- `msgctxt` separates homonyms — always read it. `Back`/`Camera View` is the rear view of the 3D navigator, while `Back`/`Navigation` is the go-back button; `Top` exists in the *Alignment*, *Layers* and *Camera View* senses.
-- When a string needs disambiguating, add context in the source (`_L_CONTEXT`/`_u8L_CONTEXT`), don't work around it in the translation.
-- A literal `%` inside a string xgettext flagged `possible-c-format` will fail `msgfmt`. Fix it with a `// xgettext:no-c-format, no-boost-format` comment above the string in the source — do not mangle the translation or use `%%` in text that is never passed through printf.
-- Plural entries: read `nplurals` from the catalog's `Plural-Forms` header (it is **not** always 2 — ja/ko/zh/th/vi use 1, ru/cs/pl/lt use 3, uk uses 4). Each form must be genuinely inflected for its quantity; repeating one sentence across all forms is a bug in Slavic/Baltic languages, though it is correct for Turkish and Hungarian.
-- An entry whose `msgstr` equals its `msgid` is untranslated even though it is not empty; a plural entry with any empty form is likewise incomplete.
-- Mark machine-produced translations with an `# AI Translated` translator comment. Don't add it to a human translation you didn't actually rewrite.
-- Don't reflow or re-wrap unrelated entries — keep the diff limited to the strings you changed.
+## Public packages and private test configuration (2026-09-07)
 
-### Verifying
-
-- `scripts/run_gettext.bat --full` (Windows) regenerates the template, merges every catalog and compiles the `.mo` files. It must exit 0.
-- Or check a single catalog with `msgfmt --check-format -o <out>.mo localization/i18n/<lang>/OrcaSlicer_<lang>.po`.
-- Fuzzy entries are not shown to users. If you correct one, clear its `fuzzy` flag, otherwise the fix never ships.
+- The user's latest direction is authoritative: public EXE/portable ZIP packages, including anonymous downloads on `3dprint.beer`, contain no provider credentials. Do not use or implement the earlier credential-bearing public-distribution exception for subsequent work.
+- Test configuration is provided separately through an access-controlled channel to identified testers. Do not place configuration bundles in public downloads, the website release payload, public source control or ordinary logs/messages.
+- Reuse the existing credential-excluding build/package path and inspect the actual EXE and ZIP separately with `release/verify_package_contents.py`. Findings or incomplete inspection block publication; never suppress results or bypass checks.
+- Current procedure and available tools: [release/README.md](release/README.md). The [dated authorization record](Docs/coordination/model-generation/internal-test-authorization-20260905.md) retains earlier instructions as history and records the latest supersession; it is not permission to continue the old path.
+- Historical published files are not made credential-free by this policy change. Replacement, withdrawal, access changes and credential rotation must identify their actual objects and covered actions; do not claim they occurred without evidence.
+- Preserve historical findings and specific unresolved platform-review blocks. Do not disable monitoring, auto-confirm dialogs or replay blocked work. This boundary does not stop unrelated authorized development, tests or documentation; do not ask the user again to accept the withdrawn public-credential arrangement.

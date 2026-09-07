@@ -481,6 +481,7 @@ class Job:
     color_intent_sha256: str = ""
     palette_recommendation: dict[str, Any] = field(default_factory=dict)
     palette_recommendation_confirmed: bool = False
+    generate_image: bool = False
     attempts: list[dict[str, Any]] = field(default_factory=list)
     updated_at: float = field(default_factory=time.time)
     stop_event: threading.Event = field(default_factory=threading.Event, repr=False)
@@ -1120,6 +1121,7 @@ def _persist_job(job: Job, *, touch: bool = True) -> None:
         "color_intent_sha256": job.color_intent_sha256,
         "palette_recommendation": job.palette_recommendation,
         "palette_recommendation_confirmed": job.palette_recommendation_confirmed,
+        "generate_image": job.generate_image,
         "attempts": job.attempts,
         "updated_at": job.updated_at,
     }
@@ -1190,6 +1192,7 @@ def _load_job(directory: Path) -> Job | None:
     job.progress = max(0, min(int(payload.get("progress", 0)), 100))
     job.user_prompt = str(payload.get("user_prompt", ""))
     job.prepared_prompt = str(payload.get("prepared_prompt", ""))
+    job.generate_image = payload.get("generate_image") is True
     job.input_path = _job_file(job, payload.get("input_path"))
     job.raw_preview_path = _job_file(job, payload.get("raw_preview_path"))
     job.strict_preview_path = _job_file(job, payload.get("strict_preview_path"))
@@ -2049,14 +2052,9 @@ def _write_job_color_intent(job: Job, artifact: Path) -> None:
 
 
 def _model_generation_reference(job: Job) -> Path | None:
-    """Use the detail-rich, silhouette-clean reference for geometry.
-
-    The exact-palette clean preview remains the user-facing material gate. The
-    pipeline's model reference keeps provider detail (especially face landmarks)
-    while replacing its alpha with the validated printable silhouette. Older jobs
-    without that hybrid output fall back to the raw provider image. OBJ
-    post-processing still enforces the confirmed filament palette.
-    """
+    """Submit the approved AI design, retaining legacy reference routing for old jobs."""
+    if job.image_metrics.get("design_reference") == "ai-design-v1":
+        return job.raw_preview_path
     if job.model_reference_path is not None:
         return job.model_reference_path
     if job.palette and job.raw_preview_path is not None:
@@ -2086,17 +2084,10 @@ def _identity_preserving_portrait_geometry_enabled(job: Job) -> bool:
 
 
 def _geometry_generation_reference(job: Job) -> Path | None:
-    """Choose geometry evidence independently from the approved material preview.
+    """New designs retain the approved composition; old jobs keep their evidence."""
 
-    A generated four-view portrait can average one real face with three
-    hallucinated faces or even create a second face on the back. Keep the
-    identity-locked sculptural Image2 reference as the only geometry input: it
-    retains the source face while presenting a closed bust, crossed limbs and an
-    integrated base in image-to-3D-friendly form. After Tripo returns one
-    coherent mesh, its real turntable owns the side/back geometry and Image2 is
-    used only for material labels. The exact-palette preview still owns printable
-    materials.
-    """
+    if job.image_metrics.get("design_reference") == "ai-design-v1":
+        return job.raw_preview_path
 
     if _identity_preserving_portrait_geometry_enabled(job):
         # The chooser is used concurrently by paid submission, public status,
@@ -2107,10 +2098,7 @@ def _geometry_generation_reference(job: Job) -> Path | None:
             # Repair here—not only during initial preprocessing—so every route
             # receives the same validated provider image.
             _synchronize_geometry_reference_alpha(job)
-            # The provider's pre-restoration render keeps source-constrained
-            # facial landmarks while expressing them as real sculptural planes.
-            # The hybrid model reference remains useful for a pixel-accurate 2D
-            # review, but its pasted photograph is weaker geometry evidence.
+            # Preserve the historical geometry contract for existing jobs.
             if job.geometry_reference_path is not None and job.geometry_reference_path.is_file():
                 return _prepare_portrait_geometry_provider_reference(job)
         return _model_generation_reference(job) or job.input_path
@@ -3475,7 +3463,9 @@ def _assess_job_generation_reference(job: Job) -> dict[str, Any]:
         reference,
         reject_rectangular_cutouts=_identity_preserving_portrait_geometry_enabled(job),
     )
-    if _identity_preserving_portrait_geometry_enabled(job):
+    if job.image_metrics.get("design_reference") == "ai-design-v1":
+        strategy = "ai_design"
+    elif _identity_preserving_portrait_geometry_enabled(job):
         provider_reference = job.directory / PORTRAIT_GEOMETRY_PROVIDER_FILENAME
         provider_canvas = job.image_metrics.get("geometry_provider_canvas", {})
         color_provider = (
@@ -3570,6 +3560,14 @@ def _assess_job_generation_reference(job: Job) -> dict[str, Any]:
 def _apply_preview_visual_quality_gate(job: Job, report: Mapping[str, Any]) -> list[str]:
     """Merge a live or persisted visual decision into both paid-input gates."""
 
+    for key in ("model_input_quality", "generation_input_quality"):
+        quality = job.image_metrics.get(key)
+        if isinstance(quality, dict):
+            warning = "reference_visual_review_unavailable"
+            warnings = [code for code in quality.get("warnings", []) if code != warning]
+            if report.get("status") == "unavailable":
+                warnings.append(warning)
+            quality["warnings"] = warnings
     blockers = [str(code) for code in report.get("blocking_warnings", [])]
     if bool(report.get("model_generation_recommended", True)) or not blockers:
         return []
@@ -3620,7 +3618,7 @@ def _assess_job_preview_visual_quality(job: Job, original: Path) -> dict[str, An
     report = review_prepared_reference(
         original,
         submitted_reference,
-        job.preview_path,
+        submitted_reference if job.image_metrics.get("design_reference") == "ai-design-v1" else job.preview_path,
         job.directory / "preview-visual-review",
     )
     job.image_metrics["preview_visual_quality"] = report
@@ -4023,6 +4021,8 @@ def _ensure_portrait_multiview(job: Job) -> dict[str, Path] | None:
 def _recommend_palette_job(job: Job) -> None:
     try:
         _stop_boundary(job)
+        if job.generate_image and job.palette_recommendation_confirmed:
+            return  # A completed recommendation must never replay its paid edit.
         with _JOBS_LOCK:
             job.state = "recommending_palette"
             job.phase = "recommending_palette"
@@ -4043,13 +4043,23 @@ def _recommend_palette_job(job: Job) -> None:
         )
         with _JOBS_LOCK:
             job.palette_recommendation = normalized
-            job.palette_recommendation_confirmed = False
+            job.palette_recommendation_confirmed = job.generate_image
             job.preprocess_failure = {}
-            job.state = "awaiting_palette_confirmation"
-            job.phase = "awaiting_palette_confirmation"
-            job.message = "Review and confirm the recommended design colors."
+            job.state = job.phase = "preprocessing" if job.generate_image else "awaiting_palette_confirmation"
+            job.message = "Generating the AI design with recommended colors." if job.generate_image else "Review and confirm the recommended design colors."
+            if job.generate_image:
+                job.palette = tuple(color["hex"] for color in normalized["colors"])
+                job.palette_roles = {color["role"]: color["hex"] for color in normalized["colors"]}
             job.progress = 10
             _persist_job(job)
+        if job.generate_image:
+            _stop_boundary(job)
+            if job.source == "text":
+                _preprocess_text_job(job, job.user_prompt)
+            elif job.input_path is not None:
+                _preprocess_image_job(job, job.input_path, _normalize_image_instruction(job.user_prompt))
+            else:
+                raise RequestError("input_unavailable", "The stored reference image is unavailable.", 409)
     except JobStopped:
         pass
     except OpenAIPreprocessorError as exc:
@@ -4076,6 +4086,7 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
         raw_preview = job.directory / "style-preview-raw.png"
         generate_geometry_reference_image(
             prompt, raw_preview, job.style, job.custom_style,
+            palette=job.palette, palette_roles=job.palette_roles,
         )
         _validate_image_file(
             raw_preview,
@@ -4085,22 +4096,18 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
         job.raw_preview_path = raw_preview
         if job.palette:
             color_usage = _apply_printable_image_pipeline(job, raw_preview)
-            _validate_image_file(
-                job.model_reference_path,
-                minimum_edge=MIN_MODEL_REFERENCE_EDGE,
-                require_visual_detail=True,
-            )
         else:
             preview = job.directory / "preview.png"
             shutil.copyfile(raw_preview, preview)
             job.preview_path = preview
             color_usage = {}
+        job.image_metrics["design_reference"] = "ai-design-v1"
         job.image_metrics["portrait_geometry"] = {
             "detected": False,
             "evidence": "not_applicable",
         }
         validated = _validate_image_file(
-            job.model_reference_path or job.preview_path,
+            raw_preview,
             minimum_edge=MIN_MODEL_REFERENCE_EDGE,
             require_visual_detail=True,
         )
@@ -4206,6 +4213,7 @@ def _preprocess_image_job(job: Job, input_path: Path, instruction: str) -> None:
             job.preview_path = preview
             color_usage = {}
         face_lock = job.directory / PORTRAIT_FACE_LOCK_FILENAME
+        job.image_metrics["design_reference"] = "ai-design-v1"
         legacy_cleanup = job.image_metrics.get("portrait_skin_cleanup", {})
         portrait_detected = face_lock.is_file() or (
             isinstance(legacy_cleanup, dict) and legacy_cleanup.get("activated") == 1
@@ -4214,17 +4222,11 @@ def _preprocess_image_job(job: Job, input_path: Path, instruction: str) -> None:
             "detected": portrait_detected,
             "evidence": "source_face_lock" if face_lock.is_file() else "legacy_material_cleanup" if portrait_detected else "none",
         }
-        reference = job.model_reference_path or job.preview_path
-        validated = _validate_image_file(
-            reference,
-            minimum_edge=MIN_MODEL_REFERENCE_EDGE,
-            require_visual_detail=True,
-        )
         _assess_job_model_reference(job)
         _assess_job_generation_reference(job)
         preview = job.preview_path or preview
         validated = _validate_image_file(
-            preview,
+            raw_preview,
             minimum_edge=MIN_MODEL_REFERENCE_EDGE,
             require_visual_detail=True,
         )
@@ -8364,7 +8366,7 @@ class Handler(BaseHTTPRequestHandler):
             name = part.get_param("name", header="content-disposition")
             if name not in {
                 "request_id", "instruction", "palette", "palette_roles", "palette_recommendation_confirmed",
-                "palette_color_count", "style", "custom_style", "print", "image",
+                "palette_color_count", "style", "custom_style", "print", "image", "generate_image",
             } or name in seen:
                 raise RequestError("invalid_multipart", "Multipart fields are unexpected or duplicated.", 400)
             seen.add(name)
@@ -8741,10 +8743,12 @@ class Handler(BaseHTTPRequestHandler):
         custom_style = _normalize_custom_style(request.get("custom_style"), style)
         print_settings = _normalize_print_settings(request.get("print"))
         palette_color_count = _normalize_palette_color_count(request.get("palette_color_count"))
+        generate_image = _boolean_field(request.get("generate_image"), "generate_image")
         job = _new_job(
             "text", (), {}, style, custom_style, print_settings,
             palette_color_count=palette_color_count,
         )
+        job.generate_image = generate_image
         job.user_prompt = prompt
         job.state = "recommending_palette"
         job.phase = "recommending_palette"
@@ -8845,6 +8849,7 @@ class Handler(BaseHTTPRequestHandler):
         style = _normalize_style(fields.get("style"))
         custom_style = _normalize_custom_style(fields.get("custom_style"), style)
         palette_color_count = _normalize_palette_color_count(fields.get("palette_color_count"))
+        generate_image = _boolean_field(fields.get("generate_image"), "generate_image")
         try:
             print_payload = json.loads(fields.get("print", "{}"))
         except json.JSONDecodeError:
@@ -8865,6 +8870,7 @@ class Handler(BaseHTTPRequestHandler):
             "image", (), {}, style, custom_style, print_settings,
             palette_color_count=palette_color_count,
         )
+        job.generate_image = generate_image
         job.user_prompt = user_instruction
         suffix = ".png" if detected_type == "image/png" else ".jpg"
         input_path = job.directory / f"input-{uuid.uuid4().hex}{suffix}"
@@ -8997,7 +9003,8 @@ class Handler(BaseHTTPRequestHandler):
                         _model_input_quality_message(generation_input_quality),
                         409,
                     )
-                if job.palette and not bool(job.image_metrics.get("palette_quality_ok", True)):
+                if (job.image_metrics.get("design_reference") != "ai-design-v1"
+                        and job.palette and not bool(job.image_metrics.get("palette_quality_ok", True))):
                     raise RequestError(
                         "printable_preview_quality_failed",
                         _printable_preview_message(job, "The printable preview failed its quality gate."),

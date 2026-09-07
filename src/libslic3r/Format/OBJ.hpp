@@ -32,6 +32,8 @@ struct ObjDialogInOut
     bool                       deal_vertex_color;
     Model *                    model{nullptr};
     std::string lost_material_name{""};
+    bool preserve_input_colors{false};
+    bool cancelled{false};
 };
 typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;
 extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message, ObjParser::MtlData *out_mtl = nullptr);

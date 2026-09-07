@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import base64
 import contextlib
+import http.client
 from io import BytesIO
 import os
 import json
@@ -69,6 +70,8 @@ class OpenAIBaseUrlTests(unittest.TestCase):
 
     def test_provider_errors_expose_safe_retry_and_ambiguity_semantics(self):
         cases = (
+            (401, "image_auth_failed", False, False),
+            (403, "image_auth_failed", False, False),
             (429, "image_rate_limited", True, False),
             (400, "image_rejected", False, False),
             (503, "image_service_unavailable", True, True),
@@ -231,6 +234,21 @@ class ImageProviderSelectionTests(unittest.TestCase):
 
 
 class StylePreviewPromptTests(unittest.TestCase):
+    def test_portrait_prompts_preserve_identity_as_shape_not_a_photo_overlay(self):
+        for style in ("realistic", "portrait_sketch"):
+            prompts = (
+                preprocessor.build_geometry_reference_prompt("preserve identity", style),
+                preprocessor.build_style_preview_prompt("preserve identity", ("#FFFFFF",), style),
+            )
+            for prompt in prompts:
+                with self.subTest(style=style, prompt=prompt[:80]):
+                    self.assertIn("modelable facial planes and relief", prompt)
+                    self.assertIn("not a photographic face overlay", prompt)
+                    self.assertIn("same coherent sculptural material and lighting", prompt)
+                    self.assertIn("not by pasting original photo pixels", prompt)
+                    self.assertIn("Do not copy source-background shadows, gray halos", prompt)
+                    self.assertNotIn("protected face is allowed and preferred to remain unchanged", prompt)
+
     def test_geometry_reference_keeps_continuous_tone_without_selected_filament_colors(self):
         prompt = preprocessor.build_geometry_reference_prompt(
             "preserve this person's identity",
@@ -553,7 +571,7 @@ class TextImagePromptTests(unittest.TestCase):
 
 
 class VisionCompletionTests(unittest.TestCase):
-    def test_sends_text_and_inline_png_to_compatible_chat_endpoint(self):
+    def test_sends_text_and_compressed_review_image_to_compatible_chat_endpoint(self):
         with tempfile.TemporaryDirectory() as directory:
             image_path = Path(directory) / "sheet.png"
             Image.new("RGB", (8, 8), "red").save(image_path)
@@ -570,7 +588,56 @@ class VisionCompletionTests(unittest.TestCase):
         self.assertEqual(captured["path"], "/chat/completions")
         parts = captured["payload"]["messages"][1]["content"]
         self.assertEqual(parts[0], {"type": "text", "text": "review this model"})
-        self.assertTrue(parts[1]["image_url"]["url"].startswith("data:image/png;base64,"))
+        self.assertTrue(parts[1]["image_url"]["url"].startswith("data:image/jpeg;base64,"))
+
+    def test_review_upload_is_bounded_and_keeps_source_unchanged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "large.png"
+            Image.new("RGBA", (3072, 1536), (0, 0, 0, 0)).save(path)
+            before = path.read_bytes()
+            mime, data = preprocessor._vision_image_data(path)
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(mime, "image/jpeg")
+            with Image.open(BytesIO(data)) as encoded:
+                self.assertEqual(encoded.size, (2048, 1024))
+                self.assertEqual(encoded.getpixel((0, 0)), (255, 255, 255))
+
+    def test_analysis_retries_a_transient_gateway_or_tls_failure_once(self):
+        for code in ("image_connection_failed", "image_service_unavailable"):
+            failure = preprocessor.OpenAIPreprocessorError("temporary", code=code, retryable=True, ambiguous=True)
+            with (
+                self.subTest(code=code), configured_base_url("https://laotie.dev"),
+                mock.patch.object(preprocessor, "_request_with_provider", side_effect=[failure, {"ok": True}]) as request,
+                mock.patch.object(preprocessor.time, "sleep") as sleep,
+            ):
+                self.assertEqual(preprocessor._provider_request("/chat/completions", b"{}", "application/json"), {"ok": True})
+                self.assertEqual(request.call_count, 2)
+                self.assertEqual(request.call_args_list[0], request.call_args_list[1])
+                sleep.assert_called_once_with(1)
+
+    def test_analysis_retries_are_bounded_and_do_not_retry_auth_or_rate_limits(self):
+        for code, calls in (("image_connection_failed", 2), ("image_auth_failed", 1), ("image_rate_limited", 1)):
+            with (
+                self.subTest(code=code), configured_base_url("https://laotie.dev"),
+                mock.patch.object(preprocessor, "_request_with_provider", side_effect=preprocessor.OpenAIPreprocessorError("failed", code=code)) as request,
+                mock.patch.object(preprocessor.time, "sleep"),
+                self.assertRaises(preprocessor.OpenAIPreprocessorError),
+            ):
+                preprocessor._provider_request("/chat/completions", b"{}", "application/json")
+            self.assertEqual(request.call_count, calls)
+
+    def test_truncated_image_post_response_is_ambiguous_without_resubmission(self):
+        opener = mock.Mock()
+        opener.open.side_effect = http.client.IncompleteRead(b"partial")
+        with (
+            configured_base_url("https://laotie.dev"),
+            mock.patch.object(preprocessor, "build_network_opener", return_value=opener),
+            self.assertRaises(preprocessor.OpenAIPreprocessorError) as raised,
+        ):
+            preprocessor._image_provider_request("/images/edits", b"body", "multipart/form-data")
+        self.assertEqual(raised.exception.code, "image_connection_failed")
+        self.assertTrue(raised.exception.ambiguous)
+        opener.open.assert_called_once()
 
     def test_rejects_more_than_two_review_images(self):
         path = Path("unused.png")
@@ -757,7 +824,59 @@ class ExactImageEditTests(unittest.TestCase):
         self.assertEqual(len(bodies), 1)
         self.assertIn(b'name="background"\r\n\r\ntransparent', bodies[0])
 
-    def test_style_preview_protects_realistic_face(self):
+    def test_portrait_preview_never_pastes_source_pixels_into_provider_result(self):
+        from PIL import ImageDraw
+
+        palette = ("#FFFFFF", "#111111", "#F0C8AA", "#315B48", "#888888", "#776655")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.png"
+            source_image = Image.new("RGB", (240, 360), (185, 190, 195))
+            draw = ImageDraw.Draw(source_image)
+            draw.ellipse((80, 45, 160, 150), fill=(218, 164, 124))
+            draw.rectangle((45, 150, 195, 350), fill=(242, 240, 235))
+            source_image.save(source)
+            original_bytes = source.read_bytes()
+
+            for style in ("realistic", "portrait_sketch"):
+                for color_count in range(1, 7):
+                    for mode in ("RGB", "RGBA"):
+                        for copy_geometry in (False, True):
+                            with self.subTest(style=style, colors=color_count, mode=mode, geometry=copy_geometry):
+                                case_root = root / f"{style}-{color_count}-{mode}-{copy_geometry}"
+                                case_root.mkdir()
+                                destination = case_root / "result.png"
+                                geometry = case_root / "geometry.png" if copy_geometry else None
+                                # Different framing and a displaced head: a source-space
+                                # ellipse must never be used to paste a photographic face.
+                                background = (245, 245, 245, 0) if mode == "RGBA" else "white"
+                                provider_image = Image.new(mode, (256, 256), background)
+                                ImageDraw.Draw(provider_image).ellipse((140, 40, 220, 145), fill=(70, 110, 150))
+                                encoded = BytesIO()
+                                provider_image.save(encoded, format="PNG")
+                                provider_bytes = encoded.getvalue()
+
+                                def edit(_source, _prompt, output, **_kwargs):
+                                    Path(output).write_bytes(provider_bytes)
+                                    return Path(output)
+
+                                with mock.patch.object(preprocessor, "edit_image", side_effect=edit) as image_edit:
+                                    result = preprocessor.preprocess_image(
+                                        source, "preserve this person", destination,
+                                        palette[:color_count], style, geometry_output_path=geometry,
+                                    )
+
+                                self.assertEqual(source.read_bytes(), original_bytes)
+                                self.assertEqual(result, destination)
+                                image_edit.assert_called_once()
+                                self.assertEqual(image_edit.call_args.args[0], source)
+                                self.assertEqual(image_edit.call_args.kwargs, {"background": "transparent"})
+                                self.assertTrue((case_root / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).is_file())
+                                self.assertEqual(destination.read_bytes(), provider_bytes)
+                                if geometry is not None:
+                                    self.assertEqual(geometry.read_bytes(), provider_bytes)
+
+    def test_style_preview_keeps_realistic_identity_direction_and_detection_evidence(self):
         from PIL import ImageDraw
 
         with tempfile.TemporaryDirectory() as directory:
@@ -768,8 +887,7 @@ class ExactImageEditTests(unittest.TestCase):
             draw.ellipse((80, 45, 160, 150), fill=(218, 164, 124))
             draw.rectangle((45, 150, 195, 350), fill=(242, 240, 235))
             image.save(source)
-            with mock.patch.object(preprocessor, "edit_image", return_value=destination) as edit, \
-                 mock.patch.object(preprocessor, "_restore_portrait_face_from_source", return_value=True) as restore:
+            with mock.patch.object(preprocessor, "edit_image", return_value=destination) as edit:
                 result = preprocessor.preprocess_image(
                     source,
                     "preserve this person",
@@ -777,40 +895,29 @@ class ExactImageEditTests(unittest.TestCase):
                     ("#FFFFFF", "#111111", "#F0C8AA", "#315B48"),
                     "realistic",
                 )
+            self.assertTrue((Path(directory) / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).is_file())
 
         self.assertEqual(result, destination)
         self.assertEqual(edit.call_args.kwargs.get("background"), "transparent")
-        self.assertIn("protected face", edit.call_args.args[1])
+        self.assertIn("IDENTITY-FIRST PORTRAIT LOCK", edit.call_args.args[1])
         self.assertIn("continuous tonal modeling", edit.call_args.args[1])
         for color in ("#FFFFFF", "#111111", "#F0C8AA", "#315B48"):
-            self.assertNotIn(color, edit.call_args.args[1])
-        self.assertEqual(restore.call_args.args[0], source)
-        self.assertEqual(restore.call_args.args[1], destination)
+            self.assertIn(color, edit.call_args.args[1])
+        self.assertIn("not an exact pixel palette", edit.call_args.args[1])
 
-    def test_realistic_preview_builds_geometry_reference_without_a_second_paid_edit(self):
+    def test_portrait_geometry_copy_without_detected_face_uses_only_the_provider_result(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source.png"
             destination = root / "result.png"
             geometry = root / "geometry.png"
-            mask = root / "mask.png"
-            Image.new("RGB", (64, 96), (180, 150, 120)).save(source)
+            Image.new("RGB", (64, 96), (185, 190, 195)).save(source)
 
-            calls = []
-
-            def edit(_source, prompt, output, **kwargs):
-                source_pixel = Image.open(_source).convert("RGB").getpixel((10, 10))
-                calls.append((Path(_source), prompt, Path(output), kwargs, source_pixel))
+            def edit(_source, _prompt, output, **_kwargs):
                 Image.new("RGB", (64, 96), (35, 95, 145)).save(output)
                 return Path(output)
 
-            def restore(_source, generated, _mask):
-                Image.new("RGB", (64, 96), (205, 165, 125)).save(generated)
-                return True
-
-            with mock.patch.object(preprocessor, "edit_image", side_effect=edit), \
-                 mock.patch.object(preprocessor, "_portrait_face_lock_mask", return_value=mask), \
-                 mock.patch.object(preprocessor, "_restore_portrait_face_from_source", side_effect=restore):
+            with mock.patch.object(preprocessor, "edit_image", side_effect=edit) as image_edit:
                 preprocessor.preprocess_image(
                     source,
                     "preserve this person",
@@ -820,64 +927,12 @@ class ExactImageEditTests(unittest.TestCase):
                     geometry_output_path=geometry,
                 )
 
-            self.assertEqual(Image.open(geometry).getpixel((10, 10)), (205, 165, 125))
-            self.assertEqual(Image.open(destination).getpixel((10, 10)), (205, 165, 125))
-            self.assertEqual(len(calls), 1)
-            self.assertEqual(calls[0][3], {"background": "transparent"})
-
-    def test_realistic_preview_geometry_copy_uses_only_the_confirmed_provider_result(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source = root / "source.png"
-            destination = root / "result.png"
-            geometry = root / "geometry.png"
-            mask = root / "mask.png"
-            Image.new("RGB", (64, 96), (180, 150, 120)).save(source)
-            calls = 0
-
-            def edit(_source, _prompt, output, **_kwargs):
-                nonlocal calls
-                calls += 1
-                Image.new("RGB", (64, 96), (35, 95, 145)).save(output)
-                return Path(output)
-
-            with mock.patch.object(preprocessor, "edit_image", side_effect=edit), \
-                 mock.patch.object(preprocessor, "_portrait_face_lock_mask", return_value=mask), \
-                 mock.patch.object(preprocessor, "_restore_portrait_face_from_source", return_value=True):
-                preprocessor.preprocess_image(
-                    source,
-                    "preserve this person",
-                    destination,
-                    ("#FFFFFF", "#111111", "#F0C8AA", "#315B48"),
-                    "realistic",
-                    geometry_output_path=geometry,
-                )
-
-            self.assertEqual(calls, 1)
-            self.assertEqual(Image.open(geometry).getpixel((10, 10)), (35, 95, 145))
-
-    def test_portrait_sketch_preview_uses_the_source_face_lock_without_a_second_edit(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source, destination, geometry = root / "source.png", root / "result.png", root / "geometry.png"
-            Image.new("RGB", (64, 96), (180, 150, 120)).save(source)
-
-            def edit(_source, _prompt, output, **_kwargs):
-                Image.new("RGB", (64, 96), (35, 95, 145)).save(output)
-                return Path(output)
-
-            with mock.patch.object(preprocessor, "edit_image", side_effect=edit) as image_edit, \
-                 mock.patch.object(preprocessor, "_portrait_face_lock_mask", return_value=root / "mask.png"), \
-                 mock.patch.object(preprocessor, "_restore_portrait_face_from_source", return_value=True) as restore:
-                preprocessor.preprocess_image(
-                    source, "preserve this person", destination,
-                    ("#FFFFFF", "#111111", "#F0C8AA"), "portrait_sketch",
-                    geometry_output_path=geometry,
-                )
-
-            self.assertEqual(image_edit.call_count, 1)
-            restore.assert_called_once()
-            self.assertTrue(geometry.is_file())
+            with Image.open(destination) as image:
+                self.assertEqual(image.getpixel((10, 10)), (35, 95, 145))
+            self.assertEqual(geometry.read_bytes(), destination.read_bytes())
+            self.assertFalse((root / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).exists())
+            image_edit.assert_called_once()
+            self.assertEqual(image_edit.call_args.kwargs, {"background": "transparent"})
 
     def test_portrait_face_lock_mask_is_opaque_on_face_and_transparent_outside(self):
         from PIL import ImageDraw
@@ -899,58 +954,6 @@ class ExactImageEditTests(unittest.TestCase):
                 alpha = opened.getchannel("A")
                 self.assertGreater(alpha.getpixel((120, 95)), 240)
                 self.assertLess(alpha.getpixel((20, 300)), 10)
-
-    def test_portrait_face_restore_keeps_the_full_face_but_not_the_body(self):
-        from PIL import ImageDraw
-
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source = root / "source.png"
-            generated = root / "generated.png"
-            mask = root / "mask.png"
-            Image.new("RGB", (240, 360), (210, 120, 90)).save(source)
-            Image.new("RGBA", (240, 360), (40, 90, 160, 255)).save(generated)
-            mask_image = Image.new("RGBA", (240, 360), (0, 0, 0, 0))
-            ImageDraw.Draw(mask_image).ellipse((70, 40, 170, 180), fill=(0, 0, 0, 255))
-            mask_image.save(mask)
-
-            restored = preprocessor._restore_portrait_face_from_source(source, generated, mask)
-
-            self.assertTrue(restored)
-            with Image.open(generated).convert("RGB") as result:
-                self.assertEqual(result.getpixel((120, 110)), (210, 120, 90))
-                self.assertNotEqual(result.getpixel((82, 110)), (40, 90, 160))
-                self.assertEqual(result.getpixel((20, 300)), (40, 90, 160))
-
-    def test_neutral_relief_restore_keeps_landmark_values_without_source_color(self):
-        from PIL import ImageDraw
-
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source = root / "source.png"
-            generated = root / "generated.png"
-            mask = root / "mask.png"
-            source_image = Image.new("RGB", (240, 360), (220, 150, 105))
-            draw = ImageDraw.Draw(source_image)
-            draw.ellipse((100, 90, 114, 104), fill=(20, 30, 35))
-            source_image.save(source)
-            Image.new("RGBA", (240, 360), (150, 145, 138, 255)).save(generated)
-            mask_image = Image.new("RGBA", (240, 360), (0, 0, 0, 0))
-            ImageDraw.Draw(mask_image).ellipse((70, 40, 170, 180), fill=(0, 0, 0, 255))
-            mask_image.save(mask)
-
-            restored = preprocessor._restore_portrait_face_as_neutral_relief(
-                source, generated, mask
-            )
-
-            self.assertTrue(restored)
-            with Image.open(generated).convert("RGB") as result:
-                skin = result.getpixel((120, 110))
-                eye = result.getpixel((107, 97))
-                self.assertLess(max(skin) - min(skin), 16)
-                self.assertLess(max(eye) - min(eye), 16)
-                self.assertLess(sum(eye), sum(skin))
-                self.assertEqual(result.getpixel((20, 300)), (150, 145, 138))
 
 
 class ImageDownloadTests(unittest.TestCase):
@@ -1010,6 +1013,38 @@ class ImageDownloadTests(unittest.TestCase):
                 preprocessor._download_image("https://cdn.example/result.png", destination)
 
         opener.open.assert_called_once()
+
+    def test_truncated_download_preserves_previous_file_and_retries_get(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "result.png"
+            destination.write_bytes(b"previous")
+            truncated = self.Response(b"partial")
+            truncated.headers = {"Content-Length": "100"}
+            opener = mock.Mock()
+            opener.open.side_effect = [truncated, self.Response(b"complete")]
+            with (
+                mock.patch.object(preprocessor, "_validate_artifact_url"),
+                mock.patch.object(preprocessor, "build_network_opener", return_value=opener),
+            ):
+                preprocessor._download_image("https://cdn.example/result.png", destination)
+            self.assertEqual(destination.read_bytes(), b"complete")
+            self.assertFalse(destination.with_name("result.png.part").exists())
+            self.assertEqual(opener.open.call_count, 2)
+
+    def test_empty_download_does_not_replace_an_existing_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "result.png"
+            destination.write_bytes(b"previous")
+            opener = mock.Mock()
+            opener.open.side_effect = [self.Response(b""), self.Response(b"")]
+            with (
+                mock.patch.object(preprocessor, "_validate_artifact_url"),
+                mock.patch.object(preprocessor, "build_network_opener", return_value=opener),
+                self.assertRaises(preprocessor.OpenAIPreprocessorError) as raised,
+            ):
+                preprocessor._download_image("https://cdn.example/result.png", destination)
+            self.assertEqual(raised.exception.code, "image_download_failed")
+            self.assertEqual(destination.read_bytes(), b"previous")
 
 
 if __name__ == "__main__":

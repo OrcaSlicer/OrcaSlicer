@@ -182,6 +182,7 @@ private:
     wxStaticText*   m_prompt_label { nullptr };
     wxTextCtrl*     m_prompt { nullptr };
     wxChoice*       m_style { nullptr };
+    wxChoice*       m_stylized_style { nullptr };
     wxPanel*        m_style_recommendation_panel { nullptr };
     wxStaticText*   m_style_recommendation_title { nullptr };
     wxStaticText*   m_style_recommendation_reason { nullptr };
@@ -309,6 +310,7 @@ private:
     wxImage m_raw_preview_image;
     wxImage m_model_reference_image;
     wxImage m_strict_preview_image;
+    wxImage m_model_views_image;
     wxImage m_clean_preview_image;
     wxImage m_heatmap_image;
     wxImage m_style_preview_image;
@@ -373,6 +375,7 @@ private:
     bool m_raw_preview_available { false };
     bool m_model_reference_available { false };
     bool m_strict_preview_available { false };
+    bool m_model_views_available { false };
     bool m_heatmap_available { false };
     bool m_palette_quality_ok { true };
     bool m_material_fragmentation_ok { true };

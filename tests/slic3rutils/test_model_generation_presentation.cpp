@@ -48,6 +48,36 @@ TEST_CASE("model-generation progress maps service phases to stable UI milestones
     REQUIRE(display_progress(status) == 100);
 }
 
+TEST_CASE("Server palette corrections preserve previews without overwriting user edits", "[ModelGenerationPresentation]")
+{
+    const std::vector<std::string> palette = {"#F4F4F0", "#1F1B1C", "#F2C9AE"};
+    const AIModelGenerationClient::PaletteRoles submitted = {
+        {"primary", palette[2]}, {"structure", palette[1]}, {"light", palette[0]}};
+    const AIModelGenerationClient::PaletteRoles corrected = {
+        {"primary", palette[0]}, {"structure", palette[1]}, {"light", palette[2]}};
+    auto current = submitted;
+    synchronize_palette_roles(palette, current, palette, submitted, palette, corrected);
+    CHECK(current == corrected);
+    synchronize_palette_roles(palette, current, palette, corrected, palette, corrected);
+    CHECK(current == corrected);
+
+    auto edited_palette = palette;
+    edited_palette[0] = "#FFFFFF";
+    current = submitted;
+    synchronize_palette_roles(edited_palette, current, palette, submitted, palette, corrected);
+    CHECK(current == submitted);
+    synchronize_palette_roles(palette, current, palette, submitted, edited_palette, corrected);
+    CHECK(current == submitted);
+
+    auto edited_roles = submitted;
+    std::swap(edited_roles["structure"], edited_roles["primary"]);
+    current = edited_roles;
+    synchronize_palette_roles(palette, current, palette, submitted, palette, corrected);
+    CHECK(current == edited_roles);
+    synchronize_palette_roles(palette, current, palette, edited_roles, palette, {});
+    CHECK(current == edited_roles);
+}
+
 TEST_CASE("automatic printable palette roles remain deterministic and distinct",
           "[ModelGenerationPresentation]")
 {
@@ -85,11 +115,20 @@ TEST_CASE("automatic printable palette roles remain deterministic and distinct",
     CHECK(automatic_palette_roles({"#000000", "#000000"}).empty());
 }
 
-TEST_CASE("print-native artistic style mappings remain stable",
+TEST_CASE("style families retain legacy styles in a compact secondary choice",
           "[ModelGenerationPresentation]")
 {
     CHECK(style_selection("portrait_sketch") == 2);
-    CHECK(style_selection("ink_relief") == 6);
+    CHECK(style_selection("ink_relief") == 2);
+    CHECK(style_selection("sculpture") == 0);
+    CHECK(style_selection("realistic") == 1);
+    for (const std::string style : {"portrait_sketch", "cartoon", "low_poly", "relief", "ink_relief", "diorama", "custom"}) {
+        CHECK(style_selection(style) == 2);
+        CHECK(selected_style(2, stylized_style_selection(style)) == style);
+    }
+    CHECK(selected_style(0, 5) == "sculpture");
+    CHECK(selected_style(1, 5) == "realistic");
+    CHECK(selected_style(2, -1) == "cartoon");
     CHECK(style_uses_printable_colors("portrait_sketch"));
     CHECK(style_uses_printable_colors("ink_relief"));
 }

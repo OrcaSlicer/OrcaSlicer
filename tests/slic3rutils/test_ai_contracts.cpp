@@ -57,7 +57,7 @@ TEST_CASE("neutral AI contracts preserve accepted defaults and legacy includes",
     static_assert(!HasSliceAfterImport<ModelImportResult>::value);
 
     ModelImportRequest request;
-    CHECK(request.color_mode == ImportColorMode::ManualMatch);
+    CHECK(request.color_mode == ImportColorMode::NativeMatch);
     CHECK_FALSE(request.artifact.used_printable_colors);
 
     request.artifact.job_id = "accepted-job";

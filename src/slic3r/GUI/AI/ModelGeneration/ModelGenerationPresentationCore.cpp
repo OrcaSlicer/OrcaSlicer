@@ -52,6 +52,20 @@ LabColor lab_color(const std::string& color)
 
 } // namespace
 
+void synchronize_palette_roles(const std::vector<std::string>& current_palette,
+                               AIModelGenerationClient::PaletteRoles& current_roles,
+                               const std::vector<std::string>& submitted_palette,
+                               const AIModelGenerationClient::PaletteRoles& submitted_roles,
+                               const std::vector<std::string>& returned_palette,
+                               const AIModelGenerationClient::PaletteRoles& returned_roles)
+{
+    // Portrait processing may correct skin/garment ownership without changing
+    // the colors. Adopt that correction only while the submitted inputs are intact.
+    if (!returned_roles.empty() && current_palette == submitted_palette &&
+        returned_palette == submitted_palette && current_roles == submitted_roles)
+        current_roles = returned_roles;
+}
+
 AIModelGenerationClient::PaletteRoles automatic_palette_roles(const std::vector<std::string>& palette)
 {
     AIModelGenerationClient::PaletteRoles result;
@@ -158,19 +172,33 @@ int display_progress(const AIModelGenerationClient::JobStatus& status)
 int style_selection(const std::string& style)
 {
     if (style == "realistic" || style == "enamel_inlay") return 1;
-    if (style == "portrait_sketch") return 2;
-    if (style == "cartoon" || style == "q_cartoon" || style == "cel_shaded") return 3;
-    if (style == "low_poly") return 4;
-    if (style == "relief") return 5;
-    if (style == "ink_relief") return 6;
-    if (style == "diorama") return 7;
-    if (style == "custom") return 8;
-    return 0;
+    return style == "sculpture" || style.empty() ? 0 : 2;
+}
+
+int stylized_style_selection(const std::string& style)
+{
+    if (style == "portrait_sketch") return 0;
+    if (style == "low_poly") return 2;
+    if (style == "relief") return 3;
+    if (style == "ink_relief") return 4;
+    if (style == "diorama") return 5;
+    if (style == "custom") return 6;
+    return 1;
+}
+
+std::string selected_style(int family, int stylized)
+{
+    static constexpr std::array<const char*, 7> variants {
+        "portrait_sketch", "cartoon", "low_poly", "relief", "ink_relief", "diorama", "custom"
+    };
+    if (family == 0) return "sculpture";
+    if (family == 1) return "realistic";
+    return variants[stylized >= 0 && stylized < static_cast<int>(variants.size()) ? stylized : 1];
 }
 
 bool style_uses_printable_colors(const std::string& style)
 {
-    return style != "sculpture" && style != "relief";
+    return style != "sculpture";
 }
 
 } // namespace Slic3r::GUI::ModelGenerationPresentation

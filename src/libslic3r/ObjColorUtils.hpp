@@ -265,4 +265,5 @@ bool obj_color_deal_algo(std::vector<Slic3r::RGBA> &input_colors,
                          std::vector<Slic3r::RGBA>&   cluster_colors_from_algo,
                          std::vector<int>&            cluster_labels_from_algo,
                          char &                     cluster_number,
-                         int                        max_cluster);
+                         int                        max_cluster,
+                         bool                       preserve_input_colors = false);

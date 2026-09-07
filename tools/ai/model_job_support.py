@@ -64,7 +64,8 @@ def generation_prompt(
 
 
 def assess_job_model_reference(job: Any) -> dict[str, Any]:
-    reference = job.model_reference_path or job.preview_path
+    reference = (job.raw_preview_path if job.image_metrics.get("design_reference") == "ai-design-v1"
+                 else job.model_reference_path or job.preview_path)
     if reference is None:
         raise ModelInputImageQualityError("The model reference image is unavailable.")
     quality = assess_model_input_image(reference)
@@ -104,7 +105,8 @@ def printable_preview_message(job: Any, fallback: str) -> str:
         generation_input_quality.get("model_input_eligible", True)
     ):
         return model_input_quality_message(generation_input_quality)
-    if job.palette and not bool(job.image_metrics.get("palette_quality_ok", True)):
+    if (job.image_metrics.get("design_reference") != "ai-design-v1"
+            and job.palette and not bool(job.image_metrics.get("palette_quality_ok", True))):
         subject_ratio = float(job.image_metrics.get("printable_subject_area_ratio", 0.0))
         continuity = float(job.image_metrics.get("largest_subject_component_ratio", 0.0))
         detached_span = float(job.image_metrics.get("largest_detached_subject_diagonal_ratio", 0.0))

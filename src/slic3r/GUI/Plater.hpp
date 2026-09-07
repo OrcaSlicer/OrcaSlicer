@@ -68,6 +68,7 @@ namespace UndoRedo {
 }
 
 namespace GUI {
+struct ModelColorImportResult;
 class SyncAmsInfoDialog;
 class MainFrame;
 class ConfigOptionsGroup;
@@ -441,7 +442,7 @@ public:
     std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files,
                                    LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,
                                    bool ask_multi = false,
-                                   ObjImportColorFn obj_color_fn = nullptr);
+                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr);
     // To be called when providing a list of files to the GUI slic3r on command line.
     std::vector<size_t> load_files(const std::vector<std::string>& input_files,
                                    LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,
@@ -514,7 +515,6 @@ public:
     void enable_ai_assistant();
     bool is_ai_assistant_shown() const;
     void show_ai_assistant(bool show);
-
     void enable_smart_slicing();
     bool is_smart_slicing_shown() const;
     void show_smart_slicing(bool show);

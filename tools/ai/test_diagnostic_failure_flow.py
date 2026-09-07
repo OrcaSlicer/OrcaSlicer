@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 import urllib.request
 
 from PIL import Image
@@ -21,6 +22,14 @@ from PIL import Image
 TOOLS_AI = Path(__file__).resolve().parent
 BOOTSTRAP = TOOLS_AI / "orca_ai_installed_bootstrap.py"
 LOCAL_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _offline_environment() -> dict[str, str]:
+    # A developer's higher-priority Image2 credentials must never escape into
+    # this connection-refused test, even when legacy OpenAI values are replaced.
+    provider_prefixes = ("OPENAI_", "TRIPO_", "TRIPO3D_", "ORCASLICER_AI_")
+    return {name: value for name, value in os.environ.items()
+            if not name.upper().startswith(provider_prefixes)}
 
 
 def _session_headers(base_url: str, token: str) -> dict[str, str]:
@@ -89,6 +98,19 @@ def _valid_png_bytes() -> bytes:
 
 
 class DiagnosticFailureFlowTests(unittest.TestCase):
+    def test_offline_environment_drops_inherited_provider_configuration(self) -> None:
+        inherited = {
+            "OPENAI_API_KEY": "unused-test-key",
+            "OPENAI_PRO_API": "unused-pro-key",
+            "OPENAI_PRO_URL": "https://provider.invalid/v1",
+            "TRIPO_API_KEY": "unused-tripo-key",
+            "TRIPO_API_BASE": "https://provider.invalid/v3",
+            "ORCASLICER_AI_CONFIG_MODE": "internal_locked",
+            "SYSTEMROOT": "test-system-root",
+        }
+        with mock.patch.dict(os.environ, inherited, clear=True):
+            self.assertEqual(_offline_environment(), {"SYSTEMROOT": "test-system-root"})
+
     def test_installed_sidecar_correlates_connection_failure_with_job_id(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             data_dir = Path(directory)
@@ -96,7 +118,7 @@ class DiagnosticFailureFlowTests(unittest.TestCase):
             shutil.copytree(
                 TOOLS_AI,
                 packaged_tools,
-                ignore=shutil.ignore_patterns("test_*.py", "__pycache__"),
+                ignore=shutil.ignore_patterns("test_*.py", "__pycache__", "orca_ai_internal_defaults.json"),
             )
             (packaged_tools / "orca_ai_build_info.json").write_text(
                 json.dumps({
@@ -112,11 +134,12 @@ class DiagnosticFailureFlowTests(unittest.TestCase):
             )
             port = _free_port()
             session_token = "a" * 64
-            environment = dict(os.environ)
+            environment = _offline_environment()
             environment.update(
                 OPENAI_API_KEY="test-openai",
                 TRIPO_API_KEY="test-tripo",
                 OPENAI_BASE_URL="https://127.0.0.1:1/v1",
+                TRIPO_API_BASE="https://127.0.0.1:1/v3",
                 ORCASLICER_AI_SIDECAR_HOST="127.0.0.1",
                 ORCASLICER_AI_SIDECAR_PORT=str(port),
                 ORCASLICER_AI_OUTPUT_DIR=str(data_dir / "generated_models"),

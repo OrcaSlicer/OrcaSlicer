@@ -79,7 +79,7 @@ The local Python `ModelProviderGateway` in this repository is a provider-neutral
 
 ## Security and commercial controls
 
-Public installers and repositories contain no OpenAI, Tripo or other provider credential. The internal locked configuration is an explicitly non-public exception and must not be promoted into the commercial channel.
+Public installers contain no OpenAI, Tripo or other provider credentials; public repositories also exclude them. The 2026-09-07 direction (INS-20260907-006) supersedes the earlier anonymous `3dprint.beer` credential-bearing exception for subsequent work. Provide test configuration separately through a recipient-authenticated, access-controlled channel. Preserve the [historical authorization record](../../Docs/coordination/model-generation/internal-test-authorization-20260905.md); do not use it to continue the old distribution path. This policy change does not itself replace old public artifacts or approve a commercial release.
 
 Commercial release requires:
 
@@ -138,7 +138,7 @@ The product exposes a user-invoked connectivity doctor. It shall add the support
 | Channel | Purpose | Credential model | Required assurance |
 |---|---|---|---|
 | Developer | Local development and deterministic mocks | Explicit local overrides; no shared production key | Focused tests and isolated data/port configuration |
-| Internal fast beta | Controlled employee validation only | Current locked configuration may be used as a temporary exception | Access-controlled distribution, expiration/revocation and clear non-public marking |
+| Internal fast beta | Test installer may use the authorized public download channel | Public EXE/ZIP contain no provider credentials; test configuration is separate | Configuration delivery requires an identified recipient and access-controlled channel. Keep artifact identity, test marking and withdrawal records. |
 | Commercial candidate | Printer release candidate and pilot | Gateway-issued short-lived product token; no provider key in package | All P0 gates, signed installer, SBOM, compatibility and printer-matrix evidence |
 | Commercial production | Staged public rollout | Same as candidate | Release approval, monitoring, kill switch, rollback artifact and support readiness |
 
@@ -167,7 +167,7 @@ Rejected. It embeds credentials and provider policy in a high-churn desktop surf
 
 ### Package shared provider keys in a locked installer
 
-Allowed only as a temporary internal-beta exception. Obfuscation or a locked settings page does not prevent credential extraction and cannot enforce authoritative quota or revocation.
+Not used for public packages under INS-20260907-006. Separate private test configuration remains extractable by recipients; obfuscation or a locked settings page cannot enforce authoritative quota or revocation.
 
 ### Move the complete model/slicing workflow to a cloud service
 
