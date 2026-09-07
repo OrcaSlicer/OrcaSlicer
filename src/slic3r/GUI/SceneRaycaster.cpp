@@ -161,7 +161,7 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
 
     HitResult ret;
 
-    auto test_raycasters = [this, is_closest, clipping_plane, &volume_keeper](EType type, const Vec2d& mouse_pos, const Camera& camera, HitResult& ret) {
+    auto test_raycasters = [this, is_closest, clipping_plane, mode, &volume_keeper](EType type, const Vec2d& mouse_pos, const Camera& camera, HitResult& ret) {
         const ClippingPlane* clip_plane = (clipping_plane != nullptr && type == EType::Volume) ? clipping_plane : nullptr;
         const std::vector<std::shared_ptr<SceneRaycasterItem>>* raycasters = get_raycasters(type);
         const Vec3f camera_forward = camera.get_dir_forward().cast<float>();
@@ -175,7 +175,11 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
             if (item->get_raycaster()->closest_hit(mouse_pos, trafo, camera, current_hit.position, current_hit.normal, clip_plane)) {
                 current_hit.position = (trafo * current_hit.position.cast<double>()).cast<float>();
                 current_hit.normal = (trafo.matrix().block(0, 0, 3, 3).inverse().transpose() * current_hit.normal.cast<double>()).normalized().cast<float>();
-                if (item->use_back_faces() || current_hit.normal.dot(camera_forward) < 0.0f) {
+                // Perspective rays away from the viewport center are not parallel to camera_forward.
+                // Keep picking's legacy policy, but accept every front-facing navigation surface.
+                const Vec3f view_direction = mode == EHitMode::SceneOnly && camera.get_type() == Camera::EType::Perspective ?
+                    Vec3f((current_hit.position.cast<double>() - camera.get_position()).cast<float>()) : camera_forward;
+                if (item->use_back_faces() || current_hit.normal.dot(view_direction) < 0.0f) {
                     if (is_closest(camera, current_hit.position)) {
                         if (volume_keeper.is_active()) {
                             if (volume_keeper.check_hit_result(current_hit))
@@ -199,7 +203,8 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
     }
 
     if (!m_gizmos_on_top || !ret.is_valid()) {
-        if (camera.is_looking_downward() && !m_bed.empty())
+        // In perspective the bottom of the viewport can see the bed even at a horizontal view.
+        if ((mode == EHitMode::SceneOnly || camera.is_looking_downward()) && !m_bed.empty())
             test_raycasters(EType::Bed, mouse_pos, camera, ret);
         if (!m_volumes.empty())
             test_raycasters(EType::Volume, mouse_pos, camera, ret);
