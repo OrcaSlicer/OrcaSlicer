@@ -4435,6 +4435,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             post_event(SimpleEvent(EVT_GLCANVAS_SWITCH_TO_GLOBAL));
     }
     else if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) {
+        // Retain the click position even if the first motion event crosses a surface edge.
+        m_mouse.set_start_position_2D_as_invalid();
+        m_mouse.drag.start_position_2D = pos;
+
         //BBS: add orient deactivate logic
         if (!m_gizmos.on_mouse(evt)) {
             if (_deactivate_arrange_menu() || _deactivate_orient_menu())
