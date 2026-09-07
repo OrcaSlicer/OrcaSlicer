@@ -351,6 +351,7 @@ void ComboBox::mouseDown(wxMouseEvent &event)
     SetFocus();
     if (drop_down) {
         drop.Hide();
+        drop_down = false; // Hide() bypasses EVT_DISMISS, keep the flag in sync
     } else if (drop.HasDismissLongTime()) {
         drop.autoPosition();
         drop_down = true;
@@ -413,6 +414,7 @@ void ComboBox::onMove(wxMoveEvent &event)
 {
     event.Skip();
     drop.Hide();
+    drop_down = false; // Hide() bypasses EVT_DISMISS, keep the flag in sync
 }
 
 void ComboBox::OnEdit()

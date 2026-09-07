@@ -45,6 +45,17 @@ private:
     DropDown * subDropDown { nullptr };
     DropDown * mainDropDown { nullptr };
 
+#ifdef __WXGTK__
+    // Orca (Wayland wheel fix): true while this popup holds a persistent
+    // owner_events=FALSE pointer grab (via CaptureMouse) so wheel/axis events
+    // reach it regardless of which Wayland surface has pointer focus.
+    bool       wheelGrab { false };
+#endif
+    // Last DropDown of the chain that performed a wheel scroll; used to keep
+    // scrolling the same list while the cursor is outside every popup.
+    // Only meaningful on the chain root (mainDropDown == nullptr).
+    DropDown * wheelTarget { nullptr };
+
     double radius = 0;
     bool   use_content_width = false;
     bool   limit_max_content_width = false;
@@ -107,6 +118,10 @@ public:
 
     void Popup(wxWindow *focus = nullptr) override;
 
+    bool Show(bool show = true) override;
+
+    ~DropDown() override;
+
 protected:
     void Dismiss() override;
 
@@ -134,6 +149,9 @@ private:
     void mouseCaptureLost(wxMouseCaptureLostEvent &event);
     void mouseMove(wxMouseEvent &event);
     void mouseWheelMoved(wxMouseEvent &event);
+    void scrollContent(wxMouseEvent &event);
+    void acquireWheelGrab();
+    void releaseWheelGrab();
 
     void sendDropDownEvent();
 
