@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend @MK4S HF0.6",
+    "inherits": "Prusament PC Blend @MK4S",
+    "from": "system",
+    "setting_id": "dCBGHyldKgJPtI58",
+    "filament_id": "Prusament PC Blend @MK4S HF0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.6 nozzle"
+    ],
+    "fan_max_speed": "15",
+    "fan_min_speed": "15"
+}

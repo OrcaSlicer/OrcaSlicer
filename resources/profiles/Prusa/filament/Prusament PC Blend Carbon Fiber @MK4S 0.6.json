@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend Carbon Fiber @MK4S 0.6",
+    "inherits": "Prusament PC Blend Carbon Fiber @MK4S",
+    "from": "system",
+    "setting_id": "cWC8gJcldfVtxPX6",
+    "filament_id": "Prusament PC Blend Carbon Fiber @MK4S 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.6 nozzle"
+    ],
+    "slow_down_layer_time": "15"
+}

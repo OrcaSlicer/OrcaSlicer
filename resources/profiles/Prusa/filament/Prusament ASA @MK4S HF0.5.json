@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Prusament ASA @MK4S HF0.5",
+    "inherits": "Prusament ASA @MK4S",
+    "from": "system",
+    "setting_id": "Se12CQUzRlCv6pHb",
+    "filament_id": "Prusament ASA @MK4S HF0.5",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.5 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "27"
+    ]
+}

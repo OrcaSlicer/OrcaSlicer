@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Prusament PA11 Carbon Fiber @MK4S HF0.5",
+    "inherits": "Prusament PA11 Carbon Fiber @MK4S",
+    "from": "system",
+    "setting_id": "dKNDJrwKoWYdTM5u",
+    "filament_id": "Prusament PA11 Carbon Fiber @MK4S HF0.5",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.5 nozzle"
+    ]
+}

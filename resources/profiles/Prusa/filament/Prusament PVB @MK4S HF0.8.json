@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Prusament PVB @MK4S HF0.8",
+    "inherits": "Prusament PVB @MK4S",
+    "from": "system",
+    "setting_id": "E41yKP1EQp91Dhbm",
+    "filament_id": "Prusament PVB @MK4S HF0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.8 nozzle"
+    ],
+    "fan_cooling_layer_time": "25",
+    "fan_min_speed": "80",
+    "slow_down_layer_time": "15",
+    "slow_down_min_speed": "15"
+}
