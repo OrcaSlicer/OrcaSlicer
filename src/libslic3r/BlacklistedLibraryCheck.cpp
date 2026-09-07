@@ -1,6 +1,7 @@
 #include "BlacklistedLibraryCheck.hpp"
 
 #include <cstdio>
+#include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>
 
 #ifdef  WIN32
