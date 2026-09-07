@@ -1,0 +1,42 @@
+{
+	"type": "filament",
+	"name": "Anycubic PETG @Anycubic Kobra 3 V2 0.8 nozzle",
+	"inherits": "Anycubic PLA @Anycubic Kobra 3 V2 0.8 nozzle",
+	"from": "system",
+	"setting_id": "OOOjWFMFhP1fMhFf",
+	"filament_id": "GFPETG",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"Anycubic PETG @Anycubic Kobra 3 V2 0.8 nozzle"
+	],
+	"filament_vendor": [
+		"Anycubic"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 V2 0.8 nozzle"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"filament_retraction_length": [
+		"0.8"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	]
+}

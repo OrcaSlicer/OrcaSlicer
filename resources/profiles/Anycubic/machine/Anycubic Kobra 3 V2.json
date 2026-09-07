@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "machine_tech": "FFF",
+    "family": "Anycubic",
+    "name": "Anycubic Kobra 3 V2",
+    "model_id": "Anycubic Kobra 3 V2",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "bed_model": "Anycubic Kobra 3 V2_buildplate_model.stl",
+    "bed_texture": "Anycubic Kobra 3 V2_buildplate_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Anycubic PLA @Anycubic Kobra 3 V2 0.2 nozzle;Anycubic PLA @Anycubic Kobra 3 V2 0.4 nozzle;Anycubic PLA @Anycubic Kobra 3 V2 0.6 nozzle;Anycubic PLA @Anycubic Kobra 3 V2 0.8 nozzle"
+}
