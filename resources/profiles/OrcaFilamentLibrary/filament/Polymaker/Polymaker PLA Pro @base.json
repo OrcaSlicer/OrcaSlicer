@@ -1,0 +1,35 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA Pro @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OGFPM020",
+	"instantiation": "false",
+	"filament_density": [
+		"1.23"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"nozzle_temperature_range_low": [
+		"210"
+	],
+	"temperature_vitrification": [
+		"55"
+	]
+}
