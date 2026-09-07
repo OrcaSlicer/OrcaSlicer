@@ -4098,7 +4098,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
-               !existing->has_access_right()) {
+               (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
         DeviceManager::update_local_machine(*existing);
     }

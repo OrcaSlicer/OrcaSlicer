@@ -2630,6 +2630,7 @@ int MachineObject::connect(bool use_openssl)
     std::string username = "bblp";
     std::string password = get_access_code();
 
+    // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
     if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID) {
         if (const PresetBundle* bundle = GUI::wxGetApp().preset_bundle) {
             const DynamicPrintConfig& config = bundle->printers.get_edited_preset().config;
