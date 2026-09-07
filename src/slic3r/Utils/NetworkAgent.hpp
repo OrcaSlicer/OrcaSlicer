@@ -165,6 +165,9 @@ public:
     int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
     FilamentSyncMode get_filament_sync_mode() const;
     bool fetch_filament_info(std::string dev_id);
+    bool supports_filament_push() const;
+    bool push_filament_info(std::string dev_id, const IPrinterAgent::FilamentSlotInfo& info);
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl);
     int request_bind_ticket(std::string* ticket);
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback);
 

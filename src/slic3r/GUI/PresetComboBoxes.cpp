@@ -44,6 +44,7 @@
 #include "MsgDialog.hpp"
 #include "ParamsDialog.hpp"
 #include "FilamentPickerDialog.hpp"
+#include "FilamentInventoryStore.hpp"
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -1944,6 +1945,90 @@ void TabPresetComboBox::update_dirty()
 }
 
 } // namespace GUI
+GUI::PhysicalFilamentComboBox::PhysicalFilamentComboBox(wxWindow* parent)
+    : PresetComboBox(parent, Preset::TYPE_FILAMENT, wxSize(25 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
+{
+    GetDropDown().SetUseContentWidth(true, true);
+    // The base's OnSelect ignores group markers and calls this only for real items.
+    on_selection_changed = [this](int item) {
+        auto it  = m_item_presets.find(item);
+        m_wanted = it != m_item_presets.end() ? it->second : std::string();
+        if (on_preset_picked)
+            on_preset_picked();
+    };
+}
+
+void GUI::PhysicalFilamentComboBox::update()
+{
+    Freeze();
+    Clear();
+    invalidate_selection();
+    m_item_presets.clear();
+
+    // Mirror the sidebar filament selector's presentation: short alias display names and a
+    // vendor sub-menu per group (the extended Append(text, bmp, group, ...) overload renders
+    // `group` as a cascading flyout), under the same "User presets"/"System presets" split
+    // markers. Presets that yield no vendor at all (see filament_vendor_of) land in a catch-all
+    // group.
+    std::vector<const Preset*> system_presets, user_presets;
+    for (const Preset& preset : m_collection->get_presets()) {
+        if (!preset.is_visible || preset.is_default || !preset.is_compatible)
+            continue;
+        (preset.is_system ? system_presets : user_presets).push_back(&preset);
+    }
+    auto display_name = [](const Preset* p) { return from_u8(p->alias.empty() ? p->name : p->alias); };
+    // Orca: delegates to the single shared filament_vendor_of (FilamentInventoryStore) --
+    // also used by FilamentInventoryEditor's vendor card, so the two can never disagree on the
+    // same preset.
+    auto vendor_of = [](const Preset* p) {
+        const std::string v = filament_vendor_of(*p);
+        return v.empty() ? _L("Unspecified") : from_u8(v);
+    };
+    auto append_group = [&, this](const wxString& label, std::vector<const Preset*>& presets) {
+        if (presets.empty())
+            return;
+        std::sort(presets.begin(), presets.end(), [&](const Preset* l, const Preset* r) {
+            wxString lv = vendor_of(l), rv = vendor_of(r);
+            return lv != rv ? lv < rv : display_name(l) < display_name(r);
+        });
+        set_label_marker(Append(label, wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
+        for (const Preset* preset : presets) {
+            wxBitmap* bmp  = get_bmp(*preset);
+            int       item = Append(display_name(preset), bmp ? *bmp : wxNullBitmap, vendor_of(preset));
+            SetItemTooltip(item, from_u8(preset->name));
+            m_item_presets[item] = preset->name;
+            validate_selection(preset->name == m_wanted);
+        }
+    };
+    append_group(_L("User presets"), user_presets);
+    append_group(_L("System presets"), system_presets);
+
+    if (m_last_selected == INT_MAX) {
+        // Nothing to select (m_wanted empty, or its preset is gone): show an EMPTY picker.
+        // The base update_selection() force-picks a real item when nothing validated -- it was
+        // written for the sidebar, where some preset is always selected. For a physical slot,
+        // "nothing recorded" is a legitimate state and must not display as whatever entry
+        // happens to sort first (a cleared/empty tool head showed as "Generic ABS @System").
+        SetSelection(-1);
+        SetValue(wxEmptyString);
+    } else {
+        update_selection();
+    }
+    Thaw();
+}
+
+void GUI::PhysicalFilamentComboBox::select_preset(const std::string& name)
+{
+    m_wanted = name;
+    update();
+}
+
+const Preset* GUI::PhysicalFilamentComboBox::get_selected_preset() const
+{
+    auto it = m_item_presets.find(GetSelection());
+    return it != m_item_presets.end() ? m_collection->find_preset(it->second, false) : nullptr;
+}
+
 GUI::CalibrateFilamentComboBox::CalibrateFilamentComboBox(wxWindow *parent)
 : PlaterPresetComboBox(parent, Preset::TYPE_FILAMENT)
 {

@@ -91,8 +91,9 @@ namespace Slic3r
         }
         else
         {
-            if (type == DevAms::N3S)
+            if (type == DevAms::N3S || type == DevAms::TOOLCHANGER)
             {
+                // One slot per unit for both: global tray index == unit index.
                 result.id = ams_id + slot_id;
             }
             else if (type == DevAms::AMS_LITE_MIXED)
@@ -139,8 +140,9 @@ namespace Slic3r
                 {
                     tray_index = AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id;
                 }
-                else if (ams_type == DevAms::N3S)
+                else if (ams_type == DevAms::N3S || ams_type == DevAms::TOOLCHANGER)
                 {
+                    // One slot per unit for both: global tray index == unit index.
                     tray_index = ams_id + tray_id;
                 }
                 else
