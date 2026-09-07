@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Eryone Thinker X400 0.4 nozzle",
+    "inherits": "fdm_process_eryone_Thinker_X400_common",
+    "from": "User",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Eryone Thinker X400 0.4 nozzle"
+    ]
+}
