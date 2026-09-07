@@ -19,5 +19,6 @@
 	"compatible_printers": [
 		"Creality CR-6 SE 0.2 nozzle",
 		"Creality CR-6 Max 0.2 nozzle"
-	]
+	],
+	"travel_acceleration": "500"
 }

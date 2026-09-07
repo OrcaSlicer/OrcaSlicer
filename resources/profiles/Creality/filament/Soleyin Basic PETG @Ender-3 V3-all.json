@@ -1,0 +1,119 @@
+{
+    "type": "filament",
+    "name": "Soleyin Basic PETG @Ender-3 V3-all",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "VFPEq8OL7ibFlpNn",
+    "instantiation": "true",
+    "complete_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "80"
+    ],
+    "filament_cost": [
+        "15.9"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_deretraction_speed": [
+        "30"
+    ],
+    "filament_flow_ratio": [
+        "0.99"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_retraction_length": [
+        "1.2"
+    ],
+    "filament_retraction_speed": [
+        "30"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_vendor": [
+        "Creality"
+    ],
+    "filament_wipe_distance": [
+        "1.5"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "14"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "chamber_temperature": "35",
+    "customized_plate_temp": "70",
+    "customized_plate_temp_initial_layer": "70",
+    "enable_pressure_advance": "0",
+    "epoxy_resin_plate_temp": "60",
+    "epoxy_resin_plate_temp_initial_layer": "60",
+    "filament_retract_lift_above": "nil",
+    "filament_retract_lift_below": "nil",
+    "filament_retract_lift_enforce": "nil",
+    "material_flow_temp_graph": "[[0.5,220],[1.0,220],[1.2,240]]",
+    "pressure_advance": "0.076",
+    "default_filament_colour": "\"\"",
+    "compatible_printers": [
+        "Creality Ender-3 V3 0.4 nozzle",
+        "Creality Ender-3 V3 0.6 nozzle",
+        "Creality Ender-3 V3 0.8 nozzle"
+    ],
+    "filament_id": "06005"
+}

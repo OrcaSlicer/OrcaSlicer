@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality Ender-3 S1 Sonic",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_ender3s1_buildplate_model.stl",
+	"default_bed_type": "Cool Plate",
+	"bed_texture": "creality_ender3s1_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Sonic_Ender_3_S1",
+	"default_materials": "HP-TPU;CR-PETG;CR-ABS;CR-PLA;Hyper PLA"
+}

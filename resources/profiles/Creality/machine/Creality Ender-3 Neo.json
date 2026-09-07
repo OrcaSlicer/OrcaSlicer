@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality Ender-3 Neo",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_ender3v2neo_buildplate_model.stl",
+	"bed_texture": "creality_ender3v2neo_buildplate_texture.svg",
+	"default_bed_type": "Cool Plate",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Ender_3_Neo",
+	"default_materials": "Generic PETG;Generic ABS;Generic PLA"
+}

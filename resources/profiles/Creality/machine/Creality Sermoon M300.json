@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality Sermoon M300",
+	"nozzle_diameter": "0.8;0.6;0.4",
+	"bed_model": "creality_cr10v2_buildplate_model.stl",
+	"default_bed_type": "Textured PEI Plate",
+	"bed_texture": "creality_cr10v2_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Sermoon_M300",
+	"default_materials": "Generic ASA;Generic ABS;Hyper PLA-CF;Hyper PETG;Hyper ABS;Generic PLA-Silk;Generic PLA;Generic PETG;CR-Silk;CR-PETG;CR-ABS;CR-PLA;Hyper PLA"
+}

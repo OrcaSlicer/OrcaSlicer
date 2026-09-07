@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality CR-10 Smart",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_cr10v2_buildplate_model.stl",
+	"default_bed_type": "Cool Plate",
+	"bed_texture": "creality_cr10v2_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_CR_10_Smart",
+	"default_materials": "Creality Generic PLA;Creality HF Generic PLA;Creality HF Generic Speed PLA;Creality Generic PETG;Creality Generic TPU;Creality Generic ABS"
+}
