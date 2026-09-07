@@ -284,6 +284,8 @@ public:
         }
     }
 
+    void clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id);
+
     const std::vector<std::string> &get_filament_presets() const { return m_filament_presets; }
     void set_filament_presets(const std::vector<std::string> &filament_presets){
         m_filament_presets = filament_presets;

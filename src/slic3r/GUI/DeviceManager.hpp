@@ -223,7 +223,7 @@ public:
     std::string dev_connection_name;    /* lan | eth */
 
     /*access code*/
-    bool has_access_right() const { return !get_access_code().empty(); }
+    bool has_access_right() const;
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
 

@@ -241,6 +241,18 @@ namespace Slic3r
             std::string connect_type    = j["connect_type"].get<std::string>();
             std::string bind_state      = j["bind_state"].get<std::string>();
 
+            // Discovery may be queued by the outgoing agent. Only explicit binding may replace its saved record.
+            if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
+                if (AppConfig* config = GUI::wxGetApp().app_config) {
+                    const auto& machines = config->get_local_machines();
+                    auto it = machines.find(dev_id);
+                    if (it != machines.end() && it->second.printer_agent_id != MOONRAKER_PRINTER_AGENT_ID) {
+                        BOOST_LOG_TRIVIAL(warning) << "Ignoring Moonraker discovery for a device owned by another agent: " << dev_id;
+                        return;
+                    }
+                }
+            }
+
             if (connect_type == "farm") {
                 connect_type ="lan";
                 bind_state   = "free";
