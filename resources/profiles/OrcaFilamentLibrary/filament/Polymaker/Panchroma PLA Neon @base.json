@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Neon @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM013",
+	"filament_id": "OFO1GEq6",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

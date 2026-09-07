@@ -110,6 +110,7 @@ option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 
 option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 
 # Python stubgen module
@@ -352,11 +353,14 @@ if (MSVC)
         add_compile_options(/Zc:lambda)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
+    add_compile_options(-bigobj)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
 	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
 	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    add_compile_options(-bigobj /Zi /FS)
+    if (SLIC3R_MSVC_PDB)
+        add_compile_options(/Zi /FS)
+    endif ()
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -372,6 +376,16 @@ if (MSVC)
 	# helps incremental builds by preventing the double-link restart from TBB
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+endif ()
+
+# Without this every object names its build directory and two worktrees never
+# share cache entries. The linker still writes absolute paths into the PDB.
+if (SLIC3R_RELATIVE_DEBUG_PATHS)
+    if (IS_CLANG_CL)
+        add_compile_options(-ffile-compilation-dir=.)
+    else ()
+        message(WARNING "SLIC3R_RELATIVE_DEBUG_PATHS is only implemented for clang-cl")
+    endif ()
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)

@@ -3,7 +3,7 @@
 	"name": "DREMC ASA CF @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "DREMC012",
+	"filament_id": "OFdI4zMo",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"110"

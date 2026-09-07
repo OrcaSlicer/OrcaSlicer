@@ -545,7 +545,7 @@ std::string generate_preset_setting_id(const std::string& vendor, const std::str
         return "";
 
     // Dedicated namespace for preset setting_ids, distinct from the cloud per-user
-    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/assign_vendor_setting_ids.py;
+    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/orca_id_tool.py;
     // never change this constant.
     static const boost::uuids::uuid vendor_namespace =
         boost::uuids::string_generator()("c1f4d9e2-7a3b-5c8d-9e0f-1a2b3c4d5e6f");

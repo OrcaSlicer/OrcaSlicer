@@ -98,7 +98,7 @@
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M0",
 	"default_filament_profile": [
-		"Qidi Generic PLA"
+		"Generic PLA @Qidi"
 	],
 	"machine_start_gcode": "G28\nM140 S[hot_plate_temp_initial_layer]\nM190 S[hot_plate_temp_initial_layer]\nM109 S[nozzle_temperature_initial_layer]\nG92 E-19\nG0 Y5 Z0.3 F3600\nG1 X5 E0 F2400\n",
 	"machine_end_gcode": "M104 S0\nM140 S0\n;Retract the filament\nG92 E0\nG1 E-3 F300\nG28\nM84\n",

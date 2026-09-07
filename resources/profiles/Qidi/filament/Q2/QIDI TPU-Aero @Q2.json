@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-Aero@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_49",
+	"filament_id": "OFMDHOcT",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

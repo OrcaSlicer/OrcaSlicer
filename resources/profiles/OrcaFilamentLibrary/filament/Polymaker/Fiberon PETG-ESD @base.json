@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-ESD @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFL06",
+	"filament_id": "OFcytyoA",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

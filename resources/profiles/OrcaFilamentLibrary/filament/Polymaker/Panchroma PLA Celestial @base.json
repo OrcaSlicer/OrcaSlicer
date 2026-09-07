@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Celestial @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM008",
+	"filament_id": "OFRiYgMK",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"
