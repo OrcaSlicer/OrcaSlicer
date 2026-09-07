@@ -23,8 +23,10 @@ public:
 
 public:
     int  open(Bambu_StreamInfo const &info);
+    int  open(AVCodecParameters const &parameters);
 
     int  decode(Bambu_Sample const &sample);
+    int  decode(AVPacket const &packet);
 
     int  flush();
 

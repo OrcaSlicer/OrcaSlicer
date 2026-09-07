@@ -69,14 +69,14 @@ else ()
             --disable-filters
             --enable-filter=*null*,afade,*fifo,*format,*resample,aeval,allrgb,allyuv,atempo,pan,*bars,color,*key,crop,draw*,eq*,framerate,*_qsv,*_vaapi,*v4l2*,hw*,scale,volume,test*
             --disable-protocols
-            --enable-protocol=file,fd,pipe,rtp,udp
+            --enable-protocol=file,fd,pipe,rtp,tcp,udp
             --disable-muxers
             --enable-muxer=rtp
             --disable-encoders
             --disable-decoders
             --enable-decoder=*aac*,h264*,mp3*,mjpeg,rv*
             --disable-demuxers
-            --enable-demuxer=h264,mp3,mov
+            --enable-demuxer=h264,mp3,mov,rtsp,sdp
             --disable-zlib
             --disable-avdevice
         BUILD_IN_SOURCE ON

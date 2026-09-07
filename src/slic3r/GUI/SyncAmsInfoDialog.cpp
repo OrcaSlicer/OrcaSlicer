@@ -3207,6 +3207,7 @@ SyncAmsInfoDialog::~SyncAmsInfoDialog() {
 void SyncAmsInfoDialog::set_info(SyncInfo &info)
 {
     m_input_info = info;
+    reinit_dialog();
 }
 
 void SyncAmsInfoDialog::update_lan_machine_list()

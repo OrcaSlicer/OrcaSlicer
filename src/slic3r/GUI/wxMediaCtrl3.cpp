@@ -4,6 +4,9 @@
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcclient.h>
+extern "C" {
+#include <libavformat/avformat.h>
+}
 #ifdef __WIN32__
 #include <versionhelpers.h>
 #include <wx/msw/registry.h>
@@ -185,6 +188,106 @@ void wxMediaCtrl3::bambu_log(void *ctx, int level, tchar const *msg2)
     BOOST_LOG_TRIVIAL(info) << msg.ToUTF8().data();
 }
 
+int wxMediaCtrl3::rtsp_interrupt_callback(void *opaque)
+{
+    auto *ctrl = static_cast<wxMediaCtrl3 *>(opaque);
+    std::lock_guard<std::mutex> lock(ctrl->m_mutex);
+    return ctrl->m_url != ctrl->m_active_url;
+}
+
+int wxMediaCtrl3::PlayRtsp(std::shared_ptr<wxURI> const &url, std::unique_lock<std::mutex> &lock)
+{
+    if (avformat_network_init() < 0)
+        return 2;
+
+    AVFormatContext *format_context = avformat_alloc_context();
+    if (!format_context) {
+        avformat_network_deinit();
+        return 2;
+    }
+
+    format_context->interrupt_callback = {&wxMediaCtrl3::rtsp_interrupt_callback, this};
+    m_active_url = url;
+
+    auto finish = [&](int error) {
+        lock.unlock();
+        avformat_close_input(&format_context);
+        avformat_network_deinit();
+        lock.lock();
+        m_active_url.reset();
+        return error;
+    };
+
+    const std::string uri = url->BuildURI().ToUTF8().data();
+    AVDictionary *options = nullptr;
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    lock.unlock();
+    int error = avformat_open_input(&format_context, uri.c_str(), nullptr, &options);
+    av_dict_free(&options);
+    lock.lock();
+    if (error < 0)
+        return finish(2);
+
+    lock.unlock();
+    error = avformat_find_stream_info(format_context, nullptr);
+    lock.lock();
+    if (error < 0)
+        return finish(2);
+
+    const int video_stream = av_find_best_stream(format_context, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (video_stream < 0)
+        return finish(2);
+
+    AVVideoDecoder decoder;
+    if (decoder.open(*format_context->streams[video_stream]->codecpar) < 0)
+        return finish(2);
+
+    m_video_size = {format_context->streams[video_stream]->codecpar->width,
+                    format_context->streams[video_stream]->codecpar->height};
+    if (!m_video_size.IsFullySpecified() || m_video_size.x <= 0 || m_video_size.y <= 0)
+        return finish(2);
+    adjust_frame_size(m_frame_size, m_video_size, GetSize());
+    NotifyStopped();
+
+    AVPacket *packet = av_packet_alloc();
+    if (!packet)
+        return finish(2);
+
+    while (m_url == url) {
+        lock.unlock();
+        error = av_read_frame(format_context, packet);
+        lock.lock();
+        if (m_url != url)
+            break;
+        if (error < 0)
+            break;
+        if (packet->stream_index == video_stream) {
+            const int decode_error = decoder.decode(*packet);
+            if (decode_error == 0) {
+                auto frame_size = m_frame_size;
+                lock.unlock();
+#ifdef _WIN32
+                wxBitmap frame;
+                decoder.toWxBitmap(frame, frame_size);
+#else
+                wxImage frame;
+                decoder.toWxImage(frame, frame_size);
+#endif
+                lock.lock();
+                if (m_url != url)
+                    break;
+                if (frame.IsOk())
+                    m_frame = frame;
+                CallAfter([this] { Refresh(); });
+            }
+        }
+        av_packet_unref(packet);
+    }
+
+    av_packet_free(&packet);
+    return finish(m_url == url ? 2 : 1);
+}
+
 void wxMediaCtrl3::PlayThread()
 {
     using namespace std::chrono_literals;
@@ -197,42 +300,21 @@ void wxMediaCtrl3::PlayThread()
             continue;
         if (!url->HasScheme())
             break;
-        lk.unlock();
-        Bambu_Tunnel tunnel = nullptr;
-        int error = Bambu_Create(&tunnel, m_url->BuildURI().ToUTF8());
-        if (error == 0) {
-            Bambu_SetLogger(tunnel, &wxMediaCtrl3::bambu_log, this);
-            error = Bambu_Open(tunnel);
-            if (error == 0)
-                error = Bambu_would_block;
-        }
-        lk.lock();
-        while (error == int(Bambu_would_block)) {
-            m_cond.wait_for(lk, 100ms);
-            if (m_url != url) {
-                error = 1;
-                break;
+        const wxString scheme = url->GetScheme();
+        const bool generic_rtsp = scheme.CmpNoCase("rtsp") == 0 || scheme.CmpNoCase("rtsps") == 0;
+        int error = 0;
+        if (generic_rtsp) {
+            error = PlayRtsp(url, lk);
+        } else {
+            lk.unlock();
+            Bambu_Tunnel tunnel = nullptr;
+            error = Bambu_Create(&tunnel, m_url->BuildURI().ToUTF8());
+            if (error == 0) {
+                Bambu_SetLogger(tunnel, &wxMediaCtrl3::bambu_log, this);
+                error = Bambu_Open(tunnel);
+                if (error == 0)
+                    error = Bambu_would_block;
             }
-            lk.unlock();
-            error = Bambu_StartStream(tunnel, true);
-            lk.lock();
-        }
-        Bambu_StreamInfo info;
-        if (error == 0)
-            error = Bambu_GetStreamInfo(tunnel, 0, &info);
-        AVVideoDecoder decoder;
-        int minFrameDuration = 0;
-        if (error == 0) {
-            decoder.open(info);
-            m_video_size = { info.format.video.width, info.format.video.height };
-            adjust_frame_size(m_frame_size, m_video_size, GetSize());
-            minFrameDuration = 800 / info.format.video.frame_rate; // 80%
-            NotifyStopped();
-        }
-        Bambu_Sample sample;
-        while (error == 0) {
-            lk.unlock();
-            error = Bambu_ReadSample(tunnel, &sample);
             lk.lock();
             while (error == int(Bambu_would_block)) {
                 m_cond.wait_for(lk, 100ms);
@@ -241,58 +323,86 @@ void wxMediaCtrl3::PlayThread()
                     break;
                 }
                 lk.unlock();
+                error = Bambu_StartStream(tunnel, true);
+                lk.lock();
+            }
+            Bambu_StreamInfo info;
+            if (error == 0)
+                error = Bambu_GetStreamInfo(tunnel, 0, &info);
+            AVVideoDecoder decoder;
+            int minFrameDuration = 0;
+            if (error == 0) {
+                decoder.open(info);
+                m_video_size = { info.format.video.width, info.format.video.height };
+                adjust_frame_size(m_frame_size, m_video_size, GetSize());
+                minFrameDuration = 800 / info.format.video.frame_rate; // 80%
+                NotifyStopped();
+            }
+            Bambu_Sample sample;
+            while (error == 0) {
+                lk.unlock();
                 error = Bambu_ReadSample(tunnel, &sample);
                 lk.lock();
-            }
-            if (error == 0) {
-                auto frame_size = m_frame_size;
-                lk.unlock();
-                decoder.decode(sample);
-#ifdef _WIN32
-                wxBitmap bm;
-                decoder.toWxBitmap(bm, frame_size);
-#else
-                wxImage bm;
-                decoder.toWxImage(bm, frame_size);
-#endif
-                lk.lock();
-                if (m_url != url) {
-                    error = 1;
-                    break;
-                }
-                if (bm.IsOk()) {
-                    auto now = std::chrono::system_clock::now();
-                    if (m_last_PTS && (sample.decode_time - m_last_PTS) < 30000000ULL) { // 3s
-                        auto next_PTS_expected = m_last_PTS_expected + std::chrono::milliseconds((sample.decode_time - m_last_PTS) / 10000ULL);
-                        // The frame is late, catch up a little
-                        auto next_PTS_practical = m_last_PTS_practical + std::chrono::milliseconds(minFrameDuration);
-                        auto next_PTS = std::max(next_PTS_expected, next_PTS_practical);
-                        if(now < next_PTS)
-                            std::this_thread::sleep_until(next_PTS);
-                        else
-                            next_PTS = now;
-                        //auto text = wxString::Format(L"wxMediaCtrl3 pts diff %ld\n", std::chrono::duration_cast<std::chrono::milliseconds>(next_PTS - next_PTS_expected).count());
-                        //OutputDebugString(text);
-                        m_last_PTS = sample.decode_time;
-                        m_last_PTS_expected = next_PTS_expected;
-                        m_last_PTS_practical = next_PTS;
-                    } else {
-                        // Resync
-                        m_last_PTS           = sample.decode_time;
-                        m_last_PTS_expected  = now;
-                        m_last_PTS_practical = now;
+                while (error == int(Bambu_would_block)) {
+                    m_cond.wait_for(lk, 100ms);
+                    if (m_url != url) {
+                        error = 1;
+                        break;
                     }
-                    m_frame = bm;
+                    lk.unlock();
+                    error = Bambu_ReadSample(tunnel, &sample);
+                    lk.lock();
                 }
-                CallAfter([this] { Refresh(); });
+                if (error == 0) {
+                    auto frame_size = m_frame_size;
+                    lk.unlock();
+                    decoder.decode(sample);
+#ifdef _WIN32
+                    wxBitmap bm;
+                    decoder.toWxBitmap(bm, frame_size);
+#else
+                    wxImage bm;
+                    decoder.toWxImage(bm, frame_size);
+#endif
+                    lk.lock();
+                    if (m_url != url) {
+                        error = 1;
+                        break;
+                    }
+                    if (bm.IsOk()) {
+                        auto now = std::chrono::system_clock::now();
+                        if (m_last_PTS && (sample.decode_time - m_last_PTS) < 30000000ULL) { // 3s
+                            auto next_PTS_expected = m_last_PTS_expected + std::chrono::milliseconds((sample.decode_time - m_last_PTS) / 10000ULL);
+                            // The frame is late, catch up a little
+                            auto next_PTS_practical = m_last_PTS_practical + std::chrono::milliseconds(minFrameDuration);
+                            auto next_PTS = std::max(next_PTS_expected, next_PTS_practical);
+                            if(now < next_PTS)
+                                std::this_thread::sleep_until(next_PTS);
+                            else
+                                next_PTS = now;
+                            //auto text = wxString::Format(L"wxMediaCtrl3 pts diff %ld\n", std::chrono::duration_cast<std::chrono::milliseconds>(next_PTS - next_PTS_expected).count());
+                            //OutputDebugString(text);
+                            m_last_PTS = sample.decode_time;
+                            m_last_PTS_expected = next_PTS_expected;
+                            m_last_PTS_practical = next_PTS;
+                        } else {
+                            // Resync
+                            m_last_PTS           = sample.decode_time;
+                            m_last_PTS_expected  = now;
+                            m_last_PTS_practical = now;
+                        }
+                        m_frame = bm;
+                    }
+                    CallAfter([this] { Refresh(); });
+                }
             }
-        }
-        if (tunnel) {
-            lk.unlock();
-            Bambu_Close(tunnel);
-            Bambu_Destroy(tunnel);
-            tunnel = nullptr;
-            lk.lock();
+            if (tunnel) {
+                lk.unlock();
+                Bambu_Close(tunnel);
+                Bambu_Destroy(tunnel);
+                tunnel = nullptr;
+                lk.lock();
+            }
         }
         if (m_url == url)
             m_error = error;

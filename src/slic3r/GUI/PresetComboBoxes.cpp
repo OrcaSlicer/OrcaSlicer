@@ -994,7 +994,13 @@ void PlaterPresetComboBox::update_badge_according_flag() {
     auto selection   = GetSelection();
     auto select_flag = GetFlag(selection);
     auto ok          = select_flag == (int) PresetComboBox::FilamentAMSType::FROM_AMS;
-    ShowBadge(ok);
+    ShowBadge(m_sync_badge || ok);
+}
+
+void PlaterPresetComboBox::set_sync_badge(bool show)
+{
+    m_sync_badge = show;
+    ShowBadge(show);
 }
 
 bool PlaterPresetComboBox::switch_to_tab()

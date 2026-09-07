@@ -59,8 +59,10 @@ protected:
     void DoSetSize(int x, int y, int width, int height, int sizeFlags) override;
 
     static void bambu_log(void *ctx, int level, tchar const *msg);
+    static int rtsp_interrupt_callback(void *opaque);
 
     void PlayThread();
+    int PlayRtsp(std::shared_ptr<wxURI> const &url, std::unique_lock<std::mutex> &lock);
 
     void NotifyStopped();
 
@@ -77,6 +79,7 @@ private:
 #endif
 
     std::shared_ptr<wxURI> m_url;
+    std::shared_ptr<wxURI> m_active_url;
     std::uint64_t m_last_PTS{0};
     std::chrono::system_clock::time_point m_last_PTS_expected;
     std::chrono::system_clock::time_point m_last_PTS_practical;

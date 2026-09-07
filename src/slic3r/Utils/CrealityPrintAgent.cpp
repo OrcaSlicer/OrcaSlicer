@@ -233,8 +233,11 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
-bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
+bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
 {
+    if (sync_mode != get_filament_sync_mode())
+        return false;
+
     if (device_info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent::fetch_filament_info: no device IP, falling back to base agent";

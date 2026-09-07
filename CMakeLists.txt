@@ -1056,6 +1056,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
             ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
@@ -1095,6 +1096,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/TKXSBase.dll
 
         ${_out_dir}/freetype.dll
+        ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
@@ -1117,7 +1119,10 @@ function(orcaslicer_copy_sos target config postfix output_sos)
         set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
     endif ()
 
-    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so
@@ -1132,6 +1137,9 @@ function(orcaslicer_copy_sos target config postfix output_sos)
          DESTINATION ${_out_dir})
 
     set(${output_sos}
+        ${_out_dir}/libavformat.so
+        ${_out_dir}/libavformat.so.61
+        ${_out_dir}/libavformat.so.61.1.100
         ${_out_dir}/libavcodec.so
         ${_out_dir}/libavcodec.so.61
         ${_out_dir}/libavcodec.so.61.3.100
@@ -1260,6 +1268,8 @@ endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavformat.so.61
+    ${LIBDIR_BIN}/libavformat.so.61.1.100
     ${LIBDIR_BIN}/libavcodec.so.61
     ${LIBDIR_BIN}/libavcodec.so.61.3.100
     ${LIBDIR_BIN}/libavutil.so.59
