@@ -7615,8 +7615,10 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                     extrusions.emplace_back(ee);
             if (! extrusions.empty()) {
                 m_config.apply(print.get_print_region(&region - &by_region.front()).config());
-                chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
-                for (const ExtrusionEntity *fill : extrusions) {
+                // Chain a copy of the cached extrusion entities: chaining reverses entities in place
+                // and the cached ones must stay intact for a possible re-export of the same sliced result.
+                ExtrusionEntityCollection chained_extrusions = ExtrusionEntityCollection::chained_path_from(extrusions, m_last_pos.to_point());
+                for (const ExtrusionEntity *fill : chained_extrusions.entities) {
                     auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(fill);
                     if (eec) {
                         for (ExtrusionEntity *ee : eec->chained_path_from(m_last_pos.to_point()).entities)
@@ -7668,11 +7670,14 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         if (extrusions.empty())
             return gcode;
 
+        // Chain a copy of the cached extrusion entities: chaining reverses entities in place
+        // and the cached ones must stay intact for a possible re-export of the same sliced result.
         //ORCA: Respect no_sort to preserve support base outline->fill order.
+        ExtrusionEntityCollection chained_extrusions;
         if (!support_fills.no_sort)
-            chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
+            chained_extrusions = ExtrusionEntityCollection::chained_path_from(extrusions, m_last_pos.to_point());
 
-        for (const ExtrusionEntity *ee : extrusions) {
+        for (const ExtrusionEntity *ee : support_fills.no_sort ? extrusions : chained_extrusions.entities) {
             ExtrusionRole role = ee->role();
             assert(is_support(role) || role == erIroning);
 
