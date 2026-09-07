@@ -812,9 +812,10 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
 {
     constexpr float width = 0.4f;
     const double outward_shift = GENERATE(0.0, 0.001, 0.1);
+    const double z_offset = GENERATE(0.0, -0.1, -0.2);
     // Orca: A uniform sub-quantization shift is still a real shallow slope and must be retained.
     const float expected_percentage = float(100.0 * outward_shift / width);
-    CAPTURE(outward_shift);
+    CAPTURE(outward_shift, z_offset);
 
     Print print;
     Model model;
@@ -834,7 +835,9 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
     estimator.prepare_for_new_layer(object, upper);
     ExtrusionPath path(erExternalPerimeter, 0.08, width, 0.2f);
     const double path_y = -outward_shift + 0.1;
-    path.polyline.points = {Point3::new_scale(1, path_y, 0), Point3::new_scale(39, path_y, 0)};
+    // Z contouring changes the extrusion elevation, not the horizontal slice-contour displacement.
+    path.z_contoured = z_offset != 0.0;
+    path.polyline.points = {Point3::new_scale(1, path_y, z_offset), Point3::new_scale(39, path_y, z_offset)};
 
     const auto fixed_speed_percentages = estimator.estimate_overhang_percentages(path);
     REQUIRE(fixed_speed_percentages.size() == 1);
@@ -846,6 +849,51 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
     REQUIRE_FALSE(variable_speed_points.empty());
     for (const ProcessedPoint &point : variable_speed_points)
         CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+}
+
+TEST_CASE("Variable speed overhang metadata retains shallow pockets between speed changes",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    constexpr double shallow_depth = 0.04;
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    lower->lslices = {ExPolygon(Polygon{
+        Point::new_scale(0, 0), Point::new_scale(8, 0),
+        Point::new_scale(8, shallow_depth), Point::new_scale(12, shallow_depth),
+        Point::new_scale(12, 0), Point::new_scale(28, 0),
+        Point::new_scale(28, 0.3), Point::new_scale(32, 0.3),
+        Point::new_scale(32, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erExternalPerimeter, 0.08, width, 0.2f);
+    path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
+    const ConfigOptionPercents overlaps({75, 50, 0});
+    const ConfigOptionFloatsOrPercents speeds({FloatOrPercent{100, false}, FloatOrPercent{100, false}, FloatOrPercent{20, false}});
+    const auto baseline = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false);
+    const auto points = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false, true);
+    REQUIRE(points.size() == baseline.size());
+    REQUIRE(std::any_of(points.begin(), points.end(), [](const auto &point) { return point.speed < 99.f; }));
+    bool checked_shallow_pocket = false;
+    for (size_t i = 0; i + 1 < points.size(); ++i) {
+        CHECK(points[i].p == baseline[i].p);
+        CHECK_THAT(points[i].speed, Catch::Matchers::WithinAbs(baseline[i].speed, 1e-6));
+        if (unscale_(points[i].p.x()) <= 10.0 && unscale_(points[i + 1].p.x()) >= 10.0) {
+            CHECK_THAT(points[i].overhang_percentage,
+                Catch::Matchers::WithinAbs(100.0 * shallow_depth / width, 1e-3));
+            checked_shallow_pocket = true;
+        }
+    }
+    REQUIRE(checked_shallow_pocket);
 }
 
 // Orca: A curled edge may require slower motion and extra cooling even on a supported vertical wall.

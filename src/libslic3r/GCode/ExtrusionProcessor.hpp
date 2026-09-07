@@ -458,9 +458,12 @@ class ExtrusionQualityEstimator
     // Orca: Measure displacement from the current contour instead of assuming every path center is
     // exactly half a width inside it. Arachne width and placement changes otherwise make identical
     // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
-    float overhang_percentage_at(const Vec3d &position, float width, const Vec2d &path_direction,
+    float overhang_percentage_at(Vec3d position, float width, const Vec2d &path_direction,
                                  bool associate_current_contour)
     {
+        // Slice boundaries lie in XY. Z-contoured paths carry an extrusion-height offset which
+        // must not become part of the horizontal unsupported-width measurement.
+        position.z() = 0.0;
         const auto [previous_distance, previous_line_id, previous_position] =
             prev_layer_boundaries[current_object].distance_from_lines_extra<true>(position);
         const float area_percentage = float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
@@ -505,6 +508,24 @@ class ExtrusionQualityEstimator
         return float(100.0 * std::clamp(unsupported_width / width, 0.0, 1.0));
     }
 
+    float segment_overhang_percentage(const Vec3d &start, const Vec3d &end, float width,
+                                      bool associate_current_contour)
+    {
+        if (width <= EPSILON)
+            return 0.0f;
+        const Vec2d direction = (end - start).head<2>();
+        const double probe_spacing = std::max(0.1, double(width));
+        const size_t intervals = std::max<size_t>(1, size_t(std::ceil(direction.norm() / probe_spacing)));
+        float maximum = 0.0f;
+        // Use cell centres to keep shared endpoints from attributing a neighboring wall's overhang
+        // to this span. Sample the interior even if speed-based splitting retained a long segment.
+        for (size_t sample = 0; sample < intervals && maximum < 100.0f; ++sample)
+            maximum = std::max(maximum, overhang_percentage_at(
+                start + (end - start) * ((double(sample) + 0.5) / intervals), width, direction,
+                associate_current_contour));
+        return maximum;
+    }
+
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
@@ -542,21 +563,9 @@ public:
         if (segments_count == 0 || path.width <= EPSILON)
             return percentages;
 
-        // Orca: Sample cell centres rather than segment endpoints. The current-contour association in
-        // overhang_percentage_at() rejects support belonging to a perpendicular neighboring wall, so
-        // every cell remains eligible and real overhangs at either end are retained.
-        const double probe_spacing = std::max(0.1, double(path.width));
         for (size_t i = 0; i < percentages.size(); ++i) {
-            const Vec3d start = unscaled(path.polyline.points[i]);
-            const Vec3d end = unscaled(path.polyline.points[i + 1]);
-            const Vec2d direction = (end - start).head<2>();
-            const size_t intervals = std::max<size_t>(1, size_t(std::ceil((end - start).norm() / probe_spacing)));
-            float maximum = 0.0f;
-            for (size_t sample = 0; sample < intervals && maximum < 100.0f; ++sample)
-                maximum = std::max(maximum, overhang_percentage_at(
-                    start + (end - start) * ((double(sample) + 0.5) / intervals), path.width, direction,
-                    is_perimeter(path.role())));
-            percentages[i] = maximum;
+            percentages[i] = segment_overhang_percentage(unscaled(path.polyline.points[i]),
+                unscaled(path.polyline.points[i + 1]), path.width, is_perimeter(path.role()));
         }
         return percentages;
     }
@@ -728,11 +737,10 @@ public:
 
             // Orca: Keep the existing speed/fan overlap untouched. Only pay for current-contour queries
             // when opt-in preview metadata is requested, then normalize away Arachne placement and curls.
-            // Attribute the emitted span from its interior: endpoints are shared with neighboring spans
-            // and may describe a different wall at a growing or recessed corner.
+            // Speed splitting can omit shallow pockets that do not change feedrate. Apply the same
+            // interior sampling as fixed-speed metadata without adding or moving extrusion points.
             const float overhang_percentage = estimate_overhang_metadata ?
-                overhang_percentage_at(0.5 * (curr.position + next.position), path.width,
-                                       (next.position - curr.position).head<2>(), is_perimeter(path.role())) : 0.0f;
+                segment_overhang_percentage(curr.position, next.position, path.width, is_perimeter(path.role())) : 0.0f;
             processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap, overhang_percentage});
         }
         return processed_points;
