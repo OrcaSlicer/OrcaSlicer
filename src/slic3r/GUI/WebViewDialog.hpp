@@ -10,7 +10,7 @@
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"
-#endif //BBL_RELEASE_TO_PUBLIC
+#endif
 
 #include "wx/webviewarchivehandler.h"
 #include "wx/webviewfshandler.h"
@@ -117,7 +117,7 @@ private:
     wxButton *  m_button_forward;
     wxButton *  m_button_reload;
     wxButton *  m_button_tools;
-#endif
+#endif //BBL_RELEASE_TO_PUBLIC
 
     wxMenu* m_tools_menu;
     wxMenuItem* m_tools_handle_navigation;
