@@ -107,6 +107,27 @@ TEST_CASE("Legacy flat user printers migrate to a distinct per-model printer_mod
     }
 }
 
+TEST_CASE("Migration backfills an empty printer_variant from nozzle_diameter", "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const auto   &def = bundle.printers.default_preset().config;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    // System + legacy user preset both lacking printer_variant, but carrying a real nozzle_diameter.
+    write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "", 0.4);
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "", 0.4, "Fixture Printer 0.4 nozzle");
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
+
+    CHECK(bundle.printers.migrate_user_models_for_variants("Copy") == 1);
+
+    // After migration every user variant carries a variant string, so a later rename can always derive
+    // "<model> <variant> nozzle" (never a bare model). Guarantees the invariant the rename relies on.
+    const Preset *u = bundle.printers.find_preset("Fixture Printer 0.4 nozzle - Copy", false);
+    REQUIRE(u != nullptr);
+    CHECK(u->config.opt_string("printer_variant") == "0.4");
+}
+
 TEST_CASE("Migration disambiguates same-model/same-variant collisions with a numeric suffix", "[Preset][Variants][12105]")
 {
     TempPresetDir temp;
@@ -168,19 +189,65 @@ TEST_CASE("rename_user_printer_model trims the new model name", "[Preset][Varian
     load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
     bundle.printers.migrate_user_models_for_variants("Copy"); // -> "Fixture Printer - Copy"
 
-    // A padded new name is trimmed before it is stamped (guards against padded printer_model / a
-    // doubled-space "<model>  X.X nozzle" variant name).
-    CHECK(bundle.printers.rename_user_printer_model("Fixture Printer - Copy", "  My Printer  ") == 1);
-    const Preset *u = bundle.printers.find_preset("Fixture Printer 0.4 nozzle - Copy", false);
+    const std::string old_name = "Fixture Printer 0.4 nozzle - Copy";
+    const fs::path    old_json = usr / PRESET_PRINTER_NAME / (old_name + ".json");
+    REQUIRE(fs::exists(old_json));
+
+    // A padded new name is trimmed before it is stamped, and the rename now performs a REAL rename:
+    // the preset name + on-disk .json move to the system-style "<model> <variant> nozzle".
+    std::vector<std::pair<std::string, std::string>> renames;
+    CHECK(bundle.printers.rename_user_printer_model("Fixture Printer - Copy", "  My Printer  ", &renames) == 1);
+
+    // The old name/file are gone; the preset now resolves under the new system-style name.
+    CHECK(bundle.printers.find_preset(old_name, false) == nullptr);
+    CHECK_FALSE(fs::exists(old_json));
+    const Preset *u = bundle.printers.find_preset("My Printer 0.4 nozzle", false);
     REQUIRE(u != nullptr);
     CHECK(u->config.opt_string("printer_model") == "My Printer");
+    CHECK(fs::exists(usr / PRESET_PRINTER_NAME / "My Printer 0.4 nozzle.json"));
+
+    // The out-param reports the old->new mapping for the caller's forward fix-ups.
+    REQUIRE(renames.size() == 1);
+    CHECK(renames[0].first  == old_name);
+    CHECK(renames[0].second == "My Printer 0.4 nozzle");
 
     // A whitespace-only new name is a no-op.
     CHECK(bundle.printers.rename_user_printer_model("My Printer", "   ") == 0);
 
     // Renaming onto a built-in (system) model name is refused (backstop; the dialog blocks it inline).
     CHECK(bundle.printers.rename_user_printer_model("My Printer", "Fixture Printer") == 0);
-    CHECK(bundle.printers.find_preset("Fixture Printer 0.4 nozzle - Copy", false)->config.opt_string("printer_model") == "My Printer");
+    CHECK(bundle.printers.find_preset("My Printer 0.4 nozzle", false)->config.opt_string("printer_model") == "My Printer");
+}
+
+TEST_CASE("PresetBundle::rename_user_printer_model repoints app-config keys old->new", "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const auto   &def = bundle.printers.default_preset().config;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
+    bundle.printers.migrate_user_models_for_variants("Copy"); // -> "Fixture Printer - Copy"
+    bundle.printers.select_preset_by_name("Fixture Printer 0.4 nozzle - Copy", true);
+
+    const std::string old_name = "Fixture Printer 0.4 nozzle - Copy";
+    AppConfig config;
+    config.set("presets", PRESET_PRINTER_NAME, old_name);                  // last-selected printer
+    config.set_printer_setting(old_name, PRESET_PRINTER_NAME, old_name);   // self-referential name field
+    config.set_printer_setting(old_name, "curr_bed_type", "Textured PEI Plate");
+
+    const int n = bundle.rename_user_printer_model("Fixture Printer - Copy", "My Printer", config);
+    CHECK(n == 1);
+
+    const std::string new_name = "My Printer 0.4 nozzle";
+    // The per-printer settings submap moved old->new (bed type preserved), its self-ref key repointed,
+    // and the last-selected-printer key follows the rename — nothing orphaned under the old name.
+    CHECK(config.get_printer_setting(new_name, "curr_bed_type") == "Textured PEI Plate");
+    CHECK(config.get_printer_setting(new_name, PRESET_PRINTER_NAME) == new_name);
+    CHECK_FALSE(config.has_printer_settings(old_name));
+    CHECK(config.get("presets", PRESET_PRINTER_NAME) == new_name);
 }
 
 TEST_CASE("get_similar_printer_preset: user model with no system counterpart resolves to a user variant",

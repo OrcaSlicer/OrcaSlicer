@@ -877,6 +877,17 @@ public:
     // Get the alias of a preset, setting it if it's empty
     std::string     get_preset_alias(Preset &preset, bool force = false);
 
+    // ORCA #12105: rename ONE user preset in place — moves the on-disk .json (+ its .info sidecar,
+    // preserving cloud identity) and updates the in-memory name/file/settings-id, WITHOUT re-sorting the
+    // deque or rebuilding maps (the caller batches renames, then calls resort_after_rename once).
+    // parent_config must be resolved by the caller WHILE the deque is still sorted (the internal binary
+    // search is unreliable mid-batch); pass nullptr for a detached/base preset to save the full config.
+    // Returns false (no-op) when the preset is not user-owned or new_name is empty/unchanged.
+    bool            rename_user_preset_files(Preset &preset, const std::string &new_name, const DynamicPrintConfig *parent_config);
+    // ORCA #12105: after in-place renames, re-establish the sorted-deque order + alias/renamed maps and
+    // re-point m_idx_selected at whichever preset now holds selected_name.
+    void            resort_after_rename(const std::string &selected_name);
+
     size_t num_default_presets() { return m_num_default_presets; }
 
 protected:
@@ -1075,9 +1086,13 @@ public:
     // ORCA #12105: distinct system printer_model names, sorted. Used to guard a user-chosen model
     // name against colliding with a built-in model.
     std::vector<std::string> system_printer_models() const;
-    // ORCA #12105: rename a user printer_model across all matching user presets (field-only,
-    // re-saved as diff vs parent). Used by the "Rename Printer Model" dialog. Returns count changed.
-    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model);
+    // ORCA #12105: rename a user printer_model across all matching user presets. Performs a REAL
+    // rename — each variant's preset name + on-disk .json/.info are moved to the system-style
+    // "<model> <variant> nozzle" and the printer_model field is stamped. Used by the "Rename Printer
+    // Model" dialog (via PresetBundle, which also fixes forward references). Returns count changed and,
+    // if renames != nullptr, fills it with {old_preset_name, new_preset_name} pairs for those fix-ups.
+    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model,
+                                              std::vector<std::pair<std::string, std::string>> *renames = nullptr);
 
     bool            only_default_printers() const;
 private:

@@ -4527,8 +4527,11 @@ void MainFrame::show_rename_printer_model_dialog()
         return;
     const std::string old_model = dlg.get_selected_model();
     const std::string new_model = dlg.get_new_name();
-    int n = printers.rename_user_printer_model(old_model, new_model);
-    // Resync the edited preset (names are unchanged) and rebuild the preset UI.
+    // Real rename via the bundle: moves each variant's preset name + .json/.info and repoints forward
+    // references (app-config per-printer settings, last-selected key, user compatible_printers lists).
+    int n = wxGetApp().preset_bundle->rename_user_printer_model(old_model, new_model, *wxGetApp().app_config);
+    // The backend re-sorted the collection and re-pointed the selection at the renamed preset; refresh
+    // the edited preset copy under its (now possibly new) name and rebuild the preset UI.
     const std::string cur = printers.get_selected_preset().name;
     printers.select_preset_by_name(cur, true);
     update_side_preset_ui();

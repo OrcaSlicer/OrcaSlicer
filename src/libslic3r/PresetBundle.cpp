@@ -3556,6 +3556,62 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
+int PresetBundle::rename_user_printer_model(const std::string &old_model, const std::string &new_model, AppConfig &config)
+{
+    // Real preset rename first (moves each variant's name + .json/.info to "<model> <variant> nozzle").
+    std::vector<std::pair<std::string, std::string>> renames;
+    const int n = printers.rename_user_printer_model(old_model, new_model, &renames);
+    if (n == 0 || renames.empty())
+        return n;
+
+    std::map<std::string, std::string> name_map;
+    for (const auto &r : renames)
+        name_map.emplace(r.first, r.second);
+
+    // (1) App-config per-printer settings are keyed by preset name: move each submap old->new so the
+    // renamed printer keeps its remembered process/filament pairing, bed type, colors, etc.; repoint the
+    // submap's self-referential printer-name field and the last-selected-printer key.
+    for (const auto &r : renames) {
+        config.rename_printer_settings(r.first, r.second);
+        if (config.has_printer_settings(r.second))
+            config.set_printer_setting(r.second, PRESET_PRINTER_NAME, r.second);
+    }
+    if (config.has("presets", PRESET_PRINTER_NAME)) {
+        auto it = name_map.find(config.get("presets", PRESET_PRINTER_NAME));
+        if (it != name_map.end())
+            config.set("presets", PRESET_PRINTER_NAME, it->second);
+    }
+
+    // (2) A user filament/process preset may list a renamed printer by name in compatible_printers;
+    // rewrite those old->new so it stays compatible (system/library presets match via the parent-inherits
+    // clause and need no change). Re-save each changed preset as a diff vs its parent.
+    auto fixup = [&](PresetCollection &coll) {
+        for (Preset &preset : coll) {
+            if (!preset.is_user())
+                continue;
+            auto *cp = dynamic_cast<ConfigOptionStrings*>(preset.config.option("compatible_printers"));
+            if (cp == nullptr || cp->values.empty())
+                continue;
+            bool changed = false;
+            for (std::string &v : cp->values) {
+                auto it = name_map.find(v);
+                if (it != name_map.end()) { v = it->second; changed = true; }
+            }
+            if (!changed)
+                continue;
+            // Save the compatible_printers change in place (preset.file is the path it was loaded from);
+            // its name is unchanged, so no rename/re-sort is needed.
+            const std::string inherits = Preset::inherits(preset.config);
+            Preset *parent = inherits.empty() ? nullptr : coll.find_preset(inherits, false, true);
+            preset.save(parent ? &parent->config : nullptr);
+        }
+    };
+    fixup(prints);
+    fixup(filaments);
+
+    return n;
+}
+
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();
