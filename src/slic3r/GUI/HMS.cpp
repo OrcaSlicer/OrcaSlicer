@@ -46,7 +46,7 @@ int get_hms_info_version(std::string& version)
     std::string url = (boost::format("https://%1%/GetVersion.php?%2%") % hms_host % query_params).str();
     Slic3r::Http http = Slic3r::Http::get(url);
     http.timeout_max(10)
-        .on_complete([&result, &version](std::string body, unsigned status){
+        .on_complete([&version](std::string body, unsigned status){
             try {
                 json j = json::parse(body);
                 if (j.contains("ver")) {
@@ -95,7 +95,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
     BOOST_LOG_TRIVIAL(info) << "hms: download url = " << url;
     Slic3r::Http http = Slic3r::Http::get(url);
-    http.on_complete([this, receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
+    http.on_complete([receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
         try {
             j = json::parse(body);
             if (j.contains("result")) {

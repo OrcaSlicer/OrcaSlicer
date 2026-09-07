@@ -122,6 +122,9 @@ struct MtlData
     // Version of the data structure for load / store in the private binary format.
     int version;
     std::unordered_map<std::string, std::shared_ptr<ObjNewMtl>> new_mtl_unmap;
+    // Material names in declaration order. new_mtl_unmap is unordered, but OBJ material
+    // indices are positional, so texture import needs the original order.
+    std::vector<std::string>                                    mtl_orders;
 };
 extern bool objparse(const char *path, ObjData &data);
 extern bool mtlparse(const char *path, MtlData &data);

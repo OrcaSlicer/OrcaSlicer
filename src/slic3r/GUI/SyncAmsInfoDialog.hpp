@@ -307,8 +307,6 @@ private:
    // wxBoxSizer *    m_plate_combox_sizer          = nullptr;
     wxBoxSizer *    m_mode_combox_sizer           = nullptr;
     //wxStaticText *  m_printer_title                = nullptr;
-    wxStaticText *  m_printer_device_name          = nullptr;
-    wxStaticText *  m_printer_is_map_title         = nullptr;
 
     CapsuleButton *  m_colormap_btn = nullptr;
     CapsuleButton *  m_override_btn = nullptr;
@@ -326,7 +324,6 @@ private:
 
     bool m_check_dirty_fialment  = true;
     bool m_expand_more_settings  = true;
-    bool m_image_is_top          = false;
 
     const int LEFT_THUMBNAIL_SIZE_WIDTH = 100;
     const int RIGHT_THUMBNAIL_SIZE_WIDTH = 300;
@@ -371,7 +368,7 @@ public:
     };
     FinishSyncAmsDialog(InputInfo &input_info);
     ~FinishSyncAmsDialog() override;
-    void deal_ok();
+    void deal_ok() override;
     void update_info(InputInfo& info);
     bool Layout() override;
 

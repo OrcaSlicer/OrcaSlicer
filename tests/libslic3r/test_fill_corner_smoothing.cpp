@@ -171,3 +171,24 @@ TEST_CASE("Corner smoothing keeps the ends of a path that returns to its start",
     REQUIRE(retrace.front() == sharp.front());
     REQUIRE(retrace.back() == sharp.back());
 }
+
+TEST_CASE("Corner smoothing ignores vertices splitting a straight leg", "[FillCornerSmoothing][Regression]")
+{
+    // The triangular and grid infills emit a vertex halfway along the straight run joining two of
+    // their corners. Measuring the legs up to that vertex instead of up to the next corner let the
+    // rounding reach only half as far there as it did into the very same run elsewhere in the
+    // pattern, so geometrically identical corners came out rounded to different radii.
+    const Polyline plain{ Point::new_scale(0., 20.), Point::new_scale(10., 0.),
+                          Point::new_scale(20., 0.), Point::new_scale(30., 20.) };
+    Polyline split = plain;
+    split.points.insert(split.points.begin() + 2, Point::new_scale(15., 0.));
+
+    Polyline smooth_plain = plain;
+    smooth_polyline_corners(smooth_plain, 1., tolerance);
+    Polyline smooth_split = split;
+    smooth_polyline_corners(smooth_split, 1., tolerance);
+
+    REQUIRE(smooth_split.points == smooth_plain.points);
+    // Both corners reach the middle of the 10mm run they share, which the extra vertex sat on.
+    REQUIRE(contains(smooth_plain, Point::new_scale(15., 0.)));
+}

@@ -146,6 +146,85 @@ public:
 
 using IntersectionLines = std::vector<IntersectionLine>;
 
+// Orca: A planar face is commonly represented by multiple triangles. A slicing plane then crosses
+// their shared edges and creates intermediate 2D points which are not part of the model contour.
+// Track only edges whose two incident triangles lie in the same geometric plane within the slicing
+// coordinate precision, so those artificial junctions can be omitted without simplifying genuine,
+// nearly-collinear geometry.
+using CoplanarEdges = std::vector<bool>;
+
+static CoplanarEdges coplanar_edges(const indexed_triangle_set &mesh, const std::vector<Vec3i32> &face_edge_ids,
+                                    const Transform3d &trafo)
+{
+    struct FacePlane {
+        Vec3d origin { Vec3d::Zero() };
+        Vec3d normal { Vec3d::Zero() };
+        bool  valid { false };
+    };
+
+    // Orca: Edge IDs are dense but may include boundary edges referenced by just one face.
+    int num_edges = 0;
+    for (const Vec3i32 &edge_ids : face_edge_ids)
+        num_edges = std::max(num_edges, edge_ids.maxCoeff() + 1);
+
+    CoplanarEdges coplanar(num_edges, false);
+    std::vector<int> first_face(num_edges, -1);
+    std::vector<int> first_face_edge(num_edges, -1);
+    std::vector<FacePlane> face_planes(face_edge_ids.size());
+    std::vector<bool> face_plane_computed(face_edge_ids.size(), false);
+    auto transformed_vertex = [&mesh, &trafo](int vertex_idx) {
+        return trafo * mesh.vertices[vertex_idx].cast<double>();
+    };
+    // Orca: Compute planes lazily. The single-plane slicer masks most faces, so eagerly calculating
+    // every plane would defeat part of that optimization.
+    auto face_plane = [&mesh, &face_planes, &face_plane_computed, &transformed_vertex](int face_idx) -> const FacePlane& {
+        if (! face_plane_computed[face_idx]) {
+            const Vec3i32 &face = mesh.indices[face_idx];
+            const Vec3d a = transformed_vertex(face(0));
+            const Vec3d b = transformed_vertex(face(1));
+            const Vec3d c = transformed_vertex(face(2));
+            FacePlane &plane = face_planes[face_idx];
+            plane.origin = a;
+            plane.normal = (b - a).cross(c - a);
+            const double normal_length = plane.normal.norm();
+            if (normal_length > 0.) {
+                plane.normal /= normal_length;
+                plane.valid = true;
+            }
+            face_plane_computed[face_idx] = true;
+        }
+        return face_planes[face_idx];
+    };
+    const double plane_distance_tolerance = SCALING_FACTOR;
+    for (int face_idx = 0; face_idx < int(face_edge_ids.size()); ++ face_idx) {
+        for (int edge_idx = 0; edge_idx < 3; ++ edge_idx) {
+            const int edge_id = face_edge_ids[face_idx](edge_idx);
+            if (edge_id < 0)
+                continue;
+            if (first_face[edge_id] == -1) {
+                first_face[edge_id] = face_idx;
+                first_face_edge[edge_id] = edge_idx;
+            } else {
+                const int first_face_idx = first_face[edge_id];
+                const FacePlane &first_plane = face_plane(first_face_idx);
+                const FacePlane &second_plane = face_plane(face_idx);
+                const int first_opposite_idx = mesh.indices[first_face_idx]((first_face_edge[edge_id] + 2) % 3);
+                const int second_opposite_idx = mesh.indices[face_idx]((edge_idx + 2) % 3);
+                const Vec3d first_opposite = transformed_vertex(first_opposite_idx);
+                const Vec3d second_opposite = transformed_vertex(second_opposite_idx);
+                // Orca: A shared edge guarantees that the planes intersect, but not that they coincide.
+                // Check both opposite vertices against the neighboring plane using one coord_t as the
+                // distance tolerance. The normal dot product only preserves face orientation; it does
+                // not classify a shallow angle as coplanar (see #15364).
+                coplanar[edge_id] = first_plane.valid && second_plane.valid && first_plane.normal.dot(second_plane.normal) > 0. &&
+                    std::abs(first_plane.normal.dot(second_opposite - first_plane.origin)) <= plane_distance_tolerance &&
+                    std::abs(second_plane.normal.dot(first_opposite - second_plane.origin)) <= plane_distance_tolerance;
+            }
+        }
+    }
+    return coplanar;
+}
+
 enum class FacetSliceType {
     NoSlice = 0,
     Slicing = 1,
@@ -1057,7 +1136,8 @@ struct OpenPolyline {
 
 // called by make_loops() to connect sliced triangles into closed loops and open polylines by the triangle connectivity.
 // Only connects segments crossing triangles of the same orientation.
-static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polygons &loops, std::vector<OpenPolyline> &open_polylines)
+static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, const CoplanarEdges &coplanar_edges,
+                                                 Polygons &loops, std::vector<OpenPolyline> &open_polylines)
 {
     // Build a map of lines by edge_a_id and a_id.
     std::vector<IntersectionLine*> by_edge_a_id;
@@ -1134,6 +1214,11 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
                     (first_line->a_id      != -1 && first_line->a_id      == last_line->b_id)) {
                     // The current loop is complete. Add it to the output.
                     assert(first_line->a == last_line->b);
+                    // Orca: The seed point is also a triangle junction. Handle it explicitly because it
+                    // is never visited through the next_line branch below when the loop closes.
+                    if (first_line->edge_a_id >= 0 && first_line->edge_a_id < int(coplanar_edges.size()) &&
+                        coplanar_edges[first_line->edge_a_id])
+                        loop_pts.erase(loop_pts.begin());
                     loops.emplace_back(std::move(loop_pts));
                     #ifdef SLIC3R_TRIANGLEMESH_DEBUG
                     printf("  Discovered %s polygon of %d points\n", (p.is_counter_clockwise() ? "ccw" : "cw"), (int)p.points.size());
@@ -1153,7 +1238,12 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
                 next_line->a.x, next_line->a.y, next_line->b.x, next_line->b.y);
             */
             assert(last_line->b == next_line->a);
-            loop_pts.emplace_back(next_line->a);
+            // Orca: Skip only junctions introduced by triangulating one planar face. Unlike a generic
+            // collinearity cleanup, this preserves intentional shallow corners used when comparing
+            // adjacent layers for bridges and overhang perimeters (see #15364).
+            if (next_line->edge_a_id < 0 || next_line->edge_a_id >= int(coplanar_edges.size()) ||
+                ! coplanar_edges[next_line->edge_a_id])
+                loop_pts.emplace_back(next_line->a);
             last_line = next_line;
             next_line->set_skip();
         }
@@ -1382,7 +1472,8 @@ static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_poly
 
 static Polygons make_loops(
     // Lines will have their flags modified.
-    IntersectionLines   &lines)
+    IntersectionLines   &lines,
+    const CoplanarEdges &coplanar_edges)
 {
     Polygons loops;
 #if 0
@@ -1412,7 +1503,7 @@ static Polygons make_loops(
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
     std::vector<OpenPolyline> open_polylines;
-    chain_lines_by_triangle_connectivity(lines, loops, open_polylines);
+    chain_lines_by_triangle_connectivity(lines, coplanar_edges, loops, open_polylines);
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         {
@@ -1484,6 +1575,7 @@ template<typename ThrowOnCancel>
 static std::vector<Polygons> make_loops(
     // Lines will have their flags modified.
     std::vector<IntersectionLines> &lines, 
+    const CoplanarEdges             &coplanar_edges,
     const MeshSlicingParams        &params, 
     ThrowOnCancel                   throw_on_cancel)
 {
@@ -1491,20 +1583,13 @@ static std::vector<Polygons> make_loops(
     layers.resize(lines.size());
     tbb::parallel_for(
         tbb::blocked_range<size_t>(0, lines.size()),
-        [&lines, &layers, &params, throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+        [&lines, &layers, &coplanar_edges, &params, throw_on_cancel](const tbb::blocked_range<size_t> &range) {
             for (size_t line_idx = range.begin(); line_idx < range.end(); ++ line_idx) {
                 if ((line_idx & 0x0ffff) == 0)
                     throw_on_cancel();
 
                 Polygons &polygons = layers[line_idx];
-                polygons = make_loops(lines[line_idx]);
-
-                // Orca: A planar quad represented by two triangles contributes a point where the
-                // slicing plane crosses the shared diagonal. After rounding to coord_t this
-                // point may be very slightly off the otherwise straight contour edge. Apart
-                // from being redundant, such points make the subsequent contour
-                // simplification depend on the slice height (and may move seam candidates).
-                remove_collinear(polygons);
+                polygons = make_loops(lines[line_idx], coplanar_edges);
 
                 auto this_mode = line_idx < params.slicing_mode_normal_below_layer ? params.mode_below : params.mode;
                 if (! polygons.empty()) {
@@ -1633,7 +1718,7 @@ static std::vector<Polygons> make_slab_loops(
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
                         Polygons &loops = layers[line_idx];
                         std::vector<OpenPolyline> open_polylines;
-                        chain_lines_by_triangle_connectivity(in, loops, open_polylines);
+                        chain_lines_by_triangle_connectivity(in, {}, loops, open_polylines);
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                         {
                             SVG svg(debug_out_path("make_slab_loops-out-%d-%d-%s.svg", iRun, line_idx, ProjectionFromTop ? "top" : "bottom").c_str(), bbox_svg);
@@ -1673,7 +1758,7 @@ static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
     ExPolygons slices;
     Polygons holes;
 
-    for (Polygon &loop : make_loops(lines))
+    for (Polygon &loop : make_loops(lines, {}))
         if (loop.area() >= 0.)
             slices.emplace_back(std::move(loop));
         else
@@ -1878,6 +1963,7 @@ std::vector<Polygons> slice_mesh(
     BOOST_LOG_TRIVIAL(debug) << "slice_mesh to polygons";
        
     std::vector<IntersectionLines> lines;
+    CoplanarEdges                  coplanar;
 
     {
         //FIXME facets_edges is likely not needed and quite costly to calculate.
@@ -1885,6 +1971,8 @@ std::vector<Polygons> slice_mesh(
         // However facets_edges assigns a single edge ID to two triangles only, thus when factoring facets_edges out, one will have
         // to make sure that no code relies on it.
         std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh);
+        // Orca: Keep the coplanarity classification aligned with the edge IDs used to chain this slice.
+        coplanar = coplanar_edges(mesh, face_edge_ids, params.trafo);
         if (zs.size() <= 1) {
             // It likely is not worthwile to copy the vertices. Apply the transformation in place.
             if (is_identity(params.trafo)) {
@@ -1906,7 +1994,7 @@ std::vector<Polygons> slice_mesh(
 
     throw_on_cancel();
 
-    std::vector<Polygons> layers = make_loops(lines, params, throw_on_cancel);
+    std::vector<Polygons> layers = make_loops(lines, coplanar, params, throw_on_cancel);
 
 #ifdef SLIC3R_DEBUG
     {
@@ -1952,6 +2040,7 @@ Polygons slice_mesh(
     const MeshSlicingParams          &params)
 {
     std::vector<IntersectionLines> lines;
+    CoplanarEdges                  coplanar;
 
     {
         bool                trafo_identity = is_identity(params.trafo);
@@ -1987,6 +2076,8 @@ Polygons slice_mesh(
 
         // 3) Calculate face neighbors for just the faces in face_mask.
         std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh, face_mask);
+        // Orca: The single-plane path has its own masked edge-ID space, so classify that space separately.
+        coplanar = coplanar_edges(mesh, face_edge_ids, params.trafo);
 
         // 4) Slice "face_mask" triangles, collect line segments.
         // It likely is not worthwile to copy the vertices. Apply the transformation in place.
@@ -2002,7 +2093,7 @@ Polygons slice_mesh(
     }
 
     // 5) Chain the line segments.
-    std::vector<Polygons> layers = make_loops(lines, params, [](){});
+    std::vector<Polygons> layers = make_loops(lines, coplanar, params, [](){});
     assert(layers.size() == 1);
     return layers.front();
 }
