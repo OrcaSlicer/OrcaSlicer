@@ -1336,7 +1336,7 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
         ssdp_fn = on_ssdp_msg_fn;
-        if (!ssdp_fn) {
+        if (!ssdp_fn || device_info.dev_id.empty() || device_info.dev_ip.empty() || device_info.base_url.empty()) {
             return;
         }
         if (ssdp_announced_host == device_info.base_url && !ssdp_announced_id.empty()) {

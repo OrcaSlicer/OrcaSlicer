@@ -1320,6 +1320,26 @@ void AppConfig::save()
 }
 #endif
 
+void AppConfig::clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id)
+{
+    // Unscoped credentials predate printer agents and belong to the legacy BBL agent.
+    const bool is_bbl_agent = agent_id.empty() || agent_id == "bbl";
+    auto it = m_local_machines.find(dev_id);
+    if (it != m_local_machines.end()) {
+        const std::string& stored_agent = it->second.printer_agent_id;
+        if (stored_agent == agent_id || (is_bbl_agent && (stored_agent.empty() || stored_agent == "bbl"))) {
+            if (!it->second.access_code.empty()) {
+                it->second.access_code.clear();
+                m_dirty = true;
+            }
+        }
+    }
+    if (is_bbl_agent) {
+        erase("access_code", dev_id);
+        erase("user_access_code", dev_id);
+    }
+}
+
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const
 {
     const auto it_v = m_vendors.find(vendor);

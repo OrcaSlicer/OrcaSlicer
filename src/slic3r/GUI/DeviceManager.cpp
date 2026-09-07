@@ -478,23 +478,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                 if (!code.empty()) {
                     DeviceManager::update_local_machine(*this);
                 } else {
-                    // Only patch an existing record's code - don't persist a brand-new
-                    // never-bound entry just because set_access_code("") was called on it.
-                    const auto& machines = config->get_local_machines();
-                    auto        it       = machines.find(get_dev_id());
-                    if (it != machines.end()) {
-                        BBLocalMachine local_machine   = it->second;
-                        local_machine.printer_agent_id = printer_agent_id;
-                        local_machine.access_code      = "";
-                        config->update_local_machine(local_machine);
-                    }
-                    // Also clear the pre-scoping flat legacy key when unbinding under BBL, so an
-                    // old BBL-era code can't silently "re-bind" this device again via
-                    // get_access_code_with_legacy_fallback()'s legacy fallback.
-                    if (printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty()) {
-                        config->erase("access_code", get_dev_id());
-                        config->erase("user_access_code", get_dev_id());
-                    }
+                    config->clear_local_machine_access_code(get_dev_id(), printer_agent_id);
                 }
             } else {
                 if (!code.empty())
