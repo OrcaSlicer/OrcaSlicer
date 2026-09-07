@@ -229,6 +229,18 @@ static t_config_enum_values s_keys_map_NoiseType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
 
+static t_config_enum_values s_keys_map_CornerType {
+    { "auto",           int(CornerType::Auto) },
+    { "groove",         int(CornerType::Groove) },
+    { "cut",            int(CornerType::Cut) },
+    { "trapezoid",      int(CornerType::Trapezoid) },
+    { "spike",          int(CornerType::Spike) },
+    { "full",           int(CornerType::Full) },
+    { "round",          int(CornerType::Round) },
+    { "none",           int(CornerType::None) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CornerType)
+
 static t_config_enum_values s_keys_map_WipeTowerType {
     { "type1",          int(WipeTowerType::Type1) },
     { "type2",          int(WipeTowerType::Type2) }
@@ -237,8 +249,10 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
 
 static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "displacement",   int(FuzzySkinMode::Displacement) },
+    { "displacement+",  int(FuzzySkinMode::Displacement_plus) },
     { "extrusion",      int(FuzzySkinMode::Extrusion) },
-    { "combined",       int(FuzzySkinMode::Combined)}
+    { "combined",       int(FuzzySkinMode::Combined)},
+    { "fur",            int(FuzzySkinMode::Fur)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
 
@@ -3946,23 +3960,26 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_mode", coEnum);
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");
-    def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
-                     "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+    def->tooltip = L("Fuzzy skin generation mode.\n"
+                     "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path. \n"
+                     "Next modes works only with Arachne wall generator and only for expansion: \n"
+                     "Displacement+: Repeats the [Displacement] classic mode by outer contour but works with filling of voids. \n"
                      "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
                      "This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. "
-                     "But it is more useful for forming loose walls in the entire they array.\n"
-                     "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n\n"
-                     "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. "
-                     "At the same time, the width of the extrusion for a particular layer should also not be below a certain level. "
-                     "It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
-                     "If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated." );
+                     "But it is more useful for forming loose walls in the entire they array. \n"
+                     "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters. \n"
+                     "Fur: The shuttle filling mode. For better filling, set the 'fuzzy_skin_point_distance' parameter to be equal of 'nozzle_diameter'. ");
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinMode>::get_enum_values();
     def->enum_values.push_back("displacement");
+    def->enum_values.push_back("displacement+");
     def->enum_values.push_back("extrusion");
     def->enum_values.push_back("combined");
+    def->enum_values.push_back("fur");
     def->enum_labels.push_back(L("Displacement"));
+    def->enum_labels.push_back(L("Displacement+"));
     def->enum_labels.push_back(L("Extrusion"));
     def->enum_labels.push_back(L("Combined"));
+    def->enum_labels.push_back(L("Fur"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
 
@@ -3991,6 +4008,30 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Ripple"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<NoiseType>(NoiseType::Classic));
+
+    def = this->add("corner_type", coEnum);
+    def->label = L("Fuzzy skin corner type");
+    def->category = L("Others");
+    def->tooltip = L("Corner type for fuzzy skin.\n");
+    def->enum_keys_map = &ConfigOptionEnum<CornerType>::get_enum_values();
+    def->enum_values.push_back("auto");
+    def->enum_values.push_back("groove");
+    def->enum_values.push_back("cut");
+    def->enum_values.push_back("trapeziod");
+    def->enum_values.push_back("spike");
+    def->enum_values.push_back("full");
+    def->enum_values.push_back("round");
+    def->enum_values.push_back("none");
+    def->enum_labels.push_back(L("Auto"));
+    def->enum_labels.push_back(L("Groove"));
+    def->enum_labels.push_back(L("Cut"));
+    def->enum_labels.push_back(L("Trapezoid"));
+    def->enum_labels.push_back(L("Spike"));
+    def->enum_labels.push_back(L("Full"));
+    def->enum_labels.push_back(L("Round"));
+    def->enum_labels.push_back(L("None"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<CornerType>(CornerType::Auto));
 
     def = this->add("fuzzy_skin_scale", coFloat);
     def->label = L("Fuzzy skin feature size");

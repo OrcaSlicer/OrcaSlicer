@@ -21,10 +21,14 @@ struct FuzzySkinConfig
     int           noise_octaves;
     double        noise_persistence;
     FuzzySkinMode mode;
+
     int           ripples_per_layer;
     double        ripple_offset;
     int           layers_between_ripple_offset;
     int           layer_id;
+    CornerType    corner_type;
+    coord_t       wall_width;   // info variable
+    coord_t       minimal_line; // info variable, keep it last
 
     bool operator==(const FuzzySkinConfig& r) const
     {
@@ -39,7 +43,8 @@ struct FuzzySkinConfig
             && mode == r.mode
             && ripples_per_layer == r.ripples_per_layer
             && ripple_offset == r.ripple_offset
-            && layers_between_ripple_offset == r.layers_between_ripple_offset;
+            && layers_between_ripple_offset == r.layers_between_ripple_offset
+            && corner_type == r.corner_type;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -63,6 +68,7 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<int>{}(c.ripples_per_layer));
         boost::hash_combine(seed, std::hash<double>{}(c.ripple_offset));
         boost::hash_combine(seed, std::hash<int>{}(c.layers_between_ripple_offset));
+        boost::hash_combine(seed, std::hash<Slic3r::CornerType>{}(c.corner_type));
         return seed;
     }
 };

@@ -91,6 +91,8 @@ set(lisbslic3r_sources
     Circle.hpp
     clipper.cpp
     clipper.hpp
+    ClipperTools.cpp
+    ClipperTools.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
     Clipper2Utils.cpp

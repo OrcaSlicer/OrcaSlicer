@@ -410,7 +410,46 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
 
-        ExtrusionPaths paths;
+        ExtrusionPaths paths, paths_complex; // paths_complex - is a complex pathlines 
+        
+        // Orca: detect complex paths and sort its
+        // Complex paths are programically arise during the loop transformation process, for ex. of fuzzy skin.
+        // They may contain additional extrusion lines, for example, to close voids or gaps that occur during the generation of new walls.
+        // They are transmitted in the basic petri vector, but they have a unique index. For example, to create an additional internal contour, the value 10000 is selected.
+        // You can choose any other value above this to define any other roles for extrusion or traveling.
+        // Complex lines are split into separate lines by introducing a zero width into the sequence.
+        // The extrusion width of 1 does not interrupt the line, but it will not be printed due to the ultra-low flow rate.
+        
+        if (std::any_of(extrusion->junctions.begin(), extrusion->junctions.end(), [](Arachne::ExtrusionJunction j) {return j.perimeter_index > 100000;})) {
+            Arachne::ExtrusionLine el_extrusion(*extrusion);
+            el_extrusion.junctions.clear();
+            Arachne::ExtrusionLine el_complex(*extrusion);
+            el_complex.junctions.clear();
+            coord_t minimum_line = scaled(std::max(perimeter_generator.layer_height, double(perimeter_generator.ext_perimeter_flow.spacing())) * 0.22);
+            for (auto ej : extrusion->junctions) {
+                if (ej.perimeter_index < 100000) {
+                    el_extrusion.junctions.emplace_back(ej);
+                    if (el_complex.size() < 2) 
+                        continue;
+                } else if (ej.w >= minimum_line) {
+                    el_complex.junctions.emplace_back(ej);
+                    continue;
+                } else if (el_complex.size() < 2)
+                     continue;
+                extrusion_paths_append(paths_complex, el_complex, ExtrusionRole::erPerimeter, perimeter_generator.ext_perimeter_flow);
+                el_complex.clear();
+            } 
+            if (el_complex.size() > 1) 
+                extrusion_paths_append(paths_complex, std::move(el_complex), ExtrusionRole::erPerimeter, perimeter_generator.ext_perimeter_flow);
+
+            // After filtering, return the non-complex paths to the parent vector.
+            if (el_extrusion.size() > 1) { 
+                extrusion->junctions.clear();
+                for (auto &ej : el_extrusion.junctions)
+                    extrusion->junctions.emplace_back(std::move(ej));
+            }
+        }
+
         // detect overhanging/bridging perimeters
         if (perimeter_generator.config->detect_overhang_wall && perimeter_generator.layer_id > perimeter_generator.object_config->raft_layers) {
             ClipperLib_Z::Path extrusion_path;
@@ -522,6 +561,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 }
 
                 chain_and_reorder_extrusion_paths(paths, &start_point);
+                if (paths_complex.size()) // Orca: chain complex paths
+                    chain_and_reorder_extrusion_paths(paths_complex, &start_point);
 
                 if (overhangs_reverse) {
                     for (const ExtrusionPath& path : paths) {
@@ -544,6 +585,20 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             }
 
             extrusion_paths_append(paths, *extrusion, role, is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow);
+        }
+
+        // Orca: complex paths, used for improved Fuzzy skins
+        if (paths_complex.size()) {
+            ExtrusionMultiPath multi_path;
+            multi_path.paths.emplace_back(std::move(paths_complex.front()));
+            for (auto it_path = std::next(paths_complex.begin()); it_path != paths_complex.end(); ++it_path) {
+                if (multi_path.paths.back().last_point() != it_path->first_point()) {
+                    extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
+                    multi_path = ExtrusionMultiPath();
+                }
+                multi_path.paths.emplace_back(std::move(*it_path));
+            }
+            extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
         }
 
         // Append paths to collection.

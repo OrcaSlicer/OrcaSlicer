@@ -4,6 +4,7 @@
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ClipperTools.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/PerimeterGenerator.hpp"
 #include "libslic3r/Point.hpp"
@@ -15,7 +16,7 @@
 
 #include "libnoise/noise.h"
 
-// #define DEBUG_FUZZY
+//#define DEBUG_FUZZY
 
 using namespace Slic3r;
 
@@ -300,8 +301,10 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
         return;
     }
 
-    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
+    if (poly.size() < 2)
+        return;
 
+    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const double range_random_point_dist = cfg.point_distance / 2.;
     double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
@@ -333,18 +336,153 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
     while (out.size() < 3) {
         size_t point_idx = poly.size() - 2;
         out.emplace_back(poly[point_idx]);
-        if (point_idx == 0)
+        if (--point_idx == 0)
             break;
-        -- point_idx;
+        --point_idx;
     }
     if (out.size() >= 3)
         poly = std::move(out);
 }
 
-// Thanks Cura developers for this function.
-void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed)
+// internal fuzzy skin parameters
+struct FuzzySkinParams
 {
+    Arachne::ExtrusionJunctions& out;
+    Arachne::ExtrusionJunctions& out2;
+    FuzzySkinMode                current_mode;
+    CornerType                   current_corner_type;
+    const FuzzySkinConfig&       cfg;
+    double                       z;
+    bool                         one_way_expansion; // one_way_expansionmetric skin (true = Displacement+, Combined)
+    noise::module::Module&       noise;
+    coord_t                      params[3] = {0, 0, 0};
+    bool                         draw_fill = true;
+    bool                         draw_line = true;
+    bool                         draw_corner = false;
+    bool                         draw_required = false;
+};
 
+template<typename T> 
+static double get_noise_value(const noise::module::Module& noise, const T& point, double z, bool one_way_expansion) {
+    return one_way_expansion ? std::max(noise.GetValue(unscale_(point.x()), unscale_(point.y()), z) * .5 + .5, 0.) :
+                               noise.GetValue(unscale_(point.x()), unscale_(point.y()), z);
+};
+
+#define WIDELINE_LIMIT 2.5
+// Function for drawing a new point(s) on the fuzzy line
+// vector - a variable that determines the direction to the required fuzzy skin point relative to the base point.
+// j      - Extrusion base Junction point with coordinates, thickness and index. The index is a serial number of the wall.
+//          The index changes for complex lines or void fillers, if they are generated (< 0 or > 99999).
+//          Complex lines will be printed with the inner walls parameters before printing the outer wall.
+// p      - additional parameters of Fuzzy Skin
+
+static inline void place_point(Arachne::ExtrusionJunction& j, Arachne::ExtrusionJunctions& m, size_t tolerance) { 
+    if ((!m.size() || (m.back().p - j.p).norm() > tolerance || m.back().w != j.w))
+        m.push_back(j);
+}
+
+//static inline void place_point(Vec2d p, coord_t w, coord_t perimeter_index, Arachne::ExtrusionJunctions& m, size_t tolerance) 
+//    { place_point(Arachne::ExtrusionJunction(p.cast<coord_t>(), w, perimeter_index), m, tolerance); }
+
+static void fuzzy_point(Vec2d vector, Arachne::ExtrusionJunction j, FuzzySkinParams& p) {
+    Vec2d point(j.p.cast<double>());
+    Vec2d new_point(point + vector);
+    Vec2d norm(vector.normalized());
+    double distance = abs(vector.norm());
+    const coord_t wall_width = p.cfg.wall_width;
+    const coord_t real_width = j.w;
+    const coord_t limit = real_width / 8;
+    const coord_t index = j.perimeter_index;
+    coord_t counter = p.params[0] / std::min(p.cfg.point_distance, limit); // reduce resolution up to wall real_width (nozzle dizmeter);
+    Arachne::ExtrusionJunction j1(new_point.cast<coord_t>(), j.w, index);
+    Arachne::ExtrusionJunction j2(new_point.cast<coord_t>(), 0, -1);
+    switch (p.current_mode) {
+    case FuzzySkinMode::Displacement: // classical algorithm, no any changed, two-way expansion
+        place_point(j1, p.out, SCALED_EPSILON);
+        break;
+    case FuzzySkinMode::Displacement_plus: // classical algorithm, one-way expansion
+        if (p.draw_line)
+            place_point(j1, p.out, SCALED_EPSILON);
+         if (p.draw_fill) {
+            counter = p.params[0] / real_width;
+            if ((counter != p.params[1]) || p.draw_required) {
+                p.params[1] = counter;
+                if (p.cfg.noise_type == NoiseType::Voronoi && !p.draw_corner) {
+                    const Point side((perp(vector).normalized() * real_width * 0.5).cast<coord_t>());
+                    double dist2 = std::min(get_noise_value(p.noise, j.p + side, p.z, p.one_way_expansion),
+                                            get_noise_value(p.noise, j.p - side, p.z, p.one_way_expansion));
+                    distance     = std::min(distance, dist2 * p.cfg.thickness);
+                }
+                if (distance < real_width * WIDELINE_LIMIT) { // conditions for determining when a wide line or zig-zag is filled
+                    if (p.draw_corner)
+                        distance *= 0.5;
+                    if (p.out2.size() && p.params[2]) 
+                        p.out2.back().w = j2.w = real_width;
+                    else
+                        j2.w = distance;
+                    j2.p = j.p + (norm * (distance - j.w) * 0.5).cast<coord_t>();
+                    p.params[2] = 0;
+                } else { // draw zig-zag filling
+                    if (!p.params[2] || p.out2.size())
+                        p.out2.back().w = real_width;
+                    j2.w = real_width;
+                    distance -= real_width;
+                    j2.p = (!p.draw_required && p.params[2]++ % 2) ? 
+                                (p.draw_corner ? j.p + (norm * distance * 0.33).cast<coord_t>() : j.p) :
+                                j.p + (norm * distance).cast<coord_t>();
+                }
+                if (j2.w)
+                    place_point(j2, p.out2, SCALED_EPSILON);
+            }
+        }
+        break;
+    case FuzzySkinMode::Extrusion:
+        if (p.cfg.point_distance >= limit || counter != p.params[1]) {
+            p.params[1] = counter;
+            j1.p        = point.cast<coord_t>();
+            j1.w        = std::max(double(p.cfg.thickness) - distance, double(p.cfg.minimal_line));
+            place_point(j1, p.out, SCALED_EPSILON);
+        }
+        break;
+    case FuzzySkinMode::Combined:
+        if (p.cfg.point_distance >= limit || counter != p.params[1]) {
+            p.params[1] = counter;
+            distance   += p.cfg.minimal_line;
+            j1.p = (point + norm * (distance - real_width) * 0.5).cast<coord_t>();
+            j1.w = distance;
+            place_point(j1, p.out, SCALED_EPSILON);
+        }
+        break;
+    case FuzzySkinMode::Fur:
+        if (p.cfg.point_distance >= limit || counter != p.params[1] || p.draw_required) {
+            p.params[1] = counter;
+            j1.p        = (!p.draw_required && (p.params[2]++ % 2) ?
+                               (p.one_way_expansion ? (p.draw_corner ? point + norm * distance * 0.5 : point) : point - vector) :
+                               new_point).cast<coord_t>();
+            j1.w        = p.cfg.point_distance < wall_width ? wall_width * p.cfg.point_distance / real_width : real_width;
+            place_point(j1, p.out, SCALED_EPSILON);
+            //place_point({(!p.draw_required && (p.params[2]++ % 2) ?
+            //                 (p.one_way_expansion ? (p.draw_corner ? point + norm * distance * 0.5 : point) : point - vector) :
+            //                  new_point).cast<coord_t>(),
+            //             p.cfg.point_distance < wall_width ? wall_width * p.cfg.point_distance / real_width : real_width, index},
+            //            p.out, SCALED_EPSILON);
+        }
+        break;
+    }
+};
+
+// Thanks Cura developers for the base of this function.
+// Orca: This function has been rewritten to increase its functionality.
+// The initial extrusion line is converted to a Clipper compatible geometry, after that it can be filtered and converted into the desired result using standard painting functions.
+// In the main loop, the polyline is divided into lines, and the gaps between them are filled using the angle formation algorithm.
+// The parameters of the calculation point are passed to the position calculation function, which, among other things, 
+// allows you to predict the characteristics and behavior of the final coordinate of the fuzzy envelope curve. 
+// It is also possible to calculate the characteristics of an additional curve, such as those that fill in the gaps 
+// if they were left over from the classical filling process. This method is also convenient for creating a textured and parametric fuzzy shell.
+// At the end of the process, the resulting extrusion line is finally filtered to ensure unparalleled print quality.
+// For clarity, the debugging section (DEBUG_FUZZY) was modified so that you can see all the features of the algorithms being used.
+
+static void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed) {
     if (cfg.noise_type == NoiseType::Ripple) {
         if (ext_lines.size() < 3)
             return;
@@ -352,65 +490,442 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
         return;
     }
 
+    // Convert into polyline with Clipper geometry logic
+    const bool& is_loop = closed;                             // 'closed' alias. It is better to leave it in case you need to check and refine the status of almost closed lines.
+    Polyline main_contour(to_polyline(ext_lines, is_loop));   // keep the whole line for future use. Save the outline immediately to prevent the ext_lines reference from changing
+
+    const size_t index(ext_lines.front().perimeter_index);    // perimeter index alias
+    const double real_width(ext_lines[0].w);                  // real width alias (need to recalc by whole path)
+    const double wall_width(cfg.wall_width);                  // wall width alias
+    const double thickness(cfg.thickness);                    // thickness alias
+    Arachne::ExtrusionJunction s_point(main_contour[0], real_width, index); 
+    Arachne::ExtrusionJunction e_point(main_contour.back(), real_width, index); 
+
+#define FILTER_CURLS     (thickness * 3.5)                    // the length of the line on which the self-intersections will be searched
+#define FILTER_PERIMETER (thickness * 2)                      // the length of perimeter of the small polygons
+#define FILTER_AREA      (std::pow(thickness, 2) * 0.25)      // the area of the small polygons
+#define FILTER_IN_LENGTH (thickness)                          // the min length of the input line. These are usually is a short lines that are completely hidden in the fuzzy skin.
+
+    // Simplify main contour
+    main_contour.simplify(SCALED_EPSILON);
+    const size_t size = main_contour.size();
+    if (size < 2)
+        return;
+
+    // Calculate polyline length
+    coord_t overall        = 0;
+    for (size_t it = 1; it < size; it++) 
+        overall += (main_contour[it] - main_contour[it - 1]).norm();
+
+    const double distance  = cfg.point_distance;
+    bool         one_way   = cfg.mode == FuzzySkinMode::Displacement_plus || cfg.mode == FuzzySkinMode::Combined || cfg.mode == FuzzySkinMode::Fur;
+    
+    // Return if the line too short or has undesired index
+    if ((closed && overall < FILTER_IN_LENGTH) || (index > 0 && one_way))
+        return;
+
+    const bool is_random   = cfg.noise_type == NoiseType::Classic || cfg.mode == FuzzySkinMode::Fur;
+    const bool is_thicked  = cfg.mode == FuzzySkinMode::Extrusion || cfg.mode == FuzzySkinMode::Combined;
+    const bool is_filtered = cfg.mode == FuzzySkinMode::Displacement_plus || cfg.mode == FuzzySkinMode::Fur;
+
+    // Determinate the random first point of the loop for best randomization
+    if (is_loop && is_filtered) {
+        main_contour.points.pop_back();
+        std::rotate(main_contour.points.begin(), main_contour.points.begin() + random_value() * (size - 1), main_contour.points.end());
+        main_contour.points.push_back(main_contour.points.front());
+    }
+
+    Arachne::ExtrusionJunctions out, out2; // out2 - additional complex contour (voids infill) for some modes
+    size_t cap = (overall / std::min(distance, wall_width / 8) + size);
+    out.reserve(std::min(cap, out.max_size()));
+    if (cfg.mode == FuzzySkinMode::Displacement_plus)
+        out2.reserve(std::min(cap * 2, out2.max_size()));
+    
+    const double min_dist_between_points = is_random ? distance * .75 : distance; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const double range_random_point_dist = is_random ? distance * .5  : 0.;       // is_random ? ... - disabled for the test function of precise corners when using 3D noise
+    double dist_left_over = random_value() * (min_dist_between_points * .5);      // the distance to be traversed on the line before making the first new point
+    coord_t minimal_line  = cfg.minimal_line;                                     // Minimal linewidth for this condition for height and spacing: parsms * float(1. - 0.25 * PI);
+
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
-    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    const double range_random_point_dist = cfg.point_distance / 2.;
-    const double min_extrusion_width = 0.01; // workaround for many print options. Need overwrite formula with the layer height parameter. The width must more than >>> layer_height * (1 - 0.25 * PI) * 1.05 <<< (last num is the coeff of overlay error case)
-    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+    // Use this var for length calc. Determinate first random point for Fur and Displacement+ infill 
+    overall += dist_left_over * min_dist_between_points;
+    FuzzySkinParams params{out,     out2,   cfg.mode, cfg.corner_type, cfg, slice_z,
+                           one_way, *noise, {overall, rand() * coord_t(distance) + overall, rand()}}; //{overall, overall + random_value() * distance, 0}
 
-    auto* p0 = &ext_lines.front();
-    Arachne::ExtrusionJunctions out;
-    out.reserve(ext_lines.size());
-    for (auto& p1 : ext_lines) {
-        // Orca: only skip the first point for closed path, open path should not skip any point
-        if (closed) {
-            if (p0->p == p1.p) { // Connect endpoints.
-                out.emplace_back(p1.p, p1.w, p1.perimeter_index);
-                continue;
+    // Get the angles map of cornerrs
+    std::vector<double> corners(size, 0.);
+    double last_angle = 0;
+    for (int i = 0; i < size - 1; i++) {
+        Point p       = main_contour[i + 1] - main_contour[i];
+        double angle  = atan2(p.y(), p.x());
+        corners[i]    = constrainPI(angle - last_angle);
+        last_angle    = angle;
+    }
+
+
+    // Start point of the contour
+    Vec2d p0(main_contour[0].cast<double>());
+    Vec2d p1(main_contour[1].cast<double>());
+    Vec2d p0p1(p1 - p0);
+    Vec2d pa;
+    Vec2d vect0(p0p1.normalized()); // line vector for current line
+    Vec2d perp0;                    // perpendicular for the vector
+    double r = get_noise_value(*noise, p0, slice_z, one_way) * thickness;
+    Arachne::ExtrusionJunction j(p0.cast<coord_t>(), real_width, index);
+
+    if (is_loop) 
+        corners[0] = corners[size - 1] = constrainPI(corners[0] - last_angle);
+    else {
+        out.push_back(s_point); // connect the start end for unclosed path
+        corners[0] = corners[size - 1] = 0.;
+        // Set a bypass for non-closed paths
+        // if (params.current_mode == FuzzySkinMode::Displacement_plus) {
+        //    params.one_way_expansion = false;
+        //    params.current_mode = FuzzySkinMode::Displacement;
+        //}
+        // if (params.current_mode == FuzzySkinMode::Combined) {
+        //    params.one_way_expansion = false;
+        //    params.current_mode = FuzzySkinMode::Extrusion;
+        //}
+    }
+
+    switch (params.current_mode) {
+    case FuzzySkinMode::Displacement: // classical algorithm, no any changed, two-way expansion
+        params.one_way_expansion = one_way = false;
+        break;
+    }
+
+    // Automatic corner shaper for certain types of fuzzy lines
+    if (params.cfg.corner_type == CornerType::Auto) {
+        params.current_corner_type = CornerType::Trapezoid; // default
+        if (params.current_mode == FuzzySkinMode::Fur)
+            params.current_corner_type = CornerType::Trapezoid;
+        if (params.current_mode == FuzzySkinMode::Displacement_plus)
+            switch (params.cfg.noise_type) {
+            case NoiseType::RidgedMulti:
+            case NoiseType::Voronoi: params.current_corner_type = CornerType::Full; break;
+            case NoiseType::Billow:
+            case NoiseType::Perlin: params.current_corner_type = CornerType::Round;
             }
-        }
+        else
+            switch (params.cfg.noise_type) {
+            case NoiseType::RidgedMulti:
+            case NoiseType::Voronoi: params.current_corner_type = CornerType::Full; break;
+            case NoiseType::Classic: params.current_corner_type = CornerType::Round; break;
+            }
+    }
 
-        // 'a' is the (next) new point between p0 and p1
-        Vec2d  p0p1 = (p1.p - p0->p).cast<double>();
+    for (size_t it = 1; it < size; it++) {
+        p1 = main_contour[it].cast<double>();
+        
+        p0p1             = p1 - p0;
+        vect0            = p0p1.normalized(); // line vector
+        perp0            = perp(vect0);       // perpendicular of the p0p1 vector
+        pa               = p0;                // 'a' is the (next) new point between p0 and p1
         double p0p1_size = p0p1.norm();
         double p0pa_dist = dist_left_over;
+
         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
-            Point pa = p0->p + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
-            double r = noise->GetValue(unscale_(pa.x()), unscale_(pa.y()), slice_z) * cfg.thickness;
-            switch (cfg.mode) { //the curly code for testing
-                case FuzzySkinMode::Displacement :
-                    out.emplace_back(pa + (perp(p0p1).cast<double>().normalized() * r).cast<coord_t>(), p1.w, p1.perimeter_index);
+            pa               = p0 + p0p1 * p0pa_dist / p0p1_size;
+            params.params[0] = overall + p0pa_dist;
+            fuzzy_point(perp0 * get_noise_value(*noise, pa, slice_z, one_way) * thickness,
+                        Arachne::ExtrusionJunction (pa.cast<coord_t>(), real_width, index), params);
+        }
+        overall += p0p1_size;
+ 
+        double const current_corner = corners[it];
+        double const current_corner_2(current_corner / 2.);
+        double const direction0     = constrainPI(atan2(vect0.y(), vect0.x()));
+        double const direction1     = constrainPI(direction0 + current_corner);
+        double theta                = 0.;
+        Vec2d vect1(cos(direction1), sin(direction1)); // vector of p1p2
+        Vec2d perp1(perp(vect1));
+        r   = get_noise_value(*noise, p1, slice_z, one_way) * thickness;
+        j.p = p1.cast<coord_t>();                      // set universal junction with wall wall_width parameter, if the extruded line is of variable wall_width, replace this parameter with "wall_width" of the point 
+
+        // Draw a needed point outside perimeter at visible corner
+        if (current_corner * r < 0.) {                 // for outside corners only
+            if (abs(current_corner) > M_PI_8) {        // for weight angles only
+                params.draw_corner = true;
+                double _rs, _re;
+                Vec2d vect_d;
+                Vec2d sec_point;
+                switch (params.current_corner_type) {  // end line point
+                case CornerType::Groove:               // form the groove corner
+                    params.draw_required = true;
+                    fuzzy_point(perp0 * r, j, params);
+                    params.draw_fill = false;
+                    fuzzy_point(Vec2d(0., 0.), j, params);
+                    params.draw_fill = true;
+                    fuzzy_point(perp1 * r, j, params);
+                    params.draw_required = false;
                     break;
-                case FuzzySkinMode::Extrusion :
-                    out.emplace_back(pa, std::max(p1.w + r + min_extrusion_width,  min_extrusion_width), p1.perimeter_index); 
+                case CornerType::Cut: // form the cut corner
+                    fuzzy_point(perp0 * r, j, params);
+                    fuzzy_point(perp1 * r, j, params);
                     break;
-                case FuzzySkinMode::Combined :
-                    double rad = std::max(p1.w + r + min_extrusion_width,  min_extrusion_width);
-                    out.emplace_back(pa + (perp(p0p1).cast<double>().normalized() * ((rad  - p1.w) / 2)).cast<coord_t>(), rad, p1.perimeter_index); //0.05 - minimum width of extruded line
+                case CornerType::Trapezoid: // form the trapezoid corner
+                    p0pa_dist -= p0p1_size;
+                    theta     = constrainPI(direction0 + current_corner_2);
+                    vect_d    = Vec2d(cos(theta), sin(theta));    // vector of connection line
+                    sec_point = perp0 * r;                        // start point of corner line
+                    p0p1_size = ((perp1 * r) - sec_point).norm(); // length of connection line
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+                        params.params[0] = overall + p0pa_dist;
+                        Vec2d _vect_t(sec_point + vect_d * p0pa_dist); // vector of third point
+                        fuzzy_point(_vect_t, j, params);
+                    }
+                    overall += p0p1_size;
                     break;
+                case CornerType::Spike: // form the corner by its vertex
+                    params.draw_required = true;
+                    theta                = constrainPI(atan2(perp0.y(), perp0.x()) + current_corner_2);
+                    if (abs(current_corner) > M_3PI_4) // for angles greater than 135 degrees, the vertex offset should be limited
+                        fuzzy_point(Vec2d(cos(theta), sin(theta)) * r, j, params);
+                    else
+                        fuzzy_point(Vec2d(cos(theta), sin(theta)) * r / abs(cos(current_corner_2)), j, params);
+                    params.draw_required = false;
+                    break;
+                case CornerType::Full: // form the full corner (harcoded, but it's work)
+                    if (abs(current_corner) > M_3PI_4) // for angles greater than 135 degrees, the vertex offset should be limited
+                        _rs = _re = get_noise_value(*noise, p1, slice_z, one_way) * thickness;
+                    else { // otherwise get the real offset of the corner
+                        _rs = abs(tan(current_corner_2)) * get_noise_value(*noise, p1 - vect1 * thickness, slice_z, one_way) * thickness;
+                        _re = abs(tan(current_corner_2)) * get_noise_value(*noise, p1 + vect0 * thickness, slice_z, one_way) * thickness;
+                    }
+                    //params.draw_fill = false;
+                    p0pa_dist -= p0p1_size;
+                    p0p1_size = _rs;
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+                        params.params[0] = overall + p0pa_dist;
+                        fuzzy_point(vect0 * p0pa_dist + perp0 * r, j, params);
+                    }
+                    overall += p0p1_size;
+                    p0pa_dist -= p0p1_size;
+                    p0p1_size = _re;
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+                        params.params[0] = overall + p0pa_dist;
+                        fuzzy_point(vect1 * (p0pa_dist - p0p1_size) + perp1 * r, j, params);
+                    }
+                    overall += p0p1_size;
+                    break;
+                case CornerType::Round: // form round corner
+                    p0pa_dist -= p0p1_size;
+                    p0p1_size = abs(current_corner * r);
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+                        params.params[0] = overall + p0pa_dist;
+                        theta            = constrainPI(atan2(perp0.y(), perp0.x()) + current_corner * p0pa_dist / p0p1_size);
+                        fuzzy_point(Vec2d(cos(theta), sin(theta)) * r, j, params);
+                    }
+                    overall += p0p1_size;
+                    break;
+                }
+                params.draw_corner = false;
+            } else {
+                params.params[0] = overall + p0pa_dist;
+                //fuzzy_point(perp0 * r, j, params);
+                theta = constrainPI(atan2(perp0.y(), perp0.x()) + current_corner_2);
+                fuzzy_point(Vec2d(cos(theta), sin(theta)) * r / abs(cos(current_corner_2)), j, params);
+                //fuzzy_point(perp1 * r, j, params);
             }
         }
         dist_left_over = p0pa_dist - p0p1_size;
-        p0 = &p1;
+        p0             = p1;
     }
+ 
+    // Connect points
+    if (!is_loop)
+        out.push_back(e_point); // connect the finish end for unclosed path
+    else if (out.front().p != out.back().p || out.front().w != out.back().w)
+        out.push_back(out.front()); // if the closed path is not closed, close it
 
-    while (out.size() < 3) {
-        size_t point_idx = ext_lines.size() - 2;
-        out.emplace_back(ext_lines[point_idx].p, ext_lines[point_idx].w, ext_lines[point_idx].perimeter_index);
-        if (point_idx == 0)
-            break;
-        --point_idx;
+    if (out.size() < 2) // bypass for negative conditions
+        return;
+
+    // Check for minimal extrusion
+    for (Arachne::ExtrusionJunction& ej : out)
+        if (ej.w < cfg.minimal_line)
+            ej.w = cfg.minimal_line;
+
+    Polyline raw_contour(to_polyline(out, is_loop));
+    raw_contour.simplify(SCALED_EPSILON);
+    if (raw_contour.size() < 2) // bypass simplify fiolter
+        raw_contour = to_polyline(out, is_loop);
+
+    if (raw_contour.size() < 2) // bypass for negative conditions
+        return;
+
+    bool dir(is_counter_clockwise(main_contour) && is_loop);
+    const size_t width_2 = wall_width / 2;
+   
+#ifdef DEBUG_FUZZY
+    {
+        BoundingBox bbox = get_extents(main_contour);
+        bbox.offset(thickness * 2);
+
+        // Set region counters
+        static time_t last_session;
+        time_t current_time = std::time(nullptr);
+        static std::vector<size_t> regions(1024, 0);
+        size_t layer_id(cfg.layer_id);
+        
+        static std::mutex debug_mute;
+        debug_mute.lock();
+        if (last_session + 3 < current_time)
+            regions = std::vector<size_t>(1024, 0);
+        if (regions.size() < layer_id)
+            regions.resize(layer_id * 2, 0);
+        regions[layer_id]++;
+        last_session = current_time;
+        debug_mute.unlock();
+
+        ::Slic3r::SVG svg(debug_out_path("fuzzy_skin_%d_z%.2f_%s_%d.svg", layer_id + 1, slice_z, is_loop ? dir ? "int" : "ext" : "reg", regions[layer_id]).c_str(), bbox);
+
+        const size_t width_4 = real_width / 4;
+        const size_t width_8 = real_width / 8;
+
+        // initial path
+        draw(svg, main_contour, "red", wall_width, true);
+        draw(svg, main_contour, "darkred", width_8, false);
+
+        // raw outer fuzzy skin contour
+        draw(svg, raw_contour, "orange", wall_width, true);
+        draw(svg, raw_contour, "red", width_8, false);
+
+        const ThickLines raw_lines(to_thick_lines(out, is_loop));
+        // outer fuzzy skin limit
+        Polyline fuzzy_shell_limit(offset_by_polygon(filter_by_polygon(main_contour, -wall_width), -thickness));
+        draw(svg, offset_by_polygon(main_contour, -thickness), "darkcyan", width_4);
+        draw(svg, fuzzy_shell_limit, "cyan", width_4);
+
+        // filtered outer fuzzy skin contour
+        if (cfg.mode == FuzzySkinMode::Displacement_plus) {
+            const Polyline  fuzzy_filtered(filter_curls_reject(raw_contour, FILTER_CURLS));
+            const Polylines fuzzy_contours(is_loop ? filter_contour(fuzzy_filtered, Polygon(fuzzy_shell_limit.points), -(double)(width_2),
+                                                                    FILTER_PERIMETER, FILTER_AREA, SCALED_EPSILON) : Polylines({fuzzy_filtered}));
+            draw(svg, fuzzy_contours, "blue", real_width, true);
+            draw(svg, fuzzy_contours, "black", width_8, false);
+
+            if (out2.size() > 1) {
+                Polylines fuzzy_contour_limit;
+                Polylines fuzzy_complex_limit;
+                Polylines combined_contour;
+                if (is_loop) {
+                    if (fuzzy_contours.size()) {
+                        fuzzy_contour_limit = {offset_by_polygon(main_contour, -wall_width * (WIDELINE_LIMIT - 0.5))};
+                        fuzzy_complex_limit = {offset_by_polygon(fuzzy_contours, wall_width)};
+                        combined_contour = combine_3(fuzzy_contour_limit, fuzzy_complex_limit, offset_by_polygon(fuzzy_contours, width_2));
+                   } 
+                } else {
+                    if (fuzzy_contours.size()) {
+                        Polyline main2(offset_(main_contour, width_2, FILTER_CURLS));
+                        main2.reverse();
+                        fuzzy_contour_limit = {combine(offset_(main_contour, -wall_width * (WIDELINE_LIMIT - 0.5), FILTER_CURLS),main2)};
+                        fuzzy_complex_limit = {combine(offset_(fuzzy_filtered, wall_width, FILTER_CURLS), main2)};
+                        combined_contour    = combine_3(fuzzy_contour_limit, fuzzy_complex_limit, 
+                                                        Polylines{combine(offset_(fuzzy_filtered, width_2, FILTER_CURLS), main2)});
+                    } 
+                }
+                const ThickLines in_contour(to_thick_lines(out2, is_loop));
+                const ThickLines filtered_complex(filter_by_crop_contour(in_contour, combined_contour, FILTER_CURLS));
+                // complex fill line
+                draw(svg, in_contour, "yellow", wall_width, true);
+                draw(svg, in_contour, "brown", width_8, false);
+
+                // filtered complex fill line
+                draw(svg, filtered_complex, "wheat", wall_width, true);
+                draw(svg, filtered_complex, "chocolate", width_8, false);
+
+                // shuttle fill limit
+                if (fuzzy_contour_limit.size())
+                    draw(svg, fuzzy_contour_limit, "pink", width_4);
+
+                // outer contour limit
+                if (fuzzy_complex_limit.size())
+                    draw(svg, fuzzy_complex_limit, "violet", width_4);
+
+                // shuttle fill limit combined with outer contour
+                if (combined_contour.size())
+                    draw(svg, combined_contour, "magenta", width_4);
+            }
+        } else {
+            ThickLines thick_contour;
+            if (is_loop && cfg.mode == FuzzySkinMode::Fur) {
+                Polylines fuzzy_contours = filter_contour(filter_curls_reject(raw_contour, -thickness),
+                                                          Polygon(fuzzy_shell_limit.points), 
+                                                          0, FILTER_PERIMETER, FILTER_AREA, SCALED_EPSILON);
+                thick_contour = to_thick_lines(dir ? get_counter_clockwise(fuzzy_contours) : 
+                                                     get_clockwise(fuzzy_contours), real_width);
+            } else if (cfg.mode == FuzzySkinMode::Combined)
+                thick_contour = filter_curls_reject(simplify(to_thick_lines(out, is_loop)), FILTER_CURLS);
+            else
+                thick_contour = simplify(to_thick_lines(out, is_loop));
+            draw(svg, thick_contour, "blue", real_width, true);
+            draw(svg, thick_contour, "black", width_8, false);
+        }
+        svg.Close();
     }
+#endif
 
-    if (ext_lines.back().p == ext_lines.front().p) { // Connect endpoints.
-        out.front().p = out.back().p;
-        out.front().w = out.back().w;
-    }
+    // filter out lines
+    if (cfg.mode == FuzzySkinMode::Displacement_plus) {
+        const Polyline fuzzy_shell_limit(offset_by_polygon(filter_by_polygon(main_contour, -wall_width), -thickness));
+        const Polyline  fuzzy_filtered(filter_curls_reject(raw_contour, FILTER_CURLS));
+        const Polylines fuzzy_contours(is_loop ? filter_contour(fuzzy_filtered, Polygon(fuzzy_shell_limit.points), -(double)(width_2),
+                                                                FILTER_PERIMETER, FILTER_AREA, SCALED_EPSILON) : 
+                                                                Polylines({fuzzy_filtered}));
+        out = to_extrusion(fuzzy_contours, real_width, index, false, true);
+         
+        if (out2.size() > 1) {
+            Polylines fuzzy_contour_limit;
+            Polylines fuzzy_complex_limit;
+            Polylines combined_contour;
+            if (is_loop) {
+                if (fuzzy_contours.size()) {
+                    fuzzy_contour_limit = {offset_by_polygon(main_contour, -wall_width * (WIDELINE_LIMIT - 0.5))};
+                    fuzzy_complex_limit = {offset_by_polygon(fuzzy_contours, wall_width)};
+                    combined_contour    = combine_3(fuzzy_contour_limit, fuzzy_complex_limit, offset_by_polygon(fuzzy_contours, width_2));
+                }
+            } else {
+                if (fuzzy_contours.size()) {
+                    Polyline main2(offset_(main_contour, width_2, FILTER_CURLS));
+                    main2.reverse();
+                    fuzzy_contour_limit = {combine(offset_(main_contour, -wall_width * (WIDELINE_LIMIT - 0.5), FILTER_CURLS), main2)};
+                    fuzzy_complex_limit = {combine(offset_(fuzzy_filtered, wall_width, FILTER_CURLS), main2)};
+                    combined_contour    = combine_3(fuzzy_contour_limit, fuzzy_complex_limit,
+                                                    Polylines{combine(offset_(fuzzy_filtered, width_2, FILTER_CURLS), main2)});
+                }
+            }
+            ThickLines filtered_complex(filter_by_crop_contour(to_thick_lines(out2, is_loop), combined_contour, FILTER_CURLS));
+            filtered_complex.insert(filtered_complex.begin(), ThickLine(filtered_complex[0].a, filtered_complex[0].a, 1, filtered_complex[0].a_width));
+            filtered_complex.push_back(ThickLine(filtered_complex.back().b, filtered_complex.back().b, filtered_complex.back().b_width, 1));
+            out2.clear();
+            for (Arachne::ExtrusionJunction& point : to_extrusion(filtered_complex, -1, false, true)) // copy points from additional contour filtered_complex
+                out2.emplace_back(point);
+        }
+    } else {
+        if (is_loop && cfg.mode == FuzzySkinMode::Fur) {
+            const Polyline fuzzy_shell_limit(offset_by_polygon(filter_by_polygon(main_contour, -wall_width), -thickness));
+            Polylines fuzzy_contours(filter_contour(filter_curls_reject(raw_contour, -thickness), Polygon(fuzzy_shell_limit.points),
+                                                    0, FILTER_PERIMETER, FILTER_AREA, SCALED_EPSILON));
+            fuzzy_contours = dir ? get_counter_clockwise(fuzzy_contours) : get_clockwise(fuzzy_contours);
+            out            = to_extrusion(fuzzy_contours, real_width, index, false, true);
+        } else if (cfg.mode == FuzzySkinMode::Combined)
+            out = to_extrusion(filter_curls_reject(simplify(to_thick_lines(out, is_loop)), FILTER_CURLS), index, false, true);
+        else
+            out = to_extrusion(simplify(to_thick_lines(out, is_loop)), index, false, true);
+    } 
 
-    if (out.size() >= 3)
-        ext_lines = std::move(out);
-}
+    out.reserve(out.size() + out2.size() + 2);
+
+    // Add complex paths
+    if (out2.size() > 1) 
+        for (Arachne::ExtrusionJunction& point : out2)
+            out.push_back(point);
+    if (out.size() > 1) 
+        ext_lines = std::move(out); // return ref
+};
 
 void group_region_by_fuzzify(PerimeterGenerator& g)
 {
@@ -426,7 +941,10 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
     std::vector<ConfigSurfaces> regions;
     regions.reserve(g.compatible_regions->size());
     for (auto region : *g.compatible_regions) {
-        const auto&           region_config = region->region().config();
+        const auto&   region_config = region->region().config();
+        const coord_t _wall_width(scaled<coord_t>((region_config.outer_wall_line_width.value ? 
+                                                  region_config.outer_wall_line_width.value :
+                                                  g.object_config->line_width.value)) * g.print_config->filament_flow_ratio.get_at(g.print_config->master_extruder_id.value));
         const FuzzySkinConfig cfg{region_config.fuzzy_skin,
                                   scaled<coord_t>(region_config.fuzzy_skin_thickness.value),
                                   scaled<coord_t>(region_config.fuzzy_skin_point_distance.value),
@@ -439,11 +957,15 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
                                   region_config.fuzzy_skin_ripples_per_layer,
                                   region_config.fuzzy_skin_ripple_offset,
                                   region_config.fuzzy_skin_layers_between_ripple_offset,
-                                  g.layer_id};
+                                  g.layer_id,
+                                  region_config.corner_type,
+                                  _wall_width,
+                                  scaled<coord_t>(std::max(float(g.layer_height), g.ext_perimeter_flow.spacing()) * 0.215)}; // param * (1. - 0.25 * PI)};
 
         auto it = std::find_if(regions.begin(), regions.end(), [&cfg](const ConfigSurfaces& item) {
             return item.config == cfg;
         });
+
         if (it == regions.end()) {
             regions.push_back({cfg, {}});
             it = regions.end() - 1;
@@ -564,7 +1086,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
 
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    if (perimeter_generator.config->fuzzy_skin.value != FuzzySkinType::None) { // only for non-painting fuzzy
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, loop_idx, is_contour);
         if (!fuzzify) {
@@ -686,7 +1208,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 {
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    if (perimeter_generator.config->fuzzy_skin.value != FuzzySkinType::None) { // only for non-painting fuzzy
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (fuzzify)
@@ -819,6 +1341,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 }
             }
         }
+
     }
 }
 

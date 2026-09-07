@@ -8,6 +8,10 @@
 #include "TriangleMesh.hpp"
 #include "Surface.hpp"
 
+using Lines = std::vector<Slic3r::Line>;
+using ThickLine = std::vector<Slic3r::ThickLines>;
+using ThickPolylines = std::vector<Slic3r::ThickPolyline>;
+
 namespace Slic3r {
 
 class SVG
@@ -64,7 +68,8 @@ public:
     void draw_outline(const Polygons &polygons, std::string stroke = "black", coordf_t stroke_width = 0);
     void draw(const Polyline &polyline, std::string stroke = "black", coordf_t stroke_width = 0);
     void draw(const Polylines &polylines, std::string stroke = "black", coordf_t stroke_width = 0);
-    void draw(const ThickLines &thicklines, const std::string &fill = "lime", const std::string &stroke = "black", coordf_t stroke_width = 0);
+    void draw(const ThickLines &thicklines, const std::string &fill = "lime", const std::string &stroke = "black", coordf_t stroke_width = 0, bool hollow = false);
+    void draw(const ThickPolyline &thickpolyline, const std::string &stroke, coordf_t stroke_width, bool hollow = false);
     void draw(const ThickPolylines &polylines, const std::string &stroke = "black", coordf_t stroke_width = 0);
     void draw(const ThickPolylines &thickpolylines, const std::string &fill, const std::string &stroke, coordf_t stroke_width);
     void draw(const Point &point, std::string fill = "black", coord_t radius = 0);
@@ -177,6 +182,18 @@ private:
     float           to_svg_y(float x) const throw() { return flipY ? this->height - to_svg_coord(x) : to_svg_coord(x); }
 };
 
-}
+// Common functions for drawing SVG shapes with direction arrows
+// The basis has been proposed by @pi-squared-studio for Orca Slicer
+// It is possible to draw the lines thickness of common shapes (hollow method) and display the direction of line drawing.
+// This is useful for inspection among intersection/union/clipping algorithms in Clipper.
+void draw(SVG& svg, const Polyline& polyline, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+void draw(SVG& svg, const Polylines& polylines, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+void draw(SVG& svg, const ThickPolyline& polyline, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+void draw(SVG& svg, const ThickPolylines& thickpolylines, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow          = true);
+void draw(SVG& svg, const ThickLines& lines,std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+void draw(SVG& svg, const Polygon& polygon, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+void draw(SVG& svg, const Polygons& polygons, std::string stroke = "black", double stroke_width = 0., bool hollow = false, bool arrow = true);
+
+} // namespace Slic3r
 
 #endif
