@@ -705,7 +705,7 @@ ReselectMachineDialog::ReselectMachineDialog(wxWindow* parent)
     Centre();
 }
 
-void ReselectMachineDialog::Update(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
+void ReselectMachineDialog::UpdateInfo(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
 {
 
     if (suggestText)

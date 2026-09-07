@@ -2176,7 +2176,7 @@ void SelectMachineDialog::on_reselect_dialog_btn_clicked(wxMouseEvent&)
                 best_pos_map[slot.id] = pos.value();
         }
     }
-    m_best_pos_dialog->Update(obj, best_pos_map, m_ams_mapping_result, text);
+    m_best_pos_dialog->UpdateInfo(obj, best_pos_map, m_ams_mapping_result, text);
     m_best_pos_dialog->ShowModal();
 }
 
@@ -2201,7 +2201,7 @@ void SelectMachineDialog::update_best_pos_dialog(wxCommandEvent& evt)
                 best_pos_map[slot.id] = pos.value();
         }
     }
-    m_best_pos_dialog->Update(obj_, best_pos_map, m_ams_mapping_result, text);
+    m_best_pos_dialog->UpdateInfo(obj_, best_pos_map, m_ams_mapping_result, text);
 }
 
 void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxString> params, wxString wiki_url)

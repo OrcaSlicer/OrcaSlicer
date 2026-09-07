@@ -52,6 +52,7 @@ call :add_section "Build configuration"
 call :add_arg config string "" config "release, debug, relwithdebinfo or minsizerel (default: release)"
 call :add_arg target_arch string "" arch "x64 or arm64 (default: the host architecture)"
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
+call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by --cache"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -60,6 +61,7 @@ call :add_arg use_ninja bool x ninja "Use the Ninja Multi-Config generator"
 call :add_arg use_msbuild bool "" msbuild "Use the Visual Studio generator (default)"
 call :add_arg vs_version string "" vs "Visual Studio release: 2019, 2022 or 2026 (default: autodetect)"
 call :add_arg clang_path string "" clang-path "Path to clang-cl.exe, requires -x (default: the one from Visual Studio)"
+call :add_arg cache string "" cache "Compiler cache: ccache, sccache or off, requires -l -x (default: off)"
 
 call :add_section "How much gets rebuilt"
 call :add_arg slicer_target string "" slicer-target "Build one slicer target instead of all, e.g. libslic3r"
@@ -391,6 +393,49 @@ if not "%clang_path%" == "" if not "%using_ninja%" == "ON" (
     exit /b 1
 )
 
+set "cache_args="
+if "%cache%" == "" goto :cache_ready
+if /I "%cache%" == "off" goto :cache_ready
+if /I "%cache%" == "ccache" goto :cache_named
+if /I "%cache%" == "sccache" goto :cache_named
+echo Unknown --cache value "%cache%". Expected ccache, sccache or off.
+exit /b 1
+
+REM CMake accepts a compiler launcher under any generator but only runs it
+REM under Makefile and Ninja. ccache also refuses cl.exe because the build
+REM passes /Zi.
+:cache_named
+REM Only a configure records the launcher, so --no-configure needs none.
+if "%no_configure%" == "ON" goto :cache_ready
+if "%build_deps%%build_slicer%" == "" goto :cache_ready
+if not "%using_ninja%" == "ON" goto :cache_needs_clang
+if not "%use_clang_cl%" == "ON" goto :cache_needs_clang
+goto :cache_tool
+
+:cache_needs_clang
+echo --cache needs clang-cl and Ninja; add -l -x.
+exit /b 1
+
+REM Name a full path, so the recorded launcher does not depend on PATH.
+:cache_tool
+set "cache_exe="
+for /f "tokens=*" %%i in ('where %cache% 2^>nul') do (
+    if not defined cache_exe set "cache_exe=%%i"
+)
+if not defined cache_exe (
+    echo %cache% is not on PATH. Install it, or leave --cache off.
+    exit /b 1
+)
+REM Forward slashes, so CMake does not read a backslash as an escape.
+set "cache_exe=%cache_exe:\=/%"
+set "cache_args=-DCMAKE_C_COMPILER_LAUNCHER="%cache_exe%" -DCMAKE_CXX_COMPILER_LAUNCHER="%cache_exe%""
+REM Neither cache stores a compile that uses a precompiled header. sccache
+REM refuses /Fp outright. ccache does too unless its sloppiness is loosened,
+REM and even then most hits fall back to the slower preprocessed mode.
+set "no_pch=ON"
+
+:cache_ready
+
 REM Ninja prints [123/456] by default, which says nothing about how far
 REM along it is or how long is left. %p is a percentage, %w and %W are
 REM elapsed and remaining, but those two arrived in ninja 1.12 and an
@@ -474,6 +519,8 @@ REM real path rather than one glued onto the repository root.
 for %%p in ("!build_dir!") do set "build_full=%%~fp"
 echo Configuration: %build_type%, %arch%
 if not "%clang_exe%" == "" echo Compiler: %clang_exe%
+if "%no_pch%" == "ON" echo Precompiled header: off
+if not "%cache_args%" == "" echo Compiler cache: %cache_exe%
 
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
@@ -570,6 +617,10 @@ if "%build_deps%" == "ON" (
         %error_check%
     )
 
+    if not "!cache_args!" == "" (
+        set "deps_args=!deps_args! !cache_args!"
+    )
+
     if not "%no_configure%" == "ON" (
         call :print_and_run cmake -S deps -B "!DEP_TREE!" -G "%generator%" %gen_args% -DCMAKE_BUILD_TYPE=%build_type% !deps_args! %ORCA_DEPS_CMAKE_ARGS%
         %error_check%
@@ -639,6 +690,16 @@ if "%build_slicer%" == "ON" (
 
     if "%slicer_asan%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_ASAN=ON"
+    )
+
+    REM A later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins, because
+    REM CMake takes the last definition on the command line.
+    if "%no_pch%" == "ON" (
+        set "slicer_args=!slicer_args! -DSLIC3R_PCH=OFF"
+    )
+
+    if not "!cache_args!" == "" (
+        set "slicer_args=!slicer_args! !cache_args!"
     )
 
     REM Configuring against a tree that was never built fails deep inside
@@ -870,6 +931,7 @@ REM get_str_len <string> -> length in %ret%
     echo    %script_name% -s --no-configure -j 8    Rebuild quickly while iterating
     echo    %script_name% -s --slicer-target glad   Compile one target to check the toolchain
     echo    %script_name% -l -x --run-tests         Test that toolchain's build, not the default one
+    echo    %script_name% -s -l -x --cache ccache   Rebuild through a compiler cache
     echo.
     echo Environment:
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure
@@ -879,8 +941,8 @@ REM get_str_len <string> -> length in %ret%
     echo    NINJA_STATUS              Ninja progress format, if you want your own
     echo    debugscript               Set to ON to trace this script
     echo.
-    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_PCH=OFF -DSLIC3R_MSVC_PDB=OFF
-    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_PCH=OFF'      (PowerShell)
+    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_BUILD_SANDBOXES=ON -DSLIC3R_WARNINGS=OFF
+    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_BUILD_SANDBOXES=ON'      (PowerShell)
     echo.
     echo    --deps-args and --slicer-args cannot carry a value with spaces; use
     echo    these instead. Neither form supports a value containing an ampersand.

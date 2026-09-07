@@ -1,3 +1,8 @@
+#ifdef _WIN32
+// Keep this first. A header below reaches boost/regex, whose w32_regex_traits
+// needs the Win32 types declared already.
+#include <Windows.h>
+#endif
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
