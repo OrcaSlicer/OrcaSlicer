@@ -22,7 +22,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
-#include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -2398,14 +2397,9 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	// clamp put the brim off the bed. Matches set_default_wipe_tower_pos_for_plate.
 	float wp_brim_width = float(footprint.brim_width);
 	// A Type2 stabilization cone bulges past the body box like a brim does - fold its worst-axis
-	// bulge into the same margin (Type1 ignores the cone option).
-	const auto *cone_wall_opt  = config.option("wipe_tower_wall_type");
-	const auto *cone_angle_opt = config.option("wipe_tower_cone_angle");
-	if (cone_wall_opt != nullptr && cone_wall_opt->getInt() == int(WipeTowerWallType::wtwCone) && cone_angle_opt != nullptr &&
-	    cone_angle_opt->getFloat() > EPSILON && resolve_wipe_tower_type(config) == WipeTowerType::Type2) {
-		const BoundingBox cb = get_extents(WipeTower2::cone_base_polygon(w, depth, wt_size.z(), cone_angle_opt->getFloat()));
-		wp_brim_width += float(std::max({0., unscaled(cb.max.x()) - w, unscaled(cb.max.y()) - depth, -unscaled(cb.min.x()), -unscaled(cb.min.y())}));
-	}
+	// bulge into the same margin.
+	const BoundingBox outline = get_extents(estimate_wipe_tower_first_layer_outline(config, resolve_wipe_tower_type(config), w, depth, wt_size.z()));
+	wp_brim_width += float(std::max({0., unscaled(outline.max.x()) - w, unscaled(outline.max.y()) - depth, -unscaled(outline.min.x()), -unscaled(outline.min.y())}));
 	// A position valid by WIPE_TOWER_MARGIN is the user's choice and stays untouched; an
 	// invalid one is re-placed with the comfort margin (falling back to the validity bounds
 	// on cramped plates). std::clamp is UB if lo > hi, so keep every hi >= lo.
