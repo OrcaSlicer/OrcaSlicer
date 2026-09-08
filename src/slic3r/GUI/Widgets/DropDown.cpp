@@ -2,12 +2,12 @@
 #include "Label.hpp"
 
 #include <cstdio>
-#include <cstdlib>
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 
 #ifdef __WXGTK__
+#include <cstdlib>
 #include <gtk/gtk.h>
 #include "../LinuxDisplayBackend.hpp"
 #endif
@@ -16,11 +16,16 @@
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 
-// Wayland only: the wheel event is delivered solely to the popup that holds the
-// pointer grab and the native wxPopupTransientWindow grab (owner_events=TRUE)
-// does not reliably steer axis events to the popup surface. DropDown works
-// around it by taking an owner_events=FALSE CaptureMouse grab on the active
-// popup; set ORCA_DD_NOGRAB=1 to opt out.
+#ifdef __WXGTK__
+// --- Linux/wxGTK-only: mouse-wheel scroll on Wayland ----------------------
+// Everything guarded by __WXGTK__ in this file is a workaround for Wayland and
+// compiles to nothing on the other ports.
+
+// The wheel event is delivered solely to the popup that holds the pointer grab
+// and the native wxPopupTransientWindow grab (owner_events=TRUE) does not
+// reliably steer axis events to the popup surface. DropDown takes an
+// owner_events=FALSE CaptureMouse grab on the active popup instead; set
+// ORCA_DD_NOGRAB=1 to opt out.
 static bool dd_wheelgrab_enabled()
 {
     static int v = -1;
@@ -28,18 +33,15 @@ static bool dd_wheelgrab_enabled()
     return v != 0;
 }
 
-// On Wayland a group submenu opened on hover is mis-placed: the compositor
+// A group submenu opened on hover is mis-placed on Wayland: the compositor
 // ignores gtk_window_move on a mapped xdg_popup and top-anchors it to the
 // parent surface. Opening it only on click gets a fresh input serial and the
 // positioner is honoured, so restrict auto (hover) opening to non-Wayland.
 static bool dd_submenu_click_only()
 {
-#ifdef __WXGTK__
     return Slic3r::GUI::is_running_on_wayland();
-#else
-    return false;
-#endif
 }
+#endif // __WXGTK__
 
 BEGIN_EVENT_TABLE(DropDown, PopupWindow)
 
@@ -218,13 +220,14 @@ void DropDown::Popup(wxWindow *focus)
     PopupWindow::Popup(focus);
 }
 
+#ifdef __WXGTK__
+
 void DropDown::acquireWheelGrab()
 {
-#ifdef __WXGTK__
-    // Orca (Wayland wheel fix): the popup's own grab uses owner_events=TRUE, so
-    // axis/scroll events are not reliably steered to this surface. Capturing the
-    // mouse re-issues the seat grab with owner_events=FALSE, which forces every
-    // pointer event (wheel included) here regardless of Wayland pointer focus.
+    // The popup's own grab uses owner_events=TRUE, so axis/scroll events are not
+    // reliably steered to this surface. Capturing the mouse re-issues the seat
+    // grab with owner_events=FALSE, which forces every pointer event (wheel
+    // included) here regardless of Wayland pointer focus.
     if (!dd_wheelgrab_enabled())
         return;
     if (wheelGrab || !IsShown())
@@ -235,43 +238,35 @@ void DropDown::acquireWheelGrab()
     }
     CaptureMouse();
     wheelGrab = true;
-#endif
 }
 
 void DropDown::releaseWheelGrab()
 {
-#ifdef __WXGTK__
     if (!wheelGrab)
         return;
     wheelGrab = false;
     if (wxWindow::GetCapture() == this)
         ReleaseMouse(); // capture stack restores the previous (main) grab, if any
-#endif
 }
 
 DropDown::~DropDown()
 {
-#ifdef __WXGTK__
     releaseWheelGrab();
     if (wxWindow::GetCapture() == this)
         ReleaseMouse(); // never be destroyed while still in the capture stack
     if (mainDropDown && mainDropDown->wheelTarget == this)
         mainDropDown->wheelTarget = nullptr;
-#endif
 }
 
 bool DropDown::Show(bool show)
 {
-#ifdef __WXGTK__
     // Unwind top-first: ComboBox::onMove / ComboBox::mouseDown call drop.Hide()
     // directly, bypassing DropDown::Dismiss()'s "sub is shown" guard.
     if (!show && subDropDown && subDropDown->IsShown())
         subDropDown->Show(false);
-#endif
 
     bool ret = PopupWindow::Show(show); // installs / removes the native popup grab
 
-#ifdef __WXGTK__
     DropDown *root = mainDropDown ? mainDropDown : this;
     if (show) {
         acquireWheelGrab();
@@ -281,9 +276,10 @@ bool DropDown::Show(bool show)
         if (root->wheelTarget == this)
             root->wheelTarget = (root != this && root->IsShown()) ? root : nullptr;
     }
-#endif
     return ret;
 }
+
+#endif // __WXGTK__
 
 void DropDown::paintEvent(wxPaintEvent& evt)
 {
@@ -803,18 +799,18 @@ void DropDown::mouseReleased(wxMouseEvent& event)
                 mainDropDown->hover_item = -1; // To Dismiss mainDropDown
             DismissAndNotify();
         } else if (subDropDown) {
+#ifdef __WXGTK__
             if (dd_submenu_click_only() && !subDropDown->group.empty()) {
                 // Wayland: hover no longer prepped/positioned the submenu - do it
                 // now, on the click, so the fresh input serial places it right.
                 auto &drop     = *subDropDown;
                 drop.need_sync = true;
                 drop.messureSize();
-#ifdef __WXGTK__
                 if (m_widget && drop.m_widget)
                     gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
-#endif
                 drop.autoPosition();
             }
+#endif
             subDropDown->Popup(subDropDown);
         }
     }
@@ -842,9 +838,8 @@ void DropDown::mouseMove(wxMouseEvent &event)
     // mis-track hover or pop the submenu open anchored to a bogus row.
     if (wheelGrab && !pressedDown) {
         const wxSize sz = GetSize();
-        if (pt.x < 0 || pt.y < 0 || pt.x >= sz.x || pt.y >= sz.y) {
+        if (pt.x < 0 || pt.y < 0 || pt.x >= sz.x || pt.y >= sz.y)
             return;
-        }
     }
 #endif
 #ifdef __WXOSX__
@@ -882,15 +877,18 @@ void DropDown::mouseMove(wxMouseEvent &event)
         int index  = hoverIndex();
         if (index < -1) {
             auto &drop = *subDropDown;
-            wxString group_key = items[-index - 2].group_key;
+#ifdef __WXGTK__
             if (dd_submenu_click_only()) {
                 // Wayland: don't auto-open on hover (mis-placed); just arm the
                 // click target and drop any now-stale submenu.
+                wxString group_key = items[-index - 2].group_key;
                 if (drop.IsShown() && drop.group != group_key)
                     drop.Dismiss();
                 drop.group = group_key;
-            } else {
-                drop.group     = group_key;
+            } else
+#endif
+            {
+                drop.group  = items[-index - 2].group_key;
                 drop.need_sync = true;
                 drop.messureSize();
 #ifdef __WXGTK__
@@ -919,39 +917,36 @@ void DropDown::mouseMove(wxMouseEvent &event)
 
 void DropDown::mouseWheelMoved(wxMouseEvent &event)
 {
-    // Orca #13244 / Wayland wheel fix: the active popup of the chain holds the
-    // pointer grab, so every wheel event lands on a single window. Route it to
-    // the list the cursor is actually over: the submenu, the main list, or -
-    // when the cursor is outside both - whichever list scrolled last.
-    DropDown *root = mainDropDown ? mainDropDown : this;
-    DropDown *sub  = root->subDropDown;
-    // Under the owner_events=FALSE grab the event coordinates can be clamped to
-    // the grab window, so trust the real pointer position for routing.
-    const wxPoint screen_pt = ::wxGetMousePosition();
+#ifdef __WXGTK__
+    // Wayland wheel fix: the active popup of the chain holds an owner_events=FALSE
+    // grab, so every wheel event lands on a single window. Route it to the list
+    // the cursor is actually over - the submenu, the main list, or (cursor
+    // outside both) whichever list scrolled last - then fall through to scroll.
+    {
+        DropDown *root = mainDropDown ? mainDropDown : this;
+        DropDown *sub  = root->subDropDown;
+        // Event coords are clamped to the grab window; use the real pointer pos.
+        const wxPoint screen_pt = ::wxGetMousePosition();
 
-    DropDown *target;
-    if (sub && sub->IsShown() && sub->GetScreenRect().Contains(screen_pt))
-        target = sub;
-    else if (root->GetScreenRect().Contains(screen_pt))
-        target = root;
-    else
-        target = root->wheelTarget ? root->wheelTarget : root;
+        DropDown *target;
+        if (sub && sub->IsShown() && sub->GetScreenRect().Contains(screen_pt))
+            target = sub;
+        else if (root->GetScreenRect().Contains(screen_pt))
+            target = root;
+        else
+            target = root->wheelTarget ? root->wheelTarget : root;
 
-    root->wheelTarget = target;
+        root->wheelTarget = target;
 
-    if (target != this) {
-        const wxPoint tpt = target->ScreenToClient(screen_pt);
-        event.m_x = tpt.x;
-        event.m_y = tpt.y;
-        target->mouseWheelMoved(event); // re-enter; terminates once target == this
-        return;
+        if (target != this) {
+            const wxPoint tpt = target->ScreenToClient(screen_pt);
+            event.m_x = tpt.x;
+            event.m_y = tpt.y;
+            target->mouseWheelMoved(event); // re-enter; terminates once target == this
+            return;
+        }
     }
-
-    scrollContent(event);
-}
-
-void DropDown::scrollContent(wxMouseEvent &event)
-{
+#endif
     auto delta = event.GetWheelRotation();
     wxSize  size  = GetSize();
     wxPoint pt2   = offset + wxPoint{0, delta};
