@@ -961,7 +961,7 @@ CopyFileResult copy_file(const std::string &from, const std::string &to, std::st
     BOOL result = CopyFileW(src_wstr, dst_wstr, FALSE);
     if (!result) {
         DWORD errCode = GetLastError();
-        error_message = "Error: " + errCode;
+        error_message = "Error: " + std::to_string(errCode);
         ret = FAIL_COPY_FILE;
         goto __finished;
     }
