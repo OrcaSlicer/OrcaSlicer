@@ -4475,9 +4475,13 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
     for (Preset &preset : filaments) {
         /* The situation where the preset is not offered is as follows:
             1. Not a root preset
-            2. Not a system preset and the printer firmware does not support user presets */
+            2. Not a system preset and the printer firmware does not support user presets
+	    3. Not associated with a printer model / variant that is enabled in the AppConfig
+	 */
         if (filaments.get_preset_base(preset) != &preset || (!preset.is_system && !include_user_presets))
             continue;
+	if (! preset.is_visible)    // not associated with a printer model / variant that is enabled in the AppConfig
+	    continue;
         if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(preset), active_printer, &printer_config))
             compatible.push_back(&preset);
     }
