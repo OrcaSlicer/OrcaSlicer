@@ -3,7 +3,7 @@
 	"name": "Arena PETG-CF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFG50",
+	"filament_id": "OFuO0cAP",
 	"instantiation": "false",
 	"filament_flow_ratio": [
 		"0.95"

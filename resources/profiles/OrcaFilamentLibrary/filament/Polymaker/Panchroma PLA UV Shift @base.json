@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA UV Shift @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM014",
+	"filament_id": "OF1N1qMK",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

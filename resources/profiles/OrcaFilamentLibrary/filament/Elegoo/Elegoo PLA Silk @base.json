@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Silk @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"filament_id": "OFXz7Mwx",
+	"instantiation": "false"
+}

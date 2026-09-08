@@ -2,17 +2,9 @@
 	"type": "filament",
 	"name": "Cubicon ABS-A100 @base",
 	"inherits": "Cubicon ABS @base",
-	"setting_id": "vGIT4KZvqojIh2up",
-	"filament_id": "P510cfb1",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Cubicon xCeler-I 0.4 nozzle",
-		"Cubicon xCeler-Plus 0.4 nozzle"
-	],
+	"filament_id": "OFy8tYJE",
+	"instantiation": "false",
 	"default_filament_colour": "",
-	"filament_settings_id": [
-		"Cubicon ABS-A100 @base"
-	],
 	"filament_type": [
 		"ABS"
 	],

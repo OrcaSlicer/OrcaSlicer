@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa MK4S HF0.5",
+	"inherits": "Generic ABS @Prusa MK4S HF0.4",
+	"renamed_from": "Prusa Generic ABS @MK4S HF0.5;Prusa Generic ABS MK4S HF0.5",
+	"from": "system",
+	"setting_id": "EdrmoUsReFVn5EWW",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S HF0.5 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"27"
+	]
+}

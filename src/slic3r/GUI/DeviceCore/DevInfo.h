@@ -34,7 +34,7 @@ private:
     //std::string m_connect_type;
     //std::string m_bind_state;
 
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 };
 
 } // namespace Slic3r
