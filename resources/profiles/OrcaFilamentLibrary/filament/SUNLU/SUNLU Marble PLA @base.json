@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA Marble @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFSNL06",
+	"filament_id": "OFxUwUeW",
 	"instantiation": "false",
 	"filament_cost": [
 		"31.99"

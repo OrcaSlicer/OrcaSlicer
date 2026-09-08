@@ -3,7 +3,7 @@
 	"name": "Polymaker PLA @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL78",
+	"filament_id": "OFelDBgv",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

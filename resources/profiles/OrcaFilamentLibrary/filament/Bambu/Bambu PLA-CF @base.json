@@ -3,7 +3,7 @@
 	"name": "Bambu PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA50",
+	"filament_id": "OFEswT5W",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

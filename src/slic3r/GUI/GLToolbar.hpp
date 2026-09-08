@@ -327,7 +327,6 @@ private:
     GLTexture m_icons_texture;
     bool m_icons_texture_dirty;
     mutable GLTexture m_images_texture;
-    mutable bool m_images_texture_dirty;
     BackgroundTexture m_background_texture;
     GLTexture m_arrow_texture;
     Layout m_layout;

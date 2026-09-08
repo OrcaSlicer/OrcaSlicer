@@ -239,7 +239,7 @@ void GizmoObjectManipulation::update_if_dirty()
     };
 
     for (int i = 0; i < 3; ++ i) {
-        auto update = [this, i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
+        auto update = [i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
 			//wxString new_text = double_to_string(new_value(i), 2);
 			double new_rounded = round(new_value(i)*100)/100.0;
 			//new_text.ToDouble(&new_rounded);

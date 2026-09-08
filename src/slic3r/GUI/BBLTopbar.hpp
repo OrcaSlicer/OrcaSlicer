@@ -93,7 +93,6 @@ private:
     CenteredTitle*    m_title_ctrl { nullptr };
     wxString          m_titleText;
 
-    wxAuiToolBarItem* m_account_item;
     wxAuiToolBarItem* m_model_store_item;
     
     //wxAuiToolBarItem *m_publish_item;

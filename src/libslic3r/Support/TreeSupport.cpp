@@ -2667,7 +2667,7 @@ void TreeSupport::drop_nodes()
     SupportNode::diameter_angle_scale_factor = diameter_angle_scale_factor;
     float        DO_NOT_MOVER_UNDER_MM       = is_slim ? 0 : 5;                     // do not move contact points under 5mm
 
-    auto get_max_move_dist = [this, &config, tan_angle, wall_count, support_extrusion_width](const SupportNode *node, int power = 1) {
+    auto get_max_move_dist = [this, tan_angle, support_extrusion_width](const SupportNode *node, int power = 1) {
         if (node->max_move_dist == 0) {
             node->radius        = get_radius(node);
             node->max_move_dist = std::min(tan_angle * node->height, support_extrusion_width);

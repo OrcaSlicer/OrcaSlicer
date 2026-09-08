@@ -164,7 +164,7 @@ void PrinterFileSystem::ListAllFiles()
         req["storage"] = m_file_storage;
     req["api_version"] = 2;
     req["notify"] = "DETAIL";
-    SendRequest<FileList>(LIST_INFO, req, [this, type = m_file_type](json const& resp, FileList & list, auto) -> int {
+    SendRequest<FileList>(LIST_INFO, req, [type = m_file_type](json const& resp, FileList & list, auto) -> int {
         json files = resp["file_lists"];
         for (auto& f : files) {
             std::string     name = f["name"];
@@ -1230,7 +1230,7 @@ boost::uint32_t PrinterFileSystem::RequestMediaAbility(int api_version)
     req["api_version"] = api_version;
 
     return SendRequest<MediaAbilityList>(
-        REQUEST_MEDIA_ABILITY, req, [this](const json &resp, MediaAbilityList &list, auto) -> int {
+        REQUEST_MEDIA_ABILITY, req, [](const json &resp, MediaAbilityList &list, auto) -> int {
             json abliity_list = resp["storage"];
             list              = abliity_list.get<MediaAbilityList>();
             return 0;

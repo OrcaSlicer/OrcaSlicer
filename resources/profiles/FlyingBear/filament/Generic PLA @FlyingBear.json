@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @FlyingBear",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "FlyingBear Generic PLA",
+	"from": "system",
+	"setting_id": "g7zPgD6P3bbwm5gv",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.032"
+	],
+	"compatible_printers": [
+		"FlyingBear Reborn3 0.4 nozzle",
+		"FlyingBear Ghost 6 0.4 nozzle"
+	]
+}

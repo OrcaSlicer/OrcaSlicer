@@ -381,7 +381,7 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-# Assimp: glTF/GLB/FBX import for the texture-to-color feature.
+include(FFMPEG/FFMPEG.cmake)
 include(Assimp/Assimp.cmake)
 
 
@@ -466,6 +466,7 @@ set(_dep_list
     dep_libnoise
     dep_python3
     dep_wxInspector
+    dep_FFMPEG
     dep_Assimp
     )
 

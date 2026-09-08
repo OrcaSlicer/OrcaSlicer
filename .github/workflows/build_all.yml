@@ -33,6 +33,8 @@ on:
      - 'build_linux.sh'
      - 'build_release_vs.bat'
      - 'build_release_vs2022.bat'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
@@ -56,6 +58,22 @@ concurrency:
   
 
 jobs:
+  # build_win.bat ships a test suite. Run it before the Windows builds.
+  check_build_script:
+    name: Windows build script tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+
+      # Windows PowerShell rather than pwsh: the suite drives build_win.bat
+      # through cmd, and the two differ in how they quote native arguments.
+      - name: Run the build script test suite
+        shell: powershell
+        run: .\scripts\test_build_win.ps1
+
   build_linux:
     strategy:
       fail-fast: false
@@ -81,14 +99,16 @@ jobs:
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server"}]'
-          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
+          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
+          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-arm","compiler":"clang"}]') }}
+    needs: check_build_script
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
@@ -259,20 +279,24 @@ jobs:
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
       shell: bash
+    - name: Compute the flatpak-builder cache key
+      id: fp_cache_key
+      run: echo "key=flatpak-builder-${{ matrix.variant.arch }}-${{ hashFiles('deps/**', 'scripts/flatpak/com.orcaslicer.OrcaSlicer.yml', 'scripts/flatpak/make_deps_tar.sh') }}" >> "$GITHUB_OUTPUT"
+      shell: bash
     # Manage flatpak-builder cache externally so PRs restore but never upload
     - name: Restore flatpak-builder cache
       if: github.event_name == 'pull_request'
       uses: actions/cache/restore@v6
       with:
         path: .flatpak-builder
-        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
+        key: ${{ steps.fp_cache_key.outputs.key }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Save/restore flatpak-builder cache
       if: github.event_name != 'pull_request'
       uses: actions/cache@v6
       with:
         path: .flatpak-builder
-        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
+        key: ${{ steps.fp_cache_key.outputs.key }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Disable debug info for faster CI builds
       run: |
@@ -283,6 +307,12 @@ jobs:
       run: |
         sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - name: Check the manifest keeps orca_deps cacheable
+      run: ./scripts/flatpak/check_manifest_cacheable.sh
+      shell: bash
+    - name: Pack deps/ for the Flatpak manifest
+      run: ./scripts/flatpak/make_deps_tar.sh
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
       with:

@@ -1113,7 +1113,7 @@ void SyncAmsInfoDialog::init_bind()
         e.Skip();
     });
 
-    Bind(EVT_CONNECT_LAN_MODE_PRINT, [this](wxCommandEvent &e) {
+    Bind(EVT_CONNECT_LAN_MODE_PRINT, [](wxCommandEvent &e) {
         if (e.GetInt() == 0) {
             DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev) return;
@@ -2644,7 +2644,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
         item_index++;
 
         contronal_index++;
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent &e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent &e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder, item_index_str](wxMouseEvent &e) {
             MaterialHash::iterator iter = m_materialList.begin();
             while (iter != m_materialList.end()) {
