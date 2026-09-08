@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Luminous @FF AD5X",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "kOobFSlqEG9Qe0d1",
+	"filament_id": "OFdqkWtz",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

@@ -699,7 +699,8 @@ if "%build_slicer%" == "ON" (
     )
 
     if not "!cache_args!" == "" (
-        set "slicer_args=!slicer_args! !cache_args!"
+        REM Relative debug paths as well, so another tree can reuse the objects.
+        set "slicer_args=!slicer_args! !cache_args! -DSLIC3R_RELATIVE_DEBUG_PATHS=ON"
     )
 
     REM Configuring against a tree that was never built fails deep inside

@@ -2,7 +2,9 @@
 	"type": "filament",
 	"name": "Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle",
 	"inherits": "Cubicon ABSk @base",
+	"renamed_from": "Cubicon ABSk @base",
 	"setting_id": "TXcodZkab4fofnEn",
+	"filament_id": "OForhBi4",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

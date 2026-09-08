@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Elegoo Rapid PLA+ @EC2",
 	"renamed_from": "Elegoo RAPID PLA+ @EC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo Rapid PLA+ @base",
 	"from": "system",
 	"setting_id": "lfHbQa7hrJ7wg4oC",
 	"instantiation": "true",

@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Preset.hpp"
+#include <algorithm>
 #include "I18N.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
@@ -599,8 +600,10 @@ void ExtrusionCalibration::update_combobox_filaments()
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle && obj) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
-        std::string printer_type = obj->printer_type;
-        std::set<std::string> printer_preset_list;
+        double nozzle_value = 0.4;
+        m_comboBox_nozzle_dia->GetValue().ToDouble(&nozzle_value);
+
+        std::vector<PresetWithVendorProfile> printer_profiles;
         for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
             // only use system printer preset
             if (!printer_it->is_system) continue;
@@ -610,49 +613,42 @@ void ExtrusionCalibration::update_combobox_filaments()
             ConfigOptionFloats* printer_nozzle_vals = nullptr;
             if (printer_nozzle_opt)
                 printer_nozzle_vals = dynamic_cast<ConfigOptionFloats*>(printer_nozzle_opt);
-            double nozzle_value = 0.4;
-            wxString nozzle_value_str = m_comboBox_nozzle_dia->GetValue();
-            try {
-                nozzle_value_str.ToDouble(&nozzle_value);
-            } catch(...) {
-                ;
-            }
             if (!model_id.empty() && model_id.compare(obj->printer_type) == 0
                 && printer_nozzle_vals
                 && abs(printer_nozzle_vals->get_at(0) - nozzle_value) < 1e-3) {
-                    printer_preset_list.insert(printer_it->name);
+                    printer_profiles.push_back(preset_bundle->printers.get_preset_with_vendor_profile(*printer_it));
                     BOOST_LOG_TRIVIAL(trace) << "extrusion_cali: printer_model = " << model_id;
             } else {
                 BOOST_LOG_TRIVIAL(error) << "extrusion_cali: printer_model = " << model_id;
             }
         }
 
+        // Unlike the AMS dialogs this one offers every matching preset by full name rather than one
+        // root preset per alias, so it filters the collection itself instead of calling
+        // PresetBundle::get_filament_presets_for_machine().
         for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
-            ConfigOption* printer_opt = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings* printer_strs = dynamic_cast<ConfigOptionStrings*>(printer_opt);
-            for (auto printer_str : printer_strs->values) {
-                if (printer_preset_list.find(printer_str) != printer_preset_list.end()) {
-                    user_filaments.push_back(&(*filament_it));
+            const PresetWithVendorProfile filament = preset_bundle->filaments.get_preset_with_vendor_profile(*filament_it);
+            if (std::none_of(printer_profiles.begin(), printer_profiles.end(),
+                             [&filament](const PresetWithVendorProfile &printer) { return is_compatible_with_printer(filament, printer); }))
+                continue;
 
-                    // set default filament id
-                    filament_index++;
-                    if (filament_it->is_system
-                        && !ams_filament_id.empty()
-                        && filament_it->filament_id == ams_filament_id
-                        ) {
-                        curr_selection = filament_index;
-                    }
+            user_filaments.push_back(&(*filament_it));
 
-                    if (filament_it->name == obj->extrusion_cali_filament_name && !obj->extrusion_cali_filament_name.empty())
-                    {
-                        curr_selection = filament_index;
-                    }
-
-                    wxString filament_name = wxString::FromUTF8(filament_it->name);
-                    filament_items.Add(filament_name);
-                    break;
-                }
+            // set default filament id
+            filament_index++;
+            if (filament_it->is_system
+                && !ams_filament_id.empty()
+                && filament_it->filament_id == ams_filament_id
+                ) {
+                curr_selection = filament_index;
             }
+
+            if (filament_it->name == obj->extrusion_cali_filament_name && !obj->extrusion_cali_filament_name.empty())
+            {
+                curr_selection = filament_index;
+            }
+
+            filament_items.Add(wxString::FromUTF8(filament_it->name));
         }
         m_comboBox_filament->Set(filament_items);
         m_comboBox_filament->SetSelection(curr_selection);

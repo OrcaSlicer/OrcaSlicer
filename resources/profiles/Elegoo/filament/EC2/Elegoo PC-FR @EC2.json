@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PC-FR @EC2",
-	"inherits": "Elegoo PC @base",
+	"inherits": "Elegoo PC-FR @base",
 	"from": "system",
 	"setting_id": "4y2nFqOY9OLYQT4I",
 	"instantiation": "true",

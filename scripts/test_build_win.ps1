@@ -360,6 +360,12 @@ $cases = @(
     @{ Name = '--cache turns the precompiled header off'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
        Env = @{ PATH = $ccacheOnPath }
        Contains = @('-DSLIC3R_PCH=OFF', 'COMPILER_LAUNCHER') }
+    # Without it the objects name the build directory and only that tree can use them.
+    @{ Name = '--cache asks for relative debug paths'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
+       Env = @{ PATH = $ccacheOnPath }
+       Contains = @('-DSLIC3R_RELATIVE_DEBUG_PATHS=ON') }
+    @{ Name = 'no --cache leaves the debug paths alone'; Args = @('-s', '-l', '-x')
+       NotContains = @('SLIC3R_RELATIVE_DEBUG_PATHS') }
     # The resolved path, not the bare name, so PATH cannot change it later.
     @{ Name = '--cache names the resolved path in the banner'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
        Env = @{ PATH = $ccacheOnPath }

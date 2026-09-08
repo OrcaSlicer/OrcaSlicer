@@ -8824,6 +8824,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
+                            if (auto* agent = wxGetApp().getAgent()) {
+                                if (auto* ids = config.opt<ConfigOptionStrings>("filament_ids"))
+                                    for (std::string& id : ids->values)
+                                        id = agent->to_orca_filament_id(id);
+                            }
                             preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -18671,6 +18676,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         nozzle_diameter_str = nozzle_diameter_option->serialize();
 
     std::string printer_model_id = preset_bundle.printers.get_edited_preset().get_printer_type(&preset_bundle);
+    // The printer reads slice_info.config and knows only its own catalog ids.
+    auto* id_agent = preset_bundle.is_bbl_vendor() ? wxGetApp().getAgent() : nullptr;
 
     for (int i = 0; i < plate_data_list.size(); i++) {
         PlateData *plate_data = plate_data_list[i];
@@ -18680,6 +18687,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             std::string display_filament_type;
             it->type  = cfg.get_filament_type(display_filament_type, it->id);
             it->filament_id = filament_id_opt ? filament_id_opt->get_at(it->id) : "";
+            if (id_agent)
+                it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
             it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
             // save filament info used in curr plate
             int index = p->partplate_list.get_curr_plate_index();

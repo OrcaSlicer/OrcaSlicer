@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Tough @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA09",
+	"filament_id": "OFaQMgRH",
 	"instantiation": "false",
 	"filament_cost": [
 		"28.99"

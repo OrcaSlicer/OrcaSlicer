@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Anker 0.25 nozzle",
+	"inherits": "Generic ABS @Anker base",
+	"renamed_from": "Anker Generic ABS 0.25 nozzle",
+	"from": "system",
+	"setting_id": "7Q2pr70SpSjK7v7Y",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"3"
+	],
+	"compatible_printers": [
+		"Anker M5 0.25 nozzle",
+		"Anker M5 All-Metal 0.25 nozzle",
+		"Anker M5C 0.25 nozzle"
+	]
+}
