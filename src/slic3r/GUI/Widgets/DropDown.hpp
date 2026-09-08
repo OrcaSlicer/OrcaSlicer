@@ -51,11 +51,11 @@ private:
     // owner_events=FALSE pointer grab (via CaptureMouse) so wheel/axis events
     // reach it regardless of which Wayland surface has pointer focus.
     bool       wheelGrab { false };
-#endif
     // Last DropDown of the chain that performed a wheel scroll; used to keep
     // scrolling the same list while the cursor is outside every popup.
     // Only meaningful on the chain root (mainDropDown == nullptr).
     DropDown * wheelTarget { nullptr };
+#endif
 
     double radius = 0;
     bool   use_content_width = false;
@@ -119,9 +119,11 @@ public:
 
     void Popup(wxWindow *focus = nullptr) override;
 
+#ifdef __WXGTK__
+    // Wayland wheel-scroll workaround, see DropDown.cpp. No-op elsewhere.
     bool Show(bool show = true) override;
-
     ~DropDown() override;
+#endif
 
 protected:
     void Dismiss() override;
@@ -150,9 +152,10 @@ private:
     void mouseCaptureLost(wxMouseCaptureLostEvent &event);
     void mouseMove(wxMouseEvent &event);
     void mouseWheelMoved(wxMouseEvent &event);
-    void scrollContent(wxMouseEvent &event);
+#ifdef __WXGTK__
     void acquireWheelGrab();
     void releaseWheelGrab();
+#endif
 
     void sendDropDownEvent();
 
