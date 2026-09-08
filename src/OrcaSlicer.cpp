@@ -2046,6 +2046,51 @@ int CLI::run(int argc, char **argv)
                                              error, allow_source_manifest);
     };
 
+    //ORCA: list the keys a user preset overrides relative to its system parent, for the
+    //      `different_settings_to_system` column of an exported 3MF. Without it the CLI
+    //      writes an empty column, so re-opening a CLI-exported project in the GUI shows
+    //      spurious "unsaved changes" and can revert inherited process/filament/machine
+    //      values to system defaults.
+    //
+    //      The parent comes from the preset bundle that inherits resolution already builds,
+    //      so this adds no extra loading. Returns "" whenever the parent cannot be resolved,
+    //      which is exactly the previous behaviour.
+    auto cli_different_settings = [&ensure_cli_preset_bundle](const DynamicPrintConfig &resolved,
+                                                              const std::string        &parent_name,
+                                                              Preset::Type              type) -> std::string {
+        if (parent_name.empty())
+            return std::string();
+        std::string   error;
+        PresetBundle *bundle = ensure_cli_preset_bundle(error);
+        if (bundle == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << "CLI: no preset bundle for different_settings_to_system: " << error;
+            return std::string();
+        }
+        const PresetCollection *collection = nullptr;
+        switch (type) {
+        case Preset::TYPE_PRINT:    collection = &bundle->prints;    break;
+        case Preset::TYPE_FILAMENT: collection = &bundle->filaments; break;
+        case Preset::TYPE_PRINTER:  collection = &bundle->printers;  break;
+        default:                    return std::string();
+        }
+        const Preset *parent = collection->find_preset2(parent_name, true);
+        if (parent == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: parent preset '%1%' not found; leaving different_settings_to_system empty")%parent_name;
+            return std::string();
+        }
+        std::vector<std::string> keys = resolved.diff(parent->config);
+        //ORCA: preset metadata, not user-tunable settings. compatible_printers /
+        //      compatible_prints have their own tracking columns and would double-count.
+        keys.erase(std::remove_if(keys.begin(), keys.end(), [](const std::string &k) {
+                       return k == "inherits" || k == "compatible_printers" || k == "compatible_prints"
+                           || k == "compatible_printers_condition" || k == "compatible_prints_condition"
+                           || k == "print_settings_id" || k == "filament_settings_id" || k == "printer_settings_id";
+                   }),
+                   keys.end());
+        BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% overrides vs parent '%2%'")%keys.size()%parent_name;
+        return Slic3r::escape_strings_cstyle(keys);
+    };
+
     auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
@@ -2937,8 +2982,10 @@ int CLI::run(int argc, char **argv)
             }
         }
         else {
-            //todo: support user machine preset's different settings
-            different_settings[filament_count+1] = "";
+            //ORCA: was a //todo — compute the user's overrides instead of writing an empty column.
+            different_settings[filament_count+1] = new_printer_config_is_system
+                ? std::string()
+                : cli_different_settings(load_machine_config, new_printer_system_name, Preset::TYPE_PRINTER);
             if (new_printer_config_is_system)
                 inherits_group[filament_count+1] = "";
             else
@@ -3080,8 +3127,14 @@ int CLI::run(int argc, char **argv)
             print_compatible_printers = std::move(current_print_compatible_printers);
         }
         else {
-            //todo: support system process preset
-            different_settings[0] = "";
+            //ORCA: was a //todo. Prefer a value the loaded JSON already carried, otherwise
+            //      compute the overrides against the system parent.
+            if (!different_process_setting.empty())
+                different_settings[0] = different_process_setting;
+            else
+                different_settings[0] = new_process_config_is_system
+                    ? std::string()
+                    : cli_different_settings(load_process_config, new_process_system_name, Preset::TYPE_PRINT);
             if (new_process_config_is_system)
                 inherits_group[0] = "";
             else
@@ -3279,8 +3332,8 @@ int CLI::run(int argc, char **argv)
                 opt_filament_settings->set_at(filament_name_setting, filament_index-1, 0);
                 config.erase("filament_settings_id");
 
-                //todo: update different settings of filaments
-                different_settings[filament_index] = "";
+                //ORCA: was a //todo — same treatment as process/machine above.
+                different_settings[filament_index] = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
                 inherits_group[filament_index] = load_filaments_inherit[index];
             }
             else {
