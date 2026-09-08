@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Anker 0.2 nozzle",
+	"inherits": "Generic PETG @Anker base",
+	"renamed_from": "Anker Generic PETG 0.2 nozzle",
+	"from": "system",
+	"setting_id": "67ZHuiXPyCP6Tdtr",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"compatible_printers": [
+		"Anker M5 0.2 nozzle",
+		"Anker M5 All-Metal 0.2 nozzle",
+		"Anker M5C 0.2 nozzle"
+	]
+}

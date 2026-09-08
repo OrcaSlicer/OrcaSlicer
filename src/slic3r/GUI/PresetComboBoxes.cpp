@@ -873,10 +873,15 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
             auto fila_type = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
             bool is_official = boost::algorithm::starts_with(fila_type, "Bambu");
             if (is_official) {
-                // Get filament_id from filament_presets
+                // Get filament_id from filament_presets. FilamentPickerDialog looks up
+                // filaments_color_codes.json, which is downloaded from Bambu and keyed by the
+                // printer's own ids, so translate our OF id (the "GFA00" fallback is already one).
                 const std::string& preset_name = m_preset_bundle->filament_presets[m_filament_idx];
                 const Preset* selected_preset = m_collection->find_preset(preset_name);
-                wxString fila_id = selected_preset ? wxString::FromUTF8(selected_preset->filament_id) : "GFA00";
+                auto* agent = wxGetApp().getAgent();
+                wxString fila_id = "GFA00";
+                if (selected_preset)
+                    fila_id = wxString::FromUTF8(agent ? agent->from_orca_filament_id(selected_preset->filament_id) : selected_preset->filament_id);
                 FilamentColor fila_color = get_cur_color_info();
 
                 // Show filament picker dialog

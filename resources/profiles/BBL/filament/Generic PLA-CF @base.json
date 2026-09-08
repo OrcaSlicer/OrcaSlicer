@@ -3,7 +3,7 @@
 	"name": "Generic PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL98",
+	"filament_id": "OFWbdGsC",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

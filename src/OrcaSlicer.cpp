@@ -100,6 +100,10 @@ using namespace nlohmann;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
+    // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
+    // in CMakeLists).
+    #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
@@ -6539,6 +6543,20 @@ int CLI::run(int argc, char **argv)
         std::string nozzle_diameter_str;
         if (nozzle_diameter_option)
             nozzle_diameter_str = nozzle_diameter_option->serialize();
+#ifdef SLIC3R_GUI
+        // A Bambu printer reads slice_info.config and knows only its own catalog ids. The GUI
+        // gates the same translation on PresetBundle::is_bbl_vendor(); the CLI has no
+        // PresetBundle, so reuse the printer_model prefix that already decides
+        // Print::is_BBL_printer() for this same run.
+        auto* printer_model_option = dynamic_cast<const ConfigOptionString*>(m_print_config.option("printer_model"));
+        const bool is_bbl_printer = printer_model_option && printer_model_option->value.compare(0, 9, "Bambu Lab") == 0;
+        // No wxApp on the CLI path, so there is no live agent to ask; the translator is stateless
+        // over a lazily loaded map, so one instance serves every plate and filament below.
+        // ORCA TODO: this assumes Bambu's is the only agent with a catalog of its own. Once another
+        // agent carries one, resolve the agent from the selected printer the way
+        // GUI_App::resolve_printer_agent_id does, rather than hard-coding BBLPrinterAgent here.
+        const BBLPrinterAgent bbl_agent;
+#endif /* SLIC3R_GUI */
 
         for (int i = 0; i < plate_data_list.size(); i++) {
             PlateData *plate_data = plate_data_list[i];
@@ -6556,6 +6574,10 @@ int CLI::run(int argc, char **argv)
                 it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
                 it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
                 it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
+#ifdef SLIC3R_GUI
+                if (is_bbl_printer)
+                    it->filament_id = bbl_agent.from_orca_filament_id(it->filament_id);
+#endif /* SLIC3R_GUI */
             }
 
             if (!plate_data->plate_thumbnail.is_valid()) {

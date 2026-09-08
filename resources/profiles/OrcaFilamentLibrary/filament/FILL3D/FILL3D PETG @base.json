@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "FILL3D PETG @base",
 	"from": "system",
-	"filament_id": "FILL3D003",
+	"filament_id": "OFQbjX3s",
 	"instantiation": "false",
 	"inherits": "fdm_filament_pet",
 	"filament_vendor": [

@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PA-CF @FF G4P",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "Yu7hL4izNsgDVqMT",
+	"filament_id": "OFGxuI0n",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"
