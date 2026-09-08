@@ -340,12 +340,19 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     const std::string initial_center = GENERATE("each_surface", "each_model", "each_assembly");
     const std::string final_center = GENERATE("each_surface", "each_model", "each_assembly");
     const bool separated = GENERATE(false, true);
+    const std::string top_order = GENERATE("default", "outward", "inward");
+    const std::string bottom_order = top_order == "outward" ? "inward" : top_order == "inward" ? "outward" : "default";
+    const std::string density = GENERATE("80%", "100%");
     const bool change_center = initial_center != final_center;
-    CAPTURE(pattern, initial_center, final_center, separated);
+    CAPTURE(pattern, initial_center, final_center, separated, top_order, bottom_order, density);
 
     auto config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"top_surface_pattern", pattern},
                                    {"bottom_surface_pattern", pattern},
+                                   {"top_surface_fill_order", top_order},
+                                   {"bottom_surface_fill_order", bottom_order},
+                                   {"top_surface_density", density},
+                                   {"bottom_surface_density", density},
                                    {"center_of_surface_pattern", initial_center},
                                    {"separated_infills", change_center ? separated : !separated},
                                    {"sparse_infill_pattern", "rectilinear"},
@@ -367,18 +374,35 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     second.translate(50, 0, 0);
     mesh.merge(second);
 
-    auto surface_footprints = [](const Print &print) {
-        std::map<std::pair<size_t, ExtrusionRole>, Polygons> result;
+    // Orca: Equal footprints can hide reordered or reversed paths. Retain their point
+    // sequences and ordering protection to cover the directional surface behavior too.
+    struct SurfaceFillSnapshot {
+        std::map<bool, std::vector<Points>> paths;
+        bool protected_order = true;
+    };
+    auto surface_fills = [](const Print &print) {
+        std::map<std::pair<size_t, ExtrusionRole>, SurfaceFillSnapshot> result;
         const PrintObject &object = *print.objects().front();
-        for (size_t i = 0; i < object.layer_count(); ++i)
-            for (const LayerRegion *region : object.get_layer(i)->regions()) {
-                const ExtrusionEntityCollection flattened = region->fills.flatten();
-                for (const ExtrusionEntity *entity : flattened.entities)
-                    if (entity->role() == erTopSolidInfill || entity->role() == erBottomSurface)
-                        entity->polygons_covered_by_width(result[{i, entity->role()}], 0.f);
-            }
-        for (auto &entry : result)
-            entry.second = union_(entry.second);
+        for (size_t i = 0; i < object.layer_count(); ++i) {
+            auto collect = [&](const auto &self, const ExtrusionEntity &entity, bool no_sort) -> void {
+                if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
+                    for (const ExtrusionEntity *child : collection->entities)
+                        self(self, *child, no_sort || collection->no_sort);
+                } else if (entity.role() == erTopSolidInfill || entity.role() == erBottomSurface) {
+                    const auto *path = dynamic_cast<const ExtrusionPath *>(&entity);
+                    REQUIRE(path != nullptr);
+                    auto &snapshot = result[{i, entity.role()}];
+                    // Orca: The centered test model has one body on either side of X=0.
+                    // Their traversal order may vary; preserve path order within each body.
+                    Points points = path->polyline.to_polyline().points;
+                    REQUIRE_FALSE(points.empty());
+                    snapshot.paths[points.front().x() > 0].push_back(std::move(points));
+                    snapshot.protected_order &= no_sort && !path->can_reverse();
+                }
+            };
+            for (const LayerRegion *region : object.get_layer(i)->regions())
+                collect(collect, region->fills, false);
+        }
         return result;
     };
 
@@ -386,7 +410,7 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     Model model;
     init_print({mesh}, print, model, config, nullptr, false);
     print.process();
-    const auto initial = surface_footprints(print);
+    const auto initial = surface_fills(print);
     config.set_deserialize_strict({{"center_of_surface_pattern", final_center}, {"separated_infills", separated}});
     print.apply(model, config);
     // Orca: Preparation owns the body origins, and its invalidation must also force
@@ -394,34 +418,39 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     CHECK_FALSE(print.objects().front()->is_step_done(posPrepareInfill));
     CHECK_FALSE(print.objects().front()->is_step_done(posInfill));
     print.process();
-    const auto resliced = surface_footprints(print);
+    const auto resliced = surface_fills(print);
 
     Print fresh_print;
     Model fresh_model;
     init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
     fresh_print.process();
-    const auto fresh = surface_footprints(fresh_print);
+    const auto fresh = surface_fills(fresh_print);
     REQUIRE_FALSE(fresh.empty());
     REQUIRE(resliced.size() == fresh.size());
     std::set<ExtrusionRole> roles;
-    double changed_area = 0.;
+    bool changed_paths = false;
     for (const auto &entry : fresh) {
         CAPTURE(entry.first.first, entry.first.second);
-        REQUIRE_FALSE(entry.second.empty());
+        REQUIRE_FALSE(entry.second.paths.empty());
         roles.insert(entry.first.second);
         REQUIRE(resliced.count(entry.first) == 1);
         REQUIRE(initial.count(entry.first) == 1);
         const auto &actual = resliced.at(entry.first);
-        CHECK(area(diff(entry.second, actual)) < scaled<double>(1.) * scaled<double>(1.) * 1e-6);
-        CHECK(area(diff(actual, entry.second)) < scaled<double>(1.) * scaled<double>(1.) * 1e-6);
-        changed_area += area(diff(entry.second, initial.at(entry.first))) + area(diff(initial.at(entry.first), entry.second));
+        const auto &expected = entry.second;
+        const auto &before = initial.at(entry.first);
+        CHECK((actual.paths == expected.paths));
+        if (!change_center)
+            CHECK((actual.paths == before.paths));
+        if (top_order != "default") {
+            CHECK(expected.protected_order);
+            CHECK(actual.protected_order);
+            CHECK(before.protected_order);
+        }
+        changed_paths |= expected.paths != before.paths;
     }
     CHECK(roles.count(erTopSolidInfill) == 1);
     CHECK(roles.count(erBottomSurface) == 1);
     // Orca: Guard against a vacuous comparison: changing surface centering must change
     // the printed pattern, while toggling separated sparse infill must leave it alone.
-    if (change_center)
-        CHECK(changed_area > scaled<double>(1.) * scaled<double>(1.));
-    else
-        CHECK(changed_area < scaled<double>(1.) * scaled<double>(1.) * 1e-6);
+    CHECK(changed_paths == change_center);
 }
