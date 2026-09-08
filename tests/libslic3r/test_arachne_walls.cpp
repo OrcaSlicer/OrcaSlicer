@@ -342,12 +342,14 @@ FuzzySkinConfig thick_fuzzy_config(FuzzySkinMode mode, NoiseType noise_type, dou
 // Extrusion and Combined mode add noise to each junction's width. A junction narrower than
 // height * (1 - PI/4) makes Flow::rounded_rectangle_extrusion_spacing() throw and fails the slice.
 // The fuzz thickness is 3x the line width so the clamp is hit on every run regardless of RNG seed.
+// Ridged multifractal is covered because its output is not bounded to [-1, 1], so it scales past
+// the configured thickness; the floor has to hold for any noise value, not just an in-range one.
 TEST_CASE("Fuzzy skin extrusion width is floored at the minimum the flow accepts", "[Arachne][FuzzySkin]") {
     using namespace Slic3r::Feature::FuzzySkin;
 
     const double layer_height = GENERATE(0.08, 0.2, 0.28);
     const auto   mode         = GENERATE(FuzzySkinMode::Extrusion, FuzzySkinMode::Combined);
-    const auto   noise_type   = GENERATE(NoiseType::Classic, NoiseType::Perlin, NoiseType::Billow, NoiseType::Voronoi);
+    const auto   noise_type   = GENERATE(NoiseType::Classic, NoiseType::Perlin, NoiseType::Billow, NoiseType::RidgedMulti, NoiseType::Voronoi);
     CAPTURE(layer_height, int(mode), int(noise_type));
 
     const double line_width_mm = 0.42;
