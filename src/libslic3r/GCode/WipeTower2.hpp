@@ -213,6 +213,7 @@ private:
 
 
 	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
+	bool   m_manual_filament_change = false;
 	bool   m_enable_filament_ramming = true;
 	bool   m_is_mk4mmu3         = false;
     int    m_wipe_tower_filament = 0;   // 1-based config value, 0 means auto

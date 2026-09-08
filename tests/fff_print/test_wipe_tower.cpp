@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "libslic3r/BoundingBox.hpp"
@@ -161,10 +162,11 @@ static DynamicPrintConfig wipe_tower_toolchange_config(const std::string &gcode_
 // counts one filament in use, and DynamicPrintConfig::normalize_fdm_2's single-filament rule then
 // clears `enable_prime_tower`. A second apply, once init_print's regions have settled, sees both
 // filaments and the tower survives.
-static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
+static std::string slice_with_prime_tower(const DynamicPrintConfig &config, bool is_bbl_printer = false)
 {
     Print print;
     Model model;
+    print.is_BBL_printer() = is_bbl_printer;
     init_print({ cube(10) }, print, model, config);
     print.apply(model, config);
     return gcode(print);
@@ -181,4 +183,101 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(expected));
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
     }
+}
+
+static DynamicPrintConfig manual_change_tower_config(const std::string &tower_type, bool manual_change)
+{
+    return multifilament_config(2, {
+        { "sparse_infill_filament_id",        1 },
+        { "internal_solid_filament_id",       1 },
+        { "top_surface_filament_id",          1 },
+        { "bottom_surface_filament_id",       1 },
+        { "outer_wall_filament_id",           2 },
+        { "inner_wall_filament_id",           2 },
+        { "enable_prime_tower",               true },
+        { "single_extruder_multi_material",   true },
+        { "manual_filament_change",           manual_change },
+        { "change_filament_gcode",            "M400 U1 ; manual filament change" },
+        { "wipe_tower_type",                  tower_type },
+        { "prime_tower_skip_points",          true },
+        { "enable_filament_ramming",          true },
+        { "parking_pos_retraction",           92 },
+        { "extra_loading_move",               -2 },
+        { "layer_height",                     0.3 },
+    });
+}
+
+static std::string toolchange_region_containing(const std::string &gcode, const std::string &needle)
+{
+    size_t needle_pos = gcode.find(needle);
+    if (needle_pos == std::string::npos)
+        return {};
+
+    size_t start = gcode.rfind("; CP TOOLCHANGE START", needle_pos);
+    size_t end   = gcode.find("; CP TOOLCHANGE END", needle_pos);
+    if (start == std::string::npos || end == std::string::npos)
+        return {};
+    return gcode.substr(start, end - start);
+}
+
+static bool contains_xy_move(const std::string &gcode)
+{
+    size_t line_start = 0;
+    while (line_start < gcode.size()) {
+        const size_t line_end = gcode.find('\n', line_start);
+        const std::string_view line(gcode.data() + line_start,
+                                    (line_end == std::string::npos ? gcode.size() : line_end) - line_start);
+        if (line.size() >= 2 && line[0] == 'G' && (line[1] == '0' || line[1] == '1') &&
+            line.find('X') != std::string_view::npos &&
+            line.find('Y') != std::string_view::npos)
+            return true;
+        if (line_end == std::string::npos)
+            break;
+        line_start = line_end + 1;
+    }
+    return false;
+}
+
+TEST_CASE("A Type 1 manual filament change pauses after reaching the wipe tower", "[WipeTower][Regression]")
+{
+    const std::string gcode = slice_with_prime_tower(manual_change_tower_config("type1", true), true);
+    const std::string block = toolchange_region_containing(gcode, "; CP TOOLCHANGE START");
+    REQUIRE_FALSE(block.empty());
+
+    const size_t pause = block.find("M400 U1");
+    const size_t wipe  = block.find("; CP_TOOLCHANGE_WIPE", pause);
+    REQUIRE(pause != std::string::npos);
+    REQUIRE(wipe != std::string::npos);
+    CHECK_FALSE(contains_xy_move(block.substr(pause, wipe - pause)));
+}
+
+TEST_CASE("A Type 1 manual filament change returns to the wipe tower after a custom XY move", "[WipeTower][Regression]")
+{
+    DynamicPrintConfig config = manual_change_tower_config("type1", true);
+    config.set_key_value("change_filament_gcode",
+                         new ConfigOptionString("M400 U1\nG1 X1 Y1 ; custom parking move"));
+
+    const std::string gcode = slice_with_prime_tower(config, true);
+    const std::string block = toolchange_region_containing(gcode, "; CP TOOLCHANGE START");
+    REQUIRE_FALSE(block.empty());
+
+    const size_t custom_move = block.find("custom parking move");
+    const size_t wipe        = block.find("; CP_TOOLCHANGE_WIPE", custom_move);
+    REQUIRE(custom_move != std::string::npos);
+    REQUIRE(wipe != std::string::npos);
+    CHECK(contains_xy_move(block.substr(custom_move, wipe - custom_move)));
+}
+
+TEST_CASE("A Type 2 manual filament change does not repeat the automatic loading phase", "[WipeTower][Regression]")
+{
+    const std::string gcode = slice_with_prime_tower(manual_change_tower_config("type2", true));
+    const std::string block = toolchange_region_containing(gcode, "M400 U1");
+    REQUIRE_FALSE(block.empty());
+    CHECK_THAT(block, !Catch::Matchers::ContainsSubstring("CP TOOLCHANGE LOAD"));
+}
+
+TEST_CASE("A Type 2 automatic filament change retains its loading phase", "[WipeTower]")
+{
+    const std::string gcode = slice_with_prime_tower(manual_change_tower_config("type2", false));
+    CHECK_THAT(gcode, Catch::Matchers::ContainsSubstring("CP TOOLCHANGE LOAD"));
 }
