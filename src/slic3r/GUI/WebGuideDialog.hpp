@@ -112,7 +112,6 @@ private:
     AppConfig m_appconfig_new;
 
     wxWebView *m_browser;
-    wxButton * m_TestBtn;
 
     wxString m_SectionName;
 

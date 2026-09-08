@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PET @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "2128577941",
+	"filament_id": "OFUIfGoh",
 	"instantiation": "false",
 	"overhang_fan_speed": [
 		"40"

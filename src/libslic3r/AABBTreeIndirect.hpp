@@ -229,7 +229,7 @@ public:
         m_bbox(bbox.min - Point(SCALED_EPSILON, SCALED_EPSILON), bbox.max + Point(SCALED_EPSILON, SCALED_EPSILON)) {}
     size_t             idx() const { return m_idx; }
     const BoundingBox& bbox() const { return m_bbox; }
-    Point              centroid() const { return (m_bbox.min() + m_bbox.max() / 2); }
+    Point              centroid() const { return (m_bbox.min() + m_bbox.max()) / 2; }
 private:
     size_t             m_idx;
     BoundingBox		   m_bbox;

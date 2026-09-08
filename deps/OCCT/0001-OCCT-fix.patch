@@ -1,3 +1,20 @@
+diff --git a/adm/cmake/occt_defs_flags.cmake b/adm/cmake/occt_defs_flags.cmake
+index 00000000..00000001 100644
+--- a/adm/cmake/occt_defs_flags.cmake
++++ b/adm/cmake/occt_defs_flags.cmake
+@@ -134,7 +134,11 @@
+     set (CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+   endif()
+   # Optimize size of binaries
+-  set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-s ${CMAKE_SHARED_LINKER_FLAGS}")
++  # clang-cl reports the Clang compiler ID, and OCCT builds shared on Windows,
++  # where the MSVC-style linker gets this flag as an argument it does not know.
++  if (NOT WIN32)
++    set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-s ${CMAKE_SHARED_LINKER_FLAGS}")
++  endif()
+ elseif(MINGW)
+   add_definitions(-D_WIN32_WINNT=0x0601)
+   # _WIN32_WINNT=0x0601 (use Windows 7 SDK)
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index d98acc0f..28eb8eb4 100644
 --- a/CMakeLists.txt
@@ -168,6 +185,32 @@ index d98acc0f..28eb8eb4 100644
  endforeach()
  
  if (BUILD_SAMPLES_QT)
+diff --git a/adm/cmake/occt_macros.cmake b/adm/cmake/occt_macros.cmake
+index 224c96b1..8c94a1c5 100644
+--- a/adm/cmake/occt_macros.cmake
++++ b/adm/cmake/occt_macros.cmake
+@@ -608,7 +608,7 @@ macro (OCCT_INSERT_CODE_FOR_TARGET)
+   install(CODE "if (\"\${CMAKE_INSTALL_CONFIG_NAME}\" MATCHES \"^([Rr][Ee][Ll][Ee][Aa][Ss][Ee])$\")
+     set (OCCT_INSTALL_BIN_LETTER \"\")
+   elseif (\"\${CMAKE_INSTALL_CONFIG_NAME}\" MATCHES \"^([Rr][Ee][Ll][Ww][Ii][Tt][Hh][Dd][Ee][Bb][Ii][Nn][Ff][Oo])$\")
+-    set (OCCT_INSTALL_BIN_LETTER \"i\")
++    set (OCCT_INSTALL_BIN_LETTER \"\")
+   elseif (\"\${CMAKE_INSTALL_CONFIG_NAME}\" MATCHES \"^([Dd][Ee][Bb][Uu][Gg])$\")
+     set (OCCT_INSTALL_BIN_LETTER \"d\")
+   endif()")
+diff --git a/adm/cmake/occt_toolkit.cmake b/adm/cmake/occt_toolkit.cmake
+index 550e0e2f..7ac1a3b8 100644
+--- a/adm/cmake/occt_toolkit.cmake
++++ b/adm/cmake/occt_toolkit.cmake
+@@ -241,7 +241,7 @@
+     else()
+       set (aReleasePdbConf)
+     endif()
+-    install (FILES  ${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bin\${OCCT_INSTALL_BIN_LETTER}/${PROJECT_NAME}.pdb
++    install (FILES  $<TARGET_PDB_FILE:${PROJECT_NAME}>
+              CONFIGURATIONS Debug ${aReleasePdbConf} RelWithDebInfo
+              DESTINATION "${INSTALL_DIR_BIN}\${OCCT_INSTALL_BIN_LETTER}")
+   endif()
 diff --git a/src/Font/Font_FTFont.cxx b/src/Font/Font_FTFont.cxx
 index 5ae9899f..0a17372b 100644
 --- a/src/Font/Font_FTFont.cxx

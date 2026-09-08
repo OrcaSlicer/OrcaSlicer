@@ -3520,13 +3520,13 @@ void GridCellTextEditor::BeginEdit(int row, int col, wxGrid *grid)
     Text()->GetTextCtrl()->SetInsertionPointEnd();
     
 
-    m_control->Bind(wxEVT_TEXT_ENTER, [this, row, col, grid](wxCommandEvent &e) {
+    m_control->Bind(wxEVT_TEXT_ENTER, [grid](wxCommandEvent &e) {
         grid->HideCellEditControl();
         grid->SaveEditControlValue();
         e.Skip();
     });
 
-    m_control->Bind(wxEVT_CHAR_HOOK, [this, row, col, grid](wxKeyEvent &e) {
+    m_control->Bind(wxEVT_CHAR_HOOK, [grid](wxKeyEvent &e) {
 		if (e.GetKeyCode() == WXK_ESCAPE) {
             grid->HideCellEditControl();
             grid->SaveEditControlValue();

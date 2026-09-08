@@ -3,6 +3,7 @@
 
 #include "wx/bitmap.h"
 #include "wx/dragimag.h"
+#include "wx/panel.h"
 
 namespace Slic3r { namespace GUI {
 

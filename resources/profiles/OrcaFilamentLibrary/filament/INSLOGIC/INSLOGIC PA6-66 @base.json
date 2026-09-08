@@ -3,7 +3,7 @@
   "name": "INSLOGIC PA6-66 @base",
   "inherits": "fdm_filament_pa",
   "from": "system",
-  "filament_id": "INS00004",
+  "filament_id": "OF02mnRc",
   "instantiation": "false",
   "filament_vendor": [
     "INSLOGIC"

@@ -310,7 +310,11 @@ void set_data_dir(const std::string &dir)
 {
     g_data_dir = dir;
     if (!g_data_dir.empty() && !boost::filesystem::exists(g_data_dir)) {
-       boost::filesystem::create_directory(g_data_dir);
+        try {
+            boost::filesystem::create_directories(g_data_dir);
+        } catch (const boost::filesystem::filesystem_error &ex) {
+            BOOST_LOG_TRIVIAL(error) << "set_data_dir: failed to create data directory " << g_data_dir << ": " << ex.what();
+        }
     }
 }
 

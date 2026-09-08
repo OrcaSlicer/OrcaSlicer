@@ -1440,6 +1440,7 @@ void AppConfig::set_mouse_device(const std::string& name, double translation_spe
     it->second["invert_yaw"] = invert_yaw ? "1" : "0";
     it->second["invert_pitch"] = invert_pitch ? "1" : "0";
     it->second["invert_roll"] = invert_roll ? "1" : "0";
+    m_dirty = true;
 }
 
 std::vector<std::string> AppConfig::get_mouse_device_names() const

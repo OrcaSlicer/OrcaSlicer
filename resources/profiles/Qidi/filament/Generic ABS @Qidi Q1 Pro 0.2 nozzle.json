@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Qidi Q1 Pro 0.2 nozzle",
+	"inherits": "Generic ABS @Qidi",
+	"renamed_from": "Qidi Generic ABS @Qidi Q1 Pro 0.2 nozzle;Qidi Generic ABS Qidi Q1 Pro 0.2 nozzle",
+	"from": "system",
+	"setting_id": "IQDYfIQsv6WlnA3z",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.021"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi Q1 Pro 0.2 nozzle"
+	]
+}

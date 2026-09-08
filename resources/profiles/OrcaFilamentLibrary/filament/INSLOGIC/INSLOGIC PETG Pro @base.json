@@ -3,7 +3,7 @@
   "name": "INSLOGIC PETG Pro @base",
   "inherits": "fdm_filament_pet",
   "from": "system",
-  "filament_id": "INS00002",
+  "filament_id": "OFBdBfg1",
   "instantiation": "false",
   "filament_vendor": [
     "INSLOGIC"

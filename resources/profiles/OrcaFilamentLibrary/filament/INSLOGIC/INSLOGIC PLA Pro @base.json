@@ -3,7 +3,7 @@
   "name": "INSLOGIC PLA Pro @base",
   "inherits": "fdm_filament_pla",
   "from": "system",
-  "filament_id": "INS00001",
+  "filament_id": "OFvPeNbA",
   "instantiation": "false",
   "filament_vendor": [
     "INSLOGIC"

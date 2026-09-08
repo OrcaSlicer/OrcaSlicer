@@ -79,7 +79,6 @@ private:
     std::vector<wxBoxSizer *> m_row_col_boxsizer_list;
     std::vector<ButtonState*> m_result_icon_list;
     int                       m_last_cluster_num{-1};
-    const int               m_combox_width{50};
     int                     m_combox_icon_width;
     int                     m_combox_icon_height;
     wxButton *              m_image_button = nullptr;
