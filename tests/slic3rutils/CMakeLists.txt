@@ -42,9 +42,16 @@ if (WIN32)
         COMMENT "Copying Python runtime for slic3rutils plugin host API tests"
         VERBATIM
     )
-elseif (APPLE)
-    target_link_options(${_TEST_NAME}_tests PRIVATE
-        "LINKER:-rpath,@executable_path/python/lib")
+else ()
+    # The CI unit-test runner only receives the build/tests tree, so both the
+    # interpreter and the libpython the test binary links have to travel next to
+    # the executable; find_bundled_python_home() picks the copy up from there.
+    if (APPLE)
+        target_link_options(${_TEST_NAME}_tests PRIVATE
+            "LINKER:-rpath,@executable_path/python/lib")
+    else ()
+        set_property(TARGET ${_TEST_NAME}_tests APPEND PROPERTY BUILD_RPATH "$ORIGIN/python/lib")
+    endif ()
 
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E rm -rf
@@ -52,7 +59,7 @@ elseif (APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_PREFIX_PATH}/libpython"
             "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
-        COMMENT "Copying Python runtime for macOS plugin host API tests"
+        COMMENT "Copying Python runtime for the plugin host API tests"
         VERBATIM
     )
 endif()
