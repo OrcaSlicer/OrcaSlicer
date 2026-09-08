@@ -9,6 +9,7 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include "../LinuxDisplayBackend.hpp"
 #endif
 
 #include <set>
@@ -42,6 +43,18 @@ static bool dd_wheelgrab_enabled()
     static int v = -1;
     if (v < 0) { const char *e = std::getenv("ORCA_DD_NOGRAB"); v = (e && *e && *e != '0') ? 0 : 1; }
     return v != 0;
+}
+// On Wayland a group submenu opened on hover is mis-placed: the compositor
+// ignores gtk_window_move on a mapped xdg_popup and top-anchors it to the
+// parent surface. Opening it only on click gets a fresh input serial and the
+// positioner is honoured, so restrict auto (hover) opening to non-Wayland.
+static bool dd_submenu_click_only()
+{
+#ifdef __WXGTK__
+    return Slic3r::GUI::is_running_on_wayland();
+#else
+    return false;
+#endif
 }
 #define DD_LOG_AT(lvl, expr)                                                    \
     do {                                                                       \
@@ -861,8 +874,21 @@ void DropDown::mouseReleased(wxMouseEvent& event)
             if (mainDropDown)
                 mainDropDown->hover_item = -1; // To Dismiss mainDropDown
             DismissAndNotify();
-        } else if (subDropDown)
+        } else if (subDropDown) {
+            if (dd_submenu_click_only() && !subDropDown->group.empty()) {
+                // Wayland: hover no longer prepped/positioned the submenu - do it
+                // now, on the click, so the fresh input serial places it right.
+                auto &drop     = *subDropDown;
+                drop.need_sync = true;
+                drop.messureSize();
+#ifdef __WXGTK__
+                if (m_widget && drop.m_widget)
+                    gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
+#endif
+                drop.autoPosition();
+            }
             subDropDown->Popup(subDropDown);
+        }
     }
 }
 
@@ -935,21 +961,30 @@ void DropDown::mouseMove(wxMouseEvent &event)
                                      << " rowH=" << rowSize.y << " => hover_item=" << hover_item
                                      << " hoverIndex=" << index << " pressedDown=" << pressedDown);
         if (index < -1) {
-            auto & drop = *subDropDown;
-            drop.group  = items[-index - 2].group_key;
-            drop.need_sync = true;
-            drop.messureSize();
+            auto &   drop      = *subDropDown;
+            wxString group_key = items[-index - 2].group_key;
+            if (dd_submenu_click_only()) {
+                // Wayland: don't auto-open on hover (mis-placed); just arm the
+                // click target and drop any now-stale submenu.
+                if (drop.IsShown() && drop.group != group_key)
+                    drop.Dismiss();
+                drop.group = group_key;
+            } else {
+                drop.group     = group_key;
+                drop.need_sync = true;
+                drop.messureSize();
 #ifdef __WXGTK__
-            // wxGTK wraps popup contents in a native GtkWindow. Make the submenu
-            // transient for the currently mapped parent popup window before
-            // positioning/showing it, so wlroots/Hyprland sees the topmost parent.
-            if (m_widget && drop.m_widget)
-                gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
+                // wxGTK wraps popup contents in a native GtkWindow. Make the submenu
+                // transient for the currently mapped parent popup window before
+                // positioning/showing it, so wlroots/Hyprland sees the topmost parent.
+                if (m_widget && drop.m_widget)
+                    gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
 #endif
-            drop.autoPosition();
-            drop.paintNow();
-            if (!drop.IsShown())
-                drop.Popup(&drop);
+                drop.autoPosition();
+                drop.paintNow();
+                if (!drop.IsShown())
+                    drop.Popup(&drop);
+            }
         } else if (index >= 0) {
             if (subDropDown) {
                 subDropDown->group.clear();
