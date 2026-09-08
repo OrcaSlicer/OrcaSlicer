@@ -1081,22 +1081,21 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
     }
-    // Skip the containment check for towers that will never be printed (single-filament
-    // prints without smooth timelapse keep the config's tower position but emit nothing).
+    // No gate on "is there a tower": one that is not printed estimates to zero, so the hull
+    // is degenerate and every check passes. Re-deriving it here missed the wrapping-detection
+    // tower on a single-filament plate.
     // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
     // the generated brim by several mm and must not hard-fail a print that physically fits.
     // Post-generation the mesh bottom already includes the real brim, so the exact
     // footprint is tested.
-    if (filaments_count > 1 || print.enable_timelapse_print()) {
-        // The shared printable polygon is plate-local, while the tower polygons above are
-        // already shifted by the plate origin.
-        Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
-        const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
-        for (Polygon &p : printable_polys)
-            p.translate(plate_shift);
-        if (!diff(convex_hulls_temp, printable_polys).empty())
-            return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
-    }
+    // The shared printable polygon is plate-local, while the tower polygons above are
+    // already shifted by the plate origin.
+    Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
+    const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (Polygon &p : printable_polys)
+        p.translate(plate_shift);
+    if (!diff(convex_hulls_temp, printable_polys).empty())
+        return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     return {};
 }
 
@@ -4005,16 +4004,14 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 
     double max_height   = 0.;
     double layer_height = std::numeric_limits<double>::max();
-    bool   any_raft     = false;
     for (const PrintObject *object : m_objects) {
         max_height   = std::max(max_height, unscale_(double(object->size().z())));
         layer_height = std::min(layer_height, object->config().layer_height.value);
-        any_raft     = any_raft || object->config().raft_layers.value > 0;
     }
     if (max_height < EPSILON)
         return m_wipe_tower_data;
 
-    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, filaments_cnt, layer_height, max_height, any_raft);
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, filaments_cnt, layer_height, max_height);
     WipeTowerData &data = const_cast<Print *>(this)->m_wipe_tower_data;
     data.depth      = float(footprint.depth);
     data.width      = float(footprint.width);
@@ -4244,6 +4241,7 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
         wipe_tower.generate_new(m_wipe_tower_data.tool_changes);
         m_wipe_tower_data.depth      = wipe_tower.get_depth();
+        m_wipe_tower_data.width      = wipe_tower.width();
         m_wipe_tower_data.brim_width = wipe_tower.get_brim_width();
         m_wipe_tower_data.bbx = wipe_tower.get_bbx();
         m_wipe_tower_data.rib_offset = wipe_tower.get_rib_offset();
@@ -4357,6 +4355,7 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
         wipe_tower.generate(m_wipe_tower_data.tool_changes);
         m_wipe_tower_data.depth             = wipe_tower.get_depth();
+        m_wipe_tower_data.width             = wipe_tower.width();
         m_wipe_tower_data.z_and_depth_pairs = wipe_tower.get_z_and_depth_pairs();
         m_wipe_tower_data.brim_width        = wipe_tower.get_brim_width();
         m_wipe_tower_data.height            = wipe_tower.get_wipe_tower_height();

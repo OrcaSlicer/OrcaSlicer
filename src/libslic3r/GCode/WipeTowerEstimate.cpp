@@ -11,7 +11,7 @@
 
 namespace Slic3r {
 
-WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_t filaments_cnt, double layer_height, double max_object_height, bool any_raft)
+WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_t filaments_cnt, double layer_height, double max_object_height)
 {
     WipeTowerFootprint footprint;
     footprint.height = max_object_height;
@@ -56,8 +56,9 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_
     const bool   dual_nozzle      = nozzle_opt != nullptr && nozzle_opt->values.size() == 2;
     const bool   rib_wall         = opt_enum("wipe_tower_wall_type", int(WipeTowerWallType::wtwRectangle)) == int(WipeTowerWallType::wtwRib);
     const bool   smooth_timelapse = opt_enum("timelapse_type", int(TimelapseType::tlTraditional)) == int(TimelapseType::tlSmooth);
-    // Reasons a tower is printed with no tool change to purge for.
-    const bool   need_wipe_tower  = smooth_timelapse || opt_bool("enable_wrapping_detection") || any_raft;
+    // Reasons a tower is printed with no tool change to purge for: the ones that stop
+    // normalize_fdm_2 clearing enable_prime_tower. Its mixed-filament case is not modelled.
+    const bool   need_wipe_tower  = smooth_timelapse || opt_bool("enable_wrapping_detection");
 
     // No tool change, nothing to purge; smooth timelapse still primes once.
     size_t purge_count = 0;
@@ -80,7 +81,9 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_
 
     // Both wall types decide this together: over-reserving only wastes bed area, but
     // reporting no tower for one that is built collapses the validation hull to a point.
-    if (volume < EPSILON && !need_wipe_tower)
+    // A tool change is a reason on its own: the generator floors the tower whatever the
+    // purge volumes resolve to.
+    if (volume < EPSILON && filaments_cnt < 2 && !need_wipe_tower)
         return footprint;
 
     const double min_depth = WipeTower::get_limit_depth_by_height(float(max_object_height));

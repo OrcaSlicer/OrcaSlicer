@@ -2895,12 +2895,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
                 const Print* current_print = part_plate->fff_print();
-                if (!need_wipe_tower && part_plate->get_extruders(true).size() < 2) continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
                 // Body and brim from this plate's own estimate: m_process->fff_print() is the
                 // selected plate's, so an auto brim drew every tower with that plate's brim.
                 const WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config);
+                // The estimate is also the answer to whether this plate prints a tower;
+                // deciding it here as well only gave the two room to drift.
+                if (footprint.depth <= 0.) continue;
                 float brim_width = float(footprint.brim_width);
                 Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 

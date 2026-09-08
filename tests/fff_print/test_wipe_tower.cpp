@@ -199,6 +199,7 @@ static DynamicPrintConfig tower_estimate_config(const char *wall_type)
         { "single_extruder_multi_material", "0"       },
         { "timelapse_type",                 "0"       },
         { "layer_height",                   "0.2"     },
+        { "enable_wrapping_detection",      "0"       },
         { "raft_layers",                    "0"       } });
 }
 
@@ -245,23 +246,83 @@ TEST_CASE("Validation is given the tower's effective width, not the configured o
     }
 }
 
+TEST_CASE("Generating the tower keeps its reported width current", "[WipeTower]")
+{
+    // width is handed out after the slice, so leaving it at the estimate reports a zero-width
+    // tower to every post-generation consumer.
+    const DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    REQUIRE(print.wipe_tower_data(2).width > 0.f);
+
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+    const WipeTowerData &data = print.wipe_tower_data();
+    // A width the generator never wrote reads as zero. A rib wall squares the tower, so the
+    // generated width is the body square: under the configured 50 mm, and inside the depth.
+    CHECK(data.width > 0.f);
+    CHECK(data.width < 50.f);
+    CHECK(data.width <= data.depth + EPSILON);
+}
+
 TEST_CASE("A single-filament plate reserves a tower only when one is actually printed", "[WipeTower]")
 {
-    // Reporting no tower for one that is built collapses the validation hull to a point, so
-    // the config-visible reasons for a single-filament tower have to be honoured.
+    // The estimate has to answer this the way Print::apply does: reporting no tower for one
+    // that is built collapses the validation hull to a point, and reporting one for a tower
+    // that is not built takes that bed area away from the arranger and draws a preview box
+    // over nothing.
     Print print;
     Model model;
 
     SECTION("no tool change and nothing else that prints one") {
         const DynamicPrintConfig config = tower_estimate_config("rib");
         init_print({ cube(20) }, print, model, config);
+        REQUIRE_FALSE(print.has_wipe_tower());
         CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
     }
 
-    SECTION("a raft puts the tower on every layer below the object") {
+    // A raft puts the tower on every layer below the object, but only where there is a tower:
+    // Print::apply runs normalize_fdm_2, which clears enable_prime_tower for a plate that
+    // purges one filament and has neither smooth timelapse nor wrapping detection on.
+    SECTION("a raft alone does not print one") {
         DynamicPrintConfig config = tower_estimate_config("rib");
         config.set_deserialize_strict({ { "raft_layers", "3" } });
         init_print({ cube(20) }, print, model, config);
+        REQUIRE_FALSE(print.config().enable_prime_tower.value);
+        REQUIRE_FALSE(print.has_wipe_tower());
+        CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    SECTION("smooth timelapse prints one, and keeps enable_prime_tower on") {
+        DynamicPrintConfig config = tower_estimate_config("rib");
+        config.set_deserialize_strict({ { "timelapse_type", "1" } });
+        init_print({ cube(20) }, print, model, config);
+        REQUIRE(print.has_wipe_tower());
         CHECK(print.wipe_tower_data(1).depth > 0.f);
     }
+}
+
+TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
+{
+    // Wrapping detection prints a tower on a plate that purges one filament. Neither the old
+    // estimate (which read the wall type and smooth timelapse) nor the old containment gate (the
+    // filament count or smooth timelapse) knew about it, so between them that tower was never
+    // checked against the bed.
+    Print print;
+    Model model;
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    // Relative E without a per-layer G92 is rejected before the tower is ever looked at, and
+    // has_wipe_tower() wants a real exclusion polygon before it honours wrapping detection.
+    config.set_deserialize_strict({ { "enable_wrapping_detection", "1" },
+                                    { "wrapping_exclude_area", "180x180,190x180,190x190,180x190" },
+                                    { "wipe_tower_x", "500" }, { "wipe_tower_y", "500" },
+                                    { "use_relative_e_distances", "0" } });
+
+    init_print({ cube(20) }, print, model, config);
+    REQUIRE(print.extruders(true).size() == 1);
+    REQUIRE(print.has_wipe_tower());
+    CHECK(print.wipe_tower_data(1).depth > 0.f);
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
 }

@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <vector>
 #include <string>
@@ -1541,6 +1542,14 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config) const
 {
 	std::vector<int> plate_extruders;
+	// A plate from a sliced .gcode.3mf holds no objects, so report the filaments the G-code
+	// used. check_objects_empty_and_gcode3mf does this for get_extruders(bool), but reaches
+	// the plater, which the CLI has none of; slice_filaments_info is only filled for such a plate.
+	if (m_model->objects.empty()) {
+		for (const FilamentInfo &info : slice_filaments_info)
+			plate_extruders.push_back(info.id + 1);
+		return plate_extruders;
+	}
 	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
 	int glb_support_extr = glb_config.opt_int("support_filament");
 	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
@@ -2347,37 +2356,27 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
     // seeding from the global value, or folding in an off-plate override, diverges from Print.
     const ConfigOption *layer_height_opt    = config.option("layer_height");
     const double        global_layer_height = layer_height_opt != nullptr ? layer_height_opt->getFloat() : 0.08;
-    const ConfigOption *raft_layers_opt     = config.option("raft_layers");
-    const int           global_raft_layers  = raft_layers_opt != nullptr ? raft_layers_opt->getInt() : 0;
     double              max_height          = 0.;
     double              layer_height        = std::numeric_limits<double>::max();
-    bool                any_raft            = false;
     for (int obj_idx = 0; obj_idx < int(m_model->objects.size()); ++obj_idx) {
         const ModelObject *object = m_model->objects[obj_idx];
         if (!use_global_objects && !contain_any_instance_totally(obj_idx))
             continue;
         // Per instance, to match PrintObject::size(); the union over instances differs once
-        // they are rotated apart.
+        // they are rotated apart. The cached convex hull has the mesh's z extent and is cheap
+        // enough for every scene reload.
         for (int inst_idx = 0; inst_idx < int(object->instances.size()); ++inst_idx) {
             if (!use_global_objects && !contain_instance_totally(obj_idx, inst_idx))
                 continue;
-            max_height = std::max(max_height, object->instance_bounding_box(inst_idx, true).size().z());
+            max_height = std::max(max_height, object->instance_convex_hull_bounding_box(inst_idx, true).size().z());
         }
         const ConfigOption *object_layer_height = object->config.option("layer_height");
         layer_height = std::min(layer_height, object_layer_height != nullptr ? object_layer_height->getFloat() : global_layer_height);
-        const ConfigOption *object_raft_layers = object->config.option("raft_layers");
-        any_raft = any_raft || (object_raft_layers != nullptr ? object_raft_layers->getInt() : global_raft_layers) > 0;
     }
     if (layer_height == std::numeric_limits<double>::max())
         layer_height = global_layer_height;
 
-    return Slic3r::estimate_wipe_tower_footprint(config, size_t(plate_extruder_size), layer_height, max_height, any_raft);
-}
-
-Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig &config, int plate_extruder_size, bool use_global_objects) const
-{
-    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(config, plate_extruder_size, use_global_objects);
-    return Vec3d(footprint.width, footprint.depth, footprint.height);
+    return Slic3r::estimate_wipe_tower_footprint(config, size_t(plate_extruder_size), layer_height, max_height);
 }
 
 arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size, bool use_global_objects) const

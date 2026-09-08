@@ -21,9 +21,9 @@ struct WipeTowerFootprint
 //                changes, so a count derived from the model must include them
 //                (Print::extruders(true)) or a real tower is sized as if it were never built.
 // layer_height:  thinnest layer the tower will be planned at.
-// any_raft:      any object on the plate prints a raft, which puts the tower on every layer
-//                below it. Caller-resolved: raft_layers is a PrintObjectConfig key, absent
-//                from Print's config and overridable per object.
-WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_t filaments_cnt, double layer_height, double max_object_height, bool any_raft);
+//
+// A raft is deliberately not a reason: normalize_fdm_2 clears enable_prime_tower for a plate
+// purging one filament unless smooth timelapse or wrapping detection is on.
+WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, size_t filaments_cnt, double layer_height, double max_object_height);
 
 } // namespace Slic3r
