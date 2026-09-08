@@ -4,7 +4,6 @@
 #include <string.h>
 #include <locale>
 #include <boost/locale/encoding_utf.hpp>
-#include <codecvt>
 #include <regex>
 
 namespace Slic3r {
@@ -1953,8 +1952,7 @@ std::string fold_utf8_to_ascii(const std::string &src, bool is_convert_for_filen
 	for (wchar_t c : wstr)
 		fold_to_ascii(c, out);
 	if (is_convert_for_filename) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		auto   dstStr = converter.to_bytes(dst);
+		auto   dstStr = boost::locale::conv::utf_to_utf<char>(dst.c_str(), dst.c_str() + dst.size());
 
 		std::size_t found = dstStr.find_last_of("/\\");
 		if (found != std::string::npos) {
@@ -1964,7 +1962,7 @@ std::string fold_utf8_to_ascii(const std::string &src, bool is_convert_for_filen
 			std::string newFileName = regex_replace(filename, reg, "");
 			dstStr  = dir + "\\" + newFileName;
         }
-		dst = converter.from_bytes(dstStr);
+		dst = boost::locale::conv::utf_to_utf<wchar_t>(dstStr.c_str(), dstStr.c_str() + dstStr.size());
 	}
 
 	return boost::locale::conv::utf_to_utf<char>(dst.c_str(), dst.c_str() + dst.size());

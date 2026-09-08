@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG Transparent @FF G4P 0.6 nozzle",
-	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "Z2E69w9AevYg15tl",
+	"filament_id": "OFwjMiKL",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

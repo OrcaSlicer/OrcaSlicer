@@ -1,9 +1,12 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA @FF AD5M 0.25 Nozzle",
-	"inherits": "Flashforge Generic ASA",
+	"inherits": "Generic ASA @Flashforge",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OFJS560n",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "false",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.25 Nozzle",

@@ -298,6 +298,7 @@ void GCodeProcessor::TimeMachine::State::reset()
     //BBS
     enter_direction = { 0.0f, 0.0f, 0.0f };
     exit_direction = { 0.0f, 0.0f, 0.0f };
+    jd_unit_vec = { 0.0f, 0.0f, 0.0f, 0.0f };
 }
 
 void GCodeProcessor::TimeMachine::CustomGCodeTime::reset()
@@ -531,7 +532,7 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
                     const float mm3_per_mm = curr_move.mm3_per_mm;
-                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float fan_speed = curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
                         block.move_id,
@@ -562,7 +563,7 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
                     const float mm3_per_mm = curr_move.mm3_per_mm;
-                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float fan_speed = curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
                         block.move_id,
@@ -1272,7 +1273,7 @@ void GCodeProcessor::run_post_process()
     // add lines M73 to exported gcode
     auto process_line_move = [
         // Lambdas, mostly for string formatting, all with an empty capture block.
-        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,format_line_exhaust_fan_control,
+        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,
         &self = std::as_const(m_time_processor),
         // Caches, to be modified
         &g1_times_cache_it, &last_exported_main, &last_exported_stop,
@@ -2542,6 +2543,7 @@ void GCodeProcessorResult::reset() {
     spiral_vase_mode = false;
     layer_filaments.clear();
     filament_change_sequence.clear();
+    used_mixed_filaments.clear();
     nozzle_change_sequence.clear();
     optimal_assignment.clear();
     filament_change_count_map.clear();
@@ -5036,6 +5038,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
+        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
+                                 static_cast<float>(delta_pos[Y]),
+                                 static_cast<float>(delta_pos[Z]),
+                                 static_cast<float>(delta_pos[E])).normalized();
 
         TimeBlock block;
         block.move_type = type;
@@ -5118,22 +5124,32 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         block.acceleration = acceleration;
 
-        // calculates block exit feedrate
-        curr.safe_feedrate = block.feedrate_profile.cruise;
+        static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
+        const bool has_prev_move = !blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD;
 
-        for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-            if (curr.abs_axis_feedrate[a] > axis_max_jerk)
-                curr.safe_feedrate = std::min(curr.safe_feedrate, axis_max_jerk);
+        // Orca: junction deviation where the firmware uses it (Klipper always, Marlin 2 with M205 J).
+        // Negative leaves the classic jerk path below unchanged.
+        const float vmax_junction_jd = calc_vmax_junction_deviation(block, prev, curr, has_prev_move,
+                                                                    static_cast<PrintEstimatedStatistics::ETimeMode>(i));
+        const bool use_junction_deviation = vmax_junction_jd >= 0.0f;
+
+        // calculates block exit feedrate. Junction deviation has no per axis jerk floor, so a move is
+        // free to start from rest.
+        curr.safe_feedrate = use_junction_deviation ? 0.0f : block.feedrate_profile.cruise;
+
+        if (!use_junction_deviation) {
+            for (unsigned char a = X; a <= E; ++a) {
+                float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
+                if (curr.abs_axis_feedrate[a] > axis_max_jerk)
+                    curr.safe_feedrate = std::min(curr.safe_feedrate, axis_max_jerk);
+            }
         }
 
         block.feedrate_profile.exit = curr.safe_feedrate;
 
-        static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
-
         // calculates block entry feedrate
-        float vmax_junction = curr.safe_feedrate;
-        if (!blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD) {
+        float vmax_junction = use_junction_deviation ? vmax_junction_jd : curr.safe_feedrate;
+        if (!use_junction_deviation && has_prev_move) {
             bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
             float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
             // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
@@ -5288,7 +5304,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
     float filament_radius = 0.5f * filament_diameter;
     float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
 
-    auto absolute_position = [this, area_filament_cross_section](Axis axis, const GCodeReader::GCodeLine& lineG1) {
+    auto absolute_position = [this](Axis axis, const GCodeReader::GCodeLine& lineG1) {
         bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
         if (axis == E)
             is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
@@ -5400,6 +5416,10 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
+        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
+                                 static_cast<float>(delta_pos[Y]),
+                                 static_cast<float>(delta_pos[Z]),
+                                 static_cast<float>(delta_pos[E])).normalized();
 
         TimeBlock block;
         block.move_type = type;
@@ -5480,22 +5500,32 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
         block.acceleration = acceleration;
 
-        // calculates block exit feedrate
-        curr.safe_feedrate = block.feedrate_profile.cruise;
+        static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
+        const bool has_prev_move = !blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD;
 
-        for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-            if (curr.abs_axis_feedrate[a] > axis_max_jerk)
-                curr.safe_feedrate = std::min(curr.safe_feedrate, axis_max_jerk);
+        // Orca: junction deviation where the firmware uses it (Klipper always, Marlin 2 with M205 J).
+        // Negative leaves the classic jerk path below unchanged.
+        const float vmax_junction_jd = calc_vmax_junction_deviation(block, prev, curr, has_prev_move,
+                                                                    static_cast<PrintEstimatedStatistics::ETimeMode>(i));
+        const bool use_junction_deviation = vmax_junction_jd >= 0.0f;
+
+        // calculates block exit feedrate. Junction deviation has no per axis jerk floor, so a move is
+        // free to start from rest.
+        curr.safe_feedrate = use_junction_deviation ? 0.0f : block.feedrate_profile.cruise;
+
+        if (!use_junction_deviation) {
+            for (unsigned char a = X; a <= E; ++a) {
+                float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
+                if (curr.abs_axis_feedrate[a] > axis_max_jerk)
+                    curr.safe_feedrate = std::min(curr.safe_feedrate, axis_max_jerk);
+            }
         }
 
         block.feedrate_profile.exit = curr.safe_feedrate;
 
-        static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
-
         // calculates block entry feedrate
-        float vmax_junction = curr.safe_feedrate;
-        if (!blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD) {
+        float vmax_junction = use_junction_deviation ? vmax_junction_jd : curr.safe_feedrate;
+        if (!use_junction_deviation && has_prev_move) {
             bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
             float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
             // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
@@ -5725,7 +5755,7 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
     if (travel_length < 0.001)
         return;
 
-    auto adjust_target = [this, area_filament_cross_section](const AxisCoords& target, const AxisCoords& prev_position) {
+    auto adjust_target = [this](const AxisCoords& target, const AxisCoords& prev_position) {
         AxisCoords ret = target;
         if (m_global_positioning_type == EPositioningType::Relative) {
             for (unsigned char a = X; a <= E; ++a) {
@@ -6976,7 +7006,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
                                                                     get_acceleration(normal_mode));
     const float junction_deviation = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, normal_mode_id);
     const bool use_jd_jerk = (m_flavor == gcfMarlinFirmware && junction_deviation > 0.0f);
-    const auto axis_jerk_for_preview = [this, normal_mode, use_jd_jerk, move_acceleration](Axis axis) {
+    const auto axis_jerk_for_preview = [this, use_jd_jerk, move_acceleration](Axis axis) {
         return use_jd_jerk ? get_axis_max_jerk_with_jd(normal_mode, axis, move_acceleration) : get_axis_max_jerk(normal_mode, axis);
     };
     const float jerk_x = axis_jerk_for_preview(X);
@@ -7166,6 +7196,91 @@ float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeM
 float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
     return get_axis_max_jerk_with_jd(mode, axis, get_acceleration(mode));
+}
+
+float GCodeProcessor::get_junction_deviation(PrintEstimatedStatistics::ETimeMode mode, float acceleration) const
+{
+    const size_t id = static_cast<size_t>(mode);
+
+    // Klipper has no classic jerk: jd = scv^2 * (sqrt(2) - 1) / max_accel
+    // (toolhead.py::_calc_junction_deviation). Passing the block acceleration back in makes it cancel
+    // in calc_vmax_junction_deviation(), leaving the identity v == scv at a 90 degree corner.
+    if (m_flavor == gcfKlipper) {
+        // machine_max_jerk_x holds the square corner velocity; process_SET_VELOCITY_LIMIT() writes it.
+        const float scv = get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id);
+        if (scv <= 0.0f || acceleration <= 0.0f)
+            return 0.0f;
+        return sqr(scv) * (std::sqrt(2.0f) - 1.0f) / acceleration;
+    }
+
+    // Marlin 2 plans with junction deviation only when M205 J > 0; classic jerk leaves it at 0.
+    if (m_flavor == gcfMarlinFirmware)
+        return get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+
+    return 0.0f;
+}
+
+float GCodeProcessor::calc_junction_acceleration(const TimeBlock& block, const Vec4f& junction_unit_vec,
+                                                 PrintEstimatedStatistics::ETimeMode mode) const
+{
+    float junction_acceleration = block.acceleration;
+    for (unsigned char a = X; a <= E; ++a) {
+        if (junction_unit_vec[a] == 0.0f)
+            continue;
+        const float axis_max_acceleration = get_axis_max_acceleration(mode, static_cast<Axis>(a), m_machine_config_idx);
+        if (axis_max_acceleration > 0.0f)
+            junction_acceleration = std::min(junction_acceleration, std::abs(axis_max_acceleration / junction_unit_vec[a]));
+    }
+    return junction_acceleration;
+}
+
+// Ported from PrusaSlicer (src/libslic3r/GCode/GCodeProcessor.cpp).
+float GCodeProcessor::calc_vmax_junction_deviation(const TimeBlock& block, const TimeMachine::State& prev,
+                                                   const TimeMachine::State& curr, bool has_prev_move,
+                                                   PrintEstimatedStatistics::ETimeMode mode) const
+{
+    const float junction_deviation = get_junction_deviation(mode, block.acceleration);
+    if (junction_deviation <= 0.0f)
+        return -1.0f; // classic jerk machine, the caller keeps its own computation
+    if (!has_prev_move)
+        return 0.0f;  // starts from rest, the planner raises this on the reverse pass
+
+    // -1 for a straight continuation, +1 for a full reversal. Half angle identity, no acos()/sin().
+    // Both vectors are unit length over XYZE, so this really is a cosine: scaling by 1 / distance
+    // instead, as PrusaSlicer does, leaves an E term that makes extruding corners look straighter
+    // than they are. Marlin normalizes over XYZE for any extruding move (planner.cpp, esteps > 0)
+    // and Klipper keeps E out of the cosine entirely (toolhead.py::Move.calc_junction); both agree
+    // that the corner is planned by its geometry, and normalizing matches them to within 1e-5.
+    float junction_cos_theta = (-prev.jd_unit_vec).dot(curr.jd_unit_vec);
+    if (junction_cos_theta > 0.999999f)
+        return 0.0f; // the path doubles back, the machine has to stop
+    junction_cos_theta = std::max(junction_cos_theta, -0.999999f); // guards the division below
+
+    const float sin_theta_d2 = std::sqrt(0.5f * (1.0f - junction_cos_theta)); // always positive
+    const Vec4f junction_vec = curr.jd_unit_vec - prev.jd_unit_vec;
+    const float junction_vec_norm = junction_vec.norm();
+    const Vec4f junction_unit_vec = (junction_vec_norm > 0.0f) ? Vec4f(junction_vec / junction_vec_norm)
+                                                               : Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+    const float junction_acceleration = calc_junction_acceleration(block, junction_unit_vec, mode);
+
+    float vmax_junction_sqr = (junction_acceleration * junction_deviation * sin_theta_d2) / (1.0f - sin_theta_d2);
+
+    // Marlin's JD_HANDLE_SMALL_SEGMENTS: a short move through a shallow corner is treated as an arc and
+    // capped by the centripetal acceleration it needs. Klipper has no equivalent.
+    if (m_flavor != gcfKlipper && block.distance < 1.0f && junction_cos_theta < -0.7071067812f) {
+        // Fast acos(-t), max. error +-0.033rad. MinMax polynomial by W. Randolph Franklin:
+        // https://wrf.ecse.rpi.edu/Research/Short_Notes/arcsin/onlyelem.html
+        const float neg = junction_cos_theta < 0.0f ? -1.0f : 1.0f;
+        const float t = neg * junction_cos_theta;
+        const float asinx = 0.032843707f + t * (-1.451838349f + t * (29.66153956f + t * (-131.1123477f +
+                            t * (262.8130562f + t * (-242.7199627f + t * (84.31466202f))))));
+        const float junction_theta = float(0.5 * M_PI) + neg * asinx; // acos(-t), bottoms out at 0.033
+        vmax_junction_sqr = std::min(vmax_junction_sqr, (block.distance * junction_acceleration) / junction_theta);
+    }
+
+    // Never faster than either of the two moves the junction joins.
+    vmax_junction_sqr = std::min(vmax_junction_sqr, std::min(sqr(block.feedrate_profile.cruise), sqr(prev.feedrate)));
+    return std::sqrt(vmax_junction_sqr);
 }
 
 float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const

@@ -55,7 +55,6 @@ private:
 
     Label* m_text_label;
     wxStaticBitmap* m_icon_bitmap;
-    int m_target_size;
     std::string m_icon_name;
     ScalableBitmap m_icon;
 };

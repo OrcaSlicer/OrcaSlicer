@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Silk @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM004",
+	"filament_id": "OFS8lTQt",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

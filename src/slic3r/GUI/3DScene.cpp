@@ -682,13 +682,19 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
             if (shader) {
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
-                    //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
-                    if (ban_light) {
-                        new_color[3] = (255 - (extruder_id - 1))/255.0f;
+                    // ORCA: extruder_id may be 0 (unset) or point past the colour list after a
+                    // filament is deleted/remapped, so clamp the index instead of reading out of
+                    // bounds.
+                    if (!extruder_colors.empty()) {
+                        int color_idx = std::clamp(extruder_id - 1, 0, int(extruder_colors.size()) - 1);
+                        //to make black not too hard too see
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (ban_light) {
+                            new_color[3] = (255 - color_idx)/255.0f;
+                        }
+                        m.set_color(new_color);
+                        // shader->set_uniform("uniform_color", new_color);
                     }
-                    m.set_color(new_color);
-                    // shader->set_uniform("uniform_color", new_color);
                 }
                 else {
                     if (idx <= extruder_colors.size()) {

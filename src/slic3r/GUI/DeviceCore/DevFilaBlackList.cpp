@@ -241,8 +241,11 @@ void check_filaments(const DevFilaBlacklist::CheckFilamentInfo& check_info, DevF
                 std::set<std::string> white_fila_ids = filament_item.contains("white_fila_ids") ? filament_item["white_fila_ids"].get<std::set<std::string>>() : std::set<std::string>();
                 if (!white_fila_ids.empty() && !check_info.fila_id.empty())
                 {
-                    auto it = std::find_if(white_fila_ids.begin(), white_fila_ids.end(), [&check_info](const std::string& white_fila_id) {
-                        return white_fila_id == check_info.fila_id;
+                    // check_info.fila_id is our OF id; white_fila_ids in filaments_blacklist.json holds the printer's own.
+                    auto* agent = Slic3r::GUI::wxGetApp().getAgent();
+                    const std::string printer_filament_id = agent ? agent->from_orca_filament_id(check_info.fila_id) : check_info.fila_id;
+                    auto it = std::find_if(white_fila_ids.begin(), white_fila_ids.end(), [&printer_filament_id](const std::string& white_fila_id) {
+                        return white_fila_id == printer_filament_id;
                     });
                     if (it != white_fila_ids.end()) { continue; }
                 }

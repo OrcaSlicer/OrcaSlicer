@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PETG @base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "1172603684",
+	"filament_id": "OFQMTRc8",
 	"instantiation": "false",
 	"overhang_fan_speed": [
 		"35"

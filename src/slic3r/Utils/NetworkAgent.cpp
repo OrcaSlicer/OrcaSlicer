@@ -929,6 +929,20 @@ bool NetworkAgent::fetch_filament_info(std::string dev_id)
     return false;
 }
 
+std::string NetworkAgent::to_orca_filament_id(const std::string& printer_filament_id) const
+{
+    if (m_printer_agent)
+        return m_printer_agent->to_orca_filament_id(printer_filament_id);
+    return printer_filament_id;
+}
+
+std::string NetworkAgent::from_orca_filament_id(const std::string& orca_filament_id) const
+{
+    if (m_printer_agent)
+        return m_printer_agent->from_orca_filament_id(orca_filament_id);
+    return orca_filament_id;
+}
+
 int NetworkAgent::request_bind_ticket(std::string* ticket)
 {
     if (m_printer_agent)

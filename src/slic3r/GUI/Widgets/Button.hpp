@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/tipwin.h>
 
 class ButtonProps
 {
@@ -27,14 +28,13 @@ enum class ButtonType{
     Expanded , // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 
-class wxTipWindow;
 class Button : public StaticBox
 {
+    wxTipWindow::Ref tipWindow;
     wxRect textSize;
     wxSize minSize; // set by outer
     wxSize paddingSize;
     ScalableBitmap active_icon;
-    ScalableBitmap inactive_icon;
 
     StateColor   text_color;
 
@@ -43,8 +43,6 @@ class Button : public StaticBox
     bool canFocus  = true;
     bool isCenter    = true;
     bool vertical    = false;
-
-    wxTipWindow* tipWindow = nullptr;
 
     static const int buttonWidth = 200;
     static const int buttonHeight = 50;
@@ -61,8 +59,7 @@ public:
     bool SetFont(const wxFont& font) override;
 
     void SetIcon(const wxString& icon);
-
-    void SetInactiveIcon(const wxString& icon);
+    void SetIcon(const wxBitmap& icon);
 
     void SetMinSize(const wxSize& size) override;
     void SetMaxSize(const wxSize& size) override;

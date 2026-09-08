@@ -1,0 +1,510 @@
+name: PR Merge Bot
+
+# Merges a pull request on request from a delegated vendor profile maintainer.
+# The merge is performed by this workflow's GITHUB_TOKEN, so a delegate needs no
+# repository access.
+#
+# Commands, posted as a comment on the PR:
+#   /bot merge              squash-merge the PR
+#   /bot merge --dry-run    report the verdict without merging
+#
+# Merges only when the commenter holds a grant covering every changed path, the
+# PR targets main or release/*, and CI is green on the head commit. Otherwise it
+# comments naming the files that fell outside the grant.
+#
+# Grants come from the FOLDER_MERGERS variable in the `merge-delegation`
+# environment: one per line, `account: path`, `#` comments and blank lines
+# allowed. Paths may contain spaces. A vendor takes two grants, the folder and
+# its sibling bundle JSON:
+#
+#   # Acme profiles
+#   vendor-maintainer: resources/profiles/Acme/
+#   vendor-maintainer: resources/profiles/Acme.json
+#
+# Edit the grant list (environment scope, so admin only):
+#   gh variable set FOLDER_MERGERS --env merge-delegation --body "$(cat folder-mergers.txt)"
+#   gh variable get FOLDER_MERGERS --env merge-delegation
+#
+# Stop all merging without touching this file:
+#   gh variable set MERGE_BOT_DRY_RUN --body true
+
+on:
+  issue_comment:
+    types:
+      - created
+
+# One merge attempt per PR at a time, so two quick comments cannot race.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    # Skips the job unless a PR comment mentions the command.
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer'
+      && github.event.issue.pull_request != null
+      && contains(github.event.comment.body, '/bot merge')
+    permissions:
+      contents: write        # pulls.merge
+      pull-requests: write   # pulls.merge
+      issues: write          # feedback comment + reactions
+      actions: write         # re-dispatch build_all.yml after the merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Supplies FOLDER_MERGERS. Must carry no protection rules, or every
+    # delegated merge would wait for a human reviewer.
+    environment: merge-delegation
+    steps:
+      - name: Merge PR on behalf of a folder delegate
+        uses: actions/github-script@v9
+        env:
+          # Read as env vars, never interpolated into the script body.
+          FOLDER_MERGERS: ${{ vars.FOLDER_MERGERS }}
+          MERGE_BOT_DRY_RUN: ${{ vars.MERGE_BOT_DRY_RUN }}
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            const MARKER = '<!-- pr-merge-bot -->';
+            // No grant may reach outside this root.
+            const DELEGATABLE_ROOT = 'resources/profiles/';
+            const ALLOWED_BASE_BRANCH = /^(?:main|release\/.+)$/;
+            const MERGE_METHOD = 'squash';
+            const REQUIRED_CHECK = 'Check profiles';   // job name in check_profiles.yml
+            const MAX_CHANGED_FILES = 500;             // policy cap, well under listFiles' 3000
+            const LISTFILES_CAP = 3000;
+            const MAX_REPORTED_FILES = 12;
+            const MERGEABLE_ATTEMPTS = 5;
+            const MERGEABLE_DELAY_MS = 2000;
+            const OK_CONCLUSIONS = new Set(['success', 'neutral', 'skipped']);
+            const REGULAR_FILE_MODES = new Set(['100644', '100755']);
+
+            // Paths refused whatever the grants say. Checked before grants, so
+            // delegating a new root means removing it from this list too.
+            const DENIED_PATTERNS = [
+              /^\.github\//,
+              /(^|\/)\.git(attributes|modules|ignore|config)$/,
+              /^(?:src|deps|deps_src|tests|tools|cmake|sandboxes|scripts|docs?|localization|bbl)\//,
+              /(^|\/)cmakelists\.txt$/,
+              /\.cmake$/,
+              /^build_[^/]*\.(?:sh|bat)$/,
+              /^version\.inc$/,
+              // Executables, including those inside the delegatable root.
+              /\.(?:sh|bash|bat|cmd|ps1|py|js|mjs|cjs|ts|rb|pl|php)$/
+            ];
+
+            function parseGrants(raw) {
+              // GitHub login: 1-39 chars, alphanumerics with single interior hyphens.
+              const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
+              const grantsByLogin = new Map();
+              const problems = [];
+
+              (raw || '').split(/\r?\n/).forEach((rawLine, index) => {
+                const line = rawLine.trim();
+                if (!line || line.startsWith('#')) {
+                  return;
+                }
+
+                // Splits on the first colon only, so paths may contain ':' and spaces.
+                const separator = line.indexOf(':');
+                if (separator === -1) {
+                  problems.push(`line ${index + 1}: expected \`account: path\``);
+                  return;
+                }
+
+                const login = line.slice(0, separator).trim().replace(/^@/, '');
+                const path = line.slice(separator + 1).trim().replace(/\/+$/, '');
+
+                if (!loginPattern.test(login)) {
+                  problems.push(`line ${index + 1}: \`${login}\` is not a valid GitHub account name`);
+                  return;
+                }
+                if (/[\\*?\u0000-\u001f\u007f]/.test(path) || path.split('/').includes('..') || path.includes('//')) {
+                  problems.push(`line ${index + 1}: invalid path (no globs, \`..\`, \`//\`, backslashes or control characters)`);
+                  return;
+                }
+                // Rejects anything outside the root, and the bare root itself.
+                if (!path.startsWith(DELEGATABLE_ROOT) || path.length <= DELEGATABLE_ROOT.length) {
+                  problems.push(`line ${index + 1}: \`${path}\` is not inside \`${DELEGATABLE_ROOT}\``);
+                  return;
+                }
+
+                const key = login.toLowerCase();
+                grantsByLogin.set(key, (grantsByLogin.get(key) || []).concat(path));
+              });
+
+              return { grantsByLogin, problems };
+            }
+
+            function isDenied(path) {
+              if (/[\\\u0000-\u001f\u007f]/.test(path) || path.startsWith('/') || path.split('/').includes('..')) {
+                return true;
+              }
+
+              const normalized = path.normalize('NFKC').toLowerCase();
+              return DENIED_PATTERNS.some((pattern) => pattern.test(normalized));
+            }
+
+            // Byte-exact match on directory boundaries, so a grant of
+            // `.../Acme` covers neither `.../Acme Labs/x.json` nor `.../Acme.json`.
+            function isGranted(path, grants) {
+              return grants.some((grant) => path === grant || path.startsWith(`${grant}/`));
+            }
+
+            // Both endpoints of a rename; both must satisfy the grant.
+            function pathsFor(file) {
+              return [file.filename, file.previous_filename].filter(Boolean);
+            }
+
+            function formatList(items) {
+              const unique = [...new Set(items)];
+              const shown = unique.slice(0, MAX_REPORTED_FILES).map((item) => `- \`${item}\``);
+              if (unique.length > MAX_REPORTED_FILES) {
+                shown.push(`- …and ${unique.length - MAX_REPORTED_FILES} more`);
+              }
+              return shown.join('\n');
+            }
+
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+
+            if (!issue.pull_request) {
+              core.info('Ignoring comment that is not on a pull request.');
+              return;
+            }
+            // Ignores a comment whose sender is not its author.
+            if (context.payload.action !== 'created' || context.payload.sender.login !== comment.user.login) {
+              core.warning('Ignoring comment whose sender does not match its author.');
+              return;
+            }
+            if (comment.user.type !== 'User') {
+              core.info('Ignoring bot-authored command.');
+              return;
+            }
+
+            const commandLine = (comment.body || '')
+              .split('\n')
+              .map((line) => line.trim())
+              .find((line) => /^\/bot\s+merge\b/i.test(line));
+
+            if (!commandLine) {
+              core.info('No /bot merge command found.');
+              return;
+            }
+
+            const commenter = comment.user.login;
+            const { grantsByLogin, problems } = parseGrants(process.env.FOLDER_MERGERS);
+            const grants = grantsByLogin.get(commenter.toLowerCase()) || [];
+
+            for (const problem of problems) {
+              core.warning(`FOLDER_MERGERS ${problem}`);
+            }
+
+            // Says nothing to accounts with no grant, so it cannot be used to spam.
+            if (!grants.length) {
+              core.info(`Ignoring /bot merge from @${commenter}: not listed in FOLDER_MERGERS.`);
+              return;
+            }
+
+            // Warns instead of failing when the token cannot post feedback.
+            async function bestEffort(call, warning) {
+              try {
+                await call();
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning(warning);
+                  return;
+                }
+
+                throw error;
+              }
+            }
+
+            const react = (content) => bestEffort(
+              () => github.rest.reactions.createForIssueComment({ owner, repo, comment_id: comment.id, content }),
+              `Cannot add the "${content}" reaction because the token cannot write.`);
+
+            const say = (body) => bestEffort(
+              () => github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `${MARKER}\n${body}` }),
+              'Cannot post a comment because the token cannot write comments.');
+
+            // Declines the command: warns in the log, reacts, explains on the PR.
+            async function refuse(reason) {
+              const configNote = problems.length
+                ? `\n\n\`FOLDER_MERGERS\` also has problems a maintainer needs to fix:\n${problems.map((problem) => `- ${problem}`).join('\n')}`
+                : '';
+              const grantsNote = `\n\n<details><summary>Your current grants</summary>\n\n${formatList(grants)}\n\n</details>`;
+
+              core.warning(`Refused /bot merge from @${commenter}: ${reason}`);
+              await react('-1');
+              await say(`@${commenter} I can't merge this PR: ${reason}${configNote}${grantsNote}`);
+            }
+
+            await react('eyes');
+
+            const args = (commandLine.match(/^\/bot\s+merge\s*(.*)$/i)[1] || '').trim().split(/\s+/).filter(Boolean);
+            const unknownArgs = args.filter((arg) => arg.toLowerCase() !== '--dry-run');
+            const dryRun = String(process.env.MERGE_BOT_DRY_RUN || '').toLowerCase() === 'true'
+              || unknownArgs.length !== args.length;
+
+            if (unknownArgs.length) {
+              return refuse(
+                `I don't understand ${unknownArgs.map((arg) => `\`${arg}\``).join(', ')}. ` +
+                'Usage: `/bot merge` or `/bot merge --dry-run`.'
+              );
+            }
+
+            // Refuses everything while the grant list is malformed.
+            if (problems.length) {
+              return refuse(
+                'the `FOLDER_MERGERS` grant list has malformed lines, so I refuse every merge until it is fixed.'
+              );
+            }
+
+            let { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issue.number
+            });
+
+            if (pr.merged) {
+              return refuse('it is already merged.');
+            }
+            if (pr.state !== 'open') {
+              return refuse(`its state is \`${pr.state}\`, not \`open\`.`);
+            }
+            if (pr.draft) {
+              return refuse('it is still a draft. Mark it ready for review first.');
+            }
+            if (!ALLOWED_BASE_BRANCH.test(pr.base.ref)) {
+              return refuse(`it targets \`${pr.base.ref}\`. Delegated merges are only allowed into \`main\` and \`release/*\`.`);
+            }
+
+            // ---- folder scope ----
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+
+            if (!files.length) {
+              return refuse('it changes no files, so there is nothing to verify or merge.');
+            }
+            // Refuses when the file list is truncated or disagrees with the PR.
+            if (files.length >= LISTFILES_CAP || files.length !== pr.changed_files) {
+              return refuse(
+                `it reports ${pr.changed_files} changed files but the API listed ${files.length}, ` +
+                'so the file list is truncated and I cannot verify the folder scope. A maintainer must merge this one.'
+              );
+            }
+            if (pr.changed_files > MAX_CHANGED_FILES) {
+              return refuse(`it changes ${pr.changed_files} files; delegated merges are capped at ${MAX_CHANGED_FILES}.`);
+            }
+
+            const deniedFiles = [];
+            const outsideFiles = [];
+
+            for (const file of files) {
+              for (const path of pathsFor(file)) {
+                if (isDenied(path)) {
+                  deniedFiles.push(path);
+                } else if (!isGranted(path, grants)) {
+                  outsideFiles.push(path);
+                }
+              }
+            }
+
+            if (deniedFiles.length) {
+              core.error(`@${commenter} attempted a delegated merge touching protected paths: ${deniedFiles.join(', ')}`);
+              return refuse(
+                'it touches paths that are never delegatable, whatever the grants say ' +
+                `(CI, build, scripts or executable files):\n\n${formatList(deniedFiles)}\n\nA maintainer should look at this before it goes any further.`
+              );
+            }
+            if (outsideFiles.length) {
+              return refuse(
+                `${outsideFiles.length} changed path(s) fall outside your grants:\n\n${formatList(outsideFiles)}\n\n` +
+                'A vendor needs both grants: `resources/profiles/<Vendor>/` **and** `resources/profiles/<Vendor>.json`.'
+              );
+            }
+
+            // ---- file modes: rejects symlinks and submodules ----
+            // Fetches the delegatable subtree only; listFiles does not report modes.
+            const headSha = pr.head.sha;
+            const { data: tree } = await github.rest.git.getTree({
+              owner,
+              repo,
+              tree_sha: `${headSha}:${DELEGATABLE_ROOT.replace(/\/$/, '')}`,
+              recursive: 'true'
+            });
+
+            if (tree.truncated) {
+              return refuse('the git tree is too large to verify file modes. A maintainer must merge this one.');
+            }
+
+            // Entry paths are subtree-relative.
+            const modesByPath = new Map(tree.tree.map((entry) => [`${DELEGATABLE_ROOT}${entry.path}`, entry.mode]));
+            const irregularFiles = files
+              .filter((file) => file.status !== 'removed')
+              .map((file) => [file.filename, modesByPath.get(file.filename)])
+              .filter(([, mode]) => !REGULAR_FILE_MODES.has(mode))
+              .map(([path, mode]) => `${path} (mode ${mode || 'missing'})`);
+
+            if (irregularFiles.length) {
+              core.error(`@${commenter} attempted a delegated merge with non-regular files: ${irregularFiles.join(', ')}`);
+              return refuse(
+                `it adds symlinks, submodules or files I cannot verify:\n\n${formatList(irregularFiles)}\n\nA maintainer should look at this before it goes any further.`
+              );
+            }
+
+            // ---- mergeability: waits for GitHub to compute it ----
+            for (let attempt = 0; pr.mergeable === null && attempt < MERGEABLE_ATTEMPTS; attempt += 1) {
+              core.info(`Mergeability not computed yet; retrying in ${MERGEABLE_DELAY_MS}ms.`);
+              await sleep(MERGEABLE_DELAY_MS);
+              ({ data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: pr.number
+              }));
+            }
+
+            if (pr.mergeable === null) {
+              return refuse('GitHub is still working out whether it can be merged. Try `/bot merge` again in a minute.');
+            }
+            if (!pr.mergeable) {
+              return refuse(`it is not mergeable (\`${pr.mergeable_state}\`) - most likely a conflict with \`${pr.base.ref}\`.`);
+            }
+
+            // ---- CI on the head commit ----
+            const checkRuns = await github.paginate(github.rest.checks.listForRef, {
+              owner,
+              repo,
+              ref: headSha,
+              filter: 'latest',
+              per_page: 100
+            });
+            const pendingChecks = checkRuns.filter((run) => run.status !== 'completed');
+            const failedChecks = checkRuns.filter((run) => run.status === 'completed' && !OK_CONCLUSIONS.has(run.conclusion));
+
+            if (pendingChecks.length) {
+              return refuse(
+                `${pendingChecks.length} check(s) are still running on \`${headSha.slice(0, 7)}\`:\n\n` +
+                `${formatList(pendingChecks.map((run) => run.name))}\n\nRe-run \`/bot merge\` once they finish.`
+              );
+            }
+            if (failedChecks.length) {
+              return refuse(
+                `${failedChecks.length} check(s) are not green on \`${headSha.slice(0, 7)}\`:\n\n` +
+                formatList(failedChecks.map((run) => `${run.name} (${run.conclusion})`))
+              );
+            }
+
+            const { data: combined } = await github.rest.repos.getCombinedStatusForRef({
+              owner,
+              repo,
+              ref: headSha
+            });
+            // total_count 0 only means there are no legacy statuses.
+            if (combined.total_count > 0 && combined.state !== 'success') {
+              return refuse(
+                `the combined commit status on \`${headSha.slice(0, 7)}\` is \`${combined.state}\`:\n\n` +
+                formatList(combined.statuses.filter((status) => status.state !== 'success')
+                  .map((status) => `${status.context} (${status.state})`))
+              );
+            }
+
+            // Requires the check to have actually run, not merely to have not failed.
+            const requiredCheck = checkRuns.find((run) =>
+              run.name === REQUIRED_CHECK &&
+              run.app && run.app.slug === 'github-actions' &&
+              run.status === 'completed' && OK_CONCLUSIONS.has(run.conclusion));
+
+            if (!requiredCheck) {
+              return refuse(
+                `the \`${REQUIRED_CHECK}\` check has not succeeded on \`${headSha.slice(0, 7)}\`. ` +
+                'If it never ran, a maintainer needs to approve the workflow run first.'
+              );
+            }
+
+            const scopeSummary = `${files.length} file(s), all within:\n${formatList(grants)}`;
+
+            if (dryRun) {
+              core.info('Dry run: every gate passed, not merging.');
+              await react('+1');
+              await say(
+                `@${commenter} **dry run** - this PR passes every gate and I *would* squash-merge it ` +
+                `at \`${headSha.slice(0, 7)}\`.\n\nVerified scope: ${scopeSummary}`
+              );
+              return;
+            }
+
+            // ---- re-validate, then merge ----
+            // An unchanged head SHA means the verified file list still holds.
+            const { data: fresh } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pr.number
+            });
+
+            if (fresh.head.sha !== headSha || fresh.base.ref !== pr.base.ref || fresh.state !== 'open' || fresh.merged || fresh.draft) {
+              return refuse('it changed while I was checking it. Nothing was merged - re-run `/bot merge`.');
+            }
+
+            let merged;
+            try {
+              // Pinned to the verified head: a moved head fails with 409.
+              ({ data: merged } = await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: pr.number,
+                sha: headSha,
+                merge_method: MERGE_METHOD,
+                commit_title: `${pr.title} (#${pr.number})`,
+                commit_message:
+                  `Merged by /bot merge on behalf of @${commenter} (id ${comment.user.id}).\n` +
+                  `Grants: ${grants.join(', ')}\nHead: ${headSha}\n`
+              }));
+            } catch (error) {
+              const hint = {
+                403: 'the workflow token cannot write to the repository.',
+                405: 'GitHub refused the merge - branch protection, a required review or check, a newly added CODEOWNERS file, or squash merging being disabled.',
+                409: `the head commit moved after I verified it (was \`${headSha.slice(0, 7)}\`).`,
+                422: 'GitHub rejected the merge as invalid.'
+              }[error.status];
+
+              if (!hint) {
+                throw error;
+              }
+
+              await refuse(`${hint}\n\n> ${error.message}\n\nNothing was merged.`);
+              core.setFailed(`Delegated merge failed: ${error.status} ${error.message}`);
+              return;
+            }
+
+            core.info(`Merged #${pr.number} as ${merged.sha}.`);
+            await react('rocket');
+            await say(
+              `@${commenter} squash-merged into \`${pr.base.ref}\` as ${merged.sha}.\n\nVerified scope: ${scopeSummary}`
+            );
+
+            // ---- re-kick the build ----
+            // A GITHUB_TOKEN merge fires no push event, so build_all.yml would
+            // otherwise never see these files.
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner,
+                repo,
+                workflow_id: 'build_all.yml',
+                ref: pr.base.ref
+              });
+              core.info(`Dispatched build_all.yml on ${pr.base.ref}.`);
+            } catch (error) {
+              core.warning(`Merged successfully, but dispatching build_all.yml failed: ${error.message}`);
+            }

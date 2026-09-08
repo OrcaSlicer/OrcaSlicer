@@ -4,6 +4,7 @@
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/Format/OBJ.hpp>
 #include <libslic3r/SVG.hpp>
+#include <libslic3r/Utils.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -32,7 +33,7 @@ inline Slic3r::TriangleMesh load_model(const std::string &obj_filename)
 // ---------------------------------------------------------------------------
 
 // Owns a unique path under the system temp dir, "<prefix>-<unique>[<extension>]"
-// (parallel-safe, cross-platform). Shared base for the two RAII temp guards below.
+// (parallel-safe, cross-platform). Shared base for the RAII temp guards below.
 class ScopedTemporaryPath
 {
 public:
@@ -68,6 +69,24 @@ public:
     explicit ScopedTemporaryDir(const std::string &prefix = "orca")
         : ScopedTemporaryPath(prefix, "") { boost::filesystem::create_directories(m_path); }
     ~ScopedTemporaryDir() { boost::system::error_code ec; boost::filesystem::remove_all(m_path, ec); }
+};
+
+// A temp directory that is also Slic3r::temporary_dir() for its lifetime. No test
+// process sets that global, so code under test which writes there (for example
+// StepPreProcessor::preprocess) lands at the filesystem root. Restored on scope exit
+// even when an assertion throws, so it cannot leak into later tests.
+class ScopedSlic3rTemporaryDir : public ScopedTemporaryDir
+{
+public:
+    explicit ScopedSlic3rTemporaryDir(const std::string &prefix = "orca")
+        : ScopedTemporaryDir(prefix), m_previous(Slic3r::temporary_dir())
+    { Slic3r::set_temporary_dir(string()); }
+    // Runs before ~ScopedTemporaryDir, so the setting goes back while the directory
+    // it names still exists.
+    ~ScopedSlic3rTemporaryDir() { Slic3r::set_temporary_dir(m_previous); }
+
+private:
+    const std::string m_previous;
 };
 
 // ---------------------------------------------------------------------------

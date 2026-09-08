@@ -154,8 +154,8 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         //h^2 = L^2 / b^2     [factor the divisor]
         const int64_t height_2 = double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2);
         // Orca: The value of `height_2` is squared, so we need to compare it with the squared value
-        if ((height_2 <= Slic3r::sqr(scaled<coord_t>(0.005)) //Almost exactly colinear (barring rounding errors).
-             && Line::distance_to_infinite(current, previous, next) <= scaled<double>(0.005))) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= Slic3r::sqr(colinear_vertex_tolerance()) //Almost exactly colinear (barring rounding errors).
+             && Line::distance_to_infinite(current, previous, next) <= double(colinear_vertex_tolerance()))) // make sure that height_2 is not small because of cancellation of positive and negative areas
             continue;
 
         if (length2 < smallest_line_segment_squared

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PP-CF @System",
-	"inherits": "fdm_filament_pp",
+	"inherits": "Generic PP-CF @base",
 	"from": "system",
 	"setting_id": "TDHYN3fs5wwakgsM",
 	"instantiation": "true",

@@ -9,9 +9,8 @@
 namespace py = pybind11;
 
 namespace Slic3r {
-void ScriptPluginCapability::RegisterBindings(pybind11::module_& module, pybind11::enum_<PluginCapabilityType>& pluginTypes)
+void ScriptPluginCapability::RegisterBindings(pybind11::module_& module)
 {
-    (void) pluginTypes;
     BOOST_LOG_TRIVIAL(debug) << "Registering orca.script bindings";
 
     auto script = module.def_submodule("script", "Script Plugins API");
