@@ -1410,6 +1410,7 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
                    // Orca: Body centering now also determines bridge anchors during preparation.
+                   // Invalidating preparation also invalidates infill, including top/bottom surfaces.
                    || opt_key == "center_of_surface_pattern"
                    || opt_key == "separated_infills"
                    || opt_key == "sparse_infill_smooth_factor"
