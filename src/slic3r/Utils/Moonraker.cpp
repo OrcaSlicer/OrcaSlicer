@@ -214,8 +214,12 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
 {
     // POST /server/files/upload with `print=true` so Moonraker queues the print
     // itself and respects [power] on_when_upload_queued (issue #14945). Older
-    // Moonrakers that ignore the flag return print_started=false and we fall
-    // back to the explicit /printer/print/start below.
+    // Moonraker reports back in two fields: print_started when it began the print
+    // immediately, print_queued when it accepted the job but has not started it yet
+    // -- which is exactly the power-on case, where it waits for Klippy to become
+    // READY. Either means Moonraker owns the print and we must NOT issue our own
+    // /printer/print/start. Only when both are false (an older Moonraker or a fork
+    // that ignores the flag) do we fall back to the explicit start below.
     wxString test_msg;
     if (!test(test_msg)) {
         error_fn(std::move(test_msg));
@@ -279,7 +283,8 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                         "%1%: upload response missing result.item.path, falling back to original filename `%2%`")
                         % name % uploaded_path;
                 }
-                moonraker_started_print = ptree.get<bool>("result.print_started", false);
+                moonraker_started_print = ptree.get<bool>("result.print_started", false) ||
+                                          ptree.get<bool>("result.print_queued", false);
             } catch (const std::exception &ex) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format(
                     "%1%: could not parse upload response (%2%); falling back to original filename")
@@ -308,7 +313,8 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     if (!result)
         return false;
 
-    // Fallback when Moonraker ignored the `print` flag or reported print_started=false.
+    // Fallback only when Moonraker neither started nor queued the print, i.e. it did
+    // not honour the `print` flag at all.
     if (want_start && !uploaded_path.empty() && !moonraker_started_print) {
         wxString start_msg;
         if (!start_print(start_msg, uploaded_path)) {
