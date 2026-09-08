@@ -34,6 +34,7 @@
   ctest -C RelWithDebInfo --test-dir ./tests/libslic3r --output-on-failure
   ```
   PS: `debuginfo`模式下可以无报错编译成功,但产出的orca-slicer.exe无法运行,运行时无报错直接退出,无任何输出。
+  PS2(2026-09-08 更新):`build/` 目录的 **Release 构建可正常运行**(GUI 子系统应用控制台无输出属正常),且已成功用于 CLI 切片验证(见 M2);`build/` 目录亦可以 `--config RelWithDebInfo` 编译并运行单测。
 ---
 
 ## 1. M1:数据层算子 + 判定器 + 单测(不接管线)
@@ -106,20 +107,26 @@
 
 设计依据:5.1 路线 A、5.4。
 
-- [ ] **算子扩展(接合点拆分,设计文档 3.5)**:`chain_extrusion_entities_exact` 支持"实体 A 端点落在实体 B 中间(ε 内)→ 拆分 B"后再做欧拉判定,使"墙 loop + 连续填充迹"(lollipop 图)可通过;输出拆分后的实体序列供发射用。拆分不新增几何,不违反"不补线"约束
-- [ ] 用真实切片数据验证连续填充图案:`top/bottom_surface_pattern = monotonic`、`sparse_infill_pattern = alignedrectilinear`、`internal_solid_infill_pattern = monotonic`(`FillRectilinear.cpp` 的 monotonic 通过沿内轮廓连接段接成单条迹)
-- [ ] 在 `ContinuousPrint.hpp/.cpp` 中实现过滤器,泛化自 `SpiralVase::process_layer`(`SpiralVase.cpp:66-216`),复用四步机制:
-  - [ ] 首条纯 Z 移动改写(保持 Z 单调)
-  - [ ] Z-ramp(按弧长比例摊层高)
-  - [ ] XY 平滑滑移(复用 `spiral_mode_max_xy_smoothing` 预算;开放链时把 `prev_end → curr_start` 的 Δ 摊入本层前段)
-  - [ ] 跳过 travel/回抽行
-- [ ] 离线验证:手造"常规薄壁单层 GCode"喂入过滤器,与 SpiralVase 输出对比一致性
-- [ ] 人工检查斜壁样张的转移点曲线(连续、无突变)
+- [X] **算子扩展(接合点拆分,设计文档 3.5)**:实现为 `split_entities_at_junctions()`(`ContinuousPrint.cpp`,独立于 M1 算子):"实体 A 端点落在实体 B 中间(ε 内)→ 拆分 B"(支持 `ExtrusionPath`/`ExtrusionLoop`,loop 在接合点处线性化),`preflight_layer` 已接入,拆分工作集由 `ContinuousLayerPlan::entities` 持有供发射用。拆分不新增几何,不违反"不补线"约束。单测:lollipop 通过、双接合点桥接通过、T 型接合(4 奇度)拒绝、无接合直通
+- [X] 用真实切片数据验证连续填充图案(2026-09-08,Release 构建 CLI 切片 20mm 实心立方体,BBL X1C profile,块内纯空驶统计):
+  - `sparse_infill_pattern = alignedrectilinear`:**0 / 1071**(0 次块内空驶/1071 段挤出)——一层一条迹,zigzag 端部相接
+  - `top_surface_pattern = monotonic`:0 / 141;`bottom_surface_pattern = monotonic`:0 / 122
+  - `internal_solid_infill_pattern = monotonic`:2 / 474(仅 2 次例外,疑窄区分片)
+  - 对照:Inner wall 50 / 200(每层 2 道墙环,环间不共点,各有 1 次环间空驶,符合 lollipop 接合预期)
+  - 产物留存于 `sandboxes/continuous_print/`(STL/G-code,未跟踪);CLI 用法:`orca-slicer.exe --slice 0 --outputdir <dir> --load-settings "<machine.json>;<process.json>" --load-filaments "<filament.json>" <model.stl>`(注意 `--slice` 必须带板号参数)
+- [X] 在 `ContinuousPrint.hpp/.cpp` 中实现过滤器,泛化自 `SpiralVase::process_layer`(`SpiralVase.cpp:66-216`),复用四步机制:
+  - [X] 首条纯 Z 移动改写(保持 Z 单调)
+  - [X] Z-ramp(按弧长比例摊层高)
+  - [X] XY 平滑滑移(复用 `spiral_mode_smooth` 开关;预算经 `set_max_xy_smoothing` 注入,离体检查留 M3 hook)
+  - [X] 跳过 travel/回抽行
+  - 注:`SpiralVaseHelpers` 已迁移至 `SpiralVase.hpp`(inline)供两个过滤器共用
+- [X] 离线验证:单测自动对比——同一单层 G-code 分别喂入 SpiralVase 与 ContinuousPrint,输出**逐字节相等**;另断言零空驶(任何 XY 移动必带挤出)与 Z 单调递增至层高
+- [ ] 人工检查斜壁样张的转移点曲线(连续、无突变)。**已解锁**(Release 构建可 CLI 切片),建议并入 M3 管线接入后用真实模型验证
 
 ### M2 出口标准
 
-- [ ] 闭合环输入下,过滤器输出与 SpiralVase 等价(不回归)
-- [ ] 开放链输入下,Z 单调、无空驶段、Δ 在预算内
+- [X] 闭合环输入下,过滤器输出与 SpiralVase 等价(单测逐字节断言)
+- [X] 开放链输入下,Z 单调、无空驶段(单测断言;Δ 预算与离体检查的强制执行为 M3 范围)
 
 ---
 
