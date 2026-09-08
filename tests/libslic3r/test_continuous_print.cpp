@@ -2,6 +2,8 @@
 
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/ContinuousPrint.hpp"
+#include "libslic3r/GCode/SpiralVase.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ShortestPath.hpp"
@@ -138,6 +140,85 @@ SCENARIO("chain_extrusion_entities_exact: exact single-chain ordering", "[Contin
     }
 }
 
+static std::vector<ExtrusionEntity*> view_of(const std::vector<std::unique_ptr<ExtrusionEntity>> &owned)
+{
+    std::vector<ExtrusionEntity*> view;
+    view.reserve(owned.size());
+    for (const auto &e : owned)
+        view.push_back(e.get());
+    return view;
+}
+
+SCENARIO("split_entities_at_junctions: lollipop junction splitting", "[ContinuousPrint]") {
+    GIVEN("A wall loop with an infill trace ending on its edge (lollipop graph)") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        ExtrusionPath tail = make_path({{15, 0}, {5, 0}}); // endpoint (5,0) lies on the loop edge interior
+        std::vector<ExtrusionEntity*> entities{&loop, &tail};
+        auto working = split_entities_at_junctions(entities);
+        THEN("The loop is linearized at the junction and the graph becomes chainable") {
+            REQUIRE(working.size() == 2);
+            std::vector<ExtrusionEntity*> view = view_of(working);
+            auto chain = chain_extrusion_entities_exact(view);
+            REQUIRE(chain);
+            CHECK(! chain->closed);
+            check_chain_continuity(view, *chain);
+            // Odd-degree vertices: the junction (5,0) and the tail far end (15,0).
+            CHECK(((chain->start == to_point({5, 0}) && chain->end == to_point({15, 0})) ||
+                   (chain->start == to_point({15, 0}) && chain->end == to_point({5, 0}))));
+        }
+        AND_THEN("preflight_layer accepts the layer") {
+            PrintConfig cfg;
+            ContinuousLayerPlan plan;
+            CHECK(preflight_layer(entities, nullptr, cfg, &plan) == ContinuousPrintVerdict::Applicable);
+            CHECK(plan.entities.size() == 2);
+            CHECK(! plan.is_closed);
+        }
+    }
+
+    GIVEN("A ring bridged by two traces sharing an outer endpoint") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        ExtrusionPath a = make_path({{5, 0}, {20, 5}});  // (5,0) on the bottom edge
+        ExtrusionPath b = make_path({{5, 10}, {20, 5}}); // (5,10) on the top edge
+        std::vector<ExtrusionEntity*> entities{&loop, &a, &b};
+        auto working = split_entities_at_junctions(entities);
+        THEN("The ring splits into two pieces and the graph is chainable (2 odd vertices)") {
+            REQUIRE(working.size() == 4);
+            std::vector<ExtrusionEntity*> view = view_of(working);
+            auto chain = chain_extrusion_entities_exact(view);
+            REQUIRE(chain);
+            CHECK(! chain->closed);
+            check_chain_continuity(view, *chain);
+            CHECK(((chain->start == to_point({5, 0}) && chain->end == to_point({5, 10})) ||
+                   (chain->start == to_point({5, 10}) && chain->end == to_point({5, 0}))));
+        }
+    }
+
+    GIVEN("An open path with a T-junction trace (4 odd-degree vertices)") {
+        ExtrusionPath p = make_path({{0, 0}, {10, 0}});
+        ExtrusionPath q = make_path({{5, 0}, {5, 8}}); // endpoint (5,0) on p's interior
+        std::vector<ExtrusionEntity*> entities{&p, &q};
+        auto working = split_entities_at_junctions(entities);
+        THEN("The path is split but the layer is still rejected") {
+            REQUIRE(working.size() == 3);
+            std::vector<ExtrusionEntity*> view = view_of(working);
+            CHECK(! chain_extrusion_entities_exact(view));
+        }
+    }
+
+    GIVEN("A single loop without junctions (pass-through)") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        std::vector<ExtrusionEntity*> entities{&loop};
+        auto working = split_entities_at_junctions(entities);
+        THEN("The entity set is unchanged and still chains as closed") {
+            REQUIRE(working.size() == 1);
+            std::vector<ExtrusionEntity*> view = view_of(working);
+            auto chain = chain_extrusion_entities_exact(view);
+            REQUIRE(chain);
+            CHECK(chain->closed);
+        }
+    }
+}
+
 SCENARIO("preflight_layer: in-layer single-chain check", "[ContinuousPrint]") {
     PrintConfig cfg;
 
@@ -179,5 +260,72 @@ SCENARIO("preflight_layer: in-layer single-chain check", "[ContinuousPrint]") {
         THEN("The layer is rejected") {
             CHECK(preflight_layer(entities, nullptr, cfg, &plan) == ContinuousPrintVerdict::Reject);
         }
+    }
+}
+
+// A single-chain layer G-code snippet: one pure-Z move at the beginning, a travel move,
+// a retract, then a closed square of extrusion moves (relative E).
+static std::string make_chain_layer_gcode(double z)
+{
+    std::string s;
+    s += "G1 Z" + std::to_string(z) + " F600\n";
+    s += "G1 X0 Y0 F9000\n";   // travel to chain start: must be filtered out
+    s += "G1 E-0.8 F1800\n";   // retract: must be filtered out
+    s += "G1 X10 Y0 E0.5 F1500\n";
+    s += "G1 X10 Y10 E0.5\n";
+    s += "G1 X0 Y10 E0.5\n";
+    s += "G1 X0 Y0 E0.5\n";
+    return s;
+}
+
+SCENARIO("ContinuousPrint filter: parity with SpiralVase and zero-travel output", "[ContinuousPrint]") {
+    PrintConfig cfg;
+    cfg.option<ConfigOptionBool>("use_relative_e_distances", true)->value = true;
+    cfg.option<ConfigOptionBool>("spiral_mode_smooth", true)->value      = false;
+
+    SpiralVase      spiral(cfg);
+    ContinuousPrint continuous(cfg);
+    spiral.enable(true);
+    continuous.enable(true);
+
+    const std::string layer1 = make_chain_layer_gcode(0.2);
+    const std::string layer2 = make_chain_layer_gcode(0.4);
+
+    const std::string spiral_out1     = spiral.process_layer(layer1, false);
+    const std::string continuous_out1 = continuous.process_layer(layer1, false);
+    const std::string spiral_out2     = spiral.process_layer(layer2, true);
+    const std::string continuous_out2 = continuous.process_layer(layer2, true);
+
+    THEN("The ContinuousPrint filter matches SpiralVase exactly on a closed loop") {
+        CHECK(continuous_out1 == spiral_out1);
+        CHECK(continuous_out2 == spiral_out2);
+    }
+
+    THEN("The filtered output contains no non-extruding XY move (zero travel)") {
+        for (const std::string &out : {continuous_out1, continuous_out2}) {
+            GCodeReader reader;
+            reader.apply_config(cfg);
+            reader.parse_buffer(out, [](GCodeReader &r, const GCodeReader::GCodeLine &line) {
+                if (line.cmd_is("G1") && (line.has_x() || line.has_y()) && line.dist_XY(r) > 0)
+                    CHECK(line.extruding(r));
+            });
+        }
+    }
+
+    THEN("Z ramps up smoothly and monotonically across the chain") {
+        GCodeReader reader;
+        reader.apply_config(cfg);
+        float last_z = 0.f;
+        size_t extrusion_moves = 0;
+        reader.parse_buffer(continuous_out2, [&last_z, &extrusion_moves](GCodeReader &r, const GCodeReader::GCodeLine &line) {
+            if (line.cmd_is("G1") && line.extruding(r) && line.dist_XY(r) > 0) {
+                const float z = line.new_Z(r);
+                CHECK(z >= last_z);
+                last_z = z;
+                ++ extrusion_moves;
+            }
+        });
+        CHECK(extrusion_moves == 4);
+        CHECK(last_z == Catch::Approx(0.4).margin(1e-3));
     }
 }

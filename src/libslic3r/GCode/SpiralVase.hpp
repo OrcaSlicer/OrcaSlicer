@@ -4,6 +4,10 @@
 #include "../libslic3r.h"
 #include "../GCodeReader.hpp"
 
+#include <cmath>
+#include <limits>
+#include <vector>
+
 namespace Slic3r {
 
 class SpiralVase
@@ -46,6 +50,64 @@ private:
     bool                m_smooth_spiral = false;
     std::vector<SpiralPoint> * m_previous_layer;
 };
+
+// Geometry helpers for the smooth spiral interpolation, shared by SpiralVase
+// and the ContinuousPrint filter (moved here from SpiralVase.cpp, made inline).
+namespace SpiralVaseHelpers {
+/** Distance between a and b */
+inline float distance(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b) { return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)); }
+
+inline SpiralVase::SpiralPoint subtract(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b)
+{
+    return SpiralVase::SpiralPoint(a.x - b.x, a.y - b.y);
+}
+
+inline SpiralVase::SpiralPoint add(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b) { return SpiralVase::SpiralPoint(a.x + b.x, a.y + b.y); }
+
+inline SpiralVase::SpiralPoint scale(SpiralVase::SpiralPoint a, float factor) { return SpiralVase::SpiralPoint(a.x * factor, a.y * factor); }
+
+/** dot product */
+inline float dot(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b) { return a.x * b.x + a.y * b.y; }
+
+/** Find the point on line ab closes to point c */
+inline SpiralVase::SpiralPoint nearest_point_on_line(SpiralVase::SpiralPoint c, SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b, float& dist)
+{
+    SpiralVase::SpiralPoint ab      = subtract(b, a);
+    SpiralVase::SpiralPoint ca      = subtract(c, a);
+    float                   t       = dot(ca, ab) / dot(ab, ab);
+    t                               = t > 1 ? 1 : t;
+    t                               = t < 0 ? 0 : t;
+    SpiralVase::SpiralPoint closest = SpiralVase::SpiralPoint(add(a, scale(ab, t)));
+    dist                            = distance(c, closest);
+    return closest;
+}
+
+/** Given a set of lines defined by points such as line[n] is the line from points[n] to points[n+1],
+ *  find the closest point to p that falls on any of the lines */
+inline SpiralVase::SpiralPoint nearest_point_on_lines(SpiralVase::SpiralPoint               p,
+                                                      std::vector<SpiralVase::SpiralPoint>* points,
+                                                      bool&                                 found,
+                                                      float&                                dist)
+{
+    if (points->size() < 2) {
+        found = false;
+        return SpiralVase::SpiralPoint(0, 0);
+    }
+    float                   min = std::numeric_limits<float>::max();
+    SpiralVase::SpiralPoint closest(0, 0);
+    for (unsigned long i = 0; i < points->size() - 1; i++) {
+        float                   currentDist = 0;
+        SpiralVase::SpiralPoint current     = nearest_point_on_line(p, points->at(i), points->at(i + 1), currentDist);
+        if (currentDist < min) {
+            min     = currentDist;
+            closest = current;
+            found   = true;
+        }
+    }
+    dist = min;
+    return closest;
+}
+} // namespace SpiralVaseHelpers
 }
 
 #endif // slic3r_SpiralVase_hpp_
