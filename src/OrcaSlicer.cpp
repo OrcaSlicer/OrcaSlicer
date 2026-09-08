@@ -1975,7 +1975,7 @@ int CLI::run(int argc, char **argv)
     }
 
     std::unique_ptr<PresetBundle> cli_preset_bundle;
-    auto ensure_cli_preset_bundle = [&cli_preset_bundle, config_substitution_rule](std::string &error) -> PresetBundle * {
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle](std::string &error) -> PresetBundle * {
         if (cli_preset_bundle)
             return cli_preset_bundle.get();
         try {
@@ -2002,7 +2002,7 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    auto resolve_preset = [&ensure_cli_preset_bundle, config_substitution_rule](const std::string &file, DynamicPrintConfig &config,
+    auto resolve_preset = [&ensure_cli_preset_bundle](const std::string &file, DynamicPrintConfig &config,
                                                                                std::string &config_type, const std::string &config_from,
                                                                                bool probe_type, std::string &error) {
         const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
@@ -2046,7 +2046,7 @@ int CLI::run(int argc, char **argv)
                                              error, allow_source_manifest);
     };
 
-    auto load_config_file = [config_substitution_rule, &resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
