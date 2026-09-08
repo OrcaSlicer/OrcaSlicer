@@ -10,6 +10,8 @@ add_executable(${_TEST_NAME}_tests
 	test_flow.cpp
 	test_gcode_timing.cpp
 	test_gcodewriter.cpp
+	test_imex_mode_gcode.cpp
+	test_imex_slice_offset.cpp
 	test_model.cpp
 	test_multifilament.cpp
 	test_perimeters.cpp

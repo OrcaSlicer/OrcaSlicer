@@ -1,5 +1,6 @@
 #include "../libslic3r.h"
 #include "../Exception.hpp"
+#include "../IMEXHelpers.hpp"
 #include "../Model.hpp"
 #include "../Preset.hpp"
 #include "../Utils.hpp"
@@ -348,6 +349,8 @@ static constexpr const char* FIRST_LAYER_PRINT_SEQUENCE_ATTR = "first_layer_prin
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_ATTR = "other_layers_print_sequence";
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_NUMS_ATTR = "other_layers_print_sequence_nums";
 static constexpr const char* SPIRAL_VASE_MODE = "spiral_mode";
+static constexpr const char* IMEX_PARALLEL_MODE_ATTR = "imex_parallel_mode";
+static constexpr const char* IMEX_HEAD_FILAMENT_MAP_ATTR = "imex_head_filament_map";
 static constexpr const char* FILAMENT_MAP_MODE_ATTR = "filament_map_mode";
 static constexpr const char* FILAMENT_MAP_ATTR = "filament_maps";
 static constexpr const char* FILAMENT_VOL_MAP_ATTR = "filament_volume_maps";
@@ -4501,6 +4504,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::istringstream(value) >> std::boolalpha >> spiral_mode;
                 m_curr_plater->config.set_key_value("spiral_mode", new ConfigOptionBool(spiral_mode));
             }
+            else if (key == IMEX_PARALLEL_MODE_ATTR) {
+                m_curr_plater->config.set_key_value("imex_parallel_mode", new ConfigOptionString(value));
+            }
+            else if (key == IMEX_HEAD_FILAMENT_MAP_ATTR) {
+                m_curr_plater->config.set_key_value("imex_head_filament_map", new ConfigOptionString(value));
+            }
             else if (key == FILAMENT_MAP_MODE_ATTR)
             {
                 FilamentMapMode map_mode = FilamentMapMode::fmmAutoForFlush;
@@ -8094,6 +8103,23 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 ConfigOption* spiral_mode_opt = plate_data->config.option("spiral_mode");
                 if (spiral_mode_opt)
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SPIRAL_VASE_MODE << "\" " << VALUE_ATTR << "=\"" << spiral_mode_opt->getBool() << "\"/>\n";
+
+                {
+                    // Mode names are user supplied free text, so the value has to be escaped for an
+                    // attribute. xml_escape_double_quotes_attribute_value() is used rather than
+                    // xml_escape() because it also emits tab/CR/LF as numeric character references:
+                    // XML normalizes literal whitespace in attribute values on read, which would
+                    // silently rename the mode. The reader takes the value straight from expat,
+                    // which resolves both entities and character references, so this round-trips.
+                    auto* imex_mode_opt = plate_data->config.option<ConfigOptionString>("imex_parallel_mode");
+                    if (imex_mode_opt && !imex_mode_opt->value.empty() && imex_mode_opt->value != kImexPrimaryMode)
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_PARALLEL_MODE_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_mode_opt->value) << "\"/>\n";
+                }
+                {
+                    auto* imex_hfm_opt = plate_data->config.option<ConfigOptionString>("imex_head_filament_map");
+                    if (imex_hfm_opt && !imex_hfm_opt->value.empty())
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_HEAD_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_hfm_opt->value) << "\"/>\n";
+                }
 
                 //filament map related
                 ConfigOption* filament_map_mode_opt = plate_data->config.option("filament_map_mode");

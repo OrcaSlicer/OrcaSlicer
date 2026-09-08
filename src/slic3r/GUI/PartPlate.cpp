@@ -1,9 +1,11 @@
 #include <cstddef>
 #include <algorithm>
+#include <map>
 #include <numeric>
 #include <vector>
 #include <string>
 #include <sstream>
+#include <set>
 #include <regex>
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
@@ -25,6 +27,9 @@
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
+#include "libslic3r/IMEXZones.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include "I18N.hpp"
@@ -381,6 +386,103 @@ std::vector<Vec2d> PartPlate::get_plate_wrapping_detection_area() const
     return std::vector<Vec2d>();
 }
 
+std::string PartPlate::get_imex_mode() const
+{
+    if (m_config.has("imex_parallel_mode")) {
+        auto* opt = m_config.option<ConfigOptionString>("imex_parallel_mode");
+        if (opt && !opt->value.empty())
+            return opt->value;
+    }
+    return kImexPrimaryMode;
+}
+
+void PartPlate::set_imex_mode(const std::string& mode)
+{
+    if (mode.empty() || mode == kImexPrimaryMode) {
+        m_config.erase("imex_parallel_mode");
+    } else {
+        m_config.set_key_value("imex_parallel_mode", new ConfigOptionString(mode));
+    }
+    update_slice_result_valid_state(false);
+    m_imex_zones_mode_cache = "\x01"; // force zone rebuild
+    m_imex_ghost_cache_key = "\x01";  // force ghost rebuild
+}
+
+void PartPlate::reset_imex_mode()
+{
+    m_config.erase("imex_parallel_mode");
+    update_slice_result_valid_state(false);
+    m_imex_zones_mode_cache = "\x01";
+    m_imex_ghost_cache_key  = "\x01";
+}
+
+std::map<int,int> PartPlate::get_imex_head_filament_map() const
+{
+    if (!m_config.has("imex_head_filament_map"))
+        return {};
+    auto* opt = m_config.option<ConfigOptionString>("imex_head_filament_map");
+    if (!opt) return {};
+    return parse_imex_head_filament_map(opt->value);
+}
+
+void PartPlate::set_imex_head_filament_map(const std::map<int,int>& m)
+{
+    if (m.empty()) {
+        m_config.erase("imex_head_filament_map");
+    } else {
+        std::ostringstream os;
+        bool first = true;
+        for (const auto& [phys, slot] : m) {
+            if (!first) os << ',';
+            os << phys << ':' << slot;
+            first = false;
+        }
+        m_config.set_key_value("imex_head_filament_map", new ConfigOptionString(os.str()));
+    }
+    update_slice_result_valid_state(false);
+    // No ghost rebuild: routing only affects color, which update_imex_ghost_colors
+    // restamps live every frame.
+}
+
+void PartPlate::reset_imex_head_filament_map()
+{
+    m_config.erase("imex_head_filament_map");
+    update_slice_result_valid_state(false);
+}
+
+ColorRGBA PartPlate::get_imex_head_filament_color(int physical_head) const
+{
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb)
+        return GLVolume::UNPRINTABLE_COLOR;
+
+    return get_imex_head_filament_color(physical_head,
+                                        effective_physical_extruder_map(*pb),
+                                        get_imex_head_filament_map());
+}
+
+ColorRGBA PartPlate::get_imex_head_filament_color(int physical_head,
+                                                  const ConfigOptionInts& pem,
+                                                  const std::map<int, int>& plate_map) const
+{
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb)
+        return GLVolume::UNPRINTABLE_COLOR;
+
+    const int logical = resolve_filament_for_head(plate_map, pem, physical_head);
+    if (logical < 0)
+        return GLVolume::UNPRINTABLE_COLOR;
+
+    auto* colours = pb->project_config.option<ConfigOptionStrings>("filament_colour");
+    if (!colours || logical >= (int)colours->values.size())
+        return GLVolume::UNPRINTABLE_COLOR;
+
+    ColorRGBA rgba;
+    if (!decode_color(colours->values[logical], rgba))
+        return GLVolume::UNPRINTABLE_COLOR;
+    return rgba;
+}
+
 void PartPlate::set_spiral_vase_mode(bool spiral_mode, bool as_global)
 {
 	std::string key = "spiral_mode";
@@ -467,6 +569,785 @@ void PartPlate::calc_exclude_triangles(const ExPolygon &poly)
 
     if (!init_model_from_poly(m_exclude_triangles, poly, GROUND_Z))
 		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create exclude triangles\n";
+}
+
+// Forward declaration (defined later in this file)
+static bool init_model_from_lines(GLModel &model, const Lines &lines, float z);
+
+// Thin GUI wrapper: fetch the configs, hand the geometry to libslic3r, turn the returned
+// rectangles into render meshes. Every zone/strip/margin decision lives in
+// compute_imex_zone_layout (libslic3r/IMEXZones.cpp), which is unit-tested headlessly;
+// the only work left here is clipping each rectangle to the bed outline and building the
+// GLModel for it, which needs the GUI's model helpers.
+void PartPlate::calc_imex_zones()
+{
+    m_imex_copy_zones.clear();
+    m_imex_mirror_zones.clear();
+    // Clear blocking vectors at the top so early returns don't leave stale data.
+    m_imex_secondary_zone_boxes.clear();
+    m_imex_collision_zones.clear();
+    m_imex_collision_overlay.clear();
+    m_imex_margin_overlay.clear();
+    m_imex_primary_zone_box = std::nullopt;
+    m_imex_head_zone_centers.clear();
+    m_imex_primary_head = -1;
+
+    if (!wxGetApp().preset_bundle)
+        return;
+
+    PresetBundle&             bundle      = *wxGetApp().preset_bundle;
+    const DynamicPrintConfig& printer_cfg = bundle.printers.get_edited_preset().config;
+
+    // Process-preset mode is the fallback the library applies when the plate is still on
+    // the reserved Primary mode; it ignores this string otherwise.
+    std::string process_mode;
+    if (auto* mode_opt = bundle.prints.get_edited_preset().config.option<ConfigOptionString>("imex_parallel_mode"))
+        process_mode = mode_opt->value;
+
+    const ImexZoneLayout layout = compute_imex_zone_layout(printer_cfg, get_imex_mode(),
+                                                           process_mode, get_extents(m_shape));
+
+    m_imex_primary_head         = layout.primary_head;
+    m_imex_head_zone_centers    = layout.head_zone_centers;
+    m_imex_primary_zone_box     = layout.primary_zone_box;
+    m_imex_secondary_zone_boxes = layout.secondary_zone_boxes;
+    m_imex_collision_zones      = layout.collision_zones;
+
+    // No primary zone means the layout is empty (IMEX off, Primary mode, single-tool grid,
+    // or a mode with no tools) -- exactly the cases that returned before touching geometry.
+    if (!m_imex_primary_zone_box.has_value())
+        return;
+
+    ExPolygon bed_poly;
+    generate_print_polygon(bed_poly);
+
+    // Build a clipped filled GLModel for one zone rect and push it into a vector.
+    // A rect falling entirely outside the bed outline contributes no model.
+    auto push_zone_fill = [&](std::vector<GLModel>& vec, double cx0, double cx1, double cy0, double cy1) {
+        ExPolygon cell;
+        cell.contour.append({ scale_(cx0), scale_(cy0) });
+        cell.contour.append({ scale_(cx1), scale_(cy0) });
+        cell.contour.append({ scale_(cx1), scale_(cy1) });
+        cell.contour.append({ scale_(cx0), scale_(cy1) });
+        ExPolygons clipped = intersection_ex({ cell }, { bed_poly });
+        if (!clipped.empty()) {
+            GLModel m;
+            if (init_model_from_poly(m, clipped.front(), GROUND_Z))
+                vec.push_back(std::move(m));
+        }
+    };
+
+    for (const BoundingBoxf& b : layout.copy_zones)
+        push_zone_fill(m_imex_copy_zones, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    for (const BoundingBoxf& b : layout.mirror_zones)
+        push_zone_fill(m_imex_mirror_zones, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    // Red-orange fill for each carriage danger strip, and the amber advisory band just
+    // inside it. Both are visual only -- blocking is driven by m_imex_collision_zones.
+    for (const BoundingBoxf3& b : layout.collision_zones)
+        push_zone_fill(m_imex_collision_overlay, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+    for (const BoundingBoxf& b : layout.margin_bands)
+        push_zone_fill(m_imex_margin_overlay, b.min.x(), b.max.x(), b.min.y(), b.max.y());
+}
+
+// Build a cache key from the current IDEX/IQEX config options, or "" if IDEX/IQEX is off.
+// Reads per-plate mode from m_config first, falling back to the process preset.
+//
+// Inputs that contribute to the key (any change must invalidate the IMEX zone cache):
+//   - active_mode (per-plate or process-preset fallback)
+//   - imex_tools_per_gantry, imex_gantry_count                  (grid shape)
+//   - imex_tool_layout                                          (which corner tool 0 occupies)
+//   - imex_nozzle_clearance_x, imex_nozzle_clearance_y          (zone widths / collision strips)
+//   - imex_carriage_margin                                       (zone shrink)
+//   - the active mode's tool roster and its Primary head        (same name, different roster)
+//   - imex_firmware_managed_zones                               (suppresses ghost generation)
+//
+// IMPORTANT: if you add a printer config option that affects zone geometry, ghost transforms,
+// or collision strips, it MUST be incorporated here — otherwise ghost meshes and zone overlays
+// will go stale silently after a config change. Float values are scaled by 10 before integer
+// cast so 0.1 mm steps invalidate the cache; if you add a float option needing finer precision,
+// adjust the scale.
+std::string PartPlate::build_imex_cache_key() const
+{
+    // CLI / headless slice: no GUI_App is initialized, so `wxGetApp()` returns
+    // memory that segfaults on member access. `m_plater` is set only by the GUI
+    // construction path; treat its absence as "no IMEX state to compute" and
+    // return an empty key. Same guard pattern used by calc_imex_ghosts.
+    if (!m_plater || !wxGetApp().preset_bundle)
+        return "";
+    const DynamicPrintConfig& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
+    if (!is_imex_opt || !is_imex_opt->value)
+        return "";
+    // Per-plate mode takes priority over process preset.
+    std::string active_mode = get_imex_mode();
+    if (active_mode == kImexPrimaryMode) {
+        const DynamicPrintConfig& process_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        auto* mode_opt = process_cfg.option<ConfigOptionString>("imex_parallel_mode");
+        if (mode_opt && !mode_opt->value.empty())
+            active_mode = mode_opt->value;
+    }
+    // Mode NAME alone is not printer identity: two presets can define the same mode
+    // name with different tool rosters/primary, and imex_firmware_managed_zones
+    // suppresses ghost generation entirely. Both shape the baked zone/ghost set, so
+    // key them directly (previously caught only incidentally, via the ghost key's
+    // since-removed pem entry).
+    std::string active_tools;
+    int         primary_phys = -1;
+    resolve_active_mode_tools(active_tools, primary_phys); // empty on failure — keyed as such
+    // imex_tool_layout decides which physical corner tool 0 occupies (flip_x / flip_y inside
+    // compute_imex_zone_layout), so every zone rectangle, collision strip and ghost offset moves
+    // when it changes while every other keyed field stays put. Without it the key is identical
+    // across a layout change and the baked zones go stale; that this currently appears to work is
+    // incidental -- some other path happens to rebuild -- not something to rely on.
+    // Geometry values go through imex_cfg_* so the key is built from the same numbers
+    // compute_imex_zone_layout() lays out with; a literal here could key on a value the layout
+    // never used.
+    return active_mode
+         + "|" + std::to_string(imex_cfg_int(printer_cfg, "imex_tools_per_gantry"))
+         + "x" + std::to_string(imex_cfg_int(printer_cfg, "imex_gantry_count"))
+         + "|ly" + std::to_string((int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout"))
+         + "|cw" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x") * 10))
+         + "|ch" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y") * 10))
+         + "|mg" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_carriage_margin") * 10))
+         + "|t" + active_tools
+         + "|p" + std::to_string(primary_phys)
+         + "|fw" + (imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones") ? "1" : "0");
+}
+
+// Reposition the IMEX mode icon without requiring a full set_shape() rebuild.
+static void register_model_for_picking(GLCanvas3D &canvas, PickingModel &model, int id);
+
+// Called when is_imex is toggled on a printer whose bed shape matches the current plate,
+// which would otherwise cause set_shape() to short-circuit before reaching icon calc.
+void PartPlate::refresh_imex_icon()
+{
+    if (!m_plater) return;
+    PresetBundle* preset = wxGetApp().preset_bundle;
+    if (!preset) return;
+    bool dual_bbl = preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2;
+    auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+    if (is_imex_opt && is_imex_opt->value) {
+        int imex_slot = dual_bbl ? 7 : 6;
+        calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
+        calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
+
+        // calc_vertex_for_icons() destroyed the MeshRaycaster that SceneRaycaster still
+        // holds by raw pointer; swap the registration as calc_vertex_for_plate_name() does.
+        // Only the mode icon is picked -- the warn badge is a plain GLModel.
+        if (GLCanvas3D *canvas = m_plater->get_view3D_canvas3D()) {
+            canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed,
+                                                  picking_id_component(PLATE_IMEX_MODE_ID));
+            register_model_for_picking(*canvas, m_imex_mode_icon, picking_id_component(PLATE_IMEX_MODE_ID));
+        }
+    }
+}
+
+// Ensure zone geometry (secondary boxes, collision strips, visual meshes) is up to date.
+// Called before any collision check AND before rendering so both paths share the same data.
+void PartPlate::ensure_imex_zones()
+{
+    // CLI / headless slice: no GUI_App, no plater, no IMEX state to track. Bail out
+    // before touching `wxGetApp()` (which segfaults without a GUI_App) — placement
+    // checks reach this from the headless 3MF-load path through `check_outside`.
+    if (!m_plater) return;
+    std::string cache_key = build_imex_cache_key();
+    if (cache_key != m_imex_zones_mode_cache) {
+        m_imex_zones_mode_cache = cache_key;
+        calc_imex_zones();
+    }
+}
+
+std::string PartPlate::build_imex_ghost_cache_key() const
+{
+    // Ghost shape depends on: mode topology (same inputs as zone key) + set of
+    // objects on plate + each primary instance's transform. Filament routing and
+    // colors are deliberately NOT keyed: ghost RGB is restamped live every frame
+    // by update_imex_ghost_colors, so color-only changes never need a mesh rebuild.
+    std::string k = build_imex_cache_key();
+    if (k.empty()) return "";  // ghost-off when zones-off
+
+    k += "|obj";
+    for (const auto& oi : obj_to_instance_set)
+        k += std::to_string(oi.first) + "." + std::to_string(oi.second) + ",";
+    return k;
+}
+
+void PartPlate::ensure_imex_ghosts()
+{
+    std::string key = build_imex_ghost_cache_key();
+    if (key != m_imex_ghost_cache_key) {
+        m_imex_ghost_cache_key = key;
+        calc_imex_ghosts();
+    }
+}
+
+bool PartPlate::resolve_active_mode_tools(std::string& out_tools_str, int& out_primary_phys) const
+{
+    if (!wxGetApp().preset_bundle) return false;
+    const DynamicPrintConfig& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
+    if (!is_imex_opt || !is_imex_opt->value) return false;
+
+    std::string active_mode = get_imex_mode();
+    if (active_mode == kImexPrimaryMode || active_mode.empty()) {
+        const DynamicPrintConfig& proc_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        if (auto* mo = proc_cfg.option<ConfigOptionString>("imex_parallel_mode"))
+            active_mode = mo->value;
+    }
+    if (active_mode.empty() || active_mode == kImexPrimaryMode) return false;
+
+    const ImexMode mode = find_imex_mode(printer_cfg, active_mode);
+    if (!mode.found()) return false;
+
+    // Also the ragged case: a tools array too short to reach this row hands back an empty
+    // string, which has no declared primary, which is the same "no zones here" answer the
+    // explicit bounds check used to give.
+    const int primary_phys = imex_primary_tool_for_mode(mode.active_tools);
+    if (primary_phys < 0) return false;
+
+    out_tools_str    = mode.active_tools;
+    out_primary_phys = primary_phys;
+    return true;
+}
+
+// Ghost opacity, stamped together with RGB by update_imex_ghost_colors every
+// frame — the sole author of ghost color.
+static constexpr float IMEX_GHOST_ALPHA = 0.55f;
+
+void PartPlate::calc_imex_ghosts()
+{
+    m_imex_ghost_volumes.clear();
+    if (!m_plater || !m_model) return;
+    if (obj_to_instance_set.empty()) return;
+
+    std::string active_tools_str;
+    int primary_phys = -1;
+    if (!resolve_active_mode_tools(active_tools_str, primary_phys)) return;
+
+    // IMEX firmware-managed zones: the slicer emits a centered single-half slice and the
+    // firmware fans copies/mirrors out from there — placement is not slicer-authoritative.
+    // Rendering secondary-tool ghosts via imex_head_transform (which assumes slicer-managed
+    // placement at primary_zone_center + gantry_offset) would draw them at positions the
+    // firmware doesn't honor (e.g. off-bed once the centered slice is in play). Suppress
+    // ghost generation entirely so we don't lie about something the slicer doesn't own.
+    if (imex_cfg_bool(wxGetApp().preset_bundle->printers.get_edited_preset().config,
+                      "imex_firmware_managed_zones"))
+        return;
+
+    // Zone centers are the basis for ghost placement; make sure they exist before
+    // we read them. render_imex_zones already ensures this, but ghost rebuild can
+    // also be driven from mode/preset invalidation paths that don't touch zones.
+    ensure_imex_zones();
+
+    const auto heads = parse_imex_active_tools(active_tools_str);
+
+    // When primary's gantry has a Span tool, paired-gantry aggregation means each
+    // non-primary gantry is represented by a single ghost — its column-paired rep —
+    // so non-rep tools on aggregated gantries are skipped. This single source of
+    // pairing truth keeps ghost emission and zone aggregation in lockstep.
+    // Grouping must divide the grid the same way compute_imex_zone_layout() does, so the key is
+    // read through the same accessor rather than against a literal repeated here.
+    const int tpg = std::max(1, imex_cfg_int(
+        wxGetApp().preset_bundle->printers.get_edited_preset().config, "imex_tools_per_gantry"));
+    const ImexGantryGrouping grouping =
+        group_imex_active_tools_by_gantry(active_tools_str, tpg);
+    auto is_aggregated = [&](int phys) -> bool {
+        const int g = phys / tpg;
+        for (const auto& grp : grouping.groups)
+            if (grp.gantry_index == g) return grp.aggregate;
+        return false;
+    };
+    auto skip_for_aggregation = [&](int phys) -> bool {
+        const int g = phys / tpg;
+        for (const auto& grp : grouping.groups) {
+            if (grp.gantry_index != g) continue;
+            return grp.aggregate && phys != grp.representative_phys;
+        }
+        return false;
+    };
+
+    auto mirror_axis_for = [&](int phys) {
+        return imex_mirror_axis_for(primary_phys, phys, tpg);
+    };
+
+    // Zone centers are the source of truth for ghost placement: they come from the
+    // same grid math that paints the colored secondary zones, so a ghost always lands
+    // in its own tool's zone. extruder_offset is physical-nozzle data and is left at
+    // zero on most IMEX presets — sourcing offsets from it stacks every ghost on top
+    // of the primary, which is what motivated this switch.
+    auto center_for = [&](int phys) -> Vec2d {
+        auto it = m_imex_head_zone_centers.find(phys);
+        return (it == m_imex_head_zone_centers.end()) ? Vec2d::Zero() : it->second;
+    };
+    const Vec2d primary_off = center_for(primary_phys);
+
+    // An aggregated gantry's zone is a full-X row strip, so it has no column of its own to
+    // align to. Putting BOTH the primary and target X frames on the bed centerline makes
+    // gantry_offset.x zero, which is what we want: a cross-gantry tool tracks primary's X
+    // (it reflects in Y, not X — see imex_mirror_axis_for) and only translates along Y.
+    // NB: the X frame is NOT a reflection plane. Do not "simplify" the bed_x_center
+    // substitution away on the grounds that the mirror no longer reflects in X — dropping it
+    // reintroduces a nonzero gantry_offset.x and shoves aggregated ghosts a column off their
+    // strip.
+    auto bed_ext = get_extents(m_shape);
+    const double bed_x_center = 0.5 * (bed_ext.min(0) + bed_ext.max(0));
+    auto resolve_centers = [&](int phys) -> std::pair<Vec2d, Vec2d> {
+        const Vec2d target_off = center_for(phys);
+        if (!is_aggregated(phys)) {
+            // Per-tool: target stays at its column-aligned zone center.
+            return {primary_off, target_off - primary_off};
+        }
+        const Vec2d aggregated_primary{bed_x_center, primary_off.y()};
+        const Vec2d aggregated_target {bed_x_center, target_off.y()};
+        return {aggregated_primary, aggregated_target - aggregated_primary};
+    };
+
+    // Mesh is object-local and identical across all instances and heads of a given object.
+    // Build the merged TriangleMesh once per obj_idx and reuse across the inner head loop.
+    // (Per-ghost GLModel::init_from still runs once each, since GLVolume owns its GLModel by value;
+    // sharing a GLModel across GLVolumes would require API changes outside this task's scope.)
+    std::map<int, TriangleMesh> mesh_by_obj;
+    auto get_combined_mesh = [&](int obj_idx, const ModelObject* mo) -> const TriangleMesh& {
+        auto it = mesh_by_obj.find(obj_idx);
+        if (it != mesh_by_obj.end()) return it->second;
+        TriangleMesh combined;
+        for (const ModelVolume* mv : mo->volumes) {
+            if (!mv->is_model_part()) continue;
+            TriangleMesh tm = mv->mesh();
+            tm.transform(mv->get_matrix());
+            combined.merge(tm);
+        }
+        return mesh_by_obj.emplace(obj_idx, std::move(combined)).first->second;
+    };
+
+    for (const auto& oi : obj_to_instance_set) {
+        const int obj_idx  = oi.first;
+        const int inst_idx = oi.second;
+        if (obj_idx < 0 || obj_idx >= (int)m_model->objects.size()) continue;
+        ModelObject* mo = m_model->objects[obj_idx];
+        if (!mo || inst_idx < 0 || inst_idx >= (int)mo->instances.size()) continue;
+        ModelInstance* mi = mo->instances[inst_idx];
+
+        const Transform3d inst_world = mi->get_matrix();
+        const TriangleMesh& combined = get_combined_mesh(obj_idx, mo);
+
+        for (const auto& [phys, role] : heads) {
+            if (phys == primary_phys) continue;
+            if (phys >= IMEX_GHOST_MAX_HEADS) continue;
+            if (role == ImexRole::Span) continue;  // within-gantry partner; primary's zone covers it
+            if (skip_for_aggregation(phys)) continue;  // non-rep on an aggregated gantry
+
+            const auto [pri_center, gantry] = resolve_centers(phys);
+            // A mirror on the primary's own gantry sits beside it in X, so it reflects across
+            // the vertical boundary between their zones. A mirror on another gantry sits in
+            // front of / behind it, so it reflects across the horizontal boundary between the
+            // row strips — the Y axis. Copy translates by `gantry`; aggregated tools resolve
+            // gantry.x to 0, so a cross-gantry mirror tracks primary's X and reflects only Y.
+            const Transform3d head_xf = imex_head_transform(
+                primary_phys, phys, role, gantry, pri_center, mirror_axis_for(phys));
+            const Transform3d ghost_xf = head_xf * inst_world;
+
+            // No color at bake time: update_imex_ghost_colors is the sole author of
+            // ghost color, restamping RGB + alpha from the live palette every frame.
+            auto ghost = std::make_unique<GLVolume>();
+            ghost->set_instance_transformation(ghost_xf);
+            ghost->force_transparent    = 1;
+            ghost->force_native_color   = 1;
+            ghost->disabled             = 1;  // skip selection path
+            // is_active defaults to true in GLVolume's ctor — leave it alone.
+            ghost->zoom_to_volumes      = 0;
+            // Ghosts live in secondary zones that are by definition outside the primary
+            // printable area; suppress the red "outside bed" overlay for them.
+            ghost->shader_outside_printer_detection_enabled = 0;
+            ghost->picking              = 1;
+            // object_id = sentinel-encoded physical head; volume_id = source obj_idx (for live-drag);
+            // instance_id = source inst_idx.
+            ghost->composite_id = GLVolume::CompositeID(
+                imex_ghost_composite_id_for_head(phys), obj_idx, inst_idx);
+            ghost->model.init_from(combined);
+            m_imex_ghost_volumes.push_back(std::move(ghost));
+        }
+    }
+}
+
+void PartPlate::update_imex_ghost_transforms(
+    const std::function<std::optional<Transform3d>(int, int)>& primary_live_xf)
+{
+    if (m_imex_ghost_volumes.empty() || !m_plater || !m_model) return;
+
+    std::string active_tools_str;
+    int primary_phys = -1;
+    if (!resolve_active_mode_tools(active_tools_str, primary_phys)) return;
+
+    // Reuse zone-center-derived offsets (same source calc_imex_ghosts uses), so
+    // update and rebuild paths always agree on where each ghost belongs.
+    ensure_imex_zones();
+    auto center_for = [&](int phys) -> Vec2d {
+        auto it = m_imex_head_zone_centers.find(phys);
+        return (it == m_imex_head_zone_centers.end()) ? Vec2d::Zero() : it->second;
+    };
+    const Vec2d primary_off = center_for(primary_phys);
+
+    // Same aggregation-aware center resolution as calc_imex_ghosts uses, so a live drag
+    // moves the ghost exactly as a rebuild would place it. See the note there: for an
+    // aggregated gantry both X frames sit on the bed centerline, which zeroes gantry_offset.x
+    // so the cross-gantry mirror tracks primary's X and reflects in Y.
+    // Same accessor, same reason as calc_imex_ghosts() above: this must group the grid the way
+    // compute_imex_zone_layout() does. The grouping/is_aggregated preamble that follows is
+    // duplicated from that function; the duplication predates this change and is left alone.
+    const int tpg = std::max(1, imex_cfg_int(
+        wxGetApp().preset_bundle->printers.get_edited_preset().config, "imex_tools_per_gantry"));
+    const ImexGantryGrouping grouping =
+        group_imex_active_tools_by_gantry(active_tools_str, tpg);
+    auto is_aggregated = [&](int phys) -> bool {
+        const int g = phys / tpg;
+        for (const auto& grp : grouping.groups)
+            if (grp.gantry_index == g) return grp.aggregate;
+        return false;
+    };
+    auto bed_ext = get_extents(m_shape);
+    const double bed_x_center = 0.5 * (bed_ext.min(0) + bed_ext.max(0));
+    auto resolve_centers = [&](int phys) -> std::pair<Vec2d, Vec2d> {
+        const Vec2d target_off = center_for(phys);
+        if (!is_aggregated(phys))
+            return {primary_off, target_off - primary_off};
+        const Vec2d ap{bed_x_center, primary_off.y()};
+        const Vec2d at{bed_x_center, target_off.y()};
+        return {ap, at - ap};
+    };
+    auto mirror_axis_for = [&](int phys) {
+        return imex_mirror_axis_for(primary_phys, phys, tpg);
+    };
+
+    // Build a phys → role map once so the per-ghost loop is a lookup, not a reparse.
+    std::map<int, ImexRole> role_by_phys;
+    for (const auto& [phys, role] : parse_imex_active_tools(active_tools_str))
+        role_by_phys[phys] = role;
+    auto role_for = [&](int phys) -> ImexRole {
+        auto it = role_by_phys.find(phys);
+        return (it == role_by_phys.end()) ? ImexRole::Copy : it->second;
+    };
+
+    for (auto& ghost : m_imex_ghost_volumes) {
+        const int head = imex_ghost_head_from_composite_id(ghost->composite_id.object_id);
+        const int inst_idx = ghost->composite_id.instance_id;
+        const int obj_idx  = ghost->composite_id.volume_id;  // stashed by calc_imex_ghosts
+        if (obj_idx < 0 || obj_idx >= (int)m_model->objects.size()) continue;
+        const ModelObject* mo = m_model->objects[obj_idx];
+        if (!mo || inst_idx < 0 || inst_idx >= (int)mo->instances.size()) continue;
+
+        // Live-drag path: GLVolume carries the in-progress gizmo transform, while
+        // ModelInstance::get_matrix() only reflects the last committed state. Use
+        // the live lookup when the caller provides it so ghosts track drags frame
+        // by frame instead of snapping on mouse-up.
+        Transform3d primary_xf;
+        if (primary_live_xf) {
+            if (auto live = primary_live_xf(obj_idx, inst_idx))
+                primary_xf = *live;
+            else
+                primary_xf = mo->instances[inst_idx]->get_matrix();
+        } else {
+            primary_xf = mo->instances[inst_idx]->get_matrix();
+        }
+
+        const ImexRole role = role_for(head);
+        const auto [pri_center, gantry] = resolve_centers(head);
+        // Mirror axis follows the gantry row — see calc_imex_ghosts(). A cross-gantry mirror
+        // reflects in Y and tracks primary's X, so drag no longer pushes it off-bed and the
+        // old bake-the-flip-into-the-mesh workaround is unnecessary.
+        const Transform3d head_xf = imex_head_transform(
+            primary_phys, head, role, gantry, pri_center, mirror_axis_for(head));
+        const Transform3d ghost_xf = head_xf * primary_xf;
+        ghost->set_instance_transformation(ghost_xf);
+    }
+}
+
+// Restamp every ghost's RGB from the current filament palette. Called per frame
+// from the render loop, so ghosts can never go stale against filament preset or
+// color changes — the ghost cache key deliberately ignores color-only inputs.
+// This is the same resolution the hover tooltip runs (resolve_filament_for_head
+// over the effective pem + per-plate override map), so the two cannot disagree.
+void PartPlate::update_imex_ghost_colors()
+{
+    // !m_plater is the headless sentinel: without a GUI_App, calling wxGetApp()
+    // below is unsafe — same guard pattern as ensure_imex_zones.
+    if (m_imex_ghost_volumes.empty() || !m_plater) return;
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb) return;
+
+    // Plate-level inputs hoisted once; per-head results memoized across instances.
+    const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
+    const auto plate_map = get_imex_head_filament_map();
+
+    std::map<int, ColorRGBA> head_colors;
+    for (auto& ghost : m_imex_ghost_volumes) {
+        if (!ghost) continue;
+        const int head = imex_ghost_head_from_composite_id(ghost->composite_id.object_id);
+        auto hc = head_colors.find(head);
+        if (hc == head_colors.end())
+            hc = head_colors.emplace(head, get_imex_head_filament_color(head, pem, plate_map)).first;
+        ColorRGBA color = hc->second;
+        color.a(IMEX_GHOST_ALPHA);
+        ghost->color = color;
+    }
+}
+
+// True if `hull` (scaled, plate-list coordinates) overlaps a secondary zone or a
+// carriage danger strip. Shared by the object and prime-tower checks so both use one
+// definition of "overlap" — see imex_hull_violates_zones() for those semantics.
+bool PartPlate::imex_hull_violates(const Polygon& hull) const
+{
+    return imex_hull_violates_zones(m_imex_secondary_zone_boxes, hull)
+        || imex_hull_violates_zones(m_imex_collision_zones, hull);
+}
+
+// The prime tower is not a ModelObject, so it is invisible to the instance loop
+// below. Reuse the footprint the scene already draws — GLCanvas3D sizes the tower
+// preview from estimate_wipe_tower_size(), and estimate_wipe_tower_polygon() wraps
+// that same estimate with the brim, so validating it matches what the user sees and
+// drags. Returns an empty polygon when the plate has no tower.
+Polygon PartPlate::imex_wipe_tower_hull() const
+{
+    // m_model is dereferenced by estimate_wipe_tower_size (it walks m_model->objects
+    // for the tower height), so guard it here — the instance loop below only reaches
+    // it behind valid_instance(), but this tail call runs even on an empty plate.
+    if (!m_plater || !m_print || !m_model)
+        return Polygon();
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    if (!preset_bundle)
+        return Polygon();
+
+    const DynamicPrintConfig& print_cfg = preset_bundle->prints.get_edited_preset().config;
+    const ConfigOptionBool*   enable_opt = print_cfg.option<ConfigOptionBool>("enable_prime_tower");
+    if (!enable_opt || !enable_opt->value)
+        return Polygon();
+
+    // Close to, but not identical to, the reachability test the scene uses before it
+    // draws a tower (GLCanvas3D): a tower exists only for 2+ filaments, unless smooth
+    // timelapse or wrapping detection forces one. The scene additionally suppresses the
+    // tower for ByObject sequences and in gcode-preview mode; both omissions here fail
+    // conservatively (we validate a tower the scene may not draw, never the reverse).
+    // Without this gate a single-filament plate on a 2-extruder printer still yields a
+    // non-zero estimate (the extruder_count == 2 branch of estimate_wipe_tower_size
+    // multiplies by the filament count rather than count - 1) and we would block on a
+    // tower that is never printed.
+    auto timelapse_type = print_cfg.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
+    bool need_wipe_tower = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
+    // enable_wrapping_detection is a PRINT option, not a printer one. Reading it from
+    // the printer preset returns nullptr and silently leaves this false, which would
+    // skip validation for a tower the user can see and drag — a false negative on
+    // exactly the collision this check exists to catch.
+    if (auto wrapping_opt = print_cfg.option<ConfigOptionBool>("enable_wrapping_detection"))
+        need_wipe_tower |= wrapping_opt->value;
+    const int plate_extruder_size = (int) get_extruders(true).size();
+    if (!need_wipe_tower && plate_extruder_size < 2)
+        return Polygon();
+
+    Vec3d wt_pos, wt_size;
+    const int nozzle_nums = preset_bundle->get_printer_extruder_count();
+    // full_config() rather than the print preset: wipe_tower_x/y are PROJECT options
+    // (PresetBundle s_project_options), and estimate_wipe_tower_polygon dereferences
+    // them unchecked. Passing a print-only config null-derefs. apply_extruder=false
+    // skips three update_values_to_printer_extruders() passes we do not need — none of
+    // the keys the estimate reads are variant-keyed.
+    // plate_extruder_size is passed explicitly so the estimate does not walk every
+    // object and volume on the plate a second time to recompute what we just counted.
+    arrangement::ArrangePolygon ap = estimate_wipe_tower_polygon(preset_bundle->full_config(false), m_plate_index, wt_pos, wt_size, nozzle_nums, plate_extruder_size);
+    if (wt_size(0) <= 0. || wt_size(1) <= 0. || ap.poly.contour.points.empty())
+        return Polygon();
+
+    // NOTE: only the tower box and its brim are validated, and only as estimated. Three
+    // known gaps, all of them pre-slice limits rather than oversights:
+    //  - estimate_wipe_tower_size is a heuristic (hard-coded 0.08 layer height, closed-
+    //    form depth, no per-layer purge volumes), so the sliced tower can exceed it. The
+    //    true footprint is Print::first_layer_wipe_tower_corners(), which only exists
+    //    after slicing.
+    //  - A Cone-walled tower prints a stabilization cone past the box. Sizing it needs
+    //    the real tower height (m_wipe_tower_data.height), likewise post-slice;
+    //    approximating it from object height over-reserved space and blocked legal
+    //    placements. The default rib wall prints no cone.
+    // See also the unvalidated object brim / skirt / support gaps, which affect every
+    // print.
+    Polygon hull = ap.poly.contour;
+
+    // estimate_wipe_tower_polygon() builds an axis-aligned box; the real tower is
+    // rotated about its anchor corner before placement (first_layer_wipe_tower_corners
+    // rotates the tower-local box about the local origin, then translates it by
+    // wipe_tower_x/y). Without this a rotated tower's footprint escapes the hull and
+    // the zone check passes on a tower that intrudes.
+    if (const auto* rot = print_cfg.option<ConfigOptionFloat>("wipe_tower_rotation_angle");
+        rot && rot->value != 0.)
+        hull.rotate(Geometry::deg2rad(rot->value),
+                    Point(scaled(wt_pos.x()), scaled(wt_pos.y())));
+
+    // estimate_wipe_tower_polygon() works in plate-local mm; the zones and the
+    // instance hulls it is compared against are in plate-list coordinates.
+    hull.translate(Point(scaled(m_origin.x()), scaled(m_origin.y())));
+    return hull;
+}
+
+PartPlate::ImexPlacementViolation PartPlate::imex_placement_violation()
+{
+    ensure_imex_zones();
+    if (m_imex_secondary_zone_boxes.empty() && m_imex_collision_zones.empty())
+        return ImexPlacementViolation::None;
+    for (const auto& pr : obj_to_instance_set) {
+        int obj_id = pr.first;
+        int instance_id = pr.second;
+        if (!valid_instance(obj_id, instance_id))
+            continue;
+        ModelInstance* instance = m_model->objects[obj_id]->instances[instance_id];
+        if (imex_hull_violates(instance->convex_hull_2d()))
+            return ImexPlacementViolation::Object;
+    }
+    if (imex_hull_violates(imex_wipe_tower_hull()))
+        return ImexPlacementViolation::PrimeTower;
+    return ImexPlacementViolation::None;
+}
+
+bool PartPlate::has_imex_multimaterial_conflict() const
+{
+    // Mirror the logic Print::validate uses so the plater badge fires exactly when
+    // slicing would be blocked — no false positives where the badge warns but the
+    // slice goes through anyway. Delegates to imex_multicolor_block_reason() so
+    // both paths share one source of truth.
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb) return false;
+    const DynamicPrintConfig& printer_cfg = pb->printers.get_edited_preset().config;
+    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
+    if (!is_imex_opt || !is_imex_opt->value) return false;
+
+    const std::string mode = get_imex_mode();
+    if (mode == kImexPrimaryMode) return false;
+
+    // Both keys bail rather than defaulting through imex_cfg_int(), deliberately, and for the same
+    // reason: this reports a routing CONFLICT, so it must run on the printer's real configuration
+    // or not at all. Without physical_extruder_map there is no mapping to check; with a defaulted
+    // grid the conflict would be computed against a shape the printer does not have. A false
+    // conflict warning is worse than staying quiet, so an absent key means "no answer" here --
+    // unlike the geometry paths, where a defaulted value still describes a drawable bed.
+    auto* tpg_opt   = printer_cfg.option<ConfigOptionInt>("imex_tools_per_gantry");
+    auto* pem_opt   = printer_cfg.option<ConfigOptionInts>("physical_extruder_map");
+    if (!tpg_opt || !pem_opt) return false;
+
+    // Resolve the active mode's tools string from the printer config. Print::validate()
+    // resolves the same name the same way and keeps going on an empty result -- the mixed
+    // filament rule below does not depend on the roster -- so this must too, or the badge
+    // goes quiet on exactly the plates the slicer refuses.
+    const std::string active_tools_str = find_imex_mode(printer_cfg, mode).active_tools;
+
+    // Convert PartPlate's 1-based extruder list to the 0-based form the helper expects.
+    //
+    // get_extruders(true) expands a mixed slot into its physical components, which is right for
+    // AMS mapping but wrong here: Print::validate counts the slot itself, so an expanded list
+    // makes the badge disagree with the thing it is previewing. A plate holding one 2-component
+    // blend reads as 2 filaments to the badge and 1 to validate -- the badge stays silent and
+    // the slice is then refused, or it warns about "multi-material objects" on a plate the user
+    // sees as single-colour. Undo the expansion so both sides count the same way.
+    const std::vector<int> used_1b = get_extruders(true, /*expand_mixed=*/false);
+    std::vector<int> used_0b;
+    used_0b.reserve(used_1b.size());
+    for (int e : used_1b) if (e > 0) used_0b.push_back(e - 1);
+
+    // validate()'s first rule: a mixed filament is unsupported in a parallel mode outright,
+    // ahead of any multi-color reasoning. The badge has to agree or it under-reports.
+    if (auto* is_mixed_opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed")) {
+        const auto& is_mixed = is_mixed_opt->values;
+        if (std::any_of(used_0b.begin(), used_0b.end(),
+                        [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; }))
+            return true;
+    }
+
+    return !imex_multicolor_block_reason(mode, active_tools_str, tpg_opt->value, used_0b, *pem_opt).empty();
+}
+
+void PartPlate::render_imex_zones(bool force_default_color)
+{
+    if (force_default_color)
+        return;
+
+    ensure_imex_zones();
+    ensure_imex_ghosts();
+
+    // Read visualization theme from printer config.
+    struct IMEXTheme {
+        ColorRGBA copy;     // secondary copy zone fill
+        ColorRGBA mirror;   // secondary mirror zone fill
+        ColorRGBA danger;   // blocking collision strip
+        ColorRGBA margin;   // advisory safety margin
+    };
+
+    // Standard (Okabe-Ito orange + sky blue)
+    static const IMEXTheme k_standard = {
+        { 0.337f, 0.706f, 0.914f, 0.45f },   // copy   — sky blue  #56B4E9
+        { 0.902f, 0.624f, 0.000f, 0.45f },   // mirror — orange    #E69F00
+        { 0.850f, 0.100f, 0.100f, 0.55f },   // danger — red
+        { 0.300f, 0.900f, 0.200f, 0.40f },   // margin — lime green
+    };
+    // Deuteranopia / Protanopia: avoids red-green confusion.
+    // Danger strip uses strong blue-violet (red invisible to protanopes).
+    static const IMEXTheme k_deuteranopia = {
+        { 0.000f, 0.447f, 0.698f, 0.50f },   // copy   — blue       #0072B2
+        { 0.941f, 0.894f, 0.259f, 0.50f },   // mirror — yellow     #F0E442
+        { 0.200f, 0.100f, 0.800f, 0.65f },   // danger — blue-violet (red not visible)
+        { 0.800f, 0.475f, 0.655f, 0.45f },   // margin — reddish purple #CC79A7
+    };
+    // Tritanopia: avoids blue-yellow confusion.
+    // Copy uses vermilion, mirror uses reddish-purple, margin uses teal.
+    static const IMEXTheme k_tritanopia = {
+        { 0.835f, 0.369f, 0.000f, 0.50f },   // copy   — vermilion  #D55E00
+        { 0.800f, 0.475f, 0.655f, 0.50f },   // mirror — reddish purple #CC79A7
+        { 0.850f, 0.100f, 0.100f, 0.55f },   // danger — red (visible to tritanopes)
+        { 0.000f, 0.700f, 0.600f, 0.45f },   // margin — teal
+    };
+    // High contrast: saturated, higher alpha for low-vision users.
+    static const IMEXTheme k_high_contrast = {
+        { 0.000f, 0.600f, 1.000f, 0.65f },   // copy   — vivid blue
+        { 1.000f, 0.600f, 0.000f, 0.65f },   // mirror — vivid orange
+        { 1.000f, 0.000f, 0.000f, 0.75f },   // danger — full red
+        { 0.000f, 1.000f, 0.200f, 0.60f },   // margin — bright green
+    };
+
+    const IMEXTheme* theme = &k_standard;
+    if (wxGetApp().preset_bundle) {
+        const DynamicPrintConfig& pcfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (auto* t = pcfg.option<ConfigOptionEnum<ImexVizTheme>>("imex_viz_theme")) {
+            switch (t->value) {
+            case ImexVizTheme::Deuteranopia: theme = &k_deuteranopia;  break;
+            case ImexVizTheme::Tritanopia:   theme = &k_tritanopia;    break;
+            case ImexVizTheme::HighContrast: theme = &k_high_contrast; break;
+            default: break; // Standard
+            }
+        }
+    }
+
+    // Both fills and border lines use the flat shader already active from render().
+    glsafe(::glDepthMask(GL_FALSE));
+
+    if (!m_imex_copy_zones.empty())
+        for (GLModel& z : m_imex_copy_zones)
+            if (z.is_initialized()) { z.set_color(theme->copy); z.render(); }
+
+    if (!m_imex_mirror_zones.empty())
+        for (GLModel& z : m_imex_mirror_zones)
+            if (z.is_initialized()) { z.set_color(theme->mirror); z.render(); }
+
+    glsafe(::glDepthMask(GL_TRUE));
+
+
+    if (!m_imex_collision_overlay.empty()) {
+        glsafe(::glDepthMask(GL_FALSE));
+        for (GLModel& s : m_imex_collision_overlay)
+            if (s.is_initialized()) { s.set_color(theme->danger); s.render(); }
+        glsafe(::glDepthMask(GL_TRUE));
+    }
+
+    if (!m_imex_margin_overlay.empty()) {
+        glsafe(::glDepthMask(GL_FALSE));
+        for (GLModel& b : m_imex_margin_overlay)
+            if (b.is_initialized()) { b.set_color(theme->margin); b.render(); }
+        glsafe(::glDepthMask(GL_TRUE));
+    }
 }
 
 void PartPlate::calc_triangles_from_polygon(const ExPolygon &poly, GLModel &render_model){
@@ -699,6 +1580,37 @@ void PartPlate::calc_vertex_for_icons(int index, PickingModel &model)
 		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Unable to generate geometry buffers for icons\n";
 
 	init_raycaster_from_model(model);
+}
+
+// Positions the IMEX multi-material warning badge as a small overlay at the bottom-right
+// corner of the IMEX mode icon.  The icon slot index matches the one used in calc_vertex_for_icons.
+void PartPlate::calc_vertex_for_imex_warn_badge(int imex_icon_index, GLModel &model)
+{
+    model.reset();
+
+    auto  bed_ext  = get_extents(m_shape);
+    Vec2d p        = bed_ext[2];
+    auto  factor   = bed_ext.size()(1) / 200.0;
+    float size     = PARTPLATE_ICON_SIZE     * factor;
+    float gap_left = PARTPLATE_ICON_GAP_LEFT * factor;
+    float gap_y    = PARTPLATE_ICON_GAP_Y    * factor;
+    float gap_top  = PARTPLATE_ICON_GAP_TOP  * factor;
+
+    // Centre of the IMEX mode icon (top-left corner = p after offset)
+    p += Vec2d(gap_left, -1 * (imex_icon_index * (size + gap_y) + gap_top));
+
+    // Badge is half the icon size, anchored to the bottom-right corner of the icon slot
+    float badge = size * 0.55f;
+    Vec2d bp(p(0) + size - badge, p(1) - size);
+
+    ExPolygon poly;
+    poly.contour.append({ scale_(bp(0))        , scale_(bp(1))        });
+    poly.contour.append({ scale_(bp(0) + badge), scale_(bp(1))        });
+    poly.contour.append({ scale_(bp(0) + badge), scale_(bp(1) + badge)});
+    poly.contour.append({ scale_(bp(0))        , scale_(bp(1) + badge)});
+
+    if (!init_model_from_poly(model, poly, GROUND_Z + 0.01f))
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Unable to generate geometry for IMEX warn badge\n";
 }
 
 /*
@@ -1203,6 +2115,27 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             } else
                 render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
 
+            // IDEX/IQEX mode icon — only when is_imex is active
+            {
+                PresetBundle* pb = wxGetApp().preset_bundle;
+                auto* is_imex_opt = pb ? pb->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex") : nullptr;
+                if (is_imex_opt && is_imex_opt->value) {
+                    if (hover_id == (int)PLATE_IMEX_MODE_ID) {
+                        render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_hovered_texture);
+                        std::string cur = get_imex_mode();
+                        if (cur == kImexPrimaryMode) cur = _u8L("Primary");
+                        show_tooltip(_u8L("IDEX/IQEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
+                    } else {
+                        render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
+                    }
+                    // Warning badge: IMEX parallel mode active alongside multi-material objects
+                    if (has_imex_multimaterial_conflict()) {
+                        render_icon_texture(m_imex_warn_icon, m_partplate_list->m_imex_warn_texture);
+                        if (hover_id == (int)PLATE_IMEX_MODE_ID)
+                            show_tooltip(_u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
+                    }
+                }
+            }
 
 			if (m_partplate_list->render_plate_settings) {
 				bool has_plate_settings = get_bed_type() != BedType::btDefault || get_print_seq() != PrintSequence::ByDefault || !get_first_layer_print_sequence().empty() || !get_other_layers_print_sequence().empty() || has_spiral_mode_config();
@@ -1518,6 +2451,13 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
     bool dual_bbl = (preset && preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
     if (dual_bbl)
         register_model_for_picking(canvas, m_plate_filament_map_icon, picking_id_component(PLATE_FILAMENT_MAP_ID));
+
+    // Register IDEX/IQEX mode icon only when IDEX/IQEX is active and geometry is initialized.
+    if (preset) {
+        auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+        if (is_imex_opt && is_imex_opt->value && m_imex_mode_icon.mesh_raycaster)
+            register_model_for_picking(canvas, m_imex_mode_icon, picking_id_component(PLATE_IMEX_MODE_ID));
+    }
 }
 
 int PartPlate::picking_id_component(int idx) const
@@ -1525,7 +2465,7 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed) const
 {
 	std::vector<int> plate_extruders;
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
@@ -1684,7 +2624,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 		auto& project_config = wxGetApp().preset_bundle->project_config;
 		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
 		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
-		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+		if (expand_mixed && is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
 			std::vector<unsigned int> ext_0based;
 			for (int e : plate_extruders)
 				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
@@ -2758,6 +3698,9 @@ bool PartPlate::contain_instance_totally(int obj_id, int instance_id) const
 //check whether instance is outside the plate or not
 bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* bounding_box)
 {
+	// Ensure IDEX/IQEX zone geometry is current before any placement check.
+	ensure_imex_zones();
+
 	bool outside = true;
 
 	ModelObject* object = m_model->objects[obj_id];
@@ -2801,6 +3744,16 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 		else
 			outside = false;
 	}
+
+    // IDEX/IQEX placement check (prepare-mode bounding-box test).
+    // Block objects that overlap secondary (copy/mirror) zones or the carriage
+    // danger strip at the primary zone boundary.  Reuses the existing
+    // outside=true → instance_outside_set → update_states() → blocks slicing path.
+    // Reuse the hull computed above: ModelInstance::convex_hull_2d() is NOT cached
+    // (Model.cpp has the validity guard commented out), so recomputing it here would
+    // cost every user a per-instance hull rebuild, including on non-IMEX printers.
+    if (!outside && imex_hull_violates(hull))
+        outside = true;
 
 	return outside;
 }
@@ -3393,6 +4346,8 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 
 			const BoundingBox& pp_bbox = poly.contour.bounding_box();
 			calc_gridlines(poly, pp_bbox);
+			m_imex_zones_mode_cache = "\x01"; // force rebuild on next render
+			calc_imex_zones();
 
 			calc_vertex_for_icons(0, m_del_icon);
 			calc_vertex_for_icons(1, m_orient_icon);
@@ -3405,6 +4360,14 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
 			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
+			{
+				auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+				if (is_imex_opt && is_imex_opt->value) {
+					int imex_slot = dual_bbl ? 7 : 6;
+					calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
+					calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
+				}
+			}
 
 			calc_vertex_for_number(0, false, m_plate_idx_icon);
 			// calc vertex for plate name
@@ -3502,6 +4465,7 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
             render_background(force_background_color);
 
             render_exclude_area(force_background_color);
+            render_imex_zones(force_background_color);
             if(m_selected && wxGetApp().plater()->get_enable_wrapping_detection()){
                 if(!m_wrapping_detection_triangles.is_initialized()){
                     auto points = get_plate_wrapping_detection_area();
@@ -3592,12 +4556,19 @@ void PartPlate::update_states()
 void PartPlate::update_slice_result_valid_state(bool valid)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": plate %1% , update slice result from %2% to %3%") % m_plate_index %m_slice_result_valid %valid;
+    const bool changed = (m_slice_result_valid != valid);
     m_slice_result_valid = valid;
     if (valid)
         m_slice_percent = 100.0f;
     else {
         m_slice_percent = -1.0f;
     }
+    // This flips the plate's slice-ready / IMEX blocked-plate state without a geometry change,
+    // so the plate-selector thumbnail/warning badge must be repainted explicitly. Upstream
+    // replaced the old per-idle unconditional toolbar refresh with this dirty flag, so nothing
+    // else repaints the naughty-plate icon otherwise.
+    if (changed && m_plater)
+        m_plater->mark_plate_toolbar_image_dirty();
 }
 
 //update current slice context into backgroud slicing process
@@ -4369,6 +5340,28 @@ void PartPlateList::generate_icon_textures()
 		}
 	}
 
+    // IMEX multi-material conflict warning badge
+    {
+        file_name = path + "obj_warning.svg";
+        if (!m_imex_warn_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":load file %1% failed (IMEX warn badge)") % file_name;
+        }
+    }
+
+    // IDEX/IQEX mode icon textures (fall back gracefully if SVG not present yet)
+    {
+        file_name = path + (m_is_dark ? "plate_imex_mode_dark.svg" : "plate_imex_mode.svg");
+        if (!m_imex_mode_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":load file %1% failed (IDEX/IQEX mode icon)") % file_name;
+        }
+    }
+    {
+        file_name = path + (m_is_dark ? "plate_imex_mode_hover_dark.svg" : "plate_imex_mode_hover.svg");
+        if (!m_imex_mode_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":load file %1% failed (IDEX/IQEX mode hover icon)") % file_name;
+        }
+    }
+
 	std::string text_str = "01";
     // ORCA also scale font size to prevent low res texture
     int size = wxGetApp().em_unit() * PARTPLATE_ICON_SIZE;
@@ -4412,6 +5405,9 @@ void PartPlateList::release_icon_textures()
     m_plate_set_filament_map_hovered_texture.reset();
 	m_plate_name_edit_texture.reset();
 	m_plate_name_edit_hovered_texture.reset();
+    m_imex_mode_texture.reset();
+    m_imex_mode_hovered_texture.reset();
+    m_imex_warn_texture.reset();
 	for (int i = 0;i < MAX_PLATE_COUNT; i++) {
 		m_idx_textures[i].reset();
 	}
@@ -5120,6 +6116,12 @@ int PartPlateList::get_plate_count() const
 	ret = m_plate_list.size();
 
 	return ret;
+}
+
+void PartPlateList::invalidate_all_imex_ghosts()
+{
+    for (PartPlate* p : m_plate_list)
+        if (p) p->invalidate_imex_ghosts();
 }
 
 //update the plate cols due to plate count change
@@ -7111,6 +8113,13 @@ void PartPlateList::load_cali_textures()
 		}
 	}
 	PartPlateList::is_load_cali_texture = true;
+}
+
+void PartPlateList::refresh_imex_icons()
+{
+    const std::lock_guard<std::mutex> local_lock(m_plates_mutex);
+    for (PartPlate* plate : m_plate_list)
+        plate->refresh_imex_icon();
 }
 
 void PartPlateList::on_extruder_count_changed(int extruder_count)

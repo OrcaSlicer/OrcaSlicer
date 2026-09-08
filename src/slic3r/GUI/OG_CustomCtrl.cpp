@@ -196,6 +196,11 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             if (line.widget) {
 #ifndef DISABLE_BLINKING
                 h_pos += (line.has_undo_ui() ? 3 : 1) * blinking_button_width;
+#else
+                // When blinking is disabled, widget lines still need to honour
+                // option_label_at_right the same way regular lines do below.
+                if (opt_group->option_label_at_right)
+                    add_buttons_width(blinking_button_width);
 #endif
 
                 for (auto child : line.widget_sizer->GetChildren())
@@ -718,6 +723,19 @@ void OG_CustomCtrl::CtrlLine::update_visibility(ConfigOptionMode mode)
         return;
     const std::vector<Option>& option_set = og_line.get_options();
 
+    // Widget-only lines (no options appended) are always visible unless explicitly hidden.
+    if (option_set.empty()) {
+        is_visible = og_line.toggle_visible;
+        if (og_line.near_label_widget_win)
+            og_line.near_label_widget_win->Show(is_visible);
+        if (og_line.widget_sizer)
+            og_line.widget_sizer->ShowItems(is_visible);
+        if (og_line.extra_widget_sizer)
+            og_line.extra_widget_sizer->ShowItems(is_visible);
+        correct_items_positions();
+        return;
+    }
+
     const ConfigOptionMode& line_mode = option_set.front().opt.mode;
     is_visible = og_line.toggle_visible && line_mode <= mode;
 
@@ -768,7 +786,8 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         return;
     }
 
-    Field* field = ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
+    Field* field = og_line.get_options().empty() ? nullptr :
+                   ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
