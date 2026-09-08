@@ -100,6 +100,10 @@ using namespace nlohmann;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
+    // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
+    // in CMakeLists).
+    #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
@@ -1970,7 +1974,79 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    std::unique_ptr<PresetBundle> cli_preset_bundle;
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle, config_substitution_rule](std::string &error) -> PresetBundle * {
+        if (cli_preset_bundle)
+            return cli_preset_bundle.get();
+        try {
+            AppConfig app_config;
+            const std::string app_config_error = app_config.load_if_exists();
+            if (!app_config_error.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI preset resolution: " << app_config_error;
+                app_config.reset();
+            }
+
+            auto bundle = std::make_unique<PresetBundle>();
+            std::string load_error;
+            bundle->load_presets(app_config, config_substitution_rule,
+                                 PresetBundle::PresetPreferences(), &load_error, true);
+            if (!load_error.empty()) {
+                error = "Failed to load presets for inheritance resolution: " + load_error;
+                return nullptr;
+            }
+            cli_preset_bundle = std::move(bundle);
+            return cli_preset_bundle.get();
+        } catch (const std::exception &ex) {
+            error = ex.what();
+            return nullptr;
+        }
+    };
+
+    auto resolve_preset = [&ensure_cli_preset_bundle, config_substitution_rule](const std::string &file, DynamicPrintConfig &config,
+                                                                               std::string &config_type, const std::string &config_from,
+                                                                               bool probe_type, std::string &error) {
+        const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
+        if (!probe_type && (inherits == nullptr || inherits->value.empty()))
+            return true;
+
+        std::unique_ptr<PresetBundle> source_bundle;
+        PresetBundle                 *bundle = nullptr;
+        bool                          allow_source_manifest = false;
+        if (config_from == "system") {
+            source_bundle         = std::make_unique<PresetBundle>();
+            bundle                = source_bundle.get();
+            allow_source_manifest = true;
+        } else {
+            bundle = ensure_cli_preset_bundle(error);
+            if (bundle == nullptr)
+                return false;
+        }
+
+        if (probe_type) {
+            Preset::Type preset_type;
+            if (!bundle->resolve_preset_config_type(config, preset_type, file, config_substitution_rule,
+                                                    error, allow_source_manifest))
+                return false;
+            config_type = Preset::get_type_string(preset_type);
+            return true;
+        }
+
+        Preset::Type preset_type;
+        if (config_type == "process")
+            preset_type = Preset::TYPE_PRINT;
+        else if (config_type == "filament")
+            preset_type = Preset::TYPE_FILAMENT;
+        else if (config_type == "machine")
+            preset_type = Preset::TYPE_PRINTER;
+        else {
+            error = "Unsupported preset type: " + config_type;
+            return false;
+        }
+        return bundle->resolve_preset_config(config, preset_type, file, config_substitution_rule,
+                                             error, allow_source_manifest);
+    };
+
+    auto load_config_file = [config_substitution_rule, &resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -1999,9 +2075,15 @@ int CLI::run(int argc, char **argv)
             }
 
             auto type_iter = key_values.find(BBL_JSON_KEY_TYPE);
-            if (type_iter != key_values.end()) {
+            const bool probe_type = type_iter == key_values.end();
+            if (!probe_type)
                 config_type = type_iter->second;
+
+            if (!resolve_preset(file, config, config_type, config_from, probe_type, reason)) {
+                boost::nowide::cerr << __FUNCTION__ << boost::format(": can not resolve preset %1%: %2%") % file % reason << std::endl;
+                return CLI_CONFIG_FILE_ERROR;
             }
+
             if (config_type == "machine") {
                 //config.set("printer_settings_id", config_name, true);
                 //printer_inherits = config.option<ConfigOptionString>("inherits", true)->value;
@@ -6539,6 +6621,20 @@ int CLI::run(int argc, char **argv)
         std::string nozzle_diameter_str;
         if (nozzle_diameter_option)
             nozzle_diameter_str = nozzle_diameter_option->serialize();
+#ifdef SLIC3R_GUI
+        // A Bambu printer reads slice_info.config and knows only its own catalog ids. The GUI
+        // gates the same translation on PresetBundle::is_bbl_vendor(); the CLI has no
+        // PresetBundle, so reuse the printer_model prefix that already decides
+        // Print::is_BBL_printer() for this same run.
+        auto* printer_model_option = dynamic_cast<const ConfigOptionString*>(m_print_config.option("printer_model"));
+        const bool is_bbl_printer = printer_model_option && printer_model_option->value.compare(0, 9, "Bambu Lab") == 0;
+        // No wxApp on the CLI path, so there is no live agent to ask; the translator is stateless
+        // over a lazily loaded map, so one instance serves every plate and filament below.
+        // ORCA TODO: this assumes Bambu's is the only agent with a catalog of its own. Once another
+        // agent carries one, resolve the agent from the selected printer the way
+        // GUI_App::resolve_printer_agent_id does, rather than hard-coding BBLPrinterAgent here.
+        const BBLPrinterAgent bbl_agent;
+#endif /* SLIC3R_GUI */
 
         for (int i = 0; i < plate_data_list.size(); i++) {
             PlateData *plate_data = plate_data_list[i];
@@ -6556,6 +6652,10 @@ int CLI::run(int argc, char **argv)
                 it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
                 it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
                 it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
+#ifdef SLIC3R_GUI
+                if (is_bbl_printer)
+                    it->filament_id = bbl_agent.from_orca_filament_id(it->filament_id);
+#endif /* SLIC3R_GUI */
             }
 
             if (!plate_data->plate_thumbnail.is_valid()) {

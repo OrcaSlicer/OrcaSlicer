@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PLA+ @Qidi X-Max 3 0.8 nozzle",
+	"inherits": "Generic PLA+ @Qidi",
+	"renamed_from": "Qidi Generic PLA+ @Qidi X-Max 3 0.8 nozzle;Qidi Generic PLA+ Qidi X-Max 3 0.8 nozzle",
+	"from": "system",
+	"setting_id": "ZOuRUZf07g43ZV9u",
+	"filament_id": "OFEWYR89",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 3 0.8 nozzle"
+	]
+}

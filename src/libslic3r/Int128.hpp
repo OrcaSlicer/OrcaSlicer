@@ -125,7 +125,6 @@ public:
 /******************************************** Splitting the 128bit number into two 64bit words *********************************************/
 
 	Int128(int64_t lo = 0) : m_lo((uint64_t)lo), m_hi((lo < 0) ? -1 : 0) {}
-	Int128(const Int128 &val) : m_lo(val.m_lo), m_hi(val.m_hi) {}
 	Int128(const int64_t& hi, const uint64_t& lo) : m_lo(lo), m_hi(hi) {}
 
 	Int128& operator = (const int64_t &val)

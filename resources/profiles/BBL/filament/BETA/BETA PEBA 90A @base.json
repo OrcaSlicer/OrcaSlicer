@@ -3,7 +3,7 @@
 	"name": "BETA PEBA 90A @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "BPBB00",
+	"filament_id": "OFI2MKy7",
 	"instantiation": "false",
 	"description": "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide.",
 	"filament_cost": [

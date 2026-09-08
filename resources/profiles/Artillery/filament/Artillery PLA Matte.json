@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Artillery PLA Matte",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "kt8uKXpMqxrFrHaG",
+	"filament_id": "OFAC7Wyu",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Artillery Sidewinder X3 Pro 0.4 nozzle",

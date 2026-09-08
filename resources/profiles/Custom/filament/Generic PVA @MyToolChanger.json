@@ -5,7 +5,6 @@
 	"inherits": "Generic PVA @System",
 	"from": "system",
 	"setting_id": "dyOUyXNOKP1VmSal",
-	"filament_id": "GFS99",
 	"instantiation": "true",
 	"filament_cooling_final_speed": [
 		"3.5"

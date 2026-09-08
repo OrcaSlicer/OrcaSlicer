@@ -1391,7 +1391,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
             update_print_status_msg(wxEmptyString, true, true);
             m_connecting_panel->Show();
             m_animaicon->Stop();
-            m_animaicon->Enable();
+            m_animaicon->ShowEnabledIcon();
 
             Layout();
             Enable_Send_Button(false);

@@ -16,7 +16,6 @@ PluginPickerDialog::PluginPickerDialog(wxWindow* parent,
                                        const std::vector<Slic3r::PluginDescriptor>& plugins)
     : wxDialog(parent, wxID_ANY, wxString::Format(_L("Select %s Plugin"), plugin_type_label))
     , m_plugins(plugins)
-    , m_capability_mode(false)
 {
     build_ui(plugin_type_label);
     CentreOnParent();
@@ -27,7 +26,6 @@ PluginPickerDialog::PluginPickerDialog(wxWindow* parent,
                                        std::vector<CapabilityEntry> capabilities)
     : wxDialog(parent, wxID_ANY, wxString::Format(_L("Select %s Plugin"), plugin_type_label))
     , m_capabilities(std::move(capabilities))
-    , m_capability_mode(true)
 {
     build_capability_ui(plugin_type_label);
     CentreOnParent();

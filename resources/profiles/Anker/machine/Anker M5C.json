@@ -7,5 +7,5 @@
 	"family": "Anker",
 	"machine_tech": "FFF",
 	"model_id": "V81101C3",
-	"default_materials": "Anker Generic PLA;Anker Generic PLA+;Anker Generic PLA Silk;Anker Generic TPU;Anker Generic PETG"
+	"default_materials": "Generic PLA @Anker;Generic PLA+ @Anker;Generic PLA Silk @Anker;Generic TPU @Anker;Generic PETG @Anker"
 }

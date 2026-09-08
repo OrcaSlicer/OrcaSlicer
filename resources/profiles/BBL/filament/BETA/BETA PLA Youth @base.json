@@ -3,7 +3,7 @@
 	"name": "BETA PLA Youth @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB16",
+	"filament_id": "OFF5o7b2",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

@@ -125,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"SecKit Generic PETG"
+		"Generic PETG @SecKit"
 	],
 	"default_print_profile": "0.20mm Standard @SecKit",
 	"bed_exclude_area": [

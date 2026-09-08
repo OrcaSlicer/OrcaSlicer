@@ -591,16 +591,11 @@ private:
     wxColour            m_hover_colour;
     wxBoxSizer*         m_top_sizer{nullptr};
     wxBoxSizer*         m_page_sizer{nullptr};
-    wxBoxSizer*         m_page_top_sizer{nullptr};
-    wxTextCtrl*         m_search_line{ nullptr };
     ObjectGrid*         m_object_grid{nullptr};
     ObjectGridTable*    m_object_grid_table{nullptr};
-    wxStaticText*       m_page_text{nullptr};
-    ScalableButton*     m_global_reset{nullptr};
     wxScrolledWindow*   m_side_window{nullptr};
     ObjectTableSettings* m_object_settings{ nullptr };
     Model*              m_model{nullptr};
-    ModelConfig*        m_config {nullptr};
     Plater*             m_plater{nullptr};
 
     int                 m_cur_row { -1 };
@@ -625,8 +620,6 @@ class ObjectTableDialog : public GUI::DPIDialog
     const int POPUP_HEIGHT  = FromDIP(1024);
 
     //wxPanel*             m_panel{ nullptr };
-    wxBoxSizer*          m_top_sizer{ nullptr };
-    wxStaticText*        m_static_title{ nullptr };
     //wxTimer*             m_refresh_timer;
     ObjectTablePanel*    m_obj_panel{ nullptr };
     Model*               m_model{ nullptr };

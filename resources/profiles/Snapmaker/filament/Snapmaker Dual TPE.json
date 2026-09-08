@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker Dual TPU @base",
 	"from": "system",
 	"setting_id": "KoZqZ4l1tYZ99JYz",
+	"filament_id": "OFTs8peJ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.4 nozzle)",

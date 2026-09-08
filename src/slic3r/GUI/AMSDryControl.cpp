@@ -1511,6 +1511,10 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
                       m_temperature_input->GetValue().ToLong(&input_temp);
     bool can_start = true;
 
+    // "GFA00" is Bambu's PLA id; GetFilamentDryingPreset is keyed by our OF ids.
+    auto* agent = wxGetApp().getAgent();
+    const std::string pla_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");
+
     int slot_count = 0, empty_count = 0;
     for (auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second) {
@@ -1526,13 +1530,15 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
         wxString filament_type = tray_pair.second->get_display_filament_type();
         DevFilamentDryingPreset preset;
         if (filament_type.IsEmpty()) {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;                 // no PLA preset (e.g. the id map is missing): skip, don't throw
             preset = fallback_preset.value();
             filament_type = "?";
         } else if (preset_opt.has_value()) {
             preset = preset_opt.value();
         } else {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;
             preset = fallback_preset.value();
         }
         std::string icon_path = "dev_ams_dry_ctr_enable";
@@ -1594,39 +1600,21 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
         }
         stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
         std::string nozzle_diameter_str = stream.str();
-        std::set<std::string> printer_names = preset_bundle->get_printer_names_by_printer_type_and_nozzle(
-            DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
 
-        for (auto filament_it = filaments.begin(); filament_it != filaments.end(); ++filament_it) {
-            Preset& preset = *filament_it;
-            // Filter by system preset: root preset and (system preset or user preset is supported)
-            if (filaments.get_preset_base(*filament_it) != &preset || (!filament_it->is_system && !obj->is_support_user_preset)) {
+        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
+                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+            if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
-            }
+            const std::string filament_alias = filaments.get_preset_alias(*filament_it, true);
+            if (filament_alias.empty())
+                continue;
+            auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
+            if (!opt_info.has_value())
+                continue;
 
-            ConfigOption *       printer_opt  = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings *printer_strs = dynamic_cast<ConfigOptionStrings *>(printer_opt);
-            if (!printer_strs) continue;
-
-            for (auto printer_str : printer_strs->values) {
-                if (printer_names.find(printer_str) != printer_names.end()) {
-                    if (filament_id_set.find(filament_it->filament_id) != filament_id_set.end()) {
-                        continue;
-                    }
-
-                    filament_id_set.insert(filament_it->filament_id);
-                    auto filament_alias = filaments.get_preset_alias(*filament_it, true);
-                    if (!filament_alias.empty()) {
-                        auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
-                        if (opt_info.has_value()) {
-                            auto real_info = opt_info.value();
-                            real_info.filament_name = filament_alias;
-                            m_tray_ids.push_back(std::move(real_info));
-                            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
-                        }
-                    }
-                }
-            }
+            opt_info->filament_name = filament_alias;
+            m_tray_ids.push_back(std::move(*opt_info));
+            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
         }
 
         if (m_tray_ids.empty()) {
@@ -1701,9 +1689,10 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
 
     // Select recommended drying temperature and default filament
     float min_dry_temp = std::numeric_limits<float>::max();
-    std::string default_filament_id = "GFA00";
+    auto* agent = wxGetApp().getAgent();
+    std::string default_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");   // compared against m_tray_ids[i].filament_id (our OF ids) below
     bool has_ready = false;
-    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(default_filament_id);
     for (const auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second || !tray_pair.second->is_tray_info_ready()) continue;
         has_ready = true;
