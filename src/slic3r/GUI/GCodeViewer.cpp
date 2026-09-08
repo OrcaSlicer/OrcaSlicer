@@ -9,6 +9,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/CoExtrusion/CoExtrusionTypes.hpp"
 //BBS: add convex hull logic for toolpath check
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
@@ -93,8 +94,6 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Tool");
     else if (view_type == libvgcode::EViewType::ColorPrint)
         return _u8L("Filament");
-    else if (view_type == libvgcode::EViewType::CoExtrusion)
-        return _u8L("Co-extrusion Color");
     else if (view_type == libvgcode::EViewType::LayerTimeLinear)
         return _u8L("Layer Time");
     else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
@@ -402,12 +401,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             case libvgcode::EViewType::ColorPrint:
                 sprintf(detail_buf, "%s%d", _u8L("Color: ").c_str(), vertex.color_id + 1);
-                break;
-            case libvgcode::EViewType::CoExtrusion:
-                if (vertex.coextrusion_color_id != libvgcode::COEXTRUSION_COLOR_ID_NONE)
-                    sprintf(detail_buf, "%s%d", _u8L("Physical color sector: ").c_str(), vertex.coextrusion_color_id + 1);
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Physical color sector: ").c_str(), NA_CSTR);
                 break;
             case libvgcode::EViewType::Acceleration:
                 sprintf(detail_buf, "%s%.0f", _u8L("Acceleration: ").c_str(), vertex.acceleration);
@@ -1085,8 +1078,6 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::Summary);
     view_type_items.push_back(libvgcode::EViewType::FeatureType);
     view_type_items.push_back(libvgcode::EViewType::ColorPrint);
-    if (m_coextrusion_preview_available)
-        view_type_items.push_back(libvgcode::EViewType::CoExtrusion);
     view_type_items.push_back(libvgcode::EViewType::Speed);
     view_type_items.push_back(libvgcode::EViewType::ActualSpeed);
     view_type_items.push_back(libvgcode::EViewType::Acceleration);
@@ -1135,21 +1126,6 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 {
     m_loaded_as_preview = false;
 
-    const bool coextrusion_preview_available = !gcode_result.coextrusion_colors.empty() &&
-        std::any_of(gcode_result.moves.begin(), gcode_result.moves.end(), [&gcode_result](const GCodeProcessorResult::MoveVertex &move) {
-            return move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter &&
-                   move.coextrusion_color_id < gcode_result.coextrusion_colors.size();
-        });
-    if (m_coextrusion_preview_available != coextrusion_preview_available) {
-        libvgcode::EViewType current_view_type = m_viewer.get_view_type();
-        m_coextrusion_preview_available = coextrusion_preview_available;
-        update_by_mode(mode);
-        auto current = std::find(view_type_items.begin(), view_type_items.end(), current_view_type);
-        if (current == view_type_items.end())
-            current = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-        m_view_type_sel = current != view_type_items.end() ? int(std::distance(view_type_items.begin(), current)) : 0;
-    }
-
     const bool current_top_layer_only = m_viewer.is_top_layer_only_view_range();
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");
     if (current_top_layer_only != required_top_layer_only)
@@ -1171,17 +1147,26 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         // collect color print colors
         libvgcode::Palette color_print_colors;
         const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
-        color_print_colors.reserve(str_colors.size());
+        color_print_colors.reserve(str_colors.size() + 4 * gcode_result.coextrusion_profiles.size());
         for (const std::string& color : str_colors) {
             color_print_colors.emplace_back(libvgcode::convert(color));
         }
+        // Keep the palette layout identical to LibVGCodeWrapper::convert().
+        // Re-entering Preview with the same G-code result used to replace the
+        // expanded co-extrusion palette with the single filament color, making
+        // every painted color id resolve to that one (usually white) color.
+        for (const std::string &serialized_profile : gcode_result.coextrusion_profiles) {
+            const std::optional<CoExtrusion::Profile> profile =
+                CoExtrusion::Profile::parse(serialized_profile);
+            if (!profile)
+                continue;
+            for (const CoExtrusion::ColorSector &sector : profile->sectors) {
+                if (color_print_colors.size() >= 256)
+                    break;
+                color_print_colors.emplace_back(libvgcode::convert(sector.preview_color));
+            }
+        }
         m_viewer.set_color_print_colors(color_print_colors);
-
-        libvgcode::Palette coextrusion_colors;
-        coextrusion_colors.reserve(gcode_result.coextrusion_colors.size());
-        for (const std::string &color : gcode_result.coextrusion_colors)
-            coextrusion_colors.emplace_back(libvgcode::convert(color));
-        m_viewer.set_coextrusion_colors(coextrusion_colors);
         return;
     }
 
@@ -1376,24 +1361,25 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
     // ORCA: Apply smart default view type when extruder count changes.
-    // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
+    // Co-extrusion is physically multi-color even though it uses one filament
+    // slot, so select ColorPrint to show its painted target colors.
     // User selections persist within same extruder count, defaults reapply on count change.
     int current_count = m_viewer.get_used_extruders_count();
-    if (m_coextrusion_preview_available) {
-        if (m_last_extruder_count_default_applied != 3) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::CoExtrusion);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::CoExtrusion);
-            m_last_extruder_count_default_applied = 3;
-        }
-    } else if (current_count > 1) {
-        if (m_last_extruder_count_default_applied != 2) {
+    const bool has_coextrusion_preview =
+        std::any_of(gcode_result.coextrusion_profiles.begin(), gcode_result.coextrusion_profiles.end(),
+            [](const std::string &profile) { return !profile.empty(); }) &&
+        std::any_of(gcode_result.moves.begin(), gcode_result.moves.end(),
+            [](const GCodeProcessorResult::MoveVertex &move) {
+                return move.type == EMoveType::Extrude && move.has_coextrusion_c_angle;
+            });
+    if (current_count > 1 || has_coextrusion_preview) {
+        const int default_state = has_coextrusion_preview ? 3 : 2;
+        if (m_last_extruder_count_default_applied != default_state) {
             auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
             if (it != view_type_items.end())
                 m_view_type_sel = std::distance(view_type_items.begin(), it);
             set_view_type(libvgcode::EViewType::ColorPrint);
-            m_last_extruder_count_default_applied = 2;
+            m_last_extruder_count_default_applied = default_state;
         }
     } else {
         if (m_last_extruder_count_default_applied != 1) {
@@ -3754,6 +3740,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         { imgui.title(_u8L("Layer Time")); break; }
     case libvgcode::EViewType::LayerTimeLogarithmic:
         { imgui.title(_u8L("Layer Time (log)")); break; }
+
     case libvgcode::EViewType::Tool:
     {
         // calculate used filaments data
@@ -3773,15 +3760,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
         offsets = calculate_offsets({ { "Extruder NNN", {""}}}, icon_size);
         append_headers({ {_u8L("Filament"), offsets[0]}, {_u8L("Usage"), offsets[1]} });
-        break;
-    }
-    case libvgcode::EViewType::CoExtrusion:
-    {
-        imgui.title(_u8L("Physical co-extrusion color sectors"));
-        const libvgcode::Palette &colors = m_viewer.get_coextrusion_colors();
-        for (size_t i = 0; i < colors.size(); ++i)
-            append_item(EItemType::Rect, libvgcode::convert(colors[i]),
-                {{_u8L("Sector") + " " + std::to_string(i + 1), 0.0f}});
         break;
     }
     case libvgcode::EViewType::ColorPrint:
@@ -4399,8 +4377,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         case libvgcode::EViewType::Acceleration:
         case libvgcode::EViewType::Jerk:
         case libvgcode::EViewType::Tool:
-        case libvgcode::EViewType::ColorPrint:
-        case libvgcode::EViewType::CoExtrusion: {
+        case libvgcode::EViewType::ColorPrint: {
             break;
         }
         default: {
@@ -4764,3 +4741,4 @@ void GCodeViewer::render_slider(int canvas_width, int canvas_height) {
 
 } // namespace GUI
 } // namespace Slic3r
+

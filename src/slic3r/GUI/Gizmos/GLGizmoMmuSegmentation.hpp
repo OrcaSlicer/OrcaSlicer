@@ -3,6 +3,7 @@
 
 #include "GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/CoExtrusion/CoExtrusionTypes.hpp"
 
 namespace Slic3r::GUI {
 
@@ -136,6 +137,10 @@ private:
 
     void init_model_triangle_selectors();
 
+    bool coextrusion_mode_available() const;
+    bool init_coextrusion_data();
+    bool has_coextrusion_painting() const;
+
     // ORCA
     bool draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale);
 
@@ -148,6 +153,9 @@ private:
     void render_filament_remap_ui(float window_width, float max_tooltip_width, float scale);
     // ORCA: Helper to update the cache of used filaments
     void update_used_filaments();
+
+    bool                                      m_coextrusion_mode { false };
+    std::vector<CoExtrusion::SurfaceColorId>  m_coextrusion_color_ids;
 
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.

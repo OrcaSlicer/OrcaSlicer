@@ -3,11 +3,16 @@
 
 #include <functional>
 #include <vector>
+#include "Line.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
 
+struct indexed_triangle_set;
+
 namespace Slic3r {
 
+// Keep this public header self-contained. Some consumers (notably the
+// co-extrusion tests) include it before TriangleMesh.hpp.
 struct MeshSlicingParams
 {
     enum class SlicingMode : uint32_t {
@@ -45,6 +50,23 @@ struct MeshSlicingParamsEx : public MeshSlicingParams
     // 0 = don't simplify.
     double        resolution { 0 };
 };
+
+// An oriented raw intersection segment and the original mesh face that
+// produced it. XY coordinates use Orca's scaled coordinate representation.
+// This sidecar is intended for consumers that need exact surface provenance;
+// the regular polygon slicing API remains unchanged.
+struct MeshSliceLine {
+    Line   line;
+    size_t face_index { 0 };
+};
+
+using MeshSliceLines = std::vector<MeshSliceLine>;
+
+std::vector<MeshSliceLines> slice_mesh_with_face_ids(
+    const indexed_triangle_set       &mesh,
+    const std::vector<float>         &zs,
+    const MeshSlicingParams          &params,
+    std::function<void()>             throw_on_cancel = []{});
 
 // All the following slicing functions shall produce consistent results with the same mesh, same transformation matrix and slicing parameters.
 // Namely, slice_mesh_slabs() shall produce consistent results with slice_mesh() and slice_mesh_ex() in the sense, that projections made by 

@@ -1,0 +1,42 @@
+; TEMPLATE: one layer of a 20x20 mm square wall, NOT a standalone print.
+; Expand the layer template at ascending LAYER_Z values in the final machine-specific file.
+; Entry: G21, G90, M83, physically known C; nozzle retracted by RETRACT_MM.
+; All four outward SIDE faces should be BLUE, theta=120 degrees.
+; LAYER_TRAVEL_Z must be above the entire existing wall before any C rotation.
+G1 Z{{LAYER_TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Bed Y+ is toward observer: reflect commanded geometry Y into physical Y.
+; Side 1: +X at commanded Y0, physical outward normal +Y, phi=90, C=-30.
+G1 C-30 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 X{{X0}} Y{{Y0}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X20}} Y{{Y0}} E{{E_LINE_20MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{LAYER_TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Side 2: commanded +Y at X20, physical outward normal +X, phi=0, C=-120.
+G1 C-120 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 Z{{LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X20}} Y{{Y20}} E{{E_LINE_20MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{LAYER_TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Side 3: -X at commanded Y20, physical outward normal -Y, phi=270, C=150.
+; Absolute -120 -> +150 is a real +270-degree rotation, entirely within limits.
+G1 C150 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 Z{{LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X0}} Y{{Y20}} E{{E_LINE_20MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{LAYER_TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Side 4: commanded -Y at X0, physical outward normal -X, phi=180, C=60.
+G1 C60 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 Z{{LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X0}} Y{{Y0}} E{{E_LINE_20MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{LAYER_TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Exit retracted, at X0/Y0 and LAYER_TRAVEL_Z. Add the next layer or final end block.

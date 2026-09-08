@@ -19,8 +19,6 @@ namespace Slic3r {
 
 class Print;
 
-static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned char>(-1);
-
 // slice warnings enum strings
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
 #define BED_TEMP_TOO_HIGH_THAN_FILAMENT                             "bed_temperature_too_high_than_filament"
@@ -214,8 +212,10 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
-            // Physical co-extrusion sector selected by the generated C-axis moves.
-            unsigned char coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
+            float coextrusion_c_angle_deg { 0.0f };
+            bool  has_coextrusion_c_angle { false };
+            uint32_t coextrusion_color_id { 0 };
+            bool     has_coextrusion_color { false };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -253,7 +253,14 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
         size_t filaments_count;
         bool backtrace_enabled;
         std::vector<std::string> extruder_colors;
-        std::vector<std::string> coextrusion_colors;
+        int coextrusion_version { 0 };
+        char coextrusion_axis_letter { 'C' };
+        int coextrusion_axis_direction { 1 };
+        float coextrusion_axis_zero_offset_deg { 0.0f };
+        std::string coextrusion_angle_mode;
+        std::vector<std::string> coextrusion_profiles;
+        std::vector<float> coextrusion_calibration_offsets_deg;
+        std::vector<std::string> coextrusion_warnings;
         std::vector<float> filament_diameters;
         std::vector<int>   required_nozzle_HRC;
         std::vector<float> filament_densities;
@@ -298,7 +305,14 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
             settings_ids = other.settings_ids;
             filaments_count = other.filaments_count;
             extruder_colors = other.extruder_colors;
-            coextrusion_colors = other.coextrusion_colors;
+            coextrusion_version = other.coextrusion_version;
+            coextrusion_axis_letter = other.coextrusion_axis_letter;
+            coextrusion_axis_direction = other.coextrusion_axis_direction;
+            coextrusion_axis_zero_offset_deg = other.coextrusion_axis_zero_offset_deg;
+            coextrusion_angle_mode = other.coextrusion_angle_mode;
+            coextrusion_profiles = other.coextrusion_profiles;
+            coextrusion_calibration_offsets_deg = other.coextrusion_calibration_offsets_deg;
+            coextrusion_warnings = other.coextrusion_warnings;
             filament_diameters = other.filament_diameters;
             filament_densities = other.filament_densities;
             filament_costs = other.filament_costs;
@@ -376,7 +390,6 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
-            CoExtrusion_Color,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -827,8 +840,12 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
+        bool  m_coextrusion_enabled { false };
+        char  m_coextrusion_axis_letter { 'C' };
+        float m_coextrusion_c_angle_deg { 0.0f };
+        uint32_t m_coextrusion_color_id { 0 };
+        bool m_has_coextrusion_color { false };
         ExtrusionRole m_extrusion_role;
-        unsigned char m_coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
         std::vector<unsigned char> m_filament_id;
@@ -1161,4 +1178,5 @@ static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned 
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
+
 

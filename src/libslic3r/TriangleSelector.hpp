@@ -5,6 +5,7 @@
 
 
 #include <cfloat>
+#include <optional>
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
 
@@ -342,6 +343,19 @@ public:
     // Set facet of the mesh to a given state. Only works for original triangles.
     void set_facet(int facet_idx, EnforcerBlockerType state);
 
+    // Return the state of an original, unsplit triangle. Painters whose data
+    // model is one value per source facet use this with triangle splitting
+    // disabled to export their selection without serializing subdivision data.
+    std::optional<EnforcerBlockerType> facet_state(int facet_idx) const noexcept
+    {
+        if (facet_idx < 0 || facet_idx >= m_orig_size_indices)
+            return std::nullopt;
+        const Triangle &triangle = m_triangles[facet_idx];
+        if (!triangle.valid() || triangle.is_split())
+            return std::nullopt;
+        return triangle.get_state();
+    }
+
     // Clear everything and make the tree empty.
     void reset();
 
@@ -379,7 +393,6 @@ public:
         TriangleSplittingData supported;
         TriangleSplittingData seam;
         TriangleSplittingData mmu;
-        TriangleSplittingData coextrusion;
         TriangleSplittingData fuzzy;
     };
 

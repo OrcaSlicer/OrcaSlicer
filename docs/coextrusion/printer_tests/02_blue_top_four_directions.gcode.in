@@ -1,0 +1,53 @@
+; TEMPLATE: machine-specific fields in {{...}} must be replaced before use.
+; Test 02: same layout as Test 01; all four TOP surfaces should be BLUE.
+; theta_blue=120. Horizontal top phi=heading+180, hence C=heading+60 (mod 360).
+; This bed moves toward the observer for commanded Y+.
+; Commanded +X:C60; -X:C-120; +Y:C-30; -Y:C150.
+; Every C rotation occurs retracted at travel Z, without simultaneous extrusion.
+; START_PRINT must finish retracted by RETRACT_MM, with E in relative mode.
+{{START_PRINT_GCODE}}
+G21
+G90
+M83
+M400
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line A: +X, ideal C=60.
+G1 C60 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 X{{X0}} Y{{Y0}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X30}} Y{{Y0}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line B: -X, ideal C=-120.
+G1 C-120 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 X{{X30}} Y{{Y8}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X0}} Y{{Y8}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line C: commanded +Y, relative nozzle -Y, ideal C=-30.
+G1 C-30 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 X{{X40}} Y{{Y0}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X40}} Y{{Y30}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line D: commanded -Y, relative nozzle +Y, ideal C=150.
+G1 C150 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G1 X{{X48}} Y{{Y30}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X48}} Y{{Y0}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+M400
+G1 C0 F{{C_FEEDRATE_DEG_MIN}}
+M400
+{{END_PRINT_GCODE}}

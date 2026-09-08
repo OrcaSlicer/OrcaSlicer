@@ -1,0 +1,48 @@
+; TEMPLATE: machine-specific fields in {{...}} must be replaced before use.
+; Test 01: four separate 30 mm lines, all at fixed C=15 degrees.
+; Layout offsets: +X (0,0)->(30,0); -X (30,8)->(0,8);
+;                 +Y (40,0)->(40,30); -Y (48,30)->(48,0).
+; START_PRINT must home XYZ as appropriate, heat, establish physical C=0,
+; set extrusion calibration, prime, and finish retracted by RETRACT_MM.
+{{START_PRINT_GCODE}}
+G21
+G90
+M83
+M400
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 C15 F{{C_FEEDRATE_DEG_MIN}}
+M400
+; Line A: +X. Expected top sector: BLUE (165 degrees in material coordinates).
+G1 X{{X0}} Y{{Y0}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X30}} Y{{Y0}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line B: -X. Expected top sector: RED (345 degrees).
+G1 X{{X30}} Y{{Y8}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X0}} Y{{Y8}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line C: commanded +Y, bed toward observer, relative nozzle -Y.
+; Expected top sector: BLUE (75 degrees in physical material coordinates).
+G1 X{{X40}} Y{{Y0}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X40}} Y{{Y30}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+; Line D: commanded -Y, relative nozzle +Y. Expected top sector: GREEN (255 degrees).
+G1 X{{X48}} Y{{Y30}} F{{TRAVEL_FEEDRATE_MM_MIN}}
+G1 Z{{FIRST_LAYER_Z}} F{{Z_FEEDRATE_MM_MIN}}
+G1 E{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 X{{X48}} Y{{Y0}} E{{E_LINE_30MM}} F{{PRINT_FEEDRATE_MM_MIN}}
+G1 E-{{RETRACT_MM}} F{{RETRACT_FEEDRATE_MM_MIN}}
+G1 Z{{TRAVEL_Z}} F{{Z_FEEDRATE_MM_MIN}}
+M400
+G1 C0 F{{C_FEEDRATE_DEG_MIN}}
+M400
+; End block must account for relative E mode and the final retracted state.
+{{END_PRINT_GCODE}}

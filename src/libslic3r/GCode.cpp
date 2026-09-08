@@ -15,6 +15,7 @@
 #include "GCode/WipeTower.hpp"
 #include "ShortestPath.hpp"
 #include "Print.hpp"
+#include "CoExtrusion/CoExtrusionPathPlanning.hpp"
 #include "Utils.hpp"
 #include "ClipperUtils.hpp"
 #include "libslic3r.h"
@@ -2475,6 +2476,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_last_layer_z = 0.f;
     m_max_layer_z  = 0.f;
     m_last_width = 0.f;
+    // The firmware homes/initializes the rotary axis at physical C=0 before
+    // printing. Use the same known position as the first motion-planning
+    // reference instead of allowing the first resolved surface to define an
+    // arbitrary continuous-angle origin.
+    m_coextrusion_c_axis_angle_deg = 0.0;
+    m_coextrusion_resolver_object = nullptr;
+    m_coextrusion_surface_resolver.reset();
     m_is_role_based_fan_on.fill(false);
     m_role_based_fan_marker_layer.fill(-1);
 
@@ -2539,9 +2547,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.config().spiral_mode.value)
         m_spiral_vase = make_unique<SpiralVase>(print.config());
 
-    // PressureEqualizer may split and reconstruct G1 lines. Keep it disabled in
-    // rotary co-extrusion mode until it models and interpolates the C axis too.
-    if (print.config().max_volumetric_extrusion_rate_slope.value > 0 && !print.config().coextrusion_c_axis_enable.value){
+    if (print.config().max_volumetric_extrusion_rate_slope.value > 0){
     		m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
     		m_enable_extrusion_role_markers = (bool)m_pressure_equalizer;
     } else
@@ -3202,6 +3208,74 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // Set other general things.
     file.write(this->preamble());
+    if (m_writer.coextrusion_axis_enabled()) {
+        double transition_speed_deg_s = m_config.coextrusion_c_axis_max_speed.value > 0.0 ?
+            std::min(m_config.coextrusion_c_axis_max_speed.value,
+                     CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S) :
+            CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S;
+        if (m_config.coextrusion_c_axis_max_jerk.value > 0.0)
+            transition_speed_deg_s = std::min(
+                transition_speed_deg_s, m_config.coextrusion_c_axis_max_jerk.value);
+        const double transition_acceleration_deg_s2 = m_config.coextrusion_c_axis_max_acceleration.value > 0.0 ?
+            std::min(m_config.coextrusion_c_axis_max_acceleration.value,
+                     CoExtrusion::GENTLE_C_AXIS_TRANSITION_ACCELERATION_DEG_S2) :
+            CoExtrusion::GENTLE_C_AXIS_TRANSITION_ACCELERATION_DEG_S2;
+        file.write_format("; coextrusion_version = 1\n");
+        file.write_format("; coextrusion_axis = %c\n", m_writer.coextrusion_axis_letter());
+        file.write_format("; coextrusion_axis_direction = %d\n", m_config.coextrusion_c_axis_direction.value);
+        file.write_format("; coextrusion_axis_zero_offset = %.6f\n", m_config.coextrusion_c_axis_zero_offset.value);
+        const bool limited_c_axis = !m_config.coextrusion_c_axis_has_slip_ring.value ||
+                                    m_config.coextrusion_c_axis_rotation_mode.value == "limited_range";
+        file.write_format("; coextrusion_angle_mode = %s\n",
+                          limited_c_axis ? "limited_absolute" : "continuous_absolute");
+        if (limited_c_axis) {
+            file.write_format("; coextrusion_c_axis_min = %.6f\n", m_config.coextrusion_c_axis_min.value);
+            file.write_format("; coextrusion_c_axis_max = %.6f\n", m_config.coextrusion_c_axis_max.value);
+        }
+        file.write_format("; coextrusion_color_method = %s\n",
+                          m_config.coextrusion_color_method.serialize().c_str());
+        file.write_format("; coextrusion_surface_direction_model = %s\n",
+                          m_config.coextrusion_color_method.value == CoExtrusionColorMethod::NormalXY ?
+                              "normal_xy_2d" :
+                          m_config.coextrusion_top_bottom_strategy.value == "tangent_follow" ?
+                              "deposited_ellipse_3d" : "legacy_xy_top_bottom");
+        file.write_format("; coextrusion_top_bottom_strategy = %s\n",
+                          m_config.coextrusion_top_bottom_strategy.value.c_str());
+        file.write_format("; coextrusion_angle_tolerance = %.6f\n", m_config.coextrusion_angle_tolerance.value);
+        file.write_format("; coextrusion_c_axis_transition_speed = %.6f deg/s\n",
+                          transition_speed_deg_s);
+        file.write_format("; coextrusion_c_axis_transition_acceleration = %.6f deg/s^2\n",
+                          transition_acceleration_deg_s2);
+        file.write_format("; coextrusion_c_axis_transition_path_speed = %.6f mm/s\n",
+                          CoExtrusion::GENTLE_C_AXIS_TRANSITION_PATH_SPEED_MM_S);
+        file.write_format("; coextrusion_angular_safety_margin = %.6f\n", std::max(
+            m_config.coextrusion_angular_safety_margin.value,
+            m_config.coextrusion_angle_tolerance.value));
+        for (size_t filament_id = 0; filament_id < m_config.filament_coextrusion_profile.values.size(); ++filament_id) {
+            const std::string &profile = m_config.filament_coextrusion_profile.values[filament_id];
+            if (!profile.empty()) {
+                file.write_format("; coextrusion_profile_%zu = %s\n", filament_id, profile.c_str());
+                file.write_format("; coextrusion_calibration_%zu = %.6f\n", filament_id,
+                    m_config.filament_coextrusion_calibration_offset.get_at(filament_id));
+            }
+        }
+        const std::string c_axis_start = this->placeholder_parser_process(
+            "coextrusion_c_axis_start_gcode",
+            m_config.coextrusion_c_axis_start_gcode.value,
+            initial_extruder_id);
+        file.writeln(c_axis_start);
+        const GCodeFlavor flavor = m_writer.get_gcode_flavor();
+        if (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware) {
+            file.write_format("M201 %c%.3f ; gentle co-extrusion angular acceleration, deg/sec^2\n",
+                              m_writer.coextrusion_axis_letter(), transition_acceleration_deg_s2);
+            file.write_format("M203 %c%.3f ; gentle co-extrusion angular speed, deg/sec\n",
+                              m_writer.coextrusion_axis_letter(), transition_speed_deg_s);
+        }
+        file.write(m_writer.rotate_coextrusion_axis(
+            0.0,
+            transition_speed_deg_s,
+            "co-extrusion C-axis initial position"));
+    }
 
     // Calculate wiping points if needed
     DoExport::init_ooze_prevention(print, m_ooze_prevention);
@@ -3492,6 +3566,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.writeln(this->placeholder_parser_process("filament_end_gcode", end_gcode, extruder_id, &config));
             }
         }
+        if (m_writer.coextrusion_axis_enabled()) {
+            file.writeln(this->placeholder_parser_process(
+                "coextrusion_c_axis_end_gcode",
+                m_config.coextrusion_c_axis_end_gcode.value,
+                m_writer.filament()->id(),
+                &config));
+        }
         file.writeln(this->placeholder_parser_process("machine_end_gcode", print.config().machine_end_gcode, m_writer.filament()->id(), &config));
     }
     file.write(m_writer.update_progress(m_layer_count, m_layer_count, true)); // 100%
@@ -3731,9 +3812,7 @@ void GCode::process_layers(
 
         CNumericLocalesSetter locales_setter;
 
-        // FanMover may split G1 moves and currently only interpolates XYZ/E.
-        // Bypass it so a coordinated C word is never duplicated at a split.
-        if (!config.coextrusion_c_axis_enable.value && (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0)) {
+        if (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0) {
             if (fan_mover.get() == nullptr)
                 fan_mover.reset(new Slic3r::FanMover(
                     writer,
@@ -3831,7 +3910,7 @@ void GCode::process_layers(
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&fan_mover = this->m_fan_mover, &config = this->config(), &writer = this->m_writer](std::string in)->std::string {
 
-        if (!config.coextrusion_c_axis_enable.value && (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0)) {
+        if (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0) {
             if (fan_mover.get() == nullptr)
                 fan_mover.reset(new Slic3r::FanMover(
                     writer,
@@ -5559,23 +5638,6 @@ void GCode::apply_print_config(const PrintConfig &print_config)
 {
     m_writer.apply_print_config(print_config);
     m_config.apply(print_config);
-    // New profiles keep physical sector data with the filament. Retain the
-    // legacy printer-owned fields as a compatibility fallback for projects
-    // created before filament-level co-extrusion profiles existed.
-    if (m_config.filament_coextrusion_enable.value) {
-        m_config.coextrusion_c_axis_colors.values = m_config.filament_coextrusion_colors.values;
-        m_config.coextrusion_c_axis_color_angles.values = m_config.filament_coextrusion_color_angles.values;
-        m_config.coextrusion_c_axis_filter_distance.value = m_config.filament_coextrusion_filter_distance.value;
-    }
-    const std::vector<std::string> &coextrusion_source_colors = m_config.coextrusion_source_colors.values.empty() ?
-        m_config.filament_colour.values : m_config.coextrusion_source_colors.values;
-    m_coextrusion_filament_to_sector = map_coextrusion_filament_colors_to_sectors(
-        coextrusion_source_colors, m_config.coextrusion_c_axis_colors.values,
-        m_config.coextrusion_color_mapping.values);
-    m_coextrusion_last_color_tag = size_t(-1);
-    m_coextrusion_cached_layer = nullptr;
-    m_coextrusion_surface_distancer.reset();
-    m_coextrusion_surface_filament_slots.clear();
     m_scaled_resolution = scaled<double>(print_config.resolution.value);
     m_enable_exclude_object = m_config.exclude_object;
 
@@ -5706,7 +5768,6 @@ std::string GCode::preamble()
 std::string GCode::change_layer(coordf_t print_z)
 {
     std::string gcode;
-    m_coextrusion_c.reset();
     if (m_layer_count > 0)
         // Increment a progress bar indicator.
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
@@ -5789,16 +5850,21 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
     // or randomize if requested;
     // or, if `start_point` is specified, start the loop at point closest to it
     Point last_pos = start_point ? *start_point : this->last_pos();
+    const bool coextrusion_surface_control =
+        m_writer.coextrusion_axis_enabled() && m_config.coextrusion_surface_control.value;
     float seam_overhang = std::numeric_limits<float>::lowest();
+    bool color_boundary_seam = false;
     if (!m_config.spiral_mode && description == "perimeter") {
         assert(m_layer != nullptr);
-        m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang);
+        color_boundary_seam = m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang,
+            coextrusion_surface_control);
     } else
         loop.split_at(last_pos, false);
 
     const auto seam_scarf_type = m_config.seam_slope_type.value;
+    // A scarf would overlap the two colors across the selected boundary.
     bool enable_seam_slope = ((seam_scarf_type == SeamScarfType::External && !is_hole) || seam_scarf_type == SeamScarfType::All) &&
-        !m_config.spiral_mode &&
+        !m_config.spiral_mode && !color_boundary_seam &&
         (loop.role() == erExternalPerimeter || (loop.role() == erPerimeter && m_config.seam_slope_inner_walls)) &&
         layer_id() > 0;
     const auto nozzle_diameter = EXTRUDER_CONFIG(nozzle_diameter);
@@ -5843,7 +5909,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
     // If region perimeters size not greater than or equal to 2, then skip the wipe inside move as we will extrude in mid air
     // as no neighbouring perimeter exists. If an internal perimeter exists, we should find 2 perimeters touching the de-retraction point
     // 1 - the currently printed external perimeter and 2 - the neighbouring internal perimeter.
-    if (m_config.wipe_before_external_loop.value && !paths.empty() && paths.front().size() > 1 && paths.back().size() > 1 && paths.front().role() == erExternalPerimeter && region_perimeters.size() > 1) {
+    // This helper restores extrusion on a fake path before arriving at the seam.
+    // Surface-controlled loops must instead position C before restoring extrusion.
+    if (!coextrusion_surface_control && m_config.wipe_before_external_loop.value && !paths.empty() && paths.front().size() > 1 && paths.back().size() > 1 && paths.front().role() == erExternalPerimeter && region_perimeters.size() > 1) {
         const bool is_full_loop_ccw = loop.polygon().is_counter_clockwise();
         bool is_hole_loop = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0;
         const double nozzle_diam = nozzle_diameter;
@@ -5936,15 +6004,20 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
-    m_coextrusion_external_loop_active = true;
-    // For a contour the material is inside the polygon; for a hole it is
-    // outside. Combining that fact with the final print winding tells us which
-    // side of every tangent is the model's outward normal.
-    m_coextrusion_outward_normal_on_right = is_hole == loop.is_clockwise();
-
     if (!enable_seam_slope) {
-        for (ExtrusionPaths::iterator path = paths.begin(); path != paths.end(); ++path) {
-            gcode += this->_extrude(*path, description, speed_for_path(*path));
+        std::vector<PreparedExtrusionPath> prepared_paths;
+        if (m_writer.coextrusion_axis_enabled() && m_config.coextrusion_surface_control.value) {
+            std::vector<std::pair<const ExtrusionPath *, double>> path_requests;
+            path_requests.reserve(paths.size());
+            for (const ExtrusionPath &path : paths)
+                path_requests.emplace_back(&path, speed_for_path(path));
+            prepared_paths = prepare_extrusion_paths(path_requests);
+        }
+        for (size_t index = 0; index < paths.size(); ++index) {
+            const ExtrusionPath &path = paths[index];
+            gcode += this->_extrude(
+                path, description, speed_for_path(path),
+                prepared_paths.empty() ? nullptr : &prepared_paths[index]);
             // Orca: Adaptive PA - dont adapt PA after the first multipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -5980,8 +6053,20 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         new_loop.clip_slope(seam_gap);
 
         // Then extrude it
-        for (const auto& p : new_loop.get_all_paths()) {
-            gcode += this->_extrude(*p, description, speed_for_path(*p));
+        const std::vector<const ExtrusionPath *> sloped_paths = new_loop.get_all_paths();
+        std::vector<PreparedExtrusionPath> prepared_paths;
+        if (m_writer.coextrusion_axis_enabled() && m_config.coextrusion_surface_control.value) {
+            std::vector<std::pair<const ExtrusionPath *, double>> path_requests;
+            path_requests.reserve(sloped_paths.size());
+            for (const ExtrusionPath *path : sloped_paths)
+                path_requests.emplace_back(path, speed_for_path(*path));
+            prepared_paths = prepare_extrusion_paths(path_requests);
+        }
+        for (size_t index = 0; index < sloped_paths.size(); ++index) {
+            const ExtrusionPath &path = *sloped_paths[index];
+            gcode += this->_extrude(
+                path, description, speed_for_path(path),
+                prepared_paths.empty() ? nullptr : &prepared_paths[index]);
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -5997,8 +6082,6 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
             paths.insert(paths.end(), new_loop.ends.begin(), new_loop.ends.end());
         }
     }
-
-    m_coextrusion_external_loop_active = false;
 
     if (description == "perimeter") {
         m_processor.result().print_statistics.total_seam_gap_distance += static_cast<float>(seam_gap_distance_mm);
@@ -6087,8 +6170,20 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
 
-    for (const ExtrusionPath &path : multipath.paths){
-        gcode += this->_extrude(path, description, speed);
+    std::vector<PreparedExtrusionPath> prepared_paths;
+    if (m_writer.coextrusion_axis_enabled() && m_config.coextrusion_surface_control.value) {
+        std::vector<std::pair<const ExtrusionPath *, double>> path_requests;
+        path_requests.reserve(multipath.paths.size());
+        for (const ExtrusionPath &path : multipath.paths)
+            path_requests.emplace_back(&path, speed);
+        prepared_paths = prepare_extrusion_paths(path_requests);
+    }
+
+    for (size_t index = 0; index < multipath.paths.size(); ++index) {
+        const ExtrusionPath &path = multipath.paths[index];
+        gcode += this->_extrude(
+            path, description, speed,
+            prepared_paths.empty() ? nullptr : &prepared_paths[index]);
         // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
         // as we have already set the PA value to the average flow over the totality of the path
         // in the first extrude move.
@@ -6372,110 +6467,416 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
     return res;
 }
 
-size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path)
+static std::vector<CoExtrusion::PathTimingRange> coextrusion_path_timing(
+    const ExtrusionPath &path,
+    double uniform_speed_mm_s,
+    const std::vector<ProcessedPoint> &processed_points,
+    bool variable_speed)
 {
-    const size_t fallback = m_writer.filament() == nullptr ? size_t(-1) : m_writer.filament()->id();
-    if (m_layer == nullptr || m_layer->object() == nullptr)
-        return fallback;
+    std::vector<CoExtrusion::PathTimingRange> timing;
+    double path_distance_mm = 0.0;
 
-    if (m_coextrusion_cached_layer != m_layer) {
-        m_coextrusion_cached_layer = m_layer;
-        m_coextrusion_surface_distancer.reset();
-        m_coextrusion_surface_filament_slots.clear();
+    const auto append_range = [&timing, &path_distance_mm](
+        const Point3 &from,
+        const Point3 &to,
+        double speed_mm_s) {
+        const Vec3d delta_scaled = (to - from).cast<double>();
+        const double xy_length_mm = unscale<double>(delta_scaled.head<2>().norm());
+        if (xy_length_mm <= 0.0)
+            return;
 
-        const auto &by_layer = m_layer->object()->mmu_surface_color_lines();
-        std::vector<Line> lines;
-        if (size_t(m_layer->id()) < by_layer.size() && !by_layer[m_layer->id()].empty()) {
-            for (const ColoredLines &contour : by_layer[m_layer->id()]) {
-                for (const ColoredLine &colored_line : contour) {
-                    lines.emplace_back(colored_line.line);
-                    // Painted facet states and resolved defaults are
-                    // 1-based source color IDs. Zero remains a safe fallback
-                    // only if the source volume could not be identified.
-                    m_coextrusion_surface_filament_slots.emplace_back(
-                        colored_line.color > 0 ? size_t(colored_line.color - 1) : fallback);
-                }
-            }
-        } else {
-            // A multi-part 3MF may encode colors as separate model volumes
-            // instead of painted facets. In that case each LayerRegion owns
-            // the exact boundary lines of its material at this slice height.
-            for (const LayerRegion *region : m_layer->regions()) {
-                const int filament_id = region->region().config().outer_wall_filament_id.value;
-                if (filament_id <= 0)
-                    continue;
-                for (const Surface &surface : region->slices) {
-                    Lines surface_lines = to_lines(surface.expolygon);
-                    lines.insert(lines.end(), surface_lines.begin(), surface_lines.end());
-                    m_coextrusion_surface_filament_slots.insert(
-                        m_coextrusion_surface_filament_slots.end(), surface_lines.size(), size_t(filament_id - 1));
-                }
-            }
-        }
-        if (!lines.empty())
-            m_coextrusion_surface_distancer = std::make_unique<AABBTreeLines::LinesDistancer<Line>>(std::move(lines));
+        const double move_length_mm = unscale<double>(delta_scaled.norm());
+        const double duration_s = speed_mm_s > 0.0 ?
+            move_length_mm / speed_mm_s : std::numeric_limits<double>::quiet_NaN();
+        timing.push_back({ path_distance_mm, path_distance_mm + xy_length_mm, duration_s });
+        path_distance_mm += xy_length_mm;
+    };
+
+    if (variable_speed && processed_points.size() >= 2) {
+        timing.reserve(processed_points.size() - 1);
+        for (size_t index = 1; index < processed_points.size(); ++index)
+            append_range(processed_points[index - 1].p, processed_points[index].p,
+                         processed_points[index - 1].speed);
+    } else {
+        const Points3 &points = path.polyline.points;
+        if (points.size() >= 2)
+            timing.reserve(points.size() - 1);
+        for (size_t index = 1; index < points.size(); ++index)
+            append_range(points[index - 1], points[index], uniform_speed_mm_s);
+    }
+    return timing;
+}
+
+using CoExtrusionOverlapSample = std::pair<double, float>;
+
+static std::vector<CoExtrusionOverlapSample> coextrusion_overlap_samples(
+    const std::vector<ProcessedPoint> &processed_points)
+{
+    std::vector<CoExtrusionOverlapSample> samples;
+    if (processed_points.empty())
+        return samples;
+
+    samples.reserve(processed_points.size());
+    double path_distance_mm = 0.0;
+    samples.emplace_back(path_distance_mm, processed_points.front().overlap);
+    for (size_t index = 1; index < processed_points.size(); ++index) {
+        const Vec2d delta_scaled =
+            (processed_points[index].p - processed_points[index - 1].p).cast<double>().head<2>();
+        path_distance_mm += unscale<double>(delta_scaled.norm());
+        samples.emplace_back(path_distance_mm, processed_points[index].overlap);
+    }
+    return samples;
+}
+
+static float coextrusion_overlap_at(
+    const std::vector<CoExtrusionOverlapSample> &samples,
+    double path_distance_mm)
+{
+    if (samples.empty())
+        return 1.0f;
+    const auto upper = std::lower_bound(
+        samples.begin(), samples.end(), path_distance_mm,
+        [](const CoExtrusionOverlapSample &sample, double distance) { return sample.first < distance; });
+    if (upper == samples.begin())
+        return upper->second;
+    if (upper == samples.end())
+        return samples.back().second;
+
+    const CoExtrusionOverlapSample &before = *std::prev(upper);
+    const double range = upper->first - before.first;
+    if (range <= EPSILON)
+        return std::min(before.second, upper->second);
+    const double ratio = std::clamp((path_distance_mm - before.first) / range, 0.0, 1.0);
+    return float(before.second + ratio * double(upper->second - before.second));
+}
+
+using CoExtrusionZSample = std::pair<double, double>;
+
+static std::vector<CoExtrusionZSample> coextrusion_z_samples(const ExtrusionPath &path)
+{
+    std::vector<CoExtrusionZSample> samples;
+    const Points3 &points = path.polyline.points;
+    if (points.empty())
+        return samples;
+
+    samples.reserve(points.size());
+    double path_distance_mm = 0.0;
+    samples.emplace_back(path_distance_mm, unscale<double>(points.front().z()));
+    for (size_t index = 1; index < points.size(); ++index) {
+        const Vec2d delta_scaled = (points[index] - points[index - 1]).cast<double>().head<2>();
+        path_distance_mm += unscale<double>(delta_scaled.norm());
+        samples.emplace_back(path_distance_mm, unscale<double>(points[index].z()));
+    }
+    return samples;
+}
+
+static double coextrusion_z_offset_at(
+    const std::vector<CoExtrusionZSample> &samples,
+    double path_distance_mm)
+{
+    if (samples.empty())
+        return 0.0;
+    const auto upper = std::lower_bound(
+        samples.begin(), samples.end(), path_distance_mm,
+        [](const CoExtrusionZSample &sample, double distance) { return sample.first < distance; });
+    if (upper == samples.begin())
+        return upper->second;
+    if (upper == samples.end())
+        return samples.back().second;
+
+    const CoExtrusionZSample &before = *std::prev(upper);
+    const double range = upper->first - before.first;
+    if (range <= EPSILON)
+        return upper->second;
+    const double ratio = std::clamp((path_distance_mm - before.first) / range, 0.0, 1.0);
+    return before.second + ratio * (upper->second - before.second);
+}
+
+GCode::PreparedExtrusionPath GCode::prepare_extrusion_path(const ExtrusionPath &path, double speed)
+{
+    PreparedExtrusionPath prepared;
+    const ExtrusionPathSloped *sloped = dynamic_cast<const ExtrusionPathSloped *>(&path);
+
+    const double filament_flow_ratio = FILAMENT_CONFIG(filament_flow_ratio);
+    prepared.effective_mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio * filament_flow_ratio;
+
+    if (path.role() == erTopSolidInfill)
+        prepared.effective_mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
+    else if (path.role() == erBottomSurface)
+        prepared.effective_mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
+    else if (path.role() == erInternalBridgeInfill)
+        prepared.effective_mm3_per_mm *= m_config.internal_bridge_flow;
+    else if (path.role() == erBrim)
+        prepared.effective_mm3_per_mm *= m_config.brim_flow_ratio;
+    else if (sloped)
+        prepared.effective_mm3_per_mm *= m_config.scarf_joint_flow_ratio;
+
+    if (m_config.set_other_flow_ratios) {
+        if (path.role() == erExternalPerimeter)
+            prepared.effective_mm3_per_mm *= m_config.outer_wall_flow_ratio;
+        else if (path.role() == erPerimeter)
+            prepared.effective_mm3_per_mm *= m_config.inner_wall_flow_ratio;
+        else if (path.role() == erOverhangPerimeter)
+            prepared.effective_mm3_per_mm *= m_config.overhang_flow_ratio;
+        else if (path.role() == erInternalInfill)
+            prepared.effective_mm3_per_mm *= m_config.sparse_infill_flow_ratio;
+        else if (path.role() == erSolidInfill)
+            prepared.effective_mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
+        else if (path.role() == erGapFill)
+            prepared.effective_mm3_per_mm *= m_config.gap_fill_flow_ratio;
+        else if (path.role() == erSupportMaterial)
+            prepared.effective_mm3_per_mm *= m_config.support_flow_ratio;
+        else if (path.role() == erSupportMaterialInterface)
+            prepared.effective_mm3_per_mm *= m_config.support_interface_flow_ratio;
+
+        if (this->on_first_layer() && path.role() != erBrim && path.role() != erSkirt)
+            prepared.effective_mm3_per_mm *= m_config.first_layer_flow_ratio;
     }
 
-    if (m_coextrusion_surface_distancer == nullptr)
-        return fallback;
+    prepared.e_per_mm = m_writer.filament()->e_per_mm3() * prepared.effective_mm3_per_mm / filament_flow_ratio;
 
-    const Vec2d delta = to - from;
-    const double length = delta.norm();
-    if (length <= EPSILON)
-        return fallback;
+    if (speed == -1) {
+        if (path.role() == erPerimeter) {
+            speed = m_config.get_abs_value("inner_wall_speed");
+            if (sloped)
+                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("inner_wall_speed")));
+        } else if (path.role() == erExternalPerimeter) {
+            speed = m_config.get_abs_value("outer_wall_speed");
+            if (sloped)
+                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("outer_wall_speed")));
+        } else if (path.role() == erInternalBridgeInfill) {
+            speed = m_config.get_abs_value("internal_bridge_speed");
+        } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
+            speed = m_config.get_abs_value("bridge_speed");
+        } else if (path.role() == erInternalInfill) {
+            speed = m_config.get_abs_value("sparse_infill_speed");
+        } else if (path.role() == erSolidInfill) {
+            speed = m_config.get_abs_value("internal_solid_infill_speed");
+        } else if (path.role() == erTopSolidInfill) {
+            speed = m_config.get_abs_value("top_surface_speed");
+        } else if (path.role() == erIroning) {
+            speed = m_config.get_abs_value("ironing_speed");
+        } else if (path.role() == erBottomSurface) {
+            speed = m_config.get_abs_value("initial_layer_infill_speed");
+        } else if (path.role() == erGapFill) {
+            speed = m_config.get_abs_value("gap_infill_speed");
+        } else if (path.role() == erSupportMaterial || path.role() == erSupportMaterialInterface) {
+            const double support_speed = m_config.support_speed.value;
+            const double support_interface_speed = m_config.get_abs_value("support_interface_speed");
+            speed = path.role() == erSupportMaterial ? support_speed : support_interface_speed;
+        } else {
+            throw Slic3r::InvalidArgument("Invalid speed");
+        }
+    }
 
-    // Query at the bead's outside edge, where the extrusion touches the sliced
-    // model contour. This avoids picking a nearby contour across a thin feature.
-    const Vec2d right_normal(delta.y() / length, -delta.x() / length);
-    const Vec2d outward_normal = m_coextrusion_outward_normal_on_right ? right_normal : -right_normal;
-    const Point probe = gcode_to_point(0.5 * (from + to) + 0.5 * double(path.width) * outward_normal);
-    const auto   nearest  = m_coextrusion_surface_distancer->distance_from_lines_extra<false>(probe);
-    const double distance = std::get<0>(nearest);
-    const size_t line_idx = std::get<1>(nearest);
-    if (line_idx < m_coextrusion_surface_filament_slots.size() &&
-        distance <= scale_(std::max(0.25, double(path.width))))
-        return m_coextrusion_surface_filament_slots[line_idx];
+    double filament_max_volumetric_speed = FILAMENT_CONFIG(filament_max_volumetric_speed);
+    if (FILAMENT_CONFIG(filament_adaptive_volumetric_speed)) {
+        const double fitted_value = calc_max_volumetric_speed(
+            path.height, path.width, FILAMENT_CONFIG(volumetric_speed_coefficients));
+        filament_max_volumetric_speed = std::min(filament_max_volumetric_speed, fitted_value);
+    }
+    if (speed == 0)
+        speed = filament_max_volumetric_speed / prepared.effective_mm3_per_mm;
 
-    return fallback;
+    const auto current_layer = layer_id();
+    if (this->on_first_layer() || object_layer_over_raft()) {
+        if (path.role() != erBottomSurface) {
+            speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
+                                                m_config.get_abs_value("initial_layer_infill_speed");
+        }
+    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
+        if (current_layer > 0 && current_layer < m_config.slow_down_layers) {
+            const double first_layer_speed = is_perimeter(path.role()) ?
+                m_config.get_abs_value("initial_layer_speed") : m_config.get_abs_value("initial_layer_infill_speed");
+            if (first_layer_speed < speed) {
+                speed = std::min(speed, Slic3r::lerp(
+                    first_layer_speed, speed, double(current_layer) / m_config.slow_down_layers));
+            }
+        }
+    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers > 0) {
+        if (current_layer > m_config.raft_layers &&
+            current_layer - m_config.raft_layers < m_config.slow_down_layers) {
+            const double first_layer_speed = is_perimeter(path.role()) ?
+                m_config.get_abs_value("initial_layer_speed") : m_config.get_abs_value("initial_layer_infill_speed");
+            if (first_layer_speed < speed) {
+                speed = std::min(speed, Slic3r::lerp(
+                    first_layer_speed, speed,
+                    double(current_layer - m_config.raft_layers) / m_config.slow_down_layers));
+            }
+        }
+    }
+
+    if (path.role() == erSkirt) {
+        const double skirt_speed = m_config.get_abs_value("skirt_speed");
+        if (skirt_speed > 0.0)
+            speed = skirt_speed;
+    }
+    if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+        speed = std::min(
+            speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / prepared.effective_mm3_per_mm);
+    }
+
+    if (path.role() == erExternalPerimeter && m_config.resonance_avoidance.value) {
+        const double ref_speed = speed;
+        if (ref_speed > m_config.max_resonance_avoidance_speed.value)
+            m_resonance_avoidance = false;
+        if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+            speed = std::min(
+                speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / prepared.effective_mm3_per_mm);
+        }
+        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
+            if (speed < m_config.min_resonance_avoidance_speed.value +
+                    (m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2) {
+                speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
+            } else {
+                speed = m_config.max_resonance_avoidance_speed.value;
+            }
+        }
+        m_resonance_avoidance = true;
+    }
+
+    prepared.speed_mm_s = speed;
+    if (m_config.enable_overhang_speed && !this->on_first_layer() && !object_layer_over_raft() &&
+        (is_bridge(path.role()) || is_perimeter(path.role()))) {
+        const bool is_external = is_external_perimeter(path.role());
+        double ref_speed = is_external ? m_config.get_abs_value("outer_wall_speed") :
+                                         m_config.get_abs_value("inner_wall_speed");
+        if (ref_speed == 0)
+            ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / prepared.effective_mm3_per_mm;
+        if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
+            ref_speed = std::min(
+                ref_speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / prepared.effective_mm3_per_mm);
+        }
+        if (sloped)
+            ref_speed = std::min(ref_speed, m_config.scarf_joint_speed.get_abs_value(ref_speed));
+
+        ConfigOptionPercents overhang_overlap_levels({ 90, 75, 50, 25, 13, 0 });
+        ConfigOptionFloatsOrPercents dynamic_overhang_speeds;
+        if (m_config.slowdown_for_curled_perimeters) {
+            dynamic_overhang_speeds = ConfigOptionFloatsOrPercents({
+                FloatOrPercent{100, true},
+                (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true}
+            });
+        } else {
+            dynamic_overhang_speeds = ConfigOptionFloatsOrPercents({
+                FloatOrPercent{100, true},
+                (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
+                (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ? FloatOrPercent{100, true} : FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
+                FloatOrPercent{m_config.get_abs_value("bridge_speed") * 100 / ref_speed, true}
+            });
+        }
+        prepared.processed_points = m_extrusion_quality_estimator.estimate_extrusion_quality(
+            path, overhang_overlap_levels, dynamic_overhang_speeds, ref_speed, speed,
+            m_config.slowdown_for_curled_perimeters);
+        prepared.variable_speed = std::any_of(
+            prepared.processed_points.begin(), prepared.processed_points.end(),
+            [speed](const ProcessedPoint &point) { return std::abs(double(point.speed) - speed) > 1; });
+    }
+
+    return prepared;
 }
 
-std::string GCode::coextrusion_color_tag(size_t sector)
+std::vector<GCode::PreparedExtrusionPath> GCode::prepare_extrusion_paths(
+    const std::vector<std::pair<const ExtrusionPath *, double>> &paths)
 {
-    if (sector >= m_config.coextrusion_c_axis_colors.values.size() ||
-        sector >= m_config.coextrusion_c_axis_color_angles.values.size())
-        return {};
-    if (sector == m_coextrusion_last_color_tag)
-        return {};
+    m_config.apply(m_calib_config);
+    std::vector<PreparedExtrusionPath> prepared;
+    prepared.reserve(paths.size());
+    for (const auto &[path, speed] : paths)
+        prepared.emplace_back(prepare_extrusion_path(*path, speed));
 
-    m_coextrusion_last_color_tag = sector;
-    return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) +
-           std::to_string(sector) + "\n";
+    if (!m_writer.coextrusion_axis_enabled() || !m_config.coextrusion_surface_control.value ||
+        m_layer == nullptr || m_layer->object() == nullptr)
+        return prepared;
+
+    const auto is_supported_path = [](const ExtrusionPath *path) {
+        return path->role() == erExternalPerimeter || path->role() == erOverhangPerimeter ||
+               path->role() == erTopSolidInfill || path->role() == erBottomSurface;
+    };
+    if (std::none_of(paths.begin(), paths.end(),
+                     [&is_supported_path](const auto &entry) { return is_supported_path(entry.first); }))
+        return prepared;
+
+    const PrintObject *print_object = m_layer->object();
+    if (m_coextrusion_resolver_object != print_object) {
+        m_coextrusion_resolver_object = print_object;
+        m_coextrusion_surface_resolver = std::make_shared<CoExtrusion::ObjectSurfaceProvenanceResolver>(
+            *print_object->model_object(), print_object->trafo_centered());
+    }
+
+    std::optional<double> reference_angle_deg = m_coextrusion_c_axis_angle_deg;
+    for (size_t index = 0; index < paths.size(); ++index) {
+        const ExtrusionPath &path = *paths[index].first;
+        prepared[index].coextrusion = CoExtrusion::CoExtrusionPathPlanning::prepare(
+            *print_object,
+            m_layer->id(),
+            m_layer->slice_z,
+            m_layer->print_z - print_object->slicing_parameters().object_print_z_min,
+            path,
+            coextrusion_path_timing(path, prepared[index].speed_mm_s,
+                                    prepared[index].processed_points, prepared[index].variable_speed),
+            prepared[index].effective_mm3_per_mm,
+            *m_coextrusion_surface_resolver,
+            m_config,
+            m_writer.filament()->id(),
+            reference_angle_deg);
+        if (prepared[index].coextrusion) {
+            const auto &intents = prepared[index].coextrusion->intents;
+            const auto last_direction = std::find_if(
+                intents.rbegin(), intents.rend(),
+                [](const CoExtrusion::CAxisPathIntent &intent) {
+                    return intent.direction && intent.direction->target_angle_deg;
+                });
+            if (last_direction != intents.rend())
+                reference_angle_deg = last_direction->direction->target_angle_deg;
+        }
+    }
+
+    // Delay look-ahead must not cross a path for which surface control is not
+    // available: such a path is an explicit discontinuity in the command stream.
+    std::optional<double> planned_reference_angle_deg = m_coextrusion_c_axis_angle_deg;
+    for (size_t begin = 0; begin < prepared.size();) {
+        while (begin < prepared.size() && !prepared[begin].coextrusion)
+            ++begin;
+        size_t end = begin;
+        while (end < prepared.size() && prepared[end].coextrusion)
+            ++end;
+        if (begin == end)
+            break;
+
+        std::vector<CoExtrusion::PreparedCoExtrusionPath> sequence;
+        sequence.reserve(end - begin);
+        for (size_t index = begin; index < end; ++index)
+            sequence.emplace_back(*prepared[index].coextrusion);
+        sequence = CoExtrusion::CoExtrusionPathPlanning::compensate_delay_sequence(
+            sequence, m_config, m_writer.filament()->id());
+        std::vector<CoExtrusion::PlannedCoExtrusionPath> planned_sequence =
+            CoExtrusion::CoExtrusionPathPlanning::finalize_sequence(
+                sequence, m_config, planned_reference_angle_deg);
+        if (!planned_sequence.empty() && planned_sequence.back().motion.final_angle_deg)
+            planned_reference_angle_deg = planned_sequence.back().motion.final_angle_deg;
+        for (size_t index = begin; index < end; ++index) {
+            prepared[index].coextrusion = std::move(sequence[index - begin]);
+            if (planned_sequence.size() == end - begin)
+                prepared[index].coextrusion_plan = std::move(planned_sequence[index - begin]);
+        }
+        begin = end;
+    }
+
+    return prepared;
 }
 
-std::optional<double> GCode::coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path, size_t *sector_out)
-{
-    if (!m_config.coextrusion_c_axis_enable.value || !m_coextrusion_external_loop_active ||
-        path.role() != erExternalPerimeter || path.is_force_no_extrusion() || m_writer.filament() == nullptr)
-        return std::nullopt;
-
-    const size_t filament_slot = coextrusion_filament_for_surface_segment(from, to, path);
-    const auto  &angles        = m_config.coextrusion_c_axis_color_angles.values;
-    if (filament_slot >= m_coextrusion_filament_to_sector.size())
-        return std::nullopt;
-    const size_t sector = m_coextrusion_filament_to_sector[filament_slot];
-    if (sector >= angles.size())
-        return std::nullopt;
-    if (sector_out != nullptr)
-        *sector_out = sector;
-
-    const Vec2d delta = to - from;
-    return m_coextrusion_c.update_for_segment(delta.x(), delta.y(), m_coextrusion_outward_normal_on_right,
-                                               angles[sector], m_config.coextrusion_c_axis_offset.value,
-                                               m_config.coextrusion_c_axis_reverse.value,
-                                               m_config.coextrusion_c_axis_filter_distance.value);
-}
-
-std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
+std::string GCode::_extrude(
+    const ExtrusionPath &path,
+    std::string description,
+    double speed,
+    const PreparedExtrusionPath *prepared_path)
 {
     std::string gcode;
 
@@ -6483,6 +6884,72 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         description += " (bridge)";
 
     const ExtrusionPathSloped* sloped = dynamic_cast<const ExtrusionPathSloped*>(&path);
+
+    // Plan before travel so the first color is ready before unretraction.
+    // Keep the caller's group plan and its delay compensation intact.
+    PreparedExtrusionPath local_prepared_path;
+    std::optional<CoExtrusion::PlannedCoExtrusionPath> coextrusion_path_plan;
+    if (m_writer.coextrusion_axis_enabled() && m_config.coextrusion_surface_control.value &&
+        (path.role() == erExternalPerimeter || path.role() == erOverhangPerimeter ||
+         path.role() == erTopSolidInfill || path.role() == erBottomSurface) &&
+        m_layer != nullptr && m_layer->object() != nullptr) {
+        m_config.apply(m_calib_config);
+        if (prepared_path == nullptr) {
+            local_prepared_path = prepare_extrusion_path(path, speed);
+            prepared_path = &local_prepared_path;
+        }
+        const PrintObject *print_object = m_layer->object();
+        if (m_coextrusion_resolver_object != print_object) {
+            m_coextrusion_resolver_object = print_object;
+            m_coextrusion_surface_resolver = std::make_shared<CoExtrusion::ObjectSurfaceProvenanceResolver>(
+                *print_object->model_object(), print_object->trafo_centered());
+        }
+        if (prepared_path != nullptr && prepared_path->coextrusion_plan) {
+            coextrusion_path_plan = prepared_path->coextrusion_plan;
+        } else if (prepared_path != nullptr && prepared_path->coextrusion) {
+            // The caller prepared and delay-compensated a complete path group.
+            // Do not run the single-path compatibility planner again here.
+            coextrusion_path_plan = CoExtrusion::CoExtrusionPathPlanning::finalize(
+                *prepared_path->coextrusion, m_config, m_coextrusion_c_axis_angle_deg);
+        } else {
+            coextrusion_path_plan = CoExtrusion::CoExtrusionPathPlanning::plan(
+                *print_object,
+                m_layer->id(),
+                m_layer->slice_z,
+                m_layer->print_z - print_object->slicing_parameters().object_print_z_min,
+                path,
+                coextrusion_path_timing(path, prepared_path->speed_mm_s,
+                    prepared_path->processed_points, prepared_path->variable_speed),
+                prepared_path->effective_mm3_per_mm,
+                *m_coextrusion_surface_resolver,
+                m_config,
+                m_writer.filament()->id(),
+                m_coextrusion_c_axis_angle_deg);
+        }
+        if (coextrusion_path_plan && coextrusion_path_plan->motion.final_angle_deg)
+            m_coextrusion_c_axis_angle_deg = coextrusion_path_plan->motion.final_angle_deg;
+    }
+
+    std::optional<double> entry_c_angle;
+    if (coextrusion_path_plan && !coextrusion_path_plan->motion.segments.empty()) {
+        auto &first_motion = coextrusion_path_plan->motion.segments.front();
+        using CoExtrusion::CAxisMotionStatus;
+        if (first_motion.target_angle_deg &&
+            (first_motion.status == CAxisMotionStatus::Initialized ||
+             first_motion.status == CAxisMotionStatus::PrepositionRequired ||
+             first_motion.status == CAxisMotionStatus::IndependentRotationRequired)) {
+            entry_c_angle = first_motion.target_angle_deg;
+            // Travel consumes this positioning move. Do not retract and rotate
+            // again when emitting the first extrusion segment.
+            first_motion.status = CAxisMotionStatus::Synchronized;
+            first_motion.start_angle_deg = entry_c_angle;
+            first_motion.angular_delta_deg = 0.0;
+            first_motion.emit_axis_command = false;
+            first_motion.xyz_speed_scale = 1.0;
+            first_motion.minimum_rotation_duration_s = 0.0;
+            first_motion.planned_duration_s = first_motion.nominal_duration_s;
+        }
+    }
 
     const auto get_sloped_z = [&sloped, this](double z_ratio) {
         const auto height = sloped->height;
@@ -6498,7 +6965,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // path is 2D. But in slope lift case, lift z is done in travel_to function.
     // Add m_need_change_layer_lift_z when change_layer in case of no lift if m_last_pos is equal to path.first_point() by chance
     Point first_point = path.first_point();
-    if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z || slope_need_z_travel) {
+    if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z || slope_need_z_travel || entry_c_angle) {
         const bool _last_pos_undefined = !m_last_pos_defined;
 
         double z = DBL_MAX;
@@ -6508,7 +6975,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
         }
 
-        gcode += this->travel_to(first_point, path.role(), "move to first " + description + " point", z);
+        gcode += this->travel_to(first_point, path.role(), "move to first " + description + " point", z, entry_c_angle);
 
         // Orca: ensure Z matches planned layer height
         if (!slope_need_z_travel && (_last_pos_undefined || m_need_change_layer_lift_z)) {
@@ -6597,286 +7064,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         gcode += m_writer.set_jerk_xy(jerk);
     }
 
-    // calculate effective extrusion length per distance unit (e_per_mm)
-    double filament_flow_ratio = FILAMENT_CONFIG(filament_flow_ratio);
-    // We set _mm3_per_mm to effectove flow = Geometric volume * print flow ratio * filament flow ratio * role-based-flow-ratios
-    auto _mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio;
-    _mm3_per_mm *= filament_flow_ratio;
-
-    if (path.role() == erTopSolidInfill) {
-        _mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
-    } else if (path.role() == erBottomSurface) {
-        _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
-    } else if (path.role() == erInternalBridgeInfill) {
-        _mm3_per_mm *= m_config.internal_bridge_flow;
-    } else if (path.role() == erBrim) {
-        _mm3_per_mm *= m_config.brim_flow_ratio;
-    } else if (sloped) {
-        _mm3_per_mm *= m_config.scarf_joint_flow_ratio;
+    if (prepared_path == nullptr) {
+        local_prepared_path = prepare_extrusion_path(path, speed);
+        prepared_path = &local_prepared_path;
     }
 
-    if (m_config.set_other_flow_ratios) {
-        if (path.role() == erExternalPerimeter) {
-            _mm3_per_mm *= m_config.outer_wall_flow_ratio;
-        } else if (path.role() == erPerimeter) {
-            _mm3_per_mm *= m_config.inner_wall_flow_ratio;
-        } else if (path.role() == erOverhangPerimeter) {
-            _mm3_per_mm *= m_config.overhang_flow_ratio;
-        } else if (path.role() == erInternalInfill) {
-            _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
-        } else if (path.role() == erSolidInfill) {
-            _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
-        } else if (path.role() == erGapFill) {
-            _mm3_per_mm *= m_config.gap_fill_flow_ratio;
-        } else if (path.role() == erSupportMaterial) { // Should this condition also cover erSupportTransition?
-            _mm3_per_mm *= m_config.support_flow_ratio;
-        } else if (path.role() == erSupportMaterialInterface) {
-            _mm3_per_mm *= m_config.support_interface_flow_ratio;
-        }
-
-        // Additionally, adjust the value if we are on the first layer (except for brims and skirts)
-        if (this->on_first_layer() && (path.role() != erBrim && path.role() != erSkirt)) {
-            _mm3_per_mm *= m_config.first_layer_flow_ratio;
-        }
-    }
-
-    // Effective extrusion length per distance unit = (filament_flow_ratio/cross_section) * mm3_per_mm / print flow ratio
-    // m_writer.extruder()->e_per_mm3() below is (filament flow ratio / cross-sectional area)
-    double e_per_mm = m_writer.filament()->e_per_mm3() * _mm3_per_mm;
-    e_per_mm /= filament_flow_ratio;
-
-    // set speed
-    if (speed == -1) {
-        if (path.role() == erPerimeter) {
-            speed = m_config.get_abs_value("inner_wall_speed");
-            if (sloped) {
-                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("inner_wall_speed")));
-            }
-        } else if (path.role() == erExternalPerimeter) {
-            speed = m_config.get_abs_value("outer_wall_speed");
-            if (sloped) {
-                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("outer_wall_speed")));
-            }
-        } 
-        else if(path.role() == erInternalBridgeInfill) {
-            speed = m_config.get_abs_value("internal_bridge_speed");
-        } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
-            speed = m_config.get_abs_value("bridge_speed");
-        } else if (path.role() == erInternalInfill) {
-            speed = m_config.get_abs_value("sparse_infill_speed");
-        } else if (path.role() == erSolidInfill) {
-            speed = m_config.get_abs_value("internal_solid_infill_speed");
-        } else if (path.role() == erTopSolidInfill) {
-            speed = m_config.get_abs_value("top_surface_speed");
-        } else if (path.role() == erIroning) {
-            speed = m_config.get_abs_value("ironing_speed");
-        } else if (path.role() == erBottomSurface) {
-            speed = m_config.get_abs_value("initial_layer_infill_speed");
-        } else if (path.role() == erGapFill) {
-            speed = m_config.get_abs_value("gap_infill_speed");
-        }
-        else if (path.role() == erSupportMaterial ||
-                 path.role() == erSupportMaterialInterface) {
-            const double  support_speed = m_config.support_speed.value;
-            const double  support_interface_speed = m_config.get_abs_value("support_interface_speed");
-            speed = (path.role() == erSupportMaterial) ? support_speed : support_interface_speed;
-        } else {
-            throw Slic3r::InvalidArgument("Invalid speed");
-        }
-    }
-    //BBS: if not set the speed, then use the filament_max_volumetric_speed directly
-    double filament_max_volumetric_speed = FILAMENT_CONFIG(filament_max_volumetric_speed);
-    if (FILAMENT_CONFIG(filament_adaptive_volumetric_speed)){
-        double fitted_value = calc_max_volumetric_speed(path.height, path.width, FILAMENT_CONFIG(volumetric_speed_coefficients));
-        filament_max_volumetric_speed = std::min(filament_max_volumetric_speed, fitted_value);
-    }
-
-    if (speed == 0)
-        speed = filament_max_volumetric_speed / _mm3_per_mm;
-    
-    const auto _layer = layer_id();
-    if (this->on_first_layer() || object_layer_over_raft()) {
-        //BBS: for solid infill of first layer, speed can be higher as long as
-        //wall lines have be attached
-        if (path.role() != erBottomSurface) {
-            speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
-                                                m_config.get_abs_value("initial_layer_infill_speed");
-        }
-    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
-        
-        if (_layer > 0 && _layer < m_config.slow_down_layers) {
-            const auto first_layer_speed =
-                is_perimeter(path.role())
-                    ? m_config.get_abs_value("initial_layer_speed")
-                    : m_config.get_abs_value("initial_layer_infill_speed");
-            if (first_layer_speed < speed) {
-                speed = std::min(
-                    speed,
-                    Slic3r::lerp(first_layer_speed, speed,
-                                (double) (_layer) / m_config.slow_down_layers));
-            }
-        }
-    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers > 0 ) {
-        
-        if (_layer > m_config.raft_layers && (_layer - m_config.raft_layers) < m_config.slow_down_layers) {
-            const auto first_layer_speed 
-                = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
-                                                                       m_config.get_abs_value("initial_layer_infill_speed");
-            if (first_layer_speed < speed) {
-                speed = std::min(speed, Slic3r::lerp(first_layer_speed, speed,
-                                                     (double) (_layer - m_config.raft_layers) / m_config.slow_down_layers));
-            }
-        }
-    }
-    // Override skirt speed if set
-    if (path.role() == erSkirt) {
-        const double skirt_speed = m_config.get_abs_value("skirt_speed");
-        if (skirt_speed > 0.0)
-        speed = skirt_speed;
-    }
-    //BBS: remove this config
-    //else if (this->object_layer_over_raft())
-    //    speed = m_config.get_abs_value("first_layer_speed_over_raft", speed);
-    //if (m_config.max_volumetric_speed.value > 0) {
-    //    // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
-    //    speed = std::min(
-    //        speed,
-    //        m_config.max_volumetric_speed.value / _mm3_per_mm
-    //    );
-    //}
-    if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
-        // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
-        speed = std::min(speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
-    }
-    // ORCA: resonance‑avoidance on short external perimeters
-{
-    double ref_speed = speed;  // stash the pre‑cap speed
-    if (path.role() == erExternalPerimeter
-        && m_config.resonance_avoidance.value) {
-
-        // if our original speed was above “max”, disable RA for this loop
-        if (ref_speed > m_config.max_resonance_avoidance_speed.value) {
-            m_resonance_avoidance = false;
-        }
-
-        // re‑apply volumetric cap
-        if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
-            speed = std::min(
-                speed,
-                FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm
-            );
-        }
-
-            // if still in avoidance mode and under "max", adjust speed:
-            // - speeds in lower half of range: clamp down to "min"
-            // - speeds in upper half of range: boost up to "max"
-        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
-            if (speed < m_config.min_resonance_avoidance_speed.value +
-                            ((m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2)) {
-                speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
-            } else {
-                speed = m_config.max_resonance_avoidance_speed.value;
-            }
-        }
-
-        // reset flag for next segment
-        m_resonance_avoidance = true;
-    }
-}
-    
-    bool variable_speed = false;
-    std::vector<ProcessedPoint> new_points {};
-
-    if (m_config.enable_overhang_speed && !this->on_first_layer() && !object_layer_over_raft() &&
-        (is_bridge(path.role()) || is_perimeter(path.role()))) {
-            bool is_external = is_external_perimeter(path.role());
-            double ref_speed   = is_external ? m_config.get_abs_value("outer_wall_speed") : m_config.get_abs_value("inner_wall_speed");
-            if (ref_speed == 0)
-                ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
-
-            if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
-                ref_speed = std::min(ref_speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
-            }
-            if (sloped) {
-                ref_speed = std::min(ref_speed, m_config.scarf_joint_speed.get_abs_value(ref_speed));
-            }
-            
-            ConfigOptionPercents         overhang_overlap_levels({90, 75, 50, 25, 13, 0});
-
-            if (m_config.slowdown_for_curled_perimeters){
-                ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
-                    {FloatOrPercent{100, true},
-                     (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true}});
-
-                new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, m_config.slowdown_for_curled_perimeters);
-        	}else{
-                ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
-                                                                     {FloatOrPercent{100, true},
-                     (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_1_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_2_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_2_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_3_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_3_4_speed", ref_speed) * 100 / ref_speed, true},
-                      (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
-                            FloatOrPercent{100, true} :
-                            FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
-                     FloatOrPercent{m_config.get_abs_value("bridge_speed") * 100 / ref_speed, true}});
-
-                new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, m_config.slowdown_for_curled_perimeters);
-            }
-            variable_speed = std::any_of(new_points.begin(), new_points.end(),
-                                         [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-    }
-
-    const double coextrusion_segment_length = m_config.coextrusion_c_axis_filter_distance.value > EPSILON ?
-        std::clamp(0.25 * m_config.coextrusion_c_axis_filter_distance.value, 0.05, 0.5) : 0.1;
-    if (variable_speed && m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active &&
-        path.role() == erExternalPerimeter && new_points.size() > 1) {
-        std::vector<ProcessedPoint> sampled_points;
-        sampled_points.reserve(new_points.size());
-        sampled_points.emplace_back(new_points.front());
-        for (size_t point_idx = 1; point_idx < new_points.size(); ++point_idx) {
-            const ProcessedPoint &from = new_points[point_idx - 1];
-            const ProcessedPoint &to   = new_points[point_idx];
-            const double length = (to.p - from.p).cast<double>().norm() * SCALING_FACTOR;
-            const size_t count = std::max<size_t>(1, size_t(std::ceil(length / coextrusion_segment_length)));
-            for (size_t sample_idx = 1; sample_idx <= count; ++sample_idx) {
-                if (sample_idx == count) {
-                    sampled_points.emplace_back(to);
-                } else {
-                    const float ratio = float(sample_idx) / float(count);
-                    const Point3 sampled_point((from.p.cast<double>() +
-                        (to.p - from.p).cast<double>() * double(ratio)).cast<coord_t>());
-                    sampled_points.push_back(ProcessedPoint{
-                        sampled_point,
-                        from.speed + (to.speed - from.speed) * ratio,
-                        from.overlap + (to.overlap - from.overlap) * ratio
-                    });
-                }
-            }
-        }
-        new_points = std::move(sampled_points);
-    }
+    // Consume the same finalized kinematics used by the path-group delay
+    // prepass. A standalone path is prepared here through the same code path.
+    const double _mm3_per_mm = prepared_path->effective_mm3_per_mm;
+    const double e_per_mm = prepared_path->e_per_mm;
+    speed = prepared_path->speed_mm_s;
+    const bool variable_speed = prepared_path->variable_speed;
+    const std::vector<ProcessedPoint> &new_points = prepared_path->processed_points;
 
     double F = speed * 60;  // convert mm/sec to mm/min
     
@@ -7084,6 +7283,174 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                      ironing_fan_speed >= 0 && path.role() == erIroning);
     };
 
+    auto append_variable_pa_marker = [&](double previous_F, double next_F) {
+        if (std::abs(previous_F - next_F) <= EPSILON && std::abs(_mm3_per_mm - m_last_mm3_mm) <= EPSILON)
+            return;
+        if (_mm3_per_mm <= 0 ||
+            !EXTRUDER_CONFIG(adaptive_pressure_advance) ||
+            !EXTRUDER_CONFIG(enable_pressure_advance) ||
+            !EXTRUDER_CONFIG(adaptive_pressure_advance_overhangs))
+            return;
+
+        const bool ramping_down = previous_F > next_F;
+        if (m_config.gcode_comments)
+            // Preserve the existing comment text for byte-compatible output
+            // when co-extrusion is disabled. OV below remains authoritative.
+            gcode += ramping_down ? "; Ramp up-variable\n" : "; Ramp down-variable\n";
+        sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                m_writer.filament()->id(),
+                _mm3_per_mm,
+                acceleration_i,
+                ((path.role() == erBridgeInfill) || (path.role() == erOverhangPerimeter)),
+                1,
+                ramping_down ? 1 : 0);
+        gcode += buf;
+        m_last_mm3_mm = _mm3_per_mm;
+    };
+
+    const std::vector<CoExtrusionZSample> controlled_path_z_samples =
+        coextrusion_path_plan && path.z_contoured ?
+            coextrusion_z_samples(path) : std::vector<CoExtrusionZSample>{};
+    const double controlled_path_length_mm = coextrusion_path_plan ?
+        path.polyline.length() * SCALING_FACTOR : 0.0;
+    auto coextrusion_z_and_e_ratio = [&](double path_end_mm) {
+        std::optional<double> target_z;
+        double extrusion_ratio = 1.0;
+        if (path.z_contoured) {
+            const double z_diff = coextrusion_z_offset_at(controlled_path_z_samples, path_end_mm);
+            if (path.role() != erIroning && path.height > 0.0)
+                extrusion_ratio = (path.height + z_diff) / path.height;
+            target_z = m_nominal_z + z_diff;
+            if (*target_z < 0.1)
+                throw RuntimeError("GCode: very low z");
+        } else if (sloped != nullptr && controlled_path_length_mm > EPSILON) {
+            const auto [z_ratio, e_ratio] = sloped->interpolate(
+                std::clamp(path_end_mm / controlled_path_length_mm, 0.0, 1.0));
+            target_z = get_sloped_z(z_ratio);
+            extrusion_ratio = e_ratio;
+        }
+        return std::make_pair(target_z, extrusion_ratio);
+    };
+    auto coextrusion_segment_move_length = [&](const CoExtrusion::CAxisPathIntent &intent) {
+        const double xy_length = intent.segment.length() * SCALING_FACTOR;
+        if (!path.z_contoured)
+            return xy_length;
+        const double z_start = coextrusion_z_offset_at(controlled_path_z_samples, intent.path_start_mm);
+        const double z_end = coextrusion_z_offset_at(controlled_path_z_samples, intent.path_end_mm);
+        return std::hypot(xy_length, z_end - z_start);
+    };
+
+    auto emit_coextrusion_segment = [&](const CoExtrusion::CAxisPathIntent &intent,
+                                        const CoExtrusion::CAxisMotionSegment &motion,
+                                        double nominal_speed_mm_s) {
+        std::string segment_gcode;
+        const double move_length = coextrusion_segment_move_length(intent);
+        if (move_length < EPSILON)
+            return segment_gcode;
+
+        const bool has_target = motion.target_angle_deg.has_value();
+        const double positioning_speed_deg_s = m_config.coextrusion_c_axis_max_speed.value > 0.0 ?
+            std::min(m_config.coextrusion_c_axis_max_speed.value,
+                     CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S) :
+            CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S;
+        const bool standalone_c_rotation = has_target &&
+            (motion.status == CoExtrusion::CAxisMotionStatus::Initialized ||
+             motion.status == CoExtrusion::CAxisMotionStatus::PrepositionRequired ||
+             motion.status == CoExtrusion::CAxisMotionStatus::IndependentRotationRequired);
+        if (standalone_c_rotation) {
+            // A C-only move has zero XY velocity and therefore must have zero
+            // positive extrusion flow. Retract for every standalone positioning
+            // mode, not only the explicit independent-rotation fallback.
+            if (!path.is_force_no_extrusion())
+                segment_gcode += m_writer.retract(false);
+            const char *rotation_comment =
+                motion.status == CoExtrusion::CAxisMotionStatus::Initialized ?
+                    "co-extrusion initial C-axis positioning" :
+                motion.status == CoExtrusion::CAxisMotionStatus::PrepositionRequired ?
+                    "co-extrusion C-axis preposition" :
+                    "co-extrusion independent C-axis rotation";
+            segment_gcode += m_writer.rotate_coextrusion_axis(
+                *motion.target_angle_deg,
+                positioning_speed_deg_s,
+                rotation_comment);
+            if (!path.is_force_no_extrusion())
+                segment_gcode += m_writer.unretract();
+        }
+
+        const double segment_speed = motion.status == CoExtrusion::CAxisMotionStatus::SlowDownRequired ?
+            nominal_speed_mm_s * motion.xyz_speed_scale : nominal_speed_mm_s;
+        const double segment_F = segment_speed * 60.0;
+        if (std::abs(m_writer.get_current_speed() - segment_F) > EPSILON)
+            segment_gcode += m_writer.set_speed(segment_F, "", comment);
+
+        switch (motion.status) {
+        case CoExtrusion::CAxisMotionStatus::UnreachableAngle:
+            segment_gcode += "; coextrusion_warning = unreachable_angle\n";
+            break;
+        case CoExtrusion::CAxisMotionStatus::InvalidTiming:
+            segment_gcode += "; coextrusion_warning = invalid_timing\n";
+            break;
+        case CoExtrusion::CAxisMotionStatus::MissingInitialAngle:
+            segment_gcode += "; coextrusion_warning = missing_initial_angle\n";
+            break;
+        default:
+            break;
+        }
+
+        std::string temp_description = description;
+        if (intent.target_color_id) {
+            segment_gcode += "; coextrusion_color_id = " +
+                             std::to_string(*intent.target_color_id) + "\n";
+        } else {
+            segment_gcode += "; coextrusion_color_id = none\n";
+        }
+        if (motion.transition_spread && motion.ideal_target_angle_deg) {
+            segment_gcode += "; coextrusion_transition_target = " +
+                             std::to_string(*motion.ideal_target_angle_deg) + "\n";
+        }
+
+        const auto [target_z, extrusion_ratio] = coextrusion_z_and_e_ratio(intent.path_end_mm);
+        double dE = e_per_mm * move_length * extrusion_ratio;
+        if (_needSAFC(path)) {
+            const double oldE = dE;
+            dE = m_small_area_infill_flow_compensator->modify_flow(move_length, dE, path.role());
+            if (m_config.gcode_comments && oldE > 0.0 && oldE != dE)
+                temp_description += Slic3r::format(
+                    " | Old Flow Value: %0.5f Length: %0.5f", oldE, move_length);
+        }
+
+        const Vec2d target_xy = this->point_to_gcode(intent.segment.b);
+        if (has_target && target_z) {
+            segment_gcode += m_writer.extrude_to_xyzc(
+                Vec3d(target_xy.x(), target_xy.y(), *target_z),
+                dE,
+                *motion.target_angle_deg,
+                GCodeWriter::full_gcode_comment ? temp_description : "",
+                path.is_force_no_extrusion());
+        } else if (has_target) {
+            segment_gcode += m_writer.extrude_to_xyc(
+                target_xy,
+                dE,
+                *motion.target_angle_deg,
+                GCodeWriter::full_gcode_comment ? temp_description : "",
+                path.is_force_no_extrusion());
+        } else if (target_z) {
+            segment_gcode += m_writer.extrude_to_xyz(
+                Vec3d(target_xy.x(), target_xy.y(), *target_z),
+                dE,
+                GCodeWriter::full_gcode_comment ? temp_description : "",
+                path.is_force_no_extrusion());
+        } else {
+            segment_gcode += m_writer.extrude_to_xy(
+                target_xy,
+                dE,
+                GCodeWriter::full_gcode_comment ? temp_description : "",
+                path.is_force_no_extrusion());
+        }
+        return segment_gcode;
+    };
+
     if (!variable_speed) {
         // F is mm per minute.
         if( (std::abs(writer().get_current_speed() - F) > EPSILON) || (std::abs(_mm3_per_mm - m_last_mm3_mm) > EPSILON) ){
@@ -7150,89 +7517,75 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
                 apply_role_based_fan_speed();
             }
+            const bool emit_coextrusion_path = coextrusion_path_plan &&
+                coextrusion_path_plan->intents.size() == coextrusion_path_plan->motion.segments.size();
+            if (emit_coextrusion_path) {
+                for (size_t segment_index = 0; segment_index < coextrusion_path_plan->intents.size(); ++segment_index) {
+                    const CoExtrusion::CAxisPathIntent &intent = coextrusion_path_plan->intents[segment_index];
+                    const CoExtrusion::CAxisMotionSegment &motion = coextrusion_path_plan->motion.segments[segment_index];
+                    gcode += emit_coextrusion_segment(intent, motion, speed);
+                }
+                // Color intent is scoped to this controlled path. Without an
+                // explicit reset, the parser would incorrectly color later
+                // infill and travel moves with the final surface sector.
+                gcode += "; coextrusion_color_id = none\n";
+            }
             // BBS: use G1 if not enable arc fitting or has no arc fitting result or in spiral_mode mode or we are doing sloped extrusion
             // Attention: G2 and G3 is not supported in spiral_mode mode
-            if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr || path.z_contoured ||
-                (m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active && path.role() == erExternalPerimeter)) {
+            else if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr || path.z_contoured) {
                 double path_length = 0.;
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
                 double saved_z      = m_writer.get_position().z();
 
-                const bool segment_for_c = m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active &&
-                                           path.role() == erExternalPerimeter;
-                // A long source edge would otherwise contain just one C target,
-                // turning a distance-domain low-pass into a long linear sweep.
-                // Sample at least four times per filter distance, with practical
-                // bounds on G-code size and angular tracking resolution.
-                for (const Line3 &source_line : path.polyline.lines()) {
-                    const double source_length = source_line.length() * SCALING_FACTOR;
-                    const size_t segment_count = segment_for_c ?
-                        std::max<size_t>(1, size_t(std::ceil(source_length / coextrusion_segment_length))) : 1;
-                    Point3 segment_start = source_line.a;
+                for (const Line3& line : path.polyline.lines()) {
+                    std::string tempDescription = description;
+                    const double line_length = line.length() * SCALING_FACTOR;
+                    if (line_length < EPSILON)
+                        continue;
+                    path_length += line_length;
+                    auto dE = e_per_mm * line_length;
+                    if (_needSAFC(path)) {
+                        auto oldE = dE;
+                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
-                    for (size_t segment_idx = 1; segment_idx <= segment_count; ++segment_idx) {
-                        Point3 segment_end;
-                        if (segment_idx == segment_count)
-                            segment_end = source_line.b;
-                        else
-                            segment_end = (source_line.a.cast<double>() + (source_line.b - source_line.a).cast<double>() *
-                                           (double(segment_idx) / double(segment_count))).cast<coord_t>();
-                        const Line3 line(segment_start, segment_end);
-                        segment_start = segment_end;
-                        std::string tempDescription = description;
-                        const double line_length = line.length() * SCALING_FACTOR;
-                        if (line_length < EPSILON)
-                            continue;
-                        size_t color_sector = size_t(-1);
-                        const auto c_axis = coextrusion_c_for_segment(this->point_to_gcode(line.a.to_point()),
-                                                                      this->point_to_gcode(line.b.to_point()), path,
-                                                                      &color_sector);
-                        if (c_axis.has_value())
-                            gcode += coextrusion_color_tag(color_sector);
-                        path_length += line_length;
-                        auto dE = e_per_mm * line_length;
-                        if (_needSAFC(path)) {
-                            auto oldE = dE;
-                            dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
-
-                            if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
-                            }
+                        if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
+                            tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                         }
-                        if (path.z_contoured) {
-                            // ZAA: Z anti-aliased extrusion with variable Z per point
-                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                            coordf_t z_diff = unscale_(line.b.z());
+                    }
+                    if (path.z_contoured) {
+                        // ZAA: Z anti-aliased extrusion with variable Z per point
+                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                        coordf_t z_diff = unscale_(line.b.z());
 
-                            double extrusion_ratio = 1;
-                            if (path.role() != erIroning) {
-                                extrusion_ratio = (path.height + z_diff) / path.height;
-                            }
-
-                            double e = dE * extrusion_ratio;
-
-                            double z = m_nominal_z + z_diff;
-                            if (z < 0.1) {
-                                throw RuntimeError("GCode: very low z");
-                            }
-                            gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                             GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
-
-                        } else if (sloped == nullptr) {
-                            // Normal extrusion
-                            gcode += m_writer.extrude_to_xy(
-                                this->point_to_gcode(line.b.to_point()),
-                                dE,
-                                GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion(), c_axis);
-                        } else {
-                            // Sloped extrusion
-                            const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
-                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                            Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
-                            gcode += m_writer.extrude_to_xyz(
-                                dest3d,
-                                dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion(), c_axis);
+                        double extrusion_ratio = 1;
+                        if (path.role() != erIroning) {
+                            extrusion_ratio = (path.height + z_diff) / path.height;
                         }
+
+                        double e = dE * extrusion_ratio;
+
+                        double z = m_nominal_z + z_diff;
+                        if (z < 0.1) {
+                            throw RuntimeError("GCode: very low z");
+                        }
+                        gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                         GCodeWriter::full_gcode_comment ? tempDescription : "");
+
+                    } else if (sloped == nullptr) {
+                        // Normal extrusion
+                        gcode += m_writer.extrude_to_xy(
+                            this->point_to_gcode(line.b.to_point()),
+                            dE,
+                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                    } else {
+                        // Sloped extrusion
+                        const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
+                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                        Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
+                        gcode += m_writer.extrude_to_xyz(
+                            dest3d,
+                            dE * e_ratio,
+                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     }
                 }
             } else {
@@ -7299,29 +7652,66 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
         }
     } else {
-        double last_set_speed = new_points[0].speed * 60.0;
+        const bool emit_variable_coextrusion_path = coextrusion_path_plan &&
+            coextrusion_path_plan->intents.size() == coextrusion_path_plan->motion.segments.size();
+        if (emit_variable_coextrusion_path) {
+            const std::vector<CoExtrusionOverlapSample> overlap_samples =
+                coextrusion_overlap_samples(new_points);
+            for (size_t segment_index = 0; segment_index < coextrusion_path_plan->intents.size(); ++segment_index) {
+                const CoExtrusion::CAxisPathIntent &intent = coextrusion_path_plan->intents[segment_index];
+                const CoExtrusion::CAxisMotionSegment &motion = coextrusion_path_plan->motion.segments[segment_index];
+                const double move_length = coextrusion_segment_move_length(intent);
+                if (move_length < EPSILON)
+                    continue;
 
-        double total_length = 0;
-        if (sloped != nullptr) {
-            // Calculate total extrusion length
-            Points3 p;
-            p.reserve(new_points.size());
-            std::transform(new_points.begin(), new_points.end(), std::back_inserter(p), [](const ProcessedPoint& pp) { return pp.p; });
-            Polyline3 l(p);
-            total_length = l.length() * SCALING_FACTOR;
-        }
-        gcode += m_writer.set_speed(last_set_speed, "", comment);
-        Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
-        bool pre_fan_enabled = false;
-        bool cur_fan_enabled = false;
-        if( m_enable_cooling_markers && enable_overhang_bridge_fan)
-            pre_fan_enabled = check_overhang_fan(new_points[0].overlap, path.role());
+                double nominal_speed = speed;
+                if (motion.nominal_duration_s > EPSILON && std::isfinite(motion.nominal_duration_s))
+                    nominal_speed = move_length / motion.nominal_duration_s;
+                const double actual_speed = motion.status == CoExtrusion::CAxisMotionStatus::SlowDownRequired ?
+                    nominal_speed * motion.xyz_speed_scale : nominal_speed;
+
+                if (m_enable_cooling_markers) {
+                    if (enable_overhang_bridge_fan) {
+                        const bool fan_at_start = check_overhang_fan(
+                            coextrusion_overlap_at(overlap_samples, intent.path_start_mm), path.role());
+                        const bool fan_at_end = check_overhang_fan(
+                            coextrusion_overlap_at(overlap_samples, intent.path_end_mm), path.role());
+                        append_role_based_fan_marker(
+                            erOverhangPerimeter, "_OVERHANG"sv, fan_at_start && fan_at_end);
+                        append_role_based_fan_marker(
+                            erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    }
+                    apply_role_based_fan_speed();
+                }
+
+                append_variable_pa_marker(m_writer.get_current_speed(), actual_speed * 60.0);
+                gcode += emit_coextrusion_segment(intent, motion, nominal_speed);
+            }
+            gcode += "; coextrusion_color_id = none\n";
+        } else {
+            double last_set_speed = new_points[0].speed * 60.0;
+
+            double total_length = 0;
+            if (sloped != nullptr) {
+                // Calculate total extrusion length
+                Points3 p;
+                p.reserve(new_points.size());
+                std::transform(new_points.begin(), new_points.end(), std::back_inserter(p), [](const ProcessedPoint& pp) { return pp.p; });
+                Polyline3 l(p);
+                total_length = l.length() * SCALING_FACTOR;
+            }
+            gcode += m_writer.set_speed(last_set_speed, "", comment);
+            Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
+            bool pre_fan_enabled = false;
+            bool cur_fan_enabled = false;
+            if( m_enable_cooling_markers && enable_overhang_bridge_fan)
+                pre_fan_enabled = check_overhang_fan(new_points[0].overlap, path.role());
         
-        if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
-            pre_fan_enabled = true;
+            if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
+                pre_fan_enabled = true;
 
-        double path_length = 0.;
-        for (size_t i = 1; i < new_points.size(); i++) {
+            double path_length = 0.;
+            for (size_t i = 1; i < new_points.size(); i++) {
             std::string tempDescription = description;
             const ProcessedPoint &processed_point = new_points[i];
             const ProcessedPoint &pre_processed_point = new_points[i-1];
@@ -7342,56 +7732,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double line_length = (p - prev).norm();
             if(line_length < EPSILON)
                 continue;
-            size_t color_sector = size_t(-1);
-            const auto c_axis = coextrusion_c_for_segment(prev.head<2>(), p.head<2>(), path, &color_sector);
-            if (c_axis.has_value())
-                gcode += coextrusion_color_tag(color_sector);
             path_length += line_length;
             double new_speed = pre_processed_point.speed * 60.0;
             
-            if ((std::abs(last_set_speed - new_speed) > EPSILON) || (std::abs(_mm3_per_mm - m_last_mm3_mm) > EPSILON)) {
-                // ORCA: Adaptive PA code segment when adjusting PA within the same feature
-                // There is a speed change or flow change so emit the flag to evaluate PA for the upcomming extrusion
-                // Emit tag before new speed is set so the post processor reads the next speed immediately and uses it.
-                if(_mm3_per_mm >0   &&
-                   EXTRUDER_CONFIG(adaptive_pressure_advance) &&
-                   EXTRUDER_CONFIG(enable_pressure_advance) &&
-                   EXTRUDER_CONFIG(adaptive_pressure_advance_overhangs) ){
-                    if(last_set_speed > new_speed){ // Ramping down speed - use overhang logic where the minimum speed is used between current and upcoming extrusion
-                        if(m_config.gcode_comments) {
-                            sprintf(buf, "; Ramp up-variable\n");
-                            gcode += buf;
-                        }
-                        sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                                m_writer.filament()->id(),
-                                _mm3_per_mm,
-                                acceleration_i,
-                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
-                                1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
-                                // the properties of the extrusion in the overhang are different so it is technically similar to a role
-                                // change for the Adaptive PA post processor.
-                                1);
-                    }else{ // Ramping up speed - use baseline logic where max speed is used between current and upcoming extrusion
-                        if(m_config.gcode_comments) {
-                            sprintf(buf, "; Ramp down-variable\n");
-                            gcode += buf;
-                        }
-                        sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                                m_writer.filament()->id(),
-                                _mm3_per_mm,
-                                acceleration_i,
-                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
-                                1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
-                                // the properties of the extrusion in the overhang are different so it is technically similar to a role
-                                // change for the Adaptive PA post processor.
-                                0);
-                    }
-                    gcode += buf;
-                    m_last_mm3_mm = _mm3_per_mm;
-                }
-            }// ORCA: End of adaptive PA code segment
+            append_variable_pa_marker(last_set_speed, new_speed);
             
             // Ignore small speed variations - emit speed change if the delta between current and new is greater than 60mm/min / 1mm/sec
             // Reset speed to F if delta to F is less than 1mm/sec
@@ -7427,19 +7771,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     throw RuntimeError("GCode: very low z");
                 }
                 gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                 GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
+                                                 GCodeWriter::full_gcode_comment ? tempDescription : "");
             } else if (sloped == nullptr) {
                 // Normal extrusion
-                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
+                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
             } else {
                 // Sloped extrusion
                 const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                 Vec3d dest3d(p(0), p(1), get_sloped_z(z_ratio));
-                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
+                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "");
             }
 
-            prev = p;
+                prev = p;
 
+            }
         }
     }
     if (m_enable_cooling_markers) {
@@ -7541,7 +7886,8 @@ std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
 }
 
 // This method accepts &point in print coordinates.
-std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string comment, double z/* = DBL_MAX*/)
+std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string comment, double z,
+                           std::optional<double> entry_c_angle)
 {
     /*  Define the travel move as a line between current position and the taget point.
         This is expressed in print coordinates, so it will need to be translated by
@@ -7624,6 +7970,10 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     m_avoid_crossing_perimeters.reset_once_modifiers();
 
     // generate G-code for the travel move
+    if (entry_c_angle) {
+        needs_retraction = true;
+        lift_type = LiftType::NormalLift;
+    }
     if (needs_retraction) {
         // ORCA: Fix scenario where wipe is disabled when avoid crossing perimeters was enabled even though a retraction move was performed.
         // This replicates the existing behaviour of always wiping when retracting
@@ -7661,6 +8011,21 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     m_writer.add_object_change_labels(gcode);
 
     // use G1 because we rely on paths being straight (G0 may make round paths)
+    if (entry_c_angle) {
+        // Some infill patterns suppress the normal travel retraction. A C-only
+        // positioning move still needs the configured retraction in that case.
+        gcode += m_writer.retract(false);
+        // Complete any configured Z hop before turning at the departure point.
+        // C stays in physical absolute coordinates, including limited-range unwinds.
+        if (m_writer.get_zhop() == 0.0)
+            gcode += m_writer.eager_lift(LiftType::NormalLift);
+        const double positioning_speed = m_config.coextrusion_c_axis_max_speed.value > 0.0 ?
+            std::min(m_config.coextrusion_c_axis_max_speed.value,
+                     CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S) :
+            CoExtrusion::GENTLE_C_AXIS_TRANSITION_SPEED_DEG_S;
+        gcode += m_writer.rotate_coextrusion_axis(*entry_c_angle, positioning_speed,
+            "co-extrusion C-axis preposition before travel");
+    }
     if (travel.size() >= 2) {
         // Orca: use `travel_to_xyz` to ensure we start at the correct z, in case we moved z in custom/filament change gcode
         if (false/*m_spiral_vase*/) {
@@ -7906,18 +8271,6 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
-
-    if (m_config.coextrusion_c_axis_enable.value) {
-        // Logical filaments are color sectors of one physical co-extruded
-        // strand. Preserve the logical ID for path/color lookup without any
-        // retract, purge, temperature change, or physical T command.
-        m_writer.select_filament(new_filament_id);
-        this->placeholder_parser().set("current_extruder", new_filament_id);
-        this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
-        if (new_filament_id < m_coextrusion_filament_to_sector.size())
-            return coextrusion_color_tag(m_coextrusion_filament_to_sector[new_filament_id]);
-        return "";
-    }
 
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {

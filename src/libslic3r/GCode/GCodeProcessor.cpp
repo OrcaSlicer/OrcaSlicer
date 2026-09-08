@@ -1,5 +1,6 @@
 #include "ExtrusionEntity.hpp"
 #include "GCodeWriter.hpp"
+#include "CoExtrusion/CoExtrusionTypes.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
@@ -75,8 +76,7 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@",
-    " COEXTRUSION_COLOR:"
+    "@USED_FILAMENT_LENGTH@"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -99,8 +99,7 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@",
-    "COEXTRUSION_COLOR:"
+    "@USED_FILAMENT_LENGTH@"
 };
 
 
@@ -1671,7 +1670,14 @@ void GCodeProcessorResult::reset() {
     filaments_count = 0;
     backtrace_enabled = false;
     extruder_colors = std::vector<std::string>();
-    coextrusion_colors.clear();
+    coextrusion_version = 0;
+    coextrusion_axis_letter = 'C';
+    coextrusion_axis_direction = 1;
+    coextrusion_axis_zero_offset_deg = 0.0f;
+    coextrusion_angle_mode.clear();
+    coextrusion_profiles.clear();
+    coextrusion_calibration_offsets_deg.clear();
+    coextrusion_warnings.clear();
     filament_diameters = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DIAMETER);
     required_nozzle_HRC = std::vector<int>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_HRC);
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
@@ -2032,10 +2038,6 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_flavor = config.gcode_flavor;
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
-    m_result.coextrusion_colors = config.coextrusion_c_axis_enable.value ?
-        (config.filament_coextrusion_enable.value ? config.filament_coextrusion_colors.values :
-                                                    config.coextrusion_c_axis_colors.values) :
-        std::vector<std::string>{};
 
     size_t filament_count = config.filament_diameter.values.size();
     m_result.filaments_count = filament_count;
@@ -2166,16 +2168,6 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
     m_parser.apply_config(config);
-
-    const ConfigOptionBool *coextrusion_enabled = config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
-    const ConfigOptionBool *filament_coextrusion_enabled = config.option<ConfigOptionBool>("filament_coextrusion_enable");
-    const bool use_filament_colors = filament_coextrusion_enabled != nullptr && filament_coextrusion_enabled->value;
-    const ConfigOptionStrings *coextrusion_colors = config.option<ConfigOptionStrings>(
-        use_filament_colors ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
-    if (coextrusion_enabled != nullptr && coextrusion_enabled->value && coextrusion_colors != nullptr)
-        m_result.coextrusion_colors = coextrusion_colors->values;
-    else
-        m_result.coextrusion_colors.clear();
 
     //BBS
     const ConfigOptionFloatsNullable* nozzle_volume = config.option<ConfigOptionFloatsNullable>("nozzle_volume");
@@ -2538,9 +2530,13 @@ void GCodeProcessor::reset()
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
     m_z_offset = 0.0f;
+    m_coextrusion_enabled = false;
+    m_coextrusion_axis_letter = 'C';
+    m_coextrusion_c_angle_deg = 0.0f;
+    m_coextrusion_color_id = 0;
+    m_has_coextrusion_color = false;
 
     m_extrusion_role = erNone;
-    m_coextrusion_color_id = COEXTRUSION_COLOR_ID_NONE;
 
     m_filament_id = std::vector<unsigned char>(MAXIMUM_EXTRUDER_NUMBER, static_cast<unsigned char>(-1));
     m_last_filament_id = std::vector<unsigned char>(MAXIMUM_EXTRUDER_NUMBER, static_cast<unsigned char>(-1));
@@ -3130,6 +3126,133 @@ bool GCodeProcessor::get_last_position_from_gcode(const std::string &gcode_str, 
 
 void GCodeProcessor::process_tags(const std::string_view comment, bool producers_enabled)
 {
+    std::string_view coextrusion_tag = comment;
+    while (!coextrusion_tag.empty() && (coextrusion_tag.front() == ' ' || coextrusion_tag.front() == '\t'))
+        coextrusion_tag.remove_prefix(1);
+    if (boost::starts_with(coextrusion_tag, "coextrusion_version")) {
+        m_coextrusion_enabled = true;
+        m_result.coextrusion_version = 1;
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_axis_direction")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            try {
+                const int direction = std::stoi(std::string(coextrusion_tag.substr(separator + 1)));
+                if (direction == -1 || direction == 1)
+                    m_result.coextrusion_axis_direction = direction;
+            } catch (...) {}
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_axis_zero_offset")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            try {
+                m_result.coextrusion_axis_zero_offset_deg = std::stof(std::string(coextrusion_tag.substr(separator + 1)));
+            } catch (...) {}
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_axis")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            std::string_view value = coextrusion_tag.substr(separator + 1);
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+                value.remove_prefix(1);
+            if (!value.empty()) {
+                const std::optional<char> axis = CoExtrusion::parse_c_axis_letter(value.substr(0, 1));
+                if (axis) {
+                    m_coextrusion_axis_letter = *axis;
+                    m_coextrusion_enabled = true;
+                    m_result.coextrusion_axis_letter = m_coextrusion_axis_letter;
+                }
+            }
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_angle_mode")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            std::string_view value = coextrusion_tag.substr(separator + 1);
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+                value.remove_prefix(1);
+            m_result.coextrusion_angle_mode.assign(value);
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_profile_")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            const std::string_view id_text = coextrusion_tag.substr(
+                std::string_view("coextrusion_profile_").size(),
+                separator - std::string_view("coextrusion_profile_").size());
+            size_t filament_id = 0;
+            try {
+                filament_id = size_t(std::stoul(std::string(id_text)));
+            } catch (...) {
+                return;
+            }
+            std::string_view value = coextrusion_tag.substr(separator + 1);
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+                value.remove_prefix(1);
+            if (m_result.coextrusion_profiles.size() <= filament_id)
+                m_result.coextrusion_profiles.resize(filament_id + 1);
+            m_result.coextrusion_profiles[filament_id].assign(value);
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_calibration_")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            const std::string_view id_text = coextrusion_tag.substr(
+                std::string_view("coextrusion_calibration_").size(),
+                separator - std::string_view("coextrusion_calibration_").size());
+            try {
+                const size_t filament_id = size_t(std::stoul(std::string(id_text)));
+                const float offset = std::stof(std::string(coextrusion_tag.substr(separator + 1)));
+                if (m_result.coextrusion_calibration_offsets_deg.size() <= filament_id)
+                    m_result.coextrusion_calibration_offsets_deg.resize(filament_id + 1, 0.0f);
+                m_result.coextrusion_calibration_offsets_deg[filament_id] = offset;
+            } catch (...) {}
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_color_id")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            std::string_view value = coextrusion_tag.substr(separator + 1);
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+                value.remove_prefix(1);
+            if (boost::starts_with(value, "none")) {
+                m_has_coextrusion_color = false;
+            } else {
+                try {
+                    m_coextrusion_color_id = uint32_t(std::stoul(std::string(value)));
+                    m_has_coextrusion_color = true;
+                } catch (...) {
+                    m_has_coextrusion_color = false;
+                }
+            }
+        }
+        return;
+    }
+    if (boost::starts_with(coextrusion_tag, "coextrusion_warning")) {
+        const size_t separator = coextrusion_tag.find('=');
+        if (separator != std::string_view::npos) {
+            std::string_view value = coextrusion_tag.substr(separator + 1);
+            while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+                value.remove_prefix(1);
+            const std::string warning(value);
+            if (!warning.empty() && std::find(
+                    m_result.coextrusion_warnings.begin(),
+                    m_result.coextrusion_warnings.end(),
+                    warning) == m_result.coextrusion_warnings.end())
+                m_result.coextrusion_warnings.emplace_back(warning);
+        }
+        return;
+    }
+
     // producers tags
     if (producers_enabled && process_producers_tags(comment))
         return;
@@ -3140,18 +3263,6 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         if (m_extrusion_role == erExternalPerimeter)
             m_seams_detector.activate(true);
         m_processing_start_custom_gcode = (m_extrusion_role == erCustom && m_g1_line_id == 0);
-        return;
-    }
-
-    if (boost::starts_with(comment, reserved_tag(ETags::CoExtrusion_Color))) {
-        int color_id = -1;
-        if (parse_number(comment.substr(reserved_tag(ETags::CoExtrusion_Color).length()), color_id) &&
-            color_id >= 0 && color_id < COEXTRUSION_COLOR_ID_NONE)
-            m_coextrusion_color_id = static_cast<unsigned char>(color_id);
-        else {
-            m_coextrusion_color_id = COEXTRUSION_COLOR_ID_NONE;
-            BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid co-extrusion color sector (" << comment << ").";
-        }
         return;
     }
 
@@ -3842,6 +3953,11 @@ void GCodeProcessor::process_G0(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
+    if (m_coextrusion_enabled) {
+        float c_angle = 0.0f;
+        if (line.has_value(m_coextrusion_axis_letter, c_angle))
+            m_coextrusion_c_angle_deg = c_angle;
+    }
     std::array<std::optional<double>, 4> g1_axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt };
     if (line.has_x()) g1_axes[X] = (double)line.x();
     if (line.has_y()) g1_axes[Y] = (double)line.y();
@@ -4983,6 +5099,14 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
     float lengths_scale_factor = (m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
     bool any_found = false;
 
+    if (m_coextrusion_enabled) {
+        float c_angle = 0.0f;
+        if (line.has_value(m_coextrusion_axis_letter, c_angle)) {
+            m_coextrusion_c_angle_deg = c_angle;
+            any_found = true;
+        }
+    }
+
     if (line.has_x()) {
         m_origin[X] = m_end_position[X] - line.x() * lengths_scale_factor;
         any_found = true;
@@ -5728,9 +5852,12 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         std::max<unsigned int>(1, m_layer_id) - 1,
         internal_only,
         m_object_label_id,
-        m_print_z,
-        m_coextrusion_color_id
+        m_print_z
     });
+    m_result.moves.back().coextrusion_c_angle_deg = m_coextrusion_c_angle_deg;
+    m_result.moves.back().has_coextrusion_c_angle = m_coextrusion_enabled;
+    m_result.moves.back().coextrusion_color_id = m_coextrusion_color_id;
+    m_result.moves.back().has_coextrusion_color = m_has_coextrusion_color;
 
     if (type == EMoveType::Seam) {
         m_seams_count++;

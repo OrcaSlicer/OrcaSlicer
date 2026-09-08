@@ -18,6 +18,9 @@ add_executable(${_TEST_NAME}_tests
 	test_trianglemesh.cpp
 	)
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+if(MSVC)
+    target_link_options(${_TEST_NAME}_tests PRIVATE /NODEFAULTLIB:LIBCMT)
+endif()
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls()

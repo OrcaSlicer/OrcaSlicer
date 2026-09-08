@@ -2690,10 +2690,8 @@ void ObjectList::del_info_item(const int obj_idx, InfoItemType type)
     case InfoItemType::MmSegmentation:
         cnv->get_gizmos_manager().reset_all_states();
         Plater::TakeSnapshot(plater, "Remove color painting");
-        for (ModelVolume* mv : (*m_objects)[obj_idx]->volumes) {
+        for (ModelVolume* mv : (*m_objects)[obj_idx]->volumes)
             mv->mmu_segmentation_facets.reset();
-            mv->coextrusion_segmentation_facets.reset();
-        }
         break;
 
     case InfoItemType::FuzzySkin:

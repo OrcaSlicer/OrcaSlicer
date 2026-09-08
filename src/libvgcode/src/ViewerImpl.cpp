@@ -508,6 +508,68 @@ void ViewerImpl::TextureData::set_colors(const std::vector<float>& colors)
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
+void ViewerImpl::TextureData::set_coextrusion_data(
+    const std::vector<std::array<float, 4>>& centers,
+    const std::vector<std::array<float, 4>>& widths,
+    const std::vector<std::array<float, 4>>& colors)
+{
+    if (m_count == 0 || centers.size() != widths.size() || centers.size() != colors.size())
+        return;
+
+    for (TexIds& ids : m_tex_ids) {
+        delete_textures(ids.coextrusion_centers.first);
+        delete_textures(ids.coextrusion_widths.first);
+        delete_textures(ids.coextrusion_colors.first);
+        ids.coextrusion_centers.second = 0;
+        ids.coextrusion_widths.second = 0;
+        ids.coextrusion_colors.second = 0;
+    }
+    m_coextrusion_size = 0;
+    if (centers.empty())
+        return;
+
+    int curr_bound_texture = 0;
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    int curr_unpack_alignment = 0;
+    glsafe(glGetIntegerv(GL_UNPACK_ALIGNMENT, &curr_unpack_alignment));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
+    const auto upload = [&](const std::vector<std::array<float, 4>>& data,
+                            std::pair<unsigned int, size_t> TexIds::*member) {
+        const size_t tex_capacity = max_texture_capacity();
+        size_t remaining = data.size();
+        for (size_t i = 0; i < m_count; ++i) {
+            const auto [w, h] = width_height(std::min(remaining, tex_capacity));
+            const size_t offset = i * tex_capacity;
+            auto &texture = m_tex_ids[i].*member;
+            glsafe(glGenTextures(1, &texture.first));
+            glsafe(glBindTexture(GL_TEXTURE_2D, texture.first));
+            glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+            glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+            glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h),
+                0, GL_RGBA, GL_FLOAT, nullptr));
+            if (h > 1)
+                glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1),
+                    GL_RGBA, GL_FLOAT, &data[offset]));
+            const size_t last_row_count = remaining >= tex_capacity ? w : remaining - w * (h - 1);
+            if (last_row_count > 0)
+                glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1),
+                    static_cast<GLsizei>(last_row_count), 1, GL_RGBA, GL_FLOAT, &data[offset + w * (h - 1)]));
+            texture.second = w * (h - 1) + last_row_count;
+            remaining = remaining > tex_capacity ? remaining - tex_capacity : 0;
+        }
+    };
+
+    upload(centers, &TexIds::coextrusion_centers);
+    upload(widths, &TexIds::coextrusion_widths);
+    upload(colors, &TexIds::coextrusion_colors);
+    m_coextrusion_size = 3 * centers.size() * sizeof(std::array<float, 4>);
+
+    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
+}
+
 void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments)
 {
     if (m_count == 0)
@@ -650,6 +712,9 @@ void ViewerImpl::TextureData::reset()
         delete_textures(ids.enabled_options.first);
         delete_textures(ids.enabled_segments.first);
         delete_textures(ids.colors.first);
+        delete_textures(ids.coextrusion_centers.first);
+        delete_textures(ids.coextrusion_widths.first);
+        delete_textures(ids.coextrusion_colors.first);
         delete_textures(ids.heights_widths_angles.first);
         delete_textures(ids.positions.first);
     }
@@ -662,6 +727,7 @@ void ViewerImpl::TextureData::reset()
     m_positions_size = 0;
     m_height_width_angle_size = 0;
     m_colors_size = 0;
+    m_coextrusion_size = 0;
     m_enabled_segments_size = 0;
     m_enabled_options_size = 0;
 }
@@ -682,6 +748,24 @@ std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_colors_tex_id(size_
 {
     assert(id < m_tex_ids.size());
     return m_tex_ids[id].colors;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_coextrusion_centers_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].coextrusion_centers;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_coextrusion_widths_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].coextrusion_widths;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_coextrusion_colors_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].coextrusion_colors;
 }
 
 std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_enabled_segments_tex_id(size_t id) const
@@ -720,6 +804,7 @@ size_t ViewerImpl::TextureData::get_used_gpu_memory() const
     ret += m_positions_size;
     ret += m_height_width_angle_size;
     ret += m_colors_size;
+    ret += m_coextrusion_size;
     ret += m_enabled_segments_size;
     ret += m_enabled_options_size;
     return ret;
@@ -763,6 +848,10 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
     m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
     m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    m_uni_segments_coextrusion_centers_tex_id = glGetUniformLocation(m_segments_shader_id, "coextrusion_centers_tex");
+    m_uni_segments_coextrusion_widths_tex_id  = glGetUniformLocation(m_segments_shader_id, "coextrusion_widths_tex");
+    m_uni_segments_coextrusion_colors_tex_id  = glGetUniformLocation(m_segments_shader_id, "coextrusion_colors_tex");
+    m_uni_segments_coextrusion_preview_enabled_id = glGetUniformLocation(m_segments_shader_id, "coextrusion_preview_enabled");
     glcheck();
     assert(m_uni_segments_view_matrix_id != -1 &&
            m_uni_segments_projection_matrix_id != -1 &&
@@ -770,7 +859,11 @@ void ViewerImpl::init(const std::string& opengl_context_version)
            m_uni_segments_positions_tex_id != -1 &&
            m_uni_segments_height_width_angle_tex_id != -1 &&
            m_uni_segments_colors_tex_id != -1 &&
-           m_uni_segments_segment_index_tex_id != -1);
+           m_uni_segments_segment_index_tex_id != -1 &&
+           m_uni_segments_coextrusion_centers_tex_id != -1 &&
+           m_uni_segments_coextrusion_widths_tex_id != -1 &&
+           m_uni_segments_coextrusion_colors_tex_id != -1 &&
+           m_uni_segments_coextrusion_preview_enabled_id != -1);
 
     m_segment_template.init();
 
@@ -874,6 +967,7 @@ void ViewerImpl::reset()
     m_total_time = { 0.0f, 0.0f };
     m_travels_time = { 0.0f, 0.0f };
     m_vertices.clear();
+    m_has_coextrusion_data = false;
     m_vertices_colors.clear();
     m_valid_lines_bitset.clear();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -894,10 +988,17 @@ void ViewerImpl::reset()
     delete_buffers(m_enabled_segments_buf_id);
     delete_textures(m_colors_tex_id);
     delete_buffers(m_colors_buf_id);
+    delete_textures(m_coextrusion_centers_tex_id);
+    delete_buffers(m_coextrusion_centers_buf_id);
+    delete_textures(m_coextrusion_widths_tex_id);
+    delete_buffers(m_coextrusion_widths_buf_id);
+    delete_textures(m_coextrusion_colors_tex_id);
+    delete_buffers(m_coextrusion_colors_buf_id);
     delete_textures(m_heights_widths_angles_tex_id);
     delete_buffers(m_heights_widths_angles_buf_id);
     delete_textures(m_positions_tex_id);
     delete_buffers(m_positions_buf_id);
+    m_coextrusion_tex_size = 0;
 #endif // ENABLE_OPENGL_ES
 }
 
@@ -982,6 +1083,20 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
     }
 }
 
+static void extract_coextrusion_data(const std::vector<PathVertex>& vertices,
+    std::vector<Vec4>& centers, std::vector<Vec4>& widths, std::vector<Vec4>& colors)
+{
+    centers.reserve(vertices.size());
+    widths.reserve(vertices.size());
+    colors.reserve(vertices.size());
+    for (const PathVertex &vertex : vertices) {
+        centers.emplace_back(vertex.coextrusion_sector_centers_deg);
+        colors.emplace_back(vertex.coextrusion_sector_colors);
+        widths.emplace_back(vertex.has_coextrusion_profile && vertex.is_extrusion() ?
+            vertex.coextrusion_sector_widths_deg : Vec4 { 0.0f, 0.0f, 0.0f, 0.0f });
+    }
+}
+
 void ViewerImpl::load(GCodeInputData&& gcode_data)
 {
     if (!m_initialized)
@@ -995,7 +1110,6 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     m_vertices = std::move(gcode_data.vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
     m_color_print_colors = std::move(gcode_data.color_print_colors);
-    m_coextrusion_colors = std::move(gcode_data.coextrusion_colors);
     m_vertices_colors.resize(m_vertices.size());
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
@@ -1067,9 +1181,17 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     // the last component is a dummy float to comply with GL_RGBA32F format
     std::vector<Vec4> positions;
     std::vector<Vec4> heights_widths_angles;
+    std::vector<Vec4> coextrusion_centers;
+    std::vector<Vec4> coextrusion_widths;
+    std::vector<Vec4> coextrusion_colors;
     positions.reserve(m_vertices.size());
     heights_widths_angles.reserve(m_vertices.size());
     extract_pos_and_or_hwa(m_vertices, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, &positions, &heights_widths_angles, true);
+    m_has_coextrusion_data = std::any_of(m_vertices.begin(), m_vertices.end(), [](const PathVertex &vertex) {
+        return vertex.has_coextrusion_profile;
+    });
+    if (m_has_coextrusion_data)
+        extract_coextrusion_data(m_vertices, coextrusion_centers, coextrusion_widths, coextrusion_colors);
 
     if (!positions.empty()) {
 #ifdef ENABLE_OPENGL_ES
@@ -1078,6 +1200,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         m_texture_data.set_positions(positions);
         // create and fill height, width and angle textures
         m_texture_data.set_heights_widths_angles(heights_widths_angles);
+        m_texture_data.set_coextrusion_data(coextrusion_centers, coextrusion_widths, coextrusion_colors);
 #else
         m_positions_tex_size = positions.size() * sizeof(Vec3);
         m_height_width_angle_tex_size = heights_widths_angles.size() * sizeof(Vec3);
@@ -1104,6 +1227,21 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
         glsafe(glGenTextures(1, &m_colors_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
+
+        const auto create_coextrusion_buffer = [&](unsigned int &buffer_id, unsigned int &texture_id,
+                                                   const std::vector<Vec4> &data) {
+            glsafe(glGenBuffers(1, &buffer_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, buffer_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, data.size() * sizeof(Vec4), data.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &texture_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, texture_id));
+        };
+        if (m_has_coextrusion_data) {
+            create_coextrusion_buffer(m_coextrusion_centers_buf_id, m_coextrusion_centers_tex_id, coextrusion_centers);
+            create_coextrusion_buffer(m_coextrusion_widths_buf_id, m_coextrusion_widths_tex_id, coextrusion_widths);
+            create_coextrusion_buffer(m_coextrusion_colors_buf_id, m_coextrusion_colors_tex_id, coextrusion_colors);
+            m_coextrusion_tex_size = 3 * coextrusion_centers.size() * sizeof(Vec4);
+        }
 
         // create (but do not fill) enabled segments buffer (data is set in update_enabled_entities())
         glsafe(glGenBuffers(1, &m_enabled_segments_buf_id));
@@ -1541,16 +1679,6 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
         return m_tool_colors[v.extruder_id];
     }
-    case EViewType::CoExtrusion:
-    {
-        if (v.is_travel())
-            return get_option_color(move_type_to_option(v.type));
-        if (v.role == EGCodeExtrusionRole::ExternalPerimeter &&
-            v.coextrusion_color_id != COEXTRUSION_COLOR_ID_NONE &&
-            static_cast<size_t>(v.coextrusion_color_id) < m_coextrusion_colors.size())
-            return m_coextrusion_colors[static_cast<size_t>(v.coextrusion_color_id)];
-        return DUMMY_COLOR;
-    }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
     {
@@ -1572,12 +1700,6 @@ void ViewerImpl::set_tool_colors(const Palette& colors)
 void ViewerImpl::set_color_print_colors(const Palette& colors)
 {
     m_color_print_colors = colors;
-    m_settings.update_colors = true;
-}
-
-void ViewerImpl::set_coextrusion_colors(const Palette& colors)
-{
-    m_coextrusion_colors = colors;
     m_settings.update_colors = true;
 }
 
@@ -1703,7 +1825,6 @@ size_t ViewerImpl::get_used_cpu_memory() const
     }
     ret += STDVEC_MEMSIZE(m_tool_colors, Color);
     ret += STDVEC_MEMSIZE(m_color_print_colors, Color);
-    ret += STDVEC_MEMSIZE(m_coextrusion_colors, Color);
     return ret;
 }
 
@@ -1722,6 +1843,7 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_positions_tex_size;
     ret += m_height_width_angle_tex_size;
     ret += m_colors_tex_size;
+    ret += m_coextrusion_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
 #endif // ENABLE_OPENGL_ES
@@ -1953,6 +2075,14 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniform1i(m_uni_segments_height_width_angle_tex_id, 1));
     glsafe(glUniform1i(m_uni_segments_colors_tex_id, 2));
     glsafe(glUniform1i(m_uni_segments_segment_index_tex_id, 3));
+    glsafe(glUniform1i(m_uni_segments_coextrusion_centers_tex_id, 4));
+    glsafe(glUniform1i(m_uni_segments_coextrusion_widths_tex_id, 5));
+    glsafe(glUniform1i(m_uni_segments_coextrusion_colors_tex_id, 6));
+    glsafe(glUniform1i(m_uni_segments_coextrusion_preview_enabled_id,
+        // Filament view shows the requested painted result. Summary keeps the
+        // physical rotating-sector diagnostic available without obscuring it
+        // with alternating stripes in the normal color preview.
+        m_has_coextrusion_data && m_settings.view_type == EViewType::Summary ? 1 : 0));
     glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
@@ -1960,8 +2090,11 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glDisable(GL_CULL_FACE));
 
 #ifdef ENABLE_OPENGL_ES
-    int curr_bound_texture = 0;
-    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    std::array<int, 7> curr_bound_texture = { 0, 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture[i]));
+    }
 
     for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
         const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
@@ -1975,10 +2108,16 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
+        glsafe(glActiveTexture(GL_TEXTURE4));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_coextrusion_centers_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE5));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_coextrusion_widths_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE6));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_coextrusion_colors_tex_id(i).first));
         m_segment_template.render(count);
     }
 #else
-    std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
+    std::array<int, 7> curr_bound_texture = { 0, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < curr_bound_texture.size(); ++i) {
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_bound_texture[i]));
@@ -1997,6 +2136,15 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE4));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_coextrusion_centers_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_coextrusion_centers_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE5));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_coextrusion_widths_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_coextrusion_widths_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE6));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_coextrusion_colors_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_coextrusion_colors_buf_id));
 
     m_segment_template.render(m_enabled_segments_count);
 #endif // ENABLE_OPENGL_ES
@@ -2006,7 +2154,10 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 
     glsafe(glUseProgram(curr_shader));
 #ifdef ENABLE_OPENGL_ES
-    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    for (int i = 0; i < curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture[i]));
+    }
 #else
     for (int i = 0; i < curr_bound_texture.size(); ++i) {
         glsafe(glActiveTexture(GL_TEXTURE0 + i));

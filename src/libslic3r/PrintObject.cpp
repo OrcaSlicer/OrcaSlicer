@@ -1021,7 +1021,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
 
 void PrintObject::clear_layers()
 {
-    m_mmu_surface_color_lines.clear();
+    m_coextrusion_surface_sidecar.reset();
     if (!m_shared_object) {
         for (Layer *l : m_layers)
             delete l;
@@ -1100,7 +1100,17 @@ bool PrintObject::invalidate_state_by_config_options(
     std::vector<PrintObjectStep> steps;
     bool invalidated = false;
     for (const t_config_option_key &opt_key : opt_keys) {
-        if (   opt_key == "brim_width"
+        if (opt_key == "coextrusion_surface_control" || opt_key == "coextrusion_surface_color_id") {
+            steps.emplace_back(posSlice);
+        } else if (opt_key == "coextrusion_color_method"
+            || opt_key == "coextrusion_max_segment_length"
+            || opt_key == "coextrusion_angle_tolerance"
+            || opt_key == "coextrusion_angular_safety_margin"
+            || opt_key == "coextrusion_normal_xy_threshold"
+            || opt_key == "coextrusion_top_bottom_strategy"
+            || opt_key == "coextrusion_large_rotation_strategy") {
+            invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (   opt_key == "brim_width"
             || opt_key == "brim_object_gap"
             || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"

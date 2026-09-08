@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="460" viewBox="0 0 1080 460" role="img" aria-labelledby="title desc">
+  <title id="title">有限累计转角下的合法退绕</title>
+  <desc id="desc">机械角度是一条有边界的数轴。正一百七十度到负一百七十度需要反转三百四十度，不能正转到超限的正一百九十度。退绕应在非显色挤出阶段完成。</desc>
+  <defs>
+    <marker id="blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2563eb"/></marker>
+    <marker id="red" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="1080" height="460" rx="18" fill="#f8fafc"/>
+  <g font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" fill="#0f172a">
+    <text x="30" y="43" font-size="25" font-weight="bold">03  无滑环 C 轴：显色方向周期重复，机械转角不能丢失</text>
+    <text x="30" y="77" font-size="18" fill="#475569">示例限位 [−180°, 180°]；当前 C = 170°；目标方向 = −170°（也等效于 190°）</text>
+    <rect x="110" y="164" width="792" height="48" rx="6" fill="#dcfce7"/>
+    <rect x="902" y="164" width="99" height="48" fill="#fee2e2"/>
+    <path d="M80 188H1008" stroke="#334155" stroke-width="2"/>
+    <g stroke="#334155" stroke-width="2"><path d="M110 160V218M506 179V197M902 160V218"/></g>
+    <g font-size="18"><text x="79" y="246">−180°</text><text x="493" y="239">0°</text><text x="881" y="246">180°</text></g>
+    <circle cx="132" cy="188" r="7" fill="#2563eb"/><circle cx="880" cy="188" r="7" fill="#0f172a"/><circle cx="924" cy="188" r="7" fill="#dc2626"/>
+    <text x="111" y="139" font-size="18" fill="#2563eb">目标 −170°</text><text x="752" y="139" font-size="18">当前 170°</text>
+    <path d="M880 267V294H132V212" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+    <text x="325" y="326" font-size="20" fill="#1d4ed8" font-weight="bold">合法反转 −340°：途中不能保证显色正确</text>
+    <path d="M880 160Q902 98 924 160" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#red)"/>
+    <text x="936" y="123" font-size="18" fill="#dc2626">+20°</text><text x="937" y="146" font-size="18" fill="#dc2626">超限</text>
+    <rect x="30" y="353" width="1020" height="80" rx="10" fill="white" stroke="#cbd5e1"/>
+    <text x="49" y="383" font-size="18">几何求解给出目标方向；运动规划决定等效角度、旋转路线和退绕时机。</text>
+    <text x="49" y="412" font-size="18">G92 改写坐标不会真实解扭。退绕应优先利用接缝、空移或其他合适的非挤出阶段。</text>
+  </g>
+</svg>

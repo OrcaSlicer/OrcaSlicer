@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img" aria-labelledby="title desc">
+  <title id="title">料条截面到喷嘴截面的逆弯折映射</title>
+  <desc id="desc">沿 X 正方向水平打印时，料条上方映射到喷嘴后方 X 负方向，料条 Y 正侧方保持 Y 正。朝 Y 正和 Z 正的斜面法线映射到喷嘴一百三十五度方向。</desc>
+  <defs>
+    <marker id="axis" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#475569"/></marker>
+    <marker id="purple" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#7c3aed"/></marker>
+  </defs>
+  <rect width="1120" height="620" rx="18" fill="#f8fafc"/>
+  <g font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" fill="#0f172a">
+    <text x="28" y="41" font-size="25" font-weight="bold">02  从外法线反求喷嘴截面方向</text>
+    <text x="28" y="73" font-size="17" fill="#475569">示例：喷嘴沿 X+ 水平运动；法线 n = (0, 1, 1) / √2</text>
+    <text x="60" y="125" font-size="21" font-weight="bold">料条横截面（l–u 平面）</text>
+    <circle cx="235" cy="288" r="113" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+    <g stroke="#475569" stroke-width="2" marker-end="url(#axis)"><path d="M89 288H393"/><path d="M235 427V150"/></g>
+    <text x="275" y="316" font-size="18">l = Y+</text><text x="247" y="163" font-size="18">u = Z+</text>
+    <path d="M235 288L315 208" stroke="#7c3aed" stroke-width="4" marker-end="url(#purple)"/>
+    <path d="M315 208V288M315 208H235" stroke="#7c3aed" stroke-dasharray="5 5" fill="none"/>
+    <text x="327" y="204" font-size="19" fill="#7c3aed">n</text><text x="267" y="278" font-size="18">a</text><text x="216" y="248" font-size="18">b</text>
+    <text x="72" y="462" font-size="18">a &gt; 0：偏 Y+ 侧方</text><text x="72" y="491" font-size="18">b &gt; 0：偏截面上方</text>
+    <path d="M438 271H620" stroke="#475569" stroke-width="3" marker-end="url(#axis)"/>
+    <text x="452" y="234" font-size="18" font-weight="bold">反向展开弯折</text>
+    <text x="457" y="308" font-size="18">+u → −h</text><text x="457" y="340" font-size="18">+l → +l</text>
+    <text x="681" y="125" font-size="21" font-weight="bold">喷嘴截面（物理俯视图）</text>
+    <circle cx="826" cy="288" r="113" fill="#eff6ff" stroke="#94a3b8" stroke-width="2"/>
+    <g stroke="#475569" stroke-width="2" marker-end="url(#axis)"><path d="M675 288H989"/><path d="M826 150V438"/></g>
+    <text x="912" y="269" font-size="18">h = X+</text><text x="839" y="430" font-size="18">l = Y+</text>
+    <text x="663" y="270" font-size="17">后方 −h</text>
+    <path d="M826 288L746 368" stroke="#7c3aed" stroke-width="4" marker-end="url(#purple)"/>
+    <path d="M746 368V288M746 368H826" stroke="#7c3aed" stroke-dasharray="5 5" fill="none"/>
+    <text x="713" y="396" font-size="19" fill="#7c3aed">q：135°</text>
+    <text x="690" y="462" font-size="18">q = −b h + a l</text><text x="690" y="491" font-size="18">蓝色 θ = 120° → C = 15°</text>
+    <rect x="28" y="527" width="1064" height="67" rx="10" fill="#e0e7ff"/>
+    <text x="48" y="554" font-size="18">两个图的观察方向不同：左图的“向上”是 Z+；右图的“向上”是 Y−。</text>
+    <text x="48" y="580" font-size="18">负号 −b 表示：料条上方映射到喷嘴后方。这里假设材料无额外扭转地弯折并铺向 −t。</text>
+  </g>
+</svg>

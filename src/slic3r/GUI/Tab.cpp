@@ -40,6 +40,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
+#include "CoExtrusionProfileDialog.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
@@ -54,7 +55,6 @@
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
-#include "FilamentMapDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
 
@@ -2448,6 +2448,16 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
 
+        optgroup = page->new_optgroup(L("Multi-color co-extrusion"), L"param_advanced");
+        optgroup->append_single_option_line("coextrusion_surface_control");
+        optgroup->append_single_option_line("coextrusion_color_method");
+        optgroup->append_single_option_line("coextrusion_max_segment_length");
+        optgroup->append_single_option_line("coextrusion_angle_tolerance");
+        optgroup->append_single_option_line("coextrusion_angular_safety_margin");
+        optgroup->append_single_option_line("coextrusion_normal_xy_threshold");
+        optgroup->append_single_option_line("coextrusion_top_bottom_strategy");
+        optgroup->append_single_option_line("coextrusion_large_rotation_strategy");
+
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");
         optgroup->append_single_option_line("wall_loops", "strength_settings_walls#wall-loops");
@@ -3933,55 +3943,6 @@ void TabFilament::build()
             on_value_change(opt_key, value);
         };
 
-        for (const char *key : {"filament_coextrusion_enable", "filament_coextrusion_colors",
-                                "filament_coextrusion_color_angles", "filament_coextrusion_filter_distance"}) {
-            if (!m_config->has(key)) {
-                if (const ConfigOptionDef *option_def = m_config->def()->get(key); option_def != nullptr)
-                    m_config->set_key_value(key, option_def->create_default_option());
-            }
-        }
-
-        optgroup = page->new_optgroup(L("Multi-color co-extrusion"), "param_multi_material");
-        optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
-            update_dirty();
-            on_value_change(opt_key, value);
-        };
-        optgroup->append_single_option_line("filament_coextrusion_enable");
-        auto *sector_colors = m_config->option<ConfigOptionStrings>("filament_coextrusion_colors");
-        auto *sector_angles = m_config->option<ConfigOptionFloats>("filament_coextrusion_color_angles");
-        const auto *default_colors = m_config->def()->get("filament_coextrusion_colors")->get_default_value<ConfigOptionStrings>();
-        const auto *default_angles = m_config->def()->get("filament_coextrusion_color_angles")->get_default_value<ConfigOptionFloats>();
-        while (sector_colors->values.size() < default_colors->values.size())
-            sector_colors->values.push_back(default_colors->values[sector_colors->values.size()]);
-        while (sector_angles->values.size() < default_angles->values.size())
-            sector_angles->values.push_back(default_angles->values[sector_angles->values.size()]);
-        const size_t sector_count = std::min(sector_colors->values.size(), sector_angles->values.size());
-        for (size_t sector = 0; sector < sector_count; ++sector) {
-            Option color = optgroup->get_option("filament_coextrusion_colors", int(sector));
-            color.opt.label = format(_u8L("Sector %1% color"), sector + 1);
-            optgroup->append_single_option_line(color);
-
-            Option angle = optgroup->get_option("filament_coextrusion_color_angles", int(sector));
-            angle.opt.label = format(_u8L("Sector %1% center angle"), sector + 1);
-            optgroup->append_single_option_line(angle);
-        }
-        optgroup->append_single_option_line("filament_coextrusion_filter_distance");
-
-        Line mapping_line{"", ""};
-        mapping_line.full_width = 1;
-        mapping_line.widget = [this](wxWindow *parent) {
-            auto *sizer = new wxBoxSizer(wxHORIZONTAL);
-            auto *label = new wxStaticText(parent, wxID_ANY, _L("3MF color mapping"));
-            auto *button = new wxButton(parent, wxID_ANY, _L("Configure mapping..."));
-            button->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent &) {
-                edit_coextrusion_color_mapping(parent, true, m_config);
-            });
-            sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, parent->FromDIP(12));
-            sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
-            return sizer;
-        };
-        optgroup->append_line(mapping_line);
-
         // Orca: New section to focus on flow rate and PA to declutter general section
         optgroup = page->new_optgroup(L("Flow ratio and Pressure Advance"), L"param_flow_ratio_and_pressure_advance");
         optgroup->append_single_option_line("pellet_flow_coefficient", "printer_basic_information_advanced#pellet-modded-printer");
@@ -4109,6 +4070,69 @@ void TabFilament::build()
         optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
         optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
+
+        optgroup = page->new_optgroup(L("Multi-color co-extrusion"), L"param_advanced");
+        optgroup->append_single_option_line("filament_coextrusion_profile", "", 0);
+        line = { "", "" };
+        line.full_width = 1;
+        line.widget = [this](wxWindow *parent) {
+            auto *sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *button = new wxButton(parent, wxID_ANY, _L("Open cross-section editor and calibration"));
+            button->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent &) {
+                const auto *profiles = m_config->option<ConfigOptionStrings>("filament_coextrusion_profile");
+                const auto *offsets = m_config->option<ConfigOptionFloats>("filament_coextrusion_calibration_offset");
+                const auto *models = m_config->option<ConfigOptionStrings>("filament_coextrusion_delay_model");
+                const auto *delays = m_config->option<ConfigOptionFloats>("filament_coextrusion_response_delay_time");
+                const auto *volumes = m_config->option<ConfigOptionFloats>("filament_coextrusion_transport_volume");
+                const DynamicPrintConfig &printer_config = m_preset_bundle->printers.get_edited_preset().config;
+                const int axis_direction = printer_config.opt_int("coextrusion_c_axis_direction");
+                const double zero_offset = printer_config.opt_float("coextrusion_c_axis_zero_offset");
+
+                CoExtrusionProfileDialog dialog(
+                    parent,
+                    profiles->values.empty() ? std::string{} : profiles->values.front(),
+                    offsets->values.empty() ? 0.0 : offsets->values.front(),
+                    models->values.empty() ? std::string("disabled") : models->values.front(),
+                    delays->values.empty() ? 0.0 : delays->values.front(),
+                    volumes->values.empty() ? 0.0 : volumes->values.front(),
+                    axis_direction,
+                    zero_offset);
+                if (dialog.ShowModal() != wxID_OK)
+                    return;
+
+                std::vector<std::string> new_profiles = profiles->values;
+                std::vector<double> new_offsets = offsets->values;
+                std::vector<std::string> new_models = models->values;
+                std::vector<double> new_delays = delays->values;
+                std::vector<double> new_volumes = volumes->values;
+                if (new_profiles.empty()) new_profiles.resize(1);
+                if (new_offsets.empty()) new_offsets.resize(1);
+                if (new_models.empty()) new_models.resize(1);
+                if (new_delays.empty()) new_delays.resize(1);
+                if (new_volumes.empty()) new_volumes.resize(1);
+                new_profiles.front() = dialog.serialized_profile();
+                new_offsets.front() = dialog.calibration_offset_deg();
+                new_models.front() = dialog.delay_model();
+                new_delays.front() = dialog.response_delay_s();
+                new_volumes.front() = dialog.transport_volume_mm3();
+
+                DynamicPrintConfig new_config = *m_config;
+                new_config.set_key_value("filament_coextrusion_profile", new ConfigOptionStrings(std::move(new_profiles)));
+                new_config.set_key_value("filament_coextrusion_calibration_offset", new ConfigOptionFloats(std::move(new_offsets)));
+                new_config.set_key_value("filament_coextrusion_delay_model", new ConfigOptionStrings(std::move(new_models)));
+                new_config.set_key_value("filament_coextrusion_response_delay_time", new ConfigOptionFloats(std::move(new_delays)));
+                new_config.set_key_value("filament_coextrusion_transport_volume", new ConfigOptionFloats(std::move(new_volumes)));
+                load_config(new_config);
+                update_dirty();
+            });
+            sizer->Add(button);
+            return sizer;
+        };
+        optgroup->append_line(line);
+        optgroup->append_single_option_line("filament_coextrusion_calibration_offset", "", 0);
+        optgroup->append_single_option_line("filament_coextrusion_delay_model", "", 0);
+        optgroup->append_single_option_line("filament_coextrusion_response_delay_time", "", 0);
+        optgroup->append_single_option_line("filament_coextrusion_transport_volume", "", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
@@ -4626,26 +4650,37 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("support_chamber_temp_control", "printer_basic_information_accessory#support-controlling-chamber-temperature");
         optgroup->append_single_option_line("support_air_filtration", "printer_basic_information_accessory#support-air-filtration");
 
-        // Keep this capability reachable for single-nozzle presets. The
-        // Multimaterial page is dynamic and may be hidden entirely.
-        // Printer presets created before this feature may not contain these
-        // keys yet. Materialize their defaults before constructing indexed
-        // fields; otherwise ConfigOptionsGroup would dereference a null option
-        // while opening Printer Settings.
-        for (const char *key : {"coextrusion_c_axis_enable", "coextrusion_c_axis_offset",
-                                "coextrusion_c_axis_reverse"}) {
-            if (!m_config->has(key)) {
-                if (const ConfigOptionDef *option_def = m_config->def()->get(key); option_def != nullptr)
-                    m_config->set_key_value(key, option_def->create_default_option());
-            }
-        }
-
-        optgroup = page->new_optgroup(L("Co-extrusion C-axis"), "param_multi_material");
-        optgroup->append_single_option_line("coextrusion_c_axis_enable");
-        optgroup->append_single_option_line("coextrusion_c_axis_offset");
-        optgroup->append_single_option_line("coextrusion_c_axis_reverse");
-
         auto edit_custom_gcode_fn = [this](const t_config_option_key& opt_key) { edit_custom_gcode(opt_key); };
+
+    page = add_options_page(L("Multi-color co-extrusion"), "custom-gcode_gcode");
+        optgroup = page->new_optgroup(L("C-axis control"), L"param_advanced");
+        optgroup->append_single_option_line("coextrusion_c_axis_enabled");
+        optgroup->append_single_option_line("coextrusion_c_axis_has_slip_ring");
+        optgroup->append_single_option_line("coextrusion_c_axis_letter");
+        optgroup->append_single_option_line("coextrusion_c_axis_direction");
+        optgroup->append_single_option_line("coextrusion_c_axis_zero_offset");
+        optgroup->append_single_option_line("coextrusion_c_axis_rotation_mode");
+        optgroup->append_single_option_line("coextrusion_c_axis_min");
+        optgroup->append_single_option_line("coextrusion_c_axis_max");
+        optgroup->append_single_option_line("coextrusion_c_axis_max_speed");
+        optgroup->append_single_option_line("coextrusion_c_axis_max_acceleration");
+        optgroup->append_single_option_line("coextrusion_c_axis_max_jerk");
+
+        optgroup = page->new_optgroup(L("C-axis custom G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, optgroup](const t_config_option_key &opt_key, const boost::any &value) {
+            validate_custom_gcode_cb(this, optgroup, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
+        option = optgroup->get_option("coextrusion_c_axis_start_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 8;
+        optgroup->append_single_option_line(option);
+        option = optgroup->get_option("coextrusion_c_axis_end_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 8;
+        optgroup->append_single_option_line(option);
 
     const int gcode_field_height = 15; // 150
     const int notes_field_height = 25; // 250

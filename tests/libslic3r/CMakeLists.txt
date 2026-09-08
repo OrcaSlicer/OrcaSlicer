@@ -10,8 +10,8 @@ add_executable(${_TEST_NAME}_tests
     test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
-    test_coextrusion_c.cpp
     test_config.cpp
+    test_coextrusion.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_elephant_foot_compensation.cpp
@@ -36,6 +36,9 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+if(MSVC)
+    target_link_options(${_TEST_NAME}_tests PRIVATE /NODEFAULTLIB:LIBCMT)
+endif()
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 

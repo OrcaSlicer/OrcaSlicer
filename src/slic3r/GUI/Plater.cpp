@@ -29,7 +29,9 @@
 #include <wx/statbox.h>
 #include <wx/statbmp.h>
 #include <wx/filedlg.h>
-#include <wx/textdlg.h>
+#include <wx/dialog.h>
+#include <wx/filename.h>
+#include <wx/textctrl.h>
 #include <wx/dnd.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -186,6 +188,61 @@ static const std::pair<unsigned int, unsigned int> THUMBNAIL_SIZE_3MF = { 512, 5
 
 namespace Slic3r {
 namespace GUI {
+
+// The native Windows save dialog loads third-party Explorer shell extensions.
+// A faulty managed extension may crash the whole process before ShowModal()
+// returns (the stack contains clr.dll / shell32.dll / windows.storage.dll).
+// Keep this shell-independent dialog scoped to sliced-file export. It accepts
+// an editable full path and intentionally does not open Explorer.
+#ifdef __WXMSW__
+class GCodeExportFileDialog final : public wxDialog
+{
+public:
+    GCodeExportFileDialog(wxWindow *parent,
+                          const wxString &message,
+                          const wxString &default_dir,
+                          const wxString &default_file,
+                          const wxString & /* wildcard */,
+                          long /* style */)
+        : wxDialog(parent, wxID_ANY, message, wxDefaultPosition, wxDefaultSize,
+                   wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+    {
+        const wxString initial_path = wxFileName(default_dir, default_file).GetFullPath();
+        auto *main_sizer = new wxBoxSizer(wxVERTICAL);
+        main_sizer->Add(new wxStaticText(this, wxID_ANY, _L("Full output path:")),
+                        0, wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
+
+        m_path = new wxTextCtrl(this, wxID_ANY, initial_path, wxDefaultPosition,
+                                wxSize(FromDIP(620), -1), wxTE_PROCESS_ENTER);
+        main_sizer->Add(m_path, 1, wxEXPAND | wxALL, FromDIP(12));
+        if (wxSizer *buttons = CreateSeparatedButtonSizer(wxOK | wxCANCEL))
+            main_sizer->Add(buttons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+
+        SetSizerAndFit(main_sizer);
+        SetMinSize(wxSize(FromDIP(680), GetSize().GetHeight()));
+        CentreOnParent();
+        m_path->SetFocus();
+        m_path->SetSelection(-1, -1);
+        m_path->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) { EndModal(wxID_OK); });
+    }
+
+    wxString GetPath() const { return m_path->GetValue(); }
+
+    void SetFilename(const wxString &filename)
+    {
+        wxFileName path(m_path->GetValue());
+        path.SetFullName(filename);
+        m_path->ChangeValue(path.GetFullPath());
+        m_path->SetFocus();
+        m_path->SetSelection(-1, -1);
+    }
+
+private:
+    wxTextCtrl *m_path { nullptr };
+};
+#else
+using GCodeExportFileDialog = wxFileDialog;
+#endif
 
 wxDEFINE_EVENT(EVT_SCHEDULE_BACKGROUND_PROCESS,     SimpleEvent);
 wxDEFINE_EVENT(EVT_SLICING_UPDATE,                  SlicingStatusEvent);
@@ -358,69 +415,6 @@ void SlicedInfo::SetTextAndShow(SlicedInfoIdx idx, const wxString& text, const w
 static wxString temp_dir;
 
 namespace {
-
-#ifdef __WXMSW__
-bool select_export_path_without_shell(wxWindow *parent, const wxString &title,
-                                      const fs::path &initial_path, fs::path &output_path)
-{
-    wxString value = from_path(initial_path);
-
-    for (;;) {
-        wxTextEntryDialog dialog(parent,
-            _L("Enter the full output file path:") + "\n" +
-            _L("The internal dialog is used while a debugger is attached to avoid Windows Explorer shell extensions."),
-            title, value, wxOK | wxCANCEL);
-        wxGetApp().UpdateDlgDarkUI(&dialog);
-        if (dialog.ShowModal() != wxID_OK)
-            return false;
-
-        value = dialog.GetValue();
-        value.Trim(true).Trim(false);
-        if (value.empty()) {
-            show_error(parent, _L("The provided file name is not valid."));
-            continue;
-        }
-
-        fs::path candidate = into_path(value);
-        if (candidate.is_relative())
-            candidate = initial_path.parent_path() / candidate;
-
-        const std::string filename = candidate.filename().string();
-        if (filename.empty() || filename.find_first_of("<>:/\\|?*\"") != std::string::npos) {
-            show_error(parent, _L("The provided file name is not valid.") + "\n" +
-                _L("The following characters are not allowed by a FAT file system:") + " <>:/\\|?*\"");
-            value = from_path(candidate);
-            continue;
-        }
-
-        try {
-            const fs::path directory = candidate.parent_path();
-            if (directory.empty() || !fs::exists(directory) || !fs::is_directory(directory)) {
-                show_error(parent, _L("The selected output directory does not exist."));
-                value = from_path(candidate);
-                continue;
-            }
-
-            if (fs::exists(candidate)) {
-                MessageDialog confirm(parent,
-                    format_wxstr(_L("The file %1% already exists. Do you want to replace it?"), from_path(candidate.filename())),
-                    title, wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
-                if (confirm.ShowModal() != wxID_YES) {
-                    value = from_path(candidate);
-                    continue;
-                }
-            }
-        } catch (const fs::filesystem_error &error) {
-            show_error(parent, from_u8(error.what()));
-            value = from_path(candidate);
-            continue;
-        }
-
-        output_path = std::move(candidate);
-        return true;
-    }
-}
-#endif
 
 #ifdef __WXGTK__
 wxString sanitize_window_layout_for_wayland(const wxString& layout, bool* removed_floating_state = nullptr)
@@ -6546,20 +6540,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // BBS: add preset combo box re-active logic
                             // currently found only needs re-active here
                             wxGetApp().load_current_presets(false, false);
-                            // Preserve the palette referenced by 3MF face-paint states before
-                            // the user removes logical filament slots. Physical co-extrusion
-                            // sectors are mapped to this stable palette, not to the live slots.
-                            DynamicConfig &proj_cfg = preset_bundle->project_config;
-                            auto *source_colors = proj_cfg.opt<ConfigOptionStrings>("coextrusion_source_colors", true);
-                            const auto *filament_colors = proj_cfg.opt<ConfigOptionStrings>("filament_colour");
-                            if (source_colors->values.empty() && filament_colors != nullptr && filament_colors->values.size() > 1)
-                                source_colors->values = filament_colors->values;
                             // Update filament colors for the MM-printer profile in the full config
                             // to avoid black (default) colors for Extruders in the ObjectList,
                             // when for extruder colors are used filament colors
                             q->on_filament_count_change(preset_bundle->filament_presets.size());
                             is_project_file = true;
 
+                            DynamicConfig& proj_cfg = preset_bundle->project_config;
                             // do some post process after loading config
                             {
                                 //BBS: rewrite wipe tower pos stored in 3mf file , the code above should be seriously reconsidered
@@ -14971,16 +14958,7 @@ void Plater::export_gcode(bool prefer_removable)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
-#ifdef __WXMSW__
-        if (wxIsDebuggerRunning()) {
-            BOOST_LOG_TRIVIAL(info) << "Export G-code: using the debugger-safe internal path dialog";
-            select_export_path_without_shell(this,
-                (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
-                fs::path(start_dir) / default_output_file.filename(), output_path);
-        } else
-#endif
-        {
-        wxFileDialog dlg(this, (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
+        GCodeExportFileDialog dlg(this, (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
             start_dir,
             from_path(default_output_file.filename()),
             GUI::file_wildcards((printer_technology() == ptFFF) ? FT_GCODE : FT_SL1, ext),
@@ -14999,7 +14977,6 @@ void Plater::export_gcode(bool prefer_removable)
                     break;
                 }
             }
-        }
         }
     }
 
@@ -15080,20 +15057,7 @@ void Plater::export_gcode_3mf(bool export_all)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
-#ifdef __WXMSW__
-        if (wxIsDebuggerRunning()) {
-            BOOST_LOG_TRIVIAL(info) << "Export G-code 3MF: using the debugger-safe internal path dialog";
-            select_export_path_without_shell(this, _L("Save Sliced file as:"),
-                fs::path(start_dir) / default_output_file.filename(), output_path);
-            if (!output_path.empty()) {
-                ext = output_path.extension().string();
-                if (ext != ".3mf")
-                    output_path = output_path.string() + ".3mf";
-            }
-        } else
-#endif
-        {
-        wxFileDialog dlg(this, _L("Save Sliced file as:"),
+        GCodeExportFileDialog dlg(this, _L("Save Sliced file as:"),
             start_dir,
             from_path(default_output_file.filename()),
             GUI::file_wildcards(FT_GCODE_3MF, ""),
@@ -15104,7 +15068,6 @@ void Plater::export_gcode_3mf(bool export_all)
             ext = output_path.extension().string();
             if (ext != ".3mf")
                 output_path = output_path.string() + ".3mf";
-        }
         }
     }
 
@@ -17238,12 +17201,10 @@ void Plater::clear_before_change_mesh(int obj_idx)
     // may be different and they would make no sense.
     bool paint_removed = false;
     for (ModelVolume* mv : mo->volumes) {
-        paint_removed |= ! mv->supported_facets.empty() || ! mv->seam_facets.empty() || ! mv->mmu_segmentation_facets.empty() ||
-                         ! mv->coextrusion_segmentation_facets.empty() || !mv->fuzzy_skin_facets.empty();
+        paint_removed |= ! mv->supported_facets.empty() || ! mv->seam_facets.empty() || ! mv->mmu_segmentation_facets.empty() || !mv->fuzzy_skin_facets.empty();
         mv->supported_facets.reset();
         mv->seam_facets.reset();
         mv->mmu_segmentation_facets.reset();
-        mv->coextrusion_segmentation_facets.reset();
         mv->fuzzy_skin_facets.reset();
     }
     if (paint_removed) {

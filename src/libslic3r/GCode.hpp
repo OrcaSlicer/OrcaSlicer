@@ -10,7 +10,6 @@
 #include "PrintConfig.hpp"
 #include "GCode/AvoidCrossingPerimeters.hpp"
 #include "GCode/CoolingBuffer.hpp"
-#include "GCode/CoExtrusionC.hpp"
 #include "GCode/FanMover.hpp"
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
 #include "GCode/SpiralVase.hpp"
@@ -22,7 +21,6 @@
 #include "GCode/ThumbnailData.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
-#include "AABBTreeLines.hpp"
 
 #include "GCode/PressureEqualizer.hpp"
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
@@ -30,9 +28,11 @@
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
+#include "CoExtrusion/CoExtrusionPathPlanning.hpp"
 
 #include <memory>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <cfloat>
@@ -45,6 +45,9 @@ class GCode;
 namespace CustomGCode{ struct Item; }
 struct PrintInstance;
 class ConstPrintObjectPtrsAdaptor;
+namespace CoExtrusion {
+class ObjectSurfaceProvenanceResolver;
+}
 
 class OozePrevention {
 public:
@@ -251,7 +254,8 @@ public:
     void            set_layer_count(unsigned int value) { m_layer_count = value; }
     void            apply_print_config(const PrintConfig &print_config);
 
-    std::string     travel_to(const Point& point, ExtrusionRole role, std::string comment, double z = DBL_MAX);
+    std::string     travel_to(const Point& point, ExtrusionRole role, std::string comment, double z = DBL_MAX,
+                             std::optional<double> entry_c_angle = std::nullopt);
     bool            needs_retraction(const Polyline& travel, ExtrusionRole role, LiftType& lift_type);
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
     std::string     unretract() { return m_writer.unlift() + m_writer.unretract(); }
@@ -521,14 +525,6 @@ private:
     // scaled G-code resolution
     double                              m_scaled_resolution;
     GCodeWriter                         m_writer;
-    CoExtrusionCController              m_coextrusion_c;
-    std::vector<size_t>                 m_coextrusion_filament_to_sector;
-    bool                                m_coextrusion_external_loop_active{false};
-    bool                                m_coextrusion_outward_normal_on_right{false};
-    size_t                              m_coextrusion_last_color_tag{std::numeric_limits<size_t>::max()};
-    const Layer                                             *m_coextrusion_cached_layer{nullptr};
-    std::unique_ptr<AABBTreeLines::LinesDistancer<Line>> m_coextrusion_surface_distancer;
-    std::vector<size_t>                                    m_coextrusion_surface_filament_slots;
 
     struct PlaceholderParserIntegration {
         void reset();
@@ -616,6 +612,11 @@ private:
 
     Point3                              m_last_pos;
     bool                                m_last_pos_defined;
+    // Planned absolute C-axis position, initialized to zero for each export
+    // and kept inside the configured software limits.
+    std::optional<double>               m_coextrusion_c_axis_angle_deg;
+    const PrintObject                  *m_coextrusion_resolver_object { nullptr };
+    std::shared_ptr<CoExtrusion::ObjectSurfaceProvenanceResolver> m_coextrusion_surface_resolver;
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
@@ -670,10 +671,25 @@ private:
     int get_highest_bed_temperature(const bool is_first_layer,const Print &print) const;
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
-    std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
-    std::optional<double> coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path, size_t *sector_out);
-    size_t coextrusion_filament_for_surface_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path);
-    std::string coextrusion_color_tag(size_t sector);
+    struct PreparedExtrusionPath {
+        double effective_mm3_per_mm { 0.0 };
+        double e_per_mm { 0.0 };
+        double speed_mm_s { 0.0 };
+        bool variable_speed { false };
+        std::vector<ProcessedPoint> processed_points;
+        std::optional<CoExtrusion::PreparedCoExtrusionPath> coextrusion;
+        std::optional<CoExtrusion::PlannedCoExtrusionPath> coextrusion_plan;
+    };
+
+    PreparedExtrusionPath prepare_extrusion_path(const ExtrusionPath &path, double speed);
+    std::vector<PreparedExtrusionPath> prepare_extrusion_paths(
+        const std::vector<std::pair<const ExtrusionPath *, double>> &paths);
+
+    std::string _extrude(
+        const ExtrusionPath &path,
+        std::string description = "",
+        double speed = -1,
+        const PreparedExtrusionPath *prepared_path = nullptr);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);

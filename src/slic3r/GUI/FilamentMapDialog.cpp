@@ -8,9 +8,6 @@
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
 
-#include <wx/choice.h>
-#include <wx/scrolwin.h>
-
 namespace Slic3r { namespace GUI {
 
 static bool get_pop_up_remind_flag()
@@ -42,151 +39,9 @@ static std::vector<int> get_applied_map(DynamicConfig& proj_config, const Plater
 extern std::string& get_left_extruder_unprintable_text();
 extern std::string& get_right_extruder_unprintable_text();
 
-namespace {
-
-class CoExtrusionColorMappingDialog : public wxDialog
-{
-public:
-    CoExtrusionColorMappingDialog(wxWindow *parent,
-                                  const std::vector<std::string> &logical_colors,
-                                  const std::vector<std::string> &sector_colors,
-                                  const std::vector<int> &mapping)
-        : wxDialog(parent, wxID_ANY, _L("Co-extrusion color mapping"), wxDefaultPosition, wxDefaultSize,
-                   wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
-    {
-        SetBackgroundColour(*wxWHITE);
-        SetMinSize(wxSize(FromDIP(560), FromDIP(360)));
-
-        auto *main_sizer = new wxBoxSizer(wxVERTICAL);
-        auto *description = new wxStaticText(this, wxID_ANY,
-            _L("Assign each color in the 3MF model to a physical color sector in the selected co-extrusion filament. Auto uses the closest configured sector color."));
-        description->Wrap(FromDIP(520));
-        main_sizer->Add(description, 0, wxEXPAND | wxALL, FromDIP(16));
-
-        auto *scroller = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-        scroller->SetScrollRate(0, FromDIP(12));
-        scroller->SetBackgroundColour(*wxWHITE);
-        auto *rows = new wxBoxSizer(wxVERTICAL);
-
-        for (size_t logical = 0; logical < logical_colors.size(); ++logical) {
-            auto *row = new wxBoxSizer(wxHORIZONTAL);
-            auto *swatch = new wxPanel(scroller, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(28), FromDIP(28)), wxBORDER_SIMPLE);
-            const wxColour color(from_u8(logical_colors[logical]));
-            if (color.IsOk())
-                swatch->SetBackgroundColour(color);
-            row->Add(swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
-
-            auto *label = new wxStaticText(scroller, wxID_ANY,
-                wxString::Format(_L("3MF color %d: %s"), int(logical + 1), from_u8(logical_colors[logical])));
-            row->Add(label, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
-
-            auto *choice = new wxChoice(scroller, wxID_ANY);
-            choice->Append(_L("Auto (closest color)"));
-            for (size_t sector = 0; sector < sector_colors.size(); ++sector)
-                choice->Append(wxString::Format(_L("Sector %d: %s"), int(sector + 1), from_u8(sector_colors[sector])));
-            const int selected = logical < mapping.size() && mapping[logical] >= 0 &&
-                                 size_t(mapping[logical]) <= sector_colors.size() ? mapping[logical] : 0;
-            choice->SetSelection(selected);
-            m_choices.push_back(choice);
-            row->Add(choice, 0, wxALIGN_CENTER_VERTICAL);
-
-            rows->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
-        }
-
-        scroller->SetSizer(rows);
-        main_sizer->Add(scroller, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
-
-        auto *bottom = new wxPanel(this);
-        bottom->SetBackgroundColour(*wxWHITE);
-        auto *bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto *buttons = new DialogButtons(bottom, {"OK", "Cancel"});
-        bottom_sizer->AddStretchSpacer();
-        bottom_sizer->Add(buttons, 0, wxALL, FromDIP(12));
-        bottom->SetSizer(bottom_sizer);
-        main_sizer->Add(bottom, 0, wxEXPAND);
-
-        buttons->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_OK); });
-        buttons->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_CANCEL); });
-        SetEscapeId(wxID_CANCEL);
-        SetSizer(main_sizer);
-        CenterOnParent();
-        wxGetApp().UpdateDlgDarkUI(this);
-    }
-
-    std::vector<int> mapping() const
-    {
-        std::vector<int> result;
-        result.reserve(m_choices.size());
-        for (const wxChoice *choice : m_choices)
-            result.push_back(choice->GetSelection());
-        return result;
-    }
-
-private:
-    std::vector<wxChoice *> m_choices;
-};
-
-} // namespace
-
-bool edit_coextrusion_color_mapping(wxWindow *parent, bool force,
-                                    const DynamicPrintConfig *filament_config)
-{
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    Plater *plater = wxGetApp().plater();
-    if (preset_bundle == nullptr || plater == nullptr)
-        return true;
-
-    DynamicPrintConfig full_config = preset_bundle->full_config();
-    const auto *machine_enabled = full_config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
-    const auto *filament_enabled = full_config.option<ConfigOptionBool>("filament_coextrusion_enable");
-    const DynamicPrintConfig &edited_filament_config = filament_config != nullptr ?
-        *filament_config : preset_bundle->filaments.get_edited_preset().config;
-    const auto *edited_filament_colors = edited_filament_config.option<ConfigOptionStrings>("filament_coextrusion_colors");
-    // The settings-page button must reflect the fields currently displayed in
-    // the filament editor.  In particular, do not fall back to the legacy
-    // printer color merely because the edited enable checkbox has not yet been
-    // saved into the preset/full config.
-    const bool use_edited_filament_config = force && edited_filament_colors != nullptr && !edited_filament_colors->values.empty();
-    const bool use_filament_config = use_edited_filament_config || (filament_enabled != nullptr && filament_enabled->value);
-    // The settings-page button may prepare a project mapping before the
-    // printer capability is enabled. Automatic pre-slice prompting still
-    // requires an enabled C axis.
-    if ((machine_enabled == nullptr || !machine_enabled->value) && !(force && use_filament_config))
-        return true;
-    const auto *sector_colors = use_edited_filament_config ? edited_filament_colors :
-        full_config.option<ConfigOptionStrings>(use_filament_config ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
-    const auto *source_colors = full_config.option<ConfigOptionStrings>("coextrusion_source_colors");
-    const auto *filament_colors = full_config.option<ConfigOptionStrings>("filament_colour");
-    const ConfigOptionStrings *logical_colors = source_colors != nullptr && !source_colors->values.empty() ? source_colors : filament_colors;
-    auto *mapping_option = preset_bundle->project_config.option<ConfigOptionInts>("coextrusion_color_mapping", true);
-    if (sector_colors == nullptr || sector_colors->values.empty() || logical_colors == nullptr)
-        return true;
-
-    if (!force && mapping_option->values.size() == logical_colors->values.size())
-        return true;
-
-    if (logical_colors->values.size() <= 1 && !force) {
-        mapping_option->values.assign(logical_colors->values.size(), 0);
-        return true;
-    }
-
-    CoExtrusionColorMappingDialog dialog(parent, logical_colors->values, sector_colors->values, mapping_option->values);
-    if (dialog.ShowModal() != wxID_OK)
-        return false;
-
-    mapping_option->values = dialog.mapping();
-    plater->update_project_dirty_from_presets();
-    plater->on_config_change(preset_bundle->full_config());
-    plater->update();
-    return true;
-}
-
 
 bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* partplate_ref, bool force_pop_up)
 {
-    if (!edit_coextrusion_color_mapping(plater_ref, false))
-        return false;
-
     auto full_config = wxGetApp().preset_bundle->full_config();
     const auto nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
     if (nozzle_diameters->size() <= 1)

@@ -9,6 +9,7 @@
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "Print.hpp"
+#include "CoExtrusion/SurfaceColorAnnotation.hpp"
 //BBS
 #include "ShortestPath.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
@@ -134,6 +135,41 @@ static std::vector<ExPolygons> slice_volume(
         }
     }
     return out;
+}
+
+static std::shared_ptr<CoExtrusion::SurfaceSliceSidecar> slice_coextrusion_surface_sources(
+    const PrintObject               &print_object,
+    const std::vector<float>        &zs,
+    const std::function<void()>     &throw_on_cancel_callback)
+{
+    auto sidecar = std::make_shared<CoExtrusion::SurfaceSliceSidecar>(zs.size());
+    const ModelObject &model_object = *print_object.model_object();
+    for (const ModelVolume *volume : model_object.volumes) {
+        if (volume == nullptr || !volume->is_model_part())
+            continue;
+
+        const std::optional<CoExtrusion::SurfaceColorId> fallback_color_id =
+            CoExtrusion::configured_surface_color_id(model_object, *volume);
+        if (!volume->has_coextrusion_surface_colors() && !fallback_color_id)
+            continue;
+
+        indexed_triangle_set mesh = volume->mesh().its;
+        if (mesh.indices.empty())
+            continue;
+
+        MeshSlicingParams params;
+        params.trafo = print_object.trafo_centered() * volume->get_matrix();
+        if (params.trafo.rotation().determinant() < 0.0)
+            its_flip_triangles(mesh);
+
+        sidecar->append_volume(
+            volume->id(),
+            slice_mesh_with_face_ids(mesh, zs, params, throw_on_cancel_callback),
+            volume->coextrusion_surface_colors,
+            fallback_color_id);
+        throw_on_cancel_callback();
+    }
+    return sidecar;
 }
 static inline bool model_volume_needs_slicing(const ModelVolume &mv)
 {
@@ -870,27 +906,12 @@ void PrintObject::slice()
     this->set_done(posSlice);
 }
 
-static bool has_coextrusion_surface_painting(const PrintObject &print_object)
-{
-    const PrintConfig &config = print_object.print()->config();
-    return config.coextrusion_c_axis_enable.value && config.filament_coextrusion_enable.value &&
-           !config.coextrusion_source_colors.values.empty() &&
-           std::any_of(print_object.model_object()->volumes.begin(), print_object.model_object()->volumes.end(),
-                       [](const ModelVolume *volume) { return volume->is_coextrusion_painted(); });
-}
-
 template<typename ThrowOnCancel>
 static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCancel throw_on_cancel)
 {
     // Returns MM segmentation based on painting in MM segmentation gizmo
-    std::vector<std::vector<ExPolygons>> segmentation = multi_material_segmentation_by_painting(
-        print_object, throw_on_cancel, &print_object.mmu_surface_color_lines());
+    std::vector<std::vector<ExPolygons>> segmentation = multi_material_segmentation_by_painting(print_object, throw_on_cancel);
     assert(segmentation.size() == print_object.layer_count());
-    // A co-extruded filament is physically one tool. We only need the colored
-    // boundary lines for per-segment C-axis control; splitting the interior into
-    // virtual source-color regions would incorrectly create tool/material regions.
-    if (has_coextrusion_surface_painting(print_object))
-        return;
     tbb::parallel_for(
         tbb::blocked_range<size_t>(0, segmentation.size(), std::max(segmentation.size() / 128, size_t(1))),
         [&print_object, &segmentation, throw_on_cancel](const tbb::blocked_range<size_t> &range) {
@@ -1181,6 +1202,11 @@ void PrintObject::slice_volumes()
     }
 
     std::vector<float>                   slice_zs      = zs_from_layers(m_layers);
+    std::shared_ptr<CoExtrusion::SurfaceSliceSidecar> coextrusion_sidecar;
+    m_coextrusion_surface_sidecar.reset();
+    if (!slice_zs.empty() && m_config.coextrusion_surface_control.value) {
+        coextrusion_sidecar = slice_coextrusion_surface_sources(*this, slice_zs, throw_on_cancel_callback);
+    }
     std::vector<VolumeSlices> objSliceByVolume;
     if (!slice_zs.empty()) {
         objSliceByVolume = slice_volumes_inner(
@@ -1216,15 +1242,20 @@ void PrintObject::slice_volumes()
     }
     if (! m_layers.empty())
         m_layers.back()->upper_layer = nullptr;
+    if (coextrusion_sidecar) {
+        coextrusion_sidecar->resize(m_layers.size());
+        coextrusion_sidecar->finalize();
+        if (!coextrusion_sidecar->empty())
+            m_coextrusion_surface_sidecar = std::move(coextrusion_sidecar);
+    }
     m_print->throw_if_canceled();
 
     this->apply_conical_overhang();
 
     // Is any ModelVolume multi-material painted?
     if (const auto& volumes = this->model_object()->volumes;
-        ((m_print->config().filament_diameter.size() > 1 &&
-          std::find_if(volumes.begin(), volumes.end(), [](const ModelVolume* v) { return !v->mmu_segmentation_facets.empty(); }) != volumes.end()) ||
-         has_coextrusion_surface_painting(*this))) {
+        m_print->config().filament_diameter.size() > 1 && // BBS
+        std::find_if(volumes.begin(), volumes.end(), [](const ModelVolume* v) { return !v->mmu_segmentation_facets.empty(); }) != volumes.end()) {
 
         // If XY Size compensation is also enabled, notify the user that XY Size compensation
         // would not be used because the object is multi-material painted.
@@ -1263,9 +1294,8 @@ void PrintObject::slice_volumes()
     {
         // Compensation value, scaled. Only applying the negative scaling here, as the positive scaling has already been applied during slicing.
         const size_t num_extruders = print->config().filament_diameter.size();
-        const bool   painted_surface = (num_extruders > 1 && this->is_mm_painted()) || has_coextrusion_surface_painting(*this);
-        const auto   xy_hole_scaled = painted_surface ? scaled<float>(0.f) : scaled<float>(m_config.xy_hole_compensation.value);
-        const auto   xy_contour_scaled = painted_surface ? scaled<float>(0.f) : scaled<float>(m_config.xy_contour_compensation.value);
+        const auto   xy_hole_scaled = (num_extruders > 1 && this->is_mm_painted()) ? scaled<float>(0.f) : scaled<float>(m_config.xy_hole_compensation.value);
+        const auto   xy_contour_scaled            = (num_extruders > 1 && this->is_mm_painted()) ? scaled<float>(0.f) : scaled<float>(m_config.xy_contour_compensation.value);
         const float  elephant_foot_compensation_scaled = (m_config.raft_layers == 0) ?
         	// Only enable Elephant foot compensation if printing directly on the print bed.
             float(scale_(m_config.elefant_foot_compensation.value)) :

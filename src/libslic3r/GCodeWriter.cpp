@@ -1,8 +1,10 @@
 #include "GCodeWriter.hpp"
 #include "CustomGCode.hpp"
+#include "CoExtrusion/CoExtrusionTypes.hpp"
 #include "I18N.hpp"
 #include "PrintConfig.hpp"
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -58,6 +60,17 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
     m_resolution = print_config.resolution.value;
+    const std::optional<char> coextrusion_axis =
+        CoExtrusion::parse_c_axis_letter(print_config.coextrusion_c_axis_letter.value);
+    m_coextrusion_axis_enabled = print_config.coextrusion_c_axis_enabled.value && coextrusion_axis.has_value();
+    m_coextrusion_axis_limited = !print_config.coextrusion_c_axis_has_slip_ring.value ||
+                                print_config.coextrusion_c_axis_rotation_mode.value == "limited_range";
+    m_coextrusion_axis_min_deg = print_config.coextrusion_c_axis_min.value;
+    m_coextrusion_axis_max_deg = print_config.coextrusion_c_axis_max.value;
+    if (coextrusion_axis)
+        m_coextrusion_axis_letter = *coextrusion_axis;
+    m_coextrusion_axis_angle_deg = 0.0;
+    m_coextrusion_continuous_axis_angle_deg = 0.0;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -564,7 +577,11 @@ std::string GCodeWriter::toolchange_prefix() const
 
 std::string GCodeWriter::toolchange(unsigned int filament_id)
 {
-    this->select_filament(filament_id);
+    // set the new extruder
+    auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
+    assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
+    m_curr_extruder_id = filament_extruder_iter->extruder_id();
+    m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
 
     // return the toolchange command
     // if we are running a single-extruder setup, just set the extruder and return nothing
@@ -578,16 +595,6 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
         gcode << this->reset_e(true);
     }
     return gcode.str();
-}
-
-void GCodeWriter::select_filament(unsigned int filament_id)
-{
-    auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(
-        m_filament_extruders.begin(), m_filament_extruders.end(),
-        [filament_id](const Extruder &e) { return e.id() < filament_id; });
-    assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
-    m_curr_extruder_id = filament_extruder_iter->extruder_id();
-    m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
 }
 
 std::string GCodeWriter::set_speed(double F, const std::string &comment, const std::string &cooling_marker)
@@ -936,8 +943,7 @@ bool GCodeWriter::will_move_z(double z) const
     return true;
 }
 
-std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std::string &comment, bool force_no_extrusion,
-                                       std::optional<double> c_axis)
+std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std::string &comment, bool force_no_extrusion)
 {
     m_pos(0) = point(0);
     m_pos(1) = point(1);
@@ -954,11 +960,39 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
     w.emit_xy(point_on_plate);
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
-    if (c_axis)
-        w.emit_c(*c_axis);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
+}
+
+std::string GCodeWriter::extrude_to_xyc(
+    const Vec2d &point,
+    double dE,
+    double c_angle_deg,
+    const std::string &comment,
+    bool force_no_extrusion)
+{
+    if (!m_coextrusion_axis_enabled)
+        return extrude_to_xy(point, dE, comment, force_no_extrusion);
+
+    m_pos(0) = point(0);
+    m_pos(1) = point(1);
+    double command_angle_deg;
+    std::string gcode = rebase_coextrusion_axis(c_angle_deg, command_angle_deg, false);
+    if (std::abs(dE) <= std::numeric_limits<double>::epsilon())
+        force_no_extrusion = true;
+    if (!force_no_extrusion)
+        filament()->extrude(dE);
+
+    const Vec2d point_on_plate { point(0) - m_x_offset, point(1) - m_y_offset };
+    GCodeG1Formatter w;
+    w.emit_xy(point_on_plate);
+    if (!force_no_extrusion)
+        w.emit_e(filament()->E());
+    w.emit_axis(m_coextrusion_axis_letter, command_angle_deg, GCodeFormatter::XYZF_EXPORT_DIGITS);
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+    gcode += w.string();
+    return gcode;
 }
 
 //BBS: generate G2 or G3 extrude which moves by arc
@@ -983,8 +1017,7 @@ std::string GCodeWriter::extrude_arc_to_xy(const Vec2d& point, const Vec2d& cent
     return w.string();
 }
 
-std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion,
-                                        std::optional<double> c_axis)
+std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion)
 {
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
@@ -1006,18 +1039,119 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
-    if (c_axis)
-        w.emit_c(*c_axis);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
+}
+
+std::string GCodeWriter::extrude_to_xyzc(
+    const Vec3d &point,
+    double dE,
+    double c_angle_deg,
+    const std::string &comment,
+    bool force_no_extrusion)
+{
+    if (!m_coextrusion_axis_enabled)
+        return extrude_to_xyz(point, dE, comment, force_no_extrusion);
+
+    const bool z_changed = GCodeG1Formatter::quantize_xyzf(point(2)) !=
+                           GCodeG1Formatter::quantize_xyzf(m_pos(2));
+    m_pos = point;
+    m_lifted = 0;
+    double command_angle_deg;
+    std::string gcode = rebase_coextrusion_axis(c_angle_deg, command_angle_deg, false);
+    if (std::abs(dE) <= std::numeric_limits<double>::epsilon())
+        force_no_extrusion = true;
+    if (!force_no_extrusion)
+        filament()->extrude(dE);
+
+    const Vec3d point_on_plate { point(0) - m_x_offset, point(1) - m_y_offset, point(2) };
+    GCodeG1Formatter w;
+    if (z_changed)
+        w.emit_xyz(point_on_plate);
+    else
+        w.emit_xy(point_on_plate.head<2>());
+    if (!force_no_extrusion)
+        w.emit_e(filament()->E());
+    w.emit_axis(m_coextrusion_axis_letter, command_angle_deg, GCodeFormatter::XYZF_EXPORT_DIGITS);
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+    gcode += w.string();
+    return gcode;
+}
+
+std::string GCodeWriter::rebase_coextrusion_axis(
+    double continuous_angle_deg,
+    double &command_angle_deg,
+    bool allow_coordinate_reset)
+{
+    if (m_coextrusion_axis_limited) {
+        // Keep the emitted coordinate tied to the physical cable position.
+        // G92 modulo resets do not unwind a machine without a slip ring.
+        command_angle_deg = GCodeFormatter::quantize_xyzf(continuous_angle_deg);
+        if (!std::isfinite(command_angle_deg) ||
+            !std::isfinite(m_coextrusion_axis_min_deg) || !std::isfinite(m_coextrusion_axis_max_deg) ||
+            command_angle_deg < m_coextrusion_axis_min_deg || command_angle_deg > m_coextrusion_axis_max_deg)
+            throw std::runtime_error("Co-extrusion C-axis command exceeds the configured physical angle limits");
+        m_coextrusion_continuous_axis_angle_deg = continuous_angle_deg;
+        m_coextrusion_axis_angle_deg = command_angle_deg;
+        return {};
+    }
+    const double angular_delta_deg = continuous_angle_deg - m_coextrusion_continuous_axis_angle_deg;
+    std::string gcode;
+    if (allow_coordinate_reset) {
+        gcode = flush_coextrusion_axis_rebase();
+    }
+    command_angle_deg = m_coextrusion_axis_angle_deg + angular_delta_deg;
+    m_coextrusion_continuous_axis_angle_deg = continuous_angle_deg;
+    m_coextrusion_axis_angle_deg = command_angle_deg;
+    return gcode;
+}
+
+std::string GCodeWriter::flush_coextrusion_axis_rebase()
+{
+    if (!m_coextrusion_axis_enabled || m_coextrusion_axis_limited)
+        return {};
+
+    const double rebased_angle_deg = std::remainder(m_coextrusion_axis_angle_deg, 360.0);
+    if (std::abs(rebased_angle_deg - m_coextrusion_axis_angle_deg) <= EPSILON)
+        return {};
+
+    GCodeFormatter reset;
+    reset.emit_string("G92");
+    reset.emit_axis(m_coextrusion_axis_letter, rebased_angle_deg,
+                    GCodeFormatter::XYZF_EXPORT_DIGITS);
+    reset.emit_comment(GCodeWriter::full_gcode_comment,
+                       "rebase co-extrusion C-axis coordinates between extrusion paths");
+    m_coextrusion_axis_angle_deg = rebased_angle_deg;
+    return reset.string();
+}
+
+std::string GCodeWriter::rotate_coextrusion_axis(
+    double c_angle_deg,
+    double speed_deg_s,
+    const std::string &comment)
+{
+    if (!m_coextrusion_axis_enabled)
+        return {};
+
+    double command_angle_deg;
+    std::string gcode = rebase_coextrusion_axis(c_angle_deg, command_angle_deg, true);
+    GCodeG1Formatter w;
+    w.emit_axis(m_coextrusion_axis_letter, command_angle_deg, GCodeFormatter::XYZF_EXPORT_DIGITS);
+    if (speed_deg_s > 0.0) {
+        m_current_speed = speed_deg_s * 60.0;
+        w.emit_f(speed_deg_s * 60.0);
+    }
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+    gcode += w.string();
+    return gcode;
 }
 
 std::string GCodeWriter::retract(bool before_wipe, double retract_length)
 {
     double factor = before_wipe ? filament()->retract_before_wipe() : 1.;
     assert(factor >= 0. && factor <= 1. + EPSILON);
-    return this->_retract(
+    return flush_coextrusion_axis_rebase() + this->_retract(
         retract_length > EPSILON ? retract_length : factor * filament()->retraction_length(),
         factor * filament()->retract_restart_extra(),
         "retract"

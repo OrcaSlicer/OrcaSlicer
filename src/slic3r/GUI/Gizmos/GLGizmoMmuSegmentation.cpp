@@ -12,6 +12,9 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/CoExtrusion/CoExtrusionTypes.hpp"
+#include "libslic3r/CoExtrusion/SurfaceColorAnnotation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
@@ -19,6 +22,25 @@
 #include <glad/gl.h>
 
 namespace Slic3r::GUI {
+
+static std::optional<CoExtrusion::SurfaceColorId> coextrusion_fallback_color_id(
+    const ModelObject &object, const ModelVolume &volume)
+{
+    static constexpr const char *key = "coextrusion_surface_color_id";
+    const ModelConfig *config = volume.config.has(key) ? &volume.config :
+        (object.config.has(key) ? &object.config : nullptr);
+    if (config == nullptr)
+        return std::nullopt;
+    const int color_id = config->opt_int(key);
+    return color_id < 0 ? std::nullopt :
+        std::optional<CoExtrusion::SurfaceColorId>(CoExtrusion::SurfaceColorId(color_id));
+}
+
+static bool coextrusion_surface_control_enabled(const ModelObject &object)
+{
+    const ConfigOption *option = object.config.option("coextrusion_surface_control");
+    return option != nullptr && option->getBool();
+}
 
 static inline void show_notification_extruders_limit_exceeded()
 {
@@ -34,6 +56,12 @@ void GLGizmoMmuSegmentation::on_opening()
 {
     if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
         show_notification_extruders_limit_exceeded();
+
+    // Common gizmo data (in particular SelectionInfo) is populated after the
+    // gizmo enters the On state. Do not read it here; update_from_model_object()
+    // will initialize the palette and triangle selectors once it is valid.
+    m_coextrusion_mode             = wxGetApp().filaments_cnt() <= 1 && coextrusion_mode_available();
+    m_triangle_splitting_enabled   = !m_coextrusion_mode;
 }
 
 void GLGizmoMmuSegmentation::on_shutdown()
@@ -44,19 +72,113 @@ void GLGizmoMmuSegmentation::on_shutdown()
 
 std::string GLGizmoMmuSegmentation::on_get_name() const
 {
-    return _u8L("Color Painting");
+    return m_coextrusion_mode ? _u8L("Co-extrusion Surface Painting") : _u8L("Color Painting");
 }
 
 bool GLGizmoMmuSegmentation::on_is_selectable() const
 {
     return (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF
-            && /*wxGetApp().get_mode() != comSimple && */wxGetApp().filaments_cnt() > 1);
+            && /*wxGetApp().get_mode() != comSimple && */
+            (wxGetApp().filaments_cnt() > 1 || coextrusion_mode_available()));
 }
 
 bool GLGizmoMmuSegmentation::on_is_activable() const
 {
     const Selection& selection = m_parent.get_selection();
-    return !selection.is_empty() && (selection.is_single_full_instance() || selection.is_any_volume()) && wxGetApp().filaments_cnt() > 1;
+    return !selection.is_empty() && (selection.is_single_full_instance() || selection.is_any_volume()) &&
+        (wxGetApp().filaments_cnt() > 1 || coextrusion_mode_available());
+}
+
+bool GLGizmoMmuSegmentation::coextrusion_mode_available() const
+{
+    const DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+    const ConfigOptionBool *enabled = config.option<ConfigOptionBool>("coextrusion_c_axis_enabled");
+    const ConfigOptionStrings *profiles = config.option<ConfigOptionStrings>("filament_coextrusion_profile");
+    if (enabled == nullptr || !enabled->value || profiles == nullptr)
+        return false;
+    return std::any_of(profiles->values.begin(), profiles->values.end(), [](const std::string &serialized) {
+        return CoExtrusion::Profile::parse(serialized).has_value();
+    });
+}
+
+bool GLGizmoMmuSegmentation::init_coextrusion_data()
+{
+    const auto *selection_info = m_c != nullptr ? m_c->selection_info() : nullptr;
+    ModelObject *model_object = selection_info != nullptr ? selection_info->model_object() : nullptr;
+    if (model_object == nullptr)
+        return false;
+
+    size_t filament_id = 0;
+    for (const ModelVolume *volume : model_object->volumes) {
+        if (volume != nullptr && volume->is_model_part()) {
+            filament_id = volume->extruder_id() > 0 ? size_t(volume->extruder_id() - 1) : 0;
+            break;
+        }
+    }
+
+    const DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+    const ConfigOptionStrings *profiles = config.option<ConfigOptionStrings>("filament_coextrusion_profile");
+    if (profiles == nullptr || profiles->values.empty())
+        return false;
+    filament_id = std::min(filament_id, profiles->values.size() - 1);
+    std::optional<CoExtrusion::Profile> profile =
+        CoExtrusion::Profile::parse(profiles->values[filament_id]);
+    if (!profile) {
+        for (const std::string &serialized : profiles->values) {
+            profile = CoExtrusion::Profile::parse(serialized);
+            if (profile)
+                break;
+        }
+    }
+    if (!profile || profile->empty())
+        return false;
+
+    m_extruders_colors.clear();
+    m_coextrusion_color_ids.clear();
+    const size_t sector_count = std::min(profile->sectors.size(), EXTRUDERS_LIMIT);
+    m_extruders_colors.reserve(sector_count);
+    m_coextrusion_color_ids.reserve(sector_count);
+    for (size_t index = 0; index < sector_count; ++index) {
+        ColorRGBA color(1.f, 0.f, 1.f, 1.f);
+        decode_color(profile->sectors[index].preview_color, color);
+        m_extruders_colors.emplace_back(color);
+        m_coextrusion_color_ids.emplace_back(profile->sectors[index].color_id);
+    }
+
+    // Preserve annotations whose IDs are not present in the currently selected
+    // profile. They remain editable and are shown in magenta instead of being
+    // silently erased when the painter writes its state back to the model.
+    for (const ModelVolume *volume : model_object->volumes) {
+        if (volume == nullptr || !volume->is_model_part())
+            continue;
+        for (CoExtrusion::SurfaceColorId color_id : volume->coextrusion_surface_colors.data()) {
+            if (color_id == CoExtrusion::SurfaceColorAnnotation::UNASSIGNED ||
+                std::find(m_coextrusion_color_ids.begin(), m_coextrusion_color_ids.end(), color_id) !=
+                    m_coextrusion_color_ids.end())
+                continue;
+            if (m_coextrusion_color_ids.size() >= EXTRUDERS_LIMIT)
+                break;
+            m_coextrusion_color_ids.emplace_back(color_id);
+            m_extruders_colors.emplace_back(ColorRGBA::MAGENTA());
+        }
+    }
+    if (m_extruders_colors.empty()) {
+        m_selected_extruder_idx = 0;
+        return false;
+    }
+
+    m_selected_extruder_idx = std::min(m_selected_extruder_idx, m_extruders_colors.size() - 1);
+    return true;
+}
+
+bool GLGizmoMmuSegmentation::has_coextrusion_painting() const
+{
+    const auto *selection_info = m_c != nullptr ? m_c->selection_info() : nullptr;
+    const ModelObject *model_object = selection_info != nullptr ? selection_info->model_object() : nullptr;
+    return model_object != nullptr && std::any_of(
+        model_object->volumes.begin(), model_object->volumes.end(), [](const ModelVolume *volume) {
+            return volume != nullptr && volume->is_model_part() && volume->has_coextrusion_surface_colors();
+        });
 }
 
 static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_object)
@@ -174,7 +296,24 @@ void GLGizmoMmuSegmentation::render_painter_gizmo()
 void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 {
     GLGizmoPainterBase::data_changed(is_serializing);
-    if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().extruders_edited_cnt() <= 1)
+    if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+
+    if (m_coextrusion_mode) {
+        const std::vector<ColorRGBA> old_colors = m_extruders_colors;
+        const std::vector<CoExtrusion::SurfaceColorId> old_ids = m_coextrusion_color_ids;
+        if (!init_coextrusion_data()) {
+            m_coextrusion_mode = false;
+            m_triangle_splitting_enabled = true;
+            init_extruders_data();
+            init_model_triangle_selectors();
+        } else if (old_colors != m_extruders_colors || old_ids != m_coextrusion_color_ids) {
+            init_model_triangle_selectors();
+        }
+        return;
+    }
+
+    if (wxGetApp().extruders_edited_cnt() <= 1)
         return;
 
     ModelObject* model_object = m_c->selection_info()->model_object();
@@ -367,6 +506,28 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
+    if (coextrusion_mode_available()) {
+        bool coextrusion_mode = m_coextrusion_mode;
+        if (m_imgui->bbl_checkbox(_L("Co-extrusion surface colors"), coextrusion_mode)) {
+            update_model_object();
+            m_coextrusion_mode = coextrusion_mode;
+            m_triangle_splitting_enabled = !m_coextrusion_mode;
+            if (m_coextrusion_mode) {
+                if (!init_coextrusion_data()) {
+                    m_coextrusion_mode = false;
+                    m_triangle_splitting_enabled = true;
+                    init_extruders_data();
+                }
+            } else {
+                init_extruders_data();
+            }
+            init_model_triangle_selectors();
+        }
+        if (m_coextrusion_mode)
+            m_imgui->text(_L("Paint one stable color ID per original mesh triangle."));
+        ImGui::Separator();
+    }
+
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
     const float space_size = m_imgui->get_style_scaling() * 8;
     const float clipping_slider_left  = std::max(m_imgui->calc_text_size(m_desc.at("clipping_of_view")).x + m_imgui->scaled(1.5f),
@@ -412,7 +573,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
-    m_imgui->text(m_desc.at("filaments"));
+    m_imgui->text(m_coextrusion_mode ? _L("Co-extrusion colors") : m_desc.at("filaments"));
 
     size_t n_extruder_colors = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(7.f * scale, 7.f * scale));
@@ -433,11 +594,16 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_selected_extruder_idx = extruder_idx;
         }
 
-        if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < 16 && ImGui::IsItemHovered()) {
+            const wxString item_name = m_coextrusion_mode ?
+                GUI::format(_L("Color ID %1%"), m_coextrusion_color_ids[extruder_idx]) :
+                _L("Shortcut Key ") + std::to_string(extruder_idx + 1);
+            m_imgui->tooltip(item_name, max_tooltip_width);
+        }
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
-    if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
+    if (!m_coextrusion_mode && ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
         render_filament_remap_ui(window_width, max_tooltip_width, scale);
 
         bool has_mapping = false;
@@ -657,7 +823,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     render_tooltip_button(x, y);
 
     ImGui::SameLine();
-    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_mm_painted() == false);
+    m_imgui->disabled_begin(m_coextrusion_mode ? !has_coextrusion_painting() :
+        m_c->selection_info()->model_object()->is_mm_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
@@ -691,19 +858,49 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 void GLGizmoMmuSegmentation::update_model_object()
 {
     bool updated = false;
-    ModelObject* mo = m_c->selection_info()->model_object();
+    const auto *selection_info = m_c != nullptr ? m_c->selection_info() : nullptr;
+    ModelObject* mo = selection_info != nullptr ? selection_info->model_object() : nullptr;
+    if (mo == nullptr)
+        return;
+
     int idx = -1;
     for (ModelVolume* mv : mo->volumes) {
-        if (! mv->is_model_part())
+        if (mv == nullptr || !mv->is_model_part())
             continue;
         ++idx;
-        const bool volume_updated = mv->mmu_segmentation_facets.set(*m_triangle_selectors[idx].get());
-        if (volume_updated)
-            mv->coextrusion_segmentation_facets.assign(mv->mmu_segmentation_facets);
-        updated |= volume_updated;
+        if (size_t(idx) >= m_triangle_selectors.size())
+            return;
+        if (m_coextrusion_mode) {
+            const size_t face_count = mv->mesh().its.indices.size();
+            std::vector<CoExtrusion::SurfaceColorId> colors(
+                face_count, CoExtrusion::SurfaceColorAnnotation::UNASSIGNED);
+            for (size_t face_index = 0; face_index < face_count; ++face_index) {
+                const std::optional<EnforcerBlockerType> state =
+                    m_triangle_selectors[idx]->facet_state(int(face_index));
+                if (!state)
+                    colors[face_index] = mv->coextrusion_surface_colors.triangle_color(face_index).value_or(
+                        CoExtrusion::SurfaceColorAnnotation::UNASSIGNED);
+                else {
+                    const int palette_index = int(*state) - 1;
+                    if (palette_index >= 0 && size_t(palette_index) < m_coextrusion_color_ids.size())
+                        colors[face_index] = m_coextrusion_color_ids[size_t(palette_index)];
+                }
+            }
+            updated |= mv->coextrusion_surface_colors.set_triangle_colors(std::move(colors));
+        } else {
+            updated |= mv->mmu_segmentation_facets.set(*m_triangle_selectors[idx].get());
+        }
     }
 
     if (updated) {
+        // Painting a co-extrusion surface is an explicit request to use C-axis
+        // surface control for this object. Without this object-level option the
+        // annotations are saved but intentionally ignored by slicing.
+        if (m_coextrusion_mode && has_coextrusion_painting() &&
+            !coextrusion_surface_control_enabled(*mo)) {
+            mo->config.set_key_value("coextrusion_surface_control", new ConfigOptionBool(true));
+        }
+
         const ModelObjectPtrs &mos = wxGetApp().model().objects;
         size_t obj_idx = std::find(mos.begin(), mos.end(), mo) - mos.begin();
         wxGetApp().obj_list()->update_info_items(obj_idx);
@@ -711,7 +908,8 @@ void GLGizmoMmuSegmentation::update_model_object()
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
 
         // ORCA: Refresh cache
-        this->update_used_filaments();
+        if (!m_coextrusion_mode)
+            this->update_used_filaments();
     }
 }
 
@@ -721,7 +919,7 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
     m_triangle_selectors.clear();
     m_volumes_extruder_idxs.clear();
 
-    // Don't continue when extruders colors are not initialized
+    // Don't continue when palette colors are not initialized.
     if(m_extruders_colors.empty())
         return;
 
@@ -735,15 +933,46 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
 
         int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
         std::vector<ColorRGBA> ebt_colors;
-        ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
+        if (m_coextrusion_mode) {
+            ColorRGBA base_color = ColorRGBA::GRAY();
+            const std::optional<CoExtrusion::SurfaceColorId> fallback_color_id =
+                coextrusion_fallback_color_id(*mo, *mv);
+            if (fallback_color_id) {
+                const auto color_it = std::find(
+                    m_coextrusion_color_ids.begin(), m_coextrusion_color_ids.end(), *fallback_color_id);
+                if (color_it != m_coextrusion_color_ids.end())
+                    base_color = m_extruders_colors[size_t(color_it - m_coextrusion_color_ids.begin())];
+            }
+            ebt_colors.push_back(base_color);
+        } else {
+            extruder_idx = std::clamp(extruder_idx, 0, int(m_extruders_colors.size()) - 1);
+            ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
+        }
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
 
         // This mesh does not account for the possible Z up SLA offset.
         const TriangleMesh* mesh = &mv->mesh();
         m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors, 0.2));
-        // Reset of TriangleSelector is done inside TriangleSelectorMmGUI's constructor, so we don't need it to perform it again in deserialize().
-        EnforcerBlockerType max_ebt = (EnforcerBlockerType)std::min(m_extruders_colors.size(), (size_t)EnforcerBlockerType::ExtruderMax);
-        m_triangle_selectors.back()->deserialize(mv->mmu_segmentation_facets.get_data(), false, max_ebt);
+        // Reset of TriangleSelector is done inside TriangleSelectorMmGUI's constructor.
+        if (m_coextrusion_mode) {
+            const size_t face_count = mv->mesh().its.indices.size();
+            for (size_t face_index = 0; face_index < face_count; ++face_index) {
+                const std::optional<CoExtrusion::SurfaceColorId> color_id =
+                    mv->coextrusion_surface_colors.triangle_color(face_index);
+                if (!color_id)
+                    continue;
+                const auto color_it = std::find(
+                    m_coextrusion_color_ids.begin(), m_coextrusion_color_ids.end(), *color_id);
+                if (color_it != m_coextrusion_color_ids.end()) {
+                    const size_t palette_index = size_t(color_it - m_coextrusion_color_ids.begin());
+                    m_triangle_selectors.back()->set_facet(
+                        int(face_index), EnforcerBlockerType(palette_index + 1));
+                }
+            }
+        } else {
+            EnforcerBlockerType max_ebt = (EnforcerBlockerType)std::min(m_extruders_colors.size(), (size_t)EnforcerBlockerType::ExtruderMax);
+            m_triangle_selectors.back()->deserialize(mv->mmu_segmentation_facets.get_data(), false, max_ebt);
+        }
         m_triangle_selectors.back()->request_update_render_data();
         m_triangle_selectors.back()->set_wireframe_needed(true);
         m_volumes_extruder_idxs.push_back(mv->extruder_id());
@@ -766,6 +995,25 @@ void GLGizmoMmuSegmentation::update_triangle_selectors_colors()
 void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
 {
     wxBusyCursor wait;
+
+    if (m_coextrusion_mode) {
+        if (!init_coextrusion_data()) {
+            m_coextrusion_mode = false;
+            m_triangle_splitting_enabled = true;
+            init_extruders_data();
+        } else if (has_coextrusion_painting()) {
+            const auto *selection_info = m_c != nullptr ? m_c->selection_info() : nullptr;
+            ModelObject *model_object = selection_info != nullptr ? selection_info->model_object() : nullptr;
+            if (model_object != nullptr &&
+                !coextrusion_surface_control_enabled(*model_object)) {
+                model_object->config.set_key_value(
+                    "coextrusion_surface_control", new ConfigOptionBool(true));
+                m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+            }
+        }
+        init_model_triangle_selectors();
+        return;
+    }
 
     // Extruder colors need to be reloaded before calling init_model_triangle_selectors to render painted triangles
     // using colors from loaded 3MF and not from printer profile in Slicer.
@@ -823,9 +1071,11 @@ wxString GLGizmoMmuSegmentation::handle_snapshot_action_name(bool shift_down, GL
 {
     wxString action_name;
     if (shift_down)
-        action_name = _L("Remove painted color");
+        action_name = m_coextrusion_mode ? _L("Remove co-extrusion surface color") : _L("Remove painted color");
     else {
-        action_name        = GUI::format(_L("Painted using: Filament %1%"), m_selected_extruder_idx);
+        action_name = m_coextrusion_mode ?
+            GUI::format(_L("Painted using co-extrusion color ID: %1%"), m_coextrusion_color_ids[m_selected_extruder_idx]) :
+            GUI::format(_L("Painted using: Filament %1%"), m_selected_extruder_idx);
     }
     return action_name;
 }

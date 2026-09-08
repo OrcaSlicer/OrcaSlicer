@@ -181,8 +181,6 @@
 #include <wx/wx.h> 
 #include <wx/wx.h>
 #include <wx/wxprec.h>
-#include <wx/zipstrm.h>
-
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"

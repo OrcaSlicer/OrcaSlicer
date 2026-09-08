@@ -8,6 +8,8 @@
 #include <iterator>
 #include <cassert>
 #include <cinttypes>
+#include <optional>
+#include <unordered_map>
 
 #include "libslic3r/libslic3r.h"
 #include "LibVGCodeWrapper.hpp"
@@ -22,6 +24,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CoExtrusion/CoExtrusionTypes.hpp"
 #include "../../src/libvgcode/include/GCodeInputData.hpp"
 #include "../../src/libvgcode/include/PathVertex.hpp"
 #include "libvgcode/include/Types.hpp"
@@ -206,9 +209,50 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         ret.color_print_colors.emplace_back(convert(color));
     }
 
-    ret.coextrusion_colors.reserve(result.coextrusion_colors.size());
-    for (const std::string &color : result.coextrusion_colors)
-        ret.coextrusion_colors.emplace_back(convert(color));
+    std::unordered_map<uint64_t, uint8_t> coextrusion_palette_ids;
+    std::vector<std::optional<Slic3r::CoExtrusion::Profile>> coextrusion_profiles(result.coextrusion_profiles.size());
+    for (size_t filament_id = 0; filament_id < result.coextrusion_profiles.size(); ++filament_id) {
+        const std::optional<Slic3r::CoExtrusion::Profile> profile =
+            Slic3r::CoExtrusion::Profile::parse(result.coextrusion_profiles[filament_id]);
+        if (!profile)
+            continue;
+        coextrusion_profiles[filament_id] = profile;
+        for (const Slic3r::CoExtrusion::ColorSector &sector : profile->sectors) {
+            if (ret.color_print_colors.size() >= 256)
+                break;
+            const uint64_t key = (uint64_t(filament_id) << 32) | uint64_t(sector.color_id);
+            if (coextrusion_palette_ids.find(key) != coextrusion_palette_ids.end())
+                continue;
+            const uint8_t palette_id = uint8_t(ret.color_print_colors.size());
+            coextrusion_palette_ids.emplace(key, palette_id);
+            ret.color_print_colors.emplace_back(convert(sector.preview_color));
+        }
+    }
+
+    const auto populate_coextrusion_cross_section = [&](libvgcode::PathVertex &vertex,
+                                                        const Slic3r::GCodeProcessorResult::MoveVertex &move) {
+        if (!move.has_coextrusion_c_angle || move.extruder_id >= coextrusion_profiles.size() ||
+            !coextrusion_profiles[move.extruder_id] || coextrusion_profiles[move.extruder_id]->empty())
+            return;
+
+        const auto encode_preview_color = [](const std::string &value) {
+            const Color color = convert(value);
+            return float((uint32_t(color[0]) << 16) | (uint32_t(color[1]) << 8) | uint32_t(color[2]));
+        };
+        const float calibration = move.extruder_id < result.coextrusion_calibration_offsets_deg.size() ?
+            result.coextrusion_calibration_offsets_deg[move.extruder_id] : 0.0f;
+        const float physical_rotation = calibration + result.coextrusion_axis_zero_offset_deg +
+            float(result.coextrusion_axis_direction) * move.coextrusion_c_angle_deg;
+        const auto &sectors = coextrusion_profiles[move.extruder_id]->sectors;
+        const size_t count = std::min<size_t>(sectors.size(), vertex.coextrusion_sector_centers_deg.size());
+        for (size_t sector_id = 0; sector_id < count; ++sector_id) {
+            vertex.coextrusion_sector_centers_deg[sector_id] =
+                float(sectors[sector_id].center_angle_deg) + physical_rotation;
+            vertex.coextrusion_sector_widths_deg[sector_id] = float(sectors[sector_id].angular_width_deg);
+            vertex.coextrusion_sector_colors[sector_id] = encode_preview_color(sectors[sector_id].preview_color);
+        }
+        vertex.has_coextrusion_profile = count > 0;
+    };
 
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     ret.vertices.reserve(2 * moves.size());
@@ -241,7 +285,15 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                     /* ORCA: Add Acceleration visualization support */ curr.acceleration,
                     /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-                vertex.coextrusion_color_id = curr.coextrusion_color_id;
+                vertex.coextrusion_c_angle_deg = curr.coextrusion_c_angle_deg;
+                vertex.has_coextrusion_c_angle = curr.has_coextrusion_c_angle;
+                populate_coextrusion_cross_section(vertex, curr);
+                if (curr.has_coextrusion_color) {
+                    const uint64_t key = (uint64_t(curr.extruder_id) << 32) | uint64_t(curr.coextrusion_color_id);
+                    const auto color_it = coextrusion_palette_ids.find(key);
+                    if (color_it != coextrusion_palette_ids.end())
+                        vertex.color_id = color_it->second;
+                }
                 ret.vertices.emplace_back(vertex);
             }
         }
@@ -264,7 +316,15 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
             /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-        vertex.coextrusion_color_id = curr.coextrusion_color_id;
+        vertex.coextrusion_c_angle_deg = curr.coextrusion_c_angle_deg;
+        vertex.has_coextrusion_c_angle = curr.has_coextrusion_c_angle;
+        populate_coextrusion_cross_section(vertex, curr);
+        if (curr.has_coextrusion_color) {
+            const uint64_t key = (uint64_t(curr.extruder_id) << 32) | uint64_t(curr.coextrusion_color_id);
+            const auto color_it = coextrusion_palette_ids.find(key);
+            if (color_it != coextrusion_palette_ids.end())
+                vertex.color_id = color_it->second;
+        }
         ret.vertices.emplace_back(vertex);
     }
     ret.vertices.shrink_to_fit();
@@ -836,3 +896,4 @@ GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string
 }
 
 } // namespace libvgcode
+

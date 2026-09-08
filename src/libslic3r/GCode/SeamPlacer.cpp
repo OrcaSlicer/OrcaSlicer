@@ -14,6 +14,7 @@
 #include "libslic3r/KDTreeIndirect.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/CoExtrusion/SurfaceSliceSidecar.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Layer.hpp"
@@ -1497,8 +1498,8 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
   }
 }
 
-void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
-                            const Point &last_pos, float& overhang) const {
+bool SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
+                            const Point &last_pos, float& overhang, bool prefer_color_boundary) const {
   using namespace SeamPlacerImpl;
   const PrintObject *po = layer->object();
   // Must not be called with supprot layer.
@@ -1562,7 +1563,60 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
   Point seam_point = Point::new_scale(seam_position.x(), seam_position.y());
   overhang = layer_perimeters.points[seam_index].unsupported_dist;
 
-  if (loop.role() == ExtrusionRole::erPerimeter) { //Hopefully inner perimeter
+  bool color_boundary_seam = false;
+  const auto &sidecar = po->coextrusion_surface_sidecar();
+  if (prefer_color_boundary &&
+      (loop.role() == erExternalPerimeter || loop.role() == erPerimeter) && sidecar &&
+      layer_perimeters.points[seam_index].type != EnforcedBlockedSeamPoint::Enforced) {
+    if (const auto *surface_layer = sidecar->layer(layer_index)) {
+      // Seam data describes the external perimeter for this family of walls.
+      // Select the boundary on that common contour BEFORE projecting onto an
+      // inner wall. Comparing a surface boundary to the inner centerline with
+      // a half-width cutoff rejects every inner-wall candidate.
+      const Perimeter &reference_perimeter = layer_perimeters.points[seam_index].perimeter;
+      Polyline reference_contour;
+      for (size_t i = reference_perimeter.start_index; i < reference_perimeter.end_index; ++i) {
+        const Vec3f &position = layer_perimeters.points[i].position;
+        reference_contour.points.emplace_back(Point::new_scale(position.x(), position.y()));
+      }
+      if (!reference_contour.points.empty())
+        reference_contour.points.push_back(reference_contour.points.front());
+      const Point preferred_point = seam_point;
+      double best_distance = std::numeric_limits<double>::infinity();
+      for (const Point &boundary : surface_layer->color_boundary_points()) {
+        if (reference_contour.points.size() < 3)
+          break;
+        const Point projected = boundary.projection_onto(reference_contour);
+        // Surface contours are offset from the extrusion centerline by half a
+        // line width. Reject boundaries belonging to other nearby contours.
+        const double max_distance = scaled<double>(0.5 * reference_perimeter.flow_width + 0.05);
+        if ((boundary - projected).cast<double>().squaredNorm() > max_distance * max_distance)
+          continue;
+        const size_t candidate_index = find_closest_point(*layer_perimeters.points_tree,
+            to_3d(unscaled<float>(projected), float(unscaled_z)));
+        const SeamCandidate &candidate = layer_perimeters.points[candidate_index];
+        if (&candidate.perimeter != &layer_perimeters.points[seam_index].perimeter ||
+            candidate.type == EnforcedBlockedSeamPoint::Blocked)
+          continue;
+        const double distance = (projected - preferred_point).cast<double>().squaredNorm();
+        if (distance < best_distance) {
+          best_distance = distance;
+          seam_point = projected;
+          overhang = candidate.unsupported_dist;
+          color_boundary_seam = true;
+        }
+      }
+    }
+  }
+
+  if (color_boundary_seam) {
+    // Project the shared boundary anchor onto the actual wall. Do not apply
+    // the legacy corner/stagger offsets afterwards: they would move the inner
+    // start/stop away from the selected colour junction again.
+    seam_point = loop.get_closest_path_and_point(seam_point, false).foot_pt;
+  }
+
+  if (loop.role() == ExtrusionRole::erPerimeter && !color_boundary_seam) { //Hopefully inner perimeter
     const SeamCandidate &perimeter_point = layer_perimeters.points[seam_index];
     ExtrusionLoop::ClosestPathPoint projected_point = loop.get_closest_path_and_point(seam_point, false);
     // determine depth of the seam point.
@@ -1626,7 +1680,7 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
     // Insert it.
     loop.split_at(seam_point, true);
   }
-
+  return color_boundary_seam;
 }
 
 } // namespace Slic3r

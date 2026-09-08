@@ -22,6 +22,8 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CoExtrusion/CoExtrusionTypes.hpp"
+#include "libslic3r/CoExtrusion/SurfaceColorAnnotation.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -270,6 +272,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     color = { r, g, b, a };
     set_render_color(color);
     mmuseg_ts = 0;
+    coextrusion_color_ts = 0;
 }
 
 
@@ -572,10 +575,9 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
     glsafe(::glCullFace(GL_BACK));
 
     bool color_volume = false;
+    bool coextrusion_color_volume = false;
     ModelObject* model_object = nullptr;
     ModelVolume* model_volume = nullptr;
-    const FacetsAnnotation *segmentation_facets = nullptr;
-    std::vector<ColorRGBA> source_colors;
     do {
         if ((!printable) || object_idx() >= model_objects.size())
             break;
@@ -584,49 +586,109 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
         if (volume_idx() >=  model_object->volumes.size())
             break;
         model_volume = model_object->volumes[volume_idx()];
-        segmentation_facets = &model_volume->mmu_segmentation_facets;
 
-        // Once a co-extrusion mapping has been configured, show the stable 3MF
-        // source painting instead of the MMU painting renumbered by slot deletion.
-        if (!model_volume->coextrusion_segmentation_facets.empty()) {
-            const PresetBundle *preset_bundle = GUI::wxGetApp().preset_bundle;
-            const auto *palette = preset_bundle == nullptr ? nullptr :
-                preset_bundle->project_config.option<ConfigOptionStrings>("coextrusion_source_colors");
-            const auto *mapping = preset_bundle == nullptr ? nullptr :
-                preset_bundle->project_config.option<ConfigOptionInts>("coextrusion_color_mapping");
-            if (palette != nullptr && mapping != nullptr && !palette->values.empty() &&
-                mapping->values.size() == palette->values.size()) {
-                source_colors.reserve(palette->values.size());
-                for (const std::string &color : palette->values) {
-                    ColorRGBA rgba;
-                    source_colors.emplace_back(decode_color(color, rgba) ? rgba : ColorRGBA::WHITE());
-                }
-                segmentation_facets = &model_volume->coextrusion_segmentation_facets;
+        if (!model_volume->mmu_segmentation_facets.empty()) {
+            color_volume = true;
+            if (mmuseg_models_are_coextrusion || model_volume->mmu_segmentation_facets.timestamp() != mmuseg_ts) {
+                mmuseg_models.clear();
+                std::vector<indexed_triangle_set> its_per_color;
+                model_volume->mmu_segmentation_facets.get_facets(*model_volume, its_per_color);
+                mmuseg_models.resize(its_per_color.size());
+                for (size_t idx = 0; idx < its_per_color.size(); ++idx)
+                    mmuseg_models[idx].init_from(its_per_color[idx]);
+
+                mmuseg_ts = model_volume->mmu_segmentation_facets.timestamp();
+                mmuseg_models_are_coextrusion = false;
             }
+            break;
         }
 
-        if (segmentation_facets->empty())
+        if (!model_volume->has_coextrusion_surface_colors())
+            break;
+
+        const DynamicPrintConfig config = GUI::wxGetApp().preset_bundle->full_config();
+        const ConfigOptionStrings *profiles = config.option<ConfigOptionStrings>("filament_coextrusion_profile");
+        if (profiles == nullptr || profiles->values.empty())
+            break;
+
+        const size_t filament_id = std::min(
+            model_volume->extruder_id() > 0 ? size_t(model_volume->extruder_id() - 1) : size_t(0),
+            profiles->values.size() - 1);
+        const std::string &serialized_profile = profiles->values[filament_id];
+        const std::optional<CoExtrusion::Profile> profile = CoExtrusion::Profile::parse(serialized_profile);
+        if (!profile || profile->empty())
             break;
 
         color_volume = true;
-        if (segmentation_facets->timestamp() != mmuseg_ts) {
-            mmuseg_models.clear();
-            std::vector<indexed_triangle_set> its_per_color;
-            segmentation_facets->get_facets(*model_volume, its_per_color);
-            mmuseg_models.resize(its_per_color.size());
-            for (int idx = 0; idx < its_per_color.size(); idx++) {
-                mmuseg_models[idx].init_from(its_per_color[idx]);
+        coextrusion_color_volume = true;
+        if (!mmuseg_models_are_coextrusion ||
+            model_volume->coextrusion_surface_colors.timestamp() != coextrusion_color_ts ||
+            serialized_profile != coextrusion_profile_cache) {
+            std::vector<CoExtrusion::SurfaceColorId> palette_ids;
+            palette_ids.reserve(profile->sectors.size() + 1);
+            palette_ids.emplace_back(CoExtrusion::SurfaceColorAnnotation::UNASSIGNED);
+
+            coextrusion_render_colors.clear();
+            ColorRGBA base_color = render_color;
+            if (!extruder_colors.empty()) {
+                const size_t extruder_index = std::min(
+                    model_volume->extruder_id() > 0 ? size_t(model_volume->extruder_id() - 1) : size_t(0),
+                    extruder_colors.size() - 1);
+                base_color = extruder_colors[extruder_index];
+            }
+            if (const std::optional<CoExtrusion::SurfaceColorId> fallback_id =
+                    CoExtrusion::configured_surface_color_id(*model_object, *model_volume)) {
+                if (const CoExtrusion::ColorSector *sector = profile->find_sector(*fallback_id))
+                    decode_color(sector->preview_color, base_color);
+            }
+            coextrusion_render_colors.emplace_back(base_color);
+
+            for (const CoExtrusion::ColorSector &sector : profile->sectors) {
+                palette_ids.emplace_back(sector.color_id);
+                ColorRGBA sector_color = ColorRGBA::MAGENTA();
+                decode_color(sector.preview_color, sector_color);
+                coextrusion_render_colors.emplace_back(sector_color);
             }
 
-            mmuseg_ts = segmentation_facets->timestamp();
+            const indexed_triangle_set &source = model_volume->mesh().its;
+            std::vector<indexed_triangle_set> its_per_color(palette_ids.size());
+            for (indexed_triangle_set &group : its_per_color)
+                group.vertices = source.vertices;
+
+            for (size_t face_index = 0; face_index < source.indices.size(); ++face_index) {
+                const std::optional<CoExtrusion::SurfaceColorId> color_id =
+                    model_volume->coextrusion_surface_colors.triangle_color(face_index);
+                size_t palette_index = 0;
+                if (color_id) {
+                    auto color_it = std::find(palette_ids.begin() + 1, palette_ids.end(), *color_id);
+                    if (color_it == palette_ids.end()) {
+                        palette_ids.emplace_back(*color_id);
+                        coextrusion_render_colors.emplace_back(ColorRGBA::MAGENTA());
+                        its_per_color.emplace_back();
+                        its_per_color.back().vertices = source.vertices;
+                        palette_index = its_per_color.size() - 1;
+                    } else {
+                        palette_index = size_t(color_it - palette_ids.begin());
+                    }
+                }
+                its_per_color[palette_index].indices.emplace_back(source.indices[face_index]);
+            }
+
+            mmuseg_models.clear();
+            mmuseg_models.resize(its_per_color.size());
+            for (size_t idx = 0; idx < its_per_color.size(); ++idx)
+                mmuseg_models[idx].init_from(its_per_color[idx]);
+
+            coextrusion_color_ts = model_volume->coextrusion_surface_colors.timestamp();
+            coextrusion_profile_cache = serialized_profile;
+            mmuseg_models_are_coextrusion = true;
         }
     } while (0);
 
     if (color_volume && !picking) {
-        std::vector<ColorRGBA> &render_colors = source_colors.empty() ? extruder_colors : source_colors;
         // when force_transparent, we need to keep the alpha
-        if (force_native_color && render_color.is_transparent()) {
-            for (auto &extruder_color : render_colors)
+        if (!coextrusion_color_volume && force_native_color && render_color.is_transparent()) {
+            for (auto &extruder_color : extruder_colors)
                 extruder_color.a(render_color.a());
         }
 
@@ -636,11 +698,17 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                 continue;
 
             if (shader) {
-                if (idx == 0) {
+                if (coextrusion_color_volume) {
+                    ColorRGBA new_color = idx < int(coextrusion_render_colors.size()) ?
+                        coextrusion_render_colors[size_t(idx)] : ColorRGBA::MAGENTA();
+                    if (force_native_color && render_color.is_transparent())
+                        new_color.a(render_color.a());
+                    m.set_color(adjust_color_for_rendering(new_color));
+                }
+                else if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
-                    const size_t color_idx = extruder_id > 0 && size_t(extruder_id) <= render_colors.size() ? size_t(extruder_id - 1) : 0;
                     //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(render_colors[color_idx]);
+                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
                     if (ban_light) {
                         new_color[3] = (255 - (extruder_id - 1))/255.0f;
                     }
@@ -648,9 +716,9 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     // shader->set_uniform("uniform_color", new_color);
                 }
                 else {
-                    if (idx <= render_colors.size()) {
+                    if (idx <= extruder_colors.size()) {
                         //to make black not too hard too see
-                        ColorRGBA new_color = adjust_color_for_rendering(render_colors[idx - 1]);
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
                         if (ban_light) {
                             new_color[3] = (255 - (idx - 1))/255.0f;
                         }
@@ -659,7 +727,7 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     }
                     else {
                         //to make black not too hard too see
-                        ColorRGBA new_color = adjust_color_for_rendering(render_colors[0]);
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
                         if (ban_light) {
                             new_color[3] = (255 - 0) / 255.0f;
                         }

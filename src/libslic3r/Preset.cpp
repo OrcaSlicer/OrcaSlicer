@@ -8,7 +8,9 @@
 
 #ifdef _MSC_VER
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
 #endif /* _MSC_VER */
 
@@ -1303,10 +1305,18 @@ static std::vector<std::string> s_Preset_print_options{
     "zaa_minimize_perimeter_height",
     "zaa_dont_alternate_fill_direction",
     "zaa_min_z",
+    "coextrusion_surface_control",
+    "coextrusion_color_method",
+    "coextrusion_max_segment_length",
+    "coextrusion_angle_tolerance",
+    "coextrusion_angular_safety_margin",
+    "coextrusion_normal_xy_threshold",
+    "coextrusion_top_bottom_strategy",
+    "coextrusion_large_rotation_strategy",
     "ironing_expansion",
 };
 
-static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "filament_coextrusion_enable", "filament_coextrusion_colors", "filament_coextrusion_color_angles", "filament_coextrusion_filter_distance", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
+static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
                                                           "filament_soluble", "filament_is_support", "filament_printable",
     "filament_max_volumetric_speed", "filament_adaptive_volumetric_speed",
     "filament_flow_ratio", "filament_density", "filament_adhesiveness_category", "filament_cost", "filament_minimal_purge_on_wipe_tower",
@@ -1343,7 +1353,9 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_long_retractions_when_cut","filament_retraction_distances_when_cut", "idle_temperature",
     //BBS filament change length while the extruder color
     "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp", "filament_cooling_before_tower",
-    "long_retractions_when_ec", "retraction_distances_when_ec"
+    "long_retractions_when_ec", "retraction_distances_when_ec",
+    "filament_coextrusion_profile", "filament_coextrusion_calibration_offset", "filament_coextrusion_delay_model",
+    "filament_coextrusion_response_delay_time", "filament_coextrusion_transport_volume"
     };
 
 static std::vector<std::string> s_Preset_machine_limits_options {
@@ -1363,7 +1375,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
     "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
     "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
-    "single_extruder_multi_material", "coextrusion_c_axis_enable", "coextrusion_c_axis_colors", "coextrusion_c_axis_color_angles", "coextrusion_c_axis_offset", "coextrusion_c_axis_filter_distance", "coextrusion_c_axis_reverse", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
+    "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
     "nozzle_height", "master_extruder_id",
@@ -1382,7 +1394,10 @@ static std::vector<std::string> s_Preset_printer_options {
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
-    "bed_temperature_formula", "nozzle_flush_dataset"
+    "bed_temperature_formula", "nozzle_flush_dataset",
+    "coextrusion_c_axis_enabled", "coextrusion_c_axis_has_slip_ring", "coextrusion_c_axis_letter", "coextrusion_c_axis_direction", "coextrusion_c_axis_zero_offset",
+    "coextrusion_c_axis_rotation_mode", "coextrusion_c_axis_min", "coextrusion_c_axis_max", "coextrusion_c_axis_max_speed",
+    "coextrusion_c_axis_max_acceleration", "coextrusion_c_axis_max_jerk", "coextrusion_c_axis_start_gcode", "coextrusion_c_axis_end_gcode"
     };
 
 static std::vector<std::string> s_Preset_sla_print_options {

@@ -1865,8 +1865,8 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
             vol->supported_facets.assign(volume->supported_facets);
             vol->seam_facets.assign(volume->seam_facets);
             vol->mmu_segmentation_facets.assign(volume->mmu_segmentation_facets);
-            vol->coextrusion_segmentation_facets.assign(volume->coextrusion_segmentation_facets);
             vol->fuzzy_skin_facets.assign(volume->fuzzy_skin_facets);
+            vol->coextrusion_surface_colors.assign(volume->coextrusion_surface_colors);
 
             // Perform conversion only if the target "imperial" state is different from the current one.
             // This check supports conversion of "mixed" set of volumes, each with different "imperial" state.
@@ -1978,8 +1978,8 @@ void ModelVolume::reset_extra_facets()
     this->supported_facets.reset();
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
-    this->coextrusion_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
+    this->coextrusion_surface_colors.reset();
 }
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
@@ -1990,7 +1990,6 @@ std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() cons
         sp.supported = supported_facets.get_data();
         sp.seam      = seam_facets.get_data();
         sp.mmu       = mmu_segmentation_facets.get_data();
-        sp.coextrusion = coextrusion_segmentation_facets.get_data();
         sp.fuzzy     = fuzzy_skin_facets.get_data();
         return sp;
     }
@@ -2023,7 +2022,6 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
     remap_one(saved->supported, supported_facets);
     remap_one(saved->seam,      seam_facets);
     remap_one(saved->mmu,       mmu_segmentation_facets);
-    remap_one(saved->coextrusion, coextrusion_segmentation_facets);
     remap_one(saved->fuzzy,     fuzzy_skin_facets);
 }
 
@@ -2139,8 +2137,8 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
                 COPY_FACETS(supported_facets);
                 COPY_FACETS(seam_facets);
                 COPY_FACETS(mmu_segmentation_facets);
-                COPY_FACETS(coextrusion_segmentation_facets);
                 COPY_FACETS(fuzzy_skin_facets);
+                COPY_FACETS(coextrusion_surface_colors);
             } else if (saved_painting) {
                 // Geometry changed, attempt to remap them to the new mesh
                 new_vol->restore_painting(saved_painting);
@@ -2853,8 +2851,8 @@ void ModelVolume::assign_new_unique_ids_recursive()
     supported_facets.set_new_unique_id();
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
-    coextrusion_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
+    coextrusion_surface_colors.set_new_unique_id();
 }
 
 void ModelVolume::rotate(double angle, Axis axis)
@@ -3186,7 +3184,6 @@ bool Model::obj_import_vertex_color_deal(const std::vector<unsigned char> &verte
                 default: break;
                 }
             }
-            volume->coextrusion_segmentation_facets.assign(volume->mmu_segmentation_facets);
             return true;
         }
     }
@@ -3219,7 +3216,6 @@ bool Model::obj_import_face_color_deal(const std::vector<unsigned char> &face_fi
                 get_real_filament_id(filament_id, result);
                 volume->mmu_segmentation_facets.set_triangle_from_string(i, result);
             }
-            volume->coextrusion_segmentation_facets.assign(volume->mmu_segmentation_facets);
             return true;
         }
     }
@@ -3732,6 +3728,15 @@ bool model_fuzzy_skin_data_changed(const ModelObject &mo, const ModelObject &mo_
     return model_property_changed(mo, mo_new,
         [](const ModelVolumeType t) { return t == ModelVolumeType::MODEL_PART; },
         [](const ModelVolume &mv_old, const ModelVolume &mv_new){ return mv_old.fuzzy_skin_facets.timestamp_matches(mv_new.fuzzy_skin_facets); });
+}
+
+bool model_coextrusion_surface_color_data_changed(const ModelObject &mo, const ModelObject &mo_new)
+{
+    return model_property_changed(mo, mo_new,
+        [](const ModelVolumeType t) { return t == ModelVolumeType::MODEL_PART; },
+        [](const ModelVolume &mv_old, const ModelVolume &mv_new) {
+            return mv_old.coextrusion_surface_colors.timestamp_matches(mv_new.coextrusion_surface_colors);
+        });
 }
 
 bool model_brim_points_data_changed(const ModelObject& mo, const ModelObject& mo_new)

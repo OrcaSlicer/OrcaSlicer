@@ -59,6 +59,7 @@ static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF =
     { L("Quality"), { "layer_height" } },
     { L("Shell"), { "wall_loops", "top_shell_layers", "bottom_shell_layers"} },
     { L("Infill")               , { "sparse_infill_density", "sparse_infill_pattern" } },
+    { L("Multi-color co-extrusion"), { "coextrusion_surface_color_id" } },
     // BBS
     { L("Support")     , { "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap",
                                     "support_base_pattern", "support_on_build_plate_only","support_critical_regions_only",
@@ -112,6 +113,8 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"zaa_minimize_perimeter_height", "", 2},
        {"zaa_dont_alternate_fill_direction", "", 3},
        {"zaa_min_z", "", 4}}},
+     {L("Multi-color co-extrusion"),
+      {{"coextrusion_surface_color_id", "", 1}}},
      {L("Strength"),
       {{"wall_loops", "", 1},
        {"top_shell_layers", L("Top Solid Layers"), 1},
@@ -311,6 +314,7 @@ std::map<std::string, std::string> SettingsFactory::CATEGORY_ICON =
     { L("Extrusion Width")      , "blank_14"    },
     { L("Wipe options")         , "blank_14"    },
     { L("Bed adhesion")         , "blank_14"    },
+    { L("Multi-color co-extrusion"), "blank2"   },
 //  { L("Speed > Acceleration") , "time"        },
     { L("Advanced")             , "blank_14"    },
     // BBS: remove SLA categories

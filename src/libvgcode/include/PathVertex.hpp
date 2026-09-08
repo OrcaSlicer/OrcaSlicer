@@ -101,10 +101,15 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
-    //
-    // Physical co-extrusion sector selected by the C axis.
-    //
-    uint8_t coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
+    // Continuous absolute co-extrusion rotary-axis angle in degrees.
+    float coextrusion_c_angle_deg { 0.0f };
+    bool has_coextrusion_c_angle { false };
+    // Up to four physical color sectors used by the rotating cross-section
+    // preview. Centers remain continuous so interpolation across C=0 is stable.
+    std::array<float, 4> coextrusion_sector_centers_deg { 0.0f, 0.0f, 0.0f, 0.0f };
+    std::array<float, 4> coextrusion_sector_widths_deg { 0.0f, 0.0f, 0.0f, 0.0f };
+    std::array<float, 4> coextrusion_sector_colors { 0.0f, 0.0f, 0.0f, 0.0f };
+    bool has_coextrusion_profile { false };
 
     //
     // Return true if the segment is an extrusion move

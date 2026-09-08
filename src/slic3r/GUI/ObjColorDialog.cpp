@@ -446,7 +446,6 @@ void ObjColorPanel::cancel_paint_color() {
     clear_instance_and_revert_offset();
     auto mv = mo->volumes[0];
     mv->mmu_segmentation_facets.reset();
-    mv->coextrusion_segmentation_facets.reset();
     mv->config.set("extruder", 1);
     m_first_extruder_id = 1;
 }

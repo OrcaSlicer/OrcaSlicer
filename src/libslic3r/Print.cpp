@@ -139,6 +139,24 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "fan_speedup_time",
         "filament_colour",
         "default_filament_colour",
+        "coextrusion_c_axis_enabled",
+        "coextrusion_c_axis_has_slip_ring",
+        "coextrusion_c_axis_letter",
+        "coextrusion_c_axis_direction",
+        "coextrusion_c_axis_zero_offset",
+        "coextrusion_c_axis_rotation_mode",
+        "coextrusion_c_axis_min",
+        "coextrusion_c_axis_max",
+        "coextrusion_c_axis_max_speed",
+        "coextrusion_c_axis_max_acceleration",
+        "coextrusion_c_axis_max_jerk",
+        "coextrusion_c_axis_start_gcode",
+        "coextrusion_c_axis_end_gcode",
+        "filament_coextrusion_profile",
+        "filament_coextrusion_calibration_offset",
+        "filament_coextrusion_delay_model",
+        "filament_coextrusion_response_delay_time",
+        "filament_coextrusion_transport_volume",
         "filament_diameter",
          "volumetric_speed_coefficients",
         "filament_density",
@@ -2083,6 +2101,7 @@ void  PrintObject::clear_shared_object()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, clear previous shared object data %2%")%this %m_shared_object;
         m_layers.clear();
         m_support_layers.clear();
+        m_coextrusion_surface_sidecar.reset();
 
         m_shared_object = nullptr;
 
@@ -2098,6 +2117,7 @@ void  PrintObject::copy_layers_from_shared_object()
 
         firstLayerObjSliceByVolume.clear();
         firstLayerObjSliceByGroups.clear();
+        m_coextrusion_surface_sidecar.reset();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, copied layers from object %2%")%this%m_shared_object;
         m_layers = m_shared_object->layers();
@@ -2105,6 +2125,7 @@ void  PrintObject::copy_layers_from_shared_object()
 
         firstLayerObjSliceByVolume = m_shared_object->firstLayerObjSlice();
         firstLayerObjSliceByGroups = m_shared_object->firstLayerObjGroups();
+        m_coextrusion_surface_sidecar = m_shared_object->m_coextrusion_surface_sidecar;
     }
 }
 
@@ -2220,8 +2241,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (!model_volume1.seam_facets.equals(model_volume2.seam_facets))
                 return false;
             if (!model_volume1.mmu_segmentation_facets.equals(model_volume2.mmu_segmentation_facets))
-                return false;
-            if (!model_volume1.coextrusion_segmentation_facets.equals(model_volume2.coextrusion_segmentation_facets))
                 return false;
             if (!model_volume1.fuzzy_skin_facets.equals(model_volume2.fuzzy_skin_facets))
                 return false;
@@ -3291,9 +3310,6 @@ size_t Print::get_extruder_id(unsigned int filament_id) const
 // Wipe tower support.
 bool Print::has_wipe_tower() const
 {
-    if (m_config.coextrusion_c_axis_enable.value)
-        return false;
-
     if (m_config.enable_prime_tower.value == true) {
         if (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2)
             return true;

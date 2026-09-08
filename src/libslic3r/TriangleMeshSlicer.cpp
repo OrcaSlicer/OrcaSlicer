@@ -80,7 +80,38 @@ public:
 class IntersectionLine : public Line
 {
 public:
+    enum class FacetEdgeType {
+        // A general case, the cutting plane intersect a face at two different edges.
+        General,
+        // Two vertices are aligned with the cutting plane, the third vertex is below the cutting plane.
+        Top,
+        // Two vertices are aligned with the cutting plane, the third vertex is above the cutting plane.
+        Bottom,
+        // Two vertices are aligned with the cutting plane, the edge is shared by two triangles, where one
+        // triangle is below or at the cutting plane and the other is above or at the cutting plane (only one
+        // vertex may lie on the plane).
+        TopBottom,
+        // All three vertices of a face are aligned with the cutting plane.
+        Horizontal,
+        // Edge
+        Slab,
+    };
+
     IntersectionLine() = default;
+    IntersectionLine(
+        const Line &line,
+        int a_id,
+        int b_id,
+        int edge_a_id,
+        int edge_b_id,
+        FacetEdgeType edge_type)
+        : Line(line)
+        , a_id(a_id)
+        , b_id(b_id)
+        , edge_a_id(edge_a_id)
+        , edge_b_id(edge_b_id)
+        , edge_type(edge_type)
+    {}
 
     bool skip() const { return (this->flags & SKIP) != 0; }
     void set_skip() { this->flags |= SKIP; }
@@ -98,23 +129,7 @@ public:
     // Source mesh edges of the line end points.
     int             edge_a_id { -1 };
     int             edge_b_id { -1 };
-
-    enum class FacetEdgeType { 
-        // A general case, the cutting plane intersect a face at two different edges.
-        General,
-        // Two vertices are aligned with the cutting plane, the third vertex is below the cutting plane.
-        Top,
-        // Two vertices are aligned with the cutting plane, the third vertex is above the cutting plane.
-        Bottom,
-        // Two vertices are aligned with the cutting plane, the edge is shared by two triangles, where one
-        // triangle is below or at the cutting plane and the other is above or at the cutting plane (only one
-        // vertex may lie on the plane).
-        TopBottom,
-        // All three vertices of a face are aligned with the cutting plane.
-        Horizontal,
-        // Edge 
-        Slab,
-    };
+    int             face_idx { -1 };
 
     // feGeneral, feTop, feBottom, feHorizontal
     FacetEdgeType   edge_type { FacetEdgeType::General };
@@ -479,6 +494,7 @@ void slice_facet_at_zs(
     const TransformVertex                            &transform_vertex_fn,
     const stl_triangle_vertex_indices                &indices,
     const Vec3i32                                      &edge_ids,
+    const int                                          face_idx,
     // Scaled or unscaled zs. If vertices have their zs scaled or transform_vertex_fn scales them, then zs have to be scaled as well.
     const std::vector<float>                         &zs,
     std::vector<IntersectionLines>                   &lines,
@@ -500,6 +516,7 @@ void slice_facet_at_zs(
         // Ignore horizontal triangles. Any valid horizontal triangle must have a vertical triangle connected, otherwise the part has zero volume.
         if (min_z != max_z && slice_facet(*it, vertices, indices, edge_ids, idx_vertex_lowest, false, il) == FacetSliceType::Slicing) {
             assert(il.edge_type != IntersectionLine::FacetEdgeType::Horizontal);
+            il.face_idx = face_idx;
             size_t slice_id = it - zs.begin();
             boost::lock_guard<std::mutex> l(lines_mutex[slice_id % lines_mutex.size()]);
             lines[slice_id].emplace_back(il);
@@ -524,7 +541,7 @@ static inline std::vector<IntersectionLines> slice_make_lines(
             for (int face_idx = range.begin(); face_idx < range.end(); ++ face_idx) {
                 if ((face_idx & 0x0ffff) == 0)
                     throw_on_cancel_fn();
-                slice_facet_at_zs(vertices, transform_vertex_fn, indices[face_idx], face_edge_ids[face_idx], zs, lines, lines_mutex);
+                slice_facet_at_zs(vertices, transform_vertex_fn, indices[face_idx], face_edge_ids[face_idx], face_idx, zs, lines, lines_mutex);
             }
         }
     );
@@ -554,6 +571,7 @@ static inline IntersectionLines slice_make_lines(
             // Ignore horizontal triangles. Any valid horizontal triangle must have a vertical triangle connected, otherwise the part has zero volume.
             if (min_z != max_z && slice_facet(plane_z, vertices, indices, face_edge_ids[face_idx], idx_vertex_lowest, false, il) == FacetSliceType::Slicing) {
                 assert(il.edge_type != IntersectionLine::FacetEdgeType::Horizontal);
+                il.face_idx = face_idx;
                 lines.emplace_back(il);
             }
         }
@@ -1859,6 +1877,47 @@ static std::vector<stl_vertex> transform_mesh_vertices_for_slicing(const indexed
             v = tf * v;
     }
     return out;
+}
+
+std::vector<MeshSliceLines> slice_mesh_with_face_ids(
+    const indexed_triangle_set       &mesh,
+    const std::vector<float>         &zs,
+    const MeshSlicingParams          &params,
+    std::function<void()>             throw_on_cancel)
+{
+    std::vector<IntersectionLines> lines;
+    const std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh);
+
+    if (zs.size() <= 1) {
+        if (is_identity(params.trafo)) {
+            lines = slice_make_lines(
+                mesh.vertices,
+                [](const Vec3f &point) { return Vec3f(scaled<float>(point.x()), scaled<float>(point.y()), point.z()); },
+                mesh.indices, face_edge_ids, zs, throw_on_cancel);
+        } else {
+            const Transform3f transform = make_trafo_for_slicing(params.trafo);
+            lines = slice_make_lines(
+                mesh.vertices, [transform](const Vec3f &point) { return transform * point; },
+                mesh.indices, face_edge_ids, zs, throw_on_cancel);
+        }
+    } else {
+        lines = slice_make_lines(
+            transform_mesh_vertices_for_slicing(mesh, params.trafo),
+            [](const Vec3f &point) { return point; },
+            mesh.indices, face_edge_ids, zs, throw_on_cancel);
+    }
+
+    throw_on_cancel();
+
+    std::vector<MeshSliceLines> result(lines.size());
+    for (size_t layer_index = 0; layer_index < lines.size(); ++layer_index) {
+        result[layer_index].reserve(lines[layer_index].size());
+        for (const IntersectionLine &line : lines[layer_index]) {
+            if (line.face_idx >= 0)
+                result[layer_index].push_back({ static_cast<const Line&>(line), size_t(line.face_idx) });
+        }
+    }
+    return result;
 }
 
 std::vector<Polygons> slice_mesh(

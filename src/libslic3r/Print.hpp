@@ -17,6 +17,7 @@
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "CoExtrusion/SurfaceSliceSidecar.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Geometry>
@@ -358,6 +359,8 @@ public:
     std::vector<VolumeSlices>& firstLayerObjSliceMod() { return firstLayerObjSliceByVolume; }
     const std::vector<groupedVolumeSlices>& firstLayerObjGroups() const { return firstLayerObjSliceByGroups; }
     std::vector<groupedVolumeSlices>& firstLayerObjGroupsMod() { return firstLayerObjSliceByGroups; }
+    const std::shared_ptr<const CoExtrusion::SurfaceSliceSidecar>& coextrusion_surface_sidecar() const
+        { return m_coextrusion_surface_sidecar; }
 
     bool                         has_brim() const       {
         return ((this->config().brim_type != btNoBrim && this->config().brim_width.value > 0.) || this->config().brim_type == btAutoBrim
@@ -431,9 +434,6 @@ public:
     bool                        has_support_material()  const { return this->has_support() || this->has_raft(); }
     // Checks if the model object is painted using the multi-material painting gizmo.
     bool                        is_mm_painted()         const { return this->model_object()->is_mm_painted(); }
-    const std::vector<std::vector<ColoredLines>>& mmu_surface_color_lines() const
-        { return m_shared_object != nullptr ? m_shared_object->mmu_surface_color_lines() : m_mmu_surface_color_lines; }
-    std::vector<std::vector<ColoredLines>>& mmu_surface_color_lines() { return m_mmu_surface_color_lines; }
     // Checks if the model object is painted using the fuzzy skin painting gizmo.
     bool                        is_fuzzy_skin_painted() const { return this->model_object()->is_fuzzy_skin_painted(); }
 
@@ -560,9 +560,6 @@ private:
     SlicingParameters                       m_slicing_params;
     LayerPtrs                               m_layers;
     SupportLayerPtrs                        m_support_layers;
-    // Original per-layer painted colors on the sliced outer contours. Unlike
-    // LayerRegion segmentation, these colors have not been propagated inward.
-    std::vector<std::vector<ColoredLines>>  m_mmu_surface_color_lines;
     // BBS
     std::shared_ptr<TreeSupportData>        m_tree_support_preview_cache;
 
@@ -575,6 +572,7 @@ private:
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
+    std::shared_ptr<const CoExtrusion::SurfaceSliceSidecar> m_coextrusion_surface_sidecar;
 
     // BBS: per object skirt
     ExtrusionEntityCollection               m_skirt;

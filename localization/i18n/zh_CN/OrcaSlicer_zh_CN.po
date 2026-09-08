@@ -22346,3 +22346,15 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+msgid "Color calculation method"
+msgstr "颜色计算方法"
+
+msgid "2D - XY normal"
+msgstr "二维 - XY 平面法向量"
+
+msgid "3D - Ellipse model"
+msgstr "三维 - 椭圆模型"
+
+msgid "2D uses only the surface normal projected onto XY, ignoring height and travel direction. If the projection is too small, the previous C angle is retained. 3D uses the current deposited-bead model with ellipse correction from line width and layer height under tangent_follow. Legacy top and bottom strategies remain available in 3D mode."
+msgstr "二维仅使用表面法向量在 XY 平面的投影，不考虑高度和运动方向；投影过小时保持上一 C 角度。三维在 tangent_follow 策略下使用当前沉积模型，根据线宽和层高进行椭圆修正。三维模式仍兼容原有顶底面策略。"

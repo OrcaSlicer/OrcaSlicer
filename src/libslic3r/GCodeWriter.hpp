@@ -2,7 +2,6 @@
 #define slic3r_GCodeWriter_hpp_
 
 #include "libslic3r.h"
-#include <optional>
 #include <string>
 #include <charconv>
 #include "Extruder.hpp"
@@ -67,8 +66,6 @@ public:
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
     void init_extruder(unsigned int filament_id);
-    // Select a logical filament without emitting a physical tool change.
-    void select_filament(unsigned int filament_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
     std::string toolchange_prefix() const;
@@ -80,12 +77,15 @@ public:
     std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
     std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
-    std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false,
-                              std::optional<double> c_axis = std::nullopt);
+    std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    std::string extrude_to_xyc(const Vec2d &point, double dE, double c_angle_deg, const std::string &comment = std::string(), bool force_no_extrusion = false);
     //BBS: generate G2 or G3 extrude which moves by arc
     std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
-    std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false,
-                               std::optional<double> c_axis = std::nullopt);
+    std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    std::string extrude_to_xyzc(const Vec3d &point, double dE, double c_angle_deg, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    std::string rotate_coextrusion_axis(double c_angle_deg, double speed_deg_s, const std::string &comment = std::string());
+    bool        coextrusion_axis_enabled() const { return m_coextrusion_axis_enabled; }
+    char        coextrusion_axis_letter() const { return m_coextrusion_axis_letter; }
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     std::string unretract();
@@ -175,6 +175,13 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+    bool            m_coextrusion_axis_enabled { false };
+    bool            m_coextrusion_axis_limited { true };
+    double          m_coextrusion_axis_min_deg { -180.0 };
+    double          m_coextrusion_axis_max_deg { 180.0 };
+    char            m_coextrusion_axis_letter { 'C' };
+    double          m_coextrusion_axis_angle_deg { 0.0 };
+    double          m_coextrusion_continuous_axis_angle_deg { 0.0 };
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;
@@ -196,6 +203,11 @@ public:
     std::string _spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment);
     std::string _retract(double length, double restart_extra, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
+    std::string rebase_coextrusion_axis(
+        double continuous_angle_deg,
+        double &command_angle_deg,
+        bool allow_coordinate_reset);
+    std::string flush_coextrusion_axis_rebase();
 
 };
 
@@ -256,10 +268,6 @@ public:
 
     void emit_f(double speed) {
         this->emit_axis('F', speed, XYZF_EXPORT_DIGITS);
-    }
-
-    void emit_c(double angle) {
-        this->emit_axis('C', angle, XYZF_EXPORT_DIGITS);
     }
     //BBS
     void emit_ij(const Vec2d &point) {

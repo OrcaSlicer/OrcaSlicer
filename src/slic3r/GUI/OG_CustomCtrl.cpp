@@ -366,9 +366,8 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
             tooltip += line.og_line.label_tooltip;
             // BBS: markdown tip
             focusedLine = &line;
-            const std::vector<Option> &options = line.og_line.get_options();
-            markdowntip = line.og_line.label.empty() ?
-                (options.empty() ? std::string() : options.front().opt_id) : into_u8(line.og_line.label);
+            markdowntip = line.og_line.label.empty() 
+                ? line.og_line.get_options().front().opt_id : into_u8(line.og_line.label);
             markdowntip.erase(0, markdowntip.find_last_of('#') + 1);
             // BBS
             break;
@@ -769,8 +768,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         return;
     }
 
-    const std::vector<Option> &option_set = og_line.get_options();
-    Field *field = option_set.empty() ? nullptr : ctrl->opt_group->get_field(option_set.front().opt_id);
+    Field* field = ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
@@ -788,6 +786,8 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
 
     if (og_line.near_label_widget_win)
         h_pos += og_line.near_label_widget_win->GetSize().x + ctrl->m_h_gap;
+
+    const std::vector<Option>& option_set = og_line.get_options();
 
     wxString label = og_line.label;
     wxColour blink_color = StateColor::darkModeColorFor("#009688");

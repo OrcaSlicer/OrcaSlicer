@@ -20,6 +20,7 @@
 #include "Layers.hpp"
 #include "ExtrusionRoles.hpp"
 
+#include <array>
 #include <string>
 #include <optional>
 
@@ -155,10 +156,6 @@ public:
     const Palette& get_color_print_colors() const { return m_color_print_colors; }
     void set_color_print_colors(const Palette& colors);
 
-    size_t get_coextrusion_colors_count() const { return m_coextrusion_colors.size(); }
-    const Palette& get_coextrusion_colors() const { return m_coextrusion_colors; }
-    void set_coextrusion_colors(const Palette& colors);
-
     const Color& get_extrusion_role_color(EGCodeExtrusionRole role) const;
     void set_extrusion_role_color(EGCodeExtrusionRole role, const Color& color);
     void reset_default_extrusion_roles_colors();
@@ -275,6 +272,7 @@ private:
     // cpu buffer to store vertices
     //
     std::vector<PathVertex> m_vertices;
+    bool m_has_coextrusion_data{ false };
 
     // Cache for the colors to reduce the need to recalculate colors of all the vertices.
     std::vector<float> m_vertices_colors;
@@ -306,7 +304,6 @@ private:
     };
     Palette m_tool_colors;
     Palette m_color_print_colors;
-    Palette m_coextrusion_colors;
     //
     // OpenGL shaders ids
     //
@@ -326,6 +323,10 @@ private:
     int m_uni_segments_height_width_angle_tex_id{ -1 };
     int m_uni_segments_colors_tex_id{ -1 };
     int m_uni_segments_segment_index_tex_id{ -1 };
+    int m_uni_segments_coextrusion_centers_tex_id{ -1 };
+    int m_uni_segments_coextrusion_widths_tex_id{ -1 };
+    int m_uni_segments_coextrusion_colors_tex_id{ -1 };
+    int m_uni_segments_coextrusion_preview_enabled_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -361,6 +362,9 @@ private:
         void set_positions(const std::vector<Vec3>& positions);
         void set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles);
         void set_colors(const std::vector<float>& colors);
+        void set_coextrusion_data(const std::vector<std::array<float, 4>>& centers,
+            const std::vector<std::array<float, 4>>& widths,
+            const std::vector<std::array<float, 4>>& colors);
         void set_enabled_segments(const std::vector<uint32_t>& enabled_segments);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
         void reset();
@@ -368,6 +372,9 @@ private:
         std::pair<unsigned int, size_t> get_positions_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_heights_widths_angles_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_colors_tex_id(size_t id) const;
+        std::pair<unsigned int, size_t> get_coextrusion_centers_tex_id(size_t id) const;
+        std::pair<unsigned int, size_t> get_coextrusion_widths_tex_id(size_t id) const;
+        std::pair<unsigned int, size_t> get_coextrusion_colors_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_segments_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_options_tex_id(size_t id) const;
 
@@ -396,6 +403,7 @@ private:
         size_t m_positions_size{ 0 };
         size_t m_height_width_angle_size{ 0 };
         size_t m_colors_size{ 0 };
+        size_t m_coextrusion_size{ 0 };
         size_t m_enabled_segments_size{ 0 };
         size_t m_enabled_options_size{ 0 };
 
@@ -413,6 +421,9 @@ private:
             // OpenGL texture to store colors
             //
             std::pair<unsigned int, size_t> colors{ 0, 0 };
+            std::pair<unsigned int, size_t> coextrusion_centers{ 0, 0 };
+            std::pair<unsigned int, size_t> coextrusion_widths{ 0, 0 };
+            std::pair<unsigned int, size_t> coextrusion_colors{ 0, 0 };
             //
             // OpenGL texture to store enabled segments
             //
@@ -443,6 +454,12 @@ private:
     //
     unsigned int m_colors_buf_id{ 0 };
     unsigned int m_colors_tex_id{ 0 };
+    unsigned int m_coextrusion_centers_buf_id{ 0 };
+    unsigned int m_coextrusion_centers_tex_id{ 0 };
+    unsigned int m_coextrusion_widths_buf_id{ 0 };
+    unsigned int m_coextrusion_widths_tex_id{ 0 };
+    unsigned int m_coextrusion_colors_buf_id{ 0 };
+    unsigned int m_coextrusion_colors_tex_id{ 0 };
     //
     // OpenGL buffers to store enabled segments
     //
@@ -461,6 +478,7 @@ private:
     size_t m_positions_tex_size{ 0 };
     size_t m_height_width_angle_tex_size{ 0 };
     size_t m_colors_tex_size{ 0 };
+    size_t m_coextrusion_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
 #endif // ENABLE_OPENGL_ES

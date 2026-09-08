@@ -1952,35 +1952,6 @@ static bool has_layer_only_one_color(const std::vector<ColoredLines> &colored_po
     return true;
 }
 
-// Colored contour state zero means "use the model volume's default filament".
-// Resolve that state before MMU segmentation propagates surface colors inward,
-// while LayerRegions still describe the original model volumes.
-static int resolve_default_surface_filament(const Layer &layer, const Line &line)
-{
-    const Vec2d direction = (line.b - line.a).cast<double>();
-    const double length = direction.norm();
-    if (length <= EPSILON)
-        return 0;
-
-    const Vec2d midpoint = 0.5 * (line.a.cast<double>() + line.b.cast<double>());
-    const Vec2d normal(-direction.y() / length, direction.x() / length);
-    for (const double distance_mm : {0.01, 0.03, 0.08, 0.2}) {
-        const double distance = scale_(distance_mm);
-        for (const double side : {-1., 1.}) {
-            const Point probe = (midpoint + side * distance * normal).cast<coord_t>();
-            for (const LayerRegion *region : layer.regions()) {
-                const int filament_id = region->region().config().outer_wall_filament_id.value;
-                if (filament_id <= 0)
-                    continue;
-                for (const Surface &surface : region->slices)
-                    if (surface.expolygon.contains(probe))
-                        return filament_id;
-            }
-        }
-    }
-    return 0;
-}
-
 std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject                                               &print_object,
                                                               const std::function<ModelVolumeFacetsInfo(const ModelVolume &)> &extract_facets_info,
                                                               const size_t                                                     num_facets_states,
@@ -1988,13 +1959,10 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                                                               const float                                                      segmentation_interlocking_depth,
                                                               const bool                                                       segmentation_interlocking_beam,
                                                               const IncludeTopAndBottomLayers                                  include_top_and_bottom_layers,
-                                                              const std::function<void()>                                     &throw_on_cancel_callback,
-                                                              std::vector<std::vector<ColoredLines>>                           *surface_color_lines)
+                                                              const std::function<void()>                                     &throw_on_cancel_callback)
 {
     const size_t                          num_layers    = print_object.layers().size();
     std::vector<std::vector<ExPolygons>>  segmented_regions(num_layers);
-    if (surface_color_lines != nullptr)
-        surface_color_lines->assign(num_layers, {});
     segmented_regions.assign(num_layers, std::vector<ExPolygons>(num_facets_states));
     std::vector<std::vector<PaintedLine>> painted_lines(num_layers);
     std::array<std::mutex, 64>            painted_lines_mutex;
@@ -2156,7 +2124,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                              << std::count_if(painted_lines.begin(), painted_lines.end(), [](const std::vector<PaintedLine> &pl) { return !pl.empty(); });
 
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - layers segmentation in parallel - begin";
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&layers, &edge_grids, &input_expolygons, &painted_lines, &segmented_regions, &num_facets_states, &throw_on_cancel_callback, surface_color_lines](const tbb::blocked_range<size_t> &range) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&edge_grids, &input_expolygons, &painted_lines, &segmented_regions, &num_facets_states, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             throw_on_cancel_callback();
             if (!painted_lines[layer_idx].empty()) {
@@ -2171,21 +2139,6 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 #endif // MM_SEGMENTATION_DEBUG_PAINTED_LINES
 
                 std::vector<ColoredLines> color_poly = colorize_contours(edge_grids[layer_idx].contours(), post_processed_painted_lines);
-
-                // Keep the colors on the actual sliced model boundary. The MMU
-                // regions generated below deliberately propagate those colors
-                // into the model volume; that propagation is useful for tool
-                // changes, but is not the surface color needed by a rotating
-                // co-extrusion nozzle.
-                if (surface_color_lines != nullptr) {
-                    (*surface_color_lines)[layer_idx] = color_poly;
-                    for (ColoredLines &contour : (*surface_color_lines)[layer_idx]) {
-                        for (ColoredLine &line : contour) {
-                            if (line.color == 0)
-                                line.color = resolve_default_surface_filament(*layers[layer_idx], line.line);
-                        }
-                    }
-                }
 
 #ifdef MM_SEGMENTATION_DEBUG_COLORIZED_POLYGONS
                 export_colorized_polygons_to_svg(debug_out_path("2-mm-colorized_polygons-%d-%d.svg", layer_idx, iRun), color_poly, input_expolygons[layer_idx]);
@@ -2241,27 +2194,17 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 }
 
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
-std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object,
-                                                                             const std::function<void()> &throw_on_cancel_callback,
-                                                                             std::vector<std::vector<ColoredLines>> *surface_color_lines) {
-    const PrintConfig &print_config = print_object.print()->config();
-    const bool coextrusion_surface_mode = print_config.coextrusion_c_axis_enable.value &&
-                                          print_config.filament_coextrusion_enable.value &&
-                                          !print_config.coextrusion_source_colors.values.empty();
-    const size_t num_facets_states = (coextrusion_surface_mode ? print_config.coextrusion_source_colors.size() :
-                                                                  print_config.filament_colour.size()) + 1;
+std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
+    const size_t num_facets_states  = print_object.print()->config().filament_colour.size() + 1;
     const float  max_width          = float(print_object.config().mmu_segmented_region_max_width.value);
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
     const bool   interlocking_beam  = print_object.config().interlocking_beam.value;
 
-    const auto extract_facets_info = [coextrusion_surface_mode](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
-        return coextrusion_surface_mode ?
-            ModelVolumeFacetsInfo{mv.coextrusion_segmentation_facets, mv.is_coextrusion_painted(), false} :
-            ModelVolumeFacetsInfo{mv.mmu_segmentation_facets, mv.is_mm_painted(), false};
+    const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
+        return {mv.mmu_segmentation_facets, mv.is_mm_painted(), false};
     };
 
-    return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_width, interlocking_depth, interlocking_beam,
-                                    IncludeTopAndBottomLayers::Yes, throw_on_cancel_callback, surface_color_lines);
+    return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_width, interlocking_depth, interlocking_beam, IncludeTopAndBottomLayers::Yes, throw_on_cancel_callback);
 }
 
 // Returns fuzzy skin segmentation based on painting in fuzzy skin segmentation gizmo

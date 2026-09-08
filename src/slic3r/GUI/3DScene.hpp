@@ -231,6 +231,10 @@ public:
     // BBS
     mutable std::vector<GUI::GLModel> mmuseg_models;
     mutable ObjectBase::Timestamp       mmuseg_ts;
+    mutable ObjectBase::Timestamp       coextrusion_color_ts;
+    mutable bool                        mmuseg_models_are_coextrusion { false };
+    mutable std::string                 coextrusion_profile_cache;
+    mutable std::vector<ColorRGBA>      coextrusion_render_colors;
 
     // Ranges of triangle and quad indices to be rendered.
     std::pair<size_t, size_t>   tverts_range;

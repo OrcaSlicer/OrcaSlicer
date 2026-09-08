@@ -47,6 +47,11 @@ enum GCodeFlavor : unsigned char {
 };
 
 
+enum class CoExtrusionColorMethod {
+    NormalXY,
+    Ellipse3D,
+};
+
 enum class FuzzySkinType {
     None,
     External,
@@ -521,6 +526,7 @@ extern std::vector<std::string> save_extruder_ams_count_to_string(const std::vec
 
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(CoExtrusionColorMethod)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
@@ -1066,6 +1072,16 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
 
+    // Single-nozzle, multi-color co-extrusion surface orientation.
+    ((ConfigOptionBool,   coextrusion_surface_control))
+    ((ConfigOptionEnum<CoExtrusionColorMethod>, coextrusion_color_method))
+    ((ConfigOptionFloat,  coextrusion_max_segment_length))
+    ((ConfigOptionFloat,  coextrusion_angle_tolerance))
+    ((ConfigOptionFloat,  coextrusion_angular_safety_margin))
+    ((ConfigOptionFloat,  coextrusion_normal_xy_threshold))
+    ((ConfigOptionString, coextrusion_top_bottom_strategy))
+    ((ConfigOptionString, coextrusion_large_rotation_strategy))
+
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 )
@@ -1076,6 +1092,9 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionInts,  print_extruder_id))
     ((ConfigOptionStrings,  print_extruder_variant))
+    // Default co-extrusion surface color for an object or model-part volume.
+    // Per-triangle annotations take precedence over this fallback.
+    ((ConfigOptionInt,                   coextrusion_surface_color_id))
     ((ConfigOptionInt,                  bottom_shell_layers))
     ((ConfigOptionFloat,                bottom_shell_thickness))
     ((ConfigOptionFloat,                bridge_angle))
@@ -1331,10 +1350,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBools,               filament_soluble))
     ((ConfigOptionStrings,             filament_ids))
     ((ConfigOptionStrings,             filament_colour))
-    ((ConfigOptionBool,                filament_coextrusion_enable))
-    ((ConfigOptionStrings,             filament_coextrusion_colors))
-    ((ConfigOptionFloats,              filament_coextrusion_color_angles))
-    ((ConfigOptionFloat,               filament_coextrusion_filter_distance))
     ((ConfigOptionStrings,             filament_vendor))
     ((ConfigOptionBools,               filament_is_support))
     ((ConfigOptionInts,                filament_printable))
@@ -1346,8 +1361,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                required_nozzle_HRC))
     ((ConfigOptionEnum<FilamentMapMode>, filament_map_mode))
     ((ConfigOptionInts,                filament_map))
-    ((ConfigOptionInts,                coextrusion_color_mapping))
-    ((ConfigOptionStrings,             coextrusion_source_colors))
     //((ConfigOptionInts,                filament_extruder_id))
     ((ConfigOptionStrings,             filament_extruder_variant))
     ((ConfigOptionBool,                support_object_skip_flush))
@@ -1400,12 +1413,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
-    ((ConfigOptionBool,                coextrusion_c_axis_enable))
-    ((ConfigOptionStrings,             coextrusion_c_axis_colors))
-    ((ConfigOptionFloats,              coextrusion_c_axis_color_angles))
-    ((ConfigOptionFloat,               coextrusion_c_axis_offset))
-    ((ConfigOptionFloat,               coextrusion_c_axis_filter_distance))
-    ((ConfigOptionBool,                coextrusion_c_axis_reverse))
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
@@ -1480,6 +1487,29 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                tool_change_on_wipe_tower))
     ((ConfigOptionBool,                support_multi_bed_types))
     ((ConfigOptionBool,                use_3mf))
+
+    // Single-nozzle, multi-color co-extrusion C-axis capabilities.
+    ((ConfigOptionBool,                coextrusion_c_axis_enabled))
+    ((ConfigOptionBool,                coextrusion_c_axis_has_slip_ring))
+    ((ConfigOptionString,              coextrusion_c_axis_letter))
+    ((ConfigOptionInt,                 coextrusion_c_axis_direction))
+    ((ConfigOptionFloat,               coextrusion_c_axis_zero_offset))
+    ((ConfigOptionString,              coextrusion_c_axis_rotation_mode))
+    ((ConfigOptionFloat,               coextrusion_c_axis_min))
+    ((ConfigOptionFloat,               coextrusion_c_axis_max))
+    ((ConfigOptionFloat,               coextrusion_c_axis_max_speed))
+    ((ConfigOptionFloat,               coextrusion_c_axis_max_acceleration))
+    ((ConfigOptionFloat,               coextrusion_c_axis_max_jerk))
+    ((ConfigOptionString,              coextrusion_c_axis_start_gcode))
+    ((ConfigOptionString,              coextrusion_c_axis_end_gcode))
+
+    // Each entry describes one filament. The profile string contains all
+    // cross-section sectors for that filament.
+    ((ConfigOptionStrings,             filament_coextrusion_profile))
+    ((ConfigOptionFloats,              filament_coextrusion_calibration_offset))
+    ((ConfigOptionStrings,             filament_coextrusion_delay_model))
+    ((ConfigOptionFloats,              filament_coextrusion_response_delay_time))
+    ((ConfigOptionFloats,              filament_coextrusion_transport_volume))
 
     // Small Area Infill Flow Compensation
     ((ConfigOptionStrings,              small_area_infill_flow_compensation_model))

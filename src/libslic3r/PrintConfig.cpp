@@ -2,10 +2,10 @@
 #include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
-#include "Color.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
+#include "CoExtrusion/CoExtrusionTypes.hpp"
 
 #include "GCode/Thumbnails.hpp"
 #include <set>
@@ -134,6 +134,12 @@ static t_config_enum_values s_keys_map_PrinterTechnology {
     { "SLA",            ptSLA }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterTechnology)
+
+static t_config_enum_values s_keys_map_CoExtrusionColorMethod {
+    { "normal_xy", int(CoExtrusionColorMethod::NormalXY) },
+    { "ellipse_3d", int(CoExtrusionColorMethod::Ellipse3D) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CoExtrusionColorMethod)
 
 static t_config_enum_values s_keys_map_PrintHostType {
     { "prusalink",      htPrusaLink },
@@ -2478,35 +2484,232 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_colour_type", coStrings);
     def->set_default_value(new ConfigOptionStrings{"1"}); // Init as default color
 
-    def = this->add("filament_coextrusion_enable", coBool);
-    def->label = L("Multi-color co-extrusion filament");
-    def->tooltip = L("This filament contains multiple fixed color sectors in its cross-section. A printer with C-axis control can rotate these sectors to reproduce painted 3MF surface colors.");
-    def->mode = comSimple;
+    // Single-nozzle multi-color co-extrusion. The feature is disabled by
+    // default so existing printer, filament and process profiles are unchanged.
+    def = this->add("coextrusion_c_axis_enabled", coBool);
+    def->label = L("Enable co-extrusion C axis");
+    def->category = L("Multi-material");
+    def->tooltip = L("Enable synchronized C-axis control for a single multi-color co-extrusion filament.");
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("filament_coextrusion_colors", coStrings);
-    def->label = L("Physical color sector");
-    def->tooltip = L("Color of each physical sector in this co-extruded filament.");
-    def->gui_type = ConfigOptionDef::GUIType::color;
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionStrings{"#FF0000", "#00FF00", "#0000FF"});
+    def = this->add("coextrusion_c_axis_has_slip_ring", coBool);
+    def->label = L("C-axis has slip ring");
+    def->category = L("Multi-material");
+    def->tooltip = L("Enable continuous accumulated C-axis rotation only when the machine has a slip ring. Without a slip ring, motion is always constrained by the configured minimum and maximum angles.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("filament_coextrusion_color_angles", coFloats);
-    def->label = L("Physical sector center angle");
-    def->tooltip = L("Center angle of each physical color sector when C is zero. Each value corresponds to the physical sector color on the same row.");
+    def = this->add("coextrusion_c_axis_letter", coString);
+    def->label = L("C-axis letter");
+    def->category = L("Multi-material");
+    def->tooltip = L("Rotary axis letter emitted for co-extrusion orientation moves: A, B, C, U, V or W.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString("C"));
+
+    def = this->add("coextrusion_c_axis_direction", coInt);
+    def->label = L("C-axis direction");
+    def->category = L("Multi-material");
+    def->tooltip = L("Use 1 when positive C rotation follows +X toward +Y, or -1 for the opposite direction. With +X to the right and +Y toward the observer, 1 means clockwise viewed from above. C=0 uses +X as its reference.");
+    def->min = -1;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("coextrusion_c_axis_zero_offset", coFloat);
+    def->label = L("C-axis zero offset");
+    def->category = L("Multi-material");
+    def->tooltip = L("Mechanical angular offset between the configured and physical C-axis zero positions.");
     def->sidetext = L("deg");
-    def->min = 0;
-    def->max = 360;
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionFloats({0.0, 120.0, 240.0}));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
 
-    def = this->add("filament_coextrusion_filter_distance", coFloat);
-    def->label = L("C-axis filter distance");
-    def->tooltip = L("Distance constant of the circular low-pass filter used for surface-normal and color changes with this filament. Zero disables filtering.");
+    def = this->add("coextrusion_c_axis_rotation_mode", coString);
+    def->label = L("C-axis rotation mode");
+    def->category = L("Multi-material");
+    def->tooltip = L("Rotation policy: shortest_path, positive_only or limited_range. Machines without a slip ring always use limited_range.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString("limited_range"));
+
+    def = this->add("coextrusion_c_axis_min", coFloat);
+    def->label = L("C-axis minimum angle");
+    def->category = L("Multi-material");
+    def->tooltip = L("C-axis software minimum used by limited-range rotation mode.");
+    def->sidetext = L("deg");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(-180.0));
+
+    def = this->add("coextrusion_c_axis_max", coFloat);
+    def->label = L("C-axis maximum angle");
+    def->category = L("Multi-material");
+    def->tooltip = L("C-axis software maximum used by limited-range rotation mode.");
+    def->sidetext = L("deg");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(180.0));
+
+    def = this->add("coextrusion_c_axis_max_speed", coFloat);
+    def->label = L("C-axis maximum speed");
+    def->category = L("Multi-material");
+    def->tooltip = L("Maximum allowed C-axis angular speed.");
+    def->sidetext = L("deg/s");
+    def->min = 0.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(120.0));
+
+    def = this->add("coextrusion_c_axis_max_acceleration", coFloat);
+    def->label = L("C-axis maximum acceleration");
+    def->category = L("Multi-material");
+    def->tooltip = L("Maximum allowed C-axis angular acceleration.");
+    def->sidetext = L("deg/s^2");
+    def->min = 0.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(360.0));
+
+    def = this->add("coextrusion_c_axis_max_jerk", coFloat);
+    def->label = L("C-axis maximum jerk");
+    def->category = L("Multi-material");
+    def->tooltip = L("Maximum allowed instantaneous C-axis angular speed change. Set to zero to disable this limit.");
+    def->sidetext = L("deg/s");
+    def->min = 0.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("coextrusion_c_axis_start_gcode", coString);
+    def->label = L("C-axis start G-code");
+    def->category = L("Multi-material");
+    def->tooltip = L("Optional C-axis initialization commands emitted before printing.");
+    def->multiline = true;
+    def->full_width = true;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("coextrusion_c_axis_end_gcode", coString);
+    def->label = L("C-axis end G-code");
+    def->category = L("Multi-material");
+    def->tooltip = L("Optional C-axis shutdown commands emitted after printing.");
+    def->multiline = true;
+    def->full_width = true;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("filament_coextrusion_profile", coStrings);
+    def->label = L("Co-extrusion color sectors");
+    def->category = L("Filament");
+    def->tooltip = L("Versioned description of the color sectors in the filament cross-section. Zero is +X; positive angles run toward +Y, clockwise from above when +Y points toward the observer. Red, blue and green sector centers are 0, 120 and 240 degrees for three equal sectors.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def = this->add("filament_coextrusion_calibration_offset", coFloats);
+    def->label = L("Co-extrusion calibration offset");
+    def->category = L("Filament");
+    def->tooltip = L("Angular correction for the installed orientation of this co-extrusion filament.");
+    def->sidetext = L("deg");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{0.0});
+
+    def = this->add("filament_coextrusion_delay_model", coStrings);
+    def->label = L("Co-extrusion delay model");
+    def->category = L("Filament");
+    def->tooltip = L("Delay compensation model: disabled, fixed_time or transport_volume.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{"disabled"});
+
+    def = this->add("filament_coextrusion_response_delay_time", coFloats);
+    def->label = L("Co-extrusion response delay");
+    def->category = L("Filament");
+    def->tooltip = L("Measured delay between a C-axis command and the resulting color orientation at the nozzle.");
+    def->sidetext = L("s");
+    def->min = 0.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{0.0});
+
+    def = this->add("filament_coextrusion_transport_volume", coFloats);
+    def->label = L("Co-extrusion transport volume");
+    def->category = L("Filament");
+    def->tooltip = L("Equivalent molten-material volume used by transport-volume delay compensation.");
+    def->sidetext = L("mm^3");
+    def->min = 0.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{0.0});
+
+    def = this->add("coextrusion_surface_control", coBool);
+    def->label = L("Enable co-extrusion surface control");
+    def->category = L("Quality");
+    def->tooltip = L("Orient co-extrusion color sectors on visible outer walls using the C axis.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("coextrusion_surface_color_id", coInt);
+    def->label = L("Co-extrusion surface color ID");
+    def->category = L("Multi-color co-extrusion");
+    def->tooltip = L("Default co-extrusion color-sector ID for this object or part. Use -1 for no default; painted triangle colors take precedence.");
+    def->min = -1;
+    def->max = 65535;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(-1));
+
+    def = this->add("coextrusion_max_segment_length", coFloat);
+    def->label = L("Maximum co-extrusion segment length");
+    def->category = L("Quality");
+    def->tooltip = L("Maximum length of an outer-wall segment before a new C-axis orientation sample is generated.");
     def->sidetext = L("mm");
-    def->min = 0;
+    def->min = 0.01;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1.0));
+
+    def = this->add("coextrusion_angle_tolerance", coFloat);
+    def->label = L("Co-extrusion angle tolerance");
+    def->category = L("Quality");
+    def->tooltip = L("Adjacent C-axis samples within this angular difference may be merged.");
+    def->sidetext = L("deg");
+    def->min = 0.0;
+    def->max = 180.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("coextrusion_angular_safety_margin", coFloat);
+    def->label = L("Co-extrusion angular safety margin");
+    def->category = L("Quality");
+    def->tooltip = L("Inset applied to each edge of a color sector before selecting a C-axis angle. The effective margin is never smaller than the angle tolerance, preventing tolerance merging from crossing a physical color boundary.");
+    def->sidetext = L("deg");
+    def->min = 0.0;
+    def->max = 180.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("coextrusion_normal_xy_threshold", coFloat);
+    def->label = L("Co-extrusion normal projection threshold");
+    def->category = L("Quality");
+    def->tooltip = L("Minimum length of the resolved nozzle cross-section direction used to define a stable radial color orientation.");
+    def->min = 0.0;
+    def->max = 1.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.05));
+
+    def = this->add("coextrusion_color_method", coEnum);
+    def->label = L("Color calculation method");
+    def->category = L("Quality");
+    def->tooltip = L("2D uses only the surface normal projected onto XY, ignoring height and travel direction. If the projection is too small, the previous C angle is retained. 3D uses the current deposited-bead model with ellipse correction from line width and layer height under tangent_follow. Legacy top and bottom strategies remain available in 3D mode.");
+    def->enum_keys_map = &ConfigOptionEnum<CoExtrusionColorMethod>::get_enum_values();
+    def->enum_values = { "normal_xy", "ellipse_3d" };
+    def->enum_labels = { L("2D - XY normal"), L("3D - Ellipse model") };
+    def->mode = comSimple;
+    // Missing keys in older projects/presets retain the existing 3D behavior.
+    def->set_default_value(new ConfigOptionEnum<CoExtrusionColorMethod>(CoExtrusionColorMethod::Ellipse3D));
+
+    def = this->add("coextrusion_top_bottom_strategy", coString);
+    def->label = L("Co-extrusion top and bottom strategy");
+    def->category = L("Quality");
+    def->tooltip = L("tangent_follow maps the 3D surface normal through the deposited-cylinder bend using the actual XYZ nozzle motion relative to the model. For horizontal motion, bottom colors follow the travel direction and top colors face opposite it. hold_last, primary_color and disable_control retain their legacy behavior.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString("tangent_follow"));
+
+    def = this->add("coextrusion_large_rotation_strategy", coString);
+    def->label = L("Co-extrusion large rotation strategy");
+    def->category = L("Quality");
+    def->tooltip = L("Fallback for large C-axis rotations: slow_down, preposition or independent_rotation. Small corrections along a continuous same-color path always use synchronized XY/C motion with reduced speed when needed. Color changes and cable unwinding retain non-extruding positioning.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString("slow_down"));
 
     //bbs
     def          = this->add("required_nozzle_HRC", coInts);
@@ -2522,18 +2725,6 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament map to extruder.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{1});
-
-    def = this->add("coextrusion_color_mapping", coInts);
-    def->label = L("Co-extrusion color mapping");
-    def->tooltip = L("Maps each logical 3MF color to a physical co-extrusion sector. Zero selects the closest sector color automatically; positive values are one-based sector numbers.");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionInts{});
-
-    def = this->add("coextrusion_source_colors", coStrings);
-    def->label = L("3MF source colors for co-extrusion");
-    def->tooltip = L("Stable color palette referenced by co-extrusion surface painting. It is kept independent of the active filament slots.");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionStrings{});
 
     def = this->add("physical_extruder_map",coInts);
     // internal use only, don't need translation
@@ -6004,51 +6195,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    def = this->add("coextrusion_c_axis_enable", coBool);
-    def->label = L("Co-extrusion C-axis control");
-    def->tooltip = L("Use painted 3MF material regions as co-extrusion color sectors and align the selected sector with the external wall normal using the C axis. Logical material changes do not emit tool changes or purge moves.");
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionBool(false));
-
-    def = this->add("coextrusion_c_axis_colors", coStrings);
-    def->label = L("Physical color sector");
-    def->tooltip = L("Color of each physical sector in the co-extruded filament. Painted 3MF filament colors are matched to these sectors automatically.");
-    def->gui_type = ConfigOptionDef::GUIType::color;
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionStrings{"#FF0000", "#00FF00", "#0000FF"});
-
-    def = this->add("coextrusion_c_axis_color_angles", coFloats);
-    def->label = L("Physical sector center angle");
-    def->tooltip = L("Center angle of each physical color sector when C is zero. Each value corresponds to the physical sector color on the same row.");
-    def->sidetext = L("deg");
-    def->min = 0;
-    def->max = 360;
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionFloats({0.0, 120.0, 240.0}));
-
-    def = this->add("coextrusion_c_axis_offset", coFloat);
-    def->label = L("C-axis calibration offset");
-    def->tooltip = L("Angular offset between the configured material sector coordinate system and the printer C-axis zero position.");
-    def->sidetext = L("deg");
-    def->min = -360;
-    def->max = 360;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.0));
-
-    def = this->add("coextrusion_c_axis_filter_distance", coFloat);
-    def->label = L("C-axis filter distance");
-    def->tooltip = L("Distance constant of the circular low-pass filter used for external-wall normal and color changes. Zero disables filtering.");
-    def->sidetext = L("mm");
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(1.0));
-
-    def = this->add("coextrusion_c_axis_reverse", coBool);
-    def->label = L("Reverse C-axis direction");
-    def->tooltip = L("Reverse the relationship between positive C-axis motion and the material sector rotation.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "
@@ -7456,7 +7602,9 @@ void PrintConfigDef::init_filament_option_keys()
         "retraction_length", "z_hop", "z_hop_types", "retract_lift_above", "retract_lift_below", "retract_lift_enforce", "retraction_speed", "deretraction_speed",
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "filament_colour",
-        "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut"/*,"filament_seam_gap"*/
+        "default_filament_profile","retraction_distances_when_cut","long_retractions_when_cut",
+        "filament_coextrusion_profile", "filament_coextrusion_calibration_offset", "filament_coextrusion_delay_model",
+        "filament_coextrusion_response_delay_time", "filament_coextrusion_transport_volume"/*,"filament_seam_gap"*/
     };
 
     m_filament_retract_keys = {
@@ -10445,31 +10593,6 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             break;
         }
 
-    if (cfg.coextrusion_c_axis_enable.value) {
-        const std::vector<std::string> &sector_colors = cfg.filament_coextrusion_enable.value ?
-            cfg.filament_coextrusion_colors.values : cfg.coextrusion_c_axis_colors.values;
-        const std::vector<double> &sector_angles = cfg.filament_coextrusion_enable.value ?
-            cfg.filament_coextrusion_color_angles.values : cfg.coextrusion_c_axis_color_angles.values;
-        if (!cfg.single_extruder_multi_material.value) {
-            error_message.emplace("coextrusion_c_axis_enable",
-                                  L("Co-extrusion C-axis control requires Single Extruder Multi Material mode."));
-        } else if (sector_colors.empty()) {
-            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
-                                  L("Co-extrusion C-axis control requires at least one physical color sector."));
-        } else if (sector_colors.size() != sector_angles.size()) {
-            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
-                                  L("Every physical co-extrusion color sector must have one center angle."));
-        } else if (std::any_of(sector_colors.begin(), sector_colors.end(),
-                               [](const std::string &color) { return !can_decode_color(color); })) {
-            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
-                                  L("Every physical co-extrusion color sector must have a valid color."));
-        } else if (std::any_of(sector_angles.begin(), sector_angles.end(),
-                               [](double angle) { return angle < 0.0 || angle >= 360.0; })) {
-            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_color_angles" : "coextrusion_c_axis_color_angles",
-                                  L("C-axis color sector center angles must be in [0, 360)."));
-        }
-    }
-
     // --nozzle-diameter
     for (double nd : cfg.nozzle_diameter.values)
         if (nd < 0.005) {
@@ -10509,6 +10632,55 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     // --gcode-flavor
     if (! print_config_def.get("gcode_flavor")->has_enum_value(cfg.gcode_flavor.serialize())) {
         error_message.emplace("gcode_flavor", L("invalid value ") + cfg.gcode_flavor.serialize());
+    }
+
+    // Co-extrusion configuration. Keep the data valid even before the slicing
+    // and G-code stages start consuming it so malformed profiles cannot leak
+    // into geometry processing.
+    if (cfg.coextrusion_surface_control.value && !cfg.coextrusion_c_axis_enabled.value) {
+        error_message.emplace("coextrusion_surface_control", L("Co-extrusion surface control requires the C axis to be enabled"));
+    }
+
+    if (cfg.coextrusion_c_axis_direction.value != -1 && cfg.coextrusion_c_axis_direction.value != 1) {
+        error_message.emplace("coextrusion_c_axis_direction", L("C-axis direction must be either -1 or 1"));
+    }
+
+    if (!CoExtrusion::parse_c_axis_letter(cfg.coextrusion_c_axis_letter.value))
+        error_message.emplace("coextrusion_c_axis_letter", L("C-axis letter must be A, B, C, U, V or W"));
+
+    const std::string &rotation_mode = cfg.coextrusion_c_axis_rotation_mode.value;
+    if (!CoExtrusion::parse_c_axis_rotation_mode(rotation_mode)) {
+        error_message.emplace("coextrusion_c_axis_rotation_mode", L("Invalid C-axis rotation mode"));
+    } else if ((!cfg.coextrusion_c_axis_has_slip_ring.value || rotation_mode == "limited_range") &&
+               cfg.coextrusion_c_axis_min.value >= cfg.coextrusion_c_axis_max.value) {
+        error_message.emplace("coextrusion_c_axis_max", L("C-axis maximum angle must be greater than its minimum angle"));
+    }
+
+    const std::string &top_bottom_strategy = cfg.coextrusion_top_bottom_strategy.value;
+    if (!CoExtrusion::parse_top_bottom_strategy(top_bottom_strategy)) {
+        error_message.emplace("coextrusion_top_bottom_strategy", L("Invalid co-extrusion top and bottom strategy"));
+    }
+
+    const std::string &large_rotation_strategy = cfg.coextrusion_large_rotation_strategy.value;
+    if (!CoExtrusion::parse_large_rotation_strategy(large_rotation_strategy)) {
+        error_message.emplace("coextrusion_large_rotation_strategy", L("Invalid co-extrusion large rotation strategy"));
+    }
+
+    for (const std::string &serialized_profile : cfg.filament_coextrusion_profile.values) {
+        if (serialized_profile.empty())
+            continue;
+        std::string profile_error;
+        if (!CoExtrusion::Profile::parse(serialized_profile, &profile_error)) {
+            error_message.emplace("filament_coextrusion_profile", L("Invalid co-extrusion color-sector profile: ") + profile_error);
+            break;
+        }
+    }
+
+    for (const std::string &delay_model : cfg.filament_coextrusion_delay_model.values) {
+        if (!CoExtrusion::parse_delay_model(delay_model)) {
+            error_message.emplace("filament_coextrusion_delay_model", L("Invalid co-extrusion delay model"));
+            break;
+        }
     }
 
     // --fill-pattern

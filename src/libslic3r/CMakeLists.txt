@@ -97,6 +97,26 @@ set(lisbslic3r_sources
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
+    CoExtrusion/CAxisIntentBuilder.cpp
+    CoExtrusion/CAxisIntentBuilder.hpp
+    CoExtrusion/CAxisMotionPlanner.cpp
+    CoExtrusion/CAxisMotionPlanner.hpp
+    CoExtrusion/CoExtrusionTypes.cpp
+    CoExtrusion/CoExtrusionTypes.hpp
+    CoExtrusion/CoExtrusionPathPlanning.cpp
+    CoExtrusion/CoExtrusionPathPlanning.hpp
+    CoExtrusion/DelayCompensator.cpp
+    CoExtrusion/DelayCompensator.hpp
+    CoExtrusion/SurfaceDirectionResolver.cpp
+    CoExtrusion/SurfaceDirectionResolver.hpp
+    CoExtrusion/SurfaceColorAnnotation.cpp
+    CoExtrusion/SurfaceColorAnnotation.hpp
+    CoExtrusion/SurfacePathMatcher.cpp
+    CoExtrusion/SurfacePathMatcher.hpp
+    CoExtrusion/SurfaceProvenance.cpp
+    CoExtrusion/SurfaceProvenance.hpp
+    CoExtrusion/SurfaceSliceSidecar.cpp
+    CoExtrusion/SurfaceSliceSidecar.hpp
     CommonDefs.hpp
     Config.cpp
     Config.hpp
@@ -211,8 +231,6 @@ set(lisbslic3r_sources
     GCode/AvoidCrossingPerimeters.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
-    GCode/CoExtrusionC.cpp
-    GCode/CoExtrusionC.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
     GCode/TimelapsePosPicker.cpp

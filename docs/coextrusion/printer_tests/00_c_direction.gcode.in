@@ -1,0 +1,24 @@
+; TEMPLATE: machine-specific fields in {{...}} must be replaced before use.
+; Test 00: C direction and repeatable physical zero. NO extrusion.
+; Start with the nozzle clear of the bed/parts and C physically at its known zero.
+; C must use absolute degrees; standalone C feedrate must use degrees/minute.
+{{C_INITIALIZATION_GCODE}}
+G90
+M400
+G1 C0 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G4 P2000
+; Viewed from above: clockwise 30 degrees.
+G1 C30 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G4 P3000
+G1 C0 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G4 P2000
+; Viewed from above: counter-clockwise 30 degrees.
+G1 C-30 F{{C_FEEDRATE_DEG_MIN}}
+M400
+G4 P3000
+G1 C0 F{{C_FEEDRATE_DEG_MIN}}
+M400
+; Finish at physical C=0. No G92 C, heating, homing, or motor release added here.

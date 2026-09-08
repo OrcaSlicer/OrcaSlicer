@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="530" viewBox="0 0 1080 530" role="img" aria-labelledby="title desc">
+  <title id="title">物理俯视坐标与三色截面</title>
+  <desc id="desc">X 正方向向右，Y 正方向向下，顺时针为正。红色中心零度，蓝色一百二十度，绿色二百四十度。蓝色对准 Y 正方向需要 C 负三十度。</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#334155"/></marker></defs>
+  <rect width="1080" height="530" rx="18" fill="#f8fafc"/>
+  <g font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" fill="#0f172a">
+    <text x="32" y="42" font-size="25" font-weight="bold">01  机器物理俯视图 · C = 0°</text>
+    <text x="32" y="73" font-size="17" fill="#475569">观察者位于图下方；Z+ 朝向读者，离开图面</text>
+    <path d="M250 265 L322.5 139.426 A145 145 0 0 1 322.5 390.574Z" fill="#f87171" stroke="white" stroke-width="3"/>
+    <path d="M250 265 L322.5 390.574 A145 145 0 0 1 105 265Z" fill="#60a5fa" stroke="white" stroke-width="3"/>
+    <path d="M250 265 L105 265 A145 145 0 0 1 322.5 139.426Z" fill="#4ade80" stroke="white" stroke-width="3"/>
+    <g stroke="#334155" stroke-width="2" marker-end="url(#arrow)">
+      <path d="M65 265H450"/><path d="M250 100V443"/>
+      <path d="M414 218 A170 170 0 0 1 414 309" fill="none"/>
+    </g>
+    <circle cx="250" cy="265" r="4" fill="#0f172a"/>
+    <g font-size="18"><text x="454" y="270">X+ / 0°</text><text x="262" y="453">Y+ / 90°</text><text x="15" y="252">X−</text><text x="264" y="114">Y−</text>
+      <text x="310" y="243" font-weight="bold">红 0°</text><text x="157" y="343" font-weight="bold">蓝 120°</text><text x="146" y="192" font-weight="bold">绿 240°</text></g>
+    <rect x="580" y="113" width="464" height="304" rx="14" fill="white" stroke="#cbd5e1"/>
+    <text x="606" y="154" font-size="22" font-weight="bold">蓝色对准 Y+ 的例子</text>
+    <g font-size="20"><text x="606" y="203">蓝色初始中心 θ = 120°</text><text x="606" y="246">所需喷嘴截面方向 φ = 90°</text><text x="606" y="292" fill="#1d4ed8" font-weight="bold">C = φ − θ = −30°</text><text x="606" y="335">即从上方看，逆时针旋转 30°。</text></g>
+    <text x="606" y="384" font-size="16" fill="#64748b">此处偏移均为 0，C 正方向与色区正方向一致。</text>
+    <text x="32" y="497" font-size="18" fill="#475569">色区宽度均为 120°；红色跨 0°。正角度方向：X+ → Y+ → X− → Y−。</text>
+  </g>
+</svg>

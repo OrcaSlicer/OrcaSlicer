@@ -161,15 +161,6 @@ public:
     //
     void set_color_print_colors(const Palette& colors);
     //
-    // Return the physical co-extrusion sector palette.
-    //
-    size_t get_coextrusion_colors_count() const;
-    const Palette& get_coextrusion_colors() const;
-    //
-    // Set the physical co-extrusion sector palette.
-    //
-    void set_coextrusion_colors(const Palette& colors);
-    //
     // Get the color range for the given view type.
     // Valid view types are:
     // EViewType::Height
