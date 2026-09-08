@@ -40,6 +40,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
         url = wxString::Format("file://%s/web/homepage/index.html?lang=%s", from_u8(resources_dir()), strlang);
+    m_home_url = url;
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
     
@@ -83,12 +84,10 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     m_info = new wxInfoBar(this);
     topsizer->Add(m_info, wxSizerFlags().Expand());
     // Create the webview
-    m_browser = WebView::CreateWebView(this, url);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
+    create_browser();
+    if (m_browser == nullptr)
         return;
-    }
-    m_browser->Hide();
+    m_reset_on_show = wxGetApp().is_recreating_gui();
     SetSizer(topsizer);
 
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
@@ -236,6 +235,47 @@ WebViewPanel::~WebViewPanel()
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " End";
 }
 
+
+void WebViewPanel::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, m_home_url);
+    if (m_browser == nullptr) {
+        wxLogError("Could not init m_browser");
+        return;
+    }
+    m_browser->Hide();
+}
+
+void WebViewPanel::reset_browser()
+{
+    wxSizer* topsizer = GetSizer();
+    if (m_browser) {
+        if (topsizer)
+            topsizer->Detach(m_browser);
+        m_browser->Destroy();
+        m_browser = nullptr;
+    }
+    create_browser();
+    if (m_browser == nullptr)
+        return;
+    if (topsizer) {
+        topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+        Layout();
+    }
+}
+
+bool WebViewPanel::Show(bool show)
+{
+    // Recover from a wedged WebView2 backend created during a GUI rebuild by
+    // recreating the control the first time the Home tab is actually shown.
+    if (show && m_reset_on_show) {
+        m_reset_on_show = false;
+        reset_browser();
+        if (m_browser != nullptr)
+            m_browser->LoadURL(m_home_url);
+    }
+    return wxPanel::Show(show);
+}
 
 void WebViewPanel::load_url(wxString& url)
 {

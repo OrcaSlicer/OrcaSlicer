@@ -105,9 +105,21 @@ public:
     int  get_model_mall_detail_url(std::string *url, std::string id);
 
     void update_mode();
+
+    bool Show(bool show = true) override;
 private:
+    // Create/configure m_browser (create the webview, hidden until loaded).
+    void create_browser();
+    // Tear down and recreate m_browser to recover from a wedged WebView2 backend
+    // after a GUI rebuild (language switch), then reload the home page.
+    void reset_browser();
 
     wxWebView* m_browser;
+    // Home page url (kept so the browser can be reloaded after a reset).
+    wxString m_home_url;
+    // Set when this panel is built during a GUI rebuild; recreate the backend on
+    // first show to recover from a wedged control.
+    bool m_reset_on_show{false};
     wxBoxSizer *bSizer_toolbar;
     wxButton *  m_button_back;
     wxButton *  m_button_forward;

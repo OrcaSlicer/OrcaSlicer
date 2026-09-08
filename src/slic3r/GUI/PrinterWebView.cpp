@@ -111,26 +111,14 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
 
       // Create the webview
-    m_browser = WebView::CreateWebView(this, "");
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
+    create_browser();
+    if (m_browser == nullptr)
         return;
-    }
 
-#ifdef __linux__
-    inject_vue_resize_workaround(m_browser);
-
-    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
-    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
-    auto wv_ctx = webkit_web_view_get_context(wv);
-    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
-    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
-#endif
-
-    m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
-    m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
-    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
-    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
+    // A PrinterWebView built during a GUI rebuild (language switch) can come up
+    // with a wedged WebView2 backend that silently drops every navigation. Flag
+    // it so we recreate the backend the first time the tab is opened.
+    m_reset_on_show = wxGetApp().is_recreating_gui();
 
     SetSizer(topsizer);
 
@@ -169,6 +157,51 @@ PrinterWebView::~PrinterWebView()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " End";
 }
 
+void PrinterWebView::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, "");
+    if (m_browser == nullptr) {
+        wxLogError("Could not init m_browser");
+        return;
+    }
+
+#ifdef __linux__
+    inject_vue_resize_workaround(m_browser);
+
+    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
+    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
+    auto wv_ctx = webkit_web_view_get_context(wv);
+    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
+    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+#endif
+
+    m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
+    m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
+    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
+    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
+}
+
+void PrinterWebView::reset_browser()
+{
+    wxSizer* topsizer = GetSizer();
+    if (m_browser) {
+        if (topsizer)
+            topsizer->Detach(m_browser);
+        m_browser->Destroy();
+        m_browser = nullptr;
+    }
+    m_apikey_sent = false;
+
+    create_browser();
+    if (m_browser == nullptr)
+        return;
+    if (topsizer) {
+        topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+        Layout();
+    }
+    update_mode();
+}
+
 void PrinterWebView::load_url(wxString& url, wxString apikey)
 {
 //    this->Show();
@@ -179,20 +212,26 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
 
-    if (this->IsShown()) {
-        //ORCA: m_url_deferred will be cleared on load success
-        //m_url_deferred.clear();
+    // Always remember the requested URL as a fallback. If the immediate load
+    // below is dropped (e.g. the webview backend is not ready yet right after
+    // recreate_GUI on a language switch), Show() will retry it. OnLoaded clears
+    // m_url_deferred once the page actually finishes loading.
+    m_url_deferred = url;
+    if (this->IsShown())
         m_browser->LoadURL(url);
-    } else {
-        m_url_deferred = url;
-    }
     //m_browser->SetFocus();
     UpdateState();
 }
 
 bool PrinterWebView::Show(bool show)
 {
-    if (show && !m_url_deferred.empty()) {
+    // Recover from a wedged WebView2 backend created during a GUI rebuild by
+    // recreating the control the first time the tab is actually opened.
+    if (show && m_reset_on_show) {
+        m_reset_on_show = false;
+        reset_browser();
+    }
+    if (show && !m_url_deferred.empty() && m_browser) {
         m_browser->LoadURL(m_url_deferred);
         //ORCA: m_url_deferred will be cleared on load success
         //m_url_deferred.clear();

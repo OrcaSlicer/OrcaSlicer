@@ -71,9 +71,16 @@ private:
     AuxiliaryPanel*   m_auxiliary{nullptr};
     wxString   m_project_home_url;
     wxString   m_root_dir;
+    // Set when this panel is built during a GUI rebuild (language switch), where
+    // the WebView2 backend can come up wedged. Recreate it on first show.
+    bool       m_reset_on_show = {false};
     static inline std::atomic<int> m_sequence_id{8000};
 
     void show_info_editor(bool show);
+    // Create/configure m_browser (create + bind events + load the home url).
+    void create_browser();
+    // Tear down and recreate m_browser to recover from a wedged backend.
+    void reset_browser();
     
 
 public:
