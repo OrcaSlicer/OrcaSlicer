@@ -250,23 +250,14 @@ public:
 static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 {
 #if _WIN32
-    std::wstring path(size_t(MAX_PATH), wchar_t(0));
-    int len = int(::GetModuleFileName(nullptr, path.data(), MAX_PATH));
-    if (len > 0 && len < MAX_PATH) {
-        path.erase(path.begin() + len, path.end());
-        //BBS: remove GCodeViewer as seperate APP logic
-        /*if (app_mode == GUI_App::EAppMode::GCodeViewer) {
-            // Only in case the slicer was started with --gcodeviewer parameter try to load the icon from prusa-gcodeviewer.exe
-            // Otherwise load it from the exe.
-            for (const std::wstring_view exe_name : { std::wstring_view(L"prusa-slicer.exe"), std::wstring_view(L"prusa-slicer-console.exe") })
-                if (boost::iends_with(path, exe_name)) {
-                    path.erase(path.end() - exe_name.size(), path.end());
-                    path += L"prusa-gcodeviewer.exe";
-                    break;
-                }
-        }*/
-    }
-    return wxIcon(path, wxBITMAP_TYPE_ICO);
+    // Load the window/taskbar icon from OUR resource .ico, NOT from the running
+    // exe's embedded icon. Under the genuine Bambu-signed launcher (needed for
+    // the network plugin's signed-host gate), GetModuleFileName(nullptr) is
+    // bambu-studio.exe, so loading the exe's icon would show the Bambu logo.
+    // Using OrcaSlicer.ico keeps the Orca logo in the taskbar/title bar, and is
+    // identical for a normal OrcaSlicer.exe launch too. The exe itself stays the
+    // genuine signed binary (its embedded icon can't be touched).
+    return wxIcon(Slic3r::var("OrcaSlicer.ico"), wxBITMAP_TYPE_ICO);
 #else // _WIN32
     return wxIcon(Slic3r::var("OrcaSlicer_128px.png"), wxBITMAP_TYPE_PNG);
 #endif // _WIN32
