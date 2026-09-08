@@ -2711,7 +2711,8 @@ void ColourPicker::set_value(const boost::any& value, bool change_event)
     auto field = dynamic_cast<wxColourPickerCtrl*>(window);
 
     #ifdef __WXMSW__
-        wxColour clr = (clr_str.IsEmpty() || !clr.IsOk()) ? wxTransparentColour : clr_str;
+        const wxColour parsed_clr(clr_str);
+        wxColour clr = (clr_str.IsEmpty() || !parsed_clr.IsOk()) ? wxTransparentColour : parsed_clr;
         field->SetColour(clr);
         draw_bmp_btn(field, clr);
     #else

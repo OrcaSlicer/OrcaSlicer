@@ -6808,7 +6808,7 @@ bool GUI_App::check_preset_parent_available(const std::pair<std::string, std::ma
 
 void GUI_App::add_pending_vendor_preset(const std::pair<std::string, std::map<std::string, std::string>>& preset_data)
 {
-    Preset::Type type;
+    Preset::Type type = Preset::Type::TYPE_INVALID;
     if (preset_data.second.at(BBL_JSON_KEY_TYPE) == PRESET_IOT_PRINT_TYPE)
         type = Preset::Type::TYPE_PRINT;
     else if (preset_data.second.at(BBL_JSON_KEY_TYPE) == PRESET_IOT_PRINTER_TYPE)

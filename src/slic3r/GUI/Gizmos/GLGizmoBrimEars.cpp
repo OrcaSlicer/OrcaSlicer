@@ -342,7 +342,7 @@ bool GLGizmoBrimEars::on_mouse(const wxMouseEvent& mouse_event)
 // concludes that the event was not intended for it, it should return false.
 bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_position, bool shift_down, bool alt_down, bool control_down)
 {
-    if (action != SLAGizmoEventType::MouseWheelDown || action != SLAGizmoEventType::MouseWheelUp || action != SLAGizmoEventType::Moving) {
+    if (action != SLAGizmoEventType::MouseWheelDown && action != SLAGizmoEventType::MouseWheelUp && action != SLAGizmoEventType::Moving) {
         apply_radius_change();
     }
 

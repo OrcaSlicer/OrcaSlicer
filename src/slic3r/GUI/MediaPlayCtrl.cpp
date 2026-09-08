@@ -71,7 +71,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
                 auto ip = str.find(' ', ik);
                 if (ip == wxString::npos) ip = str.Length();
                 auto v = str.Mid(ik, ip - ik);
-                if (k == "T:" && v.Length() == 8) {
+                if (strcmp(k, "T:") == 0 && v.Length() == 8) {
                     long h = 0,m = 0,s = 0;
                     v.Left(2).ToLong(&h);
                     v.Mid(3, 2).ToLong(&m);
