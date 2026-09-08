@@ -9766,18 +9766,18 @@ void GLCanvas3D::_render_paint_toolbar() const
         ImVec2 number_label_size = ImGui::CalcTextSize(std::to_string(i + 1).c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - number_label_size.x) / 2);
-        ImGui::TextColored(text_color, std::to_string(i + 1).c_str());
+        ImGui::TextColored(text_color, "%s", std::to_string(i + 1).c_str());
         imgui.pop_bold_font();
 
         ImVec2 filament_first_line_label_size = ImGui::CalcTextSize(filament_text_first_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_first_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_first_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_first_line[i].c_str());
 
         ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y + filament_first_line_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_second_line[i].c_str());
     }
 
     if (ImGui::GetWindowWidth() == constraint_window_width) {
@@ -10004,9 +10004,9 @@ void GLCanvas3D::_render_assemble_info() const
     double size1 = m_selection.get_bounding_box().size()(1);
     double size2 = m_selection.get_bounding_box().size()(2);
     if (!m_selection.is_empty()) {
-        ImGui::Text(_L("Volume:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Volume:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f", size0 * size1 * size2);
-        ImGui::Text(_L("Size:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Size:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f x %.2f x %.2f", size0, size1, size2);
     }
     imgui->end();
