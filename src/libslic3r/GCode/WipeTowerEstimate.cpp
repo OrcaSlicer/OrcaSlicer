@@ -96,12 +96,9 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
     // normalize_fdm_2 clearing enable_prime_tower. Its mixed-filament case is not modelled.
     const bool   need_wipe_tower  = smooth_timelapse || wrapping;
 
-    // No tool change, nothing to purge; smooth timelapse still primes once.
-    size_t purge_count = 0;
-    if (filaments_cnt > 1)
-        purge_count = dual_nozzle ? filaments_cnt : filaments_cnt - 1;
-    else if (smooth_timelapse)
-        purge_count = 1;
+    // A tower printed for one of the reasons above has no tool change to purge for; both
+    // planners give it the idle depth below and nothing more.
+    const size_t purge_count = filaments_cnt > 1 ? (dual_nozzle ? filaments_cnt : filaments_cnt - 1) : 0;
 
     // Type2 purges one volume per tool change. Type1 plans per filament below; here the volume
     // only decides whether a tower exists.

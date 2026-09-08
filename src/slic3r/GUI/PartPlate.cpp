@@ -2341,10 +2341,12 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
         if (std::find(plate_extruders.begin(), plate_extruders.end(), id) == plate_extruders.end())
             plate_extruders.push_back(id);
     // The wipe tower filament joins the tool ordering even when unused (Print::extruders), so
-    // validation counts it.
+    // validation counts it - but only where there is a tower to join, which is the
+    // has_wipe_tower() half of that guard.
     const ConfigOption *wipe_tower_filament_opt = config.option("wipe_tower_filament");
+    const ConfigOption *enable_prime_tower_opt  = config.option("enable_prime_tower");
     const int           wipe_tower_filament     = wipe_tower_filament_opt != nullptr ? wipe_tower_filament_opt->getInt() : 0;
-    if (plate_extruders.size() > 1 && wipe_tower_filament > 0 &&
+    if (enable_prime_tower_opt != nullptr && enable_prime_tower_opt->getBool() && plate_extruders.size() > 1 && wipe_tower_filament > 0 &&
         std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
         plate_extruders.push_back(wipe_tower_filament);
     if (plate_extruders.empty())

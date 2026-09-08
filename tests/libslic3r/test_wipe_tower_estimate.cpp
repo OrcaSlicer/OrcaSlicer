@@ -171,22 +171,28 @@ TEST_CASE("A single filament only gets a tower when one is printed anyway", "[Wi
     config.set_key_value("raft_layers", new ConfigOptionInt(0));
 
     config.set_deserialize_strict("timelapse_type", "1");
-    // Smooth timelapse primes the single filament once: 10 mm, lifted to the floor.
+    // A tower printed with no tool change is exactly the planner's idle depth: there is
+    // nothing to purge, and WipeTower2 sizes it at the stability floor.
     CHECK_THAT(estimate(config, 1, 0.2, 100.).depth, WithinAbs(20., 1e-9));
-    CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(10., 1e-9));
+    CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(WipeTower::get_limit_depth_by_height(5.f), 1e-9));
 }
 
-TEST_CASE("A tool change reserves the stability floor even with nothing to purge", "[WipeTowerEstimate]") {
-    // The purge volumes are configurable down to zero, but the tool changes are still printed on
-    // the tower and the generator still floors it, so the estimate has to floor it too.
-    const double       height = GENERATE(5., 100.);
-    const float        floor  = WipeTower::get_limit_depth_by_height(float(height));
-    DynamicPrintConfig config = make_config(GENERATE("rectangle", "rib"));
+TEST_CASE("A tool change reserves a tower even with nothing to purge", "[WipeTowerEstimate]") {
+    // The purge volumes are configurable down to zero, but the tool changes are still printed
+    // on the tower and both planners still floor it - so the estimate has to floor it too.
+    // Type1 plans per filament and already reserves one; Type2 has only the volume to go on.
+    const double     height = GENERATE(5., 100.);
+    const float      floor  = WipeTower::get_limit_depth_by_height(float(height));
+    const char      *wall   = GENERATE("rectangle", "rib");
+    DynamicPrintConfig config = make_config(wall);
     config.set_key_value("prime_volume", new ConfigOptionFloat(0.));
+    config.set_key_value("filament_prime_volume", new ConfigOptionFloats({0.}));
 
-    CHECK(estimate(config, 3, 0.2, height).depth >= floor);
+    CHECK(estimate(config, 3, 0.2, height, WipeTowerType::Type2).depth >= floor);
+    CHECK(estimate(config, 3, 0.2, height, WipeTowerType::Type1).depth >= floor);
     // Still nothing for a lone filament with no other reason.
-    CHECK_THAT(estimate(config, 1, 0.2, height).depth, WithinAbs(0., 1e-9));
+    CHECK_THAT(estimate(config, 1, 0.2, height, WipeTowerType::Type2).depth, WithinAbs(0., 1e-9));
+    CHECK_THAT(estimate(config, 1, 0.2, height, WipeTowerType::Type1).depth, WithinAbs(0., 1e-9));
 }
 
 TEST_CASE("Both wall types agree on whether there is a tower at all", "[WipeTowerEstimate]") {
