@@ -630,7 +630,6 @@ private:
     std::vector<PageShp>			m_pages_fff;
     std::vector<PageShp>			m_pages_sla;
 
-    wxBoxSizer*         m_presets_sizer                 {nullptr};
 public:
 	ScalableButton*	m_reset_to_filament_color = nullptr;
 

@@ -54,7 +54,7 @@ public:
     void ParseCalibrationConfig(const json& print_json); //cali
 
 private:
-    MachineObject* m_obj;
+    [[maybe_unused]] MachineObject* m_obj;
 
     /*configure vals*/
     // chamber

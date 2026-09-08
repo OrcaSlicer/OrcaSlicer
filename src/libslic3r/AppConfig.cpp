@@ -1843,4 +1843,9 @@ bool AppConfig::exists()
     return boost::filesystem::exists(config_path());
 }
 
+std::string AppConfig::load_if_exists()
+{
+    return boost::filesystem::exists(loading_path()) ? load() : std::string();
+}
+
 }; // namespace Slic3r

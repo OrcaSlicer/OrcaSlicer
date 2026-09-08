@@ -50,7 +50,6 @@ private:
     wxStaticText*                  m_description  { nullptr };
     std::vector<Slic3r::PluginDescriptor> m_plugins;
     std::vector<CapabilityEntry>   m_capabilities;
-    bool                           m_capability_mode { false };
 };
 
 }} // namespace Slic3r::GUI
