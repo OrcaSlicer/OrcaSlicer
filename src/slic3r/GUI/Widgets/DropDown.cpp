@@ -13,37 +13,21 @@
 #endif
 
 #include <set>
-#include <string>
-#include <sstream>
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 
-// --- Wayland DropDown wheel-scroll tracing ---------------------------------
-// On Wayland the wheel event is only delivered to the popup that holds the
-// pointer grab, and a chained sub-popup grab then starves the whole chain of
-// axis events. DropDown works around this by taking an owner_events=FALSE
-// CaptureMouse grab on the active popup and routing wheel events by the real
-// cursor position (see mouseWheelMoved / scrollContent).
-//
-//   ORCA_DD_NOGRAB=1  - disable that grab (escape hatch)
-//   ORCA_DD_DEBUG=1    - trace grab / wheel / scroll decisions to stderr
-//   ORCA_DD_DEBUG=2    - also trace every hover / submenu-positioning step
-static int dd_level()
-{
-    static int v = -1;
-    if (v < 0) {
-        const char *e = std::getenv("ORCA_DD_DEBUG");
-        v = e ? (int) strtol(e, nullptr, 10) : 0;
-        if (v < 0) v = 0;
-    }
-    return v;
-}
+// Wayland only: the wheel event is delivered solely to the popup that holds the
+// pointer grab and the native wxPopupTransientWindow grab (owner_events=TRUE)
+// does not reliably steer axis events to the popup surface. DropDown works
+// around it by taking an owner_events=FALSE CaptureMouse grab on the active
+// popup; set ORCA_DD_NOGRAB=1 to opt out.
 static bool dd_wheelgrab_enabled()
 {
     static int v = -1;
     if (v < 0) { const char *e = std::getenv("ORCA_DD_NOGRAB"); v = (e && *e && *e != '0') ? 0 : 1; }
     return v != 0;
 }
+
 // On Wayland a group submenu opened on hover is mis-placed: the compositor
 // ignores gtk_window_move on a mapped xdg_popup and top-anchors it to the
 // parent surface. Opening it only on click gets a fresh input serial and the
@@ -55,27 +39,6 @@ static bool dd_submenu_click_only()
 #else
     return false;
 #endif
-}
-#define DD_LOG_AT(lvl, expr)                                                    \
-    do {                                                                       \
-        if (dd_level() >= (lvl)) {                                             \
-            std::ostringstream _dd_o;                                           \
-            _dd_o << expr;                                                      \
-            std::fprintf(stderr, "[DDWheel] %s\n", _dd_o.str().c_str());        \
-            std::fflush(stderr);                                               \
-        }                                                                      \
-    } while (0)
-#define DD_LOG(expr)  DD_LOG_AT(1, expr)
-#define DD_LOGV(expr) DD_LOG_AT(2, expr)
-// short id for a DropDown in logs: "main" / "sub" + address
-#define DD_ID(w) ((w) ? ((w)->mainDropDown ? "sub@" : "main@") : "null@") << (void *) (w)
-// wxPoint / wxRect have no std::ostream operator<< - stringify explicitly
-static std::string dd_s(const wxPoint &p) { return "(" + std::to_string(p.x) + "," + std::to_string(p.y) + ")"; }
-static std::string dd_s(const wxSize &s) { return std::to_string(s.x) + "x" + std::to_string(s.y); }
-static std::string dd_s(const wxRect &r)
-{
-    return "[" + std::to_string(r.x) + "," + std::to_string(r.y) + " " + std::to_string(r.width) + "x" +
-           std::to_string(r.height) + "]";
 }
 
 BEGIN_EVENT_TABLE(DropDown, PopupWindow)
@@ -140,7 +103,6 @@ void DropDown::Create(wxWindow *parent, long style)
 void DropDown::Invalidate(bool clear)
 {
     if (clear) {
-        DD_LOGV("Invalidate(clear) RESET offset->0 on " << DD_ID(this));
         selection = hover_item = -1;
         offset = wxPoint();
     }
@@ -263,24 +225,16 @@ void DropDown::acquireWheelGrab()
     // axis/scroll events are not reliably steered to this surface. Capturing the
     // mouse re-issues the seat grab with owner_events=FALSE, which forces every
     // pointer event (wheel included) here regardless of Wayland pointer focus.
-    if (!dd_wheelgrab_enabled()) {
-        DD_LOG("acquireWheelGrab " << DD_ID(this) << " skipped (ORCA_DD_NOGRAB set)");
+    if (!dd_wheelgrab_enabled())
         return;
-    }
-    if (wheelGrab || !IsShown()) {
-        DD_LOGV("acquireWheelGrab " << DD_ID(this) << " noop wheelGrab=" << wheelGrab
-                                   << " shown=" << IsShown());
+    if (wheelGrab || !IsShown())
         return;
-    }
     if (wxWindow::GetCapture() == this) {
         wheelGrab = true;
-        DD_LOGV("acquireWheelGrab " << DD_ID(this) << " already capturing");
         return;
     }
     CaptureMouse();
     wheelGrab = true;
-    DD_LOG("acquireWheelGrab " << DD_ID(this) << " CaptureMouse done, HasCapture=" << HasCapture()
-                               << " GetCapture=" << (void *) wxWindow::GetCapture());
 #endif
 }
 
@@ -292,8 +246,6 @@ void DropDown::releaseWheelGrab()
     wheelGrab = false;
     if (wxWindow::GetCapture() == this)
         ReleaseMouse(); // capture stack restores the previous (main) grab, if any
-    DD_LOG("releaseWheelGrab " << DD_ID(this) << " done, GetCapture="
-                               << (void *) wxWindow::GetCapture());
 #endif
 }
 
@@ -321,9 +273,6 @@ bool DropDown::Show(bool show)
 
 #ifdef __WXGTK__
     DropDown *root = mainDropDown ? mainDropDown : this;
-    DD_LOG("Show(" << show << ") " << DD_ID(this) << " shown=" << IsShown()
-                   << " rect=" << dd_s(GetScreenRect()) << " GetCapture="
-                   << (void *) wxWindow::GetCapture());
     if (show) {
         acquireWheelGrab();
         root->wheelTarget = this;
@@ -777,12 +726,6 @@ void DropDown::autoPosition()
         pos.y += mainDropDown->hover_item * rowSize.y + rowSize.y + mainDropDown->offset.y;
         off.x -= 12;
         off.y = -rowSize.y;
-        DD_LOGV("autoPosition sub " << DD_ID(this) << " main.hover_item=" << mainDropDown->hover_item
-                                   << " main.offset.y=" << mainDropDown->offset.y
-                                   << " rowH=" << rowSize.y
-                                   << " main.originScreen=" << dd_s(mainDropDown->ClientToScreen(wxPoint(0, 0)))
-                                   << " main.rect=" << dd_s(mainDropDown->GetScreenRect())
-                                   << " => pos=" << dd_s(pos) << " off=" << dd_s(off));
     } else {
         pos = GetParent()->ClientToScreen(wxPoint(0, 0));
         off = GetParent()->GetSize();
@@ -799,9 +742,6 @@ void DropDown::autoPosition()
         size.y += count > 15 ? rowSize.y / 2 : 0;
         if (size != GetSize()) {
             wxWindow::SetSize(size);
-            DD_LOGV("autoPosition RESET offset->0 on " << DD_ID(this) << " (pos/size changed) old="
-                                                     << dd_s(old) << " newpos=" << dd_s(GetPosition())
-                                                     << " newsize=" << dd_s(size));
             offset = wxPoint();
             Position(pos, off);
         }
@@ -824,8 +764,6 @@ void DropDown::autoPosition()
             }
         }
     }
-    DD_LOGV("autoPosition " << DD_ID(this) << " final pos=" << dd_s(GetPosition())
-                           << " size=" << dd_s(GetSize()) << " offset.y=" << offset.y);
 }
 
 void DropDown::mouseDown(wxMouseEvent& event)
@@ -836,13 +774,6 @@ void DropDown::mouseDown(wxMouseEvent& event)
     // force calc hover item again
     mouseMove(event);
     pressedDown = true;
-    bool hadWheelGrab = false;
-#ifdef __WXGTK__
-    hadWheelGrab = wheelGrab;
-#endif
-    DD_LOG("mouseDown " << DD_ID(this) << " pos=" << dd_s(event.GetPosition()) << " hover_item=" << hover_item
-                        << " wheelGrab=" << hadWheelGrab
-                        << " GetCapture=" << (void *) wxWindow::GetCapture());
 #ifdef __WXGTK__
     if (!wheelGrab) // we already hold the pointer grab; a 2nd CaptureMouse() would assert
         CaptureMouse();
@@ -854,9 +785,6 @@ void DropDown::mouseDown(wxMouseEvent& event)
 
 void DropDown::mouseReleased(wxMouseEvent& event)
 {
-    DD_LOGV("mouseReleased " << DD_ID(this) << " pressedDown=" << pressedDown << " hover_item=" << hover_item
-                             << " offset.y=" << offset.y
-                             << " subGroupEmpty=" << (subDropDown ? subDropDown->group.empty() : true));
     if (pressedDown) {
         dragStart = wxPoint();
         pressedDown = false;
@@ -894,7 +822,6 @@ void DropDown::mouseReleased(wxMouseEvent& event)
 
 void DropDown::mouseCaptureLost(wxMouseCaptureLostEvent &event)
 {
-    DD_LOG("mouseCaptureLost " << DD_ID(this) << " GetCapture=" << (void *) wxWindow::GetCapture());
 #ifdef __WXGTK__
     wheelGrab = false; // wx has already cleared the capture stack
 #endif
@@ -916,8 +843,6 @@ void DropDown::mouseMove(wxMouseEvent &event)
     if (wheelGrab && !pressedDown) {
         const wxSize sz = GetSize();
         if (pt.x < 0 || pt.y < 0 || pt.x >= sz.x || pt.y >= sz.y) {
-            DD_LOGV("mouseMove OUT-OF-BOUNDS ignored on " << DD_ID(this) << " pt=" << dd_s(pt)
-                                                         << " size=" << dd_s(sz));
             return;
         }
     }
@@ -943,8 +868,6 @@ void DropDown::mouseMove(wxMouseEvent &event)
         else if (pt2.y + rowSize.y * int(count) < size.y)
             pt2.y = size.y - rowSize.y * int(count);
         if (pt2.y != offset.y) {
-            DD_LOGV("mouseMove DRAG offset.y " << offset.y << " -> " << pt2.y << " on " << DD_ID(this)
-                                             << " pt=" << dd_s(pt) << " dragStart(old)=" << dd_s(dragStart));
             offset = pt2;
             hover_item = -1; // moved
         } else {
@@ -957,11 +880,8 @@ void DropDown::mouseMove(wxMouseEvent &event)
         if (hover == hover_item) return;
         hover_item = hover;
         int index  = hoverIndex();
-        DD_LOGV("mouseMove hover on " << DD_ID(this) << " pt=" << dd_s(pt) << " offset.y=" << offset.y
-                                     << " rowH=" << rowSize.y << " => hover_item=" << hover_item
-                                     << " hoverIndex=" << index << " pressedDown=" << pressedDown);
         if (index < -1) {
-            auto &   drop      = *subDropDown;
+            auto &drop = *subDropDown;
             wxString group_key = items[-index - 2].group_key;
             if (dd_submenu_click_only()) {
                 // Wayland: don't auto-open on hover (mis-placed); just arm the
@@ -1017,15 +937,6 @@ void DropDown::mouseWheelMoved(wxMouseEvent &event)
     else
         target = root->wheelTarget ? root->wheelTarget : root;
 
-    DD_LOG("mouseWheelMoved recv on " << DD_ID(this) << " rot=" << event.GetWheelRotation()
-                                      << " evtPos=" << dd_s(event.GetPosition())
-                                      << " mousePos=" << dd_s(screen_pt)
-                                      << " | root=" << DD_ID(root) << " rootRect=" << dd_s(root->GetScreenRect())
-                                      << " | sub=" << DD_ID(sub)
-                                      << " subShown=" << (sub && sub->IsShown())
-                                      << " subRect=" << dd_s(sub ? sub->GetScreenRect() : wxRect())
-                                      << " => target=" << DD_ID(target));
-
     root->wheelTarget = target;
 
     if (target != this) {
@@ -1048,9 +959,6 @@ void DropDown::scrollContent(wxMouseEvent &event)
         pt2.y = 0;
     else if (pt2.y + rowSize.y * int(count) < size.y)
         pt2.y = size.y - rowSize.y * int(count);
-    DD_LOG("scrollContent " << DD_ID(this) << " delta=" << delta << " offset.y " << offset.y
-                            << " -> " << pt2.y << " size=" << dd_s(size) << " rowH=" << rowSize.y
-                            << " count=" << count);
     if (pt2.y != offset.y) {
         offset = pt2;
     } else {
