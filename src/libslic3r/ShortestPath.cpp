@@ -11,8 +11,11 @@
 #include "MutablePriorityQueue.hpp"
 #include "Print.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cassert>
+#include <numeric>
+#include <unordered_map>
 
 namespace Slic3r {
 
@@ -1066,6 +1069,177 @@ void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entitie
     }),
                    entities.end());
 	reorder_extrusion_entities(entities, chain_extrusion_entities(entities, start_near));
+}
+
+// Exact single-chain ordering for zero-travel continuous printing (see the declaration in ShortestPath.hpp).
+// Builds the endpoint coincidence graph of all entities and searches for an Eulerian trail covering
+// every entity exactly once. Entities are never duplicated and no connecting segments are ever created,
+// which satisfies the "no supplementary connection lines" constraint of the continuous print design.
+std::optional<ExactChainResult> chain_extrusion_entities_exact(const std::vector<ExtrusionEntity*> &entities, const Point *preferred_start)
+{
+	const size_t num_entities = entities.size();
+	if (num_entities == 0)
+		return std::nullopt;
+
+	// Every entity must provide valid endpoints and a positive length, otherwise it cannot be chained exactly.
+	for (const ExtrusionEntity *entity : entities)
+		if (! extrusion_entity_has_endpoints(entity) || entity->length() <= 0.)
+			return std::nullopt;
+
+	// Two endpoint slots per entity: slot 2*i = first point, slot 2*i+1 = last point.
+	// Union-find merges endpoints that coincide (within SCALED_EPSILON) into a single vertex.
+	// (Graph connectivity is NOT merged here; it is verified by the edge count after Hierholzer below.)
+	std::vector<size_t> uf_parent(2 * num_entities);
+	std::iota(uf_parent.begin(), uf_parent.end(), size_t(0));
+	auto uf_find = [&uf_parent](size_t i) {
+		size_t root = i;
+		while (uf_parent[root] != root)
+			root = uf_parent[root];
+		while (uf_parent[i] != root) {
+			size_t next = uf_parent[i];
+			uf_parent[i]  = root;
+			i             = next;
+		}
+		return root;
+	};
+	auto uf_union = [&uf_parent, &uf_find](size_t a, size_t b) {
+		size_t ra = uf_find(a), rb = uf_find(b);
+		if (ra != rb)
+			uf_parent[rb] = ra;
+	};
+
+	std::vector<Point> end_points;
+	end_points.reserve(2 * num_entities);
+	for (const ExtrusionEntity *entity : entities) {
+		end_points.emplace_back(entity->first_point());
+		end_points.emplace_back(entity->last_point());
+	}
+	// Endpoint merging is O(n^2); acceptable for the thin-walled models this mode targets
+	// (layers with thousands of infill segments are rejected by the odd-degree check anyway).
+	for (size_t i = 0; i < num_entities; ++ i) {
+		// An entity whose own endpoints coincide (e.g. ExtrusionLoop) touches a single vertex twice.
+		if (is_approx(end_points[2 * i], end_points[2 * i + 1]))
+			uf_union(2 * i, 2 * i + 1);
+		for (size_t j = i + 1; j < num_entities; ++ j)
+			for (size_t a = 0; a < 2; ++ a)
+				for (size_t b = 0; b < 2; ++ b)
+					if (is_approx(end_points[2 * i + a], end_points[2 * j + b]))
+						uf_union(2 * i + a, 2 * j + b);
+	}
+
+	// Vertex degrees and a representative point per merged vertex.
+	std::unordered_map<size_t, int> degree;
+	std::vector<Point> rep_point(2 * num_entities);
+	std::vector<char>  has_rep(2 * num_entities, 0);
+	for (size_t slot = 0; slot < 2 * num_entities; ++ slot) {
+		size_t root = uf_find(slot);
+		if (! has_rep[root]) {
+			rep_point[root] = end_points[slot];
+			has_rep[root]   = 1;
+		}
+	}
+	for (size_t i = 0; i < num_entities; ++ i) {
+		size_t rs = uf_find(2 * i), rt = uf_find(2 * i + 1);
+		if (rs == rt)
+			degree[rs] += 2; // loop-like entity: both endpoints on the same vertex
+		else {
+			degree[rs] += 1;
+			degree[rt] += 1;
+		}
+	}
+
+	// Eulerian trail condition: 0 odd-degree vertices (closed circuit) or exactly 2 (open trail).
+	// (A disconnected graph with all-even degrees passes this check, but Hierholzer below will then
+	// fail to consume all edges, which is caught by the circuit size verification.)
+	std::vector<size_t> odd_roots;
+	for (const auto &kv : degree)
+		if (kv.second & 1)
+			odd_roots.push_back(kv.first);
+	const bool closed = odd_roots.empty();
+	if (! closed && odd_roots.size() != 2)
+		return std::nullopt;
+
+	// Pick the start vertex.
+	auto dist2 = [&rep_point](size_t root, const Point &p) {
+		return (rep_point[root].cast<double>() - p.cast<double>()).squaredNorm();
+	};
+	size_t start_root;
+	if (! closed) {
+		start_root = odd_roots.front();
+		if (preferred_start != nullptr && dist2(odd_roots.back(), *preferred_start) < dist2(odd_roots.front(), *preferred_start))
+			start_root = odd_roots.back();
+	} else {
+		start_root = uf_find(0);
+		if (preferred_start != nullptr)
+			for (const auto &kv : degree)
+				if (dist2(kv.first, *preferred_start) < dist2(start_root, *preferred_start))
+					start_root = kv.first;
+	}
+
+	// Hierholzer's algorithm: iterative, emits vertices/edges in reverse order while backtracking.
+	std::vector<std::vector<size_t>> adjacency(2 * num_entities);
+	for (size_t i = 0; i < num_entities; ++ i) {
+		adjacency[uf_find(2 * i)].push_back(i);
+		adjacency[uf_find(2 * i + 1)].push_back(i);
+	}
+	std::vector<char>   used(num_entities, 0);
+	std::vector<size_t> vertex_stack{start_root};
+	std::vector<size_t> edge_stack;
+	std::vector<size_t> circuit_vertices;
+	std::vector<size_t> circuit_edges;
+	circuit_vertices.reserve(num_entities + 1);
+	circuit_edges.reserve(num_entities);
+	while (! vertex_stack.empty()) {
+		size_t  v   = vertex_stack.back();
+		auto   &adj = adjacency[v];
+		while (! adj.empty() && used[adj.back()])
+			adj.pop_back();
+		if (! adj.empty()) {
+			size_t e = adj.back();
+			adj.pop_back();
+			used[e] = 1;
+			vertex_stack.push_back(uf_find(2 * e) == v ? uf_find(2 * e + 1) : uf_find(2 * e));
+			edge_stack.push_back(e);
+		} else {
+			circuit_vertices.push_back(v);
+			if (! edge_stack.empty()) {
+				circuit_edges.push_back(edge_stack.back());
+				edge_stack.pop_back();
+			}
+			vertex_stack.pop_back();
+		}
+	}
+	if (circuit_edges.size() != num_entities)
+		// Some edges were left unreachable: the graph is disconnected, no single trace can cover it.
+		return std::nullopt;
+
+	std::reverse(circuit_vertices.begin(), circuit_vertices.end());
+	std::reverse(circuit_edges.begin(), circuit_edges.end());
+	// Now edge circuit_edges[k] leads from circuit_vertices[k] to circuit_vertices[k+1].
+
+	ExactChainResult result;
+	result.closed = closed;
+	result.order.reserve(num_entities);
+	for (size_t k = 0; k < num_entities; ++ k) {
+		size_t e = circuit_edges[k];
+		bool   reversed;
+		if (uf_find(2 * e) == uf_find(2 * e + 1))
+			// Loop-like entity (e.g. ExtrusionLoop): direction is irrelevant, and loops cannot be reversed.
+			reversed = false;
+		else if (uf_find(2 * e) == circuit_vertices[k])
+			reversed = false;
+		else {
+			assert(uf_find(2 * e + 1) == circuit_vertices[k]);
+			reversed = true;
+		}
+		if (reversed && ! entities[e]->can_reverse())
+			// Conservative: a different Eulerian orientation might avoid this reversal, but we don't search for it.
+			return std::nullopt;
+		result.order.emplace_back(e, reversed);
+	}
+	result.start = rep_point[circuit_vertices.front()];
+	result.end   = rep_point[circuit_vertices.back()];
+	return result;
 }
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near)

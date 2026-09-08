@@ -211,6 +211,8 @@ set(lisbslic3r_sources
     GCode/AvoidCrossingPerimeters.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
+    GCode/ContinuousPrint.cpp
+    GCode/ContinuousPrint.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
     GCode/TimelapsePosPicker.cpp
