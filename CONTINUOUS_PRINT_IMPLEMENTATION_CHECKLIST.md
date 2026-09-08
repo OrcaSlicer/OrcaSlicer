@@ -27,7 +27,7 @@
   cd build-dbginfo
   cmake --build . --config RelWithDebInfo --target ALL_BUILD -- -m
   ```
-- [ ] 0.4 验证测试基建可用:
+- [X] 0.4 验证测试基建可用(注意:首次配置需 `cmake .. -DBUILD_TESTS=ON` 才会生成测试目标):
 
   ```bat
   cd build-dbginfo
@@ -42,14 +42,14 @@
 
 ### 1.1 开工前已敲定的决策(实现时遵循)
 
-- [ ] 端点重合容差 ε_geo:使用 `is_approx(a, b, SCALED_EPSILON)`(`Point.hpp:390-393`),写死在算子内,v1 不暴露配置项
-- [ ] `ExtrusionLoop` 处理:loop 无 `start_idx` 成员,seam 由 `split_at`/`split_at_vertex` 实现,且 `can_reverse()` 恒 false;算子层面把 loop 当作"首尾同点的闭合边"参与构图(不可反转);判定器 v1 只放行两类情形——①整层恰好一个 loop(退化为 SpiralVase 场景);②开放路径组成的单链(2 奇度端点)
-- [ ] 补线约束按 1.1 节更新后的划界:禁止事后补线;连续填充图案(gyroid/zigzag 回折)属合法原生图案
-- [ ] 回退策略 v1:任一判定失败 → 整单回退常规打印(5.6)
+- [X] 端点重合容差 ε_geo:使用 `is_approx(a, b, SCALED_EPSILON)`(`Point.hpp:390-393`),写死在算子内,v1 不暴露配置项
+- [X] `ExtrusionLoop` 处理:loop 无 `start_idx` 成员,seam 由 `split_at`/`split_at_vertex` 实现,且 `can_reverse()` 恒 false;算子层面把 loop 当作"首尾同点的闭合边"参与构图(不可反转);判定器 v1 只放行两类情形——①整层恰好一个 loop(退化为 SpiralVase 场景);②开放路径组成的单链(2 奇度端点)
+- [X] 补线约束按 1.1 节更新后的划界:禁止事后补线;连续填充图案(gyroid/zigzag 回折)属合法原生图案
+- [X] 回退策略 v1:任一判定失败 → 整单回退常规打印(5.6)
 
 ### 1.2 精确链化算子(设计文档 5.3)
 
-- [ ] 在 `src/libslic3r/ShortestPath.hpp/.cpp` 新增:
+- [X] 在 `src/libslic3r/ShortestPath.hpp/.cpp` 新增:
 
   ```cpp
   struct ExactChainResult {
@@ -62,40 +62,43 @@
       const std::vector<ExtrusionEntity*> &entities,
       const Point *preferred_start = nullptr);
   ```
-- [ ] 实现要点:
+- [X] 实现要点:
 
-  - [ ] 端点提取用基类虚接口 `first_point()`/`last_point()`(`ExtrusionEntity.hpp:118-122`);`extrusion_entity_has_endpoints`(`ShortestPath.cpp:20-41`)为 static 私有、只判非空不提取坐标,需自行过滤零长度实体
-  - [ ] 端点合并为顶点(scaled 坐标,`is_approx`/`SCALED_EPSILON` 判定),统计各顶点度数
-  - [ ] 奇度顶点 = 0 → `closed=true`;= 2 → 开放链,链首/链尾即两个奇度端点;> 2 → 返回 `std::nullopt`
-  - [ ] 接续条件唯一:下一段首点在当前末点 `SCALED_EPSILON` 邻域内(`is_approx`);找不到即失败。**绝不创造新连线**
-  - [ ] `preferred_start` 非空时优先从距其最近的合法端点起链(供层间衔接用)
+  - [X] 端点提取用基类虚接口 `first_point()`/`last_point()`(`ExtrusionEntity.hpp:118-122`);`extrusion_entity_has_endpoints`(`ShortestPath.cpp:20-41`)为 static 私有、只判非空不提取坐标,需自行过滤零长度实体
+  - [X] 端点合并为顶点(scaled 坐标,`is_approx`/`SCALED_EPSILON` 判定),统计各顶点度数
+  - [X] 奇度顶点 = 0 → `closed=true`;= 2 → 开放链,链首/链尾即两个奇度端点;> 2 → 返回 `std::nullopt`
+  - [X] 接续条件唯一:下一段首点在当前末点 `SCALED_EPSILON` 邻域内(`is_approx`);找不到即失败。**绝不创造新连线**
+  - [X] `preferred_start` 非空时优先从距其最近的合法端点起链(供层间衔接用)
+  - 备注:图连通性不做独立并查集,由 Hierholzer 结束时的"消费边数 == 实体数"校验兜底(不连通图必然消费不完)
 
 ### 1.3 判定器骨架(设计文档 5.2)
 
-- [ ] 新增 `src/libslic3r/GCode/ContinuousPrint.hpp/.cpp`:
-  - [ ] `enum class Verdict { Applicable, Reject };`
-  - [ ] `struct ContinuousLayerPlan`(order / start_point / end_point / is_closed / total_length / sampling)
-  - [ ] `preflight_layer(entities, layer, cfg, out_plan)`:先跑形状级判定(单对象/单材料/无支撑/单岛),再调 `chain_extrusion_entities_exact`,填充 `out_plan`
-- [ ] 弧长采样(`sampling`):沿链按固定步长采样 XY,供后续转移点曲线与离体判定使用
-- [ ] v1 判定器仅覆盖层内单链判定;转移点曲线/离体检查(5.2 第 4 步)留到 M3
+- [X] 新增 `src/libslic3r/GCode/ContinuousPrint.hpp/.cpp`(已登记 `src/libslic3r/CMakeLists.txt`):
+  - [X] `enum class ContinuousPrintVerdict { Applicable, Reject };`(实际命名比原计划多了 `ContinuousPrint` 前缀)
+  - [X] `struct ContinuousLayerPlan`(order / start_point / end_point / is_closed / total_length / sampling);`total_length` 已 `unscale_` 为 mm(注意 `ExtrusionEntity::length()` 返回 scaled 单位)
+  - [X] `preflight_layer(entities, layer, cfg, out_plan)`:调 `chain_extrusion_entities_exact`,填充 `out_plan`;形状级判定(单对象/单材料/无支撑/单岛)留到 M3(`layer`/`cfg` 参数已预留,当前 `[[maybe_unused]]`)
+- [X] 弧长采样(`sampling`):沿链按 1mm 固定步长**插值**采样 XY(非仅取顶点),供后续转移点曲线与离体判定使用
+- [X] v1 判定器仅覆盖层内单链判定;转移点曲线/离体检查(5.2 第 4 步)留到 M3
 
 ### 1.4 单元测试
 
-- [ ] 新增 `tests/libslic3r/test_continuous_print.cpp`,并在 `tests/libslic3r/CMakeLists.txt` 源文件清单中登记(该文件为显式列表,不自动 glob)
-- [ ] 实体构造参考 `tests/fff_print/test_extrusion_entity.cpp:22-36`:**注意 `ExtrusionPath::polyline` 是 `Polyline3`(三维)**,测试点要用 `Point3` 追加,`first_point()`/`last_point()` 返回其 2D 投影;`tests/libslic3r` 下没有现成的 ExtrusionEntity 构造示例
-- [ ] 用例(手构 `ExtrusionEntity` 集):
-  - [ ] 单个 `ExtrusionLoop` → 通过,`closed=true`
-  - [ ] 两条平行开放线(rectilinear 示意)→ 拒绝(奇度 > 2)
-  - [ ] 端点相接的开放折线链 → 通过,`closed=false`,起终点为两个奇度端点
-  - [ ] 链中间一段反向(需 flip)→ 通过且 `order` 中对应 `bool=true`
-  - [ ] 端点间距 > ε_geo → 拒绝(不补线断言)
-  - [ ] 空实体集 / 零长度实体 → 拒绝且不崩溃
-- [ ] 跑通:`ctest -C RelWithDebInfo --test-dir ./tests/libslic3r --output-on-failure`
+- [X] 新增 `tests/libslic3r/test_continuous_print.cpp`,并在 `tests/libslic3r/CMakeLists.txt` 源文件清单中登记(该文件为显式列表,不自动 glob)
+- [X] 实体构造参考 `tests/fff_print/test_extrusion_entity.cpp:22-36`:**注意 `ExtrusionPath::polyline` 是 `Polyline3`(三维)**,测试点要用 `Point3` 追加,`first_point()`/`last_point()` 返回其 2D 投影;`tests/libslic3r` 下没有现成的 ExtrusionEntity 构造示例
+- [X] 用例(手构 `ExtrusionEntity` 集):
+  - [X] 单个 `ExtrusionLoop` → 通过,`closed=true`
+  - [X] 两条平行开放线(rectilinear 示意)→ 拒绝(奇度 > 2)
+  - [X] 端点相接的开放折线链 → 通过,`closed=false`,起终点为两个奇度端点
+  - [X] 链中间一段反向(需 flip)→ 通过且 `order` 中对应 `bool=true`
+  - [X] 端点间距 > ε_geo → 拒绝(不补线断言)
+  - [X] 空实体集 / 零长度实体 / 两个分离环(不连通图)→ 拒绝且不崩溃
+  - [X] `preferred_start` 选择最近奇度端点为链首
+  - [X] `preflight_layer` 三组:开放链 Applicable + 计划一致性、单 loop Applicable + closed、平行线 Reject
+- [X] 跑通:`ctest -C RelWithDebInfo --test-dir ./tests/libslic3r --output-on-failure`(2 个新场景 40 断言全过)
 
 ### 1.5 M1 出口标准
 
-- [ ] 全部新单测通过;既有测试无回归
-- [ ] 不修改 `GCode.cpp` / `PrintConfig.cpp`,主程序行为零变化
+- [X] 全部新单测通过;既有测试无回归(注:`Placeholder parser coFloatsOrPercents` 在基线上即 SEGFAULT,为既有问题,与本次纯新增改动无关;构建需降并行 `/maxcpucount:2`,否则全并行 `-m` 会编译器堆耗尽)
+- [X] 不修改 `GCode.cpp` / `PrintConfig.cpp`,主程序行为零变化
 
 ---
 
@@ -103,6 +106,8 @@
 
 设计依据:5.1 路线 A、5.4。
 
+- [ ] **算子扩展(接合点拆分,设计文档 3.5)**:`chain_extrusion_entities_exact` 支持"实体 A 端点落在实体 B 中间(ε 内)→ 拆分 B"后再做欧拉判定,使"墙 loop + 连续填充迹"(lollipop 图)可通过;输出拆分后的实体序列供发射用。拆分不新增几何,不违反"不补线"约束
+- [ ] 用真实切片数据验证连续填充图案:`top/bottom_surface_pattern = monotonic`、`sparse_infill_pattern = alignedrectilinear`、`internal_solid_infill_pattern = monotonic`(`FillRectilinear.cpp` 的 monotonic 通过沿内轮廓连接段接成单条迹)
 - [ ] 在 `ContinuousPrint.hpp/.cpp` 中实现过滤器,泛化自 `SpiralVase::process_layer`(`SpiralVase.cpp:66-216`),复用四步机制:
   - [ ] 首条纯 Z 移动改写(保持 Z 单调)
   - [ ] Z-ramp(按弧长比例摊层高)
@@ -122,7 +127,7 @@
 
 设计依据:5.4、5.5。
 
-- [ ] `src/libslic3r/PrintConfig.{hpp,cpp}`:新增 `continuous_print_mode`(bool,默认 false);平滑参数复用 `spiral_mode_smooth` / `spiral_mode_max_xy_smoothing`,不新增配置面
+- [ ] `src/libslic3r/PrintConfig.{hpp,cpp}`:新增 `continuous_print_mode`(bool,默认 false);平滑参数复用 `spiral_mode_smooth` / `spiral_mode_max_xy_smoothing`,不新增配置面;开关开启时校验/提示填充配置须为连续图案(monotonic / alignedrectilinear,见设计文档 3.4)
 - [ ] `src/libslic3r/GCode.hpp`:`LayerResult` 扩展字段(携带 `ContinuousLayerPlan` 或判定结果)
 - [ ] `src/libslic3r/GCode.cpp`:
   - [ ] `process_layer`(4539 附近):启用开关时执行 preflight;**注意 preflight 需全层遍历后才能给整单 Verdict**(与 spiral 逐层判定不同),必要时前置到 `process_layers` 之前
