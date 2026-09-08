@@ -2679,8 +2679,6 @@ msgstr "Er is een update beschikbaar. Open het dialoogvenster voor de voorinstel
 msgid "%s has been removed."
 msgstr "%s is verwijderd."
 
-msgid "Switching application language"
-msgstr "De taal van de applicatie wordt aangepast"
 
 msgid "Select the language"
 msgstr "Kies de taal"
@@ -9579,8 +9577,6 @@ msgstr "Wilt u doorgaan?"
 msgid "Language selection"
 msgstr "Taal selectie"
 
-msgid "Switching application language while some presets are modified."
-msgstr "De taal van de toepassing aanpaasen terwijl sommige voorinstellingen zijn aangepast."
 
 msgid "Asia-Pacific"
 msgstr "Azië-Pacific"

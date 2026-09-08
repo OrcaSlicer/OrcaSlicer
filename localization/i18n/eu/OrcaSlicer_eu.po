@@ -2390,8 +2390,6 @@ msgstr "Eguneratze bat dago erabilgarri. Ireki aurrezarpen-paketeen elkarrizketa
 msgid "%s has been removed."
 msgstr "%s kendu da."
 
-msgid "Switching application language"
-msgstr "Aplikazioaren hizkuntza aldatzen"
 
 msgid "Select the language"
 msgstr "Hautatu hizkuntza"
@@ -8587,8 +8585,6 @@ msgstr "Jarraitu nahi duzu?"
 msgid "Language selection"
 msgstr "Hizkuntza-hautaketa"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Aplikazioaren hizkuntza aldatzen ari da aurrezarpen batzuk aldatuta dauden bitartean."
 
 msgid "Asia-Pacific"
 msgstr "Asia-Pazifikoa"

@@ -2425,8 +2425,6 @@ msgstr "有可用的更新。請開啟預設組合對話框進行更新。"
 msgid "%s has been removed."
 msgstr "%s 已移除。"
 
-msgid "Switching application language"
-msgstr "切換應用程式語言"
 
 msgid "Select the language"
 msgstr "選擇語言"
@@ -8730,8 +8728,6 @@ msgstr "是否繼續？"
 msgid "Language selection"
 msgstr "語言選擇"
 
-msgid "Switching application language while some presets are modified."
-msgstr "在切換應用程式語言之前發現某些參數預設有更改。"
 
 msgid "Asia-Pacific"
 msgstr "亞太"

@@ -2356,8 +2356,6 @@ msgstr "Hay una actualización disponible. Abra el cuadro de diálogo del paquet
 msgid "%s has been removed."
 msgstr "Se ha eliminado %s."
 
-msgid "Switching application language"
-msgstr "Cambiando el idioma de la aplicación"
 
 msgid "Select the language"
 msgstr "Seleccionar el idioma"
@@ -8506,8 +8504,6 @@ msgstr "¿Quieres continuar?"
 msgid "Language selection"
 msgstr "Selección de idiomas"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Cambiando idioma de la aplicación mientras se modifican algunos perfiles."
 
 msgid "Asia-Pacific"
 msgstr "Asia-Pacífico"

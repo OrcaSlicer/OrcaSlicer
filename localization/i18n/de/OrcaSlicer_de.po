@@ -2430,8 +2430,6 @@ msgstr "Es ist ein Update verfügbar. Öffnen Sie den Profilbündel-Dialog, um e
 msgid "%s has been removed."
 msgstr "%s wurde entfernt."
 
-msgid "Switching application language"
-msgstr "Wechsel der Sprache"
 
 msgid "Select the language"
 msgstr "Sprache wählen"
@@ -8731,8 +8729,6 @@ msgstr "Möchten Sie fortfahren?"
 msgid "Language selection"
 msgstr "Sprachauswahl"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Umschalten der Anwendungssprache, während einige Profile geändert werden."
 
 msgid "Asia-Pacific"
 msgstr "Asien-Pazifik"

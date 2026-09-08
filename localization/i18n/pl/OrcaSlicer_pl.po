@@ -2512,8 +2512,6 @@ msgstr "Dostępna jest aktualizacja. Otwórz okno pakietu profili, aby ją zains
 msgid "%s has been removed."
 msgstr "%s został usunięty."
 
-msgid "Switching application language"
-msgstr "Zmiana języka aplikacji"
 
 msgid "Select the language"
 msgstr "Wybierz język"
@@ -8993,8 +8991,6 @@ msgstr "Czy kontynuować?"
 msgid "Language selection"
 msgstr "Wybór języka"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Zmiana języka aplikacji przy jednoczesnym istniejących zmodyfikowanych ustawieniach."
 
 msgid "Asia-Pacific"
 msgstr "Azja i Pacyfik"

@@ -2449,8 +2449,6 @@ msgstr "Yra prieinamas atnaujinimas. Atidarykite profilių paketo dialogo langą
 msgid "%s has been removed."
 msgstr "%s buvo pašalintas."
 
-msgid "Switching application language"
-msgstr "Perjungiama programos kalba"
 
 msgid "Select the language"
 msgstr "Pasirinkite kalbą"
@@ -8774,8 +8772,6 @@ msgstr "Ar norite tęsti?"
 msgid "Language selection"
 msgstr "Kalbos pasirinkimas"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Keičiama programos kalba, kai yra pakeistų profilių."
 
 msgid "Asia-Pacific"
 msgstr "Azija-Ramusis vandenynas"

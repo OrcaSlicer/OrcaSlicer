@@ -3244,98 +3244,9 @@ void MainFrame::init_menubar_as_editor()
     auto preference_item = new wxMenuItem(parent_menu, ConfigMenuPreferences + config_id_base, _L("Preferences") + "\t" + ctrl + "P", "");
 
 #endif
-    //auto printer_item = new wxMenuItem(parent_menu, ConfigMenuPrinter + config_id_base, _L("Printer"), "");
-    //auto language_item = new wxMenuItem(parent_menu, ConfigMenuLanguage + config_id_base, _L("Switch Language"), "");
-//    parent_menu->Bind(wxEVT_MENU, [this, config_id_base](wxEvent& event) {
-//        switch (event.GetId() - config_id_base) {
-//        //case ConfigMenuLanguage:
-//        //{
-//        //    /* Before change application language, let's check unsaved changes on 3D-Scene
-//        //     * and draw user's attention to the application restarting after a language change
-//        //     */
-//        //    {
-//        //        // the dialog needs to be destroyed before the call to switch_language()
-//        //        // or sometimes the application crashes into wxDialogBase() destructor
-//        //        // so we put it into an inner scope
-//        //        wxString title = _L("Language selection");
-//        //        wxMessageDialog dialog(nullptr,
-//        //            _L("Switching the language requires application restart.\n") + "\n\n" +
-//        //            _L("Do you want to continue?"),
-//        //            title,
-//        //            wxICON_QUESTION | wxOK | wxCANCEL);
-//        //        if (dialog.ShowModal() == wxID_CANCEL)
-//        //            return;
-//        //    }
-//
-//        //    wxGetApp().switch_language();
-//        //    break;
-//        //}
-//        //case ConfigMenuWizard:
-//        //{
-//        //    wxGetApp().run_wizard(ConfigWizard::RR_USER);
-//        //    break;
-//        //}
-//        case ConfigMenuPrinter:
-//        {
-//            wxGetApp().params_dialog()->Popup();
-//            wxGetApp().get_tab(Preset::TYPE_PRINTER)->restore_last_select_item();
-//            break;
-//        }
-//        case ConfigMenuPreferences:
-//        {
-//            CallAfter([this] {
-//                PreferencesDialog dlg(this);
-//                dlg.ShowModal();
-//#if ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-//                if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
-//#else
-//                if (dlg.seq_top_layer_only_changed())
-//#endif // ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-//                    plater()->refresh_print();
-//#if ENABLE_CUSTOMIZABLE_FILES_ASSOCIATION_ON_WIN
-//#ifdef _WIN32
-//                /*
-//                if (wxGetApp().app_config()->get("associate_3mf") == "true")
-//                    wxGetApp().associate_3mf_files();
-//                if (wxGetApp().app_config()->get("associate_stl") == "true")
-//                    wxGetApp().associate_stl_files();
-//                /*if (wxGetApp().app_config()->get("associate_step") == "true")
-//                    wxGetApp().associate_step_files();*/
-//#endif // _WIN32
-//#endif
-//            });
-//            break;
-//        }
-//        default:
-//            break;
-//        }
-//    });
 
 #ifdef __APPLE__
     wxString about_title = wxString::Format(_L("&About %s"), SLIC3R_APP_FULL_NAME);
-    //auto about_item = new wxMenuItem(parent_menu, OrcaSlicerMenuAbout + bambu_studio_id_base, about_title, "");
-        //parent_menu->Bind(wxEVT_MENU, [this, bambu_studio_id_base](wxEvent& event) {
-        //    switch (event.GetId() - bambu_studio_id_base) {
-        //        case OrcaSlicerMenuAbout:
-        //            Slic3r::GUI::about();
-        //            break;
-        //        case OrcaSlicerMenuPreferences:
-        //            CallAfter([this] {
-        //                PreferencesDialog dlg(this);
-        //                dlg.ShowModal();
-        //#if ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-        //                if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
-        //#else
-        //                if (dlg.seq_top_layer_only_changed())
-        //#endif // ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-        //                    plater()->refresh_print();
-        //            });
-        //            break;
-        //        default:
-        //            break;
-        //    }
-        //});
-    //parent_menu->Insert(0, about_item);
     append_menu_item(
         parent_menu, wxID_ANY, _L(about_title), "",
         [](wxCommandEvent &) { Slic3r::GUI::about();},

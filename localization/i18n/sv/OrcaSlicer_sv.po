@@ -2767,8 +2767,6 @@ msgstr "Det finns en uppdatering tillgänglig. Öppna dialogrutan för förinst�
 msgid "%s has been removed."
 msgstr "%s har tagits bort."
 
-msgid "Switching application language"
-msgstr "Byt applikationsspråk"
 
 msgid "Select the language"
 msgstr "Välj språk"
@@ -9671,8 +9669,6 @@ msgstr "Fortsätta?"
 msgid "Language selection"
 msgstr "Språkval"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Byter språk medans inställningarna ändras."
 
 msgid "Asia-Pacific"
 msgstr "Asien-Stillahavsområdet"

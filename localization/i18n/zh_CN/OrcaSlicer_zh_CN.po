@@ -2361,8 +2361,6 @@ msgstr "有更新可用。打开预设包对话框进行更新。"
 msgid "%s has been removed."
 msgstr "%s 已被移除。"
 
-msgid "Switching application language"
-msgstr "切换应用程序语言"
 
 msgid "Select the language"
 msgstr "选择语言"
@@ -8564,8 +8562,6 @@ msgstr "是否继续？"
 msgid "Language selection"
 msgstr "语言选择"
 
-msgid "Switching application language while some presets are modified."
-msgstr "在切换应用语言之前发现某些参数预设有更改。"
 
 msgid "Asia-Pacific"
 msgstr "亚太"

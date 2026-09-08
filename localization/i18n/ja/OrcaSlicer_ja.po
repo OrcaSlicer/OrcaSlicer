@@ -2473,8 +2473,6 @@ msgstr "アップデートが利用可能です。プリセットバンドルの
 msgid "%s has been removed."
 msgstr "%sを削除しました。"
 
-msgid "Switching application language"
-msgstr "アプリケーション言語の切り替え"
 
 msgid "Select the language"
 msgstr "言語を選択"
@@ -8802,8 +8800,6 @@ msgstr "続行しますか？"
 msgid "Language selection"
 msgstr "言語選択"
 
-msgid "Switching application language while some presets are modified."
-msgstr "アプリケーション言語を切り替える時に、プリセットの変更があります"
 
 msgid "Asia-Pacific"
 msgstr "アジア太平洋地域"

@@ -2481,8 +2481,6 @@ msgstr "사용 가능한 업데이트가 있습니다. 사전 설정 번들 대�
 msgid "%s has been removed."
 msgstr "%s이(가) 제거되었습니다."
 
-msgid "Switching application language"
-msgstr "응용 프로그램 언어 전환"
 
 msgid "Select the language"
 msgstr "언어 선택"
@@ -8837,8 +8835,6 @@ msgstr "계속하시겠습니까?"
 msgid "Language selection"
 msgstr "언어 선택"
 
-msgid "Switching application language while some presets are modified."
-msgstr "일부 사전 설정이 수정되는 동안 응용 프로그램 언어를 전환합니다."
 
 msgid "Asia-Pacific"
 msgstr "아시아 태평양"

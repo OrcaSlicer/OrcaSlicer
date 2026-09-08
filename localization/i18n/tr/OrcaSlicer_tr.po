@@ -2480,8 +2480,6 @@ msgstr "Kullanılabilir bir güncelleme var. Güncellemek için ön ayar paketi 
 msgid "%s has been removed."
 msgstr "%s kaldırıldı."
 
-msgid "Switching application language"
-msgstr "Uygulama dilini değiştirme"
 
 msgid "Select the language"
 msgstr "Dili seçin"
@@ -8837,8 +8835,6 @@ msgstr "Devam etmek istiyor musun?"
 msgid "Language selection"
 msgstr "Dil seçimi"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Bazı ön ayarlar değiştirilirken uygulama dilinin değiştirilmesi."
 
 msgid "Asia-Pacific"
 msgstr "Asya Pasifik"

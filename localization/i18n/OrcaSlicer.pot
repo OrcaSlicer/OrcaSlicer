@@ -2293,8 +2293,6 @@ msgstr ""
 msgid "%s has been removed."
 msgstr ""
 
-msgid "Switching application language"
-msgstr ""
 
 msgid "Select the language"
 msgstr ""
@@ -8271,8 +8269,6 @@ msgstr ""
 msgid "Language selection"
 msgstr ""
 
-msgid "Switching application language while some presets are modified."
-msgstr ""
 
 msgid "Asia-Pacific"
 msgstr ""

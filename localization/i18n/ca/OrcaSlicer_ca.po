@@ -2522,8 +2522,6 @@ msgstr "Hi ha una actualització disponible. Obriu el quadre de diàleg del paqu
 msgid "%s has been removed."
 msgstr "%s s'ha eliminat."
 
-msgid "Switching application language"
-msgstr "Canvi d'idioma de l'aplicació"
 
 msgid "Select the language"
 msgstr "Seleccioneu l'idioma"
@@ -8901,8 +8899,6 @@ msgstr "Voleu continuar?"
 msgid "Language selection"
 msgstr "Selecció d'idiomes"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Canviant l'idioma de l'aplicació mentre es modifiquen alguns perfils."
 
 msgid "Asia-Pacific"
 msgstr "Àsia-Pacífic"

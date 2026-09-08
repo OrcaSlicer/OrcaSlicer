@@ -2431,8 +2431,6 @@ msgstr "Доступно обновление. Проверьте меню па�
 msgid "%s has been removed."
 msgstr "%s был удалён."
 
-msgid "Switching application language"
-msgstr "Изменение языка приложения"
 
 msgid "Select the language"
 msgstr "Выбор языка"
@@ -8829,8 +8827,6 @@ msgstr "Хотите продолжить?"
 msgid "Language selection"
 msgstr "Выбор языка"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Смена языка приложения при изменении некоторых профилей."
 
 msgid "Asia-Pacific"
 msgstr "Азиатско-Тихоокеанский"

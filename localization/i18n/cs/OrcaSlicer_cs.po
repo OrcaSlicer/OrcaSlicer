@@ -2482,8 +2482,6 @@ msgstr "Je k dispozici aktualizace. Otevřete dialog balíčku předvoleb a prov
 msgid "%s has been removed."
 msgstr "%s bylo odstraněno."
 
-msgid "Switching application language"
-msgstr "Přepnutí jazyka aplikace"
 
 msgid "Select the language"
 msgstr "Zvolte jazyk"
@@ -8859,8 +8857,6 @@ msgstr "Chcete pokračovat?"
 msgid "Language selection"
 msgstr "Výběr jazyka"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Přepnutí jazyka aplikace, když jsou některé předvolby upraveny."
 
 msgid "Asia-Pacific"
 msgstr "Asie-Pacifik"

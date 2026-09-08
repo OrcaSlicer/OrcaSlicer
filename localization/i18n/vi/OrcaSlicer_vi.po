@@ -2568,8 +2568,6 @@ msgstr "Có bản cập nhật khả dụng. Hãy mở hộp thoại gói cài �
 msgid "%s has been removed."
 msgstr "%s đã bị xóa."
 
-msgid "Switching application language"
-msgstr "Đang chuyển ngôn ngữ ứng dụng"
 
 msgid "Select the language"
 msgstr "Chọn ngôn ngữ"
@@ -9286,8 +9284,6 @@ msgstr "Bạn có muốn tiếp tục?"
 msgid "Language selection"
 msgstr "Chọn ngôn ngữ"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Đang chuyển đổi ngôn ngữ ứng dụng trong khi một số preset đã được chỉnh sửa."
 
 msgid "Asia-Pacific"
 msgstr "Châu Á-Thái Bình Dương"

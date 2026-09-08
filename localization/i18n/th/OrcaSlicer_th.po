@@ -2456,8 +2456,6 @@ msgstr "มีอัปเดตพร้อมใช้งาน เปิด�
 msgid "%s has been removed."
 msgstr "ลบ %s แล้ว"
 
-msgid "Switching application language"
-msgstr "การเปลี่ยนภาษาของแอปพลิเคชัน"
 
 msgid "Select the language"
 msgstr "เลือกภาษา"
@@ -8735,8 +8733,6 @@ msgstr "ต้องการดำเนินการต่อหรือไ
 msgid "Language selection"
 msgstr "การเลือกภาษา"
 
-msgid "Switching application language while some presets are modified."
-msgstr "การสลับภาษาของแอปพลิเคชันในขณะที่มีการแก้ไขค่าที่ตั้งไว้บางส่วน"
 
 msgid "Asia-Pacific"
 msgstr "เอเชียแปซิฟิก"
