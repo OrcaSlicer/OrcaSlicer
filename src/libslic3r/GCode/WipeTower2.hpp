@@ -27,6 +27,10 @@ public:
     // in WipeTowerIntegration::append_tcr2 does not strip it.
     static const std::string wait_for_temp_tag() { return ";_WAIT_FOR_TEMP_ON_WIPE_TOWER"; }
 	static std::pair<double, double> get_wipe_tower_cone_base(double width, double height, double depth, double angle_deg);
+	// First-layer outline of a cone-wall tower in tower-local (scaled) coordinates: body box
+	// unioned with the cone's base ellipse — the model first_layer_wipe_tower_corners uses,
+	// and generate_support_cone_wall stays within it. Brim not included.
+	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg);
 	static std::vector<std::vector<float>> extract_wipe_volumes(const ConfigBase& config);
 	// Estimated total flush volume of a SEMM print with the given number of filaments,
 	// used to reserve wipe tower space before the tower is generated.

@@ -2191,7 +2191,7 @@ void GLCanvas3D::render(bool only_init)
 
 	// Negative coordinate means out of the window, likely because the window was deactivated.
 	// In that case the tooltip should be hidden.
-    if (m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0. || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
+    if ((m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0.) || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
         if (tooltip.empty())
             tooltip = m_layers_editing.get_tooltip(*this);
 
@@ -2891,23 +2891,37 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
-                float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
-                // BBS
-                float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
-                const Print* print = m_process->fff_print();
                 const Print* current_print = part_plate->fff_print();
-                if (!need_wipe_tower && part_plate->get_extruders(true).size() < 2) continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
-                float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
+                // Body and brim from this plate's own estimate: m_process->fff_print() is the
+                // selected plate's, so an auto brim drew every tower with that plate's brim.
+                const WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config);
+                // The estimate is also the answer to whether this plate prints a tower;
+                // deciding it here as well only gave the two room to drift.
+                if (footprint.depth <= 0.) continue;
+                float brim_width = float(footprint.brim_width);
+                Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-                // The stored position is already clamped onto the bed, by
-                // set_default_wipe_tower_pos_for_plate and again on every drag.
+                // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
+                // filament count, so redo its clamp here on every reload — unconditionally: a
+                // paint-triggered reload can arrive before the background process invalidates
+                // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
+                {
+                    Vec3d clamped_pos, clamped_size;
+                    part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size);
+                    if (std::abs(x - (float) clamped_pos(0)) > EPSILON || std::abs(y - (float) clamped_pos(1)) > EPSILON) {
+                        x = (float) clamped_pos(0);
+                        y = (float) clamped_pos(1);
+                        ConfigOptionFloat wt_x_opt(x), wt_y_opt(y);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_id, 0);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_id, 0);
+                    }
+                }
+
                 if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                     // update for wipe tower position
                     int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
@@ -9766,18 +9780,18 @@ void GLCanvas3D::_render_paint_toolbar() const
         ImVec2 number_label_size = ImGui::CalcTextSize(std::to_string(i + 1).c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - number_label_size.x) / 2);
-        ImGui::TextColored(text_color, std::to_string(i + 1).c_str());
+        ImGui::TextColored(text_color, "%s", std::to_string(i + 1).c_str());
         imgui.pop_bold_font();
 
         ImVec2 filament_first_line_label_size = ImGui::CalcTextSize(filament_text_first_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_first_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_first_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_first_line[i].c_str());
 
         ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y + filament_first_line_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_second_line[i].c_str());
     }
 
     if (ImGui::GetWindowWidth() == constraint_window_width) {
@@ -10004,9 +10018,9 @@ void GLCanvas3D::_render_assemble_info() const
     double size1 = m_selection.get_bounding_box().size()(1);
     double size2 = m_selection.get_bounding_box().size()(2);
     if (!m_selection.is_empty()) {
-        ImGui::Text(_L("Volume:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Volume:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f", size0 * size1 * size2);
-        ImGui::Text(_L("Size:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Size:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f x %.2f x %.2f", size0, size1, size2);
     }
     imgui->end();
