@@ -39,6 +39,20 @@ void write_preset_with_inherits(const DynamicPrintConfig &default_config, const 
     config.save_to_json(file.string(), name, "User", "1.0.0");
 }
 
+// Write a user preset json holding only "inherits" plus the given overrides, the way a GUI-saved
+// user preset stores its diff against its parent. Anything else is inherited at load time.
+void write_sparse_preset(const fs::path &file, const std::string &name, const std::string &inherits,
+                         const std::vector<std::pair<std::string, std::string>> &overrides)
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = inherits;
+    for (const auto &override_pair : overrides)
+        config.set_deserialize_strict(override_pair.first, override_pair.second);
+
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), name, "User", "1.0.0");
+}
+
 // Add an in-memory preset (no file) with the given inherits value (empty => root preset).
 Preset &add_inmemory_preset(PresetCollection &coll, const std::string &name, const std::string &inherits = {})
 {
@@ -364,6 +378,67 @@ std::vector<std::string> &compatible_list(PresetCollection &coll, const std::str
 }
 
 } // namespace
+
+TEST_CASE("A user preset inheriting a user preset from the same directory is loaded", "[Preset][Inherits][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+
+    // The parent sorts after the child, so the child is necessarily reached before its parent is
+    // in the collection - the case a single load pass cannot resolve.
+    const fs::path preset_dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_sparse_preset(preset_dir / "AA Child.json", "AA Child", "ZZ Root", {{"layer_height", "0.15"}});
+    write_sparse_preset(preset_dir / "ZZ Root.json", "ZZ Root", "", {{"layer_height", "0.3"}, {"top_shell_layers", "7"}});
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Disable);
+
+    REQUIRE(bundle.prints.find_preset("ZZ Root") != nullptr);
+    const Preset *child = bundle.prints.find_preset("AA Child");
+    REQUIRE(child != nullptr);
+    CHECK_FALSE(bundle.has_errors());
+    REQUIRE(bundle.prints.get_preset_parent(*child) != nullptr);
+    CHECK(bundle.prints.get_preset_parent(*child)->name == "ZZ Root");
+    // The child's own override wins, and what it does not override comes from the parent rather
+    // than from the collection defaults.
+    CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.15, 1e-9));
+    CHECK(child->config.opt_int("top_shell_layers") == 7);
+}
+
+TEST_CASE("A preset whose parent exists nowhere is reported, not loaded", "[Preset][Inherits][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+
+    write_sparse_preset(temp_dir.path() / PRESET_PRINT_NAME / "Orphan.json", "Orphan", "No Such Parent",
+                        {{"layer_height", "0.15"}});
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(bundle.prints.find_preset("Orphan") == nullptr);
+    CHECK(bundle.has_errors());
+}
+
+TEST_CASE("Presets inheriting each other in a cycle are reported, not loaded", "[Preset][Inherits][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+
+    const fs::path preset_dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_sparse_preset(preset_dir / "Ping.json", "Ping", "Pong", {{"layer_height", "0.15"}});
+    write_sparse_preset(preset_dir / "Pong.json", "Pong", "Ping", {{"layer_height", "0.3"}});
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(bundle.prints.find_preset("Ping") == nullptr);
+    CHECK(bundle.prints.find_preset("Pong") == nullptr);
+    CHECK(bundle.has_errors());
+}
 
 TEST_CASE("Renamed printer/process names are normalized into compatible lists on load", "[Preset][Rename]")
 {
