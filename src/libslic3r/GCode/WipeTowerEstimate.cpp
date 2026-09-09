@@ -37,6 +37,17 @@ WipeTowerType resolve_wipe_tower_type(const ConfigBase &config)
     return type != nullptr ? WipeTowerType(type->getInt()) : WipeTowerType::Type2;
 }
 
+Polygon estimate_wipe_tower_first_layer_outline(const ConfigBase &config, WipeTowerType tower_type, double width, double depth, double height)
+{
+    // Type1 ignores the cone option. The wall type is read by value: a preset-shaped config
+    // holds it as ConfigOptionEnumGeneric, which a cast to ConfigOptionEnum<T> cannot see.
+    const ConfigOption *wall_type  = option_of(config, "wipe_tower_wall_type");
+    const ConfigOption *cone_angle = option_of(config, "wipe_tower_cone_angle");
+    const bool          cone       = tower_type == WipeTowerType::Type2 && wall_type != nullptr &&
+                         wall_type->getInt() == int(WipeTowerWallType::wtwCone) && cone_angle != nullptr;
+    return WipeTower2::cone_base_polygon(width, depth, height, cone ? cone_angle->getFloat() : 0.);
+}
+
 WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeTowerType tower_type, const std::vector<unsigned int> &filament_ids, double layer_height, double max_object_height)
 {
     WipeTowerFootprint footprint;

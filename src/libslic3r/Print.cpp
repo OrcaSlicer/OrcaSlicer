@@ -1078,15 +1078,12 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
                                          convex_hulls_temp;
     Polygons tower_polys_estimated;
     if (!exact_footprint && !convex_hulls_temp.empty()) {
-        Polygon base = convex_hulls_temp.front();
-        if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwCone && print.wipe_tower_type() == WipeTowerType::Type2) {
-            double max_height = 0.;
-            for (const PrintObject *object : print.objects())
-                max_height = std::max(max_height, unscale_(object->size().z()));
-            base = WipeTower2::cone_base_polygon(width, depth, max_height, config.wipe_tower_cone_angle.value);
-            base.rotate(Geometry::deg2rad(a));
-            base.translate(Point(scale_(x), scale_(y)));
-        }
+        double max_height = 0.;
+        for (const PrintObject *object : print.objects())
+            max_height = std::max(max_height, unscale_(object->size().z()));
+        Polygon base = estimate_wipe_tower_first_layer_outline(config, print.wipe_tower_type(), width, depth, max_height);
+        base.rotate(Geometry::deg2rad(a));
+        base.translate(Point(scale_(x), scale_(y)));
         tower_polys_estimated = offset(base, float(scale_(brim_width)));
     }
     // Object proximity stays a body-only warning: brim near-misses would newly warn on
