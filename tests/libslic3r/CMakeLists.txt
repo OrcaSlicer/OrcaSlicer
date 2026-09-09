@@ -29,6 +29,7 @@ add_executable(${_TEST_NAME}_tests
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
+    test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_step.cpp
     test_stl.cpp
@@ -39,6 +40,8 @@ add_executable(${_TEST_NAME}_tests
     test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
+    test_wipe_tower_estimate.cpp
+    test_wipe_tower.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     # test_png_io.cpp

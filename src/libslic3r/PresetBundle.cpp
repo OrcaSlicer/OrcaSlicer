@@ -1614,6 +1614,12 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 metadata.id = to_string(uuid);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " bundle_id was empty, so generating a UUID: " << metadata.id;
             }
+            if (has_bundle_structure && !is_path_within_root(metadata.id, user_folder / user_id / PRESET_LOCAL_DIR)) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " bundle id escapes the bundle directory, not importing: " << metadata.id;
+                fclose(zipFile);
+                fs::remove_all(temp_folder, ec);
+                continue;
+            }
 
             // Build bundle directory path based on whether bundle_structure.json was present
             fs::path bundle_base_dir;
@@ -1636,11 +1642,15 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 if (status) {
                     std::string file_name = file_stat.m_filename;
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " From zip file: " << file << ". Read file name: " << file_stat.m_filename;
-                    size_t index = file_name.find_last_of('/');
+                    size_t index = file_name.find_last_of("/\\");
                     if (std::string::npos != index) {
                         file_name = file_name.substr(index + 1);
                     }
                     if (BUNDLE_STRUCTURE_JSON_NAME == file_name) continue;
+                    if (!is_path_within_root(file_name, temp_folder)) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " zip entry escapes the temp directory, skipping: " << file_stat.m_filename;
+                        continue;
+                    }
                     // create target file path
                     std::string target_file_path = boost::filesystem::path(temp_folder / file_name).make_preferred().string();
 
@@ -1727,6 +1737,10 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         }
         if (collection == nullptr) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset type is unknown, not loading: " << name;
+            return false;
+        }
+        if (!is_path_within_root(name, fs::path(collection->m_dir_path))) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset name escapes the preset directory, not loading: " << name;
             return false;
         }
         const PresetOrigin load_origin = detect_origin_from_path(boost::filesystem::path(bundle_dir));

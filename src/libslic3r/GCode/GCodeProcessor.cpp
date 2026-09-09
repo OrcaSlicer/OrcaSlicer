@@ -1468,9 +1468,11 @@ void GCodeProcessor::run_post_process()
 
     // Append a per-filament usage block at a filament change.
     auto handle_filament_change = [&](int filament_id, int cur_line_id, int nozzle_id) {
-        // skip filament changes emitted inside the machine start / end gcode
-        if (m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id ||
-            m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id)
+        // Skip filament changes emitted inside the machine start / end gcode. One forward pass assigns
+        // the tag ids and tests them in the same loop, so inside the start gcode the end tag is unseen
+        // and the id still holds the sentinel. That is why the first clause tests == and the second !=.
+        if ((m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id) ||
+            (m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id))
             return;
         if (!m_filament_blocks.empty())
             m_filament_blocks.back().upper_gcode_id = cur_line_id;
