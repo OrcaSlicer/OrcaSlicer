@@ -454,3 +454,119 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     // the printed pattern, while toggling separated sparse infill must leave it alone.
     CHECK(changed_paths == change_center);
 }
+
+TEST_CASE("Separated infill keeps fragmented and nested bodies independent", "[PrintObject][SurfaceInfill][Regression]")
+{
+    constexpr size_t grid_size = 8;
+    TriangleMesh mesh;
+    auto add_box = [&](double x, double y, double width, double depth) {
+        TriangleMesh box = make_cube(width, depth, 0.6);
+        box.translate(x, y, 0);
+        mesh.merge(box);
+    };
+    // Orca: Many small islands exercise spatial pruning and the tree's original
+    // island indices. A pillar inside a frame also overlaps its bounding box,
+    // but must remain a separate body because it lies entirely inside the hole.
+    for (size_t x = 0; x < grid_size; ++ x)
+        for (size_t y = 0; y < grid_size; ++ y)
+            add_box(6 * x, 6 * y, 3, 3);
+    add_box(54, 0, 20, 4);
+    add_box(54, 16, 20, 4);
+    add_box(54, 0, 4, 20);
+    add_box(70, 0, 4, 20);
+    add_box(62, 8, 4, 4);
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"separated_infills", true},
+                                   {"center_of_surface_pattern", "each_surface"},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"elefant_foot_compensation", 0},
+                                   {"wall_loops", 1}});
+    Print print;
+    Model model;
+    init_print({mesh}, print, model, config, nullptr, false);
+    PrintObject &object = *print.objects().front();
+    object.prepare_infill();
+    REQUIRE(object.layer_count() > 1);
+    for (const Layer *layer : object.layers()) {
+        REQUIRE(layer->lslices.size() == grid_size * grid_size + 2);
+        REQUIRE(layer->lslices_separated_component_bboxes.size() == layer->lslices.size());
+        size_t holes = 0;
+        for (size_t i = 0; i < layer->lslices.size(); ++ i) {
+            const BoundingBox &body = layer->lslices_separated_component_bboxes[i];
+            const BoundingBox &island = layer->lslices_bboxes[i];
+            CHECK(body.min == island.min);
+            CHECK(body.max == island.max);
+            holes += layer->lslices[i].holes.size();
+        }
+        CHECK(holes == 1);
+    }
+}
+
+TEST_CASE("Body centering survives islands merging and splitting between layers", "[PrintObject][SurfaceInfill][Regression]")
+{
+    const bool separated = GENERATE(false, true);
+    CAPTURE(separated);
+    // Orca: Four posts join through horizontal then vertical rails, creating a
+    // cycle of overlaps before splitting into four islands again. This exercises
+    // redundant connections and indexing either adjacent layer. A fifth post
+    // stays separate at every height.
+    TriangleMesh mesh;
+    for (int x : {0, 8})
+        for (int y : {0, 8}) {
+            TriangleMesh post = make_cube(4, 4, 1);
+            post.translate(x, y, 0);
+            mesh.merge(post);
+        }
+    for (int y : {0, 8}) {
+        TriangleMesh rail = make_cube(12, 4, 0.2);
+        rail.translate(0, y, 0.2);
+        mesh.merge(rail);
+    }
+    for (int x : {0, 8}) {
+        TriangleMesh rail = make_cube(4, 12, 0.2);
+        rail.translate(x, 0, 0.4);
+        mesh.merge(rail);
+    }
+    TriangleMesh isolated = make_cube(4, 4, 1);
+    isolated.translate(20, 0, 0);
+    mesh.merge(isolated);
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"separated_infills", separated},
+                                   {"center_of_surface_pattern", separated ? "each_surface" : "each_model"},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"elefant_foot_compensation", 0},
+                                   {"wall_loops", 1}});
+    Print print;
+    Model model;
+    init_print({mesh}, print, model, config, nullptr, false);
+    PrintObject &object = *print.objects().front();
+    object.prepare_infill();
+    REQUIRE(object.layer_count() == 5);
+    REQUIRE(object.get_layer(0)->lslices.size() == 5);
+    REQUIRE(object.get_layer(1)->lslices.size() == 3);
+    REQUIRE(object.get_layer(2)->lslices.size() == 3);
+    REQUIRE(object.get_layer(4)->lslices.size() == 5);
+
+    BoundingBox isolated_bbox = object.get_layer(0)->lslices_bboxes.front();
+    for (const BoundingBox &bbox : object.get_layer(0)->lslices_bboxes)
+        if (bbox.min.x() > isolated_bbox.min.x())
+            isolated_bbox = bbox;
+    BoundingBox connected_bbox;
+    for (const Layer *layer : object.layers())
+        for (const BoundingBox &bbox : layer->lslices_bboxes)
+            if (bbox.min.x() < isolated_bbox.min.x())
+                connected_bbox.merge(bbox);
+    for (const Layer *layer : object.layers()) {
+        REQUIRE(layer->lslices_separated_component_bboxes.size() == layer->lslices.size());
+        for (size_t i = 0; i < layer->lslices.size(); ++ i) {
+            const BoundingBox &expected = layer->lslices_bboxes[i].min.x() < isolated_bbox.min.x() ? connected_bbox : isolated_bbox;
+            const BoundingBox &actual = layer->lslices_separated_component_bboxes[i];
+            CHECK(actual.min == expected.min);
+            CHECK(actual.max == expected.max);
+        }
+    }
+}

@@ -25,6 +25,7 @@
 #include "Fill/FillLightning.hpp"
 #include "Format/STL.hpp"
 #include "format.hpp"
+#include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
 
 #include <cstddef>
@@ -715,14 +716,41 @@ void PrintObject::prepare_infill()
             return x;
         };
         auto unite = [&](size_t a, size_t b) { a = find(a); b = find(b); if (a != b) parent[a] = b; };
-        // Orca: Join islands that overlap between two consecutive layers.
+        // Orca: Index the smaller of two consecutive layers instead of scanning every
+        // pair of islands. The tree prunes distant boxes on fragmented models; exact
+        // polygon intersections still decide connectivity for the remaining candidates.
         for (size_t i = 0; i + 1 < nl; ++ i) {
-            const Layer *la = m_layers[i], *lb = m_layers[i + 1];
-            for (size_t a = 0; a < la->lslices.size(); ++ a)
-                for (size_t b = 0; b < lb->lslices.size(); ++ b)
-                    if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
-                        ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
-                        unite(offset[i] + a, offset[i + 1] + b);
+            m_print->throw_if_canceled();
+            size_t layer_a = i, layer_b = i + 1;
+            if (m_layers[layer_a]->lslices.size() < m_layers[layer_b]->lslices.size())
+                std::swap(layer_a, layer_b);
+            const Layer *la = m_layers[layer_a], *lb = m_layers[layer_b];
+            if (lb->lslices.empty())
+                continue;
+
+            using IslandTree = AABBTreeIndirect::Tree<2, coord_t>;
+            std::vector<AABBTreeIndirect::BoundingBoxWrapper> bboxes;
+            bboxes.reserve(lb->lslices.size());
+            for (size_t b = 0; b < lb->lslices.size(); ++ b)
+                bboxes.emplace_back(b, lb->lslices_bboxes[b]);
+            IslandTree tree;
+            tree.build_modify_input(bboxes);
+            for (size_t a = 0; a < la->lslices.size(); ++ a) {
+                const IslandTree::BoundingBox query(la->lslices_bboxes[a].min, la->lslices_bboxes[a].max);
+                AABBTreeIndirect::traverse(tree,
+                    [&query](const IslandTree::Node &node) { return node.bbox.intersects(query); },
+                    [&](const IslandTree::Node &node) {
+                        const size_t b = node.idx;
+                        // Orca: Tree boxes include an epsilon, so retain the original box
+                        // filter. Already-connected islands cannot change the partition
+                        // and need no further polygon intersection.
+                        if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
+                            find(offset[layer_a] + a) != find(offset[layer_b] + b) &&
+                            ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
+                            unite(offset[layer_a] + a, offset[layer_b] + b);
+                        return true;
+                    });
+            }
         }
         // Orca: Full bounding box of each body, indexed by its union-find root.
         std::vector<BoundingBox> body_bbox(nreg);
