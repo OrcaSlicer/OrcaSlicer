@@ -3913,8 +3913,10 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 
     if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
         double wipe_volume  = m_config.prime_volume;
-        int filament_depth_count = m_config.nozzle_diameter.values.size() == 2 ? filaments_cnt : filaments_cnt - 1;
-        if (filaments_cnt == 1 && enable_timelapse_print()) filament_depth_count = 1;
+        // A layer may visit every filament and then return to the one it started with,
+        // so reserve one transition per filament. Using filaments_cnt - 1 for a
+        // single-nozzle printer underestimates the pre-slice tower footprint.
+        int filament_depth_count = filaments_cnt;
         double volume = wipe_volume * filament_depth_count;
         if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
 

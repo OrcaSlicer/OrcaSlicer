@@ -5,6 +5,7 @@
 #include "test_helpers.hpp"
 
 #include <cctype>
+#include <cmath>
 #include <set>
 #include <string>
 
@@ -103,4 +104,31 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     Print print;
     init_and_process_print({ cube(20) }, print, config);
     REQUIRE_FALSE(print.objects().front()->layers().empty());
+}
+
+TEST_CASE("Unsliced rib tower preview reserves the return filament change", "[MultiFilament][WipeTower]")
+{
+    constexpr double prime_volume = 45.;
+    constexpr double layer_height = 0.2;
+    constexpr double infill_gap   = 1.5;
+    constexpr double rib_width    = 8.;
+
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",          true },
+        { "prime_volume",                prime_volume },
+        { "prime_tower_infill_gap",      "150%" },
+        { "wipe_tower_wall_type",        "rib" },
+        { "wipe_tower_rib_width",        rib_width },
+        { "wipe_tower_extra_rib_length", 0 },
+        { "layer_height",                layer_height },
+    });
+
+    Print print;
+    Model model;
+    init_print({ cube(25.6) }, print, model, config);
+
+    // Two filaments can require two changes on a layer: 0 -> 1 -> 0.
+    const double expected_depth =
+        std::sqrt(2. * prime_volume / layer_height * infill_gap) + rib_width / std::sqrt(2.);
+    CHECK(print.wipe_tower_data(2).depth == Catch::Approx(expected_depth));
 }
