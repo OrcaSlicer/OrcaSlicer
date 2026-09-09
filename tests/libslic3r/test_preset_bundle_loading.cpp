@@ -1495,4 +1495,65 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK(import(zip).empty());
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
+
+TEST_CASE("A user preset inheriting a sibling in the same directory loads", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    // The child is named so that it sorts BEFORE its parent: the parent has therefore not
+    // been seen yet when the child is first visited, and a single-pass loader discards it.
+    write_print_preset(coll.default_preset().config, dir / "AAA Child.json", "AAA Child", "ZZZ Parent");
+    write_print_preset(coll.default_preset().config, dir / "ZZZ Parent.json", "ZZZ Parent");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    REQUIRE(coll.find_preset("ZZZ Parent") != nullptr);
+    const Preset *child = coll.find_preset("AAA Child");
+    REQUIRE(child != nullptr);
+    CHECK(child->inherits() == "ZZZ Parent");
+    REQUIRE(coll.get_preset_parent(*child) != nullptr);
+    CHECK(coll.get_preset_parent(*child)->name == "ZZZ Parent");
+}
+
+TEST_CASE("A chain of user presets in one directory resolves to any depth", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    // Written in the worst order for a single pass: every child precedes its parent.
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_print_preset(coll.default_preset().config, dir / "A Grandchild.json", "A Grandchild", "B Child");
+    write_print_preset(coll.default_preset().config, dir / "B Child.json", "B Child", "C Root");
+    write_print_preset(coll.default_preset().config, dir / "C Root.json", "C Root");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    for (const char *name : { "C Root", "B Child", "A Grandchild" })
+        REQUIRE(coll.find_preset(name) != nullptr);
+
+    const Preset *grandchild = coll.find_preset("A Grandchild");
+    REQUIRE(coll.get_preset_parent(*grandchild) != nullptr);
+    CHECK(coll.get_preset_parent(*grandchild)->name == "B Child");
+}
+
+TEST_CASE("A user preset whose parent does not exist is still rejected", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    // Deferring must not turn a genuinely dangling parent into a silent success.
+    write_print_preset(coll.default_preset().config,
+                       temp_dir.path() / PRESET_PRINT_NAME / "Orphan.json", "Orphan", "No Such Parent");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.find_preset("Orphan") == nullptr);
 }
