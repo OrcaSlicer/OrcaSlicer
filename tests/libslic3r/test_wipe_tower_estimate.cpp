@@ -1,5 +1,7 @@
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
@@ -270,6 +272,33 @@ TEST_CASE("Every wall and tower type is read the same from a preset and a static
     static_config.apply(preset, true);
     CHECK(estimate(preset, 1, 0.2, 5., type).depth > 0.);
     CHECK(estimate(static_config, 1, 0.2, 5., type).depth > 0.);
+}
+
+TEST_CASE("The first-layer outline bulges only for a Type2 cone wall", "[WipeTowerEstimate]") {
+    // Read off a preset-shaped config, whose enums are ConfigOptionEnumGeneric: a cast to
+    // ConfigOptionEnum<T> sees no wall type there and would never find the cone.
+    DynamicPrintConfig config = make_config("cone");
+    config.set_key_value("wipe_tower_cone_angle", new ConfigOptionFloat(25.));
+    REQUIRE(dynamic_cast<const ConfigOptionEnumGeneric *>(config.option("wipe_tower_wall_type")) != nullptr);
+    const Polygon box = Polygon::new_scale({{0., 0.}, {35., 0.}, {35., 20.}, {0., 20.}});
+    auto is_box = [&box](const Polygon &outline) { return diff(Polygons{outline}, Polygons{box}).empty(); };
+
+    // A 25-degree cone on a 100 mm tower has a 22 mm base radius, past the 10 mm half-depth.
+    const Polygon cone = estimate_wipe_tower_first_layer_outline(config, WipeTowerType::Type2, 35., 20., 100.);
+    CHECK(unscaled(get_extents(cone).max.y()) > 20. + 1.);
+    CHECK(diff(Polygons{box}, Polygons{cone}).empty());
+    // Type1 ignores the cone option, and the other wall types have no cone.
+    CHECK(is_box(estimate_wipe_tower_first_layer_outline(config, WipeTowerType::Type1, 35., 20., 100.)));
+    for (const char *wall_type : {"rectangle", "rib"}) {
+        config.set_deserialize_strict("wipe_tower_wall_type", wall_type);
+        CHECK(is_box(estimate_wipe_tower_first_layer_outline(config, WipeTowerType::Type2, 35., 20., 100.)));
+    }
+    // The static config Print holds gives the same outline.
+    config.set_deserialize_strict("wipe_tower_wall_type", "cone");
+    FullPrintConfig static_config;
+    static_config.apply(config, true);
+    const Polygon from_static = estimate_wipe_tower_first_layer_outline(static_config, WipeTowerType::Type2, 35., 20., 100.);
+    CHECK(from_static.points == cone.points);
 }
 
 TEST_CASE("A Bambu Lab printer always gets the Type1 planner", "[WipeTowerEstimate]") {
