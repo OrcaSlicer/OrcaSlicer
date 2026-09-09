@@ -3,7 +3,7 @@ name: Upstream merge preview
 # Read-only drift/conflict detector for the AI integration branch. It writes no
 # branch, tag or release and never pushes; a conflict is reported as a failed run.
 # Scheduled workflows run only from GitHub's default branch. Keep this file on the
-# default branch (currently codex/orca-integration-v2) if that setting changes.
+# default branch (currently codex/team/integration) if that setting changes.
 
 on:
   schedule:
@@ -14,11 +14,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: upstream-merge-preview-codex-orca-integration-v2
+  group: upstream-merge-preview-codex-team-integration
   cancel-in-progress: true
 
 jobs:
   preview:
+    # Opt in only after the team repository and default branch are ready.
+    if: github.event_name == 'workflow_dispatch' || vars.TEAM_UPSTREAM_PREVIEW_ENABLED == 'true'
     name: Preview Orca upstream merge
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -26,7 +28,7 @@ jobs:
       - name: Checkout integration branch without credentials
         uses: actions/checkout@v7
         with:
-          ref: codex/orca-integration-v2
+          ref: codex/team/integration
           fetch-depth: 0
           persist-credentials: false
 

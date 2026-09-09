@@ -116,6 +116,7 @@ void SmartSlicingCoordinator::start()
         return;
 
     m_snapshot             = {};
+    m_applied_revision.reset();
     m_snapshot.workflow_id = ++m_last_workflow_id;
     m_started_at = std::chrono::steady_clock::now();
 
@@ -346,6 +347,7 @@ bool SmartSlicingCoordinator::apply_selected_candidate()
     if (candidate == m_snapshot.candidates.end())
         return false;
 
+    m_applied_revision = m_snapshot.context->revision;
     WorkspaceRevision current_revision;
     try {
         current_revision = m_workspace.current_revision();
@@ -364,10 +366,18 @@ bool SmartSlicingCoordinator::apply_selected_candidate()
         result = ApplyWorkflow().start(*candidate, m_snapshot.context->revision, current_revision,
                                        *m_official_slice_gateway);
     } catch (...) {
+        m_applied_revision.reset();
         transition(WorkflowState::ApplyFailed, "apply_gateway_exception");
         return false;
     }
     m_snapshot.can_undo_apply = result.can_undo;
+    // The applied project may differ from the trial baseline. Monitor that new
+    // revision after slicing, so later edits cannot retain a "completed" result.
+    m_applied_revision.reset();
+    if (!result.workspace_mutated)
+        m_applied_revision = current_revision;
+    else
+        try { m_applied_revision = m_workspace.current_revision(); } catch (...) {}
     switch (result.phase) {
     case OfficialSlicePhase::Slicing:
         transition(WorkflowState::OfficialSlicing, "official_slicing");
@@ -416,14 +426,17 @@ bool SmartSlicingCoordinator::poll_official_slice()
 
 bool SmartSlicingCoordinator::undo_applied_candidate()
 {
-    if (m_snapshot.state != WorkflowState::ApplyFailed || !m_snapshot.can_undo_apply ||
+    if ((m_snapshot.state != WorkflowState::ApplyFailed && m_snapshot.state != WorkflowState::Completed) || !m_snapshot.can_undo_apply ||
         m_official_slice_gateway == nullptr)
         return false;
     try {
-        if (!m_official_slice_gateway->undo_last_apply())
+        if (!m_official_slice_gateway->undo_last_apply()) {
+            m_snapshot.can_undo_apply = false;
+            transition(WorkflowState::Stale, "apply_undo_unavailable");
             return false;
+        }
     } catch (...) {
-        transition(WorkflowState::ApplyFailed, "apply_undo_failed");
+        transition(m_snapshot.state, "apply_undo_failed");
         return false;
     }
     m_snapshot.can_undo_apply = false;
@@ -435,11 +448,13 @@ bool SmartSlicingCoordinator::refresh_revision()
 {
     if (m_snapshot.state == WorkflowState::OfficialSlicing)
         return poll_official_slice();
-    if (!m_snapshot.context || !m_snapshot.can_cancel())
+    const bool after_apply = m_snapshot.state == WorkflowState::Completed || m_snapshot.state == WorkflowState::ApplyFailed;
+    if (!m_snapshot.context || (!m_snapshot.can_cancel() && !after_apply))
         return false;
 
     try {
-        if (m_workspace.current_revision() == m_snapshot.context->revision)
+        const auto current = m_workspace.current_revision();
+        if (after_apply ? (m_applied_revision && current == *m_applied_revision) : current == m_snapshot.context->revision)
             return false;
     } catch (...) {
         // A transient capture failure must not turn a previously valid candidate
@@ -451,7 +466,8 @@ bool SmartSlicingCoordinator::refresh_revision()
         candidate.status = CandidateStatus::Stale;
     m_snapshot.comparison.reset();
     m_snapshot.selected_candidate_id.clear();
-    transition(WorkflowState::Stale, "workspace_changed");
+    m_snapshot.can_undo_apply = false;
+    transition(WorkflowState::Stale, after_apply && !m_applied_revision ? "applied_revision_unavailable" : "workspace_changed");
     return true;
 }
 

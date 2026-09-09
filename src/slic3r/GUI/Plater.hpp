@@ -13,6 +13,7 @@
 #include <wx/weakref.h>
 
 #include "Selection.hpp"
+#include "AI/AIDesktopFeatureHost.hpp"
 
 #include "libslic3r/enum_bitmask.hpp"
 #include "libslic3r/Preset.hpp"
@@ -69,6 +70,7 @@ namespace UndoRedo {
 
 namespace GUI {
 struct ModelColorImportResult;
+struct TextureImportOptions;
 class SyncAmsInfoDialog;
 class MainFrame;
 class ConfigOptionsGroup;
@@ -152,14 +154,7 @@ class Sidebar : public wxPanel
     void update_sync_ams_btn_enable(wxUpdateUIEvent &e);
 
 public:
-    enum class AIWorkflowStatus
-    {
-        Waiting,
-        Running,
-        Success,
-        Warning,
-        Failed
-    };
+    using AIWorkflowStatus = Slic3r::GUI::AIWorkflowStatus;
 
     enum AIWorkflowStep : size_t
     {
@@ -442,7 +437,8 @@ public:
     std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files,
                                    LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,
                                    bool ask_multi = false,
-                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr);
+                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr,
+                                   const TextureImportOptions* texture_options = nullptr);
     // To be called when providing a list of files to the GUI slic3r on command line.
     std::vector<size_t> load_files(const std::vector<std::string>& input_files,
                                    LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,

@@ -649,15 +649,16 @@ bool VertexColorRegionEditor::apply_color_to_obj_copy(const RGBA& color,
                                                       const boost::filesystem::path& destination,
                                                       std::string& error)
 {
-    const std::vector<RGBA> original_colors = m_vertex_colors;
+    std::vector<RGBA> original_colors = m_vertex_colors;
     if (!apply_color(color)) {
         error = "No model region is selected.";
         return false;
     }
-    if (write_obj_copy(source, destination, error))
-        return true;
-    m_vertex_colors = original_colors;
-    return false;
+    const bool written = write_obj_copy(source, destination, error);
+    // Export is a candidate copy. Keep the source editor intact so cached
+    // before/after views and undo followed by another edit use original colors.
+    m_vertex_colors = std::move(original_colors);
+    return written;
 }
 
 bool VertexColorRegionEditor::write_obj_copy(const boost::filesystem::path& source,

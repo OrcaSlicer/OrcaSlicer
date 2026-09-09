@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
     test_orca_palette_snapshot_builder.cpp
     test_ai_sidecar_client.cpp
     test_model_generation_presentation.cpp
+    test_model_preview_palette.cpp
     test_model_color_import.cpp
     test_plugin_host_api.cpp
     test_plugin_capability_config.cpp
@@ -22,8 +23,11 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
     test_vertex_color_region_editor.cpp
+    test_model_finishing.cpp
+    test_orca_model_preparation.cpp
     test_smart_slicing_candidates.cpp
     test_smart_slicing_coordinator.cpp
+    test_smart_slicing_apply_guard.cpp
     test_smart_slicing_parameters.cpp
     test_smart_slicing_runtime.cpp
     test_smart_slicing_workflow.cpp

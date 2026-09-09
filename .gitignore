@@ -69,5 +69,8 @@ orca_ai_internal_defaults.json
 /release/config.local.ps1
 /release/*.local.json
 *.orca-ai-provisioner.json
+*.team-integration.local.json
+*.team-collaboration.local.json
+/team-integration-state/
 OrcaSlicer_AI_PRO_Config_*.zip
 OrcaSlicer_AI_PRO_Config_*.zip.sha256

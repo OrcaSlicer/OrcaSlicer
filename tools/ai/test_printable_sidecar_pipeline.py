@@ -53,7 +53,7 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
             }),
         )
 
-    def test_text_job_generates_image_then_all_printable_outputs(self):
+    def test_text_job_keeps_design_pixels_without_print_color_outputs(self):
         with tempfile.TemporaryDirectory() as directory:
             job = self.make_job(directory)
             job.user_prompt = "一只机械麒麟"
@@ -67,12 +67,13 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
 
             self.assertEqual(job.state, "awaiting_confirmation")
             self.assertTrue(job.raw_preview_path.is_file())
-            self.assertTrue(job.strict_preview_path.is_file())
+            self.assertIsNone(job.strict_preview_path)
             self.assertTrue(job.preview_path.is_file())
-            self.assertTrue(job.heatmap_path.is_file())
-            self.assertTrue(job.metadata_path.is_file())
-            self.assertEqual(set(job.mask_paths), {"primary", "structure", "light", "accent"})
-            self.assertGreater(job.image_metrics["minimum_feature_px"], 1)
+            self.assertIsNone(job.heatmap_path)
+            self.assertIsNone(job.metadata_path)
+            self.assertEqual(job.mask_paths, {})
+            self.assertEqual(job.palette, ())
+            self.assertEqual(job.raw_preview_path.read_bytes(), job.preview_path.read_bytes())
             self.assertTrue(job.image_metrics["model_input_quality"]["model_input_eligible"])
             self.assertTrue(job.image_metrics["generation_input_quality"]["model_input_eligible"])
             self.assertEqual(job.image_metrics["generation_reference"], "ai_design")
@@ -80,7 +81,7 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
             self.assertEqual(generate.call_args.args[-2], job.style)
             self.assertEqual(generate.call_args.args[-1], "")
 
-    def test_image_job_uses_ai_design_and_retains_internal_material_outputs(self):
+    def test_image_job_uses_unquantized_ai_design_and_preserves_colors(self):
         with tempfile.TemporaryDirectory() as directory:
             job = self.make_job(directory, "image")
             input_path = Path(directory) / "input.png"
@@ -91,15 +92,13 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
 
             self.assertNotEqual(job.raw_preview_path, job.preview_path)
             self.assertTrue(job.geometry_reference_path.is_file())
-            self.assertEqual(job.preview_path.name, "clean_preview.png")
+            self.assertEqual(job.preview_path.name, "preview.png")
             self.assertEqual(sidecar._model_generation_reference(job), job.raw_preview_path)
             with Image.open(job.preview_path) as preview:
-                self.assertEqual(preview.mode, "RGBA")
-                self.assertLessEqual(
-                    set(preview.convert("RGB").getdata()),
-                    {hex_rgb(color) for color in PALETTE},
-                )
-            with Image.open(job.model_reference_path) as reference:
+                self.assertEqual(preview.mode, "RGB")
+                self.assertFalse(set(preview.getdata()) <= {hex_rgb(color) for color in PALETTE})
+            self.assertEqual(job.raw_preview_path.read_bytes(), job.preview_path.read_bytes())
+            with Image.open(sidecar._model_generation_reference(job)) as reference:
                 self.assertEqual(reference.getpixel((100, 100))[:3], (210, 55, 50))
 
     def test_quality_portrait_geometry_reference_inherits_validated_alpha(self):

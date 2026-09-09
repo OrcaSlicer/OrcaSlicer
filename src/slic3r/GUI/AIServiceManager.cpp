@@ -400,6 +400,9 @@ void AIServiceManager::stop_owned_sidecar()
         bool graceful_requested = false;
         auto http = Http::post(shutdown_url(m_endpoint));
         AISidecarClient::configure_native_request(http);
+        // Http's empty-body POST path uses its file read callback. Send a JSON
+        // body explicitly so shutdown never reads an uninitialized upload.
+        http.header("Content-Type", "application/json").set_post_body(std::string("{}"));
         http.timeout_connect(1).timeout_max(2).size_limit(8 * 1024);
         http.on_complete([&graceful_requested](std::string, unsigned) { graceful_requested = true; });
         http.on_error([](std::string, std::string, unsigned) {});

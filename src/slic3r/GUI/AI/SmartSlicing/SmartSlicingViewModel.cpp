@@ -12,10 +12,15 @@ SmartSlicingViewModel SmartSlicingViewModel::from_snapshot(const AI::SmartSlicin
     view.can_cancel = snapshot.can_cancel();
     view.can_plan_candidates = snapshot.state == WorkflowState::ReadyForCandidatePlanning;
     view.can_apply = snapshot.state == WorkflowState::ReadyToApply && !snapshot.selected_candidate_id.empty();
-    view.can_undo_apply = snapshot.state == WorkflowState::ApplyFailed && snapshot.can_undo_apply;
-    view.needs_polling  = snapshot.state == WorkflowState::OfficialSlicing;
+    view.can_undo_apply = (snapshot.state == WorkflowState::ApplyFailed || snapshot.state == WorkflowState::Completed) && snapshot.can_undo_apply;
+    view.can_recheck = snapshot.state == WorkflowState::AwaitingRiskDecision;
+    view.has_report = snapshot.report.has_value() && snapshot.state != WorkflowState::Canceled && snapshot.state != WorkflowState::Stale;
+    view.can_add_model = snapshot.state == WorkflowState::Idle ||
+        (view.can_recheck && snapshot.context && snapshot.context->objects.empty());
+    view.needs_polling = snapshot.state == WorkflowState::OfficialSlicing ||
+        snapshot.state == WorkflowState::Completed || snapshot.state == WorkflowState::ApplyFailed;
     view.detail     = snapshot.detail;
-    if (snapshot.report) {
+    if (view.has_report) {
         view.issue_count = snapshot.report->issues.size();
         view.issues.reserve(snapshot.report->issues.size());
         for (const AI::SmartSlicing::PrintabilityIssue& issue : snapshot.report->issues)
@@ -28,6 +33,8 @@ SmartSlicingViewModel SmartSlicingViewModel::from_snapshot(const AI::SmartSlicin
         SmartSlicingCandidateView card;
         card.id              = candidate.id;
         card.explanation     = candidate.explanation;
+        card.parameter_changes = candidate.parameters.entries;
+        card.placement_change_count = candidate.placement.transforms.size();
         card.diagnostic_code = candidate.diagnostic_code;
         card.recommended     = snapshot.comparison && snapshot.comparison->recommended_candidate_id == candidate.id;
         card.selected        = snapshot.selected_candidate_id == candidate.id;
@@ -89,6 +96,9 @@ SmartSlicingViewModel SmartSlicingViewModel::from_snapshot(const AI::SmartSlicin
     case WorkflowState::AwaitingRiskDecision:
         view.summary_key = "printability_action_required";
         complete_through(0);
+        if (!snapshot.context || snapshot.context->objects.empty() || snapshot.context->printer_preset_id.empty() ||
+            snapshot.context->process_preset_id.empty() || snapshot.context->materials.empty())
+            view.stages[0].status = SmartSlicingStageStatus::NeedsAttention;
         view.stages[1].status = SmartSlicingStageStatus::NeedsAttention;
         view.legacy_steps     = {LegacyAIWorkflowStatus::Success, LegacyAIWorkflowStatus::Warning, LegacyAIWorkflowStatus::Success,
                                  LegacyAIWorkflowStatus::Waiting, LegacyAIWorkflowStatus::Waiting, LegacyAIWorkflowStatus::Waiting};
@@ -155,12 +165,15 @@ SmartSlicingViewModel SmartSlicingViewModel::from_snapshot(const AI::SmartSlicin
     case WorkflowState::Canceling: view.summary_key = "canceling"; break;
     case WorkflowState::Canceled:
         view.summary_key = "canceled";
+        view.candidates.clear();
         view.issue_count = 0;
         view.issues.clear();
         view.legacy_steps.fill(LegacyAIWorkflowStatus::Warning);
         break;
     case WorkflowState::Stale:
-        view.summary_key      = "workspace_changed";
+        view.candidates.clear();
+        view.summary_key = snapshot.detail == "apply_undo_unavailable" ? "apply_undo_unavailable" :
+            snapshot.detail == "applied_revision_unavailable" ? "applied_revision_unavailable" : "workspace_changed";
         view.is_stale         = true;
         view.stages[0].status = SmartSlicingStageStatus::NeedsAttention;
         view.legacy_steps.fill(LegacyAIWorkflowStatus::Warning);
@@ -172,6 +185,10 @@ SmartSlicingViewModel SmartSlicingViewModel::from_snapshot(const AI::SmartSlicin
         view.legacy_steps.fill(LegacyAIWorkflowStatus::Failed);
         break;
     }
+    if (snapshot.detail == "apply_undo_failed")
+        view.summary_key = "apply_undo_failed";
+    else if (snapshot.detail == "close_active_model_tool")
+        view.summary_key = "close_active_model_tool";
     return view;
 }
 

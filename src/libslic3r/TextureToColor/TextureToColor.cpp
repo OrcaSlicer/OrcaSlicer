@@ -384,6 +384,54 @@ using VertexColor = std::array<float, 4>;
 // The legacy OBJ vertex-color import consumed discrete filament ids, so split
 // decisions could be made by comparing integers. Quantizing up front restores
 // that property for the adaptive splitter below.
+// Oklab reference matrices: https://bottosson.github.io/posts/oklab/ (public domain).
+// Keep the lightness weight and first-on-tie rule in sync with the color trial.
+static std::array<float, 3> fixed_palette_lab(const RGB& rgb)
+{
+    std::array<float, 3> linear;
+    for (int c = 0; c < 3; ++c) {
+        const float v = float(rgb[c]) / 255.f;
+        linear[c] = v <= .04045f ? v / 12.92f : std::pow((v + .055f) / 1.055f, 2.4f);
+    }
+    const float l = std::cbrt(.4122214708f*linear[0] + .5363325363f*linear[1] + .0514459929f*linear[2]);
+    const float m = std::cbrt(.2119034982f*linear[0] + .6806995451f*linear[1] + .1073969566f*linear[2]);
+    const float s = std::cbrt(.0883024619f*linear[0] + .2817188376f*linear[1] + .6299787005f*linear[2]);
+    return {.2104542553f*l + .793617785f*m - .0040720468f*s,
+            1.9779984951f*l - 2.428592205f*m + .4505937099f*s,
+            .0259040371f*l + .7827717662f*m - .808675766f*s};
+}
+
+static bool prepare_fixed_palette(const TextureToColorSettings& settings,
+                                  std::vector<std::array<float, 3>>& centers)
+{
+    if (settings.fixed_palette.empty()) return settings.fixed_mapping_palette.empty();
+    if (settings.fixed_palette.size() > 256) return false;
+    const auto& mapping = settings.fixed_mapping_palette.empty() ? settings.fixed_palette : settings.fixed_mapping_palette;
+    if (mapping.size() != settings.fixed_palette.size()) return false;
+    for (size_t i = 0; i < mapping.size(); ++i) {
+        for (int c = 0; c < 3; ++c)
+            if (mapping[i][c] > 255 || settings.fixed_palette[i][c] > 255) return false;
+        centers.push_back(fixed_palette_lab(mapping[i]));
+    }
+    return true;
+}
+
+static size_t fixed_palette_nearest(const RGB& color, const std::vector<std::array<float, 3>>& centers)
+{
+    const auto lab = fixed_palette_lab(color);
+    float best = std::numeric_limits<float>::max();
+    size_t nearest = 0;
+    for (size_t i = 0; i < centers.size(); ++i) {
+        float distance = 0.f;
+        for (int c = 0; c < 3; ++c) {
+            const float d = (lab[c] - centers[i][c]) * (c == 0 ? .35f : 1.f);
+            distance += d * d;
+        }
+        if (distance < best) { best = distance; nearest = i; }
+    }
+    return nearest;
+}
+
 static bool quantize_vertex_colors(
     const std::vector<VertexColor>& vertex_colors,
     const TextureToColorSettings& settings,
@@ -405,8 +453,12 @@ static bool quantize_vertex_colors(
     }
 
     ClusterParameters para;
+    std::vector<std::array<float, 3>> fixed_centers;
+    if (!prepare_fixed_palette(settings, fixed_centers)) return false;
     para.cancel_callback = cancel_callback ? [&]() { return cancel_callback(); } : std::function<bool()>{};
-    if (settings.target_colors_num == 0) {
+    if (!fixed_centers.empty()) {
+        out_centers = settings.fixed_palette;
+    } else if (settings.target_colors_num == 0) {
         para.max_color_distance = settings.max_color_distance;
         para.max_cluster_k      = settings.max_cluster_k;
         out_centers = cluster_adaptive(vertex_rgb, para);
@@ -422,7 +474,9 @@ static bool quantize_vertex_colors(
     out_vertex_cluster_ids.resize(vertex_rgb.size());
     for (std::size_t i = 0; i < vertex_rgb.size(); ++i) {
         std::size_t nearest_id = 0;
-        if (!calc_nearest_color_id(out_centers, vertex_rgb[i], nearest_id))
+        if (!fixed_centers.empty())
+            nearest_id = fixed_palette_nearest(vertex_rgb[i], fixed_centers);
+        else if (!calc_nearest_color_id(out_centers, vertex_rgb[i], nearest_id))
             nearest_id = 0;
         out_vertex_cluster_ids[i] = nearest_id;
     }
@@ -672,7 +726,10 @@ static bool repair_cluster_smooth(
         }
     }
 
-    if (!cgalutils::is_mesh_halfedge_compatible(mesh)) {
+    // A fixed palette with no boundary cleanup only relabels existing faces;
+    // it does not need a CGAL halfedge conversion or topology repair.
+    const bool needs_halfedges = settings.fixed_palette.empty() || settings.smooth_weight > 0.0;
+    if (needs_halfedges && !cgalutils::is_mesh_halfedge_compatible(mesh)) {
         BOOST_LOG_TRIVIAL(info) << log_prefix << ": mesh not halfedge-compatible, attempting RepairMesh.";
         if (!repair_and_resample())
             return false;
@@ -689,9 +746,13 @@ static bool repair_cluster_smooth(
     std::vector<RGB> cluster_centers;
     out_clustered_face_colors = face_colors;
     std::vector<std::size_t> clustered_face_labels(face_colors.size());
+    std::vector<std::array<float, 3>> fixed_centers;
+    if (!prepare_fixed_palette(settings, fixed_centers)) return false;
     const bool adaptive_cluster = settings.target_colors_num == 0;
 
-    if (adaptive_cluster) {
+    if (!fixed_centers.empty()) {
+        cluster_centers = settings.fixed_palette;
+    } else if (adaptive_cluster) {
         BOOST_LOG_TRIVIAL(debug) << log_prefix << ": use cluster adaptive method.";
         ClusterParameters para;
         para.max_color_distance = settings.max_color_distance;
@@ -727,7 +788,10 @@ static bool repair_cluster_smooth(
             for (std::size_t fid = range.begin(); fid < range.end(); ++fid) {
                 if (cancel_requested.load(std::memory_order_relaxed)) return;
                 std::size_t nearest_id = 0;
-                calc_nearest_color_id(cluster_centers, face_colors[fid], nearest_id);
+                if (!fixed_centers.empty())
+                    nearest_id = fixed_palette_nearest(face_colors[fid], fixed_centers);
+                else
+                    calc_nearest_color_id(cluster_centers, face_colors[fid], nearest_id);
                 clustered_face_labels[fid] = nearest_id;
                 out_clustered_face_colors[fid] = cluster_centers[nearest_id];
                 size_t cnt = done.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -738,10 +802,10 @@ static bool repair_cluster_smooth(
         });
         if (cancel_requested.load() || cancelled()) return false;
     }
-    if (adaptive_cluster) {
+    if (adaptive_cluster && fixed_centers.empty()) {
         if (!discard_unused_cluster_centers(cluster_centers, clustered_face_labels, "cluster assignment"))
             return false;
-    } else {
+    } else if (fixed_centers.empty()) {
         ensure_all_cluster_centers_used(face_colors, cluster_centers, clustered_face_labels, "cluster assignment");
     }
 
@@ -759,14 +823,14 @@ static bool repair_cluster_smooth(
 
     SmoothParameters smooth_parameters;
     smooth_parameters.smooth_weight = settings.smooth_weight;
-    if (!smooth_region(mesh, clustered_face_labels, smooth_parameters)) {
+    if (needs_halfedges && !smooth_region(mesh, clustered_face_labels, smooth_parameters)) {
         BOOST_LOG_TRIVIAL(debug) << log_prefix << ": smooth region failed.";
         return false;
     }
-    if (adaptive_cluster) {
+    if (adaptive_cluster && fixed_centers.empty()) {
         if (!discard_unused_cluster_centers(cluster_centers, clustered_face_labels, "color smoothing"))
             return false;
-    } else {
+    } else if (fixed_centers.empty()) {
         ensure_all_cluster_centers_used(face_colors, cluster_centers, clustered_face_labels, "color smoothing");
     }
 

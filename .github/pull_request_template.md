@@ -1,61 +1,38 @@
-# Summary / 变更摘要
+# 变更结果 / User-visible outcome
 
-<!-- Explain the user-visible outcome, motivation, failure fallback and rollback plan. -->
+<!-- 一个 PR 对应一个可独立验收的改动；说明触发场景、变化及失败恢复。 -->
 
-## Development lane / 开发线
+## 开发线与版本
 
-- [ ] Orca upstream synchronization
-- [ ] Model generation
-- [ ] Smart slicing
-- [ ] Integration/shared GUI
-- [ ] Shared Sidecar runtime/authentication/network transport
-- [ ] Diagnostics, build or release
+- 开发线：模型生成 / 智能切片 / 维护 / 上游同步
+- 目标分支：`codex/team/integration`
+- PR 当前完整源 SHA：
+- 已验证的集成基线 SHA：
+- 固定 Orca 上游 SHA（上游同步必填）：
+- 依赖的 PR（无则写无）：
 
-Accepted input (required for feature integration):
+<!-- 追加提交或集成基点变化后重新验证。长期分支从 integration 普通 merge 同步，
+     不强推、不改写共享历史；长期分支 PR 使用 merge commit。 -->
 
-- Source branch:
-- Accepted full 40-character SHA:
-- Previous accepted SHA:
-- Pinned Orca upstream SHA:
-- Integration receipt commit (for snapshot-port history):
-- Verified feature Git objects/paths:
+## 影响与复核
 
-> Integration must consume the accepted SHA above. Do not replace it with a moving branch HEAD.
+- 涉及的模块与负责人：
+- 共享文件、Contracts、运行时、依赖、CI 或权限变动：
+- 所需非作者复核人：
+- 3MF/profile、原生导入、打印/G-code 的兼容性及迁移（不适用注明）：
 
-## Boundaries and compatibility / 边界与兼容性
+- [ ] 导入不会隐式切片或更改预设；切片方案可比较、显式应用、可撤销。
+- [ ] AI 关闭、离线或失败时保留普通 Orca 行为。
+- [ ] 无凭据、用户照片、生成模型或本机私有配置进入提交。
+- [ ] 未调用付费服务，或已在下方记录本次明确授权及结果。
 
-- Shared Orca files changed (`MainFrame`, `Plater`, CMake, adapters, workflows):
-- Reason each shared-file change is necessary:
-- [ ] Model generation does not copy or call smart-slicing implementation code.
-- [ ] Smart slicing does not copy or call model-provider implementation code.
-- [ ] No reverse merge or port from the integration branch into a feature branch.
-- [ ] Orca default behavior is unchanged when AI is disabled or unavailable.
-- [ ] 3MF and profile formats/defaults are unchanged, or migration is documented and tested.
-- [ ] Sidecar/provider failure safely degrades without corrupting the workspace.
-- [ ] Shared runtime changes have integration-owner review and do not move feature policy into `AIServiceManager`, `AISidecarClient` or generic HTTP transport.
+## 验证与恢复
 
-## Runtime and distribution / 运行时与发布
+- 集成检查及对应离线测试：
+- 受影响 C++ 构建/测试及平台：
+- GUI/导入/切片变更的实际主窗口证据（含版本和验证范围）：
+- 失败恢复、撤销或独立 revert PR 方案：
+- 未验证部分：
 
-- Sidecar protocol/version:
-- Product and development ports:
-- Configuration/dependency changes:
-- Output-directory changes:
-- Installer/update changes:
-- [ ] No API key, credential, generated model or machine-specific path is committed.
-- [ ] No paid API was called, or the approved scope and result are documented below.
-- [ ] Native loopback requests disable proxies and redirects; session challenge/proof and stale-listener behavior are covered by negative tests.
-- [ ] A `commercial` build-channel value is treated only as candidate metadata; public release approval/evidence is recorded separately.
-- [ ] AI commercial support remains Windows-only, or platform-specific packaging/signing/qualification evidence is linked.
-
-## Verification / 验证
-
-- Python tests:
-- C++ tests:
-- Windows Release build:
-- GUI journeys and screenshots/recordings:
-- AI-disabled and Sidecar-offline checks:
-- Old 3MF/profile compatibility checks:
-- Installer/install/uninstall checks:
-- Rollback point or last-known-good SHA:
-
-<!-- Attach UI evidence for visible changes and link the relevant CI run/artifact. -->
+<!-- Git/CI 中的精确版本是依据。当前阶段由人确认合入；飞书卡片只反馈状态。
+     合入、内部打包、正式发布分别验收。不要复用历史 snapshot 收据证明本 PR。 -->

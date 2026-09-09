@@ -12,6 +12,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+import urllib.parse
 import uuid
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -99,6 +100,17 @@ def temporary_environment(**values):
 
 
 class SidecarHealthContractTests(unittest.TestCase):
+    def setUp(self):
+        original_open = urllib.request.OpenerDirector.open
+        def local_only(opener, request, *args, **kwargs):
+            url = request.full_url if isinstance(request, urllib.request.Request) else str(request)
+            if urllib.parse.urlsplit(url).hostname not in {"localhost", "127.0.0.1", "::1"}:
+                raise AssertionError("Contract tests must mock external provider requests.")
+            return original_open(opener, request, *args, **kwargs)
+        guard = mock.patch.object(urllib.request.OpenerDirector, "open", local_only)
+        guard.start()
+        self.addCleanup(guard.stop)
+
     def test_parent_pid_validation_and_current_process_probe(self):
         with temporary_environment(ORCASLICER_AI_PARENT_PID=None):
             self.assertIsNone(PRODUCTION._configured_parent_pid())
@@ -224,9 +236,10 @@ class SidecarHealthContractTests(unittest.TestCase):
                 ).hexdigest()
                 accepted = urllib.request.Request(
                     endpoint,
-                    data=b"",
+                    data=b"{}",
                     method="POST",
                     headers={
+                        "Content-Type": "application/json",
                         "X-OrcaSlicer-Client": "native",
                         "X-OrcaSlicer-Session-Proof": session_proof,
                     },
@@ -532,9 +545,10 @@ class SidecarHealthContractTests(unittest.TestCase):
         self.assertEqual(generation["default_generation_profile"], "quality")
         self.assertIn("model_reference", generation["printable_image_pipeline"]["outputs"])
         self.assertIsInstance(generation["palette_recommendation"]["available"], bool)
-        self.assertEqual(generation["palette_recommendation"]["min_colors"], 1)
-        self.assertEqual(generation["palette_recommendation"]["max_colors"], 6)
-        self.assertEqual(generation["palette_recommendation"]["default_colors"], 4)
+        if health["sidecar_version"] == PRODUCTION.SIDECAR_VERSION:
+            self.assertFalse(generation["palette_recommendation"]["available"])
+            self.assertFalse(generation["printable_image_pipeline"]["available"])
+            self.assertNotIn("max_colors", generation["palette_recommendation"])
         self.assertEqual(set(generation["source_availability"]), {"text", "image"})
         self.assertIsInstance(generation["source_availability"]["text"], bool)
         self.assertIsInstance(generation["source_availability"]["image"], bool)
@@ -719,190 +733,57 @@ class SidecarHealthContractTests(unittest.TestCase):
             self.assertEqual(public["palette_recommendation"], recommendation)
             self.assertFalse(public["palette_recommendation_confirmed"])
 
-    def test_recommendation_worker_forwards_stored_reference_image(self):
-        job_id = str(uuid.uuid4())
+    def test_legacy_recommendation_worker_preprocesses_without_recommending_colors(self):
         with tempfile.TemporaryDirectory() as directory:
-            job_directory = Path(directory) / job_id
-            job_directory.mkdir()
-            image_path = job_directory / "input.png"
-            image_path.write_bytes(b"\x89PNG\r\n\x1a\nexample")
-            job = PRODUCTION.Job(
-                id=job_id,
-                source="image",
-                directory=job_directory,
-                user_prompt="保留主体",
-                palette_color_count=6,
-            )
-            job.input_path = image_path
-            result = mock.Mock()
-            result.as_dict.return_value = {
-                "summary": "summary",
-                "colors": [
-                    {"hex": "#D96B43", "name": "a", "role": "primary", "usage": "u", "reason": "r"},
-                    {"hex": "#2B2422", "name": "b", "role": "structure", "usage": "u", "reason": "r"},
-                    {"hex": "#F2D7B5", "name": "c", "role": "light", "usage": "u", "reason": "r"},
-                    {"hex": "#2F6B5F", "name": "d", "role": "accent", "usage": "u", "reason": "r"},
-                    {"hex": "#3267A8", "name": "e", "role": "secondary", "usage": "u", "reason": "r"},
-                    {"hex": "#9B3F77", "name": "f", "role": "detail", "usage": "u", "reason": "r"},
-                ],
-            }
-            with mock.patch.object(PRODUCTION, "recommend_printable_palette", return_value=result) as recommend:
+            job = PRODUCTION.Job(id=str(uuid.uuid4()), source="image", directory=Path(directory), user_prompt="portrait")
+            job.input_path = Path(directory)/"input.png"
+            job.input_path.write_bytes(valid_png_bytes())
+            with mock.patch.object(PRODUCTION, "_preprocess_image_job") as preprocess, mock.patch.object(PRODUCTION, "recommend_printable_palette") as recommend:
                 PRODUCTION._recommend_palette_job(job)
+            preprocess.assert_called_once_with(job, job.input_path, "portrait")
+            recommend.assert_not_called()
+            self.assertEqual(job.palette, ())
 
+    def test_legacy_recommendation_routes_create_unrestricted_design_jobs(self):
+        for source in ("text", "image"):
+            with self.subTest(source=source), tempfile.TemporaryDirectory() as directory, temporary_environment(OPENAI_API_KEY="test-openai", ORCASLICER_AI_OUTPUT_DIR=directory), mock.patch.object(PRODUCTION, "_submit") as submit, mock.patch.object(PRODUCTION, "image_provider_status", return_value={"available": True}), mock.patch.dict(PRODUCTION._JOBS, {}, clear=True), sidecar_server(PRODUCTION.Handler) as port:
+                fields = {"request_id": "legacy", "style": "realistic", "palette_color_count": "20"}
+                if source == "image":
+                    fields["instruction"] = "portrait"
+                    body, content_type = multipart_image_request(fields, valid_png_bytes())
+                else:
+                    fields["prompt"] = "portrait"
+                    body, content_type = json.dumps(fields).encode(), "application/json"
+                request = urllib.request.Request(f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/recommend-{source}-palette", data=body, headers={"X-OrcaSlicer-Client":"native", "Content-Type":content_type})
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    public = json.loads(response.read())["job"]
+                job = PRODUCTION._JOBS[public["id"]]
+                self.assertEqual(job.palette, ())
+                self.assertEqual(job.palette_recommendation, {})
+                self.assertEqual(public["state"], "preprocessing")
+                self.assertIs(submit.call_args.args[1], PRODUCTION._preprocess_image_job if source == "image" else PRODUCTION._preprocess_text_job)
+                if source == "image": self.assertEqual(job.input_path.read_bytes(), valid_png_bytes())
+
+    def test_legacy_palette_confirmation_continues_same_job_and_recovers_scheduling_failure(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(PRODUCTION._JOBS, {}, clear=True):
+            job = PRODUCTION.Job(id=str(uuid.uuid4()), source="text", directory=Path(directory), user_prompt="portrait")
+            job.state = "awaiting_palette_confirmation"
+            job.palette_recommendation = {"colors": [{"hex": "#FF0000"}]}
+            job.palette = ("#FF0000",)
+            PRODUCTION._JOBS[job.id] = job
+            handler = PRODUCTION.Handler.__new__(PRODUCTION.Handler)
+            handler._read_model_json = mock.Mock(return_value={"palette": ["#FF0000"]})
+            handler.send_json = mock.Mock()
+            with mock.patch.object(PRODUCTION, "_submit", side_effect=PRODUCTION.RequestError("queue_full", "busy", 503)):
+                with self.assertRaises(PRODUCTION.RequestError): handler._confirm_palette(job.id)
             self.assertEqual(job.state, "awaiting_palette_confirmation")
-            self.assertEqual(recommend.call_args.kwargs["image_path"], image_path)
-            self.assertEqual(recommend.call_args.kwargs["color_count"], 6)
-            self.assertEqual(len(job.palette_recommendation["colors"]), 6)
-
-    def test_text_recommendation_confirmation_continues_the_same_job(self):
-        result = mock.Mock()
-        result.as_dict.return_value = {
-            "summary": "summary",
-            "colors": [
-                {"hex": "#D96B43", "name": "a", "role": "primary", "usage": "u", "reason": "r"},
-                {"hex": "#2B2422", "name": "b", "role": "structure", "usage": "u", "reason": "r"},
-                {"hex": "#F2D7B5", "name": "c", "role": "light", "usage": "u", "reason": "r"},
-                {"hex": "#2F6B5F", "name": "d", "role": "accent", "usage": "u", "reason": "r"},
-                {"hex": "#3267A8", "name": "e", "role": "secondary", "usage": "u", "reason": "r"},
-                {"hex": "#9B3F77", "name": "f", "role": "detail", "usage": "u", "reason": "r"},
-            ],
-        }
-        with tempfile.TemporaryDirectory() as directory, temporary_environment(
-            OPENAI_API_KEY="test-openai", ORCASLICER_AI_OUTPUT_DIR=directory
-        ), mock.patch.object(PRODUCTION, "recommend_printable_palette", return_value=result), mock.patch.object(
-            PRODUCTION, "_preprocess_text_job"
-        ) as preprocess:
-            with PRODUCTION._JOBS_LOCK:
-                previous = dict(PRODUCTION._JOBS)
-                PRODUCTION._JOBS.clear()
-            try:
-                with sidecar_server(PRODUCTION.Handler) as port:
-                    create = urllib.request.Request(
-                        f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/recommend-text-palette",
-                        data=json.dumps({
-                            "request_id": "r1",
-                            "prompt": "一只机械麒麟",
-                            "style": "q_cartoon",
-                            "palette_color_count": 6,
-                            "print": {},
-                        }).encode(),
-                        method="POST",
-                        headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
-                    )
-                    with urllib.request.urlopen(create, timeout=5) as response:
-                        job_id = json.loads(response.read())["job"]["id"]
-                    deadline = time.time() + 5
-                    while time.time() < deadline:
-                        with PRODUCTION._JOBS_LOCK:
-                            state = PRODUCTION._JOBS[job_id].state
-                        if state == "awaiting_palette_confirmation":
-                            break
-                        time.sleep(0.01)
-                    self.assertEqual(state, "awaiting_palette_confirmation")
-
-                    confirm = urllib.request.Request(
-                        f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{job_id}/confirm-palette",
-                        data=json.dumps({
-                            "palette": ["#D96B43", "#2B2422", "#F2D7B5", "#2F6B5F", "#3267A8", "#9B3F77"],
-                            "palette_roles": {
-                                "primary": "#D96B43",
-                                "structure": "#2B2422",
-                                "light": "#F2D7B5",
-                                "accent": "#2F6B5F",
-                                "secondary": "#3267A8",
-                                "detail": "#9B3F77",
-                            },
-                        }).encode(),
-                        method="POST",
-                        headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
-                    )
-                    with urllib.request.urlopen(confirm, timeout=5) as response:
-                        payload = json.loads(response.read())
-
-                self.assertEqual(payload["job"]["id"], job_id)
-                self.assertTrue(payload["job"]["palette_recommendation_confirmed"])
-                self.assertEqual(payload["job"]["palette"][0], "#D96B43")
-                self.assertEqual(payload["job"]["palette_color_count"], 6)
-                self.assertEqual(len(payload["job"]["palette"]), 6)
-                deadline = time.time() + 2
-                while preprocess.call_count == 0 and time.time() < deadline:
-                    time.sleep(0.01)
-                preprocess.assert_called_once()
-            finally:
-                with PRODUCTION._JOBS_LOCK:
-                    PRODUCTION._JOBS.clear()
-                    PRODUCTION._JOBS.update(previous)
-
-    def test_image_palette_recommendation_route_stores_the_reference(self):
-        result = mock.Mock()
-        result.as_dict.return_value = {
-            "summary": "summary",
-            "colors": [
-                {"hex": "#D96B43", "name": "a", "role": "primary", "usage": "u", "reason": "r"},
-                {"hex": "#2B2422", "name": "b", "role": "structure", "usage": "u", "reason": "r"},
-                {"hex": "#F2D7B5", "name": "c", "role": "light", "usage": "u", "reason": "r"},
-                {"hex": "#2F6B5F", "name": "d", "role": "accent", "usage": "u", "reason": "r"},
-                {"hex": "#3267A8", "name": "e", "role": "secondary", "usage": "u", "reason": "r"},
-            ],
-        }
-        boundary = "----OrcaPaletteTest"
-        parts = []
-        for name, value in {
-            "request_id": "r2",
-            "instruction": "保留主体",
-            "style": "cartoon",
-            "custom_style": "",
-            "palette_color_count": "5",
-            "print": "{}",
-        }.items():
-            parts.append(
-                f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n".encode("utf-8")
-            )
-        parts.append(
-            f"--{boundary}\r\nContent-Disposition: form-data; name=\"image\"; filename=\"input.png\"\r\n"
-            "Content-Type: image/png\r\n\r\n".encode("ascii")
-            + valid_png_bytes()
-            + b"\r\n"
-        )
-        parts.append(f"--{boundary}--\r\n".encode("ascii"))
-        body = b"".join(parts)
-        with tempfile.TemporaryDirectory() as directory, temporary_environment(
-            OPENAI_API_KEY="test-openai", ORCASLICER_AI_OUTPUT_DIR=directory
-        ), mock.patch.object(PRODUCTION, "recommend_printable_palette", return_value=result) as recommend:
-            with PRODUCTION._JOBS_LOCK:
-                previous = dict(PRODUCTION._JOBS)
-                PRODUCTION._JOBS.clear()
-            try:
-                with sidecar_server(PRODUCTION.Handler) as port:
-                    request = urllib.request.Request(
-                        f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/recommend-image-palette",
-                        data=body,
-                        method="POST",
-                        headers={
-                            "X-OrcaSlicer-Client": "native",
-                            "Content-Type": f"multipart/form-data; boundary={boundary}",
-                        },
-                    )
-                    with urllib.request.urlopen(request, timeout=5) as response:
-                        job_id = json.loads(response.read())["job"]["id"]
-                    deadline = time.time() + 5
-                    while time.time() < deadline:
-                        with PRODUCTION._JOBS_LOCK:
-                            job = PRODUCTION._JOBS[job_id]
-                            state = job.state
-                        if state == "awaiting_palette_confirmation":
-                            break
-                        time.sleep(0.01)
-
-                self.assertEqual(state, "awaiting_palette_confirmation")
-                self.assertTrue(job.input_path.is_file())
-                self.assertEqual(job.palette_color_count, 5)
-                self.assertEqual(recommend.call_args.kwargs["image_path"], job.input_path)
-                self.assertEqual(recommend.call_args.kwargs["color_count"], 5)
-            finally:
-                with PRODUCTION._JOBS_LOCK:
-                    PRODUCTION._JOBS.clear()
-                    PRODUCTION._JOBS.update(previous)
+            self.assertTrue(job.palette_recommendation)
+            with mock.patch.object(PRODUCTION, "_submit") as submit:
+                handler._confirm_palette(job.id)
+            self.assertIs(submit.call_args.args[0], job)
+            self.assertEqual(job.state, "preprocessing")
+            self.assertEqual(job.palette, ())
+            self.assertEqual(job.palette_recommendation, {})
 
     def test_image_preview_route_persists_confirmed_ai_palette_origin(self):
         boundary = "----OrcaPreviewPaletteOriginTest"
@@ -1218,7 +1099,7 @@ class SidecarHealthContractTests(unittest.TestCase):
                     PRODUCTION._JOBS.clear()
                     PRODUCTION._JOBS.update(previous)
 
-    def test_generate_route_blocks_poor_model_reference_before_paid_submission(self):
+    def test_generate_route_keeps_poor_reference_advice_and_submits_once(self):
         job_id = str(uuid.uuid4())
         with tempfile.TemporaryDirectory() as directory:
             job_directory = Path(directory) / job_id
@@ -1251,20 +1132,119 @@ class SidecarHealthContractTests(unittest.TestCase):
                         method="POST",
                         headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
                     )
-                    with self.assertRaises(urllib.error.HTTPError) as error:
+                    with urllib.request.urlopen(request, timeout=5) as response:
+                        self.assertEqual(response.status, 200)
+                        payload = json.load(response)
+                    with self.assertRaises(urllib.error.HTTPError) as duplicate:
                         urllib.request.urlopen(request, timeout=5)
-                    payload = json.loads(error.exception.read())
+                    self.assertEqual(duplicate.exception.code, 409)
 
-                self.assertEqual(error.exception.code, 409)
-                self.assertEqual(payload["error"]["code"], "model_input_quality_failed")
-                submit.assert_not_called()
+                self.assertEqual(payload["job"]["state"], "queued")
+                submit.assert_called_once()
                 self.assertFalse(job.image_metrics["model_input_quality"]["model_input_eligible"])
             finally:
                 with PRODUCTION._JOBS_LOCK:
                     PRODUCTION._JOBS.clear()
                     PRODUCTION._JOBS.update(previous)
 
-    def test_generate_route_blocks_fragmented_portrait_palette_before_paid_submission(self):
+    def test_generate_route_allows_small_blank_and_alpha_images_with_advice(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(PRODUCTION._JOBS, {}, clear=True):
+            gateway = mock.Mock()
+            gateway.model_generation_available.return_value = True
+            with (
+                mock.patch.object(PRODUCTION, "_MODEL_PROVIDER_GATEWAY", gateway),
+                mock.patch.object(PRODUCTION, "_submit") as submit,
+                sidecar_server(PRODUCTION.Handler) as port,
+            ):
+                for mode, size, color in (("RGB", 32, "white"), ("RGB", 512, "white"), ("RGBA", 1, (0, 0, 0, 0))):
+                    with self.subTest(mode=mode, size=size):
+                        root = Path(directory) / str(uuid.uuid4())
+                        root.mkdir()
+                        reference = root / "preview.png"
+                        Image.new(mode, (size, size), color).save(reference)
+                        job = PRODUCTION.Job(id=root.name, source="image", directory=root)
+                        job.state = job.phase = "awaiting_confirmation"
+                        job.preview_path = reference
+                        PRODUCTION._JOBS[job.id] = job
+                        request = urllib.request.Request(
+                            f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{job.id}/generate",
+                            data=json.dumps({"prepared_prompt": "", "palette": [], "generation_profile": "quality"}).encode(),
+                            method="POST", headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
+                        )
+                        with urllib.request.urlopen(request, timeout=5) as response:
+                            self.assertEqual(response.status, 200)
+                        self.assertEqual(job.state, "queued")
+                        advice = job.image_metrics["model_input_quality"]
+                        self.assertTrue(advice["blockers"] or advice["warnings"])
+                        if size < 256:
+                            self.assertIn("low_resolution", advice["warnings"])
+                        with self.assertRaises(urllib.error.HTTPError) as duplicate:
+                            urllib.request.urlopen(request, timeout=5)
+                        self.assertEqual(duplicate.exception.code, 409)
+                self.assertEqual(submit.call_count, 3)
+
+    def test_restored_opaque_design_rechecks_uncertain_silhouette_and_submits_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            job_directory = Path(directory) / str(uuid.uuid4())
+            job_directory.mkdir()
+            reference = job_directory / "style-preview-raw.png"
+            # One connected pale sculpture. Color thresholding loses its white
+            # body and incorrectly separates the head, shirt and dark base.
+            image = Image.new("RGB", (512, 768), "white")
+            image.paste((225, 165, 135), (180, 60, 332, 230))
+            image.paste((248, 248, 248), (120, 220, 392, 650))
+            image.paste((45, 75, 60), (200, 285, 312, 485))
+            image.paste((55, 55, 60), (110, 645, 402, 720))
+            image.save(reference)
+            original_bytes = reference.read_bytes()
+            job = PRODUCTION.Job(id=job_directory.name, source="image", directory=job_directory)
+            job.state = job.phase = "awaiting_confirmation"
+            job.input_path = job.raw_preview_path = job.preview_path = reference
+            job.image_metrics = {
+                "design_reference": "ai-design-v1",
+                "model_input_quality": {"model_input_eligible": False, "blockers": ["fragmented_subject"]},
+                "generation_input_quality": {"model_input_eligible": False, "blockers": ["fragmented_subject"]},
+            }
+            job.message = PRODUCTION._model_input_quality_message(job.image_metrics["model_input_quality"])
+            stale_message = job.message
+            PRODUCTION._persist_job(job)
+            gateway = mock.Mock()
+            gateway.model_generation_available.return_value = True
+            with (
+                mock.patch.dict(PRODUCTION._JOBS, {}, clear=True),
+                mock.patch.object(PRODUCTION, "_model_output_root", return_value=Path(directory)),
+                mock.patch.object(PRODUCTION, "_MODEL_PROVIDER_GATEWAY", gateway),
+                mock.patch.object(PRODUCTION, "_submit") as submit,
+                sidecar_server(PRODUCTION.Handler) as port,
+            ):
+                restored = PRODUCTION._restore_jobs()
+                self.assertEqual(len(restored), 1)
+                restored_job = restored[0]
+                self.assertEqual(restored_job.state, "awaiting_confirmation")
+                self.assertNotEqual(restored_job.message, stale_message)
+                for quality_key in ("model_input_quality", "generation_input_quality"):
+                    quality = restored_job.image_metrics[quality_key]
+                    self.assertTrue(quality["model_input_eligible"], quality)
+                    self.assertIn("foreground_segmentation_uncertain", quality["warnings"])
+                submit.assert_not_called()
+                request = urllib.request.Request(
+                    f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{job.id}/generate",
+                    data=json.dumps({"prepared_prompt": "", "palette": [], "generation_profile": "quality"}).encode(),
+                    method="POST",
+                    headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(json.loads(response.read())["job"]["state"], "queued")
+                with self.assertRaises(urllib.error.HTTPError) as duplicate:
+                    urllib.request.urlopen(request, timeout=5)
+                self.assertEqual(duplicate.exception.code, 409)
+                submit.assert_called_once()
+                self.assertIs(PRODUCTION._geometry_generation_reference(restored_job), restored_job.raw_preview_path)
+                gateway.create_image_task.assert_not_called()
+                self.assertEqual(reference.read_bytes(), original_bytes)
+
+    def test_generate_route_ignores_retired_palette_fragmentation_gate(self):
         job_id = str(uuid.uuid4())
         with tempfile.TemporaryDirectory() as directory:
             job_directory = Path(directory) / job_id
@@ -1317,14 +1297,11 @@ class SidecarHealthContractTests(unittest.TestCase):
                         method="POST",
                         headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"},
                     )
-                    with self.assertRaises(urllib.error.HTTPError) as error:
-                        urllib.request.urlopen(request, timeout=5)
-                    payload = json.loads(error.exception.read())
-
-                self.assertEqual(error.exception.code, 409)
-                self.assertEqual(payload["error"]["code"], "printable_preview_quality_failed")
-                self.assertIn("fragmented", payload["error"]["message"])
-                submit.assert_not_called()
+                    with urllib.request.urlopen(request, timeout=5) as response:
+                        payload = json.loads(response.read())
+                self.assertEqual(payload["job"]["state"], "queued")
+                self.assertEqual(job.palette, ())
+                submit.assert_called_once()
             finally:
                 with PRODUCTION._JOBS_LOCK:
                     PRODUCTION._JOBS.clear()
@@ -1749,7 +1726,7 @@ class SidecarHealthContractTests(unittest.TestCase):
         self.assert_contract(health)
         self.assertTrue(health["capabilities"]["config_proposal"]["available"])
         self.assertFalse(health["capabilities"]["model_generation"]["available"])
-        self.assertTrue(health["capabilities"]["model_generation"]["palette_recommendation"]["available"])
+        self.assertFalse(health["capabilities"]["model_generation"]["palette_recommendation"]["available"])
 
     def test_production_health_contract_with_generation_credentials(self):
         with temporary_environment(
@@ -1761,7 +1738,7 @@ class SidecarHealthContractTests(unittest.TestCase):
         self.assert_contract(health)
         self.assertTrue(health["capabilities"]["config_proposal"]["available"])
         self.assertTrue(health["capabilities"]["model_generation"]["available"])
-        self.assertTrue(health["capabilities"]["model_generation"]["palette_recommendation"]["available"])
+        self.assertFalse(health["capabilities"]["model_generation"]["palette_recommendation"]["available"])
 
     def test_production_health_uses_pro_for_image2_without_migrating_text_or_vision(self):
         with temporary_environment(

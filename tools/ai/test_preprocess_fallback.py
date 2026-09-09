@@ -67,27 +67,37 @@ class PreprocessFallbackTests(unittest.TestCase):
     def test_text_fallback_retains_subject_and_adds_print_constraints(self):
         job = self.new_job("text")
         error = SIDECAR.OpenAIPreprocessorError("preprocessor unavailable")
-        with fallback_environment("1"), mock.patch.object(SIDECAR, "preprocess_text", side_effect=error):
-            SIDECAR._preprocess_text_job(job, "printable calibration cube")
+        with fallback_environment("1"), mock.patch.object(SIDECAR, "preprocess_text", side_effect=error), \
+             mock.patch.object(SIDECAR, "generate_geometry_reference_image") as generate:
+            SIDECAR._preprocess_text_job(job, "printable calibration cube with a red stripe")
 
         self.assertEqual(job.state, "awaiting_confirmation")
-        self.assertTrue(job.prepared_prompt.startswith("printable calibration cube"))
+        self.assertTrue(job.prepared_prompt.startswith("printable calibration cube with a red stripe"))
         self.assertIn("watertight printable model", job.prepared_prompt)
         self.assertIn("Preserve meaningful separate parts", job.prepared_prompt)
-        self.assertIn("#FF0000, #00FF00", job.prepared_prompt)
+        self.assertNotIn("#FF0000", job.prepared_prompt)
+        self.assertNotIn("#00FF00", job.prepared_prompt)
+        self.assertIn("natural gradients, textures and material detail without reducing colors", job.prepared_prompt)
+        self.assertEqual(job.palette, ())
+        generate.assert_not_called()
         self.assertIn("original prompt", job.message)
 
-    def test_image_backed_generation_prompt_defers_exact_palette(self):
-        prompt = SIDECAR._generation_prompt(
-            "one faithful portrait sculpture",
-            ("#FF0000", "#00FF00"),
-            max_prompt_bytes=SIDECAR.MAX_PROMPT_BYTES,
-            constrain_palette=False,
-        )
-
-        self.assertIn("coherent natural material relationships", prompt)
-        self.assertNotIn("#FF0000", prompt)
-        self.assertNotIn("#00FF00", prompt)
+    def test_generation_prompt_ignores_legacy_palette_flags_but_keeps_user_color(self):
+        prompts = []
+        for constrained in (False, True):
+            for palette in ((), ("#FF0000", "#00FF00")):
+                prompt = SIDECAR._generation_prompt(
+                    "one faithful portrait with a blue scarf",
+                    palette,
+                    max_prompt_bytes=SIDECAR.MAX_PROMPT_BYTES,
+                    constrain_palette=constrained,
+                )
+                prompts.append(prompt)
+                self.assertTrue(prompt.startswith("one faithful portrait with a blue scarf"))
+                self.assertIn("natural gradients, textures and material detail without reducing colors", prompt)
+                self.assertNotIn("#FF0000", prompt)
+                self.assertNotIn("#00FF00", prompt)
+        self.assertEqual(1, len(set(prompts)))
 
     def test_image_preprocessing_never_uses_original_as_style_preview(self):
         job = self.new_job("image")

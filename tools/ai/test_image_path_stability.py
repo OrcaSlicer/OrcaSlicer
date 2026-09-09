@@ -55,37 +55,49 @@ class ImagePathStabilityTests(unittest.TestCase):
                 self.assertEqual(info.width, 96)
                 self.assertEqual(info.height, 96)
 
-    def test_source_gate_rejects_truncated_and_tiny_images(self):
+    def test_source_gate_rejects_truncated_but_allows_tiny_images(self):
         with self.assertRaisesRegex(ValueError, "damaged|decoded"):
             sidecar._validate_image_data(
                 b"\x89PNG\r\n\x1a\ntruncated", minimum_edge=sidecar.MIN_SOURCE_IMAGE_EDGE
             )
-        with self.assertRaisesRegex(ValueError, "at least 64 x 64"):
-            sidecar._validate_image_data(
-                image_bytes(size=32), minimum_edge=sidecar.MIN_SOURCE_IMAGE_EDGE
-            )
+        info = sidecar._validate_image_data(
+            image_bytes(size=32), minimum_edge=sidecar.MIN_SOURCE_IMAGE_EDGE
+        )
+        self.assertEqual(info.width, 32)
 
-    def test_3d_reference_gate_rejects_small_blank_and_transparent_images(self):
-        with self.assertRaisesRegex(ValueError, "at least 256 x 256"):
-            sidecar._validate_image_data(
-                image_bytes(size=128),
-                minimum_edge=sidecar.MIN_MODEL_REFERENCE_EDGE,
-                require_visual_detail=True,
-            )
-        with self.assertRaisesRegex(ValueError, "blank"):
-            sidecar._validate_image_data(
-                image_bytes(size=256, blank=True),
-                minimum_edge=sidecar.MIN_MODEL_REFERENCE_EDGE,
-                require_visual_detail=True,
-            )
+    def test_3d_reference_check_allows_small_blank_and_transparent_images(self):
         output = BytesIO()
-        Image.new("RGBA", (256, 256), (0, 0, 0, 0)).save(output, format="PNG")
-        with self.assertRaisesRegex(ValueError, "transparent"):
-            sidecar._validate_image_data(
-                output.getvalue(),
+        Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(output, format="PNG")
+        for data in (image_bytes(size=128), image_bytes(size=256, blank=True), output.getvalue()):
+            info = sidecar._validate_image_data(
+                data,
                 minimum_edge=sidecar.MIN_MODEL_REFERENCE_EDGE,
                 require_visual_detail=True,
             )
+            self.assertGreater(info.width, 0)
+
+    def test_image_resource_limits_still_apply(self):
+        data = image_bytes(size=32)
+        with mock.patch.object(sidecar, "MAX_TEXTURE_PIXELS", 16):
+            with self.assertRaisesRegex(ValueError, "megapixels"):
+                sidecar._validate_image_data(data, minimum_edge=1)
+        with mock.patch.object(sidecar, "MAX_IMAGE_BYTES", len(data) - 1):
+            with self.assertRaisesRegex(ValueError, "20 MB"):
+                sidecar._validate_image_data(data, minimum_edge=1)
+
+    def test_blank_one_pixel_generated_preview_reaches_confirmation_with_advice(self):
+        with tempfile.TemporaryDirectory() as directory, output_root(directory):
+            job = sidecar._new_job("image", (), {}, "realistic", "")
+            source = job.directory / "input.png"
+            source.write_bytes(image_bytes())
+            job.input_path = source
+            def preprocess(_source, _instruction, destination, *_args, **_kwargs):
+                Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(destination)
+            with mock.patch.object(sidecar, "preprocess_image", side_effect=preprocess):
+                sidecar._preprocess_image_job(job, source, "preserve subject")
+            self.assertEqual(job.state, "awaiting_confirmation")
+            self.assertIn("low_resolution", job.image_metrics["model_input_quality"]["warnings"])
+            self.assertIn("subject_not_detected", job.image_metrics["model_input_quality"]["blockers"])
 
     def test_all_four_image_styles_reach_a_valid_3d_reference_three_times(self):
         styles = (
@@ -148,8 +160,10 @@ class ImagePathStabilityTests(unittest.TestCase):
                          mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=generate):
                         sidecar._preprocess_text_job(text_job, "一个写实摆件")
                     self.assertEqual(text_job.state, "awaiting_confirmation")
+                    self.assertEqual(text_job.palette, ())
+                    self.assertEqual(sidecar._model_generation_reference(text_job), text_job.raw_preview_path)
                     sidecar._validate_image_file(
-                        text_job.model_reference_path,
+                        sidecar._model_generation_reference(text_job),
                         minimum_edge=sidecar.MIN_MODEL_REFERENCE_EDGE,
                         require_visual_detail=True,
                     )
@@ -166,8 +180,10 @@ class ImagePathStabilityTests(unittest.TestCase):
                     with mock.patch.object(sidecar, "preprocess_image", side_effect=preprocess):
                         sidecar._preprocess_image_job(image_job, source, "可爱卡通")
                     self.assertEqual(image_job.state, "awaiting_confirmation")
+                    self.assertEqual(image_job.palette, ())
+                    self.assertEqual(sidecar._model_generation_reference(image_job), image_job.raw_preview_path)
                     sidecar._validate_image_file(
-                        image_job.model_reference_path,
+                        sidecar._model_generation_reference(image_job),
                         minimum_edge=sidecar.MIN_MODEL_REFERENCE_EDGE,
                         require_visual_detail=True,
                     )

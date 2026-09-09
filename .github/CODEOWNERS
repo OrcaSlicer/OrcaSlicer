@@ -1,9 +1,11 @@
-# Default review owner. Replace or extend with team handles as the team grows.
+# ADR-007 bootstrap owner; collaborators are pending. This is not a completed
+# three-person review setup. Generate final owners with scripts/team_collaboration.
 * @arsenaltj
 
 # Feature-owned modules.
 /src/slic3r/AI/ModelGeneration/ @arsenaltj
 /src/slic3r/GUI/AI/ModelGeneration/ @arsenaltj
+/src/slic3r/GUI/AI/Model/ModelFinishing.* @arsenaltj
 /src/slic3r/GUI/AIModelGenerationClient.* @arsenaltj
 /src/slic3r/GUI/ModelGenerationPanel.* @arsenaltj
 /tools/ai/model_*.py @arsenaltj
@@ -33,6 +35,12 @@
 /deps/MPFR/MPFR.cmake @arsenaltj
 /deps/wxWidgets/wxWidgets.cmake @arsenaltj
 /docs/architecture/ @arsenaltj
+/Docs/architecture/ @arsenaltj
+/tools/team_integration/ @arsenaltj
+/scripts/team_collaboration/ @arsenaltj
+/scripts/team_ci_candidate.py @arsenaltj
+/scripts/test_team_ci_candidate.py @arsenaltj
+/scripts/run_ai_offline_tests.py @arsenaltj
 /scripts/package_internal_fast.ps1 @arsenaltj
 /scripts/verify_ai_integration.py @arsenaltj
 /src/CMakeLists.txt @arsenaltj

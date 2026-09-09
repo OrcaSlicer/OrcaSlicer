@@ -54,10 +54,9 @@ def generation_prompt(
         "and material regions in their original relative positions; do not create unintended floating debris, "
         "internal shells, holes, or non-manifold geometry."
     )
-    if palette and constrain_palette:
-        suffix += " Use only these printable filament colors: " + ", ".join(palette) + "."
-    else:
-        suffix += " Preserve coherent natural material relationships with broad, clean regions."
+    # Retain legacy arguments for callers, but generation never applies a
+    # printer palette. Material assignment belongs to Orca after generation.
+    suffix += " Preserve the requested colors, natural gradients, textures and material detail without reducing colors."
     max_prefix_bytes = max_prompt_bytes - len(suffix.encode("utf-8"))
     prefix = prompt.strip().encode("utf-8")[: max(0, max_prefix_bytes)].decode("utf-8", errors="ignore").rstrip()
     return prefix + suffix

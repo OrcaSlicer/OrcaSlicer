@@ -408,6 +408,11 @@ TEST_CASE("vertex color OBJ copy preserves structure and rewrites selected verti
     settings.color_distance = 0.12f;
     REQUIRE(editor.update_selection(0, AI::RegionSelectionOperation::Replace, settings) == 1);
     REQUIRE(editor.apply_color_to_obj_copy({0.0f, 1.0f, 0.0f, 1.0f}, source, destination, error));
+    CHECK(editor.vertex_colors() == colors);
+    CHECK(editor.selected_face_count() == 1);
+    // A subsequent failed export must not contaminate the source editor either.
+    CHECK_FALSE(editor.apply_color_to_obj_copy({1.0f, 1.0f, 0.0f, 1.0f}, source / "missing.obj", destination, error));
+    CHECK(editor.vertex_colors() == colors);
 
     boost::filesystem::ifstream stream(destination);
     const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());

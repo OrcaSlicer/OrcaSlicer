@@ -109,6 +109,50 @@ class PrintableImagePipelineTests(unittest.TestCase):
                 self.assertLessEqual(opaque, {pipeline._hex_rgb(color) for color in colors[:count]})
                 self.assertTrue(result.model_reference.is_file())
 
+    def test_palette_mapping_preserves_solid_regions_without_dithering(self):
+        palette = ("#FF0000", "#00FF00", "#0000FF")
+        for count in (2, 3):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                image = Image.new("RGBA", (120, 80), (0, 0, 0, 0))
+                for index, color in enumerate(((230, 40, 40), (30, 220, 40), (30, 40, 220))[:count]):
+                    image.paste(color + (255,), (15 + index * 30, 15, 45 + index * 30, 65))
+                source = root / "source.png"
+                image.save(source)
+
+                result = pipeline.process_printable_image(source, root / "result", palette[:count])
+
+                with Image.open(result.clean_preview) as clean:
+                    opaque = {pixel[:3] for pixel in clean.getdata() if pixel[3] == 255}
+                    self.assertEqual(opaque, {pipeline._hex_rgb(color) for color in palette[:count]})
+                    for index, color in enumerate(palette[:count]):
+                        region = clean.crop((18 + index * 30, 18, 42 + index * 30, 62))
+                        self.assertEqual(set(region.getdata()), {pipeline._hex_rgb(color) + (255,)})
+
+    def test_portrait_preserves_skin_armor_and_base_without_forcing_unused_colors(self):
+        palette = ("#DCDBD7", "#DAAE8C", "#EA0006", "#83B771", "#242421", "#0102FF")
+        roles = dict(zip(("primary", "light", "secondary", "accent", "structure", "detail"), palette))
+        image = Image.new("RGB", (160, 200), (187, 188, 192))
+        image.paste((219, 177, 160), (62, 20, 98, 62))
+        image.paste((235, 225, 210), (38, 72, 122, 145))
+        image.paste((210, 80, 45), (38, 90, 60, 130))
+        image.paste((120, 175, 105), (50, 90, 110, 126))
+        image.paste((36, 36, 33), (25, 150, 135, 188))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "portrait.png"
+            image.save(source)
+
+            result = pipeline.process_printable_image(source, root / "result", palette, palette_roles=roles)
+
+            with Image.open(result.clean_preview) as clean:
+                self.assertEqual(clean.getpixel((0, 0))[3], 0)
+                for point, color in (((80, 40), palette[1]), ((110, 80), palette[0]),
+                                     ((45, 110), palette[2]), ((80, 105), palette[3]), ((80, 170), palette[4])):
+                    self.assertEqual(clean.getpixel(point), pipeline._hex_rgb(color) + (255,))
+                opaque = {pixel[:3] for pixel in clean.getdata() if pixel[3] == 255}
+                self.assertNotIn(pipeline._hex_rgb(palette[5]), opaque)
+
     def test_minimum_feature_merges_tiny_island_into_neighbor(self):
         image = Image.new("RGB", (100, 100), pipeline._hex_rgb(RGBW[3]))
         for x in range(20, 80):

@@ -17,6 +17,11 @@ on:
         required: false
         type: string
         default: build/tests
+      retain-artifact:
+        description: Keep test artifacts when the caller has read-only Actions permissions
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   unit_tests:
@@ -38,7 +43,7 @@ jobs:
             tests
             resources
       - name: Apt-Install Dependencies
-        if: runner.os == 'Linux' && !vars.SELF_HOSTED
+        if: runner.os == 'Linux' && !startsWith(inputs.os, 'orca-')
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
         uses: actions/download-artifact@v8
@@ -71,7 +76,7 @@ jobs:
           retention-days: 5
           if-no-files-found: warn
       - name: Delete Test Artifact
-        if: success()
+        if: success() && !inputs.retain-artifact
         uses: geekyeggo/delete-artifact@v6
         with:
           name: ${{ inputs.artifact }}

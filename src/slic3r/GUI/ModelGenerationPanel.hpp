@@ -3,6 +3,7 @@
 #include "AIModelGenerationClient.hpp"
 #include "slic3r/AI/Contracts/IModelArtifactConsumer.hpp"
 #include "slic3r/AI/Contracts/IPrintablePaletteProvider.hpp"
+#include "slic3r/GUI/AI/Model/ModelFinishing.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <wx/image.h>
@@ -12,8 +13,11 @@
 #include <cstdint>
 #include <ctime>
 #include <array>
+#include <atomic>
 #include <functional>
+#include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 class wxButton;
@@ -26,6 +30,7 @@ class wxGridSizer;
 class wxNotebook;
 class wxScrolledWindow;
 class wxSpinCtrlDouble;
+class wxSlider;
 class wxStaticText;
 class wxTextCtrl;
 class wxToggleButton;
@@ -44,8 +49,11 @@ public:
     void shutdown();
     void set_service_availability(bool available, const std::string& message = {});
     void set_service_retry_handler(std::function<void()> handler);
+    void set_prepare_navigation_handler(std::function<void()> handler) { m_prepare_navigation = std::move(handler); }
 
 private:
+    std::function<void()> m_prepare_navigation;
+    void show_input_hint(const wxString& message, wxWindow* focus = nullptr);
     void build_page();
     wxWindow* build_workflow_panel(wxWindow* parent);
     wxWindow* build_preview_panel(wxWindow* parent);
@@ -111,6 +119,9 @@ private:
     void download_preview(uint64_t sequence);
     void download_model_preview(uint64_t sequence);
     void finish_model_preview_download(const boost::filesystem::path& path, uint64_t sequence);
+    void load_model_preview_async(const boost::filesystem::path& path, const std::vector<std::string>& palette,
+        std::function<void(size_t, Vec3d, size_t, double)> loaded,
+        std::function<void(std::string)> failed);
     void download_and_import();
     void import_local_artifact(const boost::filesystem::path& path, uint64_t sequence);
     void cleanup_files();
@@ -120,6 +131,7 @@ private:
     void apply_preview_stage(bool center = false);
     void download_auxiliary_previews(uint64_t sequence, int stage = 0);
     void set_preview_zoom(double zoom);
+    void show_model_comparison();
     void update_progress(int value, int step, const wxString& phase);
     void update_workflow(const AIModelGenerationClient::JobStatus* status = nullptr);
     void apply_model_quality(const AIModelGenerationClient::ModelQuality& quality);
@@ -128,6 +140,19 @@ private:
     void clear_model_quality();
     void refresh_model_quality_card();
     void refresh_local_recolor_controls();
+    void update_region_mode();
+    wxWindow* build_model_finishing(wxWindow* parent);
+    void refresh_model_finishing();
+    void set_finishing_workbench(bool enabled);
+    void update_finishing_selection();
+    void redo_model_finishing();
+    void preview_model_finishing();
+    bool show_finishing_version(const boost::filesystem::path& path);
+    void accept_model_finishing();
+    void discard_model_finishing();
+    void undo_model_finishing();
+    void stop_model_finishing();
+    void select_local_finishing_version(const boost::filesystem::path& path, const std::string& id);
     std::vector<std::string> local_recolor_palette() const;
     struct GeneratedModelEntry;
     void load_library_entries();
@@ -178,6 +203,47 @@ private:
     AI::IModelArtifactConsumer&    m_artifact_consumer;
     AI::IPrintablePaletteProvider& m_palette_provider;
     AIModelGenerationClient m_client;
+
+    wxPanel* m_finishing_panel {nullptr};
+    wxWindow* m_workflow_panel {nullptr};
+    wxPanel* m_comparison_panel {nullptr};
+    wxScrolledWindow* m_model_page {nullptr};
+    wxButton* m_finishing_shortcut {nullptr};
+    wxChoice* m_finishing_tool {nullptr};
+    wxPanel* m_finishing_selection_controls {nullptr};
+    wxStaticText* m_finishing_selection_status {nullptr};
+    wxChoice* m_finishing_selection_operation {nullptr};
+    wxSlider* m_finishing_radius {nullptr};
+    wxCheckBox* m_finishing_gray {nullptr};
+    wxButton* m_finishing_redo {nullptr};
+    bool m_finishing_workbench {false};
+    bool m_finishing_compare_held {false};
+    boost::filesystem::path m_finishing_redo_path, m_finishing_redo_source;
+    std::string m_finishing_redo_id;
+    wxCheckBox* m_finishing_smooth {nullptr};
+    wxCheckBox* m_finishing_repair {nullptr};
+    wxSlider* m_finishing_strength {nullptr};
+    wxChoice* m_finishing_preset {nullptr};
+    wxButton* m_finishing_preview {nullptr};
+    wxButton* m_finishing_compare {nullptr};
+    wxButton* m_finishing_compare_model {nullptr};
+    wxButton* m_finishing_accept {nullptr};
+    wxButton* m_finishing_discard {nullptr};
+    wxButton* m_finishing_undo {nullptr};
+    wxButton* m_finishing_cancel {nullptr};
+    wxStaticText* m_finishing_status {nullptr};
+    std::thread m_finishing_worker;
+    std::thread m_preview_worker;
+    bool m_preview_loading {false};
+    std::shared_ptr<std::atomic<bool>> m_finishing_canceled;
+    boost::filesystem::path m_finishing_source, m_finishing_candidate, m_finishing_undo_path, m_finishing_accepted_path;
+    std::string m_finishing_id;
+    AI::ModelFinishingResult m_finishing_result;
+    AI::ModelFinishingOptions m_finishing_options;
+    bool m_finishing_running {false};
+    bool m_finishing_before {false};
+    std::function<void()> m_finishing_restore_context;
+    std::function<void()> m_finishing_source_context;
 
     wxStaticText*   m_prompt_label { nullptr };
     wxTextCtrl*     m_prompt { nullptr };
@@ -239,6 +305,7 @@ private:
     wxStaticText*   m_preview_technical_details { nullptr };
     wxNotebook*     m_preview_book { nullptr };
     wxButton*       m_zoom_out { nullptr };
+    wxToggleButton* m_expand_images { nullptr };
     wxButton*       m_zoom_fit { nullptr };
     wxButton*       m_zoom_in { nullptr };
     wxStaticText*   m_preview_zoom { nullptr };
@@ -266,7 +333,6 @@ private:
     wxPanel*        m_model_decision_panel { nullptr };
     wxStaticText*   m_model_decision_status { nullptr };
     wxStaticText*   m_model_decision_summary { nullptr };
-    wxCollapsiblePane* m_model_advanced_pane { nullptr };
     wxPanel*        m_model_quality_panel { nullptr };
     wxStaticText*   m_model_quality_status { nullptr };
     wxStaticText*   m_model_quality_summary { nullptr };
@@ -306,8 +372,11 @@ private:
     boost::filesystem::path m_artifact_path;
     boost::filesystem::path m_color_intent_path;
     boost::filesystem::path m_displayed_model_path;
+    boost::filesystem::path m_last_imported_model_path;
     wxImage m_reference_image;
     wxImage m_raw_preview_image;
+    wxImage m_history_display_image;
+    boost::filesystem::path m_history_display_source;
     wxImage m_model_reference_image;
     wxImage m_strict_preview_image;
     wxImage m_model_views_image;

@@ -14,12 +14,12 @@ namespace Slic3r::GUI {
 struct ModelGenerationFeatureHost::Impl
 {
     Impl(wxWindow* parent, Plater* plater, NavigateAfterImportFn navigate_after_import, RetryServiceFn retry_service)
-        : workspace(std::make_unique<OrcaWorkspaceAdapter>(plater, std::move(navigate_after_import)))
+        : workspace(std::make_unique<OrcaWorkspaceAdapter>(plater, navigate_after_import))
     {
         BOOST_LOG_TRIVIAL(info) << "AI model generation startup: creating model generation panel";
         model_generation = new ModelGenerationPanel(parent, *workspace, *workspace);
         model_generation->set_service_retry_handler(std::move(retry_service));
-        model_generation->SetBackgroundColour(*wxWHITE);
+        model_generation->set_prepare_navigation_handler(std::move(navigate_after_import));
         model_generation->Hide();
         BOOST_LOG_TRIVIAL(info) << "AI model generation startup: model generation panel created";
     }
@@ -31,6 +31,7 @@ struct ModelGenerationFeatureHost::Impl
         shutdown_requested = true;
         if (model_generation != nullptr) {
             model_generation->set_service_retry_handler({});
+            model_generation->set_prepare_navigation_handler({});
             model_generation->shutdown();
         }
     }

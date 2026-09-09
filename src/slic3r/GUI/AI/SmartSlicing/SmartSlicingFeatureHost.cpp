@@ -8,10 +8,14 @@
 #include "slic3r/GUI/AI/SmartSlicing/SmartSlicingPanel.hpp"
 #include "slic3r/GUI/AI/SmartSlicing/SmartSlicingPresenter.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/AI/SmartSlicing/Application/SmartSlicingCoordinator.hpp"
 
 #include <wx/aui/framemanager.h>
+#include <wx/button.h>
+#include <wx/sizer.h>
 
 #include <algorithm>
 #include <cmath>
@@ -154,10 +158,15 @@ struct SmartSlicingFeatureHost::Impl
                 return this->plater.is_preview_shown();
             },
             [this] {
+                if (!applied_snapshot_time ||
+                    this->plater.undo_redo_stack_main().active_snapshot_time() != *applied_snapshot_time ||
+                    this->plater.get_view3D_canvas3D()->get_gizmos_manager().is_running())
+                    return false;
+                this->plater.select_view_3D("3D");
                 if (!this->plater.can_undo())
                     return false;
                 this->plater.undo();
-                return true;
+                return this->plater.undo_redo_stack_main().active_snapshot_time() != *applied_snapshot_time;
             }))
         , coordinator(std::make_unique<AI::SmartSlicing::SmartSlicingCoordinator>(
             *workspace, *trial_executor, *official_gateway))
@@ -184,8 +193,14 @@ struct SmartSlicingFeatureHost::Impl
             return workspace->candidate_proposals(snapshot.context->revision);
         }, [this] {
             trial_executor->cancel_trial_slice();
-        });
+        }, [this] {
+            this->plater.add_file();
+        }, &plater);
         presenter->set_view_changed([this](const SmartSlicingViewModel& view) { render(view); });
+        entry_button = new wxButton(&sidebar, wxID_ANY, _L("智能切片：检查与优化…"));
+        entry_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { show(true); });
+        sidebar.GetSizer()->Insert(0, entry_button, 0, wxEXPAND | wxALL, sidebar.FromDIP(8));
+        sidebar.Layout();
 
         aui_manager.AddPane(panel, wxAuiPaneInfo()
                                        .Name("smart_slicing")
@@ -201,6 +216,8 @@ struct SmartSlicingFeatureHost::Impl
 
     std::string validate_candidate(const AI::SmartSlicing::SliceCandidate& candidate)
     {
+        if (plater.get_view3D_canvas3D()->get_gizmos_manager().is_running())
+            return "close_active_model_tool";
         std::vector<TransformTarget> targets;
         DynamicPrintConfig parameter_patch;
         std::string diagnostic;
@@ -235,6 +252,7 @@ struct SmartSlicingFeatureHost::Impl
 
         bool transaction_started = false;
         try {
+            plater.select_view_3D("3D");
             {
                 Plater::TakeSnapshot transaction(&plater, "Apply Smart Slicing Candidate");
                 transaction_started = true;
@@ -255,6 +273,7 @@ struct SmartSlicingFeatureHost::Impl
                     plate->update_slice_result_valid_state(false);
                 plater.update_title_dirty_status();
             }
+            applied_snapshot_time = plater.undo_redo_stack_main().active_snapshot_time();
             return { true, true, {} };
         } catch (...) {
             if (transaction_started && plater.can_undo())
@@ -267,35 +286,9 @@ struct SmartSlicingFeatureHost::Impl
     {
         if (panel != nullptr)
             panel->render(view);
-        if (view.summary_key == "official_slice_complete" || view.summary_key == "canceled" ||
-            view.summary_key == "workspace_changed" || view.summary_key == "preflight_failed")
+        if (view.is_stale || view.summary_key == "official_slice_complete" || view.summary_key == "canceled" ||
+            view.summary_key == "preflight_failed")
             trial_executor->clear_session_input();
-
-        if (view.summary_key == "ready_to_start")
-            return;
-        auto to_sidebar_status = [](LegacyAIWorkflowStatus status) {
-            switch (status) {
-            case LegacyAIWorkflowStatus::Running: return Sidebar::AIWorkflowStatus::Running;
-            case LegacyAIWorkflowStatus::Success: return Sidebar::AIWorkflowStatus::Success;
-            case LegacyAIWorkflowStatus::Warning: return Sidebar::AIWorkflowStatus::Warning;
-            case LegacyAIWorkflowStatus::Failed: return Sidebar::AIWorkflowStatus::Failed;
-            case LegacyAIWorkflowStatus::Waiting: return Sidebar::AIWorkflowStatus::Waiting;
-            }
-            return Sidebar::AIWorkflowStatus::Waiting;
-        };
-        const wxString summary = view.is_stale ? _L("工程已变化，需要重新检查") :
-                                 view.summary_key == "preflight_complete" ? _L("可打印性检查完成") :
-                                 view.summary_key == "preflight_complete_with_warnings" ? _L("可打印性检查完成，仍有提示") :
-                                 view.summary_key == "printability_action_required" ? _L("发现需要处理的问题") :
-                                 view.summary_key == "preflight_failed" ? _L("可打印性检查失败") :
-                                 view.summary_key == "canceled" ? _L("可打印性检查已取消") :
-                                 _L("正在执行智能切片预检");
-        sidebar.start_ai_workflow(summary);
-        for (size_t index = 0; index < view.legacy_steps.size(); ++index)
-            sidebar.update_ai_workflow_step(
-                static_cast<Sidebar::AIWorkflowStep>(index), to_sidebar_status(view.legacy_steps[index]));
-        if (view.can_start && !view.can_cancel)
-            sidebar.finish_ai_workflow(false, summary);
     }
 
     bool is_shown() const
@@ -324,6 +317,8 @@ struct SmartSlicingFeatureHost::Impl
     std::unique_ptr<OrcaWorkflowRuntimeStore> runtime_store;
     std::unique_ptr<SmartSlicingPresenter> presenter;
     SmartSlicingPanel* panel { nullptr };
+    wxButton* entry_button { nullptr };
+    std::optional<size_t> applied_snapshot_time;
 };
 
 SmartSlicingFeatureHost::SmartSlicingFeatureHost(Plater& plater, wxAuiManager& aui_manager, Sidebar& sidebar,

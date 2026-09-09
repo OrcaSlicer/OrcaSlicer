@@ -347,6 +347,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/AI/Orca/OrcaSmartSlicingAdapter.hpp
     GUI/AI/Orca/OrcaParameterProposalAdapter.cpp
     GUI/AI/Orca/OrcaParameterProposalAdapter.hpp
+    GUI/AI/Orca/OrcaModelPreparation.cpp
+    GUI/AI/Orca/OrcaModelPreparationPanel.cpp
     GUI/AI/Orca/OrcaPlacementCandidateProvider.hpp
     GUI/AI/Orca/OrcaTrialSliceExecutor.cpp
     GUI/AI/Orca/OrcaTrialSliceExecutor.hpp
@@ -359,11 +361,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/AI/AIDesktopFeatureHost.hpp
     GUI/AI/SmartSlicing/SmartSlicingFeatureHost.cpp
     GUI/AI/SmartSlicing/SmartSlicingFeatureHost.hpp
-    GUI/AI/Model/VertexColorRegionEditor.cpp
+    GUI/AI/Model/VertexColorRegionEditor.cpp GUI/AI/Model/ModelFinishing.cpp GUI/AI/ModelGeneration/ModelGenerationFinishingView.cpp
     GUI/AI/Model/VertexColorRegionEditor.hpp
     GUI/AIModelGenerationClient.cpp
     GUI/AIModelGenerationClient.hpp
-    GUI/ModelGenerationPanel.cpp GUI/AI/ModelGeneration/ModelGenerationArtifactFlow.cpp GUI/AI/ModelGeneration/ModelGenerationFeatureHost.cpp GUI/AI/ModelGeneration/ModelGenerationPresentation.cpp GUI/AI/ModelGeneration/ModelGenerationPresentationCore.cpp GUI/AI/ModelGeneration/ModelGenerationStatusText.cpp
+    GUI/ModelGenerationPanel.cpp GUI/AI/ModelGeneration/ModelGenerationLibraryView.cpp GUI/AI/ModelGeneration/ModelGenerationArtifactFlow.cpp GUI/AI/ModelGeneration/ModelGenerationFeatureHost.cpp GUI/AI/ModelGeneration/ModelGenerationPresentation.cpp GUI/AI/ModelGeneration/ModelGenerationPresentationCore.cpp GUI/AI/ModelGeneration/ModelGenerationStatusText.cpp
     GUI/ModelGenerationPanel.hpp GUI/AI/ModelGeneration/ModelGenerationFeatureHost.hpp GUI/AI/ModelGeneration/ModelGenerationPresentation.hpp GUI/AI/ModelGeneration/ModelGenerationStatusText.hpp GUI/AI/ModelGeneration/ModelPreview3D.hpp
     GUI/AISidecarClient.cpp
     GUI/AISidecarClient.hpp

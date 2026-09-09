@@ -309,6 +309,8 @@ bool texture_to_painting(
 
     tex2color::TextureToColorSettings algo_settings;
     algo_settings.target_colors_num  = settings.target_colors_num;
+    algo_settings.fixed_palette      = settings.fixed_palette;
+    algo_settings.fixed_mapping_palette = settings.fixed_mapping_palette;
     algo_settings.smooth_weight      = settings.smooth_weight;
     algo_settings.oversampling_iters = settings.oversampling_iters;
     switch (settings.mesh_repair_decision) {
@@ -375,6 +377,8 @@ bool face_colors_to_painting(
     // Forward settings to tex2color
     tex2color::TextureToColorSettings algo_settings;
     algo_settings.target_colors_num = settings.target_colors_num;
+    algo_settings.fixed_palette     = settings.fixed_palette;
+    algo_settings.fixed_mapping_palette = settings.fixed_mapping_palette;
     algo_settings.smooth_weight     = settings.smooth_weight;
     switch (settings.mesh_repair_decision) {
     case TexturePaintingSettings::MeshRepairDecision::Ask:

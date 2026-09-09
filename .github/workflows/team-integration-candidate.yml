@@ -1,0 +1,132 @@
+name: Team integration candidate
+
+on:
+  pull_request:
+    branches: [codex/team/integration]
+  push:
+    branches: [codex/team/integration]
+  merge_group:
+    types: [checks_requested]
+
+# Build code never receives merge, signing or provider credentials.
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: team-candidate-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    name: Inspect exact candidate and collaboration tests
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.candidate.outputs.native }}
+      cross_platform: ${{ steps.candidate.outputs.cross_platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate candidate parents and determine build scope
+        id: candidate
+        run: python scripts/team_ci_candidate.py inspect --report candidate.json
+      - name: Validate the candidate integration contract
+        run: python scripts/fetch_ai_provenance.py
+      - name: Check fixed history, boundaries and runtime pins
+        run: python scripts/verify_ai_integration.py --json
+      - name: Test candidate version and failure gates
+        run: python -m unittest discover -s scripts -p 'test_team_ci_candidate.py' -v
+      - name: Test repository preparation
+        run: python -m unittest discover -s scripts/team_collaboration -p 'test_*.py' -v
+      - name: Test fixed history fetching with a fake Git transport
+        run: python -m unittest discover -s scripts -p 'test_fetch_ai_provenance.py' -v
+      - name: Test service with fake GitHub and Feishu transports
+        run: python -m unittest discover -s tools/team_integration -p 'test_*.py' -v
+      - uses: actions/upload-artifact@v7
+        with:
+          name: team-candidate-input-${{ github.run_attempt }}
+          path: candidate.json
+          if-no-files-found: error
+          retention-days: 7
+
+  windows_build:
+    needs: inspect
+    if: needs.inspect.outputs.native == 'true'
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-latest
+      arch: x64
+      compiler: msvc
+      ai-commercial-package: false
+  windows_tests:
+    needs: windows_build
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: windows-latest
+      artifact: ${{ github.sha }}-tests-windows-x64
+      retain-artifact: true
+
+  linux_build:
+    needs: inspect
+    if: needs.inspect.outputs.cross_platform == 'true'
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ubuntu-24.04
+  linux_tests:
+    needs: linux_build
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ubuntu-24.04
+      artifact: ${{ github.sha }}-tests-linux-x86_64
+      retain-artifact: true
+
+  macos_build:
+    needs: inspect
+    if: needs.inspect.outputs.cross_platform == 'true'
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: macos-14
+      arch: arm64
+  macos_tests:
+    needs: macos_build
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: macos-14
+      artifact: ${{ github.sha }}-tests-macos-arm64
+      test-dir: build/arm64/tests
+      retain-artifact: true
+
+  candidate:
+    name: Team integration candidate
+    needs: [inspect, windows_build, windows_tests, linux_build, linux_tests, macos_build, macos_tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: team-candidate-input-${{ github.run_attempt }}
+      - name: Require all applicable jobs and recheck live HEADs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_JOB_RESULTS: ${{ toJSON(needs) }}
+        run: python scripts/team_ci_candidate.py complete --report candidate.json
+      - name: Publish version-bound evidence for the read-only Feishu service
+        uses: actions/upload-artifact@v7
+        with:
+          name: team-integration-candidate
+          path: candidate.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30

@@ -1,0 +1,20 @@
+{
+  "schema": "orcaslicer.team-collaboration/v1",
+  "repository": "arsenaltj/OrcaSlicer",
+  "integration_branch": "codex/team/integration",
+  "developers": {
+    "model_generation": "arsenaltj",
+    "smart_slicing": null,
+    "maintenance": null
+  },
+  "branches": {
+    "model_generation": "codex/team/model-generation",
+    "smart_slicing": "codex/team/smart-slicing",
+    "maintenance": "codex/team/maintenance",
+    "integration": "codex/team/integration"
+  },
+  "required_checks": ["AI integration checks", "Team integration candidate"],
+  "automation": {"mode": "notify_and_preview", "auto_merge": false},
+  "bootstrap": {"baseline_sha": null},
+  "feishu": {"chat_id": null, "users": {}}
+}

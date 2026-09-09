@@ -79,6 +79,9 @@ struct TexturePaintingSettings {
     MeshRepairDecision mesh_repair_decision = MeshRepairDecision::ImportWithoutRepair;
     bool* mesh_repair_decision_required = nullptr;
     PaintMeshRepairCallback mesh_repair_callback;
+    // Explicit target colors bypass clustering. Empty preserves legacy behavior.
+    std::vector<std::array<std::size_t, 3>> fixed_palette;
+    std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
 };
 
 struct FilamentMatch {

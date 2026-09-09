@@ -19,6 +19,51 @@
 namespace Slic3r::GUI {
 using namespace ModelGenerationPresentation;
 
+void ModelGenerationPanel::load_model_preview_async(const boost::filesystem::path& path,
+    const std::vector<std::string>& palette,
+    std::function<void(size_t, Vec3d, size_t, double)> loaded,
+    std::function<void(std::string)> failed)
+{
+    if (m_shutdown || m_preview_loading) return;
+    size_t triangles = 0, colors = 0; Vec3d dimensions;
+    if (m_model_preview->try_load_cached_model(path, palette, triangles, dimensions, colors)) {
+        loaded(triangles, dimensions, colors, 0.0);
+        return;
+    }
+    if (m_preview_worker.joinable()) m_preview_worker.join();
+    m_preview_loading = true; m_busy = true;
+    refresh_controls();
+    const uint64_t sequence = m_sequence;
+    wxWeakRef<ModelGenerationPanel> weak(this);
+    try {
+        m_preview_worker = std::thread([weak, path, palette, sequence, loaded, failed] {
+            const auto start = std::chrono::steady_clock::now();
+            auto prepared = std::make_shared<ModelPreview3D::PreparedModel>();
+            std::string error;
+            try { ModelPreview3D::prepare_model(path, *prepared, error); }
+            catch (const std::exception& e) { error = e.what(); }
+            wxGetApp().CallAfter([weak, prepared, palette, sequence, start, loaded, failed, error]() mutable {
+                if (!weak || weak->m_shutdown) return;
+                auto* self = weak.get();
+                if (self->m_preview_worker.joinable()) self->m_preview_worker.join();
+                self->m_preview_loading = false;
+                self->m_busy = false;
+                if (sequence != self->m_sequence) { self->refresh_controls(); return; }
+                size_t triangles = 0, colors = 0; Vec3d dimensions;
+                if (!error.empty() || !self->m_model_preview->load_prepared_model(
+                    std::move(*prepared), palette, triangles, dimensions, colors, error)) {
+                    failed(error); return;
+                }
+                loaded(triangles, dimensions, colors,
+                    std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
+            });
+        });
+    } catch (const std::exception& e) {
+        m_preview_loading = false; m_busy = false;
+        failed(e.what());
+    }
+}
+
 void ModelGenerationPanel::download_model_preview(uint64_t sequence)
 {
     if (!m_ready || m_job_id.empty() || m_shutdown)
@@ -76,20 +121,16 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
                             weak->finish_model_preview_download(path, sequence);
                         });
                     },
-                    [weak, sequence](std::string error) mutable {
+                    [weak, sequence, path](std::string error) mutable {
                         if (!weak)
                             return;
-                        wxGetApp().CallAfter([weak, sequence, error = std::move(error)]() {
+                        wxGetApp().CallAfter([weak, sequence, path, error = std::move(error)]() {
                             if (!weak || weak->m_shutdown || sequence != weak->m_sequence)
                                 return;
                             weak->m_color_intent_path.clear();
-                            weak->m_busy = false;
-                            weak->m_artifact_download_started = false;
-                            weak->m_model_preview_ready = false;
-                            weak->m_status->SetLabel(_L("颜色意图清单校验失败，模型未进入导入流程。"));
-                            weak->m_result_summary->SetLabel(_L("清单错误：") + from_u8(error));
-                            weak->m_model_stats->SetLabel(_L("OBJ 已下载，颜色意图未通过校验"));
-                            weak->refresh_controls();
+                            weak->m_color_intent_schema.clear(); weak->m_color_intent_sha256.clear();
+                            weak->m_result_summary->SetLabel(_L("颜色清单不可用，将使用 OBJ 自身颜色：") + from_u8(error));
+                            weak->finish_model_preview_download(path, sequence);
                         });
                     });
             });
@@ -119,36 +160,12 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
         !AIModelGenerationClient::validate_color_intent_manifest_file(
             m_color_intent_path, m_color_intent_schema, m_color_intent_sha256, path)) {
         m_color_intent_path.clear();
-        m_busy = false;
-        m_artifact_download_started = false;
-        m_model_preview_ready = false;
-        m_status->SetLabel(_L("颜色意图清单与 OBJ 不一致，模型未进入导入流程。"));
-        m_result_summary->SetLabel(_L("请重新下载；现有 OBJ 已保留用于诊断。"));
-        m_model_stats->SetLabel(_L("OBJ 已下载，颜色意图未通过校验"));
-        refresh_controls();
-        return;
+        m_color_intent_schema.clear(); m_color_intent_sha256.clear();
+        m_result_summary->SetLabel(_L("颜色清单不匹配，将使用 OBJ 自身颜色继续。"));
     }
 
-    size_t triangle_count = 0;
-    size_t color_count = 0;
-    Vec3d dimensions = Vec3d::Zero();
-    std::string error;
-    const auto load_started = std::chrono::steady_clock::now();
-    if (m_model_preview == nullptr ||
-        !m_model_preview->load_model(path, m_job_palette, triangle_count, dimensions, color_count, error)) {
-        m_busy = false;
-        m_artifact_download_started = false;
-        m_model_preview_ready = false;
-        m_status->SetLabel(_L("OBJ 模型解析失败，已保留本地文件。"));
-        m_result_summary->SetLabel(_L("无法显示 3D 预览：") + from_u8(error));
-        m_model_stats->SetLabel(_L("模型预览不可用"));
-        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的 OBJ 文件。"));
-        refresh_controls();
-        return;
-    }
-    const double load_seconds = std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - load_started).count();
-
+    load_model_preview_async(path, m_job_palette,
+        [this, path](size_t triangle_count, Vec3d dimensions, size_t color_count, double load_seconds) {
     m_artifact_path = path;
     m_displayed_model_path = path;
     m_displayed_model_job_id = m_job_id;
@@ -156,6 +173,7 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
     m_displayed_model_palette_roles = m_job_palette_roles;
     m_busy = false;
     m_model_preview_ready = true;
+    show_model_comparison();
     m_library_model_loaded = false;
     update_progress(100, 4, _L("检查并导入"));
     const bool visual_gate_blocked = m_visual_quality.available && !m_visual_quality.import_recommended;
@@ -163,13 +181,13 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
         ? _L("模型已生成，但人脸相似度或材料归属未通过；建议重新优化。")
         : _L("3D 模型已生成，请确认外观后再导入准备页。"));
     m_model_stats->SetLabel(wxString::Format(
-        _L("%llu 个三角面 · %llu 种颜色\n%.1f × %.1f × %.1f mm\n%s"),
+        _L("%llu 个三角面 · %llu 个原始色值\n%.1f × %.1f × %.1f mm\n%s"),
         static_cast<unsigned long long>(triangle_count), static_cast<unsigned long long>(color_count),
         dimensions.x(), dimensions.y(), dimensions.z(), model_load_summary(triangle_count, load_seconds).c_str()));
     m_model_preview_message->SetLabel(
-        _L("模型已自动摆正；拖动旋转、滚轮缩放，随时可点击“摆正模型”。"));
+        _L("拖动模型旋转，滚轮缩放；点击“完整显示模型”恢复全貌。上方缩放按钮用于图片。"));
     m_result_summary->SetLabel(visual_gate_blocked
-        ? _L("模型文件与结构可用，但外观门禁未通过；强制导入前会再次确认。")
+        ? _L("模型已可用。外观检查仅作提示，可继续导入或进行本地美颜。")
         : m_color_intent_path.empty()
             ? _L("模型已下载并通过 OBJ 解析，可继续按旧版兼容方式导入准备页。")
             : _L("模型与颜色意图已校验，可继续导入准备页。"));
@@ -184,6 +202,16 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
             weak->m_model_preview->refresh();
     });
     refresh_controls();
+    }, [this](std::string error) {
+        m_busy = false;
+        m_artifact_download_started = false;
+        m_model_preview_ready = false;
+        m_status->SetLabel(_L("OBJ 模型解析失败，已保留本地文件。"));
+        m_result_summary->SetLabel(_L("无法显示 3D 预览：") + from_u8(error));
+        m_model_stats->SetLabel(_L("模型预览不可用"));
+        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的 OBJ 文件。"));
+        refresh_controls();
+    });
 }
 
 } // namespace Slic3r::GUI

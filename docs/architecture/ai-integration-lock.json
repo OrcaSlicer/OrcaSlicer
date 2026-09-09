@@ -1,6 +1,30 @@
 {
-  "schema": "orcaslicer.ai-integration-lock/v3",
-  "integration_branch": "codex/orca-integration-v2",
+  "schema": "orcaslicer.ai-integration-lock/v4",
+  "integration_branch": "codex/team/integration",
+  "branch_policy": {
+    "long_lived_branches": {
+      "model_generation": "codex/team/model-generation",
+      "smart_slicing": "codex/team/smart-slicing",
+      "maintenance": "codex/team/maintenance",
+      "integration": "codex/team/integration"
+    },
+    "developer_sync_source": "codex/team/integration",
+    "long_lived_sync_method": "merge_commit",
+    "force_push_allowed": false,
+    "integration_requires_pull_request": true,
+    "integration_requires_latest_base_and_head": true,
+    "historical_provenance": "fixed_source_sha_and_integration_receipt"
+  },
+  "ci_contract": {
+    "guardrails_workflow": ".github/workflows/ai-integration-guardrails.yml",
+    "candidate_workflow": ".github/workflows/team-integration-candidate.yml",
+    "required_checks": [
+      "AI integration checks",
+      "Team integration candidate"
+    ],
+    "merge_queue_event": "merge_group",
+    "path_filters_allowed": false
+  },
   "upstream": {
     "remote": "upstream",
     "branch": "main",
@@ -116,7 +140,6 @@
   },
   "boundaries": {
     "integration_consumes_exact_accepted_sha": true,
-    "feature_branches_receive_no_reverse_integration": true,
     "preserve_orca_defaults": true,
     "preserve_3mf_and_profile_formats": true,
     "paid_api_requires_explicit_authorization": true,
@@ -163,6 +186,8 @@
     ],
     "model_generation_owned_paths": [
       "src/slic3r/AI/ModelGeneration",
+      "src/slic3r/GUI/AI/Model/ModelFinishing.cpp",
+      "src/slic3r/GUI/AI/Model/ModelFinishing.hpp",
       "src/slic3r/GUI/AI/ModelGeneration",
       "src/slic3r/GUI/AIModelGenerationClient.cpp",
       "src/slic3r/GUI/AIModelGenerationClient.hpp",

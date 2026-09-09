@@ -4,7 +4,12 @@
 
 ## 事实与决策入口
 
+- 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
+
 - 当前实现：工作树代码和对应测试；报告须说明使用 HEAD 还是含未提交修改的工作树。
+- 最新体验与修改：[性能、质量提示和 3D 美颜](audits/2026-09-09-performance-advisory-finishing.md)，含实际模型加载、美颜保存回退与原生导入取消验证；质量判断不再拦截下一步。
+- 当前产品修正：[不限色生成与本地三维修整](audits/2026-09-09-unrestricted-generation-and-finishing.md)；保留单色写实，仅[AI 原生配色交接](plans/2026-09-09-ai-native-color-matching-handoff.md)由同事实施。[RGB 预检误拦修复](audits/2026-09-09-reference-preflight-fix.md)已验证实际任务恢复、图片确认和切页；其他 GUI 主路径仍需验收，不能用编译结果代替。
+- 本机续建编译路径：[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核)，记录已验证的 MSVC、CMake 和依赖前缀；产物写入当前续建仓库。
 - 集成基线、运行版本、端口、所有权和预算：[ai-integration-lock.json](../docs/architecture/ai-integration-lock.json)。不要在导航中复制会漂移的版本值。
 - 架构决策：[模块边界与 lineage](../docs/architecture/ADR-003-upstream-lineage-ai-integration.md)、[渐进拆分](../docs/architecture/ADR-005-guarded-incremental-ai-decomposition.md)、[颜色交接](architecture/ADR-006-six-channel-model-color-intent.md)、[智能切片事务](../docs/architecture/ADR-002-smart-slicing-transactional-workbench.md)。Accepted 表示接受的设计，实际完成度仍需代码和验收证据。
 - 硬件/颜色术语及检验限度：[打印与颜色边界](domain/printing-color-boundaries.md)。
@@ -24,7 +29,7 @@
 | 依赖、构建和运行产物 | `deps/`、`build/` 及各 worktree 的构建目录 | 可重建性、运行占用和具体保留版本核实后，才能进入清理批次。 |
 | 本机实验与生成资料 | `.planning/`、`output/`、`generated_models/`、`.tmp/`、`tmp/`、`projects/` | 可能含唯一源文件、模型或验收证据；忽略/未跟踪不等于可删除，不整目录清空。 |
 
-模型生成的协调入口是 `D:/Workspace/06_3DDY_claude`；智能切片工作树是 `D:/Workspace/06_3DDY_smart_slicing`；产品集成工作树是 `D:/Workspace/06_3DDY_orca_integration_v2`。具体写入仍按团队/集成所有权和任务合同执行，不能从这张导航表自动启动旧任务。
+当前续建工作区是 `D:/Workspace/11_3DDY_Continue`，团队远程为 `arsenaltj/OrcaSlicer`。原 `06_3DDY_claude`、`06_3DDY_smart_slicing`、`06_3DDY_orca_integration_v2` 工作区仅保留为历史；不能从旧导航自动启动任务或修改那些目录。新成员从确认后的共同基线建立自己的 checkout，具体准备状态见 ADR-007 实施记录。
 
 Codex 项目名、任务记录的 cwd、registry 提示与实际 Git worktree 可能不一致。开工时核对路径、分支和 HEAD；相同路径的两个项目入口共享文件，不是两个隔离仓库。`Docs/` 与 `docs/` 的 Git 路径大小写混用要作为路径迁移问题处理，不能删除其中一个名字来解决。
 
@@ -36,6 +41,7 @@ Codex 项目名、任务记录的 cwd、registry 提示与实际 Git worktree �
 | Provider/预处理/质量 | [Gateway](../tools/ai/model_provider_gateway.py) | `tripo_client.py`、`openai_preprocessor.py`、Sidecar 中对应 job/下载/质量函数 |
 | 导入与颜色保真 | [导入契约](../src/slic3r/AI/Contracts/IModelArtifactConsumer.hpp)、[ColorIntent](../src/slic3r/AI/Contracts/ColorIntent.hpp) | [OrcaWorkspaceAdapter](../src/slic3r/GUI/AI/Orca/OrcaWorkspaceAdapter.cpp)、OBJ/Model/ObjColorUtils；查消费者是否实际使用元数据 |
 | 智能切片 | [SmartSlicingCoordinator](../src/slic3r/AI/SmartSlicing/Application/SmartSlicingCoordinator.cpp) | `AI/SmartSlicing/Domain`、`Ports`、`GUI/AI/SmartSlicing`、`GUI/AI/Orca` |
+| 原生尺寸/底座与 AI 连续流程 | [原生 UX 审查、修改前后与回归表](audits/2026-09-08-native-ai-workflow-ux.md) | `GUI/AI/Orca/OrcaModelPreparation*`；几何计算先于原生快照提交，既有涂色和原件保留；实际 GUI 验收与离线引擎测试分开记录 |
 | 桌面组合/运行时 | [AIDesktopFeatureHost](../src/slic3r/GUI/AI/AIDesktopFeatureHost.cpp)、集成锁的 ownership | MainFrame/Plater、AIServiceManager/AISidecarClient、network_policy；共享入口需遵守既有集成所有权 |
 | 原生切片/配方 | [Print](../src/libslic3r/Print.cpp)、[ColorDecomposeRecipe](../src/libslic3r/ColorDecomposeRecipe.hpp) | PrintConfig、GCode、ToolOrdering、Format；先与锁定基线对照，区分继承与本地增量 |
 | 已有模型质量复评 | [model-generation-evaluation Skill](../.agents/skills/model-generation-evaluation/SKILL.md) | 按 SOP 读取已有模型、报告和对应测试 |

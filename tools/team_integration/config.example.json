@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "mode": "phase1",
+  "repository": "REPLACE_OWNER/REPLACE_REPOSITORY",
+  "target_branch": "codex/team/integration",
+  "source_branches": ["codex/team/model-generation", "codex/team/smart-slicing", "codex/team/maintenance"],
+  "task_branch_prefixes": ["codex/task/", "codex/upstream-sync-"],
+  "users": {
+    "ou_REPLACE_MODEL_OWNER": "REPLACE_MODEL_GITHUB",
+    "ou_REPLACE_SLICING_OWNER": "REPLACE_SLICING_GITHUB",
+    "ou_REPLACE_MAINTAINER": "REPLACE_MAINTAINER_GITHUB"
+  },
+  "maintainer_ids": ["ou_REPLACE_MAINTAINER"],
+  "chat_id": "oc_REPLACE_TEAM_CHAT",
+  "bot_open_id": "ou_REPLACE_BOT",
+  "required_checks": [
+    {"name": "AI integration checks", "app_id": 0},
+    {"name": "Team integration candidate", "app_id": 0}
+  ],
+  "candidate_workflow": ".github/workflows/team-integration-candidate.yml",
+  "candidate_artifact": "team-integration-candidate",
+  "required_approvals": 1,
+  "github_token_env": "TEAM_GITHUB_TOKEN",
+  "feishu_app_id_env": "TEAM_FEISHU_APP_ID",
+  "feishu_app_secret_env": "TEAM_FEISHU_APP_SECRET",
+  "poll_seconds": 30,
+  "database_path": "REPLACE_WITH_ABSOLUTE_PRIVATE_STATE_PATH"
+}

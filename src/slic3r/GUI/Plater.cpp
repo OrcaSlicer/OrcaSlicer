@@ -2471,7 +2471,7 @@ Sidebar::Sidebar(Plater *parent)
     m_ai_workflow_panel = new wxPanel(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     m_ai_workflow_panel->SetBackgroundColour(p->scrolled->GetBackgroundColour());
     auto* ai_workflow_sizer = new wxBoxSizer(wxVERTICAL);
-    auto* ai_workflow_title = new wxStaticText(m_ai_workflow_panel, wxID_ANY, _L("AI 自动流程"));
+    auto* ai_workflow_title = new wxStaticText(m_ai_workflow_panel, wxID_ANY, _L("最近模型导入"));
     wxFont ai_title_font = ai_workflow_title->GetFont();
     ai_title_font.SetWeight(wxFONTWEIGHT_BOLD);
     ai_workflow_title->SetFont(ai_title_font);
@@ -3342,29 +3342,7 @@ void Sidebar::update_ai_workflow_step(AIWorkflowStep step, AIWorkflowStatus stat
     };
     wxString state;
     wxColour colour;
-    switch (status) {
-    case AIWorkflowStatus::Running:
-        state = _L("进行中");
-        colour = wxColour(0, 121, 107);
-        break;
-    case AIWorkflowStatus::Success:
-        state = _L("完成");
-        colour = wxColour(46, 125, 50);
-        break;
-    case AIWorkflowStatus::Warning:
-        state = _L("需处理");
-        colour = wxColour(154, 103, 0);
-        break;
-    case AIWorkflowStatus::Failed:
-        state = _L("失败");
-        colour = wxColour(179, 38, 30);
-        break;
-    case AIWorkflowStatus::Waiting:
-    default:
-        state = _L("等待");
-        colour = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
-        break;
-    }
+    describe_ai_workflow_status(status, state, colour);
 
     wxString label = wxString::Format("%llu. ", static_cast<unsigned long long>(index + 1)) + names[index] + "  " + state;
     if (!detail.empty())
@@ -7041,7 +7019,8 @@ struct Plater::priv
     std::vector<size_t> load_files(const std::vector<fs::path>& input_files,
                                    LoadStrategy strategy,
                                    bool ask_multi = false,
-                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr);
+                                   ObjImportColorFn obj_color_fn = nullptr, ModelColorImportResult* color_result = nullptr,
+                                   const TextureImportOptions* texture_options = nullptr);
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     // Texture-to-color import: a mesh loaded with UVs + a texture map gets its faces clustered
@@ -7061,7 +7040,8 @@ struct Plater::priv
 
     bool run_textured_mesh_import_dialog(Slic3r::Model& loaded_model, TextureImportResult& result,
                                          std::function<bool()> cancel_callback = {},
-                                         std::function<bool(int)> progress_callback = {});
+                                         std::function<bool(int)> progress_callback = {},
+                                         const TextureImportOptions* texture_options = nullptr);
     void apply_textured_mesh_import_result(Slic3r::Model& loaded_model, const std::vector<size_t>& obj_idxs,
                                            const TextureImportResult& result,
                                            LoadProgressCallback progress_callback = {}, bool update_scene = true);
@@ -8389,7 +8369,8 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
 std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files,
                                              LoadStrategy strategy,
                                              bool ask_multi,
-                                             ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result)
+                                             ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result,
+                                             const TextureImportOptions* texture_options)
 {
     if (color_result != nullptr) *color_result = {};
     std::vector<size_t> empty_result;
@@ -9358,7 +9339,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     dlg_cont = dlg.Update(progress_percent, _L("Matching textures to filaments"));
                     return dlg_cont;
                 };
-                if (!run_textured_mesh_import_dialog(model, texture_import_result, cancel_cb, progress_cb)) {
+                if (!run_textured_mesh_import_dialog(model, texture_import_result, cancel_cb, progress_cb, texture_options)) {
                     if (color_result != nullptr) color_result->cancelled = true;
                     q->skip_thumbnail_invalid = false;
                     return empty_result;
@@ -14792,7 +14773,8 @@ std::vector<size_t> Plater::physical_filament_config_indices() const
 
 bool Plater::priv::run_textured_mesh_import_dialog(Slic3r::Model& loaded_model, TextureImportResult& result,
                                                    std::function<bool()> cancel_callback,
-                                                   std::function<bool(int)> progress_callback)
+                                                   std::function<bool(int)> progress_callback,
+                                                   const TextureImportOptions* texture_options)
 {
     if (!loaded_model.texture_mesh || !has_importable_texture(*loaded_model.texture_mesh)) return false;
 
@@ -14857,7 +14839,8 @@ bool Plater::priv::run_textured_mesh_import_dialog(Slic3r::Model& loaded_model, 
     }
 
     TextureImportDialog dlg(q, *loaded_model.texture_mesh, filament_entries,
-                            std::move(cancel_callback), std::move(progress_callback));
+                            std::move(cancel_callback), std::move(progress_callback),
+                            texture_options ? *texture_options : TextureImportOptions{});
     if (dlg.ShowModal() != wxID_OK) {
         if (dlg.was_skipped()) {
             BOOST_LOG_TRIVIAL(info) << "handle_textured_mesh_import: user skipped texture matching";
@@ -16947,12 +16930,13 @@ void Plater::force_update_all_plate_thumbnails()
 std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
                                        LoadStrategy strategy,
                                        bool ask_multi,
-                                       ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result) {
+                                       ObjImportColorFn obj_color_fn, ModelColorImportResult* color_result,
+                                             const TextureImportOptions* texture_options) {
     //BBS: wish to reset state when load a new file
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
-    return p->load_files(input_files, strategy, ask_multi, std::move(obj_color_fn), color_result);
+    return p->load_files(input_files, strategy, ask_multi, std::move(obj_color_fn), color_result, texture_options);
 }
 
 // To be called when providing a list of files to the GUI slic3r on command line.

@@ -25,6 +25,8 @@ struct SmartSlicingCandidateView
     std::string explanation;
     std::string diagnostic_code;
     std::vector<std::string> evidence_codes;
+    std::vector<AI::SmartSlicing::ConfigPatchEntry> parameter_changes;
+    size_t placement_change_count{0};
     std::optional<double> estimated_time_seconds;
     std::optional<double> filament_volume_mm3;
     std::optional<double> support_volume_mm3;
@@ -64,6 +66,9 @@ struct SmartSlicingViewModel
     bool can_undo_apply{false};
     bool needs_polling{false};
     bool is_stale{false};
+    bool has_report{false};
+    bool can_add_model{false};
+    bool can_recheck{false};
 
     static SmartSlicingViewModel from_snapshot(const AI::SmartSlicing::WorkflowSnapshot& snapshot);
 };

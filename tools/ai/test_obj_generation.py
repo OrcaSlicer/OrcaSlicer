@@ -195,7 +195,20 @@ class TripoGenerationProfileRequestTests(unittest.TestCase):
 
 
 class AutomaticVisualDeliveryGateTests(unittest.TestCase):
-    def test_preview_visual_gate_blocks_paid_generation_on_identity_drift(self):
+    def test_unavailable_reference_checks_return_advice(self):
+        with tempfile.TemporaryDirectory() as directory:
+            job = SIDECAR.Job(id="reference-advice", source="image", directory=Path(directory))
+            with (
+                mock.patch.object(SIDECAR, "_assess_job_model_reference", side_effect=SIDECAR.ModelInputImageQualityError("unavailable")),
+                mock.patch.object(SIDECAR, "_assess_job_generation_reference", side_effect=SIDECAR.ModelInputImageQualityError("unavailable")),
+            ):
+                reports = SIDECAR._assess_reference_advice(job)
+            for report in reports:
+                self.assertEqual(report["status"], "unavailable")
+                self.assertIn("reference_quality_unavailable", report["warnings"])
+                self.assertTrue(report["model_input_eligible"])
+
+    def test_preview_visual_review_retains_identity_drift_advice(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             original = root / "input.png"
@@ -231,7 +244,7 @@ class AutomaticVisualDeliveryGateTests(unittest.TestCase):
                 "preview_identity_mismatch",
             )
 
-    def test_quality_image_job_runs_reference_delivery_review(self):
+    def test_quality_image_job_does_not_render_or_call_provider_before_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             reference = root / "input.png"
@@ -250,16 +263,14 @@ class AutomaticVisualDeliveryGateTests(unittest.TestCase):
 
             with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}), \
                  mock.patch.object(SIDECAR, "review_model_visual_quality", return_value=report) as review:
-                self.assertIs(SIDECAR._automatic_visual_review(job, artifact), report)
+                self.assertIsNone(SIDECAR._automatic_visual_review(job, artifact))
+            review.assert_not_called()
+            self.assertNotEqual(job.phase, "checking_visual")
 
-            self.assertEqual(job.phase, "checking_visual")
-            self.assertEqual(job.progress, 99)
-            self.assertEqual(review.call_args.args[:2], (artifact, root))
-            self.assertEqual(review.call_args.kwargs["reference_path"], reference)
-            self.assertEqual(
-                review.call_args.kwargs["modeling_reference_path"],
-                modeling_reference,
-            )
+            (root / SIDECAR.VISUAL_QUALITY_FILENAME).write_text(json.dumps(report), encoding="utf-8")
+            with mock.patch.object(SIDECAR, "review_model_visual_quality") as review:
+                self.assertEqual(SIDECAR._automatic_visual_review(job, artifact), report)
+            review.assert_not_called()
 
     def test_performance_image_job_skips_automatic_visual_review(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -369,115 +380,6 @@ class PrintablePaletteTests(unittest.TestCase):
                 with self.assertRaises(SIDECAR.RequestError):
                     SIDECAR._normalize_palette(value)
 
-    def test_preview_uses_every_exact_palette_color_without_dithering(self):
-        with tempfile.TemporaryDirectory() as directory:
-            preview = Path(directory) / "preview.png"
-            image = Image.new("RGB", (40, 20))
-            for x in range(40):
-                color = (230, 40, 40) if x < 20 else (30, 220, 40)
-                for y in range(20):
-                    image.putpixel((x, y), color)
-            image.save(preview)
-
-            usage = SIDECAR._quantize_image_to_palette(preview, ("#FF0000", "#00FF00"))
-
-            with Image.open(preview) as result:
-                colors = set(result.convert("RGB").getdata())
-            self.assertEqual(colors, {(255, 0, 0), (0, 255, 0)})
-            self.assertEqual(set(usage), {"#FF0000", "#00FF00"})
-
-    def test_preview_preserves_large_regions_without_palette_speckles(self):
-        with tempfile.TemporaryDirectory() as directory:
-            preview = Path(directory) / "preview.png"
-            image = Image.new("RGB", (18, 9), (255, 0, 0))
-            for x in range(9, 18):
-                for y in range(9):
-                    image.putpixel((x, y), (0, 255, 0))
-            image.save(preview)
-
-            SIDECAR._quantize_image_to_palette(preview, ("#FF0000", "#00FF00"))
-
-            with Image.open(preview) as result:
-                self.assertEqual(set(result.convert("RGB").getdata()), {(255, 0, 0), (0, 255, 0)})
-
-    def test_preview_filter_cannot_create_colors_outside_palette(self):
-        with tempfile.TemporaryDirectory() as directory:
-            preview = Path(directory) / "preview.png"
-            palette = ((255, 0, 0), (0, 255, 0), (0, 0, 255))
-            image = Image.new("RGB", (9, 9))
-            image.putdata([palette[min(2, x // 3)] for y in range(9) for x in range(9)])
-            image.save(preview)
-
-            SIDECAR._quantize_image_to_palette(preview, ("#FF0000", "#00FF00", "#0000FF"))
-
-            with Image.open(preview) as result:
-                colors = set(result.convert("RGB").getdata())
-            self.assertEqual(colors, set(palette))
-
-    def test_preview_keeps_background_clean_without_forcing_unused_colors_onto_base(self):
-        with tempfile.TemporaryDirectory() as directory:
-            preview = Path(directory) / "preview.png"
-            image = Image.new("RGB", (120, 120), (215, 215, 215))
-            for x in range(35, 85):
-                for y in range(12, 98):
-                    image.putpixel((x, y), (205, 160, 123))
-            for x in range(50, 70):
-                for y in range(45, 65):
-                    image.putpixel((x, y), (245, 220, 195))
-            for x in range(35, 85):
-                for y in range(12, 35):
-                    image.putpixel((x, y), (18, 18, 18))
-            for x in range(18, 102):
-                for y in range(92, 112):
-                    image.putpixel((x, y), (120, 175, 105))
-            image.save(preview)
-            palette = (
-                "#DCDBD7", "#FFFFFF", "#CDA07B", "#DAAE8C", "#242421", "#83B771", "#EA0006", "#FFFF0C", "#0102FF"
-            )
-
-            usage = SIDECAR._quantize_image_to_palette(preview, palette, "q_cartoon")
-
-            with Image.open(preview) as result:
-                rgb = result.convert("RGB")
-                self.assertEqual(rgb.getpixel((0, 0)), (220, 219, 215))
-                self.assertEqual(rgb.getpixel((119, 119)), (220, 219, 215))
-                self.assertIn(rgb.getpixel((60, 50)), {(205, 160, 123), (218, 174, 140)})
-                base_colors = {rgb.getpixel((x, 102)) for x in range(20, 100)}
-            self.assertGreaterEqual(len(usage), 4)
-            self.assertLess(set(usage), set(palette))
-            self.assertFalse({(234, 0, 6), (255, 255, 12), (1, 2, 255)} & base_colors)
-
-    def test_preview_protects_face_skin_without_recoloring_warm_armor(self):
-        with tempfile.TemporaryDirectory() as directory:
-            preview = Path(directory) / "preview.png"
-            image = Image.new("RGB", (160, 200), (187, 188, 192))
-            for x in range(62, 98):
-                for y in range(20, 62):
-                    image.putpixel((x, y), (219, 177, 160))
-            for x in range(38, 122):
-                for y in range(72, 145):
-                    image.putpixel((x, y), (235, 225, 210))
-            for x in range(38, 60):
-                for y in range(90, 130):
-                    image.putpixel((x, y), (210, 80, 45))
-            for x in range(50, 110):
-                for y in range(90, 126):
-                    image.putpixel((x, y), (120, 175, 105))
-            for x in range(25, 135):
-                for y in range(150, 188):
-                    image.putpixel((x, y), (36, 36, 33))
-            image.save(preview)
-            palette = ("#DCDBD7", "#DAAE8C", "#EA0006", "#83B771", "#242421")
-
-            SIDECAR._quantize_image_to_palette(preview, palette, "low_poly")
-
-            with Image.open(preview) as result:
-                rgb = result.convert("RGB")
-                self.assertEqual(rgb.getpixel((80, 40)), (218, 174, 140))
-                self.assertEqual(rgb.getpixel((110, 80)), (220, 219, 215))
-                self.assertEqual(rgb.getpixel((45, 110)), (234, 0, 6))
-                self.assertEqual(rgb.getpixel((80, 105)), (131, 183, 113))
-
     def test_style_ids_are_strict_and_default_to_sculpture(self):
         self.assertEqual(SIDECAR._normalize_style(None), "sculpture")
         self.assertEqual(SIDECAR._normalize_style("realistic"), "realistic")
@@ -577,7 +479,9 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertFalse(SIDECAR._identity_preserving_portrait_geometry_enabled(self.job))
         self.job.image_metrics["portrait_geometry"]["detected"] = True
         self.job.palette = tuple(f"#{index:06X}" for index in range(7))
-        self.assertFalse(SIDECAR._identity_preserving_portrait_geometry_enabled(self.job))
+        self.assertTrue(SIDECAR._identity_preserving_portrait_geometry_enabled(self.job))
+        self.job.palette = ()
+        self.assertTrue(SIDECAR._identity_preserving_portrait_geometry_enabled(self.job))
 
     def _write_package(self, archive, *, obj=None, mtl=None, texture=True, extra=None):
         obj = obj or (
@@ -886,7 +790,7 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertEqual(restored.phase, "resuming")
         submit.assert_called_once_with(restored, SIDECAR._generate_job, "resume invalid local package", True)
 
-    def test_face_limit_accepts_lower_adaptive_meshes_and_bounds_overshoot(self):
+    def test_face_limit_accepts_lower_adaptive_meshes_and_warns_about_overshoot(self):
         for face_count, face_limit in (
             (1, 100000),
             (90000, 100000),
@@ -897,15 +801,14 @@ class ObjGenerationTests(unittest.TestCase):
             (375000, 300000),
         ):
             with self.subTest(face_count=face_count, face_limit=face_limit):
-                SIDECAR._validate_face_target(face_count, face_limit)
+                self.assertEqual(SIDECAR._validate_face_target(face_count, face_limit), "")
 
         for face_count, face_limit in (
             (125001, 100000),
             (375001, 300000),
         ):
             with self.subTest(face_count=face_count, face_limit=face_limit):
-                with self.assertRaises(SIDECAR.TripoError):
-                    SIDECAR._validate_face_target(face_count, face_limit)
+                self.assertIn("triangles", SIDECAR._validate_face_target(face_count, face_limit))
 
     def test_restore_accepts_legacy_strict_face_error_without_new_paid_task(self):
         self.job.state = "failed"
@@ -1108,11 +1011,9 @@ class ObjGenerationTests(unittest.TestCase):
             SIDECAR._generate_job(self.job, "printable object", False, self._paid_authorization())
 
         self.assertEqual(self.job.state, "ready")
-        self.assertTrue(self.job.color_intent_path.is_file())
-        manifest = json.loads(self.job.color_intent_path.read_text(encoding="utf-8"))
-        self.assertEqual(manifest["schema"], SIDECAR.COLOR_INTENT_SCHEMA)
-        self.assertEqual(manifest["artifact"]["sha256"], hashlib.sha256(artifact.read_bytes()).hexdigest())
-        self.assertEqual(len(manifest["targets"]), 4)
+        self.assertIsNone(self.job.color_intent_path)
+        self.assertEqual(self.job.palette, ())
+        self.assertEqual(artifact.read_text(encoding="utf-8"), "v 0 0 0 1 0 0\nf 1 1 1\n")
 
     def test_accepted_attempt_publishes_structural_report_with_final_artifact(self):
         attempt = self.job.directory / "attempt-01"
@@ -1177,7 +1078,7 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertEqual(self.job.attempts[0]["source_job_id"], "geometry-job")
         self.assertEqual(self.job.attempts[0]["source_task_id"], "geometry-task")
 
-    def test_multicolor_image_generation_submits_detail_reference_then_keeps_palette(self):
+    def test_multicolor_image_generation_submits_raw_design_without_printer_palette(self):
         self.job.source = "image"
         raw = self.job.directory / "style-preview-raw.png"
         exact = self.job.directory / "model-reference.png"
@@ -1200,8 +1101,8 @@ class ObjGenerationTests(unittest.TestCase):
 
         request = gateway.start_or_reuse_model_task.call_args.args[0]
         self.assertEqual(request.source, "image")
-        self.assertEqual(request.image_path, exact)
-        self.assertEqual(self.job.palette, self.palette)
+        self.assertEqual(request.image_path, raw)
+        self.assertEqual(self.job.palette, ())
 
     def test_quality_realistic_portrait_submits_identity_front_as_one_model_task(self):
         self.job.source = "image"
@@ -2844,14 +2745,38 @@ class ObjGenerationTests(unittest.TestCase):
         SIDECAR._validate_obj_vertex_colors(artifact)
         SIDECAR._validate_obj_topology(artifact)
 
-    def test_model_quality_report_write_failure_is_a_controlled_generation_error(self):
+    def test_model_quality_report_write_failure_keeps_readable_artifact(self):
         raw = self.job.directory / "artifact-raw.download"
         self._write_package(raw)
         failure = SIDECAR.ModelQualityError("report_write_failed", "quality report unavailable")
 
         with mock.patch.object(SIDECAR, "write_model_quality_report", side_effect=failure):
-            with self.assertRaisesRegex(SIDECAR.TripoError, "quality report unavailable"):
-                SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+            artifact = SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+        SIDECAR._validate_artifact(artifact, "obj")
+
+    def test_rejected_quality_report_is_advice_and_keeps_readable_artifact(self):
+        raw = self.job.directory / "artifact-raw.download"
+        self._write_package(raw)
+        report = {"status": "reject", "errors": ["floating_components", "thin_structural_parts"]}
+        with mock.patch.object(SIDECAR, "analyze_printable_obj", return_value=report):
+            artifact = SIDECAR._prepare_obj_artifact(raw, self.job.directory, ())
+        self.assertTrue(artifact.is_file())
+        self.assertEqual(json.loads((self.job.directory / SIDECAR.MODEL_QUALITY_FILENAME).read_text()), report)
+        SIDECAR._validate_artifact(artifact, "obj")
+
+    def test_delivery_accepts_open_and_degenerate_mesh_but_rejects_missing_indices(self):
+        raw = self.job.directory / "artifact-raw.download"
+        raw.write_text(
+            "v 0 0 0 0.7 0.2 0.1\nv 1 0 0 0.2 0.6 0.4\nv 0 1 1 0.3 0.1 0.8\n"
+            "f 1 2 3\nf 1 1 2\n", encoding="ascii",
+        )
+        artifact = SIDECAR._prepare_obj_artifact(raw, self.job.directory, ())
+        SIDECAR._validate_artifact(artifact, "obj")
+        quality = json.loads((self.job.directory / SIDECAR.MODEL_QUALITY_FILENAME).read_text())
+        self.assertEqual(quality["status"], "reject")
+        artifact.write_text("v 0 0 0 1 0 0\nf 1 2 3\n", encoding="ascii")
+        with self.assertRaisesRegex(SIDECAR.TripoError, "missing vertex"):
+            SIDECAR._validate_artifact(artifact, "obj")
 
     def test_zip_texture_preserves_natural_vertex_colors_without_printable_palette(self):
         raw = self.job.directory / "artifact-raw.download"
@@ -3208,7 +3133,7 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertEqual(report["remaining_invalid_edges"], 0)
         SIDECAR._validate_obj_palette(artifact, self.palette)
 
-    def test_excessive_open_edges_are_rejected_before_import(self):
+    def test_excessive_open_edges_are_reported_without_blocking_artifact(self):
         raw = self.job.directory / "artifact-raw.download"
         vertices = ["v 0 0 0 1 0 0"]
         faces = []
@@ -3223,10 +3148,12 @@ class ObjGenerationTests(unittest.TestCase):
             faces.append(f"f 1 {2 * index + 2} {2 * index + 3}")
         raw.write_text("\n".join(vertices + faces) + "\n", encoding="ascii")
 
-        with self.assertRaisesRegex(SIDECAR.TripoError, "watertight"):
-            SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+        artifact = SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+        quality = json.loads((self.job.directory / SIDECAR.MODEL_QUALITY_FILENAME).read_text())
+        self.assertEqual(quality["status"], "reject")
+        SIDECAR._validate_artifact(artifact, "obj")
 
-    def test_open_mesh_is_rejected_before_import(self):
+    def test_open_mesh_is_reported_without_blocking_artifact(self):
         raw = self.job.directory / "artifact-raw.download"
         obj = (
             "mtllib model.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\n"
@@ -3234,8 +3161,10 @@ class ObjGenerationTests(unittest.TestCase):
         )
         self._write_package(raw, obj=obj)
 
-        with self.assertRaisesRegex(SIDECAR.TripoError, "watertight"):
-            SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+        artifact = SIDECAR._prepare_obj_artifact(raw, self.job.directory, self.palette)
+        quality = json.loads((self.job.directory / SIDECAR.MODEL_QUALITY_FILENAME).read_text())
+        self.assertEqual(quality["status"], "reject")
+        SIDECAR._validate_artifact(artifact, "obj")
 
     def test_plain_vertex_color_obj_is_preserved(self):
         raw = self.job.directory / "artifact-raw.download"

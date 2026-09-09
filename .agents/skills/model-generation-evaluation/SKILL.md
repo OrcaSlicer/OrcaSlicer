@@ -1,6 +1,6 @@
 ---
 name: model-generation-evaluation
-description: Evaluate existing local generated OBJ artifacts or frozen Tripo batches in this OrcaSlicer project using structural, color and evidence checks. Use for model quality review or regression comparison; this workflow does not generate new provider tasks.
+description: Evaluate existing local OBJ artifacts or frozen Tripo batches for model quality and regression evidence without new generation.
 ---
 
 # Model generation evaluation
@@ -38,6 +38,8 @@ python -m unittest tools.ai.test_printable_model_quality tools.ai.test_color_int
 ```
 
 These include synthetic meshes and report fixtures. Run related palette/input-image tests only when that behavior is in scope. Model import/SmartSlicing regressions additionally use the appropriate C++ suites via [tests/AGENTS.md](../../../tests/AGENTS.md). Python results do not stand in for C++/GUI acceptance.
+
+For an existing version edited in Orca (height/base), follow the [native preparation evidence and regression table](../../../Docs/audits/2026-09-08-native-ai-workflow-ux.md). Evaluate that project version, not only its unchanged generated OBJ. The `[OrcaModelPreparation]` C++ tests cover total world height including the base, original painting, Orca 3MF round-trip and native trial slicing against explicit device heights. Keep original artifact, edited project and G-code evidence distinct. These tests do not qualify GUI navigation, undo focus, themes, DPI or real prints; the linked table records those limits.
 
 ## Inspect and report
 

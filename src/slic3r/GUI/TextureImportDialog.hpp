@@ -85,6 +85,16 @@ struct FilamentMappingRow {
 
 class FilamentSelectPopup;
 class AutoMixSelectPopup;
+
+// Optional desktop import context. Defaults preserve ordinary Orca imports.
+struct TextureImportOptions {
+    size_t initial_target_colors = 0;
+    size_t physical_filament_limit = 0;
+    bool preserve_existing_filaments = false;
+    bool z_up = false;
+    std::vector<std::array<std::size_t, 3>> fixed_palette;
+    std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
+};
 // Lightweight 3D preview panel using wxGLCanvas.
 // Renders: original textured, multi-color, or filament-mapped.
 class TexturePreviewCanvas : public wxGLCanvas
@@ -121,6 +131,7 @@ public:
     RenderMode get_render_mode() const { return m_mode; }
     void set_computing_overlay(bool show);
     void reset_view();
+    void set_z_up(bool enabled) { m_z_up = enabled; reset_view(); }
 
 private:
     void on_paint(wxPaintEvent& evt);
@@ -148,6 +159,7 @@ private:
     float   m_rot_y    = 30.0f;
     float   m_pan_x    = 0.0f;
     float   m_pan_y    = 0.0f;
+    bool    m_z_up     = false;
     wxPoint m_last_mouse_pos;
     enum class DragMode { None, Rotate, Pan };
     DragMode m_drag_mode = DragMode::None;
@@ -198,7 +210,8 @@ public:
                         const Slic3r::TexturedMesh&      textured_mesh,
                         const std::vector<TextureFilamentEntry>& filament_entries,
                         std::function<bool()>            initial_cancel_callback = {},
-                        std::function<bool(int)>         initial_progress_callback = {});
+                        std::function<bool(int)>         initial_progress_callback = {},
+                        TextureImportOptions             options = {});
     ~TextureImportDialog();
 
     int ShowModal() override;
@@ -250,6 +263,7 @@ private:
     void restore_current_match_order(const std::vector<Slic3r::FilamentMatch>& previous_matches);
     std::vector<Slic3r::FilamentMatch> build_matches_from_rows() const;
     void update_filament_color_map();
+    void update_mapping_summary();
     void show_filament_popup(size_t row_index);
     void dismiss_filament_popup();
     void dismiss_filament_popup_on_wheel(wxMouseEvent& evt);
@@ -267,6 +281,7 @@ private:
                                     const std::vector<int>& ratios);
     size_t max_filament_count() const;
     bool can_add_virtual_filament() const;
+    bool can_add_physical_filament() const;
     // Recomputes m_drop_warning_label visibility from m_filaments_dropped and
     // m_state. Safe to call whether or not the label has been created yet.
     // Visibility reflects ONLY the result of the most recent do_auto_match():
@@ -310,6 +325,7 @@ private:
     void style_confirm_button(bool dirty);
 
     Slic3r::TexturedMesh               m_textured_mesh;
+    TextureImportOptions               m_options;
     std::vector<std::string>           m_filament_color_strs;   // existing + virtual
     std::vector<std::string>           m_filament_names;        // existing + virtual
     std::vector<std::array<float, 4>>  m_filament_colors_rgba;  // existing + virtual
@@ -353,6 +369,7 @@ private:
         Slic3r::TexturePaintingSettings::MeshRepairDecision::Ask;
 
     Button*       m_btn_color_4    = nullptr;
+    Button*       m_btn_color_6    = nullptr;
     Button*       m_btn_color_8    = nullptr;
     Button*       m_btn_color_16   = nullptr;
     Button*       m_btn_color_auto = nullptr;
@@ -378,12 +395,14 @@ private:
     wxPanel*              m_tab_panel           = nullptr;
     Button*               m_btn_view_original   = nullptr;
     Button*               m_btn_view_multicolor = nullptr;
+    Button*               m_btn_view_filaments  = nullptr;
 
     ProgressDialog* m_progress_dlg = nullptr;
 
     Button*       m_btn_skip = nullptr;
     Button*       m_btn_ok   = nullptr;
     wxStaticText* m_drop_warning_label = nullptr;
+    wxStaticText* m_mapping_summary = nullptr;
 
     int   m_param_color_count = 4;
     int   m_param_smooth      = 5;
@@ -400,6 +419,7 @@ private:
     static const int ID_BTN_SKIP    = wxID_HIGHEST + 205;
     static const int ID_VIEW_ORIGINAL   = wxID_HIGHEST + 206;
     static const int ID_VIEW_MULTICOLOR = wxID_HIGHEST + 207;
+    static const int ID_COLOR_6         = wxID_HIGHEST + 208;
 
     wxDECLARE_EVENT_TABLE();
 };

@@ -16,8 +16,29 @@ import sys
 from typing import Any, Iterable, Sequence
 
 
-SCHEMA = "orcaslicer.ai-integration-lock/v3"
-EXPECTED_INTEGRATION_BRANCH = "codex/orca-integration-v2"
+SCHEMA = "orcaslicer.ai-integration-lock/v4"
+EXPECTED_INTEGRATION_BRANCH = "codex/team/integration"
+EXPECTED_BRANCH_POLICY = {
+    "long_lived_branches": {
+        "model_generation": "codex/team/model-generation",
+        "smart_slicing": "codex/team/smart-slicing",
+        "maintenance": "codex/team/maintenance",
+        "integration": "codex/team/integration",
+    },
+    "developer_sync_source": "codex/team/integration",
+    "long_lived_sync_method": "merge_commit",
+    "force_push_allowed": False,
+    "integration_requires_pull_request": True,
+    "integration_requires_latest_base_and_head": True,
+    "historical_provenance": "fixed_source_sha_and_integration_receipt",
+}
+EXPECTED_CI_CONTRACT = {
+    "guardrails_workflow": ".github/workflows/ai-integration-guardrails.yml",
+    "candidate_workflow": ".github/workflows/team-integration-candidate.yml",
+    "required_checks": ["AI integration checks", "Team integration candidate"],
+    "merge_queue_event": "merge_group",
+    "path_filters_allowed": False,
+}
 EXPECTED_UPSTREAM = {
     "remote": "upstream",
     "branch": "main",
@@ -100,7 +121,6 @@ EXPECTED_RELEASE_PROMOTION = {
 }
 EXPECTED_BOUNDARY_FLAGS = (
     "integration_consumes_exact_accepted_sha",
-    "feature_branches_receive_no_reverse_integration",
     "preserve_orca_defaults",
     "preserve_3mf_and_profile_formats",
     "paid_api_requires_explicit_authorization",
@@ -139,6 +159,12 @@ REQUIRED_SHARED_RUNTIME_PATHS = {
     "tools/ai/orca_ai_installed_bootstrap.py",
     "tools/ai/orca_ai_runtime_dependencies.json.in",
     "tools/ai/verify_bundled_runtime.py",
+}
+REQUIRED_MODEL_GENERATION_PATHS = {
+    "src/slic3r/AI/ModelGeneration",
+    "src/slic3r/GUI/AI/ModelGeneration",
+    "src/slic3r/GUI/AI/Model/ModelFinishing.cpp",
+    "src/slic3r/GUI/AI/Model/ModelFinishing.hpp",
 }
 REQUIRED_CONTRACT_PATHS = {
     "src/slic3r/AI/Contracts/GeneratedModelArtifact.hpp",
@@ -201,6 +227,12 @@ LITERAL_PROVIDER_KEY_PATTERN = re.compile(
     r'''(?i)["']?(OPENAI_PRO_API|OPENAI_API_KEY|TRIPO_API_KEY)["']?\s*[:=]\s*["']([^"'\r\n]{16,})["']'''
 )
 PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
+# These two audited negative-test payloads deliberately resemble credentials.
+# Match the exact file, variable and value; never exempt a test file or a prefix.
+AUDITED_CREDENTIAL_FIXTURES = {
+    ("release/test_verify_package_contents.py", "TRIPO_API_KEY", "fixture-opaque-value"),
+    ("tools/ai/test_diagnostic_failure_flow.py", "TRIPO_API_KEY", "unused-tripo-key"),
+}
 
 
 def _issue(code: str, message: str) -> dict[str, str]:
@@ -284,6 +316,8 @@ def validate_document(document: Any) -> list[dict[str, str]]:
         (
             "schema",
             "integration_branch",
+            "branch_policy",
+            "ci_contract",
             "upstream",
             "feature_sources",
             "integration_receipts",
@@ -296,6 +330,16 @@ def validate_document(document: Any) -> list[dict[str, str]]:
     )
     _expect_constant(root.get("schema"), SCHEMA, "schema", errors)
     _expect_constant(root.get("integration_branch"), EXPECTED_INTEGRATION_BRANCH, "integration_branch", errors)
+
+    branch_policy = _expect_object(root.get("branch_policy"), "branch_policy", errors)
+    _expect_exact_keys(branch_policy, EXPECTED_BRANCH_POLICY, "branch_policy", errors)
+    for key, expected in EXPECTED_BRANCH_POLICY.items():
+        _expect_constant(branch_policy.get(key), expected, f"branch_policy.{key}", errors)
+
+    ci_contract = _expect_object(root.get("ci_contract"), "ci_contract", errors)
+    _expect_exact_keys(ci_contract, EXPECTED_CI_CONTRACT, "ci_contract", errors)
+    for key, expected in EXPECTED_CI_CONTRACT.items():
+        _expect_constant(ci_contract.get(key), expected, f"ci_contract.{key}", errors)
 
     upstream = _expect_object(root.get("upstream"), "upstream", errors)
     _expect_exact_keys(upstream, EXPECTED_UPSTREAM, "upstream", errors)
@@ -531,6 +575,14 @@ def validate_document(document: Any) -> list[dict[str, str]]:
                 f"shared runtime ownership is missing: {', '.join(missing_shared_runtime)}",
             )
         )
+    missing_model_generation = sorted(REQUIRED_MODEL_GENERATION_PATHS - model_paths)
+    if missing_model_generation:
+        errors.append(
+            _issue(
+                "boundary.model_generation",
+                f"model generation ownership is missing: {', '.join(missing_model_generation)}",
+            )
+        )
     missing_contracts = sorted(REQUIRED_CONTRACT_PATHS - contract_paths)
     if missing_contracts:
         errors.append(_issue("boundary.contract", f"allowed contracts are missing: {', '.join(missing_contracts)}"))
@@ -649,10 +701,6 @@ def validate_architecture_budgets(document: dict[str, Any], repo_root: Path) -> 
     return errors
 
 
-def _git_ref_exists(repo_root: Path, ref: str) -> bool:
-    return _run_git(repo_root, ["show-ref", "--verify", "--quiet", ref]).returncode == 0
-
-
 def _git_object_at_path(repo_root: Path, commit: str, path: str) -> str | None:
     result = _run_git(repo_root, ["rev-parse", f"{commit}:{path}"])
     if result.returncode != 0:
@@ -681,14 +729,17 @@ def _placeholder_secret(value: str) -> bool:
     )
 
 
-def _secret_finding(line: str) -> str:
+def _secret_finding(line: str, relative_path: str = "") -> str:
     if PRIVATE_KEY_PATTERN.search(line):
         return "private-key material"
     if DIRECT_OPENAI_KEY_PATTERN.search(line):
         return "OpenAI-style credential"
-    assignment = LITERAL_PROVIDER_KEY_PATTERN.search(line)
-    if assignment and not _placeholder_secret(assignment.group(2)):
-        return f"literal {assignment.group(1).upper()} credential"
+    for assignment in LITERAL_PROVIDER_KEY_PATTERN.finditer(line):
+        name, value = assignment.group(1).upper(), assignment.group(2)
+        if (relative_path, name, value) in AUDITED_CREDENTIAL_FIXTURES:
+            continue
+        if not _placeholder_secret(value):
+            return f"literal {name} credential"
     return ""
 
 
@@ -707,7 +758,7 @@ def validate_tracked_secret_content(repo_root: Path, paths: Iterable[str]) -> li
         except OSError:
             continue
         for line_number, line in enumerate(content.splitlines(), 1):
-            finding = _secret_finding(line)
+            finding = _secret_finding(line, normalized)
             if finding:
                 errors.append(
                     _issue("security.secret_content", f"{finding} must not be tracked: {normalized}:{line_number}")
@@ -742,7 +793,7 @@ def validate_git_secret_content(repo_root: Path) -> list[dict[str, str]]:
         line_text, line_separator, line = remainder.partition(":")
         if not separator or not line_separator or not line_text.isdigit():
             continue
-        finding = _secret_finding(line)
+        finding = _secret_finding(line, relative_path.replace("\\", "/"))
         if finding:
             errors.append(
                 _issue(
@@ -843,17 +894,9 @@ def validate_git(document: dict[str, Any], repo_root: Path) -> tuple[list[dict[s
     if _run_git(repo_root, ["merge-base", "--is-ancestor", upstream_sha, head]).returncode != 0:
         errors.append(_issue("git.upstream_ancestor", f"locked upstream {upstream_sha} is not an ancestor of HEAD {head}"))
 
-    for name, source in document["feature_sources"].items():
-        branch = source["branch"]
-        sha = source["sha"]
-        candidates = (f"refs/remotes/origin/{branch}", f"refs/heads/{branch}")
-        available = [ref for ref in candidates if _git_ref_exists(repo_root, ref)]
-        if not available:
-            errors.append(_issue("git.missing_source_ref", f"no local origin or branch ref is available for {branch}"))
-            continue
-        if not any(_run_git(repo_root, ["merge-base", "--is-ancestor", sha, ref]).returncode == 0 for ref in available):
-            errors.append(_issue("git.source_ancestry", f"locked {name} commit {sha} is not in {branch} history"))
-
+    # feature_sources records historical imports, not the current developer
+    # branch tips. Fixed source objects and ancestor receipts below preserve
+    # provenance even when the original branch refs are absent or have moved.
     receipt_errors, receipt_details = validate_integration_receipts(document, repo_root, head)
     errors.extend(receipt_errors)
     details["integration_receipts"] = receipt_details
@@ -995,6 +1038,31 @@ def _source_requirements(document: dict[str, Any]) -> tuple[tuple[str, str, str]
             ".github/CODEOWNERS",
             r"^/src/slic3r/AI/Contracts/\s+\S+",
             "neutral AI contract CODEOWNER",
+        ),
+        (
+            ".github/CODEOWNERS",
+            r"^/src/slic3r/GUI/AI/Model/ModelFinishing\.\*\s+\S+",
+            "model finishing CODEOWNER",
+        ),
+        (
+            document["ci_contract"]["guardrails_workflow"],
+            r"^    name:\s*['\"]?AI integration checks['\"]?\s*$",
+            "required AI integration check name",
+        ),
+        (
+            document["ci_contract"]["candidate_workflow"],
+            r"^    name:\s*['\"]?Team integration candidate['\"]?\s*$",
+            "required team integration candidate check name",
+        ),
+        (
+            document["ci_contract"]["guardrails_workflow"],
+            r"^  merge_group:",
+            "AI guardrails merge queue trigger",
+        ),
+        (
+            document["ci_contract"]["candidate_workflow"],
+            r"^  merge_group:",
+            "team candidate merge queue trigger",
         ),
         (
             "tools/ai/orca_ai_sidecar.py",

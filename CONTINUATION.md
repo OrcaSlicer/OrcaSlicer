@@ -2,9 +2,17 @@
 
 日期：2026-09-08
 
-当前分支：`codex/continue`
+**2026-09-09 三人协作实施：** 用户已接受 [ADR-007](Docs/architecture/ADR-007-three-developer-feishu-integration.md)，选择现有公开仓库 `arsenaltj/OrcaSlicer`，并明确新建分支、弃用旧开发分支。新四分支使用 `codex/team/{model-generation,smart-slicing,maintenance,integration}`，旧分支保留历史、不覆盖。`origin` 已连接此仓库。通知／候选检查、分支准备和 CI 的本地实现及上线状态见[实施记录](Docs/audits/2026-09-09-team-feishu-integration.md)。两位同事账号、飞书应用／群和持续在线服务机仍待补齐；采用新流程不代表自动合入、远程保护或完整产品验收已上线。
+
+**2026-09-09 性能、提示与美颜调整：** 当前请求要求先体验再修改。保留单色写实，多色写实和风格化不限色；质量检查改为提示，保留文件可解析性与任务有效性约束。已完成后台模型预览、取消生成结束自动视觉复核、本地表面柔化和版本恢复改进。详细耗时、真实模型体验、验证范围及后续复测结果统一记录在[本次审计](Docs/audits/2026-09-09-performance-advisory-finishing.md)，覆盖旧文档中质量检查阻断下一步的要求。
+
+当前用户开发线：`codex/team/model-generation`；`codex/continue` 保留续建来源。实际 checkout 用 `git branch --show-current` 核对。
+
+**2026-09-09 最新产品调整与分工：** 取消原图 → AI 设计图 → 3D 生成的系统打印限色，但明确保留“单色写实”风格。取消限色与本地三维美颜／修复由当前任务实现；仅 AI 增强 Orca 原生颜色匹配交给同事。详见[当前实施范围](Docs/plans/2026-09-09-unrestricted-generation-and-finishing.md)、[实现与验证结果](Docs/audits/2026-09-09-unrestricted-generation-and-finishing.md)、[仅第三项的同事交接](Docs/plans/2026-09-09-ai-native-color-matching-handoff.md)。覆盖下文生成阶段提前限色的冲突要求。后续已成功启动主窗口，修复 RGB 图片碎片误拦并验证同一任务的恢复及切页状态；见[图片预检实测](Docs/audits/2026-09-09-reference-preflight-fix.md)。其余完整生成/导入/修整旅程仍未验收。
 
 迁移代码快照提交：`33cdc9711daa55e8162d9c8f24234fb29d9f1024`
+
+**2026-09-09 后续设计图背景偏好：** 用户要求后续不用棋盘格背景。文字生图和图片改图的生产入口统一要求不透明纯色背景，默认中灰色并按主体颜色保持轮廓对比，禁止仿透明棋盘格；保留原图和已确认的历史产物。实现与验证见[背景默认规则](Docs/audits/2026-09-09-solid-background-default.md)。
 
 当前 `HEAD` 会比迁移代码快照多出本文件和精简版 `AGENTS.md` 的文档提交，因此两者本来就不应相等。代码来源核对以 `33cdc971...` 为界；日常开发和工作树清洁度以当前 `HEAD` 为准。可以用 `git log -3 --oneline` 和 `git diff 33cdc9711daa55e8162d9c8f24234fb29d9f1024..HEAD -- AGENTS.md CONTINUATION.md` 确认其关系，这不是证据冲突。
 
@@ -171,7 +179,7 @@ ModelGenerationPanel
 
 这个仓库只建立一个用户可见的接手任务。它维护一个当前工作清单，一次完成一个可审查的小目标。不要恢复六个永久角色窗口，也不要让多份计划各自成为“当前状态”。
 
-首轮只做理解和基线确认：
+以下是建仓时的首次基线检查清单，保留作接手参考，不是每次接手都必须重跑的待办。仅在当前任务缺少相应基线证据时读取有关资料和核对有关路径；已明确的实现请求继续按最新要求完成。原始检查内容：
 
 1. 阅读本文件、`Docs/AI_ENGINEERING.md`、完整产品任务书和集成锁。
 2. 核对 `codex/continue`、快照提交、三个 `archive/*` 来源分支及工作树是否干净。
@@ -179,4 +187,4 @@ ModelGenerationPanel
 4. 沿 `Plater -> SmartSlicingFeatureHost -> SmartSlicingCoordinator -> Ports` 阅读当前智能切片路径，只读当前分支；不比较被阻塞的来源分支。
 5. 产出 `Docs/continuation/INITIAL_ASSESSMENT.md`，按“已实现且有证据 / 已实现但需验证 / 仅目标或提案 / 明确受阻”分类，并提出三个最小的后续工程任务。
 
-首轮不改业务代码，不启动付费生成，不构建发布包，不推送，不联系测试者，也不恢复旧任务。完成这份评估后，再从主窗口真实流程和当前构建基线中选择第一个小修复。
+上述评估文件仅在用户要求基线评估或实际交接需要时产出；文件不存在不构成已授权开发的停工条件。不因接手自动启动付费生成、构建发布包、推送、联系测试者或恢复旧任务。已有实现和验证以当前任务及最新记录为准。

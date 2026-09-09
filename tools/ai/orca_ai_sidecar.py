@@ -791,7 +791,11 @@ def _validate_image_data(
     minimum_edge: int,
     require_visual_detail: bool = False,
 ) -> ValidatedImage:
-    """Fully decode an image before it is accepted by an AI or 3D provider."""
+    """Check transport integrity; image quality belongs to advisory reports.
+
+    Keep legacy quality arguments compatible with existing callers, but small,
+    blank and transparent decodable images are allowed to continue.
+    """
     if not data or len(data) > MAX_IMAGE_BYTES:
         raise ValueError("The image is empty or exceeds the 20 MB limit.")
     content_type = _image_type(data[:16])
@@ -807,22 +811,9 @@ def _validate_image_data(
             if opened.format != expected_format:
                 raise ValueError("The image format does not match its file signature.")
             width, height = opened.size
-            if (
-                width < minimum_edge
-                or height < minimum_edge
-                or width * height > MAX_TEXTURE_PIXELS
-            ):
-                raise ValueError(
-                    f"The image must be at least {minimum_edge} x {minimum_edge} pixels and no more than 64 megapixels."
-                )
+            if width * height > MAX_TEXTURE_PIXELS:
+                raise ValueError("The image must contain no more than 64 megapixels.")
             opened.load()
-            if require_visual_detail:
-                rgba = opened.convert("RGBA")
-                extrema = rgba.getextrema()
-                if extrema[3][1] == 0:
-                    raise ValueError("The image is fully transparent.")
-                if all(low == high for low, high in extrema):
-                    raise ValueError("The image is blank and cannot be used for 3D generation.")
     except ValueError:
         raise
     except (OSError, UnidentifiedImageError, Image.DecompressionBombError):
@@ -905,12 +896,13 @@ def _normalize_generation_profile(value: Any) -> str:
     return value
 
 
-def _validate_face_target(face_count: int, face_limit: int) -> None:
+def _validate_face_target(face_count: int, face_limit: int) -> str:
     maximum = min(MAX_MODEL_FACES, math.ceil(face_limit * MAX_MODEL_FACE_RATIO))
     if face_count > maximum:
-        raise TripoError(
+        return (
             f"The generated OBJ contains {face_count} triangles; the {face_limit}-triangle target allows at most {maximum}."
         )
+    return ""
 
 
 def _legacy_face_error_is_recoverable(message: str, face_limit: int) -> bool:
@@ -1274,8 +1266,7 @@ def _restore_jobs(*, resume_jobs: bool = True) -> list[Job]:
                 setattr(job, attribute, None)
         if job.state == "awaiting_confirmation" and (job.model_reference_path or job.preview_path) is not None:
             try:
-                quality = _assess_job_model_reference(job)
-                generation_quality = _assess_job_generation_reference(job)
+                quality, generation_quality = _assess_reference_advice(job)
                 cached_visual_quality = job.image_metrics.get("preview_visual_quality")
                 if isinstance(cached_visual_quality, dict):
                     _apply_preview_visual_quality_gate(job, cached_visual_quality)
@@ -1287,6 +1278,8 @@ def _restore_jobs(*, resume_jobs: bool = True) -> list[Job]:
                     job.message = _model_input_quality_message(generation_quality)
                 elif not bool(quality.get("model_input_eligible", False)):
                     job.message = _model_input_quality_message(quality)
+                elif job.phase == "awaiting_confirmation":
+                    job.message = _printable_preview_message(job, "Review the prepared image before generation.")
             except ModelInputImageQualityError:
                 job.state = "failed"
                 job.phase = "failed"
@@ -1714,283 +1707,6 @@ def _return_to_portrait_multiview_retry(job: Job, message: str) -> None:
 def _fail_preprocess_job(job: Job, error: OpenAIPreprocessorError) -> None:
     job.preprocess_failure = preprocess_failure_payload(error)
     _fail_job(job, str(error))
-def _is_warm_skin_color(color: tuple[int, int, int]) -> bool:
-    red, green, blue = color
-    return (
-        red > green >= blue
-        and red - blue >= 14
-        and red >= 100
-        and blue >= 35
-        and green >= red * 0.45
-    )
-
-
-def _is_printable_skin_color(color: tuple[int, int, int]) -> bool:
-    red, green, blue = color
-    return _is_warm_skin_color(color) and red - green >= 15
-
-
-def _find_face_skin_mask(
-    pixels: list[tuple[int, int, int]],
-    width: int,
-    height: int,
-    background: bytes,
-    foreground_box: tuple[int, int, int, int],
-    style: str,
-) -> bytes:
-    left, top, right, bottom = foreground_box
-    subject_width = max(1, right - left)
-    subject_height = max(1, bottom - top)
-    search_bottom = min(bottom, top + max(1, int(subject_height * 0.48)))
-    candidates = bytearray(width * height)
-    for y in range(top, search_bottom):
-        row = y * width
-        for x in range(left, right):
-            offset = row + x
-            if not background[offset] and _is_warm_skin_color(pixels[offset]):
-                candidates[offset] = 1
-
-    visited = bytearray(width * height)
-    best_component: list[int] = []
-    best_score = float("inf")
-    target_y = top + subject_height * 0.08
-    minimum_area = max(64, int(subject_width * subject_height * 0.0015))
-    for seed in range(top * width, search_bottom * width):
-        if not candidates[seed] or visited[seed]:
-            continue
-        visited[seed] = 1
-        pending: deque[int] = deque([seed])
-        component: list[int] = []
-        sum_x = 0
-        sum_y = 0
-        while pending:
-            offset = pending.popleft()
-            x = offset % width
-            y = offset // width
-            component.append(offset)
-            sum_x += x
-            sum_y += y
-            if x > left:
-                neighbor = offset - 1
-                if candidates[neighbor] and not visited[neighbor]:
-                    visited[neighbor] = 1
-                    pending.append(neighbor)
-            if x + 1 < right:
-                neighbor = offset + 1
-                if candidates[neighbor] and not visited[neighbor]:
-                    visited[neighbor] = 1
-                    pending.append(neighbor)
-            if y > top:
-                neighbor = offset - width
-                if candidates[neighbor] and not visited[neighbor]:
-                    visited[neighbor] = 1
-                    pending.append(neighbor)
-            if y + 1 < search_bottom:
-                neighbor = offset + width
-                if candidates[neighbor] and not visited[neighbor]:
-                    visited[neighbor] = 1
-                    pending.append(neighbor)
-
-        if len(component) < minimum_area:
-            continue
-        center_x = sum_x / len(component)
-        center_y = sum_y / len(component)
-        horizontal_distance = abs(center_x - (left + right) * 0.5) / subject_width
-        if horizontal_distance > 0.32:
-            continue
-        vertical_distance = abs(center_y - target_y) / subject_height
-        area_ratio = len(component) / (subject_width * subject_height)
-        score = vertical_distance + horizontal_distance * 1.5 - min(0.08, area_ratio * 0.4)
-        if score < best_score:
-            best_score = score
-            best_component = component
-
-    mask = bytearray(width * height)
-    if not best_component:
-        return bytes(mask)
-    component_left = min(offset % width for offset in best_component)
-    component_right = max(offset % width for offset in best_component) + 1
-    component_top = min(offset // width for offset in best_component)
-    component_bottom = max(offset // width for offset in best_component) + 1
-    component_width = component_right - component_left
-    component_height = component_bottom - component_top
-    expansion_x = int(max(2, min(component_width, subject_width * 0.18), subject_width * 0.08))
-    expansion_y = int(max(2, min(component_height, subject_height * 0.18), subject_height * 0.08))
-    face_region_bottom = top + int(subject_height * (0.39 if style in {"cartoon", "q_cartoon"} else 0.17))
-    for y in range(
-        max(top, component_top - expansion_y),
-        min(search_bottom, face_region_bottom, component_bottom + expansion_y),
-    ):
-        row = y * width
-        for x in range(max(left, component_left - expansion_x), min(right, component_right + expansion_x)):
-            offset = row + x
-            red, green, blue = pixels[offset]
-            relaxed_skin = (
-                red >= green >= blue
-                and red - blue >= 6
-                and red >= 120
-                and green >= red * 0.68
-            )
-            if not background[offset] and relaxed_skin:
-                mask[offset] = 255
-    return bytes(mask)
-
-
-def _quantize_image_to_palette(
-    path: Path,
-    palette: tuple[str, ...],
-    style: str = "sculpture",
-) -> dict[str, int]:
-    try:
-        from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
-    except ImportError:
-        raise OpenAIPreprocessorError("Pillow is required to constrain preview colors.") from None
-    palette_rgb = [tuple(int(color[index : index + 2], 16) for index in (1, 3, 5)) for color in palette]
-    temporary = path.with_name(path.name + ".quantized")
-    try:
-        with Image.open(path) as source:
-            if source.width <= 0 or source.height <= 0 or source.width * source.height > MAX_TEXTURE_PIXELS:
-                raise OpenAIPreprocessorError("The prepared preview has an invalid size.")
-            alpha = source.getchannel("A") if "A" in source.getbands() else None
-            smoothed = source.convert("RGB").filter(ImageFilter.MedianFilter(size=3))
-            palette_lab = [_srgb_to_lab(color) for color in palette_rgb]
-
-            border_step = max(1, min(source.width, source.height) // 256)
-            border_pixels = []
-            for x in range(0, source.width, border_step):
-                border_pixels.extend((smoothed.getpixel((x, 0)), smoothed.getpixel((x, source.height - 1))))
-            for y in range(0, source.height, border_step):
-                border_pixels.extend((smoothed.getpixel((0, y)), smoothed.getpixel((source.width - 1, y))))
-            border_rgb = tuple(sorted(pixel[channel] for pixel in border_pixels)[len(border_pixels) // 2] for channel in range(3))
-            smoothed_pixels = list(smoothed.getdata())
-            border_chroma = max(border_rgb) - min(border_rgb)
-            background_candidates = bytes(
-                255
-                if max(abs(pixel[channel] - border_rgb[channel]) for channel in range(3)) <= 36
-                and (border_chroma > 24 or max(pixel) - min(pixel) <= max(24, border_chroma + 12))
-                else 0
-                for pixel in smoothed_pixels
-            )
-            connected_background = bytearray(source.width * source.height)
-            pending: deque[int] = deque()
-
-            def enqueue(offset: int) -> None:
-                if background_candidates[offset] and not connected_background[offset]:
-                    connected_background[offset] = 255
-                    pending.append(offset)
-
-            for x in range(source.width):
-                enqueue(x)
-                enqueue((source.height - 1) * source.width + x)
-            for y in range(source.height):
-                enqueue(y * source.width)
-                enqueue(y * source.width + source.width - 1)
-            while pending:
-                offset = pending.popleft()
-                x = offset % source.width
-                if x > 0:
-                    enqueue(offset - 1)
-                if x + 1 < source.width:
-                    enqueue(offset + 1)
-                if offset >= source.width:
-                    enqueue(offset - source.width)
-                if offset + source.width < len(connected_background):
-                    enqueue(offset + source.width)
-            background_mask = Image.frombytes("L", source.size, bytes(connected_background))
-            background_index = min(
-                range(len(palette_lab)),
-                key=lambda index: sum(
-                    (left - right) ** 2 for left, right in zip(_srgb_to_lab(border_rgb), palette_lab[index])
-                ),
-            )
-
-            cluster_source = smoothed.copy()
-            cluster_source.paste(border_rgb, (0, 0, source.width, source.height), background_mask)
-            adaptive = cluster_source.quantize(
-                colors=min(64, max(len(palette_rgb) * 3, len(palette_rgb))),
-                method=Image.Quantize.MEDIANCUT,
-                dither=Image.Dither.NONE,
-            )
-            histogram = adaptive.getcolors(maxcolors=source.width * source.height) or []
-            used_indices = sorted(index for count, index in histogram if count > 0)
-            adaptive_palette = adaptive.getpalette() or []
-            source_colors = [tuple(adaptive_palette[index * 3 : index * 3 + 3]) for index in used_indices]
-            source_lab = [_srgb_to_lab(color) for color in source_colors]
-            assignment = [
-                min(
-                    range(len(palette_rgb)),
-                    key=lambda palette_index: sum(
-                        (color_lab[channel] - palette_lab[palette_index][channel]) ** 2 for channel in range(3)
-                    ),
-                )
-                for color_lab in source_lab
-            ]
-            index_map = {source_index: palette_index for source_index, palette_index in zip(used_indices, assignment)}
-            mapped = adaptive.point([index_map.get(index, 0) for index in range(256)], mode="P")
-            palette_bytes = [channel for color in palette_rgb for channel in color]
-            palette_bytes.extend(list(palette_rgb[0]) * (256 - len(palette_rgb)))
-            mapped.putpalette(palette_bytes)
-
-            mapped_data = bytearray(mapped.getdata())
-            background_data = bytes(background_mask.getdata())
-            foreground_box = ImageOps.invert(background_mask).getbbox()
-            if foreground_box is None:
-                raise OpenAIPreprocessorError("The style preview does not contain a printable subject.")
-
-            skin_palette = [index for index, color in enumerate(palette_rgb) if _is_printable_skin_color(color)]
-            if skin_palette:
-                skin_mask = _find_face_skin_mask(
-                    smoothed_pixels,
-                    source.width,
-                    source.height,
-                    background_data,
-                    foreground_box,
-                    style,
-                )
-                adaptive_data = bytes(adaptive.getdata())
-                skin_assignment = {
-                    source_index: min(
-                        skin_palette,
-                        key=lambda palette_index: sum(
-                            (source_lab[source_position][channel] - palette_lab[palette_index][channel]) ** 2
-                            for channel in range(3)
-                        ),
-                    )
-                    for source_position, source_index in enumerate(used_indices)
-                }
-                for offset, is_skin in enumerate(skin_mask):
-                    if is_skin:
-                        mapped_data[offset] = skin_assignment.get(adaptive_data[offset], mapped_data[offset])
-
-            for offset, is_background in enumerate(background_data):
-                if is_background:
-                    mapped_data[offset] = background_index
-
-            mapped.putdata(mapped_data)
-            mapped = mapped.filter(ImageFilter.ModeFilter(size=3))
-            quantized = mapped.convert("RGB")
-            if alpha is not None:
-                quantized.putalpha(alpha)
-            quantized.save(temporary, format="PNG")
-            counts = quantized.convert("RGB").getcolors(maxcolors=source.width * source.height) or []
-            usage = {"#%02X%02X%02X" % color: count for count, color in counts}
-            if not set(usage).issubset(palette):
-                raise OpenAIPreprocessorError("The style preview contains colors outside the printable filament palette.")
-            if len(usage) < min(3, len(palette)):
-                raise OpenAIPreprocessorError("The style preview needs more distinct printable color regions.")
-        os.replace(temporary, path)
-        return {color: usage[color] for color in palette if color in usage}
-    except OpenAIPreprocessorError:
-        raise
-    except (OSError, UnidentifiedImageError, Image.DecompressionBombError):
-        raise OpenAIPreprocessorError("The prepared preview could not be color constrained.") from None
-    finally:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
-
-
 def _apply_printable_image_pipeline(job: Job, raw_preview: Path) -> dict[str, int]:
     try:
         result = process_printable_image(
@@ -2076,7 +1792,6 @@ def _identity_preserving_portrait_geometry_enabled(job: Job) -> bool:
         job.source == "image"
         and job.style in IDENTITY_FIRST_PORTRAIT_STYLES
         and job.generation_profile == "quality"
-        and MIN_PRINTABLE_COLORS <= len(job.palette) <= MAX_PRINTABLE_COLORS
         and portrait_detected
         and job.input_path is not None
         and job.input_path.is_file()
@@ -3455,6 +3170,31 @@ def _prepare_portrait_geometry_provider_reference(job: Job) -> Path:
             pass
 
 
+def _assess_reference_advice(job: Job) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Retain cheap image findings without making heuristic failures a gate.
+
+    Image decoding and provider format/size validation stay at the input
+    boundary. An unavailable quality assessment is itself only advice.
+    """
+    reports = []
+    for key, assess in (
+        ("model_input_quality", _assess_job_model_reference),
+        ("generation_input_quality", _assess_job_generation_reference),
+    ):
+        try:
+            report = assess(job)
+        except ModelInputImageQualityError:
+            report = {
+                "model_input_eligible": True,
+                "warnings": ["reference_quality_unavailable"],
+                "blockers": [],
+                "status": "unavailable",
+            }
+            job.image_metrics[key] = report
+        reports.append(report)
+    return reports[0], reports[1]
+
+
 def _assess_job_generation_reference(job: Job) -> dict[str, Any]:
     reference = _geometry_generation_reference(job)
     if reference is None:
@@ -3632,7 +3372,6 @@ def _quality_portrait_multiview_enabled(job: Job) -> bool:
         job.source == "image"
         and job.style == "realistic"
         and job.generation_profile == "quality"
-        and len(job.palette) == 4
         and isinstance(cleanup, dict)
         and cleanup.get("activated") == 1
         and job.model_reference_path is not None
@@ -3743,24 +3482,6 @@ def _prepare_portrait_geometry_material_views(
     }
     _write_mesh_repair_report(output_directory / "semantic-material-report.json", report)
     return prepared, report
-
-
-def _multiview_chroma_key(palette: tuple[str, ...]) -> str:
-    """Choose a fallback background maximally separated from all materials."""
-    candidates = ("#FF00FF", "#00FFFF", "#FFFF00", "#0000FF", "#FF3000")
-
-    def rgb(color: str) -> tuple[int, int, int]:
-        value = color.lstrip("#")
-        return tuple(int(value[index:index + 2], 16) for index in (0, 2, 4))  # type: ignore[return-value]
-
-    material_rgb = tuple(rgb(color) for color in palette)
-    return max(
-        candidates,
-        key=lambda candidate: min(
-            sum((left - right) ** 2 for left, right in zip(rgb(candidate), material))
-            for material in material_rgb
-        ),
-    )
 
 
 def _create_portrait_multiview_sheet(job: Job, sheet: Path) -> None:
@@ -4019,60 +3740,34 @@ def _ensure_portrait_multiview(job: Job) -> dict[str, Path] | None:
 
 
 def _recommend_palette_job(job: Job) -> None:
-    try:
-        _stop_boundary(job)
-        if job.generate_image and job.palette_recommendation_confirmed:
-            return  # A completed recommendation must never replay its paid edit.
-        with _JOBS_LOCK:
-            job.state = "recommending_palette"
-            job.phase = "recommending_palette"
-            job.message = f"AI is recommending {job.palette_color_count} printable design colors."
-            job.progress = 6
-            _persist_job(job)
-        effective_prompt = _normalize_image_instruction(job.user_prompt) if job.source == "image" else job.user_prompt
-        recommendation = recommend_printable_palette(
-            effective_prompt,
-            job.style,
-            job.custom_style,
-            image_path=job.input_path,
-            color_count=job.palette_color_count,
-        )
-        _stop_boundary(job)
-        normalized = _normalize_palette_recommendation(
-            recommendation.as_dict(), job.palette_color_count
-        )
-        with _JOBS_LOCK:
-            job.palette_recommendation = normalized
-            job.palette_recommendation_confirmed = job.generate_image
-            job.preprocess_failure = {}
-            job.state = job.phase = "preprocessing" if job.generate_image else "awaiting_palette_confirmation"
-            job.message = "Generating the AI design with recommended colors." if job.generate_image else "Review and confirm the recommended design colors."
-            if job.generate_image:
-                job.palette = tuple(color["hex"] for color in normalized["colors"])
-                job.palette_roles = {color["role"]: color["hex"] for color in normalized["colors"]}
-            job.progress = 10
-            _persist_job(job)
-        if job.generate_image:
-            _stop_boundary(job)
-            if job.source == "text":
-                _preprocess_text_job(job, job.user_prompt)
-            elif job.input_path is not None:
-                _preprocess_image_job(job, job.input_path, _normalize_image_instruction(job.user_prompt))
-            else:
-                raise RequestError("input_unavailable", "The stored reference image is unavailable.", 409)
-    except JobStopped:
-        pass
-    except OpenAIPreprocessorError as exc:
-        _fail_preprocess_job(job, exc)
-    except RequestError as exc:
-        _fail_job(job, str(exc))
-    except Exception:
-        _fail_job(job, "AI printable color recommendation failed.")
-    finally:
-        _finish_deleted(job)
+    # A queued legacy recommendation resumes into creation without another
+    # color-recommendation request or printer palette.
+    if job.source == "text":
+        _preprocess_text_job(job, job.user_prompt)
+    elif job.input_path is not None:
+        _preprocess_image_job(job, job.input_path, _normalize_image_instruction(job.user_prompt))
+    else:
+        _fail_job(job, "The stored reference image is unavailable.")
+
+
+def _use_unrestricted_creation(job: Job) -> None:
+    """Apply the current policy only when starting a new creation stage.
+
+    Completed history is never rewritten and restoring an already submitted
+    provider task never creates another task. Old pending palette previews can
+    continue with their unquantized design image.
+    """
+    job.palette = ()
+    job.palette_roles = {}
+    job.palette_recommendation = {}
+    job.palette_recommendation_confirmed = False
+    job.image_metrics["creation_color_policy"] = "unrestricted-v1"
+    if job.raw_preview_path is not None and job.raw_preview_path.is_file():
+        job.image_metrics["design_reference"] = "ai-design-v1"
 
 
 def _preprocess_text_job(job: Job, prompt: str) -> None:
+    _use_unrestricted_creation(job)
     try:
         _stop_boundary(job)
         prepared = _generation_prompt(
@@ -4111,8 +3806,7 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
             minimum_edge=MIN_MODEL_REFERENCE_EDGE,
             require_visual_detail=True,
         )
-        _assess_job_model_reference(job)
-        _assess_job_generation_reference(job)
+        _assess_reference_advice(job)
         (job.directory / "preview-colors.json").write_text(
             json.dumps(
                 {
@@ -4162,6 +3856,7 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
 
 
 def _preprocess_image_job(job: Job, input_path: Path, instruction: str) -> None:
+    _use_unrestricted_creation(job)
     raw_preview = job.directory / "style-preview-raw.png"
     geometry_reference = job.directory / "geometry-reference.png"
     preview = job.directory / "preview.png"
@@ -4222,8 +3917,7 @@ def _preprocess_image_job(job: Job, input_path: Path, instruction: str) -> None:
             "detected": portrait_detected,
             "evidence": "source_face_lock" if face_lock.is_file() else "legacy_material_cleanup" if portrait_detected else "none",
         }
-        _assess_job_model_reference(job)
-        _assess_job_generation_reference(job)
+        _assess_reference_advice(job)
         preview = job.preview_path or preview
         validated = _validate_image_file(
             raw_preview,
@@ -4268,7 +3962,7 @@ def _preprocess_image_job(job: Job, input_path: Path, instruction: str) -> None:
         _fail_preprocess_job(
             job,
             OpenAIPreprocessorError(
-                "The image was generated, but the local printable-color check failed.",
+                "The image was generated, but its local validation failed.",
                 code="local_image_processing_failed",
                 retryable=True,
             ),
@@ -4292,38 +3986,12 @@ def _progress_callback(job: Job, start: int, end: int) -> Callable[[int | float 
 
 
 def _automatic_visual_review(job: Job, artifact: Path) -> dict[str, Any] | None:
-    """Run the quality-profile image-to-model delivery gate before exposing import."""
+    """Reuse existing advice; the explicit visual-review action performs new reviews.
 
-    if (
-        job.source != "image"
-        or job.generation_profile != "quality"
-        or not os.environ.get("OPENAI_API_KEY", "").strip()
-    ):
-        return None
-    reference = job.input_path if job.input_path is not None and job.input_path.is_file() else None
-    modeling_reference = _geometry_generation_reference(job)
-    if modeling_reference == reference:
-        modeling_reference = None
-    description = job.user_prompt
-    if _identity_preserving_portrait_geometry_enabled(job):
-        framing = (
-            "已确认交付构图：独立头肩胸像与单一底座；交叉手臂、手表及下半身按设计排除，"
-            "不得把这些有意排除的部分判为主体缺失。"
-        )
-        description = f"{description.strip()}\n{framing}" if description.strip() else framing
-    with _JOBS_LOCK:
-        job.phase = "checking_visual"
-        job.message = "Comparing the final model with the source image for identity and material mixing."
-        job.progress = 99
-        _persist_job(job)
-    return review_model_visual_quality(
-        artifact,
-        job.directory,
-        description=description,
-        style=job.style,
-        reference_path=reference,
-        modeling_reference_path=modeling_reference,
-    )
+    Full-mesh turntables plus a remote review took over five minutes for a
+    two-million-face model. They must not delay an otherwise usable result.
+    """
+    return _read_job_report(job, VISUAL_QUALITY_FILENAME) or None
 
 
 def _safe_package_path(root: Path, name: str) -> Path:
@@ -6103,11 +5771,6 @@ def _prepare_obj_artifact(
             _write_mesh_repair_report(
                 aligned_directory / "rear-plate-gate.json", rear_plate_report
             )
-            if rear_plate_report.get("status") == "reject":
-                raise PortraitGeometryGateError(
-                    "The generated portrait contains a rear plate or halo. "
-                    "Generate a new preview before importing it."
-                )
             natural_front = aligned_directory / "natural-front.png"
             shutil.copyfile(natural_turntable / "model-views" / "front.png", natural_front)
             semantic_error = ""
@@ -6193,9 +5856,7 @@ def _prepare_obj_artifact(
                 geometry_aligned_reference = True
             else:
                 geometry_aligned_view_directories = {}
-        except PortraitGeometryGateError:
-            raise
-        except (ModelViewError, PrintableImageError, TripoError, OSError) as exc:
+        except (PortraitGeometryGateError, ModelViewError, PrintableImageError, TripoError, OSError) as exc:
             _write_mesh_repair_report(
                 aligned_report_path,
                 {
@@ -6420,11 +6081,8 @@ def _prepare_obj_artifact(
     )
     try:
         write_model_quality_report(quality, job_directory / MODEL_QUALITY_FILENAME)
-    except ModelQualityError as exc:
-        raise TripoError(str(exc)) from None
-    if quality.get("status") == "reject":
-        errors = ", ".join(str(code) for code in quality.get("errors", [])) or "unknown structural error"
-        raise TripoError(f"The generated OBJ failed the structural quality gate: {errors}.")
+    except ModelQualityError:
+        diagnostic_event("model.quality_report.unavailable", level="WARNING")
     return destination
 
 
@@ -6510,9 +6168,6 @@ def _refresh_stale_face_limit_report(path: Path, palette: tuple[str, ...]) -> No
         write_model_quality_report(quality, report_path)
     except ModelQualityError as exc:
         raise TripoError(str(exc)) from None
-    if quality.get("status") == "reject":
-        quality_errors = ", ".join(str(code) for code in quality.get("errors", [])) or "unknown structural error"
-        raise TripoError(f"The generated OBJ failed the structural quality gate: {quality_errors}.")
 
 
 def _download_conversion(
@@ -7266,8 +6921,6 @@ def _remove_small_detached_obj_components(path: Path, report_path: Path) -> dict
                     if len(fields) != 4:
                         raise TripoError("The generated OBJ must contain only triangular faces.")
                     face = tuple(_resolve_obj_index(value, len(vertices), "vertex") for value in fields[1:])
-                    if len(set(face)) != 3:
-                        raise TripoError("The generated OBJ contains a degenerate triangle.")
                     faces.append(face)
                     face_sections.append((current_object, current_group))
                 elif keyword == "o":
@@ -7434,8 +7087,6 @@ def _repair_small_obj_topology_defects(
                     if len(fields) != 4:
                         raise TripoError("The generated OBJ must contain only triangular faces.")
                     face = tuple(_resolve_obj_index(value, len(positions), "vertex") for value in fields[1:])
-                    if len(set(face)) != 3:
-                        raise TripoError("The generated OBJ contains a degenerate triangle.")
                     faces.append(face)
     except UnicodeDecodeError:
         raise TripoError("The generated OBJ is not valid UTF-8 text.") from None
@@ -7450,6 +7101,10 @@ def _repair_small_obj_topology_defects(
                 usage.setdefault(edge, []).append((face_index, left, right))
         return usage
 
+    if any(len(set(face)) != 3 for face in faces):
+        report.update(topology_status="deferred", topology_deferred_reason="degenerate_faces")
+        _write_mesh_repair_report(report_path, report)
+        return report
     original_usage = edge_usage(faces)
     original_boundary = sum(len(uses) == 1 for uses in original_usage.values())
     original_non_manifold = sum(len(uses) > 2 for uses in original_usage.values())
@@ -7743,7 +7398,9 @@ def _repair_small_obj_topology_defects(
     return report
 
 
-def _validate_obj_topology(path: Path, allow_repairable: bool = False) -> tuple[int, int, int]:
+def _validate_obj_topology(
+    path: Path, allow_repairable: bool = False, *, quality_advisory: bool = False
+) -> tuple[int, int, int]:
     vertex_count = 0
     faces: list[tuple[int, int, int]] = []
     try:
@@ -7759,7 +7416,7 @@ def _validate_obj_topology(path: Path, allow_repairable: bool = False) -> tuple[
                     if len(fields) != 4:
                         raise TripoError("The generated OBJ must contain only triangular faces.")
                     face = tuple(_resolve_obj_index(value, vertex_count, "vertex") for value in fields[1:])
-                    if len(set(face)) != 3:
+                    if len(set(face)) != 3 and not quality_advisory:
                         raise TripoError("The generated OBJ contains a degenerate triangle.")
                     faces.append(face)
                     if len(faces) > MAX_MODEL_FACES:
@@ -7770,6 +7427,12 @@ def _validate_obj_topology(path: Path, allow_repairable: bool = False) -> tuple[
         raise TripoError("The generated OBJ could not be read.") from None
     if vertex_count == 0 or not faces:
         raise TripoError("The generated OBJ does not contain usable geometry.")
+
+    # Production checks file integrity here. The quality report already
+    # calculates components and edge topology; repeating its large edge map
+    # twice during delivery both wastes time and turns advice into a gate.
+    if quality_advisory:
+        return len(faces), 0, 0
 
     parent = list(range(vertex_count))
 
@@ -7821,7 +7484,7 @@ def _validate_artifact(path: Path, format_name: str, allow_repairable_obj: bool 
         raise TripoError("The generated artifact has an invalid size.")
     if format_name == "obj":
         _validate_obj_vertex_colors(path)
-        _validate_obj_topology(path, allow_repairable=allow_repairable_obj)
+        _validate_obj_topology(path, allow_repairable=allow_repairable_obj, quality_advisory=True)
     if format_name == "3mf" and not signature.startswith(b"PK\x03\x04"):
         raise TripoError("Tripo returned an invalid 3MF artifact.")
     if format_name == "stl":
@@ -7838,6 +7501,7 @@ def _generate_job(
     resume: bool = False,
     authorization: PaidTaskAuthorization | None = None,
 ) -> None:
+    _use_unrestricted_creation(job)
     active_attempt = 0
     try:
         artifact: Path | None = None
@@ -7946,8 +7610,9 @@ def _generate_job(
             try:
                 candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number, True) if resume else \
                     _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number)
-                face_count, _, _ = _validate_obj_topology(candidate, allow_repairable=True)
-                _validate_face_target(face_count, job.face_limit)
+                face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+                warning = _validate_face_target(face_count, job.face_limit)
+                job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
                 artifact = job.directory / "model-vertex-color.obj"
                 _promote_attempt_artifact(candidate, artifact)
                 _record_attempt(job, attempt_number, status="accepted", artifact=str(candidate.name), error="")
@@ -7987,7 +7652,7 @@ def _generate_job(
             job.message = (
                 "Generated model is ready, but visual review found identity or material risks."
                 if visual_quality is not None and not visual_quality.get("import_recommended", True)
-                else "Generated model is ready and passed the available quality checks."
+                else "Generated model is ready. Quality checks are advisory; visual review is available on request."
             )
             job.progress = 100
             _persist_job(job)
@@ -8067,6 +7732,7 @@ def _retexture_job(
     resume: bool = False,
     authorization: PaidTaskAuthorization | None = None,
 ) -> None:
+    _use_unrestricted_creation(job)
     try:
         _stop_boundary(job)
         with _JOBS_LOCK:
@@ -8137,8 +7803,9 @@ def _retexture_job(
         )
         _stop_boundary(job)
         candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, 1, resume)
-        face_count, _, _ = _validate_obj_topology(candidate, allow_repairable=True)
-        _validate_face_target(face_count, job.face_limit)
+        face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+        warning = _validate_face_target(face_count, job.face_limit)
+        job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
         artifact = job.directory / "model-vertex-color.obj"
         _promote_attempt_artifact(candidate, artifact)
         _record_attempt(job, 1, status="accepted", artifact=str(candidate.name), error="")
@@ -8528,17 +8195,15 @@ class Handler(BaseHTTPRequestHandler):
                             },
                             "image_provider": image_provider,
                             "palette_recommendation": {
-                                "available": bool(config),
-                                "min_colors": MIN_PALETTE_COLORS,
-                                "max_colors": MAX_PALETTE_COLORS,
-                                "default_colors": DEFAULT_PALETTE_COLORS,
+                                "available": False,
+                                "reason": "creation_preserves_natural_colors",
                             },
                             "style_recommendation": {
                                 "available": True,
                                 "local_only": True,
                             },
                             "printable_image_pipeline": {
-                                "available": True,
+                                "available": False,
                                 "print_modes": ["solid_regions"],
                                 "color_distances": ["ciede2000", "delta_e76"],
                                 "outputs": [
@@ -8709,8 +8374,8 @@ class Handler(BaseHTTPRequestHandler):
         request = self._read_model_json()
         _text_field(request.get("request_id"), "request_id")
         prompt = _text_field(request.get("prompt"), "prompt")
-        palette = _normalize_palette(request.get("palette"))
-        palette_roles = _normalize_palette_roles(request.get("palette_roles"), palette)
+        palette = ()
+        palette_roles = {}
         style = _normalize_style(request.get("style"))
         custom_style = _normalize_custom_style(request.get("custom_style"), style)
         print_settings = _normalize_print_settings(request.get("print"))
@@ -8734,39 +8399,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(202, {"job": response})
 
     def _create_text_palette_recommendation(self) -> None:
-        if not os.environ.get("OPENAI_API_KEY", ""):
-            raise RequestError("feature_unavailable", "AI printable color recommendation is not configured.", 503)
-        request = self._read_model_json()
-        _text_field(request.get("request_id"), "request_id")
-        prompt = _text_field(request.get("prompt"), "prompt")
-        style = _normalize_style(request.get("style"))
-        custom_style = _normalize_custom_style(request.get("custom_style"), style)
-        print_settings = _normalize_print_settings(request.get("print"))
-        palette_color_count = _normalize_palette_color_count(request.get("palette_color_count"))
-        generate_image = _boolean_field(request.get("generate_image"), "generate_image")
-        job = _new_job(
-            "text", (), {}, style, custom_style, print_settings,
-            palette_color_count=palette_color_count,
-        )
-        job.generate_image = generate_image
-        job.user_prompt = prompt
-        job.state = "recommending_palette"
-        job.phase = "recommending_palette"
-        job.message = "AI printable color recommendation queued."
-        job.progress = 5
-        _persist_job(job)
-        with _JOBS_LOCK:
-            _JOBS[job.id] = job
-        try:
-            _submit(job, _recommend_palette_job)
-        except RequestError:
-            with _JOBS_LOCK:
-                _JOBS.pop(job.id, None)
-            _remove_job_state(job)
-            raise
-        with _JOBS_LOCK:
-            response = _public_job(job)
-        self.send_json(202, {"job": response})
+        # Compatibility route: old clients now create an unrestricted design.
+        self._create_text_job()
 
     def _recommend_model_style(self) -> None:
         fields, image, declared_type = self._read_image_multipart()
@@ -8792,8 +8426,8 @@ class Handler(BaseHTTPRequestHandler):
         _text_field(fields.get("request_id"), "request_id")
         user_instruction = _user_image_instruction(fields.get("instruction"))
         instruction = _normalize_image_instruction(user_instruction)
-        palette = _multipart_palette(fields.get("palette"))
-        palette_roles = _multipart_palette_roles(fields.get("palette_roles"), palette)
+        palette = ()
+        palette_roles = {}
         style = _normalize_style(fields.get("style"))
         custom_style = _normalize_custom_style(fields.get("custom_style"), style)
         palette_recommendation_confirmed = _boolean_field(
@@ -8841,81 +8475,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(202, {"job": response})
 
     def _create_image_palette_recommendation(self) -> None:
-        if not os.environ.get("OPENAI_API_KEY", ""):
-            raise RequestError("feature_unavailable", "AI printable color recommendation is not configured.", 503)
-        fields, image, declared_type = self._read_image_multipart()
-        _text_field(fields.get("request_id"), "request_id")
-        user_instruction = _user_image_instruction(fields.get("instruction"))
-        style = _normalize_style(fields.get("style"))
-        custom_style = _normalize_custom_style(fields.get("custom_style"), style)
-        palette_color_count = _normalize_palette_color_count(fields.get("palette_color_count"))
-        generate_image = _boolean_field(fields.get("generate_image"), "generate_image")
-        try:
-            print_payload = json.loads(fields.get("print", "{}"))
-        except json.JSONDecodeError:
-            raise RequestError("invalid_print_settings", "print settings must be valid JSON", 400) from None
-        print_settings = _normalize_print_settings(print_payload)
-        if len(image) > MAX_IMAGE_BYTES:
-            raise RequestError("image_too_large", "Image exceeds the 20 MB limit.", 413)
-        detected_type = _image_type(image)
-        if detected_type is None:
-            raise RequestError("unsupported_image", "Image must be PNG or JPEG.", 415)
-        if declared_type not in {"application/octet-stream", detected_type}:
-            raise RequestError("unsupported_image", "Image Content-Type does not match its data.", 415)
-        try:
-            _validate_image_data(image, minimum_edge=MIN_SOURCE_IMAGE_EDGE)
-        except ValueError as exc:
-            raise RequestError("invalid_image", str(exc), 415) from None
-        job = _new_job(
-            "image", (), {}, style, custom_style, print_settings,
-            palette_color_count=palette_color_count,
-        )
-        job.generate_image = generate_image
-        job.user_prompt = user_instruction
-        suffix = ".png" if detected_type == "image/png" else ".jpg"
-        input_path = job.directory / f"input-{uuid.uuid4().hex}{suffix}"
-        try:
-            input_path.write_bytes(image)
-        except OSError:
-            _remove_job_state(job)
-            raise RequestError("service_unavailable", "The uploaded image could not be stored.", 503, True) from None
-        job.input_path = input_path
-        job.state = "recommending_palette"
-        job.phase = "recommending_palette"
-        job.message = "AI printable color recommendation queued."
-        job.progress = 5
-        _persist_job(job)
-        with _JOBS_LOCK:
-            _JOBS[job.id] = job
-        try:
-            _submit(job, _recommend_palette_job)
-        except RequestError:
-            with _JOBS_LOCK:
-                _JOBS.pop(job.id, None)
-            _remove_job_state(job)
-            raise
-        with _JOBS_LOCK:
-            response = _public_job(job)
-        self.send_json(202, {"job": response})
+        # Compatibility route: old clients now create an unrestricted design.
+        self._create_image_job()
 
     def _confirm_palette(self, job_id: str) -> None:
         request = self._read_model_json()
-        palette = _normalize_palette(request.get("palette"))
-        if not palette:
-            raise RequestError("invalid_palette", "At least one confirmed color is required.", 400)
-        palette_roles = _normalize_palette_roles(request.get("palette_roles"), palette)
         job = self._get_job(job_id)
         if job is None:
             raise RequestError("job_not_found", "Model job not found.", 404)
         with _JOBS_LOCK:
             if job.state != "awaiting_palette_confirmation" or not job.palette_recommendation:
                 raise RequestError("invalid_job_state", "Job is not awaiting palette confirmation.", 409)
-            job.palette = palette
-            job.palette_roles = palette_roles
-            job.palette_recommendation_confirmed = True
+            previous_recommendation = job.palette_recommendation
+            _use_unrestricted_creation(job)
             job.state = "preprocessing"
             job.phase = "preprocessing"
-            job.message = "Confirmed colors are being applied to the printable preview."
+            job.message = "An unrestricted design preview is being prepared."
             job.progress = 10
             _persist_job(job)
         try:
@@ -8928,6 +8503,7 @@ class Handler(BaseHTTPRequestHandler):
         except RequestError:
             with _JOBS_LOCK:
                 job.palette_recommendation_confirmed = False
+                job.palette_recommendation = previous_recommendation
                 job.state = "awaiting_palette_confirmation"
                 job.phase = "awaiting_palette_confirmation"
                 job.message = "Review and confirm the recommended design colors."
@@ -8947,7 +8523,6 @@ class Handler(BaseHTTPRequestHandler):
             raise RequestError("invalid_request", "prepared_prompt must be a string.", 400)
         if len(raw_prompt.strip().encode("utf-8")) > MAX_PROMPT_BYTES:
             raise RequestError("invalid_request", "prepared_prompt exceeds the 2000-byte limit.", 400)
-        palette = _normalize_palette(request.get("palette"))
         job = self._get_job(job_id)
         if job is None:
             raise RequestError("job_not_found", "Model job not found.", 404)
@@ -8960,12 +8535,7 @@ class Handler(BaseHTTPRequestHandler):
         with _JOBS_LOCK:
             if job.state != "awaiting_confirmation":
                 raise RequestError("invalid_job_state", "Job is not awaiting confirmation.", 409)
-            if palette != job.palette:
-                raise RequestError(
-                    "palette_changed",
-                    "The filament palette changed after preview; create a new preview before generating 3D.",
-                    409,
-                )
+            _use_unrestricted_creation(job)
             prepared_prompt = raw_prompt.strip()
             reference = _model_generation_reference(job)
             if job.source == "text" and reference is None and not prepared_prompt:
@@ -8983,33 +8553,7 @@ class Handler(BaseHTTPRequestHandler):
                         f"The generated image is not suitable for 3D input: {exc}",
                         409,
                     ) from None
-                try:
-                    model_input_quality = _assess_job_model_reference(job)
-                except ModelInputImageQualityError as exc:
-                    raise RequestError("invalid_model_reference", str(exc), 409) from None
-                if not bool(model_input_quality.get("model_input_eligible", False)):
-                    raise RequestError(
-                        "model_input_quality_failed",
-                        _model_input_quality_message(model_input_quality),
-                        409,
-                    )
-                try:
-                    generation_input_quality = _assess_job_generation_reference(job)
-                except ModelInputImageQualityError as exc:
-                    raise RequestError("invalid_model_reference", str(exc), 409) from None
-                if not bool(generation_input_quality.get("model_input_eligible", False)):
-                    raise RequestError(
-                        "model_input_quality_failed",
-                        _model_input_quality_message(generation_input_quality),
-                        409,
-                    )
-                if (job.image_metrics.get("design_reference") != "ai-design-v1"
-                        and job.palette and not bool(job.image_metrics.get("palette_quality_ok", True))):
-                    raise RequestError(
-                        "printable_preview_quality_failed",
-                        _printable_preview_message(job, "The printable preview failed its quality gate."),
-                        409,
-                    )
+                _assess_reference_advice(job)
             if not _MODEL_PROVIDER_GATEWAY.model_generation_available():
                 raise RequestError("feature_unavailable", "Model generation is not configured.", 503)
             authorization = PaidTaskAuthorization.confirmed(f"{job.id}:model:1")
@@ -9083,12 +8627,6 @@ class Handler(BaseHTTPRequestHandler):
                 )
             except ValueError as exc:
                 raise RequestError("invalid_model_reference", str(exc), 409) from None
-            if reference_job.palette and not bool(reference_job.image_metrics.get("palette_quality_ok", True)):
-                raise RequestError(
-                    "printable_preview_quality_failed",
-                    _printable_preview_message(reference_job, "The printable preview failed its quality gate."),
-                    409,
-                )
             source_attempt = next(
                 (
                     attempt for attempt in reversed(geometry_job.attempts)
@@ -9128,6 +8666,7 @@ class Handler(BaseHTTPRequestHandler):
             child.preview_content_type = reference_job.preview_content_type
             child.input_path = _copy_job_file(reference_job.input_path, child, "input")
             child.raw_preview_path = _copy_job_file(reference_job.raw_preview_path, child, "style-preview-raw")
+            _use_unrestricted_creation(child)
             child.strict_preview_path = _copy_job_file(reference_job.strict_preview_path, child, "four-color-preview")
             child.preview_path = _copy_job_file(reference_job.preview_path, child, "clean-preview")
             child.model_reference_path = _copy_job_file(reference, child, "model-reference")

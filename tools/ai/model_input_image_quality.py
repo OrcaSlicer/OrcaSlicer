@@ -47,7 +47,7 @@ def _median(values: Iterable[int]) -> int:
 
 
 def _corner_colors(pixels: list[tuple[int, int, int, int]], width: int, height: int) -> list[tuple[int, int, int]]:
-    block = max(2, min(width, height) // 16)
+    block = min(width, height, max(2, min(width, height) // 16))
     colors: list[tuple[int, int, int]] = []
     for left, top in ((0, 0), (width - block, 0), (0, height - block), (width - block, height - block)):
         sample = [
@@ -230,6 +230,8 @@ def assess_model_input_image(
         ]
 
     warnings: list[str] = []
+    if min(original_width, original_height) < 256:
+        warnings.append("low_resolution")
     blockers: list[str] = []
     if foreground_ratio < 0.03:
         blockers.append("subject_not_detected")
@@ -245,8 +247,15 @@ def assess_model_input_image(
         blockers.append("subject_cropped")
     elif border_foreground_ratio > 0.04:
         warnings.append("subject_close_to_frame")
-    if largest_component_ratio < 0.60 and len(meaningful_areas) > 1:
+    # Alpha describes the visible silhouette. RGB distance from corner colors
+    # only estimates it: light clothing can match the backdrop, while painted
+    # transparency tiles can look like separate foreground pieces. Preserve
+    # those measurements as an uncertainty warning, not proof of disconnection.
+    fragmented_mask = largest_component_ratio < 0.60 and len(meaningful_areas) > 1
+    if fragmented_mask and uses_transparency:
         blockers.append("fragmented_subject")
+    elif fragmented_mask:
+        warnings.append("foreground_segmentation_uncertain")
     elif largest_component_ratio < 0.88 or len(meaningful_areas) > 4:
         warnings.append("multiple_or_fragmented_components")
     if uses_transparency and soft_alpha_ratio > 0.30:
@@ -264,6 +273,7 @@ def assess_model_input_image(
 
     score = 100.0
     penalty_by_flag = {
+        "low_resolution": 0,
         "subject_not_detected": 70,
         "subject_too_small": 45,
         "subject_small": 15,
@@ -272,6 +282,7 @@ def assess_model_input_image(
         "subject_cropped": 35,
         "subject_close_to_frame": 12,
         "fragmented_subject": 35,
+        "foreground_segmentation_uncertain": 12,
         "multiple_or_fragmented_components": 12,
         "excessive_semitransparency": 30,
         "soft_transparent_edges": 8,
@@ -291,6 +302,7 @@ def assess_model_input_image(
         "metrics": {
             "analysis_width": width,
             "analysis_height": height,
+            "foreground_mask_source": "alpha" if uses_transparency else "color_distance",
             "foreground_ratio": round(foreground_ratio, 6),
             "foreground_bbox_area_ratio": round(bbox_area_ratio, 6),
             "border_foreground_ratio": round(border_foreground_ratio, 6),

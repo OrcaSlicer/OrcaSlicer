@@ -54,6 +54,7 @@ private:
     PrintabilityInspector m_inspector;
     CandidatePlanningWorkflow m_candidate_planner;
     WorkflowSnapshot m_snapshot;
+    std::optional<WorkspaceRevision> m_applied_revision;
     Observer m_observer;
     WorkflowId m_last_workflow_id{0};
     IWorkflowRuntimeStore* m_runtime_store{nullptr};

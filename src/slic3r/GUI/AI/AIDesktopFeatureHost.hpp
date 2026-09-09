@@ -4,10 +4,24 @@
 #include <memory>
 
 class wxWindow;
+class wxString;
+class wxColour;
 
 namespace Slic3r::GUI {
 
 class Plater;
+
+enum class AIWorkflowStatus
+{
+    Waiting,
+    Running,
+    Success,
+    Warning,
+    Failed
+};
+
+// Shared desktop presentation for import, preparation and slicing progress.
+void describe_ai_workflow_status(AIWorkflowStatus status, wxString& label, wxColour& colour);
 
 class AIDesktopFeatureHost final
 {

@@ -38,6 +38,7 @@
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
 #include "AI/AIDesktopFeatureHost.hpp"
+#include "AI/AIWindowAppearance.hpp"
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
 #include "format.hpp"
@@ -1385,7 +1386,7 @@ void MainFrame::register_ai_assistant()
     if (m_plater != nullptr && m_view_menu != nullptr && !m_ai_assistant_registered) {
         m_plater->enable_ai_assistant();
         append_menu_check_item(
-            m_view_menu, wxID_ANY, _L("Show AI Assistant"), _L("Show AI assistant panel."),
+            m_view_menu, wxID_ANY, _L("高级参数助手"), _L("打开高级参数问答工具。"),
             [this](wxCommandEvent&) { m_plater->show_ai_assistant(!m_plater->is_ai_assistant_shown()); }, this,
             [this]() { return is_prepare_or_preview_tab(); },
             [this]() { return m_plater->is_ai_assistant_shown(); }, this);
@@ -2561,6 +2562,7 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
 {
     wxGetApp().update_fonts(this);
     this->SetFont(this->normal_font());
+    if (m_ai_feature_host) refresh_ai_appearance(m_ai_feature_host->model_generation_panel());
 
 #ifdef _MSW_DARK_MODE
     // update common mode sizer
@@ -2633,6 +2635,7 @@ void MainFrame::on_sys_color_changed()
 
     // update label colors in respect to the system mode
     wxGetApp().init_label_colours();
+    if (m_ai_feature_host) refresh_ai_appearance(m_ai_feature_host->model_generation_panel());
 
 #ifndef __WINDOWS__
     wxGetApp().force_colors_update();
@@ -3170,7 +3173,7 @@ void MainFrame::init_menubar_as_editor()
 
         m_plater->enable_smart_slicing();
         append_menu_check_item(
-            viewMenu, wxID_ANY, _L("Show Smart Slicing"), _L("Show the smart slicing workbench."),
+            viewMenu, wxID_ANY, _L("智能切片"), _L("检查当前打印板、比较方案并应用切片。"),
             [this](wxCommandEvent&) { m_plater->show_smart_slicing(!m_plater->is_smart_slicing_shown()); }, this,
             [this]() { return is_prepare_or_preview_tab(); },
             [this]() { return m_plater->is_smart_slicing_shown(); }, this);

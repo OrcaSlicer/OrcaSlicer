@@ -5,6 +5,7 @@
 #include "slic3r/AI/SmartSlicing/Application/SmartSlicingCoordinator.hpp"
 #include "slic3r/GUI/AI/Orca/OrcaOfficialSliceGateway.hpp"
 #include "slic3r/GUI/AI/Orca/OrcaTrialSliceExecutor.hpp"
+#include "slic3r/GUI/AI/Orca/OrcaModelPreparation.hpp"
 #include "slic3r/GUI/AI/SmartSlicing/SmartSlicingViewModel.hpp"
 
 #include "libslic3r/TriangleMesh.hpp"
@@ -62,8 +63,12 @@ class WorkflowWorkspace final : public IOrcaWorkspace
 {
 public:
     WorkspaceContext context = printable_context();
+    bool revision_unavailable{false};
 
-    WorkspaceRevision current_revision() const override { return context.revision; }
+    WorkspaceRevision current_revision() const override {
+        if (revision_unavailable) throw std::runtime_error("revision unavailable");
+        return context.revision;
+    }
     WorkspaceContext capture_context() const override { return context; }
 };
 
@@ -103,6 +108,8 @@ public:
     size_t prepare_calls{0};
     size_t commit_calls{0};
     size_t undo_calls{0};
+    bool throw_on_undo{false};
+    std::function<void()> on_commit;
 
     OfficialSliceResult prepare(const SliceCandidate&, const WorkspaceRevision&) override
     {
@@ -112,11 +119,14 @@ public:
     OfficialSliceResult commit(const SliceCandidate&, const WorkspaceRevision&) override
     {
         ++commit_calls;
+        if (on_commit) on_commit();
         return committed;
     }
     OfficialSliceResult poll() override { return polled; }
     bool undo_last_apply() override
     {
+        if (throw_on_undo)
+            throw std::runtime_error("native undo temporarily unavailable");
         ++undo_calls;
         return true;
     }
@@ -386,6 +396,15 @@ TEST_CASE("coordinator applies once then waits for official slice completion", "
     CHECK(coordinator.poll_official_slice());
     CHECK(coordinator.snapshot().state == WorkflowState::Completed);
     CHECK(coordinator.snapshot().can_start());
+    official.throw_on_undo = true;
+    CHECK_FALSE(coordinator.undo_applied_candidate());
+    CHECK(coordinator.snapshot().state == WorkflowState::Completed);
+    CHECK(coordinator.snapshot().detail == "apply_undo_failed");
+    official.throw_on_undo = false;
+    CHECK(coordinator.undo_applied_candidate());
+    CHECK(official.undo_calls == 1);
+    CHECK(coordinator.snapshot().state == WorkflowState::ReadyToApply);
+    CHECK_FALSE(coordinator.undo_applied_candidate());
 }
 
 TEST_CASE("compatibility rejection and apply failure never claim an official slice", "[AI][SmartSlicing][Apply]")
@@ -539,6 +558,106 @@ TEST_CASE("Orca trial slicing owns model config print and gcode copies", "[AI][S
     CHECK(formal_model.objects.front()->instances.front()->id() == instance_id);
     CHECK(formal_model.objects.front()->instances.front()->get_matrix().isApprox(original_transform));
     CHECK(formal_config.opt_serialize("layer_height") == original_layer_height);
+}
+
+TEST_CASE("Completed and failed slice results become stale after a later workspace edit", "[AI][SmartSlicing][Apply]")
+{
+    const auto final_phase = GENERATE(OfficialSlicePhase::Completed, OfficialSlicePhase::Failed);
+    WorkflowWorkspace workspace;
+    FakeTrialSliceExecutor trial;
+    FakeOfficialSliceGateway official;
+    official.on_commit = [&workspace] { workspace.context.revision.fingerprint = "applied-version"; };
+    SmartSlicingCoordinator coordinator(workspace, trial, official);
+    coordinator.start();
+    REQUIRE(coordinator.plan_and_slice_candidates());
+    REQUIRE(coordinator.apply_selected_candidate());
+    official.polled = {final_phase, {}, true, true};
+    REQUIRE(coordinator.poll_official_slice());
+    CHECK_FALSE(coordinator.refresh_revision()); // Applying its own proposal is not a later edit.
+    CHECK(Slic3r::GUI::SmartSlicingViewModel::from_snapshot(coordinator.snapshot()).needs_polling);
+
+    workspace.context.revision.fingerprint = "edited-model-or-printer";
+    REQUIRE(coordinator.refresh_revision());
+    CHECK(coordinator.snapshot().state == WorkflowState::Stale);
+    CHECK_FALSE(coordinator.snapshot().can_undo_apply);
+    CHECK_FALSE(coordinator.snapshot().comparison);
+    const auto view = Slic3r::GUI::SmartSlicingViewModel::from_snapshot(coordinator.snapshot());
+    CHECK_FALSE(view.has_report);
+    CHECK(view.candidates.empty());
+    CHECK_FALSE(view.can_apply);
+    CHECK_FALSE(coordinator.undo_applied_candidate());
+    CHECK(official.undo_calls == 0);
+    coordinator.start();
+    REQUIRE(coordinator.snapshot().context);
+    CHECK(coordinator.snapshot().context->revision == workspace.context.revision);
+    CHECK(coordinator.snapshot().state == WorkflowState::ReadyForCandidatePlanning);
+}
+
+TEST_CASE("An unavailable applied revision is not reported as a confirmed workspace edit", "[AI][SmartSlicing][Apply]")
+{
+    WorkflowWorkspace workspace;
+    FakeTrialSliceExecutor trial;
+    FakeOfficialSliceGateway official;
+    official.on_commit = [&workspace] { workspace.revision_unavailable = true; };
+    SmartSlicingCoordinator coordinator(workspace, trial, official);
+    coordinator.start();
+    REQUIRE(coordinator.plan_and_slice_candidates());
+    REQUIRE(coordinator.apply_selected_candidate());
+    official.polled = {OfficialSlicePhase::Completed, {}, true, true};
+    REQUIRE(coordinator.poll_official_slice());
+    workspace.revision_unavailable = false;
+    REQUIRE(coordinator.refresh_revision());
+    CHECK(coordinator.snapshot().detail == "applied_revision_unavailable");
+    const auto view = Slic3r::GUI::SmartSlicingViewModel::from_snapshot(coordinator.snapshot());
+    CHECK(view.summary_key == "applied_revision_unavailable");
+    CHECK_FALSE(view.has_report);
+    CHECK(view.candidates.empty());
+    CHECK(view.can_start);
+}
+
+TEST_CASE("Native trial slicing checks device height for a prepared 120 mm model", "[AI][SmartSlicing][OrcaModelPreparation][OrcaTrial]")
+{
+    const double device_height = GENERATE(100.0, 256.0);
+    Model formal_model;
+    auto* object = formal_model.add_object();
+    object->name = "fixed preparation sample";
+    object->add_volume(make_cube(8, 8, 40));
+    object->add_instance()->set_offset(Vec3d(70, 70, 0));
+    object->ensure_on_bed();
+    Slic3r::GUI::apply_model_preparation(*object, Slic3r::GUI::prepare_model(*object, {120, true, 3}));
+    const auto prepared_transform = object->instances.front()->get_matrix();
+    const auto prepared_id = object->id();
+    Slic3r::GUI::OrcaTrialSliceExecutor executor([&formal_model, device_height] {
+        Slic3r::GUI::OrcaTrialSliceInput input;
+        input.model = formal_model;
+        input.config = DynamicPrintConfig::full_print_config();
+        input.config.set("layer_height", 0.25);
+        input.config.set("printable_height", device_height);
+        input.config.set("layer_change_gcode", std::string("G92 E0\n"));
+        input.plate_index = 0;
+        input.plate_id = 7;
+        input.plate_name = "Prepared sample";
+        return input;
+    });
+    auto candidate = proposal("baseline", WorkspaceRevision{1, 2, 3, "prepared-120-base"});
+    candidate.status = CandidateStatus::Draft;
+    candidate.metrics.reset();
+    const auto result = executor.execute_trial_slice(candidate);
+    INFO("trial diagnostic: " << result.diagnostic_code);
+    if (device_height < 120) {
+        CHECK(result.status == TrialSliceStatus::Failed);
+        CHECK(result.diagnostic_code == "trial_validation_failed");
+        CHECK_FALSE(result.metrics);
+    } else {
+        REQUIRE(result.status == TrialSliceStatus::Succeeded);
+        REQUIRE(result.metrics);
+        CHECK(result.metrics->estimated_time_seconds.value_or(0) > 0);
+        CHECK(result.metrics->filament_volume_mm3.value_or(0) > 0);
+    }
+    CHECK(object->id() == prepared_id);
+    REQUIRE(object->volumes.size() == 2);
+    CHECK(object->instances.front()->get_matrix().isApprox(prepared_transform));
+    CHECK_THAT(object->instance_bounding_box(0).size().z(), Catch::Matchers::WithinAbs(120, 0.001));
 }
 
 TEST_CASE("Orca trial slicing rejects forbidden patches and observes early cancellation", "[AI][SmartSlicing][Workflow][OrcaTrial]")

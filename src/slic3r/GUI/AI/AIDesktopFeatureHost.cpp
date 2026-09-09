@@ -3,16 +3,46 @@
 #include "ModelGeneration/ModelGenerationFeatureHost.hpp"
 #include "slic3r/GUI/AISidecarClient.hpp"
 #include "slic3r/GUI/AIServiceManager.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <wx/event.h>
 #include <wx/timer.h>
 #include <wx/window.h>
+#include <wx/settings.h>
 
 #include <string>
 #include <utility>
 
 namespace Slic3r::GUI {
+
+void describe_ai_workflow_status(AIWorkflowStatus status, wxString& label, wxColour& colour)
+{
+    switch (status) {
+    case AIWorkflowStatus::Running:
+        label = _L("进行中");
+        colour = wxColour(0, 121, 107);
+        break;
+    case AIWorkflowStatus::Success:
+        label = _L("完成");
+        colour = wxColour(46, 125, 50);
+        break;
+    case AIWorkflowStatus::Warning:
+        label = _L("需处理");
+        colour = wxColour(154, 103, 0);
+        break;
+    case AIWorkflowStatus::Failed:
+        label = _L("失败");
+        colour = wxColour(179, 38, 30);
+        break;
+    case AIWorkflowStatus::Waiting:
+    default:
+        label = _L("等待");
+        colour = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+        break;
+    }
+}
 
 struct AIDesktopFeatureHost::Impl final : wxEvtHandler
 {
@@ -22,6 +52,7 @@ struct AIDesktopFeatureHost::Impl final : wxEvtHandler
         , service_manager(AISidecarClient::default_endpoint())
         , retry_timer(this)
         , on_smart_slicing_available(std::move(smart_slicing_available))
+        , plater(plater)
     {
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) { discover(); }, retry_timer.GetId());
     }
@@ -36,6 +67,8 @@ struct AIDesktopFeatureHost::Impl final : wxEvtHandler
         if (started || shutdown_requested)
             return;
         started = true;
+        // Native preparation and deterministic preflight do not require a provider.
+        if (plater != nullptr) plater->enable_smart_slicing();
         discover();
     }
 
@@ -99,6 +132,7 @@ struct AIDesktopFeatureHost::Impl final : wxEvtHandler
     AIServiceManager service_manager;
     wxTimer retry_timer;
     SmartSlicingAvailableFn on_smart_slicing_available;
+    Plater* plater { nullptr };
     unsigned retry_count { 0 };
     bool discovery_active { false };
     bool smart_slicing_announced { false };

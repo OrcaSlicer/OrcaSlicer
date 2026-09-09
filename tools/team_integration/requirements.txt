@@ -1,0 +1,2 @@
+# Optional, only required for explicit --listen-feishu / --send-feishu live mode.
+lark-oapi>=1.4,<2

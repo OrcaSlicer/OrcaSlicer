@@ -83,14 +83,17 @@ class QualityBenchmarkTests(unittest.TestCase):
         })
         self.assertEqual(monochrome, colorful)
 
-    def test_resolved_role_overrides_match_prompt_contract(self) -> None:
+    def test_benchmark_palette_metadata_does_not_limit_generation_colors(self) -> None:
         colors = ("#E83B36", "#2F9E62", "#3178C6", "#F5F3EA")
         assignment = assign_palette_roles(colors)
         prompt = build_style_preview_prompt(
-            "Create one toy.", colors, "q_cartoon", palette_roles=assignment.color_by_role
+            "Create one toy with a #123456 jacket.", colors, "q_cartoon", palette_roles=assignment.color_by_role
         )
         for role, color in assignment.color_by_role.items():
-            self.assertIn(f"{role}={color}", prompt)
+            self.assertNotIn(f"{role}={color}", prompt)
+            self.assertNotIn(color, prompt)
+        self.assertIn("#123456 jacket", prompt)
+        self.assertIn("There is no printer color palette or color-count limit", prompt)
 
 
 if __name__ == "__main__":

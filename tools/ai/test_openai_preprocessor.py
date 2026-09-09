@@ -258,7 +258,8 @@ class StylePreviewPromptTests(unittest.TestCase):
         self.assertIn("continuous tonal modeling", prompt)
         self.assertIn("soft broad diffuse", prompt)
         self.assertIn("geometry reference", prompt)
-        self.assertIn("selected filament palette is applied later", prompt)
+        self.assertNotIn("selected filament palette is applied later", prompt)
+        self.assertIn("Preserve natural colors, continuous gradients", prompt)
         self.assertNotIn("allowed printable palette", prompt)
         self.assertNotIn("Do not use gradients", prompt)
 
@@ -435,7 +436,7 @@ class StylePreviewPromptTests(unittest.TestCase):
 
         self.assertIn("identity-first portrait sketch sculpture", portrait)
         self.assertIn("restrained exaggeration", portrait)
-        self.assertIn("two to five broad material or relief masses", portrait)
+        self.assertIn("expressive material or relief forms", portrait)
         self.assertIn("generic caricature", portrait)
         self.assertIn("do not force every selected color", portrait)
         self.assertIn("IDENTITY-FIRST PORTRAIT LOCK", portrait)
@@ -468,7 +469,8 @@ class StylePreviewPromptTests(unittest.TestCase):
             with self.subTest(style=style):
                 prompt = preprocessor.build_geometry_reference_prompt("preserve the subject", style)
                 self.assertIn("continuous tonal modeling", prompt)
-                self.assertIn("selected filament palette is applied later", prompt)
+                self.assertNotIn("selected filament palette is applied later", prompt)
+                self.assertIn("Preserve natural colors, continuous gradients", prompt)
                 self.assertNotIn("#F0C7A6", prompt)
                 self.assertNotIn("Use at least 3 listed colors", prompt)
 
@@ -530,7 +532,7 @@ class TextImagePromptTests(unittest.TestCase):
 
         self.assertIn("一只正在奔跑的机械麒麟", prompt)
         self.assertIn("#D93632, #3B8C54, #315CA8, #F2F1EA", prompt)
-        self.assertIn("large closed color regions", prompt)
+        self.assertIn("natural color transitions", prompt)
         self.assertIn("Do not use gradients", prompt)
         self.assertIn("dithering", prompt)
         self.assertIn("deterministic print pipeline", prompt)
@@ -566,7 +568,7 @@ class TextImagePromptTests(unittest.TestCase):
         palette = ("#C95B43", "#253B5E", "#F2E5C4", "#D6A72C")
         self.assertEqual(
             preprocessor.build_text_image_prompt("two coworkers", palette, "cartoon"),
-            preprocessor._text_image_prompt("two coworkers", palette, "cartoon"),
+            preprocessor.build_text_geometry_reference_prompt("two coworkers", "cartoon"),
         )
 
 
@@ -736,6 +738,57 @@ class PrintablePaletteRecommendationTests(unittest.TestCase):
 
 
 class ExactImageEditTests(unittest.TestCase):
+    def test_new_design_generation_requests_solid_background_for_each_product_mode(self):
+        for style in ("sculpture", "realistic", "cartoon"):
+            with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "design.png"
+                with (
+                    mock.patch.object(preprocessor, "_image_config", return_value=mock.Mock(model="offline")),
+                    mock.patch.object(preprocessor, "_image_quality", return_value="high"),
+                    mock.patch.object(preprocessor, "_image_provider_request", return_value={}) as request,
+                    mock.patch.object(preprocessor, "_save_provider_image", return_value=output),
+                ):
+                    preprocessor.generate_geometry_reference_image("white jacket on a checkerboard", output, style)
+                request.assert_called_once()
+                payload = json.loads(request.call_args.args[1])
+                self.assertEqual(payload["background"], "opaque")
+                self.assertEqual(payload["n"], 1)
+                self.assertIn("uniform opaque solid-color", payload["prompt"])
+                self.assertIn("Do not request transparency or draw a transparency checkerboard", payload["prompt"])
+                self.assertIn("never recolor the subject", payload["prompt"])
+                self.assertIn("Replace any such backdrop in the source image", payload["prompt"])
+
+    def test_new_design_edit_requests_solid_background_without_rewriting_source_or_provider_pixels(self):
+        for style in ("sculpture", "realistic", "cartoon"):
+            with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source, output = root / "source.png", root / "design.png"
+                image = Image.new("RGB", (32, 32), (240, 240, 240))
+                image.paste((210, 210, 210), (0, 0, 16, 16))
+                image.paste((210, 210, 210), (16, 16, 32, 32))
+                image.save(source)
+                original = source.read_bytes()
+                generated = BytesIO()
+                Image.new("RGB", (32, 32), (110, 110, 110)).save(generated, format="PNG")
+                provider_pixels = generated.getvalue()
+
+                def edit(_source, _prompt, destination, **_kwargs):
+                    Path(destination).write_bytes(provider_pixels)
+                    return Path(destination)
+
+                with (
+                    mock.patch.object(preprocessor, "edit_image", side_effect=edit) as image_edit,
+                    mock.patch.object(preprocessor, "_portrait_face_lock_mask", return_value=None),
+                ):
+                    preprocessor.preprocess_image(source, "retain the white jacket", output, (), style)
+                image_edit.assert_called_once()
+                self.assertEqual(image_edit.call_args.args[0], source)
+                self.assertEqual(image_edit.call_args.kwargs, {"background": "opaque"})
+                self.assertIn("uniform opaque solid-color", image_edit.call_args.args[1])
+                self.assertIn("Do not request transparency or draw a transparency checkerboard", image_edit.call_args.args[1])
+                self.assertEqual(source.read_bytes(), original)
+                self.assertEqual(output.read_bytes(), provider_pixels)
+
     def test_exact_edit_creates_destination_directory_before_saving(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -870,7 +923,7 @@ class ExactImageEditTests(unittest.TestCase):
                                 self.assertEqual(result, destination)
                                 image_edit.assert_called_once()
                                 self.assertEqual(image_edit.call_args.args[0], source)
-                                self.assertEqual(image_edit.call_args.kwargs, {"background": "transparent"})
+                                self.assertEqual(image_edit.call_args.kwargs, {"background": "opaque"})
                                 self.assertTrue((case_root / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).is_file())
                                 self.assertEqual(destination.read_bytes(), provider_bytes)
                                 if geometry is not None:
@@ -898,12 +951,12 @@ class ExactImageEditTests(unittest.TestCase):
             self.assertTrue((Path(directory) / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).is_file())
 
         self.assertEqual(result, destination)
-        self.assertEqual(edit.call_args.kwargs.get("background"), "transparent")
+        self.assertEqual(edit.call_args.kwargs.get("background"), "opaque")
         self.assertIn("IDENTITY-FIRST PORTRAIT LOCK", edit.call_args.args[1])
         self.assertIn("continuous tonal modeling", edit.call_args.args[1])
         for color in ("#FFFFFF", "#111111", "#F0C8AA", "#315B48"):
-            self.assertIn(color, edit.call_args.args[1])
-        self.assertIn("not an exact pixel palette", edit.call_args.args[1])
+            self.assertNotIn(color, edit.call_args.args[1])
+        self.assertIn("There is no printer color palette or color-count limit", edit.call_args.args[1])
 
     def test_portrait_geometry_copy_without_detected_face_uses_only_the_provider_result(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -932,7 +985,7 @@ class ExactImageEditTests(unittest.TestCase):
             self.assertEqual(geometry.read_bytes(), destination.read_bytes())
             self.assertFalse((root / preprocessor.PORTRAIT_FACE_LOCK_FILENAME).exists())
             image_edit.assert_called_once()
-            self.assertEqual(image_edit.call_args.kwargs, {"background": "transparent"})
+            self.assertEqual(image_edit.call_args.kwargs, {"background": "opaque"})
 
     def test_portrait_face_lock_mask_is_opaque_on_face_and_transparent_outside(self):
         from PIL import ImageDraw

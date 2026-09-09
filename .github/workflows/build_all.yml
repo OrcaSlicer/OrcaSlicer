@@ -6,7 +6,6 @@ on:
      - main
      - release/*
      - belt-printer
-     - codex/orca-integration-v2
     paths:
      - 'deps/**'
      - 'src/**'
@@ -27,7 +26,6 @@ on:
     branches:
      - main
      - release/*
-     - codex/orca-integration-v2
     paths:
      - 'deps/**'
      - 'deps_src/**'
@@ -121,7 +119,7 @@ jobs:
       compiler: ${{ matrix.compiler }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
-      ai-commercial-package: ${{ github.ref == 'refs/heads/codex/orca-integration-v2' || github.base_ref == 'codex/orca-integration-v2' }}
+      ai-commercial-package: false # Team candidate builds have their own workflow.
   build_macos_arch:
     strategy:
       fail-fast: false

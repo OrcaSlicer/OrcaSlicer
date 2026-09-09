@@ -28,7 +28,7 @@ class IntegrationGuardrailTests(unittest.TestCase):
         self.assertEqual([], GUARDRAILS.validate_source_constants(self.document, REPO_ROOT))
 
     def test_repository_lock_declares_guarded_modular_architecture(self) -> None:
-        self.assertEqual("orcaslicer.ai-integration-lock/v3", self.document["schema"])
+        self.assertEqual("orcaslicer.ai-integration-lock/v4", self.document["schema"])
         architecture = self.document["architecture_contract"]
 
         self.assertEqual("desktop_modular_monolith", architecture["pattern"])
@@ -51,6 +51,47 @@ class IntegrationGuardrailTests(unittest.TestCase):
             },
             set(self.document["boundaries"]["allowed_cross_feature_contracts"]),
         )
+
+    def test_repository_declares_three_developers_and_four_long_lived_branches(self) -> None:
+        policy = self.document["branch_policy"]
+        self.assertEqual("codex/team/integration", self.document["integration_branch"])
+        self.assertEqual(
+            {
+                "model_generation": "codex/team/model-generation",
+                "smart_slicing": "codex/team/smart-slicing",
+                "maintenance": "codex/team/maintenance",
+                "integration": "codex/team/integration",
+            },
+            policy["long_lived_branches"],
+        )
+        self.assertEqual("codex/team/integration", policy["developer_sync_source"])
+        self.assertEqual("merge_commit", policy["long_lived_sync_method"])
+        self.assertFalse(policy["force_push_allowed"])
+        self.assertNotIn("feature_branches_receive_no_reverse_integration", self.document["boundaries"])
+
+    def test_branch_and_ci_policies_cannot_bypass_accepted_integration_checks(self) -> None:
+        changes = (
+            ("branch_policy", "force_push_allowed", True),
+            ("branch_policy", "long_lived_sync_method", "squash"),
+            ("branch_policy", "integration_requires_latest_base_and_head", False),
+            ("branch_policy", "historical_provenance", "moving_branch_ref"),
+            ("ci_contract", "required_checks", ["AI integration checks"]),
+            ("ci_contract", "path_filters_allowed", True),
+        )
+        for section, field, value in changes:
+            with self.subTest(section=section, field=field):
+                document = copy.deepcopy(self.document)
+                document[section][field] = value
+                errors = GUARDRAILS.validate_document(document)
+                self.assertTrue(any(f"{section}.{field}" in error["message"] for error in errors))
+
+    def test_model_finishing_cannot_lose_model_generation_ownership(self) -> None:
+        document = copy.deepcopy(self.document)
+        document["boundaries"]["model_generation_owned_paths"].remove(
+            "src/slic3r/GUI/AI/Model/ModelFinishing.cpp"
+        )
+        errors = GUARDRAILS.validate_document(document)
+        self.assertTrue(any(error["code"] == "boundary.model_generation" for error in errors))
 
     def test_repository_neutral_contract_layout_passes(self) -> None:
         self.assertEqual([], GUARDRAILS.validate_contract_layout(REPO_ROOT))
@@ -425,6 +466,52 @@ class IntegrationGuardrailTests(unittest.TestCase):
         self.assertEqual(9, len(receipts["model_generation"]["verified_paths"]))
         self.assertEqual(2, len(receipts["smart_slicing"]["verified_paths"]))
 
+    def test_historical_provenance_requires_fixed_objects_without_old_branch_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+
+            def git(*arguments: str) -> str:
+                return subprocess.run(
+                    ["git", "-C", str(root), *arguments],
+                    check=True, capture_output=True, text=True, encoding="utf-8",
+                ).stdout.strip()
+
+            git("init", "--quiet")
+            git("config", "user.name", "Guardrail Test")
+            git("config", "user.email", "guardrail@example.invalid")
+            git("config", "core.autocrlf", "false")
+            (root / "source.txt").write_text("accepted historical content\n", encoding="utf-8")
+            git("add", "source.txt")
+            git("commit", "--quiet", "-m", "accepted source")
+            source_sha = git("rev-parse", "HEAD")
+            source_object = git("rev-parse", "HEAD:source.txt")
+            git("commit", "--quiet", "--allow-empty", "-m", "historical receipt")
+            receipt_sha = git("rev-parse", "HEAD")
+            # Current development can change an imported file without rewriting
+            # the evidence of what was imported at the historical receipt.
+            (root / "source.txt").write_text("current development\n", encoding="utf-8")
+            git("add", "source.txt")
+            git("commit", "--quiet", "-m", "current work")
+            document = {
+                "upstream": {"sha": source_sha},
+                "feature_sources": {"model_generation": {"branch": "codex/model-generation", "sha": source_sha}},
+                "integration_receipts": {
+                    "model_generation": {
+                        "source_sha": source_sha,
+                        "integration_commit": receipt_sha,
+                        "verified_git_objects": {"source.txt": source_object},
+                    },
+                },
+            }
+            errors, details = GUARDRAILS.validate_git(document, root)
+            self.assertEqual([], errors)
+            self.assertEqual(
+                ["source.txt"], details["integration_receipts"]["model_generation"]["verified_paths"]
+            )
+            document["integration_receipts"]["model_generation"]["verified_git_objects"]["source.txt"] = "0" * 40
+            errors, _ = GUARDRAILS.validate_git(document, root)
+            self.assertTrue(any(error["code"] == "git.receipt_object" for error in errors))
+
     def test_rejects_duplicate_development_ports(self) -> None:
         document = copy.deepcopy(self.document)
         document["runtime_contract"]["development_ports"]["integration"] = 18765
@@ -629,6 +716,48 @@ class IntegrationGuardrailTests(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertEqual("security.secret_content", errors[0]["code"])
         self.assertNotIn(secret, errors[0]["message"])
+
+    def test_audited_credential_fixtures_are_exact_and_do_not_hide_other_values(self) -> None:
+        secret = "provider_live_0123456789abcdefghijklmnopqrstuvwxyz"
+        for relative_path, name, value in GUARDRAILS.AUDITED_CREDENTIAL_FIXTURES:
+            with self.subTest(relative_path=relative_path):
+                fixture_line = f'{name} = "{value}"'
+                self.assertEqual("", GUARDRAILS._secret_finding(fixture_line, relative_path))
+                self.assertTrue(GUARDRAILS._secret_finding(fixture_line, "different_test.py"))
+                self.assertTrue(GUARDRAILS._secret_finding(f'{name} = "{value}-changed"', relative_path))
+                self.assertTrue(GUARDRAILS._secret_finding(f'{name} = "{secret}"', relative_path))
+                self.assertTrue(GUARDRAILS._secret_finding(
+                    fixture_line + f'; {name} = "{secret}"', relative_path
+                ))
+                self.assertTrue(GUARDRAILS._secret_finding(
+                    fixture_line + '; key = "sk-' + "x" * 40 + '"', relative_path
+                ))
+
+    def test_git_and_file_scans_share_precise_fixture_exemptions(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+            paths = []
+            for relative_path, name, value in GUARDRAILS.AUDITED_CREDENTIAL_FIXTURES:
+                path = root / relative_path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f'{name} = "{value}"\n', encoding="utf-8")
+                paths.append(relative_path)
+            subprocess.run(["git", "-C", str(root), "add", "--", *paths], check=True)
+            self.assertEqual([], GUARDRAILS.validate_tracked_secret_content(root, paths))
+            self.assertEqual([], GUARDRAILS.validate_git_secret_content(root))
+            # An additional credential in an audited file must still fail,
+            # including when it follows the exempt fixture on the same line.
+            path = root / paths[0]
+            provider_name = "OPENAI_PRO_API"
+            path.write_text(
+                path.read_text(encoding="utf-8").rstrip() + f'; {provider_name} = "opaque_nonfixture_value"\n',
+                encoding="utf-8",
+            )
+            file_errors = GUARDRAILS.validate_tracked_secret_content(root, paths)
+            git_errors = GUARDRAILS.validate_git_secret_content(root)
+            self.assertEqual(file_errors, git_errors)
+            self.assertEqual(1, len(file_errors))
 
     def test_json_cli_supports_skip_git(self) -> None:
         completed = subprocess.run(

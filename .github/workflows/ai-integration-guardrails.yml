@@ -3,91 +3,56 @@ name: AI integration guardrails
 on:
   push:
     branches:
-      - codex/orca-integration-v2
-    paths:
-      - '.github/CODEOWNERS'
-      - '.github/pull_request_template.md'
-      - '.github/workflows/**'
-      - 'CMakeLists.txt'
-      - 'build_release_vs.bat'
-      - 'deps/MPFR/MPFR.cmake'
-      - 'deps/wxWidgets/wxWidgets.cmake'
-      - 'docs/architecture/**'
-      - 'scripts/package_internal_fast.ps1'
-      - 'scripts/verify_ai_integration.py'
-      - 'src/slic3r/CMakeLists.txt'
-      - 'src/slic3r/AI/**'
-      - 'src/slic3r/GUI/AI/**'
-      - 'src/slic3r/GUI/AI*.cpp'
-      - 'src/slic3r/GUI/AI*.hpp'
-      - 'src/slic3r/GUI/MainFrame.cpp'
-      - 'src/slic3r/GUI/MainFrame.hpp'
-      - 'src/slic3r/GUI/ModelGenerationPanel.cpp'
-      - 'src/slic3r/GUI/ModelGenerationPanel.hpp'
-      - 'src/slic3r/GUI/Plater.cpp'
-      - 'src/slic3r/GUI/Plater.hpp'
-      - 'src/slic3r/Utils/Http.cpp'
-      - 'src/slic3r/Utils/Http.hpp'
-      - 'tests/**'
-      - 'tools/ai/**'
+      - codex/team/integration
+      - codex/team/model-generation
+      - codex/team/smart-slicing
+      - codex/team/maintenance
   pull_request:
-    branches:
-      - codex/orca-integration-v2
+    branches: [codex/team/integration]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ai-integration-guardrails-${{ github.event.pull_request.number || github.ref }}
+  group: ai-integration-guardrails-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   guardrails:
-    name: Pins, receipts, boundaries and Python tests
+    name: AI integration checks
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Checkout full integration history
+      - name: Checkout full candidate and historical receipts
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Fetch feature histories for accepted-SHA validation
-        shell: pwsh
-        run: |
-          git fetch --no-tags origin `
-            +refs/heads/codex/model-generation:refs/remotes/origin/codex/model-generation `
-            +refs/heads/codex/smart-slicing:refs/remotes/origin/codex/smart-slicing
-          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch feature histories." }
-
+          persist-credentials: false
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
       - name: Install test dependency
-        shell: pwsh
         run: python -m pip install --disable-pip-version-check Pillow==12.2.0
-
       - name: Validate pinned integration contract
-        shell: pwsh
+        run: python scripts/fetch_ai_provenance.py
+      - name: Check fixed history, boundaries and runtime pins
         run: python scripts/verify_ai_integration.py --json
-
-      - name: Run all AI Python tests
-        shell: pwsh
-        run: python -m unittest discover -s tools/ai -p 'test_*.py' -q
-
+      - name: Run AI tests with external Python networking blocked
+        run: python scripts/run_ai_offline_tests.py
       - name: Check committed whitespace errors
         shell: pwsh
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.sha }}
           BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if ($env:EVENT_NAME -eq 'pull_request') {
-            git diff --check "$env:BASE_SHA...$env:HEAD_SHA"
+          if ($env:BASE_SHA) {
+            git diff --check "$env:BASE_SHA" "$env:HEAD_SHA"
           } elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -notmatch '^0+$') {
             git diff --check "$env:BEFORE_SHA" "$env:HEAD_SHA"
           } else {

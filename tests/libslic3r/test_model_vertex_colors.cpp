@@ -13,6 +13,53 @@
 
 using namespace Slic3r;
 
+TEST_CASE("Fixed import palettes keep edited target colors and source regions", "[ModelVertexColors][FixedPalette]")
+{
+    const bool include_vertex_colors = GENERATE(false, true);
+    TexturedMesh mesh;
+    for (int part = 0; part < 2; ++part) {
+        const int first = (int)mesh.vertices.size();
+        for (const auto& v : std::array<std::array<float, 3>, 4>{{{0,0,0}, {10,0,0}, {0,10,0}, {0,0,10}}}) {
+            mesh.vertices.push_back({v[0] + part * 20.f, v[1], v[2]});
+            if (include_vertex_colors)
+                mesh.precomputed_vertex_colors.push_back(part == 0 ? std::array<float,4>{1,0,0,1} : std::array<float,4>{0,0,1,1});
+        }
+        for (const auto& f : std::array<std::array<int, 3>, 4>{{{0,2,1}, {0,1,3}, {0,3,2}, {1,2,3}}}) {
+            mesh.indices.push_back({first + f[0], first + f[1], first + f[2]});
+            mesh.precomputed_face_colors.push_back(part == 0 ? std::array<size_t,3>{255,0,0} : std::array<size_t,3>{0,0,255});
+        }
+    }
+    TexturePaintingSettings settings;
+    settings.smooth_weight = 0;
+    settings.fixed_mapping_palette = {{255,0,0}, {0,0,255}, {0,255,0}};
+    settings.fixed_palette = {{0,0,255}, {255,0,0}, {255,255,0}};
+    PaintedMesh painted;
+    REQUIRE(face_colors_to_painting(mesh, painted, settings));
+    REQUIRE(painted.face_colors.size() == mesh.indices.size());
+    for (size_t i = 0; i < painted.face_colors.size(); ++i)
+        CHECK(painted.face_colors[i] == settings.fixed_palette[i < 4 ? 0 : 1]);
+    CHECK(painted.cluster_colors.size() == 2);
+    CHECK(painted.vertices == mesh.vertices);
+    CHECK(painted.indices == mesh.indices);
+}
+
+TEST_CASE("Fixed import palettes reject invalid colors and mismatched source centers", "[ModelVertexColors][FixedPalette]")
+{
+    TexturedMesh mesh;
+    mesh.vertices = {{0,0,0}, {10,0,0}, {0,10,0}, {0,0,10}};
+    mesh.indices = {{0,2,1}, {0,1,3}, {0,3,2}, {1,2,3}};
+    mesh.precomputed_face_colors.assign(4, {255,0,0});
+    TexturePaintingSettings settings;
+    settings.smooth_weight = 0;
+    settings.fixed_palette = {{0,0,255}};
+    settings.fixed_mapping_palette = {{255,0,0}, {0,255,0}};
+    PaintedMesh painted;
+    CHECK_FALSE(face_colors_to_painting(mesh, painted, settings));
+    settings.fixed_mapping_palette.clear();
+    settings.fixed_palette = {{256,0,0}};
+    CHECK_FALSE(face_colors_to_painting(mesh, painted, settings));
+}
+
 namespace {
 
 Model make_single_triangle_model()

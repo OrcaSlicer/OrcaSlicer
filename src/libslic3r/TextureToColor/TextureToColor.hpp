@@ -39,6 +39,10 @@ struct TextureToColorSettings {
     bool* mesh_repair_decision_required = nullptr;
 
     MeshRepairCallback mesh_repair_callback;
+    // Fixed targets retain user-edited colors; optional source centers retain
+    // region membership using the same Oklab metric as the desktop trial.
+    std::vector<std::array<std::size_t, 3>> fixed_palette;
+    std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
 };
 
 /**

@@ -3,6 +3,7 @@
 #include "slic3r/AI/SmartSlicing/Ports/IOfficialSliceGateway.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -60,10 +61,13 @@ public:
         m_preview_shown = false;
         m_workspace_mutated = false;
         m_can_undo = false;
+        m_applied_revision.reset();
         try {
             OrcaApplyMutationResult applied = m_apply ? m_apply(candidate) : OrcaApplyMutationResult{};
             m_workspace_mutated = applied.workspace_mutated;
             m_can_undo          = applied.workspace_mutated;
+            if (m_can_undo && m_revision)
+                m_applied_revision = m_revision();
             if (!applied.success) {
                 m_last = {AI::SmartSlicing::OfficialSlicePhase::Failed,
                           applied.diagnostic_code.empty() ? "candidate_apply_failed" : applied.diagnostic_code,
@@ -79,6 +83,8 @@ public:
             m_last = {AI::SmartSlicing::OfficialSlicePhase::Slicing, {}, m_workspace_mutated, m_can_undo};
             return m_last;
         } catch (...) {
+            if (!m_applied_revision)
+                m_can_undo = false;
             m_last = {AI::SmartSlicing::OfficialSlicePhase::Failed, "candidate_apply_exception",
                       m_workspace_mutated, m_can_undo};
             return m_last;
@@ -98,7 +104,8 @@ public:
 
     bool undo_last_apply() override
     {
-        if (!m_can_undo || !m_undo || !m_undo())
+        if (!m_can_undo || !m_applied_revision || !m_revision ||
+            m_revision() != *m_applied_revision || !m_undo || !m_undo())
             return false;
         m_can_undo = false;
         m_workspace_mutated = false;
@@ -142,6 +149,7 @@ private:
     ActionFn m_show_preview;
     ActionFn m_undo;
     AI::SmartSlicing::OfficialSliceResult m_last;
+    std::optional<AI::SmartSlicing::WorkspaceRevision> m_applied_revision;
     bool m_pending{false};
     bool m_workspace_mutated{false};
     bool m_can_undo{false};

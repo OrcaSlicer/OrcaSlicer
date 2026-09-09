@@ -292,6 +292,65 @@ TEST_CASE("idle view model initializes every stage and legacy step", "[AI][Smart
         CHECK(status == Slic3r::GUI::LegacyAIWorkflowStatus::Waiting);
     CHECK(view.can_start);
     CHECK_FALSE(view.can_cancel);
+    CHECK_FALSE(view.has_report);
+    CHECK(view.can_add_model);
+}
+
+TEST_CASE("empty plates offer model import without claiming model preparation is complete", "[AI][SmartSlicing]")
+{
+    FakeWorkspace workspace;
+    workspace.context.objects.clear();
+    SmartSlicingCoordinator coordinator(workspace);
+    coordinator.start();
+    const auto view = Slic3r::GUI::SmartSlicingViewModel::from_snapshot(coordinator.snapshot());
+    CHECK(view.has_report);
+    CHECK(view.can_add_model);
+    CHECK(view.can_recheck);
+    CHECK(view.stages[0].status == Slic3r::GUI::SmartSlicingStageStatus::NeedsAttention);
+    CHECK_FALSE(view.can_plan_candidates);
+}
+
+TEST_CASE("candidate cards preserve the proposed old and new values", "[AI][SmartSlicing]")
+{
+    WorkflowSnapshot snapshot;
+    snapshot.state = WorkflowState::ReadyToApply;
+    SliceCandidate candidate;
+    candidate.id = "wider-brim";
+    candidate.parameters.entries.push_back({ConfigScope::Plate, PresetOwner::Process, 12,
+        "brim_width", 2.0, 5.0, "adhesion"});
+    candidate.placement.transforms.resize(2);
+    snapshot.candidates.push_back(candidate);
+    const auto view = Slic3r::GUI::SmartSlicingViewModel::from_snapshot(snapshot);
+    REQUIRE(view.candidates.size() == 1);
+    REQUIRE(view.candidates.front().parameter_changes.size() == 1);
+    const auto& change = view.candidates.front().parameter_changes.front();
+    CHECK(change.key == "brim_width");
+    CHECK(change.target_id == 12);
+    CHECK_THAT(std::get<double>(change.expected_value), Catch::Matchers::WithinAbs(2.0, 0.001));
+    CHECK_THAT(std::get<double>(change.new_value), Catch::Matchers::WithinAbs(5.0, 0.001));
+    CHECK(view.candidates.front().placement_change_count == 2);
+}
+
+TEST_CASE("completed and failed applications expose the same undo action", "[AI][SmartSlicing]")
+{
+    WorkflowSnapshot snapshot;
+    snapshot.state = GENERATE(WorkflowState::Completed, WorkflowState::ApplyFailed);
+    snapshot.can_undo_apply = true;
+    CHECK(Slic3r::GUI::SmartSlicingViewModel::from_snapshot(snapshot).can_undo_apply);
+    snapshot.can_undo_apply = false;
+    CHECK_FALSE(Slic3r::GUI::SmartSlicingViewModel::from_snapshot(snapshot).can_undo_apply);
+}
+
+TEST_CASE("undo errors do not relabel completed slicing as failed", "[AI][SmartSlicing]")
+{
+    WorkflowSnapshot snapshot;
+    snapshot.state = WorkflowState::Completed;
+    snapshot.can_undo_apply = true;
+    snapshot.detail = "apply_undo_failed";
+    const auto view = Slic3r::GUI::SmartSlicingViewModel::from_snapshot(snapshot);
+    CHECK(view.summary_key == "apply_undo_failed");
+    CHECK(view.stages.back().status == Slic3r::GUI::SmartSlicingStageStatus::Complete);
+    CHECK(view.can_undo_apply);
 }
 
 TEST_CASE("canceled view model does not expose a report from an obsolete workspace", "[AI][SmartSlicing]")

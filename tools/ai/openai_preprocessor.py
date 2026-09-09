@@ -68,7 +68,7 @@ STYLE_PROFILES = {
     "realistic": (
         "Create a multi-color realistic collectible while changing as little as possible beyond material and color treatment. "
         "Preserve the source subject one-for-one: the same recognizable identity, face, age, expression, anatomy, proportions, "
-        "pose, silhouette, crop, clothing, accessories, objects, count, placement, and visible details. Use believable solid-color "
+        "pose, silhouette, crop, clothing, accessories, objects, count, placement, and visible details. Use believable naturally colored "
         "materials and restrained realistic modeling; do not stylize facial proportions, invent detail, genericize manufactured "
         "parts, or alter the composition. When the subject is a real person, use the shape language of a highly faithful "
         "polychrome portrait sculpture or faithful 3D scan: carry identity in the actual face silhouette and sculpted anatomical "
@@ -83,7 +83,7 @@ STYLE_PROFILES = {
         "adult age, expression, facial silhouette, landmark spacing, asymmetry, hairstyle, pose, crop, clothing, and accessories. "
         "Use restrained exaggeration only to clarify an already-present brow, cheek, smile fold, jaw transition, or gesture; never "
         "replace the person with a generic caricature, idealized celebrity, doll, anime face, or stock street-artist template. Translate "
-        "tone into two to five broad material or relief masses with continuous sculptural modeling inside each mass. Prefer a few confident, "
+        "tone into expressive material or relief forms with continuous sculptural modeling. Prefer a few confident, "
         "printer-width contour grooves and connected planes over drawn texture. Use only semantically truthful masses, and do not force every "
         "selected color to appear when that would create a tiny or false region."
     ),
@@ -494,7 +494,7 @@ def _style_profile(style: str, custom_style: str = "") -> str:
             "Apply this user-defined visual style to the existing subject: "
             + description
             + ". Treat it only as appearance and shape-language direction. The subject identity, image-to-3D composition, "
-            "printable palette, structural connections, stable base, and other hard constraints in this request take priority."
+            "structural connections, stable base, and other hard constraints in this request take priority."
         )
     profile = STYLE_PROFILES.get(LEGACY_STYLE_ALIASES.get(style, style))
     if profile is None:
@@ -691,35 +691,6 @@ def _portrait_identity_geometry_direction() -> str:
     )
 
 
-def _portrait_monochrome_geometry_prompt(_instruction: str) -> str:
-    """Build the second-pass reference used only for portrait geometry.
-
-    A realistic four-colour render is useful for material ownership, but the
-    strong contrast between skin, a light jacket and a dark inner garment can
-    make an image-to-3D provider explain colour boundaries as face or body
-    shape.  The geometry pass therefore receives the same approved composition
-    as one neutral sculptural material; colour is restored from the separate
-    material reference after the mesh exists.
-    """
-
-    return (
-        "Create a dedicated geometry-only reference from this already prepared adult portrait collectible. "
-        "This is a material replacement, not a colour-preserving edit: recolour every visible part of the person, hair, skin, "
-        "teeth, clothing, watch, and base into the same uniform neutral warm-gray matte clay or plaster. The output must contain "
-        "no skin tone, black hair, white jacket, green clothing, coloured accessory, makeup, or other original colour. Preserve the exact same "
-        "canvas, crop, silhouette, head size and angle, facial identity, adult age, expression, hair volume, visible ears, "
-        "crossed-arm order, watch, jacket shape, inner neckline, lower-torso finish, and low integrated base. Do not redesign, "
-        "beautify, slim, symmetrize, mirror, extend, crop, add, remove, reveal, or reposition anything. Preserve source-specific "
-        "face width and length, eyelid openings, eye spacing, eyebrow arcs, nose bridge/width/tip, mouth corners, tooth exposure, "
-        "cheek volume, jaw and chin as restrained modelable sculptural relief. Use soft broad studio lighting only to reveal real "
-        "planes; do not use skin colour, garment colour, makeup, painted eyebrows, photographic texture, a checkerboard, cast "
-        "shadow, halo, backing plate, rear sheet, support slab, or any extra geometry. Return a genuinely transparent background. "
-        "The person, clothing and base must all remain one coherent opaque sculpture, and the base must stay low and subordinate. "
-        "Previous colour and background instructions do not apply to this geometry-only derivative. "
-        + _portrait_identity_geometry_direction()
-    )
-
-
 def _difficult_structure_direction() -> str:
     return (
         "Difficult-structure rule: for a vehicle, machine, tool, or articulated product, keep every wheel, bucket, blade, lens, "
@@ -774,6 +745,17 @@ def _non_realistic_text_cleanup_direction(style: str) -> str:
     )
 
 
+def _solid_background_direction() -> str:
+    return (
+        "Use one uniform opaque solid-color studio background, preferably neutral mid-gray. "
+        "Choose a different uniform tone if needed to clearly separate the background from every subject region, "
+        "including white clothing, hair and the base; never recolor the subject to create contrast. "
+        "Do not request transparency or draw a transparency checkerboard, checker pattern, grid, tiles, "
+        "background texture, gradient, scenery, floor shadow or halo. Replace any such backdrop in the source image. "
+        "Preserve the complete subject and base with clear empty margins on all sides. "
+    )
+
+
 def _image_to_3d_composition_direction(transparent_background: bool = False, style: str = "") -> str:
     support_override = _style_support_override(style)
     if support_override:
@@ -788,7 +770,7 @@ def _image_to_3d_composition_direction(transparent_background: bool = False, sty
     return (
         "Recompose the selected primary subject as a clean product-shot reference for image-to-3D rather than editing the "
         "photograph in place. Center the exact requested subject or explicitly requested subject group as one readable composition on "
-        + ("a transparent background" if transparent_background else "a plain bright background")
+        + ("a transparent background" if transparent_background else "a uniform opaque solid-color background")
         + ", show a coherent complete silhouette, and use a front or gentle three-quarter view. Preserve any base, support, floor "
         "slab, or contact surface that is visibly part of the selected source subject. "
         + support_direction
@@ -821,9 +803,10 @@ def preprocess_text(
 ) -> str:
     if not isinstance(instruction, str) or not instruction.strip():
         raise OpenAIPreprocessorError("A text instruction is required.")
-    palette_instruction = ""
-    if palette:
-        palette_instruction = " Use only these printable filament colors: " + ", ".join(palette) + "."
+    palette_instruction = (
+        " Preserve the user's color intent, natural gradients and material detail. "
+        "Do not restrict colors to a printer palette or reduce the color count."
+    )
     content = complete_text(
         (
             "Rewrite the user's request as one concise prompt for a text-to-3D model. "
@@ -1442,7 +1425,8 @@ def _style_preview_prompt(
         + " "
         + _non_realistic_text_cleanup_direction(canonical_style)
         + "\nImage-to-3D composition contract: "
-        + _image_to_3d_composition_direction(bool(palette) or geometry_reference, canonical_style)
+        + _image_to_3d_composition_direction(bool(palette), canonical_style)
+        + (_solid_background_direction() if not palette else "")
         + "Treat the source as a closed visual inventory. Preserve its exact viewpoint (front, three-quarter, side, or rear), "
         "facing direction, left-right arrangement, silhouette, component count, negative spaces, and all identity-defining "
         "asymmetry. Never mirror the subject or substitute a more typical example of its category. "
@@ -1467,10 +1451,9 @@ def _style_preview_prompt(
         + _portrait_identity_geometry_direction()
         + color_direction
         + (
-            "This is the geometry reference, not the final color preview. Preserve continuous tonal modeling and soft broad diffuse "
-            "lighting so silhouette, facial landmarks, joints, folds, and sculptural planes remain legible. Keep broad natural "
-            "material groups, but do not bake cast shadows, specular highlights, colored rim light, makeup, photographic skin detail, "
-            "fabric weave, or tiny markings into geometry or material boundaries. The selected filament palette is applied later. "
+            "This is the geometry reference. Preserve continuous tonal modeling and soft broad diffuse "
+            "lighting so silhouette, facial landmarks, joints, folds, and sculptural planes remain legible. Preserve broad natural "
+            "material groups together with their gradients, texture and fine color detail. Do not bake lighting or cast shadows into geometry. "
             if geometry_reference else ""
         )
         + "Avoid dithering and tiny color speckles. Do not return the unchanged source as a whole. Preserve a person's "
@@ -1492,7 +1475,7 @@ def build_style_preview_prompt(
     Benchmark and support tooling use this public boundary to persist an
     auditable request without duplicating the production prompt contract.
     """
-    return _style_preview_prompt(instruction, palette, style, shadow_color, palette_roles, custom_style)
+    return _unrestricted_creation_prompt(instruction, style, custom_style, from_image=True)
 
 
 def build_geometry_reference_prompt(
@@ -1500,14 +1483,29 @@ def build_geometry_reference_prompt(
     style: str = "sculpture",
     custom_style: str = "",
 ) -> str:
-    """Return a print-aware continuous-tone prompt used only for geometry."""
+    """Return the unrestricted creation prompt used by the production path."""
+    return _unrestricted_creation_prompt(instruction, style, custom_style, from_image=True)
 
-    return _style_preview_prompt(
-        instruction,
-        (),
-        style,
-        custom_style=custom_style,
-        geometry_reference=True,
+
+def _unrestricted_creation_prompt(
+    instruction: str, style: str, custom_style: str, *, from_image: bool
+) -> str:
+    if not isinstance(instruction, str) or not instruction.strip():
+        raise OpenAIPreprocessorError("An image-generation instruction is required.")
+    # Keep the tested identity, composition and geometry rules. Only the color
+    # policy changes; a new palette mode must not redesign the subject.
+    prompt = (
+        _style_preview_prompt(instruction, (), style, custom_style=custom_style, geometry_reference=True)
+        if from_image else
+        _text_image_prompt(instruction, (), style, custom_style=custom_style, geometry_reference=True)
+    )
+    return prompt + (
+        " Preserve natural colors, continuous gradients, texture, subtle skin tones and material detail. "
+        "There is no printer color palette or color-count limit. Do not quantize, posterize, flatten colors, "
+        "or impose solid-color regions for printing. A color explicitly requested by the user remains intentional. "
+    ) + (
+        "The selected monochrome sculpture style intentionally keeps its single-material appearance; preserve tonal shading within that style."
+        if LEGACY_STYLE_ALIASES.get(style, style) == "sculpture" else ""
     )
 
 
@@ -1546,20 +1544,19 @@ def _text_image_prompt(
         + _style_support_override(canonical_style)
         + _non_realistic_text_cleanup_direction(canonical_style)
         + "\nPrintable composition constraints: Use one clearly readable primary subject, a complete silhouette, a stable pose, "
-        "simple depth layering, large closed color regions, hard clean boundaries, and only structurally meaningful details. "
+        "simple depth layering, natural color transitions, and structurally meaningful details. "
         "Treat the user description as a closed component inventory: do not add plausible category features, accessories, handles, "
         "tools, rods, decorations, or secondary objects that were not explicitly requested. Simplify ambiguous details instead of inventing them. "
         + _portrait_display_base_direction()
         + _difficult_structure_direction()
         + _portrait_identity_geometry_direction()
-        + ("Use a genuine alpha-transparent background with no cast shadow; never paint a checkerboard or grid to imitate transparency. " if palette or geometry_reference else "")
+        + ("Use a genuine alpha-transparent background with no cast shadow; never paint a checkerboard or grid to imitate transparency. " if palette else _solid_background_direction())
         + color_direction
         + ("Use palette colors only as solid semantic material regions, never as lighting highlights, reflections, rim light, or shading bands. " if palette else "")
         + (
             "Preserve continuous tonal modeling with soft broad diffuse lighting. Use broad natural material groups while keeping their "
-            "ownership clear across lit and shaded surfaces. Do not use cast shadows, specular highlights, colored rim light, photographic "
-            "reflections, depth of field, blur, dithering, halftone dots, random noise, tiny isolated regions, dense texture, text, watermark, "
-            "frame, or decorative clutter. This is a geometry reference; the selected filament palette is applied later."
+            "ownership clear across lit and shaded surfaces. Preserve gradients, texture and fine color detail. Do not bake cast shadows "
+            "into geometry or add blur, watermark, frame, or decorative clutter. This is a geometry reference."
             if geometry_reference
             else "Do not use gradients, semi-transparent subject materials, soft shadows, photographic reflections, depth of field, blur, dithering, "
             "halftone dots, random noise, tiny isolated regions, dense texture, text, watermark, frame, or decorative clutter. "
@@ -1581,7 +1578,7 @@ def build_text_image_prompt(
     Quality benchmarks persist this public prompt boundary so text and image
     inputs have the same auditable, hash-frozen paid-call semantics.
     """
-    return _text_image_prompt(instruction, palette, style, shadow_color, palette_roles, custom_style)
+    return _unrestricted_creation_prompt(instruction, style, custom_style, from_image=False)
 
 
 def build_text_geometry_reference_prompt(
@@ -1589,15 +1586,8 @@ def build_text_geometry_reference_prompt(
     style: str = "cartoon",
     custom_style: str = "",
 ) -> str:
-    """Return a text-to-image prompt that preserves shape evidence before palette mapping."""
-
-    return _text_image_prompt(
-        instruction,
-        (),
-        style,
-        custom_style=custom_style,
-        geometry_reference=True,
-    )
+    """Return the unrestricted prompt used by text-to-image creation."""
+    return _unrestricted_creation_prompt(instruction, style, custom_style, from_image=False)
 
 
 def _save_provider_image(result: dict[str, Any], destination: Path) -> Path:
@@ -1635,6 +1625,7 @@ def generate_image(
             "prompt": build_text_image_prompt(
                 instruction, palette, style, shadow_color, palette_roles, custom_style
             ),
+            "background": "opaque",
             "size": "1024x1024",
             "quality": _image_quality(),
             "n": 1,
@@ -1677,8 +1668,8 @@ def generate_geometry_reference_image(
     payload = json.dumps(
         {
             "model": _image_config().model,
-            "prompt": build_text_geometry_reference_prompt(instruction, style, custom_style)
-            + _design_material_direction(palette, palette_roles),
+            "prompt": _unrestricted_creation_prompt(instruction, style, custom_style, from_image=False),
+            "background": "opaque",
             "size": "1024x1024",
             "quality": _image_quality(),
             "n": 1,
@@ -1707,17 +1698,13 @@ def preprocess_image(
     canonical_style = LEGACY_STYLE_ALIASES.get(style, style)
     result = edit_image(
         input_path,
-        build_geometry_reference_prompt(instruction, style, custom_style)
-        + _design_material_direction(palette, palette_roles),
+        build_geometry_reference_prompt(instruction, style, custom_style),
         output_path,
-        # Prompt-only transparency is not reliable: some compatible endpoints
-        # paint a checkerboard into an opaque RGB image, and those tiles can be
-        # mistaken for square holes in shoulders or the base. Request genuine
-        # alpha at the transport layer whenever the printable pipeline needs a
-        # clean subject mask.
-        background="transparent",
+        # Match the solid-backdrop prompt at the transport boundary so a
+        # compatible provider is never asked to simulate transparency.
+        background="opaque",
     )
-    if canonical_style in IDENTITY_FIRST_PORTRAIT_STYLES and palette:
+    if canonical_style in IDENTITY_FIRST_PORTRAIT_STYLES:
         # Retain detection evidence for portrait routing/crops, not compositing.
         # A source-space oval cannot align a newly generated head and can copy
         # photographic background into the geometry reference as a gray halo.
