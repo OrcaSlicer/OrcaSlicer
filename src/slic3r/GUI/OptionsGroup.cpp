@@ -59,29 +59,29 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
         break;
     default:
         switch (opt.type) {
-            case coFloatOrPercent:
-            case coFloatsOrPercents:
-            case coFloat:
-            case coFloats:
-			case coPercent:
-			case coPercents:
-			case coString:
+        case coFloatOrPercent:
+        case coFloatsOrPercents:
+        case coFloat:
+        case coFloats:
+        case coPercent:
+        case coPercents:
+        case coString:
 			case coStrings:
                 m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id));
                 break;
-			case coBool:
+        case coBool:
 			case coBools:
                 m_fields.emplace(id, CheckBox::Create<CheckBox>(this->ctrl_parent(), opt, id));
 				break;
-			case coInt:
+        case coInt:
 			case coInts:
                 m_fields.emplace(id, SpinCtrl::Create<SpinCtrl>(this->ctrl_parent(), opt, id));
 				break;
-            case coEnum:
+        case coEnum:
             case coEnums:
                 m_fields.emplace(id, Choice::Create<Choice>(this->ctrl_parent(), opt, id));
 				break;
-            case coPoint:
+        case coPoint:
             case coPoints:
                 m_fields.emplace(id, PointCtrl::Create<PointCtrl>(this->ctrl_parent(), opt, id));
 				break;
@@ -439,7 +439,7 @@ void OptionsGroup::activate_line(Line& line)
                                      _L_CONTEXT(option.label, "Layers") :
                                      _(option.label);
             label = new wxStaticText(this->ctrl_parent(), wxID_ANY, str_label + ": ", wxDefaultPosition, // wxDefaultSize);
-                                     wxSize(sublabel_width != -1 ? sublabel_width * wxGetApp().em_unit() : -1, -1), wxALIGN_RIGHT);
+                                                  wxSize(sublabel_width != -1 ? sublabel_width * wxGetApp().em_unit() : -1, -1), wxALIGN_RIGHT);
             label->SetBackgroundStyle(wxBG_STYLE_PAINT);
             label->SetFont(wxGetApp().normal_font());
             sizer_tmp->Add(label, 0, wxALIGN_CENTER_VERTICAL, 0);
@@ -642,7 +642,12 @@ void OptionsGroup::on_change_OG(const t_config_option_key& opt_id, const boost::
 Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index /*= -1*/)
 {
     if (!m_config->has(opt_key)) {
-        std::cerr << "No " << opt_key << " in ConfigOptionsGroup config.\n";
+        const ConfigOptionDef* def = m_config->def()->get(opt_key);
+        if (def && def->default_value) {
+            const_cast<DynamicPrintConfig*>(m_config)->option(opt_key, true)->set(def->default_value.get());
+        } else {
+            std::cerr << "No " << opt_key << " in ConfigOptionsGroup config.\n";
+        }
     }
 
     std::string opt_id = opt_index == -1 ? opt_key : opt_key + "#" + std::to_string(opt_index);
@@ -799,7 +804,7 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         return;
     }
     else if (m_opt_map.find(opt_key) == m_opt_map.end() ||
-             // This option don't have corresponded field
+               // This option don't have corresponded field
              opt_key == "printable_area" || opt_key == "compatible_printers" || opt_key == "compatible_prints" || opt_key == "thumbnails" ||
              opt_key == "bed_custom_texture" || opt_key == "bed_custom_model") {
         value = get_config_value(config, opt_key);
@@ -1134,8 +1139,17 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         } else
             ret = from_u8(config.opt_string(opt_key, static_cast<unsigned int>(idx)));
         break;
-    case coBool: ret = config.opt_bool(opt_key); break;
-    case coBools: ret = config.opt_bool(opt_key, idx); break;
+    case coBool:
+        ret = config.opt_bool(opt_key);
+        break;
+    case coBools: {
+        const auto* opt_bools = config.option<ConfigOptionBools>(opt_key);
+        if (!opt_bools || idx >= opt_bools->values.size())
+            ret = false; // bool, not unsigned char
+        else
+            ret = (bool) opt_bools->values[idx]; // bool, not unsigned char
+        break;
+    }
     case coInt: ret = config.opt_int(opt_key); break;
     case coInts: ret = config.opt_int(opt_key, idx); break;
     case coEnum:
