@@ -6,6 +6,8 @@
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/miniz_extension.hpp"
 
 #include "test_utils.hpp"
 
@@ -1404,5 +1406,93 @@ TEST_CASE("Sizing down to the nozzle count plus mixes is what eats the mixed tai
         CHECK(bundle.num_mixed_filaments() == 1);
         CHECK(bundle.is_mixed_filament(5));
         CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[5] == "1,2");
+    }
+}
+
+namespace {
+
+// data_dir() is a process-wide global that import_presets extracts into; scope it to the test.
+struct ScopedDataDir
+{
+    std::string previous = data_dir();
+    explicit ScopedDataDir(const fs::path &dir) { set_data_dir(dir.string()); }
+    ~ScopedDataDir() { set_data_dir(previous); }
+};
+
+std::string read_file(const fs::path &file)
+{
+    std::ifstream in(file.string(), std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
+
+void write_zip(const fs::path &zip_file, const std::vector<std::pair<std::string, std::string>> &entries)
+{
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    REQUIRE(open_zip_writer(&zip, zip_file.string()));
+    for (const auto &[name, content] : entries)
+        REQUIRE(mz_zip_writer_add_mem(&zip, name.c_str(), content.data(), content.size(), MZ_DEFAULT_COMPRESSION));
+    REQUIRE(mz_zip_writer_finalize_archive(&zip));
+    REQUIRE(close_zip_writer(&zip));
+}
+
+bool any_filename_contains(const fs::path &root, const std::string &needle)
+{
+    for (fs::recursive_directory_iterator it(root), end; it != end; ++it)
+        if (it->path().filename().string().find(needle) != std::string::npos)
+            return true;
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("Config import confines zip entries, preset names and bundle ids to the preset directory", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     data_root = temp_dir.path() / "datadir";
+    const fs::path     src_dir   = temp_dir.path() / "src";
+    fs::create_directories(src_dir);
+    ScopedDataDir scoped_data_dir(data_root);
+
+    PresetBundle bundle;
+    AppConfig    app_config;
+    const auto   confirm = [](std::string const &) { return 1; };
+    const auto   import  = [&](const fs::path &file) {
+        std::vector<std::string> files{file.string()};
+        bundle.import_presets(files, confirm, ForwardCompatibilitySubstitutionRule::Disable, app_config);
+        return files;
+    };
+
+    const fs::path good_file = src_dir / "Good.json";
+    write_print_preset(bundle.prints.default_preset().config, good_file, "Good");
+    const std::string good_json = read_file(good_file);
+
+    // Four levels up from where import_presets writes (<datadir>/user/default/temp) is temp_dir
+    // itself, so anything that escapes lands where the scan below can see it.
+    const std::string up     = "../../../../";
+    const std::string up_win = "..\\..\\..\\..\\";
+
+    SECTION("zip entry names with either separator are reduced to a basename") {
+        const fs::path zip = src_dir / "bundle.zip";
+        write_zip(zip, {{up + "zip-escape.json", "{}"}, {up_win + "zip-escape.json", "{}"}, {"presets/Good.json", good_json}});
+        import(zip);
+        CHECK(bundle.prints.find_preset("Good") != nullptr);
+        CHECK_FALSE(any_filename_contains(temp_dir.path(), "zip-escape"));
+    }
+
+    SECTION("a preset name that walks out of the preset directory is rejected") {
+        for (const std::string &name : {up + "name-escape", up_win + "name-escape"}) {
+            const fs::path file = src_dir / "escape.json";
+            write_print_preset(bundle.prints.default_preset().config, file, name);
+            CHECK(import(file).empty());
+            CHECK_FALSE(any_filename_contains(temp_dir.path(), "name-escape"));
+        }
+    }
+
+    SECTION("a bundle id that walks out of the bundle directory is rejected") {
+        const fs::path zip = src_dir / "bundle.zip";
+        write_zip(zip, {{BUNDLE_STRUCTURE_JSON_NAME, "{\"id\": \"" + up + "bundle-escape\"}"}, {"Good.json", good_json}});
+        CHECK(import(zip).empty());
+        CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
 }

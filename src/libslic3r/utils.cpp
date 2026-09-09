@@ -1088,6 +1088,30 @@ bool is_json_file(const std::string& path)
 	return boost::iends_with(path, ".json");
 }
 
+bool is_path_within_root(const std::string &rel_path, const boost::filesystem::path &root)
+{
+    auto is_separator = [](char c) { return c == '/' || c == '\\'; };
+    if (rel_path.empty() || is_separator(rel_path.front()) || (rel_path.size() > 1 && rel_path[1] == ':'))
+        return false;
+    for (size_t start = 0; start <= rel_path.size();) {
+        size_t end = start;
+        while (end < rel_path.size() && !is_separator(rel_path[end]))
+            ++end;
+        if (rel_path.compare(start, end - start, "..") == 0)
+            return false;
+        start = end + 1;
+    }
+    // Resolve against the canonical root so a symlink inside it cannot lead back out.
+    try {
+        const std::string root_str = boost::filesystem::weakly_canonical(root).string();
+        const std::string full_str = boost::filesystem::weakly_canonical(root / rel_path).string();
+        return full_str.compare(0, root_str.size(), root_str) == 0 &&
+               (full_str.size() == root_str.size() || full_str[root_str.size()] == boost::filesystem::path::preferred_separator);
+    } catch (const boost::filesystem::filesystem_error &) {
+        return false;
+    }
+}
+
 bool is_img_file(const std::string &path)
 {
 	return boost::iends_with(path, ".png") || boost::iends_with(path, ".svg");
