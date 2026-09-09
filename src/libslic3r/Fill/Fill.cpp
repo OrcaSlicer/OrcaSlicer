@@ -219,6 +219,16 @@ double calculate_infill_rotation_angle(const PrintObject* object,
     return angle;
 }
 
+// Orca: check if current surface is the undertop
+bool is_undertop(const Layer& layer, const Surface& current_surface)
+{
+    for (auto region : layer.upper_layer->regions())
+        for (auto surface : region->fill_surfaces.surfaces)
+            if (surface.is_top() && current_surface.expolygon.overlaps(surface.expolygon))
+                return true;
+    return false;
+};
+
 struct SurfaceFillParams
 {
 	// Zero based extruder ID.
@@ -915,7 +925,11 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                             params.density = float(region_config.bottom_surface_density);
                         }
                     } else if (surface.is_solid_infill()) {
-                        params.pattern = region_config.internal_solid_infill_pattern.value;
+                        if (region_config.undertop_surface_pattern.value != ipCount && region_config.top_shell_layers > 2 &&
+                            region_config.top_surface_density < 100 && layer.upper_layer != nullptr && is_undertop(layer, surface))
+                            params.pattern = region_config.undertop_surface_pattern.value;
+                        else 
+                            params.pattern = region_config.internal_solid_infill_pattern.value;
                         params.density = 100.f;
                     } else {
                         if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)

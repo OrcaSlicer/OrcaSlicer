@@ -323,6 +323,7 @@ static void add_config_substitutions(const ConfigSubstitutions& conf_substitutio
 			int val = conf_substitution.new_value->getInt();
 
 			bool is_infill = def->opt_key == "top_surface_pattern"	   ||
+							 def->opt_key == "undertop_surface_pattern"	   ||
 							 def->opt_key == "bottom_surface_pattern" ||
 							 def->opt_key == "internal_solid_infill_pattern" ||
 							 def->opt_key == "support_base_pattern" ||
