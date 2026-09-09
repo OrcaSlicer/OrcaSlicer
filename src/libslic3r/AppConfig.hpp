@@ -40,6 +40,7 @@ using namespace nlohmann;
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
+#define SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE "split_objects_auto_drop_choice"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1

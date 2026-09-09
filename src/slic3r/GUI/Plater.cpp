@@ -10160,10 +10160,18 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
         };
         bool split_auto_drop = auto_drop;
         if (current_model_object->instances[0]->auto_drop && is_atleast_one_floating()) {
-            MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
-                                  _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
+            const bool choice_saved      = wxGetApp().app_config->has(SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE);
+            bool       disable_auto_drop = wxGetApp().app_config->get_bool(SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE);
+            if (!choice_saved) {
+                MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
+                                      _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
+                dlg.show_dsa_button();
+                disable_auto_drop = dlg.ShowModal() == wxID_YES;
+                if (dlg.get_checkbox_state())
+                    wxGetApp().app_config->set_bool(SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE, disable_auto_drop);
+            }
 
-            if (dlg.ShowModal() == wxID_YES)
+            if (disable_auto_drop)
                 split_auto_drop = false;
         }
 

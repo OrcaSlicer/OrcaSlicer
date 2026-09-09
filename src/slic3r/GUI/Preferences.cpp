@@ -1842,6 +1842,11 @@ void PreferencesDialog::create_items()
     });
     g_sizer->Add(item_restore_hide_pop_ups);
 
+    auto item_split_objects_auto_drop = create_item_button(_L("Split to objects Auto-Drop"), _L("Clear"), "", _L("Clear my choice for Auto-Drop after splitting an object."), []() {
+        wxGetApp().app_config->erase("app", SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE);
+    });
+    g_sizer->Add(item_split_objects_auto_drop);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
