@@ -12,6 +12,8 @@
 #include <wx/button.h>
 #include <wx/sizer.h>
 
+#include <algorithm>
+
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 
 ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
@@ -156,6 +158,13 @@ void ButtonsListCtrl::SetSelection(int sel)
     Refresh();
 }
 
+wxWindow* ButtonsListCtrl::GetSelectedButton() const
+{
+    if (m_selection >= 0 && m_selection < int(m_pageButtons.size()))
+        return m_pageButtons[m_selection];
+    return nullptr;
+}
+
 bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */)
 {
     Button * btn = new Button(this, text.empty() ? text : " " + text, bmp_name, wxNO_BORDER);
@@ -176,6 +185,15 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     StateColor text_color = StateColor(
         std::pair{wxColour(254,254, 254), (int) StateColor::Normal});
     btn->SetTextColor(text_color);
+    // ORCA: keyboard focus ring, switched on by the border width because these
+    // buttons are borderless. RadioGroup's pattern (permanent border, Focused
+    // color) does not fit here: a permanent border insets the fill in every
+    // state, so its unfocused color would have to track each tab's own fill,
+    // which SetSelection swaps. #FEFEFE matches the label and, unlike #FFFFFF,
+    // is not remapped for dark mode.
+    btn->SetBorderColorNormal(wxColour(254, 254, 254));
+    btn->Bind(wxEVT_SET_FOCUS,  [btn](wxFocusEvent& evt) { btn->SetBorderWidth(btn->FromDIP(2)); evt.Skip(); });
+    btn->Bind(wxEVT_KILL_FOCUS, [btn](wxFocusEvent& evt) { btn->SetBorderWidth(0); evt.Skip(); });
     btn->Bind(wxEVT_BUTTON, [this, btn](wxCommandEvent& event) {
         if (auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn); it != m_pageButtons.end()) {
             auto sel = it - m_pageButtons.begin();
@@ -186,6 +204,35 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             evt.SetId(sel);
             wxPostEvent(this->GetParent(), evt);
         }
+    });
+    // ORCA: WAI-ARIA tablist keyboard model. Arrow keys were dead on these
+    // buttons: Button::keyDownUp hands them to HandleAsNavigationKey, which
+    // acts only on Tab, and never calls Skip(). This handler gives them
+    // meaning - Left/Right move focus among the tab buttons and wrap at the
+    // ends (stock Tab traversal walks on into the side tools sharing this
+    // strip), Home/End jump to the first/last tab, and Up/Down stay swallowed,
+    // as a horizontal tab list should. Enter/Space still activates via
+    // Button::keyDownUp's click simulation. This dynamic handler runs before
+    // Button's static event table, so it wins for the keys it takes.
+    btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& evt) {
+        auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
+        if (it == m_pageButtons.end()) {
+            evt.Skip();
+            return;
+        }
+        int cur   = int(it - m_pageButtons.begin());
+        int count = int(m_pageButtons.size());
+        int next;
+        switch (evt.GetKeyCode()) {
+        case WXK_LEFT:  next = (cur + count - 1) % count; break;
+        case WXK_RIGHT: next = (cur + 1) % count; break;
+        case WXK_HOME:  next = 0; break;
+        case WXK_END:   next = count - 1; break;
+        case WXK_UP:
+        case WXK_DOWN:  return;
+        default:        evt.Skip(); return;
+        }
+        m_pageButtons[next]->SetFocus();
     });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
