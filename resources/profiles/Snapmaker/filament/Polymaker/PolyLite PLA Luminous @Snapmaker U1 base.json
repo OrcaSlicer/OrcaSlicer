@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Luminous @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL65",
+	"filament_id": "OFBoSWxb",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

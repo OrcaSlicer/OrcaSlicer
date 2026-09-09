@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Glow @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA12",
+	"filament_id": "OFEkPBwx",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

@@ -41,7 +41,7 @@ html, body {
 .RedFont
 {
 	font-size:12px;
-	color: #F07E4A;		
+	color: var(--warn-color);
 }
 
 .LinkBtn
@@ -78,129 +78,267 @@ body
 	height: 100%;
 }
 
-#LoginArea
+/*------Account rows and account menu------*/
+
+/*----These shadow similar tokens in global.css on purpose: global.css themes on the OS
+      via prefers-color-scheme, while this page themes on the dark.css link that
+      SwitchDarkMode() injects from the app theme, so the two can disagree.----*/
+:root
 {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	flex-wrap: nowrap;
-	position: relative;
-	width:262px;
+	--row-hover            : #BFE1DE;
+	--warn-color           : #F07E4A;
+	--account-avatar-bg    : #E6EBEA;
+	--account-avatar-glyph : #9AA5A3;
+	--account-surface      : #FFFFFF;
+	--account-name         : #262E30;
+	--account-meta         : #7C8282;
+	--account-border       : #DBDBDB;
+	--account-divider      : #E2E4E4;
+	--account-action       : #00796B;
+	--account-danger       : #D33B3B;
+	--account-danger-bg    : rgba(211, 59, 59, 0.10);
+	--account-warn-bg      : rgba(240, 126, 74, 0.12);  /*----var(--warn-color) at 12%----*/
+	--account-dot-off      : #C4CBCA;
+	--account-dot-on       : #34A853;
+	--account-menu-shadow  : 0 10px 28px rgba(20, 30, 28, 0.18);
+
+	--glyph-account:
+		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="12" r="5.6"/><path d="M4.9 29a11.1 11.1 0 0 1 22.2 0Z"/></svg>');
+	--glyph-logout:
+		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="black" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5H3.5v11h6"/><path d="M11 5.5L14 8l-3 2.5"/><path d="M14 8H6.5"/></svg>');
 }
 
-.AccountSectionLabel
+#LoginArea
+{
+	position: relative;
+	padding: 10px 8px;
+	box-sizing: border-box;
+	width: 262px;
+	border-bottom: 1px solid var(--account-divider);
+}
+
+.AccountRow
 {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 13px;
-	font-weight: 600;
-	color: var(--fg-color-text);
-	padding: 16px 20px 6px;
-	width: 262px;
-	box-sizing: border-box;
-}
-
-.AccountSectionIcon
-{
-	width: 18px;
-	height: 18px;
-	flex: 0 0 auto;
-}
-
-.AccountStatusText
-{
-	font-size: 12px;
-	color: #A8A8A8;
-	margin-top: 8px;
-}
-
-.OrcaAccountText
-{
-	font-weight: bold;
-}
-
-#OrcaLoginSection
-{
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-}
-
-#OrcaLogin1
-{
-	display: flex;
-	flex-direction: column;		/*ORCA*/
-	align-items: center;		/*Allow icon centered vertically*/
-	justify-content: center;	/*and use login button in new line*/
+	padding: 8px 10px 8px 14px;  /*----label column lines up with the navigation below----*/
+	border-radius: 8px;
+	cursor: pointer;
 	user-select: none;
-	padding: 10px 0;
 }
 
-#OrcaLogin2
+.AccountRow:hover
+{
+	background-color: var(--row-hover);
+}
+
+.AccountRow:focus-visible
+{
+	outline: 2px solid var(--account-action);
+	outline-offset: -2px;
+}
+
+.AccountRow.Disabled
+{
+	cursor: default;
+	opacity: 0.5;
+}
+
+.AccountRow.Disabled:hover
+{
+	background-color: transparent;
+}
+
+.AccountRow.Disabled .AccountSignIn
 {
 	display: none;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	text-align: center;
-	padding: 14px 0 16px;
-	box-sizing: border-box;
-	width: 262px;
 }
 
-/* --- Bambu Cloud Section --- */
+/*----Avatar----*/
+.AccountAvatar
+{
+	position: relative;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background-color: var(--account-avatar-bg);
+}
+
+.AccountAvatar::before  /* placeholder shown until an avatar image loads */
+{
+	content: "";
+	position: absolute;
+	inset: 0;
+	-webkit-mask-image: var(--glyph-account);
+	mask-image: var(--glyph-account);
+	-webkit-mask-size: 100% 100%;
+	mask-size: 100% 100%;
+	background-color: var(--account-avatar-glyph);
+}
+
+.AccountAvatarImg
+{
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	display: block;
+}
+
+.AccountAvatarImg:not([src])
+{
+	display: none;
+}
+
+/*----Row labels----*/
+.AccountText
+{
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.AccountName,
+.AccountSecondary  /*----the provider name, or the sign-in state where the row has no name yet----*/
+{
+	font-size: 15px;
+	line-height: 20px;
+	color: var(--account-name);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.AccountName
+{
+	display: none;
+	font-weight: 600;
+}
+
+.AccountSignIn
+{
+	flex: 0 0 auto;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--account-action);
+}
+
+.AccountChevron
+{
+	display: none;
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	color: var(--account-meta);
+	transition: transform 0.15s ease;
+}
+
+.AccountRow.SignedIn .AccountName    { display: block; }
+.AccountRow.SignedIn .AccountChevron { display: block; }
+.AccountRow.SignedIn .AccountSignIn  { display: none; }
+.AccountRow.SignedIn .AccountSecondary
+{
+	font-size: 11px;
+	line-height: 14px;
+	color: var(--account-meta);
+}
+
+.AccountRow.MenuOpen .AccountChevron { transform: rotate(180deg); }
+
+#NoPluginTip
+{
+	display: none;
+	margin: 4px 0 2px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background-color: var(--account-warn-bg);
+}
+
+#NoPluginText
+{
+	line-height: 16px;
+}
+
+#NoPluginTip .LinkBtn
+{
+	color: var(--warn-color);
+	text-decoration: underline;
+}
+
+/*----Bambu Cloud, folded under the main account----*/
 #BambuCloudSection
 {
 	display: none;  /* shown by cloud_providers_info from backend */
-	border-top: 1px solid;
-	width: 262px;
+	margin-top: 8px;
+	padding-top: 6px;
+	border-top: 1px solid var(--account-divider);
 }
 
 #BambuCloudHeader
 {
-	height: 40px;
 	display: flex;
 	align-items: center;
-	padding: 0 20px;
-	cursor: pointer;
-	font-size: 13px;
-	color: #A8A8A8;
 	gap: 8px;
+	height: 28px;
+	padding: 0 10px 0 14px;
+	border-radius: 6px;
+	font-size: 12px;
+	color: var(--account-meta);
+	cursor: pointer;
+	user-select: none;
 }
 
 #BambuCloudHeader:hover
 {
-	color: inherit;
+	color: var(--account-name);
 }
 
-.bambu-chevron
+#BambuCloudHeader:focus-visible
 {
+	outline: 2px solid var(--account-action);
+	outline-offset: -2px;
+}
+
+.SectionChevron
+{
+	flex: 0 0 auto;
 	width: 12px;
 	height: 12px;
 	transition: transform 0.2s ease;
-	transform: rotate(0deg);
 }
 
-.bambu-chevron.expanded
+#BambuCloudHeader.Expanded .SectionChevron
 {
 	transform: rotate(90deg);
 }
 
-.bambu-status-dot
+.SectionLabel
 {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background-color: #A8A8A8;
-	margin-left: auto;
+	flex: 1 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-.bambu-status-dot.online
+#BambuStatusDot
 {
-	background-color: #4CAF50;
+	flex: 0 0 auto;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background-color: var(--account-dot-off);
+}
+
+#BambuStatusDot.Online
+{
+	background-color: var(--account-dot-on);
 }
 
 #BambuCloudBody
@@ -208,98 +346,124 @@ body
 	max-height: 0;
 	overflow: hidden;
 	transition: max-height 0.25s ease;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
 }
 
-#BambuCloudBody.expanded
+#BambuCloudBody.Expanded
 {
 	max-height: 200px;
+	padding-bottom: 2px;
 }
 
-#NoPluginTip
+.AccountRowCompact
 {
-	position: static;
-	display: none;
-	flex-direction: column;
-	padding: 5px 10px;
-	z-index: auto;
+	padding: 6px 10px 6px 24px;
 }
 
-#BambuLogin1
+.AccountRowCompact .AccountAvatar
 {
-	padding: 10px 0;
+	width: 26px;
+	height: 26px;
 }
 
-#BambuLogin2
+.AccountRowCompact .AccountName,
+.AccountRowCompact .AccountSecondary
 {
-	display: none;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	padding: 8px 0;
-	width: 262px;
-}
-
-#BambuAvatarIcon
-{
-	height: 40px;
-	border-radius: 50%;
-}
-
-#BambuUserName
-{
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	overflow: hidden;
-	width: 80%;
-	text-align: center;
 	font-size: 13px;
+	line-height: 17px;
 }
 
-
-#DownloadBtn
+.AccountRowCompact .AccountSecondary
 {
-	color:#00ffd9;
+	color: var(--account-meta);
 }
 
-
-#Icon1
+.AccountRowCompact.SignedIn .AccountSecondary  /*----the section header already names this provider----*/
 {
-	margin-right: 10px;	
+	display: none;
 }
 
-#BBLIcon
+/*----Account menu----*/
+#AccountMenu
 {
-	height:96px; /*ORCA use bigger icon to fit logo size*/
+	display: none;
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	z-index: 20;
+	padding: 4px;
+	border-radius: 10px;
+	border: 1px solid var(--account-border);
+	background-color: var(--account-surface);
+	box-shadow: var(--account-menu-shadow);
 }
 
-#UserAvatarIcon
+#AccountMenu.Open
 {
-	width: 64px;
-	height: 64px;
 	display: block;
-	margin: 2px auto 10px;
-	object-fit: cover;
-	border-radius: 50%;
+	animation: AccountMenuIn 0.12s ease-out;
 }
 
-#UserName
+@keyframes AccountMenuIn
 {
+	from { opacity: 0; transform: translateY(-4px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce)
+{
+	#AccountMenu.Open   { animation: none; }
+	.AccountChevron,
+	.SectionChevron,
+	#BambuCloudBody     { transition: none; }
+}
+
+#AccountMenuHandle
+{
+	display: none;
+	padding: 9px 10px;
+	border-bottom: 1px solid var(--account-border);
+	font-size: 12px;
+	line-height: 16px;
+	color: var(--account-meta);
 	white-space: nowrap;
+	overflow: hidden;
 	text-overflow: ellipsis;
-	text-align: center;
-	overflow: hidden; 
-	width: 80%;
-	max-width: 190px;
-	line-height: 22px;
 }
 
-#LogoutBtn
+#AccountMenuLogout
 {
-	margin-top: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 34px;
+	padding: 0 10px;
+	border-radius: 6px;
+	font-size: 13px;
+	color: var(--account-name);
+	cursor: pointer;
 }
+
+#AccountMenuLogout:hover
+{
+	background-color: var(--account-danger-bg);
+	color: var(--account-danger);
+}
+
+#AccountMenuLogout:focus-visible
+{
+	outline: 2px solid var(--account-action);
+	outline-offset: -2px;
+}
+
+#AccountMenuLogoutIcon
+{
+	width: 15px;
+	height: 15px;
+	-webkit-mask: var(--glyph-logout) center / contain no-repeat;
+	mask: var(--glyph-logout) center / contain no-repeat;
+	background-color: currentColor;
+}
+
 
 /*------------------*/
 #BtnArea
@@ -320,12 +484,12 @@ body
 
 .BtnItem:hover
 {
-	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+	background-color: var(--row-hover);
 }
 
 .BtnItemSelected
 {
-	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+	background-color: var(--row-hover);
 }
 
 .BtnIcon

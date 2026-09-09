@@ -3,7 +3,7 @@
 	"name": "BETA PLA Chameleon @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB02",
+	"filament_id": "OFW8M3CY",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

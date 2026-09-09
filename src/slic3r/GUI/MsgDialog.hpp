@@ -177,7 +177,6 @@ public:
 // Generic rich message dialog, used intead of wxRichMessageDialog
 class RichMessageDialog : public MsgDialog
 {
-	wxCheckBox* m_checkBox{ nullptr };
 	wxString	m_checkBoxText;
 	bool		m_checkBoxValue{ false };
 
@@ -416,7 +415,6 @@ private:
     wxString      m_new_keys;
     Button *      m_update_btn = nullptr;
     Button *      m_later_btn  = nullptr;
-    wxStaticText *m_msg_text   = nullptr;
 };
 
 

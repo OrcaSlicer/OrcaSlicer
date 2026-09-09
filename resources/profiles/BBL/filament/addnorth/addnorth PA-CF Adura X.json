@@ -4,7 +4,7 @@
 	"inherits": "Generic PA-CF @base",
 	"from": "system",
 	"setting_id": "GF_ANAX_00",
-	"filament_id": "GF_ANAX",
+	"filament_id": "OFBsbMMF",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

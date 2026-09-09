@@ -3090,10 +3090,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 0: // Grid / Trapezoidal
     {
         // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
-        //         P2--P3
-        //        /      \
-        //  P0_P1/        \P4_
-        //
+        /*
+         *         P2--P3
+         *        /      \
+         *  P0_P1/        \P4_
+         */
         // P0xP1x=P4xP0x=d1/2
         // P2xP3x=d1
         // P1yP2y=P2yP3y=d2
@@ -3171,10 +3172,12 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 1: // Triangular
     {
         // Generate a non-crossing trapezoidal pattern with a base line below.
-        //      P1-P2
-        //     /     \
-        //  P0/       \P3_P4
-        //  ----------------
+        /*
+         *      P1-P2
+         *     /     \
+         *  P0/       \P3_P4
+         *  ----------------
+         */
         // P1xP2x=P3xP4x=d2
         // P0yP1y=P2yP3y=h-2d1
         //

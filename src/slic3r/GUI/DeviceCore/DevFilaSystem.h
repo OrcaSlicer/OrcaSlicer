@@ -58,7 +58,7 @@ public:
 
     std::string              id;
     std::string              tag_uid;             // tag_uid
-    std::string              setting_id;          // tray_info_idx
+    std::string              setting_id;          // tray_info_idx, map to the filament_id
     std::string              filament_setting_id; // setting_id
     std::string              m_fila_type;
     std::string              sub_brands;

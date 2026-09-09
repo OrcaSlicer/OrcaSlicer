@@ -1,10 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <boost/filesystem.hpp>
 #include <fstream>
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/miniz_extension.hpp"
 
 #include "test_utils.hpp"
 
@@ -553,6 +556,401 @@ struct LibraryFilamentTestCollection : public PresetCollection
 
 } // namespace
 
+TEST_CASE("Missing app config is accepted as default CLI state", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    AppConfig app_config;
+    app_config.set_loading_path((dir.path() / "missing.conf").string());
+    CHECK(app_config.load_if_exists().empty());
+}
+
+TEST_CASE("Read-only user preset loading does not create or delete files", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    PresetBundle       bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    const fs::path missing_root = dir.path() / "missing-user";
+    bundle.prints.load_presets(missing_root.string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::EnableSilent, nullptr,
+                               PresetOrigin(), true);
+    CHECK_FALSE(fs::exists(missing_root / PRESET_PRINT_NAME));
+
+    const fs::path malformed = dir.path() / "existing-user" / PRESET_PRINT_NAME / "malformed.json";
+    fs::create_directories(malformed.parent_path());
+    std::ofstream(malformed.string()) << "{not-json";
+    bundle.prints.load_presets((dir.path() / "existing-user").string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::EnableSilent, nullptr,
+                               PresetOrigin(), true);
+    CHECK(fs::exists(malformed));
+}
+
+TEST_CASE("Typeless preset resolution probes loaded FFF collections", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "typeless-process.json";
+    std::ofstream(source_file.string()) << R"({"name":"Typeless Process","from":"User"})";
+
+    PresetBundle bundle;
+    Preset      &process = add_inmemory_preset(bundle.prints, "Typeless Process");
+    process.file = source_file.string();
+    process.config.option<ConfigOptionFloats>("travel_speed", true)->values = {321.0};
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    REQUIRE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error.empty());
+    CHECK(resolved_type == Preset::TYPE_PRINT);
+    REQUIRE(raw.option<ConfigOptionFloats>("travel_speed")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("travel_speed")->values.front(), Catch::Matchers::WithinAbs(321.0, 1e-6));
+}
+
+TEST_CASE("Typeless preset resolution preserves duplicate identity ambiguity", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "duplicate-process.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.prints, "First Process Identity").file  = source_file.string();
+    add_inmemory_preset(bundle.prints, "Second Process Identity").file = source_file.string();
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset identity is ambiguous");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
+TEST_CASE("Typeless preset resolution rejects cross-type ambiguity", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "ambiguous.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.prints, "Process Identity").file       = source_file.string();
+    add_inmemory_preset(bundle.filaments, "Filament Identity").file = source_file.string();
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset type is ambiguous");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
+TEST_CASE("Typeless preset resolution rejects a missing type candidate", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "unknown.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle       bundle;
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset type could not be resolved");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
+TEST_CASE("Exact file resolution rejects multiple preset identities", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "duplicate.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle bundle;
+    Preset &first = add_inmemory_preset(bundle.prints, "First Identity");
+    first.file = source_file.string();
+    Preset &second = add_inmemory_preset(bundle.prints, "Second Identity");
+    second.file = source_file.string();
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Parent";
+
+    std::string error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, source_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset identity is ambiguous");
+}
+
+TEST_CASE("System preset resolution returns the canonical vendor configuration", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir source_dir;
+    PresetBundle bundle;
+
+    VendorProfile vendor("VendorB");
+    vendor.name = "Vendor B";
+    auto [vendor_it, inserted] = bundle.vendors.emplace(vendor.id, std::move(vendor));
+    REQUIRE(inserted);
+
+    Preset &resolved = add_inmemory_preset(bundle.prints, "Vendor B Process", "fdm_process_common");
+    resolved.is_system = true;
+    resolved.vendor    = &vendor_it->second;
+    resolved.file      = (source_dir.path() / "vendor-b-process.json").string();
+    std::ofstream(resolved.file) << "{}";
+    resolved.config.option<ConfigOptionFloats>("travel_speed", true)->values = {321.0};
+    resolved.config.option<ConfigOptionInt>("wall_loops", true)->value       = 2;
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+    raw.option<ConfigOptionInt>("wall_loops", true)->value             = 5;
+
+    std::string error;
+    REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, resolved.file,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error.empty());
+    REQUIRE(raw.option<ConfigOptionFloats>("travel_speed")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("travel_speed")->values.front(), Catch::Matchers::WithinAbs(321.0, 1e-6));
+    CHECK(raw.option<ConfigOptionInt>("wall_loops")->value == 2);
+}
+
+TEST_CASE("Manifest-backed preset resolution loads the source vendor tree", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      vendor_dir = dir.path() / "Acme";
+    const fs::path      child_file = vendor_dir / "process" / "nested" / "child.json";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"fdm_process_common","sub_path":"process/base.json"},)"
+        << R"({"name":"Acme Process","sub_path":"process/nested/child.json"}]})";
+    fs::create_directories(child_file.parent_path());
+    std::ofstream((vendor_dir / "process" / "base.json").string())
+        << R"({"type":"process","name":"fdm_process_common","from":"system",)"
+        << R"("instantiation":"false","travel_speed":["321"]})";
+    std::ofstream(child_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","inherits":"fdm_process_common","wall_loops":"5"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+    raw.option<ConfigOptionInt>("wall_loops", true)->value             = 5;
+
+    PresetBundle bundle;
+    std::string  error;
+    REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, child_file.string(),
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error.empty());
+    REQUIRE(raw.option<ConfigOptionFloats>("travel_speed")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("travel_speed")->values.front(), Catch::Matchers::WithinAbs(321.0, 1e-6));
+    CHECK(raw.option<ConfigOptionInt>("wall_loops")->value == 5);
+}
+
+TEST_CASE("Manifest-backed resolution is scoped to the explicit source root", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    auto write_vendor = [&](const std::string &root_name, double travel_speed) {
+        const fs::path root       = dir.path() / root_name;
+        const fs::path child_file = root / "Acme" / "process" / "child.json";
+        fs::create_directories(child_file.parent_path());
+        std::ofstream((root / "Acme.json").string())
+            << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+            << R"({"name":"fdm_process_common","sub_path":"process/base.json"},)"
+            << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+        std::ofstream((root / "Acme" / "process" / "base.json").string())
+            << R"({"type":"process","name":"fdm_process_common","from":"system",)"
+            << R"("instantiation":"false","travel_speed":[")" << travel_speed << R"("]})";
+        std::ofstream(child_file.string())
+            << R"({"type":"process","name":"Acme Process","from":"system",)"
+            << R"("instantiation":"true","inherits":"fdm_process_common"})";
+        return child_file;
+    };
+
+    const fs::path source_a = write_vendor("root-a", 111.0);
+    const fs::path source_b = write_vendor("root-b", 222.0);
+    REQUIRE(fs::exists(source_a));
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "synthetic-parent-marker";
+
+    PresetBundle bundle;
+    std::string  error;
+    REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, source_b.string(),
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    REQUIRE(raw.option<ConfigOptionFloats>("travel_speed")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("travel_speed")->values.front(), Catch::Matchers::WithinAbs(222.0, 1e-6));
+}
+
+TEST_CASE("Exact-only resolution rejects an unconfigured manifest-backed file", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "Acme" / "process" / "child.json";
+    fs::create_directories(source_file.parent_path());
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+    std::ofstream(source_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Some Parent";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, source_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset was not found in the loaded bundle");
+}
+
+TEST_CASE("Vendor filament resolution uses the shared Orca library base", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      library_dir = dir.path() / PresetBundle::ORCA_FILAMENT_LIBRARY;
+    const fs::path      vendor_dir  = dir.path() / "Acme";
+    const fs::path      child_file  = vendor_dir / "filament" / "nested" / "petg.json";
+
+    std::ofstream((dir.path() / (std::string(PresetBundle::ORCA_FILAMENT_LIBRARY) + ".json")).string())
+        << R"({"version":"1.0.0","name":"OrcaFilamentLibrary","filament_list":[)"
+        << R"({"name":"fdm_filament_pet","sub_path":"filament/pet.json","filament_id":"GFL99"}]})";
+    fs::create_directories(library_dir / "filament");
+    std::ofstream((library_dir / "filament" / "pet.json").string())
+        << R"({"type":"filament","name":"fdm_filament_pet","from":"system",)"
+        << R"("filament_id":"GFL99","instantiation":"false",)"
+        << R"("filament_type":["PETG"],"filament_density":["1.27"]})";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","filament_list":[)"
+        << R"({"name":"Acme PETG","sub_path":"filament/nested/petg.json","filament_id":"GFA00"}]})";
+    fs::create_directories(child_file.parent_path());
+    std::ofstream(child_file.string())
+        << R"({"type":"filament","name":"Acme PETG","from":"system",)"
+        << R"("filament_id":"GFA00","instantiation":"true","inherits":"fdm_filament_pet"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_filament_pet";
+
+    PresetBundle bundle;
+    std::string  error;
+    REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_FILAMENT, child_file.string(),
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error.empty());
+    CHECK(raw.opt_string("filament_type", 0u) == "PETG");
+    REQUIRE(raw.option<ConfigOptionFloats>("filament_density")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("filament_density")->values.front(), Catch::Matchers::WithinAbs(1.27, 1e-6));
+}
+
+TEST_CASE("Manifest-backed resolution rejects a missing parent", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      child_file = dir.path() / "Acme" / "process" / "child.json";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+    fs::create_directories(child_file.parent_path());
+    std::ofstream(child_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","inherits":"Missing Parent","layer_height":"0.2"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Missing Parent";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, child_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_FALSE(error.empty());
+}
+
+TEST_CASE("Manifest-backed resolution rejects a vendor load with malformed entries", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      child_file = dir.path() / "Acme" / "process" / "child.json";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[123,)"
+        << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+    fs::create_directories(child_file.parent_path());
+    std::ofstream(child_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, child_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_FALSE(error.empty());
+}
+
+TEST_CASE("Manifest-backed resolution rejects files absent from the vendor manifest", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      listed_file   = dir.path() / "Acme" / "process" / "listed.json";
+    const fs::path      unlisted_file = dir.path() / "Acme" / "process" / "unlisted.json";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"Listed Process","sub_path":"process/listed.json"}]})";
+    fs::create_directories(listed_file.parent_path());
+    std::ofstream(listed_file.string())
+        << R"({"type":"process","name":"Listed Process","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+    std::ofstream(unlisted_file.string())
+        << R"({"type":"process","name":"Unlisted Process","from":"system",)"
+        << R"("instantiation":"true","inherits":"fdm_process_common"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, unlisted_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error == "Source file is not an instantiated preset in its vendor manifest");
+}
+
+TEST_CASE("Manifest-backed resolution rejects a mismatched preset type", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      process_file = dir.path() / "Acme" / "process" / "child.json";
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+    fs::create_directories(process_file.parent_path());
+    std::ofstream(process_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_filament_common";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_FILAMENT, process_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error == "Source file is not an instantiated preset in its vendor manifest");
+}
+
+TEST_CASE("Resolution terminates when no vendor manifest exists", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      detached_file = dir.path() / "detached.json";
+    std::ofstream(detached_file.string()) << "{}";
+
+    DynamicPrintConfig raw;
+    raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Missing Parent";
+
+    PresetBundle bundle;
+    std::string  error;
+    CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, detached_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error == "Preset was not found in the loaded bundle");
+}
+
 // Orca: a filament in the Orca Filament Library that names its compatible printers has to hide the generic
 // library filament sharing its alias, the same way a vendor owned filament does. Otherwise both are compatible
 // with that printer and the plater combo box lists the shared alias twice.
@@ -602,6 +1000,88 @@ TEST_CASE("A printer specific filament supersedes the generic library filament w
     const PresetWithVendorProfile generic_lib(*generic, &library);
     CHECK_FALSE(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_a, nullptr)));
     CHECK(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_c, nullptr)));
+}
+
+
+namespace {
+
+// One system printer plus the filament presets a machine facing dialog has to choose between:
+// an Orca Filament Library generic with no compatible_printers, a same alias vendor filament
+// that names the printer, a library filament with no vendor twin, and a vendor filament that
+// belongs to a different printer.
+struct MachineFilaments
+{
+    PresetBundle  bundle;
+    VendorProfile library{PresetBundle::ORCA_FILAMENT_LIBRARY};
+    VendorProfile vendor{"Vendor"};
+
+    MachineFilaments()
+    {
+        // VendorProfile's constructor takes an id; the library rule keys off the name.
+        library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        vendor.name  = "Vendor";
+
+        Preset &printer = add_inmemory_preset(bundle.printers, "Printer A 0.4 nozzle");
+        printer.is_system = true;
+        printer.vendor    = &vendor;
+        printer.config.option<ConfigOptionString>("printer_model", true)->value = "Printer A";
+
+        add_filament(library, "Generic ABS @System",    "Generic ABS", {});
+        add_filament(vendor,  "Generic ABS @Printer A", "Generic ABS", { "Printer A 0.4 nozzle" });
+        add_filament(library, "FilAr ABS @System",      "FilAr ABS",   {});
+        add_filament(vendor,  "Vendor PLA @Printer B",  "Vendor PLA",  { "Printer B 0.4 nozzle" });
+
+        // update_library_profile_excluded_from() is protected and has its own test above; record
+        // the exclusion it derives from the same alias vendor filament.
+        Preset *shadowed = bundle.filaments.find_preset("Generic ABS @System");
+        REQUIRE(shadowed != nullptr);
+        shadowed->m_excluded_from.insert("Printer A 0.4 nozzle");
+    }
+
+    void add_filament(const VendorProfile &owner, const std::string &name, const std::string &alias,
+                      std::vector<std::string> compatible_printers)
+    {
+        Preset &preset = add_inmemory_preset(bundle.filaments, name);
+        preset.is_system = true;
+        preset.alias     = alias;
+        preset.vendor    = &owner;
+        compatible_list(bundle.filaments, name, "compatible_printers") = std::move(compatible_printers);
+    }
+
+    bool offers(const std::string &preset_name, bool include_user_presets = false)
+    {
+        const std::vector<Preset *> offered =
+            bundle.get_filament_presets_for_machine("Printer A", "0.4", include_user_presets);
+        return std::any_of(offered.begin(), offered.end(),
+                           [&preset_name](const Preset *p) { return p->name == preset_name; });
+    }
+};
+
+} // namespace
+
+TEST_CASE("Filaments offered for a machine follow the app's compatibility rule", "[Preset][Bundle]")
+{
+    MachineFilaments f;
+
+    SECTION("a library filament with no compatible_printers is offered") {
+        CHECK(f.offers("FilAr ABS @System"));
+    }
+
+    SECTION("a same alias vendor filament shadows the library generic") {
+        CHECK(f.offers("Generic ABS @Printer A"));
+        CHECK_FALSE(f.offers("Generic ABS @System"));
+    }
+
+    SECTION("a filament naming a different printer is not offered") {
+        CHECK_FALSE(f.offers("Vendor PLA @Printer B"));
+    }
+
+    SECTION("a user filament is offered only when the printer supports user presets") {
+        add_inmemory_preset(f.bundle.filaments, "My PLA");
+
+        CHECK_FALSE(f.offers("My PLA", /*include_user_presets=*/false));
+        CHECK(f.offers("My PLA", /*include_user_presets=*/true));
+    }
 }
 
 
@@ -926,5 +1406,93 @@ TEST_CASE("Sizing down to the nozzle count plus mixes is what eats the mixed tai
         CHECK(bundle.num_mixed_filaments() == 1);
         CHECK(bundle.is_mixed_filament(5));
         CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[5] == "1,2");
+    }
+}
+
+namespace {
+
+// data_dir() is a process-wide global that import_presets extracts into; scope it to the test.
+struct ScopedDataDir
+{
+    std::string previous = data_dir();
+    explicit ScopedDataDir(const fs::path &dir) { set_data_dir(dir.string()); }
+    ~ScopedDataDir() { set_data_dir(previous); }
+};
+
+std::string read_file(const fs::path &file)
+{
+    std::ifstream in(file.string(), std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
+
+void write_zip(const fs::path &zip_file, const std::vector<std::pair<std::string, std::string>> &entries)
+{
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    REQUIRE(open_zip_writer(&zip, zip_file.string()));
+    for (const auto &[name, content] : entries)
+        REQUIRE(mz_zip_writer_add_mem(&zip, name.c_str(), content.data(), content.size(), MZ_DEFAULT_COMPRESSION));
+    REQUIRE(mz_zip_writer_finalize_archive(&zip));
+    REQUIRE(close_zip_writer(&zip));
+}
+
+bool any_filename_contains(const fs::path &root, const std::string &needle)
+{
+    for (fs::recursive_directory_iterator it(root), end; it != end; ++it)
+        if (it->path().filename().string().find(needle) != std::string::npos)
+            return true;
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("Config import confines zip entries, preset names and bundle ids to the preset directory", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     data_root = temp_dir.path() / "datadir";
+    const fs::path     src_dir   = temp_dir.path() / "src";
+    fs::create_directories(src_dir);
+    ScopedDataDir scoped_data_dir(data_root);
+
+    PresetBundle bundle;
+    AppConfig    app_config;
+    const auto   confirm = [](std::string const &) { return 1; };
+    const auto   import  = [&](const fs::path &file) {
+        std::vector<std::string> files{file.string()};
+        bundle.import_presets(files, confirm, ForwardCompatibilitySubstitutionRule::Disable, app_config);
+        return files;
+    };
+
+    const fs::path good_file = src_dir / "Good.json";
+    write_print_preset(bundle.prints.default_preset().config, good_file, "Good");
+    const std::string good_json = read_file(good_file);
+
+    // Four levels up from where import_presets writes (<datadir>/user/default/temp) is temp_dir
+    // itself, so anything that escapes lands where the scan below can see it.
+    const std::string up     = "../../../../";
+    const std::string up_win = "..\\..\\..\\..\\";
+
+    SECTION("zip entry names with either separator are reduced to a basename") {
+        const fs::path zip = src_dir / "bundle.zip";
+        write_zip(zip, {{up + "zip-escape.json", "{}"}, {up_win + "zip-escape.json", "{}"}, {"presets/Good.json", good_json}});
+        import(zip);
+        CHECK(bundle.prints.find_preset("Good") != nullptr);
+        CHECK_FALSE(any_filename_contains(temp_dir.path(), "zip-escape"));
+    }
+
+    SECTION("a preset name that walks out of the preset directory is rejected") {
+        for (const std::string &name : {up + "name-escape", up_win + "name-escape"}) {
+            const fs::path file = src_dir / "escape.json";
+            write_print_preset(bundle.prints.default_preset().config, file, name);
+            CHECK(import(file).empty());
+            CHECK_FALSE(any_filename_contains(temp_dir.path(), "name-escape"));
+        }
+    }
+
+    SECTION("a bundle id that walks out of the bundle directory is rejected") {
+        const fs::path zip = src_dir / "bundle.zip";
+        write_zip(zip, {{BUNDLE_STRUCTURE_JSON_NAME, "{\"id\": \"" + up + "bundle-escape\"}"}, {"Good.json", good_json}});
+        CHECK(import(zip).empty());
+        CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
 }

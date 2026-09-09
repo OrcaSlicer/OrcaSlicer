@@ -126,7 +126,6 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
                                          const std::vector<std::string>& physical_types)
     : DPIDialog(parent, wxID_ANY, _L("Add Mixed Filament"), wxDefaultPosition,
                 wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
-    , m_edit_mode(false)
     , m_physical_colors(physical_colors)
     , m_physical_names(physical_names)
     , m_physical_types(physical_types)
@@ -157,7 +156,6 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
     : DPIDialog(parent, wxID_ANY, _L("Edit Mixed Filament"), wxDefaultPosition,
                 wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_result(existing)
-    , m_edit_mode(true)
     , m_physical_colors(physical_colors)
     , m_physical_names(physical_names)
     , m_physical_types(physical_types)

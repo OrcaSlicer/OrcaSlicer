@@ -3,6 +3,7 @@
 	"name": "Cubicon ABSk @Cubicon xCeler-Plus 0.4 nozzle",
 	"inherits": "Cubicon ABSk @base",
 	"setting_id": "UVitMFMxvdf34qZw",
+	"filament_id": "OForhBi4",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Plus 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "COEX PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "CXPETB13",
+	"filament_id": "OFvTVZc3",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

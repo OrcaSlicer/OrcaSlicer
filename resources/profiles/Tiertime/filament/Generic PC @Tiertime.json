@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Tiertime",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "Tiertime Generic PC",
+	"from": "system",
+	"setting_id": "ILOqHUkf5W9fcRic",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"compatible_printers": [
+		"Tiertime UP400 Pro 0.4 nozzle",
+		"Tiertime UP400 Pro 0.6 nozzle",
+		"Tiertime UP400 Pro 0.8 nozzle",
+		"Tiertime UP310 Pro 0.4 nozzle"
+	]
+}

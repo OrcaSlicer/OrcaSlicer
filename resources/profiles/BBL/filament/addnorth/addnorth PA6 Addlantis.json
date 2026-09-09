@@ -4,7 +4,7 @@
 	"inherits": "Generic PA @base",
 	"from": "system",
 	"setting_id": "GF_ANLA_00",
-	"filament_id": "GF_ANLA",
+	"filament_id": "OF1ID4N1",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

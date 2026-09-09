@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "PolyLite Dual PLA @System",
 	"renamed_from": "PolyLite Dual PLA",
-	"inherits": "PolyLite PLA @base",
+	"inherits": "PolyLite Dual PLA @base",
 	"from": "system",
 	"setting_id": "ShKfsLXZ1EJ4HgKf",
 	"instantiation": "true",
