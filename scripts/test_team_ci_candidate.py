@@ -51,6 +51,23 @@ class CandidateTests(unittest.TestCase):
         self.report["native"] = False
         ci.require_results(self.report, {"inspect": {"result": "success"}})
 
+    def test_documentation_change_cannot_hide_unverified_or_failed_base(self):
+        check = {"id": 10, "name": "Team integration candidate", "head_sha": self.report["base_sha"],
+                 "app": {"id": 15368}, "status": "completed", "conclusion": "success"}
+        report = dict(self.report, native=False)
+        ci.inherit_verified_base(report, [check])
+        self.assertFalse(report["native"])
+        for changes in ({"conclusion": "failure"}, {"status": "in_progress"}, {"head_sha": "9" * 40},
+                        {"app": {"id": 1}}):
+            with self.subTest(changes=changes):
+                report = dict(self.report, native=False)
+                ci.inherit_verified_base(report, [dict(check, **changes)])
+                self.assertTrue(report["native"])
+                self.assertTrue(report["cross_platform"])
+        report = dict(self.report, native=False)
+        ci.inherit_verified_base(report, [check, dict(check, id=11, conclusion="failure")])
+        self.assertTrue(report["native"])
+
     def test_scope_matches_native_and_cross_platform_changes(self):
         self.assertEqual({"native": False, "cross_platform": False}, ci.scope(["Docs/notes.md"]))
         self.assertEqual({"native": True, "cross_platform": False}, ci.scope(["src/slic3r/GUI/MainFrame.cpp"]))

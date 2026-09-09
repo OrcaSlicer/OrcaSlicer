@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   actions: read
+  checks: read
 
 concurrency:
   group: team-candidate-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -34,6 +35,8 @@ jobs:
           python-version: '3.12'
       - name: Validate candidate parents and determine build scope
         id: candidate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/team_ci_candidate.py inspect --report candidate.json
       - name: Validate the candidate integration contract
         run: python scripts/fetch_ai_provenance.py

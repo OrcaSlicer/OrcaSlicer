@@ -187,6 +187,7 @@ class RepositoryTests(unittest.TestCase):
         protection = bootstrap.read_json(output / "integration-branch-protection.json")
         reviews = protection["required_pull_request_reviews"]
         self.assertTrue(protection["required_status_checks"]["strict"])
+        self.assertNotIn("contexts", protection["required_status_checks"])
         self.assertEqual([check["context"] for check in protection["required_status_checks"]["checks"]], bootstrap.CHECKS)
         self.assertTrue(reviews["dismiss_stale_reviews"])
         self.assertTrue(reviews["require_code_owner_reviews"])

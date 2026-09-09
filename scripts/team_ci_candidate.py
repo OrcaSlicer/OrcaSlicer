@@ -121,6 +121,22 @@ def require_results(report: dict, results: dict) -> None:
             raise ValueError(f"Required candidate job did not succeed: {name}")
 
 
+def inherit_verified_base(report: dict, checks: list[dict]) -> None:
+    """Only skip native builds when the unchanged base has successful evidence.
+
+    In particular, a documentation push must not turn an unbuilt or failed
+    bootstrap baseline green by cancelling its first full build.
+    """
+    matches = [check for check in checks if check.get("name") == "Team integration candidate"
+               and check.get("head_sha") == report["base_sha"]
+               and check.get("app", {}).get("id") == 15368]
+    latest = max(matches, key=lambda check: check["id"]) if matches else {}
+    verified = latest.get("status") == "completed" and latest.get("conclusion") == "success"
+    report["base_candidate_verified"] = verified
+    if not verified:
+        report.update(native=True, cross_platform=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("inspect", "complete"))
@@ -130,6 +146,11 @@ def main() -> int:
     if args.command == "inspect":
         event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
         report = inspect(args.repo_root, event, os.environ["GITHUB_EVENT_NAME"], os.environ["GITHUB_REPOSITORY"])
+        response = api_get(f"repos/{report['repository']}/commits/{report['base_sha']}/check-runs?filter=latest&per_page=100",
+                           os.environ["GITHUB_TOKEN"])
+        # Missing, failed, cancelled, truncated or not-yet-complete evidence
+        # widens verification instead of allowing a path-only success.
+        inherit_verified_base(report, response["check_runs"] if response.get("total_count", 0) <= 100 else [])
         report.update(run_id=int(os.environ["GITHUB_RUN_ID"]), run_attempt=int(os.environ["GITHUB_RUN_ATTEMPT"]))
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:

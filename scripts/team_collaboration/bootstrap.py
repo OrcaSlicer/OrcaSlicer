@@ -214,7 +214,7 @@ def codeowners(repo, config, lock):
 
 def branch_protection(config):
     return {
-        "required_status_checks": {"strict": True, "contexts": [],
+        "required_status_checks": {"strict": True,
                                    "checks": [{"context": check} for check in config["required_checks"]]},
         "enforce_admins": True,
         "required_pull_request_reviews": {
