@@ -234,6 +234,27 @@ private:
     //
     std::array<float, TIME_MODES_COUNT> m_total_time{ 0.0f, 0.0f };
     //
+    // Running sum of the vertex estimated times, one entry per vertex for each time mode.
+    // get_estimated_time_at() answers from this instead of re-accumulating the whole vertex
+    // array, which it was doing once per frame from the tool marker tooltip. The sums are
+    // built by the same left-to-right addition the accumulate performed, so the value handed
+    // back is bit-identical, float rounding included.
+    //
+    std::array<std::vector<float>, TIME_MODES_COUNT> m_cumulative_times;
+    //
+    // For each layer L, the index of the first vertex whose layer_id is >= L (m_vertices.size()
+    // if there is none). Every vertex before it is guaranteed to belong to an earlier layer, so
+    // the scan in update_view_full_range() can start there rather than at vertex 0. Derived from
+    // the vertices themselves rather than from Layers, which buckets an out-of-order vertex into
+    // the layer that happens to be open, so this stays exact whatever order the vertices arrive in.
+    //
+    std::vector<uint32_t> m_layer_first_vertex;
+    //
+    // Scratch buffer for update_colors_texture(), kept alive so that a slider drag does not
+    // allocate and free one float per vertex of the print on every step.
+    //
+    std::vector<float> m_colors_scratch;
+    //
     // Detected travel moves times
     //
     std::array<float, TIME_MODES_COUNT> m_travels_time{ 0.0f, 0.0f };

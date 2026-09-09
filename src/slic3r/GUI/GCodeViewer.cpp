@@ -1622,7 +1622,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
 
-    if (m_viewer.get_extrusion_roles().empty())
+    if (m_viewer.get_extrusion_roles_count() == 0)
         return;
 
     render_toolpaths();
@@ -3408,6 +3408,12 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         std::vector<std::pair<ColorRGBA, std::pair<double, double>>> ret;
         ret.reserve(custom_gcode_per_print_z.size());
 
+        // Loop invariant, but built lazily: this lambda runs once per extruder on every frame
+        // and most prints reach neither colour change below, so fetching it up front would cost
+        // more than the per-item fetch it replaces.
+        std::vector<float> zs;
+        bool zs_built = false;
+
         for (const auto& item : custom_gcode_per_print_z) {
             if (extruder_id + 1 != static_cast<unsigned char>(item.extruder))
                 continue;
@@ -3415,7 +3421,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (item.type != ColorChange)
                 continue;
 
-            const std::vector<float> zs = m_viewer.get_layers_zs();
+            if (!zs_built) {
+                zs = m_viewer.get_layers_zs();
+                zs_built = true;
+            }
             auto lower_b = std::lower_bound(zs.begin(), zs.end(),
                 static_cast<float>(item.print_z - epsilon()));
             if (lower_b == zs.end())
@@ -4562,6 +4571,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
         // ORCA: Get layer Zs as doubles
         std::vector<double> layer_zs = get_layers_zs();
+        // loop invariant, same reason as the layer Zs above
+        const std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
 
         for (Slic3r::CustomGCode::Item custom_gcode : custom_gcode_per_print_z) {
             ImGui::Dummy({window_padding, window_padding});
@@ -4581,7 +4592,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
 
-            std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
             float custom_gcode_time = 0;
             if (layer > 0)
             {
@@ -4630,7 +4640,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string print_str = _u8L("Model printing time");
     std::string total_str = _u8L("Total time");
     float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
-    if (m_viewer.get_layers_estimated_times().empty())
+    if (m_viewer.get_layers_count() == 0)
         max_len += ImGui::CalcTextSize(total_str.c_str()).x;
     else {
         if (m_viewer.get_view_type() == libvgcode::EViewType::FeatureType)
