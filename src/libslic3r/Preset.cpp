@@ -1624,6 +1624,7 @@ void PresetCollection::reset(bool delete_files)
     unlock();
     m_map_alias_to_profile_name.clear();
     m_map_system_profile_renamed.clear();
+    m_unresolved_parents.clear();
 }
 
 void PresetCollection::add_default_preset(const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &preset_name)
@@ -1875,6 +1876,7 @@ void PresetCollection::load_presets(
         if (presets_loaded.empty()) {
             for (const auto &entry : deferred) {
                 BOOST_LOG_TRIVIAL(error) << boost::format("can not find parent %1% for config %2%!")%entry.second %entry.first.string();
+                m_unresolved_parents[entry.first.string()] = entry.second;
                 ++m_errors;
             }
             break;
@@ -3343,6 +3345,16 @@ Preset* PresetCollection::find_preset(const std::string &name, bool first_visibl
     if (const std::string* renamed = get_preset_name_renamed(name))
         return find_preset(*renamed, first_visible_if_not_found, real, only_from_library);
     return first_visible_if_not_found ? &this->first_visible() : nullptr;
+}
+
+std::string PresetCollection::unresolved_parent(const boost::filesystem::path &file) const
+{
+    for (const auto &[dropped_file, parent] : m_unresolved_parents) {
+        boost::system::error_code ec;
+        if (boost::filesystem::equivalent(file, boost::filesystem::path(dropped_file), ec) && !ec)
+            return parent;
+    }
+    return {};
 }
 
 Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/* = true */)

@@ -411,8 +411,8 @@ TEST_CASE("A preset whose parent exists nowhere is reported, not loaded", "[Pres
     ScopedTemporaryDir temp_dir;
     PresetBundle       bundle;
 
-    write_sparse_preset(temp_dir.path() / PRESET_PRINT_NAME / "Orphan.json", "Orphan", "No Such Parent",
-                        {{"layer_height", "0.15"}});
+    const fs::path orphan_file = temp_dir.path() / PRESET_PRINT_NAME / "Orphan.json";
+    write_sparse_preset(orphan_file, "Orphan", "No Such Parent", {{"layer_height", "0.15"}});
 
     PresetsConfigSubstitutions substitutions;
     bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
@@ -420,6 +420,14 @@ TEST_CASE("A preset whose parent exists nowhere is reported, not loaded", "[Pres
 
     CHECK(bundle.prints.find_preset("Orphan") == nullptr);
     CHECK(bundle.has_errors());
+    CHECK(bundle.prints.unresolved_parent(orphan_file) == "No Such Parent");
+
+    // Resolving the dropped file names the missing parent instead of reporting the file as unknown.
+    DynamicPrintConfig config;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config(config, Preset::TYPE_PRINT, orphan_file.string(),
+                                             ForwardCompatibilitySubstitutionRule::Disable, error, false));
+    CHECK(error == "Preset was not loaded because its parent preset \"No Such Parent\" was not found");
 }
 
 TEST_CASE("Presets inheriting each other in a cycle are reported, not loaded", "[Preset][Inherits][Regression]")

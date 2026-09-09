@@ -506,6 +506,11 @@ bool PresetBundle::resolve_preset_config(DynamicPrintConfig &config, Preset::Typ
     }
     if (error == "Preset identity is ambiguous")
         return false;
+    // The file was seen but dropped at load time; say so rather than reporting it as unknown.
+    if (const std::string parent = collection->unresolved_parent(source_path); !parent.empty()) {
+        error = "Preset was not loaded because its parent preset \"" + parent + "\" was not found";
+        return false;
+    }
     if (!allow_source_manifest) {
         error = "Preset was not found in the loaded bundle";
         return false;
