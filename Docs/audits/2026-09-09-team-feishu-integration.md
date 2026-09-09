@@ -42,3 +42,15 @@ python -m unittest discover -s scripts -p 'test_fetch_ai_provenance.py' -q
 4. 用无害 PR 演练正常通过、失败、冲突、双 PR 排队、HEAD／基点变化、重复消息、通知失败、重启和暂停恢复，保留真实版本／CI／卡片证据。规则未验证前保持人工合入。
 
 公开团队配置：`.github/team-collaboration.json`。操作说明：[分支准备](../../scripts/team_collaboration/README.md)、[飞书服务](../../tools/team_integration/README.md)。仓库已有旧分支不删除；GitHub Actions 应用 ID 已通过实际 check run 确认为 `15368`。新分支及远程规则以实际 GitHub 状态为准，不把生成的部署 JSON 当作已经应用。
+
+## 远程设置实测（2026-09-09）
+
+四条新分支已经从完整源码及协作修正提交 `7b6b270349a48d5b85a3c74a934f89c84da1c8ad` 建立并推送；旧分支未改写或删除。本机当前工作分支是 `codex/team/model-generation`。GitHub 默认分支已切到 `codex/team/integration`。
+
+已通过 API 回读验证：四条新分支均受保护、禁止强推和删除；集成分支要求两个绑定 GitHub Actions 应用 `15368` 的检查、strict 最新基线、过期审批失效、CODEOWNER 审批、一次非作者审批及最后一次 push 审批、讨论解决，管理员同样受约束。飞书服务的保护校验器对实际返回数据判定通过。个人仓库不发送仅组织可用的 bypass allowances 字段；保护请求使用 checks，不同时发送 contexts。普通开发分支允许日常 push。仓库自动合并和合并后自动删除分支关闭，保留 merge commit，rebase merge 关闭。
+
+原上游的定期工单分配／提醒、重复工单自动关闭两个 workflow 已在此团队仓库停用，避免把它们当作新团队机器人运行；没有删除其上游源码。Orca 上游预检仍需显式开启 `TEAM_UPSTREAM_PREVIEW_ENABLED`。
+
+云端验证：集成分支 [AI 检查](https://github.com/arsenaltj/OrcaSlicer/actions/runs/34362292520) 已成功；[候选检查与原生构建](https://github.com/arsenaltj/OrcaSlicer/actions/runs/34362293686) 的精确版本及协作测试部分已成功，Windows／Linux／macOS 构建仍在运行。本记录不把运行中构建写成通过，也不代表飞书或真实 PR 旅程已验收。更晚状态以链接中的实际结果为准。
+
+工作区仅剩 `.tmp/`、`graphify-out/`、`resources/generated_models/` 三类本地产物未跟踪；没有把它们或私有凭据推送。远程 API 回执保留在 `.tmp/adr007-remote-setup.json` 和 `.tmp/adr007-live-integration-protection.json`。
