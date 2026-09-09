@@ -365,6 +365,8 @@ namespace GUI {
 wxDEFINE_EVENT(EVT_LOAD_MODEL_OTHER_INSTANCE, LoadFromOtherInstanceEvent);
 wxDEFINE_EVENT(EVT_START_DOWNLOAD_OTHER_INSTANCE, StartDownloadOtherInstanceEvent);
 wxDEFINE_EVENT(EVT_INSTANCE_GO_TO_FRONT, InstanceGoToFrontEvent);
+wxDEFINE_EVENT(EVT_RELOAD_OTHER_INSTANCE, SimpleEvent);
+wxDEFINE_EVENT(EVT_RELOAD_AND_SLICE_OTHER_INSTANCE, SimpleEvent);
 
 void OtherInstanceMessageHandler::init(wxEvtHandler* callback_evt_handler)
 {
@@ -493,6 +495,8 @@ void OtherInstanceMessageHandler::handle_message(const std::string& message)
 
 	std::vector<boost::filesystem::path> paths;
 	std::vector<std::string> downloads;
+	bool reload_only = false;
+	bool reload_and_slice = false;
 	boost::regex re(R"(^(orcaslicer|prusaslicer|cura|bambustudio):\/\/open[\/]?\?file=)", boost::regbase::icase);
 	boost::regex re2(R"(^(bambustudioopen):\/\/)", boost::regex::icase);
 	boost::smatch results;
@@ -500,6 +504,8 @@ void OtherInstanceMessageHandler::handle_message(const std::string& message)
 	// Skip the first argument, it is the path to the slicer executable.
 	auto it = args.begin();
 	for (++ it; it != args.end(); ++ it) {
+		if (*it == "--reload") { reload_only = true; continue; }
+		if (*it == "--reload-and-slice") { reload_and_slice = true; continue; }
 		boost::filesystem::path p = MessageHandlerInternal::get_path(*it);
 		if (! p.string().empty())
 			paths.emplace_back(p);
@@ -515,6 +521,14 @@ void OtherInstanceMessageHandler::handle_message(const std::string& message)
 	if (!downloads.empty())
 	{
 		wxPostEvent(m_callback_evt_handler, StartDownloadOtherInstanceEvent(GUI::EVT_START_DOWNLOAD_OTHER_INSTANCE, std::vector<std::string>(std::move(downloads))));
+	}
+	if (reload_only)
+	{
+		wxPostEvent(m_callback_evt_handler, SimpleEvent(EVT_RELOAD_OTHER_INSTANCE));
+	}
+	if (reload_and_slice)
+	{
+		wxPostEvent(m_callback_evt_handler, SimpleEvent(EVT_RELOAD_AND_SLICE_OTHER_INSTANCE));
 	}
 }
 

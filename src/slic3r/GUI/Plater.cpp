@@ -6750,6 +6750,7 @@ struct Plater::priv
     std::string m_broken_shown_sig;
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
+    bool reload_and_slice_after_cancel {false};
     bool m_is_publishing {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -7864,6 +7865,29 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     });
     this->q->Bind(EVT_INSTANCE_GO_TO_FRONT, [this](InstanceGoToFrontEvent &) {
         bring_instance_forward();
+    });
+    this->q->Bind(EVT_RELOAD_OTHER_INSTANCE, [this](SimpleEvent&) {
+        BOOST_LOG_TRIVIAL(trace) << "Received reload from other instance event.";
+        wxGetApp().mainframe->Show();
+        wxGetApp().mainframe->Raise();
+        this->q->reload_all_from_disk();
+    });
+    this->q->Bind(EVT_RELOAD_AND_SLICE_OTHER_INSTANCE, [this](SimpleEvent&) {
+        BOOST_LOG_TRIVIAL(trace) << "Received reload-and-slice from other instance event.";
+        wxGetApp().mainframe->Show();
+        wxGetApp().mainframe->Raise();
+        this->q->reload_all_from_disk();
+        if (this->background_process.running() || this->m_is_slicing) {
+            // A previous reload-and-slice trigger's job is still in flight. Cancel it and
+            // restart once the cancellation completes (see on_process_completed()), instead
+            // of calling reload_and_slice() directly: MainFrame::get_enable_slice_status()
+            // would see a slice as still "in progress" and silently skip this request,
+            // leaving the freshly reloaded geometry unsliced.
+            this->reload_and_slice_after_cancel = true;
+            this->background_process.stop();
+        } else {
+            wxGetApp().mainframe->reload_and_slice();
+        }
     });
     wxGetApp().other_instance_message_handler()->init(this->q);
 
@@ -12597,6 +12621,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     if (auto_reslice_after_cancel) {
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
+    }
+    if (reload_and_slice_after_cancel) {
+        reload_and_slice_after_cancel = false;
+        wxGetApp().mainframe->reload_and_slice();
     }
 
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", exit.");

@@ -12282,6 +12282,16 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("Automatically export current configuration to the specified file.");
 */
 
+    def = this->add("reload", coBool);
+    def->label = L("Reload from disk");
+    def->tooltip = L("Sent to a running single-instance GUI: reload all objects from disk, without slicing.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("reload_and_slice", coBool);
+    def->label = L("Reload and slice");
+    def->tooltip = L("Sent to a running single-instance GUI: reload all objects from disk, slice the current plate, show Preview.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("datadir", coString);
     def->label = L("Data directory");
     def->tooltip = L("Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage.");

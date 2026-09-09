@@ -50,6 +50,9 @@ wxDECLARE_EVENT(EVT_START_DOWNLOAD_OTHER_INSTANCE, StartDownloadOtherInstanceEve
 using InstanceGoToFrontEvent = SimpleEvent;
 wxDECLARE_EVENT(EVT_INSTANCE_GO_TO_FRONT, InstanceGoToFrontEvent);
 
+wxDECLARE_EVENT(EVT_RELOAD_OTHER_INSTANCE, SimpleEvent);
+wxDECLARE_EVENT(EVT_RELOAD_AND_SLICE_OTHER_INSTANCE, SimpleEvent);
+
 class OtherInstanceMessageHandler
 {
 public:
