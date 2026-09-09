@@ -123,10 +123,10 @@ DecodedTextureCache g_decoded_texture_cache;
 } // namespace
 
 namespace {
-// A few passes of a separable box blur approximate a Gaussian, cheaply. `radius` is in pixels; 0 is
-// a no-op. Wraps at the edges so a tiling height map stays seamless after smoothing. Operates on the
-// grayscale byte buffer in place.
-void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, int radius)
+// A few passes of a separable box blur approximate a Gaussian, cheaply. `radius` is in whole texels;
+// 0 is a no-op. Wraps at the edges so a tiling height map stays seamless after smoothing. Operates on
+// the grayscale byte buffer in place.
+void smooth_height_pixels_box(std::vector<uint8_t> &pixels, int width, int height, int radius)
 {
     if (radius <= 0 || width <= 0 || height <= 0 || pixels.size() != size_t(width) * size_t(height))
         return;
@@ -161,6 +161,28 @@ void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, i
                 pixels[size_t(y) * width + size_t(x)] = uint8_t(std::lround(sum * inv));
             }
     }
+}
+
+// The same blur with a *continuous* radius, which is what the Smoothing slider drives.
+//
+// A box blur can only work in whole texels, so mapping the slider straight onto a rounded radius
+// made it move in visible jumps - and its very first step off zero was a full one-texel blur rather
+// than a hint of one, which is what made the control feel like it switched on rather than ramped up.
+// Blur at the next whole texel up and cross-fade the raw image back in by the fraction left over:
+// below one texel that fade *is* the sub-texel kernel, and above it it turns each integer step into
+// a continuous ramp.
+void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, float radius)
+{
+    if (radius <= 0.f || width <= 0 || height <= 0 || pixels.size() != size_t(width) * size_t(height))
+        return;
+
+    const int   whole = std::max(1, int(std::ceil(radius)));
+    const float mix   = std::clamp(radius / float(whole), 0.f, 1.f);
+    const std::vector<uint8_t> raw = (mix < 0.999f) ? pixels : std::vector<uint8_t>{};
+    smooth_height_pixels_box(pixels, width, height, whole);
+    if (!raw.empty())
+        for (size_t i = 0; i < pixels.size(); ++i)
+            pixels[i] = uint8_t(std::lround(float(raw[i]) + (float(pixels[i]) - float(raw[i])) * mix));
 }
 } // namespace
 
@@ -231,11 +253,14 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
         entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), result };
     }
 
-    // Smoothing radius scales with the texture so the effect is resolution-independent; capped so the
-    // blur stays affordable on large maps.
+    // Smoothing radius scales with the texture so the same slider value blurs the same *fraction* of
+    // the image whatever resolution it came in at, and stays continuous in the slider - see
+    // smooth_height_pixels(). The cap is a cost limit, not part of the mapping: the blur is
+    // O(width * height * radius) per pass, so a large map with the slider at the top would otherwise
+    // stall every preview rebuild.
     if (layer.smoothing > 0.f) {
-        const int max_radius = std::clamp(int(std::lround(0.02f * std::min(result.width, result.height))), 1, 32);
-        const int radius     = std::max(1, int(std::lround(layer.smoothing * float(max_radius))));
+        const float span   = 0.05f * float(std::min(result.width, result.height));
+        const float radius = std::clamp(layer.smoothing, 0.f, 1.f) * std::min(span, 48.f);
         smooth_height_pixels(result.pixels, result.width, result.height, radius);
         // Colour gets the same blur, per channel. It is the same knob for the same reason: detail in
         // the image finer than the mesh can carry is noise either way, and low-passing it here is the
@@ -1372,7 +1397,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                                                    const std::vector<TextureDisplacementLayer> &layers,
                                                    const TextureDisplacementFacetsData         &facets_data,
                                                    const TextureDisplacementOptions            &options,
-                                                   const DisplacementProgressFn                &progress)
+                                                   const DisplacementProgressFn                &progress,
+                                                   bool                                         flip_normals)
 {
     HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data);
     if (!combined)
@@ -1424,11 +1450,21 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         return combined(pos, smooth_normal);
     };
 
+    // The pipeline takes its displacement direction from the soup's winding, so a mirrored placement
+    // would drive the whole relief inwards. The paint masks were read off `mesh` above, against its
+    // own vertex order, so the winding can only be turned round after that - here, on the copy that
+    // becomes the soup - and has to be turned back on the way out, since the caller undoes the same
+    // mirror when it maps the result back into the volume's coordinates.
+    indexed_triangle_set oriented = mesh;
+    if (flip_normals)
+        for (stl_triangle_vertex_indices &t : oriented.indices)
+            std::swap(t[1], t[2]);
+
     // 0 means no simplification, i.e. Bake mode.
     const TextureBake::PipelineMode mode = settings.max_triangles > 0 ? TextureBake::PipelineMode::Export
                                                                       : TextureBake::PipelineMode::Bake;
     TextureBake::PipelineResult result = TextureBake::run_pipeline(
-        TextureBake::to_soup(mesh, excluded), sample, settings, bounds, mode, excluded,
+        TextureBake::to_soup(oriented, excluded), sample, settings, bounds, mode, excluded,
         [&progress](const char *, double f) {
             return !progress || progress(std::clamp(int(f * 100.0), 0, 99));
         });
@@ -1436,17 +1472,29 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         return {};
 
     indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry);
-    return out.indices.empty() ? mesh : out;
+    if (out.indices.empty())
+        return mesh;
+    if (flip_normals)
+        for (stl_triangle_vertex_indices &t : out.indices)
+            std::swap(t[1], t[2]);
+    return out;
 }
 
 } // namespace
 
-indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
-                                                 const std::vector<TextureDisplacementLayer> &layers,
-                                                 const TextureDisplacementFacetsData         &facets_data,
-                                                 const TextureDisplacementOptions            &options,
-                                                 const DisplacementProgressFn                &progress,
-                                                 const TextureColorRequest                   *color)
+// The bake proper. Runs entirely in whatever space `base_mesh` is given in; the public entry point
+// below is what puts it in world space and brings the result back.
+// `flip_normals` says the mesh is wound the opposite way round from its outward direction, which is
+// what a mirroring world transform leaves behind: the positions are right, but every normal derived
+// from the winding points into the model. See build_texture_displacement().
+static indexed_triangle_set build_texture_displacement_in_place(
+    const indexed_triangle_set                  &base_mesh,
+    const std::vector<TextureDisplacementLayer> &layers,
+    const TextureDisplacementFacetsData         &facets_data,
+    const TextureDisplacementOptions            &options,
+    const DisplacementProgressFn                &progress,
+    const TextureColorRequest                   *color,
+    bool                                         flip_normals)
 {
     // Returns true to keep going. An aborted run returns {} (see the header): an empty mesh is the
     // one result no caller can mistake for a finished bake and commit onto the volume.
@@ -1465,7 +1513,7 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
         return mesh;
 
     if (options.pipeline_v2)
-        return build_texture_displacement_v2(mesh, layers, facets_data, options, progress);
+        return build_texture_displacement_v2(mesh, layers, facets_data, options, progress, flip_normals);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -1517,6 +1565,14 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                 // leave the whole-mesh normal in place rather than zeroing it.
         }
     }
+
+    // Both normal passes above read their direction out of the triangle winding, so a mirrored
+    // placement leaves every one of them pointing into the model - the relief would be carved rather
+    // than raised. Correct them once, here, where every later stage (displacement direction, the
+    // planar/triplanar projection axes, the cylinder axis) picks them up already right.
+    if (flip_normals)
+        for (Vec3f &n : vertex_normals)
+            n = -n;
 
     if (!report(5))
         return {};
@@ -1782,6 +1838,11 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     if (!any_displacement)
         return mesh;
 
+    // The model's own resting plane, taken before anything moves - see the clamp after smoothing.
+    float resting_z = std::numeric_limits<float>::max();
+    for (const Vec3f &v : mesh.vertices)
+        resting_z = std::min(resting_z, v.z());
+
     for (size_t vi = 0; vi < mesh.vertices.size(); ++vi)
         if (displaced[vi])
             mesh.vertices[vi] += vertex_normals[vi] * displacement[vi];
@@ -1806,6 +1867,18 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                  return report(70 + (29 * (pass + 1)) / std::max(it, 1));
                              }) : DisplacementProgressFn{});
     }
+
+    // Nothing driven below the model's own resting plane can be printed: it is either through the
+    // build plate or, once the slicer drops the part back down onto it, holding the whole model up in
+    // the air. Push it back up to the plane. Only vertices the displacement actually moved are
+    // eligible - untouched geometry is already exactly where it started - and only those that ended
+    // up below it, so downward relief that stays clear of the plate is left alone. Runs in world
+    // space (see build_texture_displacement()), so this really is the plate and not some scaled
+    // stand-in for it.
+    if (resting_z < std::numeric_limits<float>::max())
+        for (size_t vi = 0; vi < mesh.vertices.size(); ++vi)
+            if (displaced[vi] && mesh.vertices[vi].z() < resting_z)
+                mesh.vertices[vi].z() = resting_z;
 
     if (!report(99))
         return {};
@@ -1835,6 +1908,51 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     return mesh;
 }
 
+indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
+                                                 const std::vector<TextureDisplacementLayer> &layers,
+                                                 const TextureDisplacementFacetsData         &facets_data,
+                                                 const TextureDisplacementOptions            &options,
+                                                 const DisplacementProgressFn                &progress,
+                                                 const TextureColorRequest                   *color,
+                                                 const Transform3d                           &volume_to_world)
+{
+    // An untransformed volume on an untransformed instance is by far the common case, and the round
+    // trip costs two matrix multiplies per vertex on a mesh that can carry millions of them - so take
+    // the identity out of the way rather than paying for it.
+    if (volume_to_world.matrix().isApprox(Transform3d::Identity().matrix()))
+        return build_texture_displacement_in_place(base_mesh, layers, facets_data, options, progress, color, false);
+
+    const Transform3d to_local = volume_to_world.inverse();
+    // A mirroring placement leaves the positions correct but every winding-derived normal pointing
+    // the wrong way. The winding itself is deliberately *not* touched here: the paint masks encode
+    // each split triangle against its own vertex order, so reordering a triangle's vertices would
+    // mirror the paint inside it. The bake is told instead, and negates the normals it computes.
+    const bool mirrored = volume_to_world.linear().determinant() < 0.0;
+
+    indexed_triangle_set world = base_mesh;
+    for (Vec3f &v : world.vertices)
+        v = (volume_to_world * v.cast<double>()).cast<float>();
+
+    indexed_triangle_set out =
+        build_texture_displacement_in_place(world, layers, facets_data, options, progress, color, mirrored);
+    // A cancelled run returns {} and must stay {} - an empty mesh is the signal the caller checks
+    // before committing anything onto the volume.
+    if (out.vertices.empty())
+        return out;
+
+    for (Vec3f &v : out.vertices)
+        v = (to_local * v.cast<double>()).cast<float>();
+    return out;
+}
+
+Transform3d texture_displacement_volume_to_world(const ModelVolume &volume)
+{
+    const ModelObject *object = volume.get_object();
+    if (object == nullptr || object->instances.empty() || object->instances.front() == nullptr)
+        return volume.get_matrix();
+    return object->instances.front()->get_matrix() * volume.get_matrix();
+}
+
 indexed_triangle_set build_texture_displacement(const ModelVolume &volume)
 {
     TextureDisplacementFacetsData facets_data;
@@ -1842,7 +1960,8 @@ indexed_triangle_set build_texture_displacement(const ModelVolume &volume)
         facets_data[size_t(i)] = volume.texture_displacement_facet(i).get_data();
 
     return build_texture_displacement(volume.mesh().its, volume.texture_displacement_layers, facets_data,
-                                      volume.texture_displacement_options);
+                                      volume.texture_displacement_options, {}, nullptr,
+                                      texture_displacement_volume_to_world(volume));
 }
 
 void smooth_mesh_vertices(indexed_triangle_set &mesh, const std::vector<uint8_t> &movable, float strength,

@@ -61,6 +61,19 @@ static std::shared_ptr<std::vector<unsigned char>> make_checkerboard_png(size_t 
     return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
 }
 
+// The bake never drives relief below the model's own resting plane (see build_texture_displacement()),
+// so on a fully painted closed solid the vertices already sitting on that plane - a cube's four bottom
+// corners, whose normals point downwards - are clamped in Z and do not move by the full depth. The
+// tests below are about the displacement maths, so they check the vertices the clamp cannot touch;
+// the clamp itself has its own test.
+static bool above_resting_plane(const indexed_triangle_set &mesh, size_t vi)
+{
+    float bottom = std::numeric_limits<float>::max();
+    for (const Vec3f &v : mesh.vertices)
+        bottom = std::min(bottom, v.z());
+    return mesh.vertices[vi].z() > bottom + 1e-4f;
+}
+
 TEST_CASE("TextureDisplacement: decode_height_texture round-trips an 8-bit grayscale PNG", "[TextureDisplacement]")
 {
     TextureDisplacementLayer layer;
@@ -110,6 +123,8 @@ TEST_CASE("TextureDisplacement: fully painting a mesh displaces every vertex alo
 
     REQUIRE(result.vertices.size() == cube.vertices.size());
     for (size_t i = 0; i < cube.vertices.size(); ++i) {
+        if (!above_resting_plane(cube, i))
+            continue;
         const float moved = (result.vertices[i] - cube.vertices[i]).norm();
         CHECK_THAT(moved, WithinAbs(layer.depth_mm, 1e-3f));
     }
@@ -154,7 +169,8 @@ TEST_CASE("TextureDisplacement: a second layer over the same area is applied too
     REQUIRE(result.vertices.size() == cube.vertices.size());
     REQUIRE(result.indices.size() == cube.indices.size());
     for (size_t i = 0; i < cube.vertices.size(); ++i)
-        CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(1.5f, 1e-3f)); // 1.0 + 0.5, not just 1.0
+        if (above_resting_plane(cube, i))
+            CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(1.5f, 1e-3f)); // 1.0 + 0.5, not just 1.0
 }
 
 TEST_CASE("TextureDisplacement: blend modes combine a layer with the ones below it", "[TextureDisplacement]")
@@ -189,7 +205,8 @@ TEST_CASE("TextureDisplacement: blend modes combine a layer with the ones below 
 
     REQUIRE(result.vertices.size() == cube.vertices.size());
     for (size_t i = 0; i < cube.vertices.size(); ++i)
-        CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(std::get<1>(expected), 1e-3f));
+        if (above_resting_plane(cube, i))
+            CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(std::get<1>(expected), 1e-3f));
 }
 
 TEST_CASE("TextureDisplacement: the lowest layer ignores its blend mode", "[TextureDisplacement]")
@@ -211,7 +228,104 @@ TEST_CASE("TextureDisplacement: the lowest layer ignores its blend mode", "[Text
     const indexed_triangle_set result = build_texture_displacement(cube, {layer}, facets);
 
     for (size_t i = 0; i < cube.vertices.size(); ++i)
-        CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(2.0f, 1e-3f));
+        if (above_resting_plane(cube, i))
+            CHECK_THAT((result.vertices[i] - cube.vertices[i]).norm(), WithinAbs(2.0f, 1e-3f));
+}
+
+TEST_CASE("TextureDisplacement: relief is never driven below the model's resting plane", "[TextureDisplacement]")
+{
+    // A fully painted cube displaces outward everywhere, which on the bottom face means straight
+    // down - through the build plate. That geometry cannot be printed, so it is clamped back up.
+    const indexed_triangle_set cube = its_make_cube(10., 10., 10.);
+
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(cube);
+
+    TextureDisplacementLayer layer;
+    layer.slot         = 0;
+    layer.depth_mm     = 2.0f;
+    layer.tiling_scale = 5.0f;
+    layer.image_data   = make_flat_gray_png(255); // full depth everywhere
+
+    float bottom = std::numeric_limits<float>::max();
+    for (const Vec3f &v : cube.vertices)
+        bottom = std::min(bottom, v.z());
+
+    const indexed_triangle_set result = build_texture_displacement(cube, {layer}, facets);
+
+    REQUIRE(result.vertices.size() == cube.vertices.size());
+    for (const Vec3f &v : result.vertices)
+        CHECK(v.z() >= bottom - 1e-4f);
+
+    // ...and the clamp is confined to Z: a bottom corner still moves outwards in X and Y by the same
+    // amount it would have, rather than being pinned wholesale.
+    bool any_bottom_moved_sideways = false;
+    for (size_t i = 0; i < cube.vertices.size(); ++i)
+        if (!above_resting_plane(cube, i) &&
+            (result.vertices[i].head<2>() - cube.vertices[i].head<2>()).norm() > 1e-3f)
+            any_bottom_moved_sideways = true;
+    CHECK(any_bottom_moved_sideways);
+}
+
+TEST_CASE("TextureDisplacement: depth is measured in world millimetres, not the volume's own", "[TextureDisplacement]")
+{
+    // The same painted patch, baked once untransformed and once through a 3x scale. "Depth (mm)" is
+    // a millimetre on the printed part, so the *world* relief must come out the same height either
+    // way - which means the vertices of the scaled volume move by a third as much in its own
+    // coordinates. Baking both in volume space instead gave a 3x deeper relief on the scaled one.
+    indexed_triangle_set fan;
+    fan.vertices = { {0.f, 0.f, 1.f}, {1.f, 0.f, 1.f}, {0.f, 1.f, 1.f}, {-1.f, 0.f, 1.f}, {0.f, -1.f, 1.f} };
+    fan.indices  = { {0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1} };
+
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(fan);
+
+    TextureDisplacementLayer layer;
+    layer.slot         = 0;
+    layer.depth_mm     = 1.0f;
+    layer.tiling_scale = 5.0f;
+    layer.image_data   = make_flat_gray_png(255);
+
+    const indexed_triangle_set plain  = build_texture_displacement(fan, {layer}, facets);
+    Transform3d scale3 = Transform3d::Identity();
+    scale3.scale(Vec3d(3.0, 3.0, 3.0));
+    const indexed_triangle_set scaled = build_texture_displacement(fan, {layer}, facets, {}, {}, nullptr, scale3);
+
+    REQUIRE(plain.vertices.size() == fan.vertices.size());
+    REQUIRE(scaled.vertices.size() == fan.vertices.size());
+    for (size_t i = 0; i < fan.vertices.size(); ++i) {
+        CHECK_THAT(plain.vertices[i].z() - fan.vertices[i].z(), WithinAbs(1.0f, 1e-3f));
+        // A third of the movement locally is the same movement once the 3x scale is applied.
+        CHECK_THAT(scaled.vertices[i].z() - fan.vertices[i].z(), WithinAbs(1.0f / 3.0f, 1e-3f));
+    }
+}
+
+TEST_CASE("TextureDisplacement: a mirrored placement still raises the relief outwards", "[TextureDisplacement]")
+{
+    // Mirroring reverses the winding, and every normal in the bake is derived from the winding - so
+    // without correcting for it the whole relief is carved into the surface instead of raised off it.
+    indexed_triangle_set fan;
+    fan.vertices = { {0.f, 0.f, 1.f}, {1.f, 0.f, 1.f}, {0.f, 1.f, 1.f}, {-1.f, 0.f, 1.f}, {0.f, -1.f, 1.f} };
+    fan.indices  = { {0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1} };
+
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(fan);
+
+    TextureDisplacementLayer layer;
+    layer.slot         = 0;
+    layer.depth_mm     = 1.0f;
+    layer.tiling_scale = 5.0f;
+    layer.image_data   = make_flat_gray_png(255);
+
+    // Mirrored in X: the patch's outward direction in world space is still +Z, so in the volume's own
+    // coordinates the vertices must still move +Z.
+    Transform3d mirror_x = Transform3d::Identity();
+    mirror_x.scale(Vec3d(-1.0, 1.0, 1.0));
+    const indexed_triangle_set result = build_texture_displacement(fan, {layer}, facets, {}, {}, nullptr, mirror_x);
+
+    REQUIRE(result.vertices.size() == fan.vertices.size());
+    for (size_t i = 0; i < fan.vertices.size(); ++i)
+        CHECK_THAT(result.vertices[i].z() - fan.vertices[i].z(), WithinAbs(1.0f, 1e-3f));
 }
 
 TEST_CASE("TextureDisplacement: the patch border is displaced by default and pinned on request", "[TextureDisplacement]")

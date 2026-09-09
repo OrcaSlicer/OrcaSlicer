@@ -61,7 +61,7 @@ void TextureDisplacementBakeJob::process(Ctl &ctl)
             }
             return true;
         },
-        color));
+        color, m_input.volume_to_world));
 
     // Always finish at 100: this is what closes the notification. Reported even on cancel, where
     // build_texture_displacement() returns an empty mesh and finalize() commits nothing.
@@ -152,6 +152,7 @@ void queue_texture_displacement_bake(const ModelVolume &volume, const TextureCol
     input.base_mesh  = volume.mesh().its;
     input.layers     = volume.texture_displacement_layers;
     input.options    = volume.texture_displacement_options;
+    input.volume_to_world = texture_displacement_volume_to_world(volume);
     for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
         input.facets_data[size_t(i)] = volume.texture_displacement_facet(i).get_data();
 

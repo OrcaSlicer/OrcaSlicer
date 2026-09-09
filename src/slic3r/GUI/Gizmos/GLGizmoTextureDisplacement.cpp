@@ -959,10 +959,30 @@ float GLGizmoTextureDisplacement::layer_texture_aspect(const TextureDisplacement
     return (tex.width > 0 && tex.height > 0) ? float(tex.width) / float(tex.height) : 1.f;
 }
 
-std::vector<Vec2f> GLGizmoTextureDisplacement::compute_layer_vertex_uvs(const indexed_triangle_set     &patch,
+indexed_triangle_set GLGizmoTextureDisplacement::patch_in_world(const indexed_triangle_set &patch) const
+{
+    const ModelVolume *mv = texture_volume();
+    if (mv == nullptr)
+        return patch;
+    const Transform3d to_world = texture_displacement_volume_to_world(*mv);
+    if (to_world.matrix().isApprox(Transform3d::Identity().matrix()))
+        return patch;
+
+    indexed_triangle_set world = patch;
+    for (Vec3f &v : world.vertices)
+        v = (to_world * v.cast<double>()).cast<float>();
+    return world;
+}
+
+std::vector<Vec2f> GLGizmoTextureDisplacement::compute_layer_vertex_uvs(const indexed_triangle_set     &local_patch,
                                                                        const TextureDisplacementLayer &layer) const
 {
-    const float aspect = layer_texture_aspect(layer);
+    // The bake maps the texture in world millimetres, so "Tile size (mm)" means the same thing on a
+    // scaled instance as it does on an untouched one (see build_texture_displacement()). Everything
+    // that has to agree with the bake - the fast preview's uvs, the checker/distortion overlays -
+    // therefore has to project from the same world positions, not from the volume's own.
+    const indexed_triangle_set patch  = patch_in_world(local_patch);
+    const float                aspect = layer_texture_aspect(layer);
     if (layer.projection_method == TextureProjectionMethod::LSCM) {
         // compute_lscm_uvs() returns the unwrap's own (raw, mm) coordinates with the island placement
         // folded in - it does *not* apply the layer's tiling/rotation/offset. The bake applies those
@@ -1654,6 +1674,7 @@ void GLGizmoTextureDisplacement::queue_preview_job()
     input.base_mesh = mv->mesh().its;
     input.layers    = mv->texture_displacement_layers;
     input.options   = mv->texture_displacement_options;
+    input.volume_to_world = texture_displacement_volume_to_world(*mv);
     for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
         input.facets_data[size_t(i)] = mv->texture_displacement_facet(i).get_data();
     // Captured here rather than read in the handler: get_extruders_colors() is main-thread state and
@@ -1774,7 +1795,9 @@ void GLGizmoTextureDisplacement::update_uv_editor()
     bool unwrap_changed = false;
     if (m_uv_unwrap_pending) {
         m_uv_unwrap_pending = false;
-        const indexed_triangle_set patch = extract_painted_patch(mv->mesh().its, state.facets);
+        // World millimetres, the space the bake unwraps in - otherwise the pane would lay the islands
+        // out at the volume's own scale and show the texture at a different size than it bakes at.
+        const indexed_triangle_set patch = patch_in_world(extract_painted_patch(mv->mesh().its, state.facets));
         if (patch.indices.empty()) {
             m_uv_editor_state  = UVEditorState{};
             m_uv_editor_unwrap = PatchUnwrap{};
@@ -4418,8 +4441,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         if (icon_toggle(704, "texture_displacement_distortion.svg", cur_mode == 3, _L("Distortion"),
                         _L("Distortion - blue-to-red stretch heatmap over the unwrap (needs the Unwrap/LSCM projection)"))) new_mode = 3;
         ImGui::SameLine();
-        ImGui::Dummy(ImVec2(m_imgui->scaled(0.6f), 0.f));
-        ImGui::SameLine();
         if (icon_toggle(705, "texture_displacement_wireframe.svg", m_wireframe_overlay, _L("Wireframe"),
                         _L("Wireframe - overlay the mesh edges; independent of the view above"))) wf_toggle = true;
 
@@ -4497,8 +4518,61 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         // worth of controls the panel otherwise runs off the bottom of the screen, and there was
         // nothing to tell "settings that belong to this layer" apart from "settings that belong to
         // the tool".
+        // ImGui's stock scrollbar is a wide, square-cornered slab in a tinted track - against this
+        // flat panel it reads as a raw widget bolted onto the edge. Slim it to a rounded thumb over
+        // an invisible track. The narrower bar also gives back content width: a scrollbar eats it
+        // from the child's content region, which is what was clipping "Tile size (mm)" mid-word.
+        const float  scrollbar_w = m_imgui->scaled(0.5f);
+        const ImVec4 grab        = wxGetApp().dark_mode() ? ImVec4(1.f, 1.f, 1.f, 0.26f) : ImVec4(0.f, 0.f, 0.f, 0.26f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, scrollbar_w);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.5f * scrollbar_w);
+        // The panel-wide 20 px window padding is meant for the panel; inside a region that is itself
+        // already inset and tinted it is just a second margin, and it was spending on empty gutters
+        // the width the layer rows needed. Vertical padding is left alone - it separates the first
+        // layer's header from the region's top edge.
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(m_imgui->scaled(0.5f), ImGui::GetStyle().WindowPadding.y));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, grab);
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(grab.x, grab.y, grab.z, 0.45f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(grab.x, grab.y, grab.z, 0.65f));
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1.f, 1.f, 1.f, 0.04f));
-        ImGui::BeginChild("##texture_layers", ImVec2(0.f, m_imgui->scaled(20.f)), true);
+        // NoScrollWithMouse: the wheel is handled below so the scroll can be eased instead of
+        // teleporting five text lines per notch, which on blocks this tall lost the reader's place.
+        ImGui::BeginChild("##texture_layers", ImVec2(0.f, m_imgui->scaled(20.f)), true,
+                          ImGuiWindowFlags_NoScrollWithMouse);
+        {
+            ImGuiIO    &io         = ImGui::GetIO();
+            const float scroll_now = ImGui::GetScrollY();
+            const float scroll_max = ImGui::GetScrollMaxY();
+
+            // Anything that moved the scroll without us - dragging the grab, a keyboard/gamepad nav
+            // step, the content shrinking under a clamped offset - has to re-seed the target, or the
+            // easing below would immediately drag the view back to where it last animated to.
+            if (m_layer_scroll_applied < 0.f || std::abs(scroll_now - m_layer_scroll_applied) > 0.5f)
+                m_layer_scroll_target = scroll_now;
+
+            if (io.MouseWheel != 0.f && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+                m_layer_scroll_target -= io.MouseWheel * ImGui::GetFontSize() * 4.f;
+            // Whole pixels: ImGui floors whatever SetScrollY() is given, so a fractional target could
+            // never be reached and the "still gliding" test below would stay true forever, repainting
+            // the canvas for good.
+            m_layer_scroll_target = std::floor(std::clamp(m_layer_scroll_target, 0.f, scroll_max));
+
+            const float delta = m_layer_scroll_target - scroll_now;
+            if (std::abs(delta) >= 1.f) {
+                // Exponential ease, formulated against the frame time so the glide takes the same wall
+                // time whether the canvas is running at 30 or 144 fps. The last sub-pixel step would be
+                // floored away, so land on the target outright once the remainder is that small.
+                const float t    = 1.f - std::exp(-20.f * std::clamp(io.DeltaTime, 1.f / 240.f, 1.f / 15.f));
+                const float step = (std::abs(delta * t) < 1.f) ? delta : delta * t;
+                const float next = std::floor(scroll_now + step);
+                ImGui::SetScrollY(next);
+                m_layer_scroll_applied = next;
+                m_parent.set_as_dirty(); // nothing else would redraw mid-glide once the mouse stops
+            } else {
+                m_layer_scroll_applied = scroll_now;
+            }
+        }
 
         for (size_t li = 0; li < ordered.size(); ++li) {
             TextureDisplacementLayer *layer = ordered[li];
@@ -5017,7 +5091,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
 
         ImGui::EndChild();
-        ImGui::PopStyleColor();
+        ImGui::PopStyleColor(5);
+        ImGui::PopStyleVar(3);
 
         if (slot_to_remove >= 0)
             remove_texture_layer(slot_to_remove); // deferred: see slot_to_remove's declaration

@@ -23,6 +23,9 @@ struct TextureDisplacementPreviewInput
     std::vector<TextureDisplacementLayer> layers;
     TextureDisplacementFacetsData         facets_data;
     TextureDisplacementOptions            options;
+    // Mesh coordinates -> world millimetres, so the preview is displaced in the same space the bake
+    // is and the two cannot disagree. See build_texture_displacement().
+    Transform3d                           volume_to_world = Transform3d::Identity();
     // Empty unless a layer is colouring, in which case the preview reports the filament per triangle
     // alongside the mesh, so the Normal view shows what the bake will produce - interleaving included.
     TextureColorSettings                  color;

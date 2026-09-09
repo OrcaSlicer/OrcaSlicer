@@ -709,12 +709,28 @@ struct TextureColorRequest
     // straight to a TriangleSelector without a second mapping table.
     std::vector<uint8_t> *out_triangle = nullptr;
 };
+// Where the volume sits on the plate: its instance transform times its own volume transform, i.e.
+// mesh coordinates -> world millimetres.
+//
+// Every number the user sets is in real millimetres on the printed part - "Depth (mm)", "Tile size
+// (mm)" - and the build plate is a world plane, so the bake runs in world space and transforms the
+// result back. Doing it in the volume's own coordinates instead made a scaled instance stretch both
+// the relief depth and the tiling by the scale factor, and under a non-uniform scale it also
+// displaced along the wrong direction: a mesh normal maps to the world normal through the inverse
+// transpose, not through the transform itself, so the relief leaned. Identity - the default - is
+// exactly the old behaviour and is what an untransformed volume gives.
 indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
                                                  const std::vector<TextureDisplacementLayer> &layers,
                                                  const TextureDisplacementFacetsData         &facets_data,
                                                  const TextureDisplacementOptions            &options = {},
                                                  const DisplacementProgressFn                &progress = {},
-                                                 const TextureColorRequest                   *color = nullptr);
+                                                 const TextureColorRequest                   *color = nullptr,
+                                                 const Transform3d                           &volume_to_world = Transform3d::Identity());
+
+// `volume`'s mesh coordinates -> world millimetres: its first instance's transform times its own.
+// The mesh is shared by every instance, so a multi-instance object can only be baked for one of
+// them; the first is what the gizmo edits against. Identity when the volume has no object yet.
+Transform3d texture_displacement_volume_to_world(const ModelVolume &volume);
 
 // Convenience overload for main-thread callers: extracts the mesh/layers/paint data/options from
 // `volume` and forwards to the overload above.

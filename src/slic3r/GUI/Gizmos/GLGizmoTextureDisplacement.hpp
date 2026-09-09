@@ -621,6 +621,10 @@ private:
     // the shader projects on its own. Shared by the bump preview and the UV-check overlay.
     std::vector<Vec2f> compute_layer_vertex_uvs(const indexed_triangle_set &patch,
                                                 const TextureDisplacementLayer &layer) const;
+    // `patch` with its vertices moved into world millimetres - the space the bake maps the texture in
+    // (see build_texture_displacement()). Returned by value because the caller usually still needs the
+    // original: the patch doubles as render geometry, which is drawn through the volume's own matrix.
+    indexed_triangle_set patch_in_world(const indexed_triangle_set &patch) const;
 
     // UV-check overlay drawn over the painted patch to sanity-check the unwrap (#13/#14). Built by
     // rebuild_uvcheck_mesh(), drawn by render_uvcheck_mesh() with the "texture_displacement_uvcheck"
@@ -750,6 +754,13 @@ private:
     // grab), instead of being pinned to the right of the gizmo toolbar. Persisted across gizmo
     // open/close within a session, so the choice sticks while working.
     bool m_undocked = false;
+
+    // Smooth scrolling for the layer-stack child region. ImGui jumps a fixed number of lines per
+    // wheel notch, which on a list of tall per-layer blocks reads as a hard jolt rather than a
+    // scroll. The wheel is intercepted (ImGuiWindowFlags_NoScrollWithMouse) and moves a *target*
+    // offset instead; the real scroll is eased toward it over the following frames.
+    float m_layer_scroll_target  = 0.f;
+    float m_layer_scroll_applied = -1.f; // what the easing wrote last frame; <0 until the first one
 
     // See the "Adjust Texture" block of private methods above.
     bool  m_adjust_texture_mode      = false;

@@ -39,6 +39,25 @@ const ColorRGBA UV_COLOR_DIAL          = { 1.f, 0.85f, 0.2f, 0.9f };     // rota
 
 constexpr float SNAP_PIXELS = 28.f; // how close a boundary vertex has to come before it sticks (#2)
 
+// wxWidgets reports this canvas' size in *logical* points, while the GL drawable behind it is sized
+// in device pixels. On the backends where those differ under HiDPI (the same pair GLCanvas3D guards
+// its RetinaHelper with) a viewport built straight from GetSize() covers only the bottom-left
+// 1/scale of the drawable, which is exactly where the whole editor ended up drawn, shrunken.
+// Mouse coordinates arrive in logical points, so only the viewport needs converting - every other
+// GetSize() use here is compared against event coordinates and must stay logical.
+wxSize gl_drawable_size(const wxWindow *win, const wxSize &logical_size)
+{
+#if defined(__APPLE__) || defined(__WXGTK3__)
+    const double scale = (win != nullptr) ? win->GetContentScaleFactor() : 1.0;
+    if (scale > 0.0)
+        return wxSize(std::max(1, int(std::lround(logical_size.GetWidth() * scale))),
+                      std::max(1, int(std::lround(logical_size.GetHeight() * scale))));
+#else
+    (void) win;
+#endif
+    return wxSize(std::max(1, logical_size.GetWidth()), std::max(1, logical_size.GetHeight()));
+}
+
 // The pixel format this canvas is created with has to match the one the app's single shared
 // wxGLContext was created against (that of View3D's canvas, from OpenGLManager::create_wxglcanvas()),
 // so this mirrors that attribute list *including its multisampling*: WGL requires the HDC passed to
@@ -333,13 +352,37 @@ void UVEditorCanvas::content_bounds(Vec2f &min_uv, Vec2f &max_uv) const
     }
 }
 
+void UVEditorCanvas::framed_bounds(Vec2f &min_uv, Vec2f &max_uv) const
+{
+    content_bounds(min_uv, max_uv);
+    // With tiling on, the backdrop is snapped out to whole tiles, so it is bigger than the raw
+    // bounds - and by a different amount on each side. Framing the raw bounds therefore left that
+    // backdrop visibly off-centre: hanging past one edge of the pane with dead space against the
+    // other. Frame what is drawn instead. (Tiling off draws only the first tile, which the bounds
+    // already contain, so there is nothing to snap.)
+    if (m_tile_enabled) {
+        min_uv = Vec2f(std::floor(min_uv.x()), std::floor(min_uv.y()));
+        max_uv = Vec2f(std::ceil(max_uv.x()), std::ceil(max_uv.y()));
+    }
+}
+
 void UVEditorCanvas::fit_view_to_content()
 {
     Vec2f min_uv, max_uv;
-    content_bounds(min_uv, max_uv);
+    framed_bounds(min_uv, max_uv);
 
-    m_pan       = 0.5f * (min_uv + max_uv);
-    m_zoom      = std::max(0.5f * (max_uv - min_uv).maxCoeff() * 1.1f, 0.05f);
+    const wxSize size   = GetSize();
+    const float  aspect = float(std::max(1, size.GetWidth())) / float(std::max(1, size.GetHeight()));
+    const Vec2f  half   = 0.5f * (max_uv - min_uv);
+
+    m_pan = 0.5f * (min_uv + max_uv);
+    // m_zoom is the half-extent shown across the *shorter* pane edge (see view_half_extents()), so
+    // each axis' required half-extent has to be converted back into that unit before the larger of
+    // the two is taken. Sizing off the bigger axis alone, as this did, ignores the pane's shape and
+    // zooms out further than either axis needs on anything but a square pane. The 1.1 leaves a
+    // margin so the outermost island edge is not flush against the frame.
+    m_zoom = std::max(1.1f * std::max(half.x() / std::max(aspect, 1.f), half.y() * std::min(aspect, 1.f)),
+                      0.05f);
     m_needs_fit = false;
 }
 
@@ -1073,12 +1116,11 @@ void UVEditorCanvas::rebuild_background_quad()
         return;
 
     Vec2f lo, hi;
-    content_bounds(lo, hi);
     if (m_tile_enabled) {
-        // Snap out to whole tiles. Only cosmetic, but it keeps the backdrop's edge on a tile
-        // boundary instead of slicing a brick in half at an arbitrary place.
-        lo = Vec2f(std::floor(lo.x()), std::floor(lo.y()));
-        hi = Vec2f(std::ceil(hi.x()), std::ceil(hi.y()));
+        // Whole tiles, so the backdrop's edge lands on a tile boundary instead of slicing a brick in
+        // half. framed_bounds() applies exactly this, and the view is framed on its result - the two
+        // must not drift apart or the backdrop stops being centred in the pane.
+        framed_bounds(lo, hi);
     } else {
         // Tiling off: the sampler reads 0 outside the first tile and nothing else exists, so the
         // backdrop is exactly that one tile (GL_CLAMP_TO_BORDER in render() gives it the same
@@ -1165,8 +1207,13 @@ void UVEditorCanvas::render()
     rebuild_grid();
     rebuild_rotation_dial();
 
-    const wxSize size = GetSize();
-    glsafe(::glViewport(0, 0, size.GetWidth(), size.GetHeight()));
+    const wxSize size     = GetSize(); // logical points; the on-screen handle sizes below use it
+    const wxSize viewport = gl_drawable_size(this, size);
+    glsafe(::glViewport(0, 0, viewport.GetWidth(), viewport.GetHeight()));
+    // Line widths below are authored in logical points (they are chosen against the same scale the
+    // hit-test thresholds use), so they take the same logical -> device conversion as the viewport.
+    const float px_scale   = float(viewport.GetWidth()) / float(std::max(1, size.GetWidth()));
+    const auto  line_width = [px_scale](float w) { set_line_width(w * px_scale); };
     glsafe(::glClearColor(UV_COLOR_BG.r(), UV_COLOR_BG.g(), UV_COLOR_BG.b(), 1.f));
     glsafe(::glClear(GL_COLOR_BUFFER_BIT));
     glsafe(::glDisable(GL_DEPTH_TEST));
@@ -1224,7 +1271,7 @@ void UVEditorCanvas::render()
         }
     }
 
-    set_line_width(1.f);
+    line_width(1.f);
     draw(m_grid_glmodel, UV_COLOR_GRID, identity);
 
     // The texture's first tile. Always drawn, even with nothing painted, so the pane always has a
@@ -1244,7 +1291,7 @@ void UVEditorCanvas::render()
             tile.add_line(i, (i + 1) % 4);
         m_tile_outline_glmodel.init_from(std::move(tile));
     }
-    set_line_width(2.f);
+    line_width(2.f);
     draw(m_tile_outline_glmodel, UV_COLOR_TILE_OUTLINE, identity);
 
     const auto island_matrix = [this, &identity](int c) {
@@ -1262,7 +1309,7 @@ void UVEditorCanvas::render()
         draw(m_island_fill[size_t(c)], is_selected(c) ? UV_COLOR_SEL_FILL : fill, island_matrix(c));
     }
 
-    set_line_width(1.f);
+    line_width(1.f);
     for (int c = 0; c < int(m_island_wireframe.size()); ++c)
         draw(m_island_wireframe[size_t(c)], is_selected(c) ? UV_COLOR_SEL_WIRE : UV_COLOR_WIRE, island_matrix(c));
 
@@ -1271,16 +1318,16 @@ void UVEditorCanvas::render()
     // pane exists to answer. The selected one gets a bold edge (#7).
     for (int c = 0; c < int(m_island_boundary.size()); ++c) {
         const bool selected = is_selected(c);
-        set_line_width(selected ? 3.f : 1.5f);
+        line_width(selected ? 3.f : 1.5f);
         draw(m_island_boundary[size_t(c)], selected ? UV_COLOR_SEL_BOUNDARY : UV_COLOR_BOUNDARY, island_matrix(c));
     }
-    set_line_width(1.f);
+    line_width(1.f);
 
     // The rotation protractor, on top of everything while a rotation gesture is live (#11).
     if (m_dial_glmodel.is_initialized()) {
-        set_line_width(2.f);
+        line_width(2.f);
         draw(m_dial_glmodel, UV_COLOR_DIAL, identity);
-        set_line_width(1.f);
+        line_width(1.f);
     }
 
     // Vertex/Edge mode handles: a small square drawn over the picked vertex (or each endpoint of the
@@ -1357,10 +1404,10 @@ void UVEditorCanvas::render()
         m_cursor_sign_glmodel.reset();
         if (!sign.is_empty())
             m_cursor_sign_glmodel.init_from(std::move(sign));
-        set_line_width(3.f);
+        line_width(3.f);
         draw(m_cursor_sign_glmodel, removing ? ColorRGBA(1.f, 0.30f, 0.25f, 0.95f) : ColorRGBA(0.35f, 0.90f, 0.45f, 0.95f),
              identity);
-        set_line_width(1.f);
+        line_width(1.f);
     }
 
     // The GL context is shared with the 3D view; leave the bits we touched as we found them.

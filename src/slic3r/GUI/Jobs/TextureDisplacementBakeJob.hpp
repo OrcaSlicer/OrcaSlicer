@@ -23,6 +23,9 @@ struct TextureDisplacementBakeInput
     std::vector<TextureDisplacementLayer> layers;
     TextureDisplacementFacetsData         facets_data;
     TextureDisplacementOptions            options;
+    // Mesh coordinates -> world millimetres. Captured here with everything else so the worker never
+    // reaches back into the live Model for it. See build_texture_displacement().
+    Transform3d                           volume_to_world = Transform3d::Identity();
     // Captured on the main thread. Empty unless some layer is colouring, in which case the bake also
     // writes the volume's mmu_segmentation_facets - the same per-triangle filament assignment the MMU
     // paint gizmo writes - alongside the displaced geometry.

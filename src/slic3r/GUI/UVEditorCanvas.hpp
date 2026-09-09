@@ -155,7 +155,11 @@ private:
     // The UV region worth looking at: every island, plus always at least the texture's first tile, so
     // there is something sensibly framed even before anything is painted.
     void content_bounds(Vec2f &min_uv, Vec2f &max_uv) const;
-    // Frames content_bounds(). Bound to Home, and run once each time an unwrap first appears.
+    // What is actually *drawn*, which is content_bounds() snapped out to whole tiles whenever the
+    // backdrop tiles (see rebuild_background_quad()). Both the framing and the backdrop go through
+    // this so they cannot disagree.
+    void framed_bounds(Vec2f &min_uv, Vec2f &max_uv) const;
+    // Frames framed_bounds(). Bound to Home, and run once each time an unwrap first appears.
     void fit_view_to_content();
 
     // Half-extents of the visible UV region. Split out because both rendering and every mouse
