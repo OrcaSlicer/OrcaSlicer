@@ -265,8 +265,7 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     int extruder_size = extruder_ids.size();
 
     Vec3d wipe_tower_size, wipe_tower_pos;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, nozzle_nums, extruder_size);
+    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, extruder_size);
     arrange_poly.bed_idx = plate_index;
     return arrange_poly;
 }
