@@ -628,8 +628,10 @@ private:
     void on_button_click(wxCommandEvent &WXUNUSED(ev));
     void save_colors_to_config();
 private:
+#if !defined(__linux__) && !defined(__LINUX__)
     wxColourData*  m_clrData{nullptr};
     wxColourPickerWidget* m_picker_widget{nullptr};
+#endif
 };
 
 class PointCtrl : public Field {

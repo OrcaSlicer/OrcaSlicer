@@ -69,6 +69,8 @@ CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std
     HANDLE handlesrc = nullptr;
     HANDLE handledst = nullptr;
     CopyFileResult ret = SUCCESS;
+    DWORD size = 0;
+    DWORD dwRead = 0, dwWrite = 0;
 
     handlesrc = CreateFile(src.wc_str(),
         GENERIC_READ,
@@ -96,9 +98,8 @@ CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std
         goto __finished;
     }
 
-    DWORD size=GetFileSize(handlesrc,NULL);
+    size = GetFileSize(handlesrc,NULL);
     buff = new char[size+1];
-    DWORD dwRead=0,dwWrite;
     result = ReadFile(handlesrc, buff, size, &dwRead, NULL);
     if (!result) {
         DWORD errCode = GetLastError();

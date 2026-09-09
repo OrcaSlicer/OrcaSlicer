@@ -1590,7 +1590,7 @@ void MainFrame::register_win32_callbacks()
     //static GUID GUID_DEVINTERFACE_USB_DEVICE  = { 0xA5DCBF10, 0x6530, 0x11D2, 0x90, 0x1F, 0x00, 0xC0, 0x4F, 0xB9, 0x51, 0xED };
     //static GUID GUID_DEVINTERFACE_DISK        = { 0x53f56307, 0xb6bf, 0x11d0, 0x94, 0xf2, 0x00, 0xa0, 0xc9, 0x1e, 0xfb, 0x8b };
     //static GUID GUID_DEVINTERFACE_VOLUME      = { 0x71a27cdd, 0x812a, 0x11d0, 0xbe, 0xc7, 0x08, 0x00, 0x2b, 0xe2, 0x09, 0x2f };
-    static GUID GUID_DEVINTERFACE_HID           = { 0x4D1E55B2, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 };
+    static GUID GUID_DEVINTERFACE_HID           = { 0x4D1E55B2, 0xF16F, 0x11CF, { 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 } };
 
     // Register USB HID (Human Interface Devices) notifications to trigger the 3DConnexion enumeration.
     DEV_BROADCAST_DEVICEINTERFACE NotificationFilter = { 0 };
@@ -1630,7 +1630,7 @@ void MainFrame::register_win32_callbacks()
 
     {
         static constexpr int device_count = 1;
-        RAWINPUTDEVICE devices[device_count] = { 0 };
+        RAWINPUTDEVICE devices[device_count] = {};
         // multi-axis mouse (SpaceNavigator, etc.)
         devices[0].usUsagePage = 0x01;
         devices[0].usUsage = 0x08;

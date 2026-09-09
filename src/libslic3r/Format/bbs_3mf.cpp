@@ -8795,7 +8795,7 @@ public:
         auto model = object.get_model();
         auto o = m_temp_model.add_object(object);
         int backup_id = model->get_object_backup_id(object);
-        push_task({ AddObject, (size_t) backup_id, object.get_model()->get_backup_path(), o, 1 });
+        push_task({ AddObject, (size_t) backup_id, object.get_model()->get_backup_path(), o, { 1 } });
     }
 
     void remove_object_mesh(ModelObject& object) {
@@ -8805,7 +8805,7 @@ public:
     void backup_soon() {
         boost::lock_guard lock(m_mutex);
         m_other_changes_backup = true;
-        m_tasks.push_back({ Backup, 0, std::string(), nullptr, ++m_task_seq });
+        m_tasks.push_back({ Backup, 0, std::string(), nullptr, { ++m_task_seq } });
         m_cond.notify_all();
     }
 
@@ -8823,7 +8823,7 @@ public:
             m_ui_tasks.clear();
             m_tasks.clear();
         }
-        m_tasks.push_back({ RemoveBackup, model.id().id, model.get_backup_path(), nullptr, removeAll });
+        m_tasks.push_back({ RemoveBackup, model.id().id, model.get_backup_path(), nullptr, { removeAll } });
         ++m_task_seq;
         if (model.is_need_backup()) {
             m_other_changes = false;
@@ -9038,7 +9038,7 @@ public:
                 else
                     m_cond.wait(lock);
                 if (m_interval > 0 && boost::get_system_time() > m_next_backup) {
-                    m_tasks.push_back({ Backup, 0, std::string(), nullptr, ++m_task_seq });
+                    m_tasks.push_back({ Backup, 0, std::string(), nullptr, { ++m_task_seq } });
                     m_next_backup += boost::posix_time::seconds(m_interval);
                     // Maybe wakeup from power sleep
                     if (m_next_backup < boost::get_system_time())

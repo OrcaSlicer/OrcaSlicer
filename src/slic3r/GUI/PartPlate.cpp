@@ -1112,7 +1112,7 @@ void PartPlate::show_tooltip(const std::string tooltip)
 {
     const auto scale = m_plater->get_current_canvas3D()->get_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6 * scale, 3 * scale});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, {3 * scale});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3 * scale);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGuiWrapper::COL_WINDOW_BACKGROUND);
     ImGui::PushStyleColor(ImGuiCol_Border, {0, 0, 0, 0});
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
