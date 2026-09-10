@@ -1,11 +1,11 @@
 {
     "type": "filament",
     "name": "JAYO PETG @Creality K2 Pro 0.4 nozzle",
-    "inherits": "Generic PETG @Creality K2 Pro 0.4 nozzle",
+    "inherits": "Generic PETG @K2 Pro-all",
     "from": "system",
     "setting_id": "OC07mBU0Ya5ddDBg",
     "instantiation": "true",
-    "filament_id": "JYPET01",
+    "filament_id": "OF63bToB",
     "filament_vendor": [
         "JAYO"
     ],
