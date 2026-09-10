@@ -486,8 +486,9 @@ TEST_CASE("Separated infill keeps fragmented and nested bodies independent", "[P
     Print print;
     Model model;
     init_print({mesh}, print, model, config, nullptr, false);
-    PrintObject &object = *print.objects().front();
-    object.prepare_infill();
+    // Orca: Prepare body bounds through the public pipeline, then inspect the object read-only.
+    print.process();
+    const PrintObject &object = *print.objects().front();
     REQUIRE(object.layer_count() > 1);
     for (const Layer *layer : object.layers()) {
         REQUIRE(layer->lslices.size() == grid_size * grid_size + 2);
@@ -543,8 +544,9 @@ TEST_CASE("Body centering survives islands merging and splitting between layers"
     Print print;
     Model model;
     init_print({mesh}, print, model, config, nullptr, false);
-    PrintObject &object = *print.objects().front();
-    object.prepare_infill();
+    // Orca: Prepare body bounds through the public pipeline, then inspect the object read-only.
+    print.process();
+    const PrintObject &object = *print.objects().front();
     REQUIRE(object.layer_count() == 5);
     REQUIRE(object.get_layer(0)->lslices.size() == 5);
     REQUIRE(object.get_layer(1)->lslices.size() == 3);
