@@ -3321,6 +3321,16 @@ int CLI::run(int argc, char **argv)
             int filament_index = load_filaments_index[index];
             std::vector<std::string> different_keys;
 
+            //ORCA: diff before load_default_gcodes_to_config, the way the process and machine
+            //      slots above already do. That call materialises absent gcode keys via
+            //      option(..., true), and DynamicConfig::diff only compares keys present in
+            //      both configs -- so a gcode key the leaf did not carry would go from "not
+            //      compared" to "compared as empty against the parent" and land in the column
+            //      as an override the user never made.
+            std::string filament_different_settings;
+            if (load_filament_count > 0)
+                filament_different_settings = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
+
             load_default_gcodes_to_config(config, Preset::TYPE_FILAMENT);
 
             if (load_filament_count > 0) {
@@ -3333,7 +3343,7 @@ int CLI::run(int argc, char **argv)
                 config.erase("filament_settings_id");
 
                 //ORCA: was a //todo — same treatment as process/machine above.
-                different_settings[filament_index] = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
+                different_settings[filament_index] = filament_different_settings;
                 inherits_group[filament_index] = load_filaments_inherit[index];
             }
             else {
