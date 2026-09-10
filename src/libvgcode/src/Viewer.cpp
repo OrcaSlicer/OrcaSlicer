@@ -77,6 +77,21 @@ bool Viewer::is_dim_previous_layers() const
     return m_impl->is_dim_previous_layers();
 }
 
+void Viewer::set_reduced_detail(bool value)
+{
+    m_impl->set_reduced_detail(value);
+}
+
+bool Viewer::is_reduced_detail() const
+{
+    return m_impl->is_reduced_detail();
+}
+
+void Viewer::set_reduced_detail_layer_stride(uint32_t value)
+{
+    m_impl->set_reduced_detail_layer_stride(value);
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);

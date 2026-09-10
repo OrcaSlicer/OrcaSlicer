@@ -8510,9 +8510,16 @@ void GLCanvas3D::_render_wireframe_overlay()
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
+
+    // ORCA: dragging the camera or either slider is the only time the preview has to keep up with
+    // continuous input, so that is when the reduced toolpath set earns its visible coarseness.
+    // A change of detail level needs one more frame to draw the result of the change.
+    if (m_gcode_viewer.set_interacting(m_mouse.dragging || layers_slider->is_dirty() || moves_slider->is_dirty()))
+        request_extra_frame();
+
+    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
 
     if (layers_slider->is_need_post_tick_event()) {
         auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());

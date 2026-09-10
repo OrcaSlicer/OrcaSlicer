@@ -1056,6 +1056,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
             }
         }
+        // ORCA: apply the reduced-detail preference immediately to the currently loaded preview
+        else if (param == "preview_reduced_detail_while_dragging") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_while_dragging(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
@@ -1937,6 +1947,13 @@ void PreferencesDialog::create_items()
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
+
+    auto item_reduced_detail_while_dragging = create_item_checkbox(
+        _L("Simplify preview while dragging"),
+        _L("While dragging the camera or a preview slider, draw only part of the toolpaths so that large prints stay responsive. Internal infill is left out and only every fourth layer is drawn, and the full detail is restored as soon as you let go."),
+        "preview_reduced_detail_while_dragging"
+    );
+    g_sizer->Add(item_reduced_detail_while_dragging);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

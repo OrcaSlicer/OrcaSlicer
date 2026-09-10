@@ -91,6 +91,13 @@ public:
     // 0.0 = black
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
+    //
+    // Draw the preview from the reduced set of entities. Meant to be held only while the user is
+    // dragging; the sets are already built, so this is just a buffer binding and never rebuilds.
+    //
+    void set_reduced_detail(bool value) { m_settings.reduced_detail = value; }
+    bool is_reduced_detail() const { return m_settings.reduced_detail; }
+    void set_reduced_detail_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -481,6 +488,15 @@ private:
     unsigned int m_enabled_options_tex_id{ 0 };
     size_t m_enabled_options_count{ 0 };
     //
+    // OpenGL buffers to store the reduced sets drawn while Settings::reduced_detail is set
+    //
+    unsigned int m_enabled_segments_reduced_buf_id{ 0 };
+    unsigned int m_enabled_segments_reduced_tex_id{ 0 };
+    size_t m_enabled_segments_reduced_count{ 0 };
+    unsigned int m_enabled_options_reduced_buf_id{ 0 };
+    unsigned int m_enabled_options_reduced_tex_id{ 0 };
+    size_t m_enabled_options_reduced_count{ 0 };
+    //
     // Caches for size of data sent to gpu, in bytes
     //
     size_t m_positions_tex_size{ 0 };
@@ -488,6 +504,26 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+
+    // The set the next draw reads from: the reduced one only while the user is dragging.
+    size_t active_segments_count() const {
+        return m_settings.reduced_detail ? m_enabled_segments_reduced_count : m_enabled_segments_count;
+    }
+    unsigned int active_segments_buf_id() const {
+        return m_settings.reduced_detail ? m_enabled_segments_reduced_buf_id : m_enabled_segments_buf_id;
+    }
+    unsigned int active_segments_tex_id() const {
+        return m_settings.reduced_detail ? m_enabled_segments_reduced_tex_id : m_enabled_segments_tex_id;
+    }
+    size_t active_options_count() const {
+        return m_settings.reduced_detail ? m_enabled_options_reduced_count : m_enabled_options_count;
+    }
+    unsigned int active_options_buf_id() const {
+        return m_settings.reduced_detail ? m_enabled_options_reduced_buf_id : m_enabled_options_buf_id;
+    }
+    unsigned int active_options_tex_id() const {
+        return m_settings.reduced_detail ? m_enabled_options_reduced_tex_id : m_enabled_options_tex_id;
+    }
 #endif // ENABLE_OPENGL_ES
 
     void update_view_full_range();

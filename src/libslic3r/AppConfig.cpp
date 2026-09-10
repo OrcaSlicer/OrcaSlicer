@@ -203,6 +203,9 @@ void AppConfig::set_defaults()
         set("seq_top_layer_only", "1");
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
+    if (get("preview_reduced_detail_while_dragging").empty())
+        set_bool("preview_reduced_detail_while_dragging", false);
+
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
 

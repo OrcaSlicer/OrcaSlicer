@@ -230,6 +230,8 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
+    // ORCA: whether the reduced-detail-while-dragging preference is on
+    bool m_reduced_detail_while_dragging{ false };
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -338,6 +340,12 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+
+    // ORCA: while the user drags the camera or a slider, draw the preview from libvgcode's reduced
+    // toolpath set. Returns true when the detail level actually changed, so the caller can queue the
+    // frame that puts the full detail back.
+    bool set_interacting(bool interacting);
+    void set_reduced_detail_while_dragging(bool value) { m_reduced_detail_while_dragging = value; }
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 

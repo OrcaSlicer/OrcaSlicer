@@ -1173,6 +1173,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         m_viewer.toggle_top_layer_only_view_range();
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
+    m_reduced_detail_while_dragging = get_app_config()->get_bool("preview_reduced_detail_while_dragging");
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
 
@@ -1905,6 +1906,15 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+bool GCodeViewer::set_interacting(bool interacting)
+{
+    const bool reduced = m_reduced_detail_while_dragging && interacting;
+    if (reduced == m_viewer.is_reduced_detail())
+        return false;
+    m_viewer.set_reduced_detail(reduced);
+    return true;
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)
