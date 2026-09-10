@@ -867,6 +867,20 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     return is_compatible_with_printer(preset, active_printer, &config);
 }
 
+// ORCA: see the header. The CLI resolves --load-settings into bare DynamicPrintConfigs and has no
+// Preset objects to hand; without this it would have to reimplement the policy or build the shells
+// at every call site.
+bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
+                                const DynamicPrintConfig &printer_config, const std::string &printer_name)
+{
+    Preset preset(preset_type, std::string("__compat_check"));
+    preset.config = preset_config;
+    Preset printer(Preset::TYPE_PRINTER, printer_name);
+    printer.config = printer_config;
+    return is_compatible_with_printer(PresetWithVendorProfile(preset, nullptr),
+                                      PresetWithVendorProfile(printer, nullptr));
+}
+
 void Preset::set_visible_from_appconfig(const AppConfig &app_config)
 {
     //BBS: add config related log

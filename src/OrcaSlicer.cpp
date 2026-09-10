@@ -2611,13 +2611,25 @@ int CLI::run(int argc, char **argv)
     auto check_compat = [](const DynamicPrintConfig &process_cfg,
                            const DynamicPrintConfig &printer_cfg,
                            const std::string        &printer_name) -> bool {
-        Preset process_preset(Preset::TYPE_PRINT, std::string("__cli_process_check"));
-        process_preset.config = process_cfg;
-        Preset printer_preset(Preset::TYPE_PRINTER, printer_name);
-        printer_preset.config = printer_cfg;
-        PresetWithVendorProfile process_pwvp(process_preset, nullptr);
-        PresetWithVendorProfile printer_pwvp(printer_preset, nullptr);
-        return is_compatible_with_printer(process_pwvp, printer_pwvp);
+        return is_compatible_with_printer(process_cfg, Preset::TYPE_PRINT, printer_cfg, printer_name);
+    };
+
+    //ORCA: a 3MF's project config does not carry compatible_printers / compatible_printers_condition.
+    //      PresetBundle::construct_full_config() erases both and re-emits them as
+    //      print_compatible_printers and compatible_machine_expression_group; they are renamed back
+    //      only on the PresetBundle load path, which the CLI does not take. Feeding the project config
+    //      to the check as-is therefore presents no list and no condition, and
+    //      is_compatible_with_printer() reads that as "no constraint" and accepts every printer.
+    //      Translate the two keys back. Index 0 of the expression group is the print preset -- the
+    //      group is filled print, filaments, printer (PresetBundle.cpp).
+    auto cli_process_compat_config = [](const DynamicPrintConfig &project_cfg) -> DynamicPrintConfig {
+        DynamicPrintConfig cfg = project_cfg;
+        if (const auto *list = project_cfg.option<ConfigOptionStrings>("print_compatible_printers"))
+            cfg.set_key_value("compatible_printers", new ConfigOptionStrings(list->values));
+        const auto *group = project_cfg.option<ConfigOptionStrings>("compatible_machine_expression_group");
+        if (group != nullptr && !group->values.empty())
+            cfg.set_key_value("compatible_printers_condition", new ConfigOptionString(group->values.front()));
+        return cfg;
     };
     if (!new_printer_name.empty()) {
         if (!new_process_name.empty()) {
@@ -2628,12 +2640,16 @@ int CLI::run(int argc, char **argv)
         }
         else {
             //3MF-embedded process vs new printer. current_process_full_config is only populated from
-            //profiles/BBL/process_full/, i.e. for BBL profiles; for every other vendor fall back to the
-            //3MF's own project config, which is already merged into m_print_config above and carries
-            //compatible_printers_condition. Without this a 3MF built from a condition-only process is
-            //rejected when re-sliced with the very printer it was made for.
+            //profiles/BBL/process_full/, so for every other vendor fall back to the 3MF's own project
+            //config in m_print_config, with its renamed compatibility keys translated back (see
+            //cli_process_compat_config above). Without this a 3MF built from a condition-only process
+            //is rejected when re-sliced with the very printer it was made for.
             {
-                const DynamicPrintConfig &process_cfg = current_process_full_config.empty() ? m_print_config : current_process_full_config;
+                //ORCA: profiles/BBL/{process,machine}_full/ are gitignored and not generated in-tree,
+                //      so current_*_full_config is always empty and this fallback is the only live path.
+                const DynamicPrintConfig process_cfg = current_process_full_config.empty()
+                                                           ? cli_process_compat_config(m_print_config)
+                                                           : current_process_full_config;
                 process_compatible = check_compat(process_cfg, load_machine_config, new_printer_system_name);
             }
             BOOST_LOG_TRIVIAL(info) << boost::format("new printer %1%, inherited from %2%, old process %3%, inherited from %4% ,compatible %5%")

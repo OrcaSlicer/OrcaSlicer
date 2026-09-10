@@ -459,6 +459,11 @@ protected:
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer);
+// ORCA: same check for callers that hold raw configs rather than Presets (the CLI). Wraps them in
+// throwaway Preset shells and delegates, so the compatibility policy -- including the fail-open on a
+// malformed compatible_printers_condition -- lives in one place for the GUI and the CLI alike.
+bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
+                                const DynamicPrintConfig &printer_config, const std::string &printer_name);
 
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
 struct PresetOrigin {
