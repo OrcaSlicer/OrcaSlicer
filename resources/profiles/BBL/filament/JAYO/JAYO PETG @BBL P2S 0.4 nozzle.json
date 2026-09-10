@@ -3,6 +3,7 @@
     "name": "JAYO PETG @BBL P2S 0.4 nozzle",
     "inherits": "Generic PETG @BBL P2S",
     "from": "system",
+    "setting_id": "V2Jb0TObnMoAO2UP",
     "instantiation": "true",
     "filament_id": "OF63bToB",
     "filament_vendor": [
