@@ -1922,6 +1922,16 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_scene_cache);
 
+    auto item_skip_identical_frames = create_item_checkbox(
+        _L("Skip unchanged frames"),
+        _L("Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+           "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+           "Disable it if a hover highlight, tooltip or animation stops updating.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+    );
+    g_sizer->Add(item_skip_identical_frames);
+
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
         _L("Displays two counts in the top-right corner of the viewport.\n"

@@ -5,6 +5,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 #include "GLToolbar.hpp"
 #include "Event.hpp"
@@ -34,6 +35,7 @@ class wxTimerEvent;
 class wxPaintEvent;
 class wxGLCanvas;
 class wxGLContext;
+struct ImDrawData;
 
 // Support for Retina OpenGL on Mac OS.
 // wxGTK3 seems to simulate OSX behavior in regard to HiDPI scaling support, enable it as well.
@@ -741,6 +743,9 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
+    // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
+    // not shown, so the next frame is presented regardless.
+    std::optional<size_t> m_presented_signature;
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
     // Depth-based shadow map used to cast object shadows onto other objects and themselves.
@@ -1258,6 +1263,7 @@ private:
     bool _is_fps_overlay_enabled() const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
+    bool _is_frame_skipping_enabled() const;
     void _render_fps_overlay(int fps) const;
     void _render_fxaa_pass(unsigned int width, unsigned int height);
     void _render_ssao_pass(unsigned int width, unsigned int height);
@@ -1292,6 +1298,8 @@ private:
 #endif // ENABLE_RENDER_SELECTION_CENTER
     void _check_and_update_toolbar_icon_scale();
     void _render_overlays();
+    void _render_overlay_toolbars();
+    size_t _overlay_signature(const ImDrawData* draw_data) const;
     void _render_style_editor();
     void _render_volumes_for_picking(const Camera& camera) const;
     void _render_current_gizmo() const;

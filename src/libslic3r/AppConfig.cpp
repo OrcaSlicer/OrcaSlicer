@@ -286,6 +286,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SCENE_CACHE).empty())
         set_bool(SETTING_OPENGL_SCENE_CACHE, true);
 
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
     // The getter already defaults, parses and clamps; write back what it resolves to.
     set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
 
