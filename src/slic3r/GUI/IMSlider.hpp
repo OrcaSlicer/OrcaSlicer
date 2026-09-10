@@ -118,6 +118,9 @@ public:
 
     //BBS update scroll value changed
     bool is_dirty() { return m_dirty; }
+    // ORCA: whether the mouse is currently holding this slider's handle. Read from ImGui's active
+    // id rather than from the dirty flag, which is raised and consumed inside a single frame.
+    bool is_dragging() const;
     void set_as_dirty(bool dirty = true) { m_dirty = dirty; }
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
@@ -182,6 +185,8 @@ private:
     int  m_higher_value;
     int  m_one_layer_value; // ORCA
     bool m_dirty = false;
+    // ORCA: the ImGui id of the slider widget, as of its last render
+    unsigned int m_imgui_id = 0;
 
     bool m_render_as_disabled{ false };
 

@@ -26,11 +26,12 @@ struct Settings
 		float dim_previous_layers_brightness{ 0.4f };
 		bool spiral_vase_mode{ false };
 		// ORCA: while the user drags the camera or a slider, the preview can be drawn from a reduced
-		// set of entities: the interior infill roles dropped and one layer in every
-		// reduced_detail_layer_stride kept. The reduced sets are built alongside the full ones in
-		// update_enabled_entities(), so turning this on and off costs nothing but a buffer binding.
+		// set of entities: one layer in every reduced_detail_layer_stride kept, and on top of that
+		// whatever reduced_detail_mode leaves out. The reduced sets are built alongside the full ones
+		// in update_enabled_entities(), so holding reduced_detail costs nothing but a buffer binding.
 		// Ignored on the OpenGL ES path, which keeps a single set of entities.
 		bool reduced_detail{ false };
+		EReducedDetailMode reduced_detail_mode{ EReducedDetailMode::Off };
 		uint32_t reduced_detail_layer_stride{ 4 };
 		//
 		// Required update flags

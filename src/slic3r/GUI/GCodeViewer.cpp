@@ -1172,8 +1172,13 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
-    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    // ORCA: simplify the preview while the user is dragging
     m_reduced_detail_while_dragging = get_app_config()->get_bool("preview_reduced_detail_while_dragging");
+    m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
+    m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
+    apply_reduced_detail_settings();
+
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
 
@@ -1908,13 +1913,44 @@ void GCodeViewer::update_layers_slider_mode()
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
 }
 
-bool GCodeViewer::set_interacting(bool interacting)
+void GCodeViewer::set_interacting(bool interacting)
 {
-    const bool reduced = m_reduced_detail_while_dragging && interacting;
-    if (reduced == m_viewer.is_reduced_detail())
-        return false;
-    m_viewer.set_reduced_detail(reduced);
-    return true;
+    m_viewer.set_reduced_detail(m_reduced_detail_while_dragging && interacting);
+}
+
+// ORCA: libvgcode only builds a reduced set while its mode is not Off, so the preference switch is
+// folded into the mode it is given. Every setter goes through here.
+void GCodeViewer::apply_reduced_detail_settings()
+{
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_while_dragging ? m_reduced_detail_mode : libvgcode::EReducedDetailMode::Off);
+    m_viewer.set_reduced_detail_layer_stride(m_reduced_detail_layer_stride);
+}
+
+void GCodeViewer::set_reduced_detail_while_dragging(bool value)
+{
+    m_reduced_detail_while_dragging = value;
+    apply_reduced_detail_settings();
+}
+
+void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
+{
+    m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
+    apply_reduced_detail_settings();
+}
+
+void GCodeViewer::set_reduced_detail_layer_stride(unsigned int value)
+{
+    m_reduced_detail_layer_stride = std::max(1u, value);
+    apply_reduced_detail_settings();
+}
+
+libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
+{
+    if (mode == "layers")
+        return libvgcode::EReducedDetailMode::LayersOnly;
+    if (mode == "shell")
+        return libvgcode::EReducedDetailMode::ShellOnly;
+    return libvgcode::EReducedDetailMode::NoInternalInfill;
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)

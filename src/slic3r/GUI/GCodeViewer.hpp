@@ -230,8 +230,11 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
-    // ORCA: whether the reduced-detail-while-dragging preference is on
+    // ORCA: the reduced-detail-while-dragging preferences, pushed to libvgcode by apply_reduced_detail_settings()
     bool m_reduced_detail_while_dragging{ false };
+    libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::NoInternalInfill };
+    unsigned int m_reduced_detail_layer_stride{ 4 };
+    void apply_reduced_detail_settings();
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -342,10 +345,14 @@ public:
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
 
     // ORCA: while the user drags the camera or a slider, draw the preview from libvgcode's reduced
-    // toolpath set. Returns true when the detail level actually changed, so the caller can queue the
-    // frame that puts the full detail back.
-    bool set_interacting(bool interacting);
-    void set_reduced_detail_while_dragging(bool value) { m_reduced_detail_while_dragging = value; }
+    // toolpath set, if the preference asks for one
+    void set_interacting(bool interacting);
+    bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    void set_reduced_detail_while_dragging(bool value);
+    // the preference's string value: "layers", "no_infill" or "shell"
+    void set_reduced_detail_mode(const std::string& mode);
+    void set_reduced_detail_layer_stride(unsigned int value);
+    static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 

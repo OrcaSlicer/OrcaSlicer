@@ -3240,6 +3240,12 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     m_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
+    // ORCA: the render timer only wakes the idle loop; the frame that puts the preview's full detail
+    // back after a wheel burst has to be asked for here, once the settle time is really up
+    if (m_preview_settle_pending && std::chrono::steady_clock::now() >= m_preview_interaction_until) {
+        m_preview_settle_pending = false;
+        m_dirty = true;
+    }
 
     if (!m_dirty)
         return;
@@ -3945,6 +3951,9 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     evt.SetY(evt.GetY() * scale);
 #endif
 
+    if (m_canvas_type == CanvasPreview)
+        note_preview_interaction();
+
     if (wxGetApp().imgui()->update_mouse_data(evt)) {
         if (m_canvas_type == CanvasPreview) {
             IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
@@ -4050,6 +4059,11 @@ void GLCanvas3D::on_set_color_timer(wxTimerEvent& evt)
     m_timer_set_color.Stop();
 }
 
+
+void GLCanvas3D::note_preview_interaction()
+{
+    m_preview_interaction_until = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
+}
 
 void GLCanvas3D::schedule_extra_frame(int milliseconds)
 {
@@ -8513,11 +8527,19 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
 
-    // ORCA: dragging the camera or either slider is the only time the preview has to keep up with
-    // continuous input, so that is when the reduced toolpath set earns its visible coarseness.
-    // A change of detail level needs one more frame to draw the result of the change.
-    if (m_gcode_viewer.set_interacting(m_mouse.dragging || layers_slider->is_dirty() || moves_slider->is_dirty()))
-        request_extra_frame();
+    // ORCA: dragging the camera, the navigator or either slider is when the preview has to keep up
+    // with continuous input, so that is when the reduced toolpath set earns its visible coarseness.
+    // A wheel step has no duration, so it holds the reduced set for a settle time instead, and the
+    // frame that restores the full detail is scheduled for when that time runs out. The level is
+    // chosen before the draw, so a change lands in this very frame.
+    const auto now = std::chrono::steady_clock::now();
+    const bool settling = now < m_preview_interaction_until;
+    const bool dragging = m_mouse.dragging || m_navigator_dragging || layers_slider->is_dragging() || moves_slider->is_dragging();
+    m_gcode_viewer.set_interacting(dragging || settling);
+    if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
+        m_preview_settle_pending = true;
+        schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
 
     m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
 

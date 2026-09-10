@@ -159,6 +159,23 @@ enum class EGCodeExtrusionRole : uint8_t
 static constexpr std::size_t GCODE_EXTRUSION_ROLES_COUNT = static_cast<std::size_t>(EGCodeExtrusionRole::COUNT);
 
 //
+// ORCA: what the reduced toolpath set drawn while the user is dragging leaves out, on top of
+// keeping only one layer in every Viewer::get_reduced_detail_layer_stride() layers
+//
+enum class EReducedDetailMode : uint8_t
+{
+    // no reduced set is built and Viewer::set_reduced_detail() has no effect
+    Off,
+    // every role is kept, only layers are skipped
+    LayersOnly,
+    // the interior infill roles are left out
+    NoInternalInfill,
+    // only the segments on the visible surface of the print are kept
+    ShellOnly,
+    COUNT
+};
+
+//
 // Option types
 //
 enum class EOptionType : uint8_t

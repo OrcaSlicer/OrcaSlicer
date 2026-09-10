@@ -591,6 +591,10 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
+    // ORCA: until when a discrete preview interaction (a wheel step) keeps the reduced toolpath set bound
+    std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
+    // whether the frame that restores the full detail once that time is up is still owed
+    bool m_preview_settle_pending{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -1138,6 +1142,9 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // ORCA: a wheel step is over before the next frame, so it holds the reduced preview for a short
+    // settle time instead: a burst of steps stays cheap and the full frame lands once they stop
+    void note_preview_interaction();
 
     void schedule_extra_frame(int milliseconds);
 

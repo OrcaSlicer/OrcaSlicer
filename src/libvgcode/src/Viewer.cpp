@@ -87,6 +87,21 @@ bool Viewer::is_reduced_detail() const
     return m_impl->is_reduced_detail();
 }
 
+EReducedDetailMode Viewer::get_reduced_detail_mode() const
+{
+    return m_impl->get_reduced_detail_mode();
+}
+
+void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    m_impl->set_reduced_detail_mode(mode);
+}
+
+uint32_t Viewer::get_reduced_detail_layer_stride() const
+{
+    return m_impl->get_reduced_detail_layer_stride();
+}
+
 void Viewer::set_reduced_detail_layer_stride(uint32_t value)
 {
     m_impl->set_reduced_detail_layer_stride(value);

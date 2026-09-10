@@ -482,6 +482,11 @@ void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& g
     ImGui::RenderFrame(groove.Min, groove.Max, groove_col, false, 0.5 * groove.GetWidth());
 }
 
+bool IMSlider::is_dragging() const
+{
+    return GImGui != nullptr && m_imgui_id != 0 && GImGui->ActiveId == m_imgui_id && GImGui->IO.MouseDown[0];
+}
+
 bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max, const ImVec2& size, float scale)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -490,6 +495,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -882,6 +888,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);

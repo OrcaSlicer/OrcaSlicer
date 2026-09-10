@@ -202,10 +202,30 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
-    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    // ORCA: simplify the preview while the user is dragging: what is left out and one layer in how many is kept
     if (get("preview_reduced_detail_while_dragging").empty())
         set_bool("preview_reduced_detail_while_dragging", false);
 
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "layers" && mode != "no_infill" && mode != "shell")
+            set("preview_reduced_detail_mode", "no_infill");
+    }
+
+    if (get("preview_reduced_detail_layer_stride").empty())
+        set("preview_reduced_detail_layer_stride", "4");
+    else {
+        int stride = 4;
+        try {
+            stride = std::stoi(get("preview_reduced_detail_layer_stride"));
+        }
+        catch (...) {
+            stride = 4;
+        }
+        set("preview_reduced_detail_layer_stride", std::to_string(std::max(1, std::min(stride, 20))));
+    }
+
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
 

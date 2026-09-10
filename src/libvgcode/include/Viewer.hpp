@@ -99,14 +99,18 @@ public:
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
     //
-    // ORCA: draw the preview from a reduced set of entities - the interior infill roles dropped and
-    // one layer in every set_reduced_detail_layer_stride() kept, always keeping the top of the
-    // visible layer range. Meant to be held only while the user drags the camera or a slider: the
-    // reduced set is built alongside the full one, so toggling it never rebuilds anything.
-    // Has no effect on the OpenGL ES path.
+    // ORCA: draw the preview from a reduced set of entities: one layer in every
+    // get_reduced_detail_layer_stride() layers is kept, and on top of that the mode decides which
+    // roles or segments are left out. The bottom and top of the visible layer range are always kept
+    // whole. Meant to be held only while the user drags the camera or a slider: the reduced set is
+    // built alongside the full one, so toggling it never rebuilds anything. Nothing is built while
+    // the mode is EReducedDetailMode::Off. Has no effect on the OpenGL ES path.
     //
     void set_reduced_detail(bool value);
     bool is_reduced_detail() const;
+    EReducedDetailMode get_reduced_detail_mode() const;
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    uint32_t get_reduced_detail_layer_stride() const;
     void set_reduced_detail_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);

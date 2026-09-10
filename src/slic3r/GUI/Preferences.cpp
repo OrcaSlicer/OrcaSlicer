@@ -318,7 +318,7 @@ wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString too
     return sizer;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url)
+wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, std::function<void(std::string)> onchange, const wxString wiki_url)
 {
     assert(vlist.size() == config_name_index.size());
     unsigned int current_index = 0;
@@ -333,9 +333,16 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
 
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
 
+    // ORCA: this one is only meaningful while the simplification it configures is enabled
+    if (param == "preview_reduced_detail_mode") {
+        m_reduced_detail_mode_combo = combobox;
+        combobox->Enable(app_config->get_bool("preview_reduced_detail_while_dragging"));
+    }
+
     //// save config
-    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index](wxCommandEvent& e) {
+    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index, onchange](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        if (onchange != nullptr) onchange(config_name_index[e.GetSelection()]);
         e.Skip();
     });
 
@@ -700,10 +707,14 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     auto input = new SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS, min, max, stoi(app_config->get(param)));
     input->SetToolTip(tip);
 
-    // ORCA: this one is only meaningful while the dimming it controls is enabled
+    // ORCA: these are only meaningful while the option they belong to is enabled
     if (param == "preview_dim_previous_layers_brightness") {
         m_dim_previous_layers_brightness_input = input;
         input->Enable(app_config->get_bool("preview_dim_previous_layers"));
+    }
+    else if (param == "preview_reduced_detail_layer_stride") {
+        m_reduced_detail_layer_stride_input = input;
+        input->Enable(app_config->get_bool("preview_reduced_detail_while_dragging"));
     }
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
@@ -1058,6 +1069,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
         // ORCA: apply the reduced-detail preference immediately to the currently loaded preview
         else if (param == "preview_reduced_detail_while_dragging") {
+            if (m_reduced_detail_mode_combo)
+                m_reduced_detail_mode_combo->Enable(app_config->get_bool(param));
+            if (m_reduced_detail_layer_stride_input)
+                m_reduced_detail_layer_stride_input->Enable(app_config->get_bool(param));
             if (Plater* plater = wxGetApp().plater()) {
                 if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
                     canvas->get_gcode_viewer().set_reduced_detail_while_dragging(app_config->get_bool(param));
@@ -1950,10 +1965,56 @@ void PreferencesDialog::create_items()
 
     auto item_reduced_detail_while_dragging = create_item_checkbox(
         _L("Simplify preview while dragging"),
-        _L("While dragging the camera or a preview slider, draw only part of the toolpaths so that large prints stay responsive. Internal infill is left out and only every fourth layer is drawn, and the full detail is restored as soon as you let go."),
+        _L("While dragging the camera or a preview slider, or zooming with the mouse wheel, draw only part of the toolpaths so that large prints stay responsive. "
+           "The two options below choose what is left out. The full detail is restored as soon as you let go."),
         "preview_reduced_detail_while_dragging"
     );
     g_sizer->Add(item_reduced_detail_while_dragging);
+
+    auto item_reduced_detail_mode = create_item_combobox(
+        _L("Simplification"),
+        _L("What the simplified preview leaves out while dragging, on top of skipping layers.\n"
+           "Skip layers only: every toolpath of the drawn layers is kept.\n"
+           "Skip internal infill: sparse and solid infill hidden inside the walls is left out.\n"
+           "Shell only: only the toolpaths on the visible surface of the print are drawn, including the outside of the prime tower. "
+           "Removes the most, and holes narrower than 5 mm are treated as solid."),
+        "preview_reduced_detail_mode",
+        {_L("Skip layers only"), _L("Skip internal infill"), _L("Shell only")},
+        {"layers", "no_infill", "shell"},
+        // ORCA: apply the new mode immediately to the currently loaded preview
+        [](std::string value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_mode(value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_reduced_detail_mode);
+
+    auto item_reduced_detail_layer_stride = create_item_spinctrl(
+        _L("Draw one layer in every"),
+        "",
+        _L("layers"),
+        _L("How many layers the simplified preview keeps one of while dragging. 1 draws every layer, 4 draws every fourth. "
+           "The bottom and top of the visible layer range are always drawn whole."),
+        "preview_reduced_detail_layer_stride",
+        1,
+        20,
+        // ORCA: apply the new stride immediately to the currently loaded preview
+        [](int value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_layer_stride(static_cast<unsigned int>(value));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_reduced_detail_layer_stride);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

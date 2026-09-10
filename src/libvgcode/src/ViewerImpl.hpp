@@ -97,6 +97,9 @@ public:
     //
     void set_reduced_detail(bool value) { m_settings.reduced_detail = value; }
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
+    EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    uint32_t get_reduced_detail_layer_stride() const { return m_settings.reduced_detail_layer_stride; }
     void set_reduced_detail_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
@@ -316,6 +319,13 @@ private:
     // Variables used for toolpaths visibiliity
     //
     BitSet<> m_valid_lines_bitset;
+#ifndef ENABLE_OPENGL_ES
+    //
+    // ORCA: bit set for the extrusion segments that lie on the visible surface of the print,
+    // computed on demand by update_shell_bitset() for EReducedDetailMode::ShellOnly
+    //
+    BitSet<> m_shell_bitset;
+#endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring
     //
@@ -505,25 +515,33 @@ private:
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
 
-    // The set the next draw reads from: the reduced one only while the user is dragging.
+    // The set the next draw reads from: the reduced one only while the user is dragging, and only
+    // if a reduced set is being built at all.
+    bool use_reduced_set() const {
+        return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off;
+    }
     size_t active_segments_count() const {
-        return m_settings.reduced_detail ? m_enabled_segments_reduced_count : m_enabled_segments_count;
+        return use_reduced_set() ? m_enabled_segments_reduced_count : m_enabled_segments_count;
     }
     unsigned int active_segments_buf_id() const {
-        return m_settings.reduced_detail ? m_enabled_segments_reduced_buf_id : m_enabled_segments_buf_id;
+        return use_reduced_set() ? m_enabled_segments_reduced_buf_id : m_enabled_segments_buf_id;
     }
     unsigned int active_segments_tex_id() const {
-        return m_settings.reduced_detail ? m_enabled_segments_reduced_tex_id : m_enabled_segments_tex_id;
+        return use_reduced_set() ? m_enabled_segments_reduced_tex_id : m_enabled_segments_tex_id;
     }
     size_t active_options_count() const {
-        return m_settings.reduced_detail ? m_enabled_options_reduced_count : m_enabled_options_count;
+        return use_reduced_set() ? m_enabled_options_reduced_count : m_enabled_options_count;
     }
     unsigned int active_options_buf_id() const {
-        return m_settings.reduced_detail ? m_enabled_options_reduced_buf_id : m_enabled_options_buf_id;
+        return use_reduced_set() ? m_enabled_options_reduced_buf_id : m_enabled_options_buf_id;
     }
     unsigned int active_options_tex_id() const {
-        return m_settings.reduced_detail ? m_enabled_options_reduced_tex_id : m_enabled_options_tex_id;
+        return use_reduced_set() ? m_enabled_options_reduced_tex_id : m_enabled_options_tex_id;
     }
+
+    // Whether the segment starting at vertex i belongs to the reduced set under the current mode
+    bool reduced_set_keeps(size_t i, const PathVertex& v) const;
+    void update_shell_bitset();
 #endif // ENABLE_OPENGL_ES
 
     void update_view_full_range();
