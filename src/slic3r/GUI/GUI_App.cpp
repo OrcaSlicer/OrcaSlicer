@@ -8382,12 +8382,13 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
-    static constexpr const char* opengl_fxaa_setting_key = "opengl_fxaa_enabled";
-    static constexpr const char* opengl_fps_cap_setting_key = "opengl_fps_cap";
-    static constexpr const char* opengl_show_fps_overlay_setting_key = "opengl_show_fps_overlay";
-    const std::string previous_opengl_fxaa = app_config->get(opengl_fxaa_setting_key);
-    const std::string previous_opengl_fps_cap = app_config->get(opengl_fps_cap_setting_key);
-    const std::string previous_opengl_show_fps_overlay = app_config->get(opengl_show_fps_overlay_setting_key);
+    // Render settings the canvas reads every frame; a change needs one redraw to show.
+    static constexpr const char* opengl_render_setting_keys[] = {
+        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SCENE_CACHE
+    };
+    std::vector<std::string> previous_opengl_render_settings;
+    for (const char* key : opengl_render_setting_keys)
+        previous_opengl_render_settings.emplace_back(app_config->get(key));
 
     bool need_recreate_gui = false;
     std::string pending_language;
@@ -8427,10 +8428,10 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         }
     }
 
-    const bool opengl_fxaa_changed = app_config->get(opengl_fxaa_setting_key) != previous_opengl_fxaa;
-    const bool opengl_fps_cap_changed = app_config->get(opengl_fps_cap_setting_key) != previous_opengl_fps_cap;
-    const bool opengl_show_fps_overlay_changed = app_config->get(opengl_show_fps_overlay_setting_key) != previous_opengl_show_fps_overlay;
-    if ((opengl_fxaa_changed || opengl_fps_cap_changed || opengl_show_fps_overlay_changed) && !need_recreate_gui && this->plater_ != nullptr) {
+    bool opengl_render_settings_changed = false;
+    for (size_t i = 0; i < previous_opengl_render_settings.size(); ++i)
+        opengl_render_settings_changed |= app_config->get(opengl_render_setting_keys[i]) != previous_opengl_render_settings[i];
+    if (opengl_render_settings_changed && !need_recreate_gui && this->plater_ != nullptr) {
         this->plater_->set_current_canvas_as_dirty();
         this->plater_->get_current_canvas3D()->force_set_focus();
     }

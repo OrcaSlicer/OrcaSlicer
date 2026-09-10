@@ -131,15 +131,12 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
     }
 }
 
-void GLGizmoPainterBase::render_cursor()
+std::vector<Transform3d> GLGizmoPainterBase::mesh_trafo_matrices() const
 {
-    // First check that the mouse pointer is on an object.
     const ModelObject* mo = m_c->selection_info()->model_object();
     const Selection& selection = m_parent.get_selection();
     const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
-    const Camera& camera = wxGetApp().plater()->get_camera();
 
-    // Precalculate transformations of individual meshes.
     std::vector<Transform3d> trafo_matrices;
     for (const ModelVolume* mv : mo->volumes) {
         if (mv->is_model_part())
@@ -154,6 +151,26 @@ void GLGizmoPainterBase::render_cursor()
             }
         }
     }
+    return trafo_matrices;
+}
+
+bool GLGizmoPainterBase::render_follows_cursor() const
+{
+    // The brush is drawn only where the cursor meets the model. update_raycast_cache() keeps the
+    // answer for render_cursor().
+    if (m_c->selection_info() == nullptr || m_c->selection_info()->model_object() == nullptr)
+        return false;
+    update_raycast_cache(m_parent.get_local_mouse_position(), wxGetApp().plater()->get_camera(), mesh_trafo_matrices());
+    return m_rr.mesh_id != -1;
+}
+
+void GLGizmoPainterBase::render_cursor()
+{
+    // First check that the mouse pointer is on an object.
+    const Camera& camera = wxGetApp().plater()->get_camera();
+
+    // Precalculate transformations of individual meshes.
+    const std::vector<Transform3d> trafo_matrices = mesh_trafo_matrices();
     // Raycast and return if there's no hit.
     update_raycast_cache(m_parent.get_local_mouse_position(), camera, trafo_matrices);
     if (m_rr.mesh_id == -1)

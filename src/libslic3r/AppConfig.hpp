@@ -33,6 +33,7 @@ using namespace nlohmann;
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"

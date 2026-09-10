@@ -17,6 +17,7 @@
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
+#include "SceneCache.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -401,16 +402,23 @@ class GLCanvas3D
         std::chrono::time_point<std::chrono::high_resolution_clock> m_measuring_start;
         int m_fps_out = -1;
         int m_fps_running = 0;
+        // Frames that redrew the 3D scene rather than reusing the cached one.
+        int m_scene_fps_out = 0;
+        int m_scene_fps_running = 0;
     public:
         void increment_fps_counter() { ++m_fps_running; }
+        void increment_scene_fps_counter() { ++m_scene_fps_running; }
         int get_fps() { return m_fps_out; }
+        int get_scene_fps() const { return m_scene_fps_out; }
         int get_fps_and_reset_if_needed() {
             auto cur_time = std::chrono::high_resolution_clock::now();
             int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(cur_time-m_measuring_start).count();
             if (elapsed_ms > 1000  || m_fps_out == -1) {
                 m_measuring_start = cur_time;
                 m_fps_out = int (1000. * m_fps_running / elapsed_ms);
+                m_scene_fps_out = int (1000. * m_scene_fps_running / elapsed_ms);
                 m_fps_running = 0;
+                m_scene_fps_running = 0;
             }
             return m_fps_out;
         }
@@ -574,6 +582,8 @@ private:
 
     // Screen is only refreshed from the OnIdle handler if it is dirty.
     bool m_dirty;
+    // A frame is needed, and only for the overlay.
+    bool m_overlay_dirty{ false };
     bool m_initialized;
     //BBS: add flag to controll rendering
     bool m_render_preview{ true };
@@ -729,6 +739,8 @@ public:
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    // The last scene pass, for frames that only rebuild the overlay.
+    SceneCache m_scene_cache;
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
     // Depth-based shadow map used to cast object shadows onto other objects and themselves.
@@ -1236,7 +1248,7 @@ private:
     void _zoom_to_box(const BoundingBoxf3& box, double margin_factor = DefaultCameraZoomToBoxMarginFactor);
     void _update_camera_zoom(double zoom);
 
-    void _refresh_if_shown_on_screen();
+    void _refresh_if_shown_on_screen(bool scene_dirty = true);
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
@@ -1244,9 +1256,20 @@ private:
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
+    bool _is_scene_cache_enabled() const;
+    bool _is_scene_cacheable() const;
     void _render_fps_overlay(int fps) const;
     void _render_fxaa_pass(unsigned int width, unsigned int height);
     void _render_ssao_pass(unsigned int width, unsigned int height);
+    // scene_dirty is false only for a frame that its requester knows to be overlay-only.
+    void _render_frame(bool scene_dirty, bool only_init = false);
+    void _render_scene(const Camera& camera, const Size& cnv_size);
+    // Request a frame that only rebuilds the overlay.
+    void _set_overlay_as_dirty() { m_overlay_dirty = true; }
+    // These read the hover state _picking_pass() sets.
+    SceneCache::Key _scene_cache_key(const Camera& camera) const;
+    bool _can_reuse_cached_scene(const Camera& camera) const;
+    void _capture_scene_cache(const Camera& camera);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
     // Build the light-space depth shadow map (consumed by gouraud/phong for object & self shadows)
@@ -1259,6 +1282,7 @@ private:
     void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    void _render_gcode_overlay(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();

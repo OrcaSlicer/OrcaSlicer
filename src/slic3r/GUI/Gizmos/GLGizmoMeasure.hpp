@@ -255,6 +255,8 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // Hover is resolved inside on_render(), against grippers that sit off the mesh.
+    bool render_follows_cursor() const override { return true; }
     void on_render() override;
     void on_set_state() override;
 
