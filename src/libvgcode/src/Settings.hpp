@@ -36,6 +36,10 @@ struct Settings
 		// ORCA: what is left out even at rest, with every layer drawn. Bound whenever the reduced set
 		// above is not. Off draws everything.
 		EReducedDetailMode rest_detail_mode{ EReducedDetailMode::Off };
+		// ORCA: in ShellOnly rest mode, the walls of one layer in this many are drawn, that many layers
+		// tall; the exposed surfaces of every layer stay. Meant to follow how many layers fit in a
+		// pixel at the current view, so that it changes nothing visible.
+		uint32_t rest_layer_stride{ 1 };
 		//
 		// Required update flags
 		//

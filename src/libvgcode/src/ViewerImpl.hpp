@@ -103,6 +103,8 @@ public:
     void set_reduced_detail_layer_stride(uint32_t value);
     EReducedDetailMode get_rest_detail_mode() const { return m_settings.rest_detail_mode; }
     void set_rest_detail_mode(EReducedDetailMode mode);
+    uint32_t get_rest_layer_stride() const { return m_settings.rest_layer_stride; }
+    void set_rest_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -327,6 +329,9 @@ private:
     // computed on demand by update_shell_bitset() for EReducedDetailMode::ShellOnly
     //
     BitSet<> m_shell_bitset;
+    // the subset of those that are exposed from above or below: the surfaces a view from the top
+    // or bottom sees, kept in every layer even while layers are being skipped
+    BitSet<> m_exposed_bitset;
 #endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring
@@ -366,6 +371,7 @@ private:
     int m_uni_segments_view_matrix_id{ -1 };
     int m_uni_segments_projection_matrix_id{ -1 };
     int m_uni_segments_camera_position_id{ -1 };
+    int m_uni_segments_height_scale_id{ -1 };
     int m_uni_segments_positions_tex_id{ -1 };
     int m_uni_segments_height_width_angle_tex_id{ -1 };
     int m_uni_segments_colors_tex_id{ -1 };
@@ -533,6 +539,14 @@ private:
         return m_settings.rest_detail_mode != EReducedDetailMode::Off && m_settings.rest_detail_mode != EReducedDetailMode::LayersOnly;
     }
     bool use_rest_set() const { return !use_reduced_set() && build_rest_set(); }
+    // how many layers each drawn segment of the bound set stands in for
+    float active_height_scale() const {
+        if (use_reduced_set())
+            return static_cast<float>(std::max<uint32_t>(1, m_settings.reduced_detail_layer_stride));
+        if (use_rest_set() && m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)
+            return static_cast<float>(std::max<uint32_t>(1, m_settings.rest_layer_stride));
+        return 1.0f;
+    }
     size_t active_segments_count() const {
         return use_reduced_set() ? m_enabled_segments_reduced_count : use_rest_set() ? m_enabled_segments_rest_count : m_enabled_segments_count;
     }

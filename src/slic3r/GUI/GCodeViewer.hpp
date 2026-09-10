@@ -236,6 +236,11 @@ private:
     unsigned int m_reduced_detail_layer_stride{ 4 };
     libvgcode::EReducedDetailMode m_rest_detail_mode{ libvgcode::EReducedDetailMode::Off };
     void apply_reduced_detail_settings();
+    // whether the user is dragging or a wheel burst is settling, as told by set_interacting()
+    bool m_interacting{ false };
+    // the print's typical layer height, for how many layers fit in a pixel at the current view
+    float m_typical_layer_height{ 0.0f };
+    void update_rest_layer_stride();
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;

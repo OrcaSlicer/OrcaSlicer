@@ -118,6 +118,13 @@ public:
     //
     EReducedDetailMode get_rest_detail_mode() const;
     void set_rest_detail_mode(EReducedDetailMode mode);
+    //
+    // ORCA: with EReducedDetailMode::ShellOnly at rest, draw the walls of one layer in every N, each
+    // N layers tall, keeping the exposed surfaces of every layer. Choose N from how many layers fit
+    // in a pixel at the current view and it changes nothing visible.
+    //
+    uint32_t get_rest_layer_stride() const;
+    void set_rest_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //

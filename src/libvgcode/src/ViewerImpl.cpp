@@ -762,6 +762,7 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_view_matrix_id            = glGetUniformLocation(m_segments_shader_id, "view_matrix");
     m_uni_segments_projection_matrix_id      = glGetUniformLocation(m_segments_shader_id, "projection_matrix");
     m_uni_segments_camera_position_id        = glGetUniformLocation(m_segments_shader_id, "camera_position");
+    m_uni_segments_height_scale_id           = glGetUniformLocation(m_segments_shader_id, "height_scale");
     m_uni_segments_positions_tex_id          = glGetUniformLocation(m_segments_shader_id, "position_tex");
     m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
     m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
@@ -898,6 +899,7 @@ void ViewerImpl::reset()
     m_enabled_options_reduced_count = 0;
     m_enabled_segments_rest_count = 0;
     m_shell_bitset = BitSet<>();
+    m_exposed_bitset = BitSet<>();
 
     m_settings_used_for_ranges = std::nullopt;
 
@@ -1253,16 +1255,121 @@ struct OccupancyGrid
     }
 };
 
+// Scratch space for close_gaps(), one per worker
+struct ClosingScratch
+{
+    // component label per cell: 0 empty, > 0 a component, WILD a tiny fragment, CONTESTED a cell
+    // reached by two components' dilations
+    std::vector<int32_t> labels;
+    std::vector<std::pair<int, int>> frontier;
+    std::vector<std::pair<int, int>> next;
+    std::vector<int> window_sum;
+    std::vector<uint8_t> raw;
+    static constexpr int32_t WILD = -1;
+    static constexpr int32_t CONTESTED = -2;
+};
+
 // Morphological closing with a square window of the given radius: fills gaps up to 2 * radius
-// cells wide, so that sparse infill or support reads as the solid area it is part of. Separable
-// passes over running window sums keep the cost linear in the rectangle's area.
-static void close_gaps(OccupancyGrid& grid, int radius, std::vector<int>& window_sum)
+// cells wide, so that sparse infill or support reads as the solid area it is part of. The dilation
+// is done per connected component, and a cell two components both reach stays empty, so the gap
+// between two objects standing close together is never bridged and both of their facing walls
+// stay on the shell. A separable erosion over running window sums then shrinks the result back.
+static void close_gaps(OccupancyGrid& grid, int radius, ClosingScratch& scratch)
 {
     if (grid.empty() || radius <= 0)
         return;
     // the dilated area needs room to grow
     grid.grow(radius);
-    const auto pass = [&](bool horizontal, bool dilate) {
+    const int nx = grid.nx;
+    const auto idx = [nx](int x, int y) { return static_cast<size_t>(y) * nx + x; };
+    const auto in_rect = [&](int x, int y) { return x >= grid.min_x && x <= grid.max_x && y >= grid.min_y && y <= grid.max_y; };
+    std::vector<int32_t>& labels = scratch.labels;
+    labels.resize(grid.cells.size());
+    for (int y = grid.min_y; y <= grid.max_y; ++y)
+        std::fill_n(&labels[idx(grid.min_x, y)], grid.max_x - grid.min_x + 1, 0);
+    // the raw cells come back at the end: a closing must never lose one, and the erosion below
+    // would eat into a wall that faces a contested gap
+    std::vector<uint8_t>& raw = scratch.raw;
+    raw.resize(grid.cells.size());
+    for (int y = grid.min_y; y <= grid.max_y; ++y)
+        std::copy_n(&grid.at(grid.min_x, y), grid.max_x - grid.min_x + 1, &raw[idx(grid.min_x, y)]);
+
+    // label the 8-connected components of the raw cells; a fragment too small to be a wall does
+    // not spread and is absorbed by whichever component reaches it
+    static constexpr size_t TINY = 8;
+    int32_t next_label = 1;
+    std::vector<std::pair<int, int>>& frontier = scratch.frontier;
+    frontier.clear();
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x) {
+            if (!grid.at(x, y) || labels[idx(x, y)] != 0)
+                continue;
+            std::vector<std::pair<int, int>>& component = scratch.next;
+            component.clear();
+            component.emplace_back(x, y);
+            labels[idx(x, y)] = next_label;
+            for (size_t head = 0; head < component.size(); ++head) {
+                const auto [cx, cy] = component[head];
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int px = cx + dx;
+                        const int py = cy + dy;
+                        if ((dx == 0 && dy == 0) || !in_rect(px, py) || !grid.at(px, py) || labels[idx(px, py)] != 0)
+                            continue;
+                        labels[idx(px, py)] = next_label;
+                        component.emplace_back(px, py);
+                    }
+                }
+            }
+            if (component.size() < TINY) {
+                for (const auto [cx, cy] : component)
+                    labels[idx(cx, cy)] = ClosingScratch::WILD;
+            }
+            else {
+                frontier.insert(frontier.end(), component.begin(), component.end());
+                ++next_label;
+            }
+        }
+    }
+
+    // dilate: each component claims the cells within radius of it, breadth first; a cell already
+    // claimed by another component is contested and stays empty
+    for (int step = 0; step < radius; ++step) {
+        std::vector<std::pair<int, int>>& next = scratch.next;
+        next.clear();
+        for (const auto [cx, cy] : frontier) {
+            const int32_t label = labels[idx(cx, cy)];
+            if (label <= 0)
+                continue;
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int px = cx + dx;
+                    const int py = cy + dy;
+                    if ((dx == 0 && dy == 0) || !in_rect(px, py))
+                        continue;
+                    int32_t& other = labels[idx(px, py)];
+                    if (other == 0 || other == ClosingScratch::WILD) {
+                        other = label;
+                        next.emplace_back(px, py);
+                    }
+                    else if (other != label && other != ClosingScratch::CONTESTED && !grid.at(px, py))
+                        other = ClosingScratch::CONTESTED;
+                }
+            }
+        }
+        std::swap(frontier, next);
+    }
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x) {
+            if (labels[idx(x, y)] > 0)
+                grid.at(x, y) = 1;
+        }
+    }
+
+    // erode by the same radius, separably; cells outside the rectangle are empty, which is what a
+    // shrinking erosion has to see
+    std::vector<int>& window_sum = scratch.window_sum;
+    const auto erode = [&](bool horizontal) {
         const int outer_n = horizontal ? grid.max_y - grid.min_y + 1 : grid.max_x - grid.min_x + 1;
         const int inner_n = horizontal ? grid.max_x - grid.min_x + 1 : grid.max_y - grid.min_y + 1;
         window_sum.assign(inner_n + 1, 0);
@@ -1274,15 +1381,16 @@ static void close_gaps(OccupancyGrid& grid, int radius, std::vector<int>& window
                 window_sum[i + 1] = window_sum[i] + cell(i);
             for (int i = 0; i < inner_n; ++i) {
                 const int count = window_sum[std::min(inner_n, i + radius + 1)] - window_sum[std::max(0, i - radius)];
-                // cells outside the rectangle are empty, which is what a shrinking erosion has to see
-                cell(i) = dilate ? (count > 0) : (count == 2 * radius + 1);
+                cell(i) = (count == 2 * radius + 1);
             }
         }
     };
-    pass(true, true);
-    pass(false, true);
-    pass(true, false);
-    pass(false, false);
+    erode(true);
+    erode(false);
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x)
+            grid.at(x, y) |= raw[idx(x, y)];
+    }
 }
 
 } // namespace
@@ -1291,13 +1399,14 @@ static void close_gaps(OccupancyGrid& grid, int radius, std::vector<int>& window
 // EReducedDetailMode::ShellOnly can leave out everything the walls hide. Each layer is rasterized
 // into a coarse occupancy grid and closed, so that its footprint is solid whatever the infill;
 // a cell is then on the shell when it is filled and any of its six neighbours (four in the layer,
-// the layer below, the layer above) is not. A segment is kept when at least half of the cells it
-// crosses are shell cells: walls run along the shell, infill only touches it at the ends.
-// Purely geometric, so it works as well for the wipe tower, whose every segment shares one role,
-// as for the objects.
+// the layer below, the layer above) is not, and exposed when it is the layer below or above that
+// is missing. A segment is kept when at least half of the cells it crosses are shell cells: walls
+// run along the shell, infill only touches it at the ends. Purely geometric, so it works as well
+// for the wipe tower, whose every segment shares one role, as for the objects.
 void ViewerImpl::update_shell_bitset()
 {
     m_shell_bitset = BitSet<>(m_vertices.size());
+    m_exposed_bitset = BitSet<>(m_vertices.size());
     if (m_vertices.size() < 2 || m_layers.empty())
         return;
 
@@ -1366,13 +1475,15 @@ void ViewerImpl::update_shell_bitset()
 
     const OccupancyGrid nothing(nx, ny);
 
-    // Classifies the layers in [first_layer, last_layer) and returns the segments kept. Each call
-    // owns its grids, so the layer range can be split across threads.
+    // Classifies the layers in [first_layer, last_layer) and returns the segments kept, and among
+    // them the exposed ones. Each call owns its grids, so the layer range can be split across threads.
+    struct Kept { std::vector<uint32_t> shell; std::vector<uint32_t> exposed; };
     const auto classify_layers = [&](size_t first_layer, size_t last_layer) {
-        std::vector<uint32_t> kept;
+        Kept kept;
         std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
         OccupancyGrid shell_cells(nx, ny);
-        std::vector<int> window_sum;
+        OccupancyGrid exposed_cells(nx, ny);
+        ClosingScratch scratch;
         const auto footprint = [&](size_t layer) -> OccupancyGrid& { return footprints[layer % 3]; };
         const auto prepare = [&](size_t layer) {
             OccupancyGrid& g = footprint(layer);
@@ -1382,7 +1493,7 @@ void ViewerImpl::update_shell_bitset()
                 if (is_drawn_extrusion(i))
                     for_each_cell(i, [&](int x, int y) { g.set(x, y); });
             }
-            close_gaps(g, radius, window_sum);
+            close_gaps(g, radius, scratch);
         };
 
         if (first_layer > 0)
@@ -1396,13 +1507,16 @@ void ViewerImpl::update_shell_bitset()
             const OccupancyGrid& above = (layer + 1 < layers_count) ? footprint(layer + 1) : nothing;
 
             shell_cells.clear();
+            exposed_cells.clear();
             for (int y = cur.min_y; y <= cur.max_y; ++y) {
                 for (int x = cur.min_x; x <= cur.max_x; ++x) {
                     if (!cur.at(x, y))
                         continue;
-                    if (!cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1) ||
-                        !below.at(x, y) || !above.at(x, y))
+                    const bool exposed = !below.at(x, y) || !above.at(x, y);
+                    if (exposed || !cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1))
                         shell_cells.set(x, y);
+                    if (exposed)
+                        exposed_cells.set(x, y);
                 }
             }
 
@@ -1412,9 +1526,16 @@ void ViewerImpl::update_shell_bitset()
                     continue;
                 int total = 0;
                 int on_shell = 0;
-                for_each_cell(i, [&](int x, int y) { ++total; on_shell += shell_cells.at(x, y); });
+                int on_exposed = 0;
+                for_each_cell(i, [&](int x, int y) {
+                    ++total;
+                    on_shell += shell_cells.at(x, y);
+                    on_exposed += exposed_cells.at(x, y);
+                });
                 if (2 * on_shell >= total)
-                    kept.push_back(static_cast<uint32_t>(i));
+                    kept.shell.push_back(static_cast<uint32_t>(i));
+                if (2 * on_exposed >= total)
+                    kept.exposed.push_back(static_cast<uint32_t>(i));
             }
         }
         return kept;
@@ -1422,12 +1543,15 @@ void ViewerImpl::update_shell_bitset()
 
     const size_t workers = std::clamp<size_t>(std::thread::hardware_concurrency(), 1, 8);
     const size_t chunk = std::max<size_t>(16, (layers_count + workers - 1) / workers);
-    std::vector<std::future<std::vector<uint32_t>>> futures;
+    std::vector<std::future<Kept>> futures;
     for (size_t first = 0; first < layers_count; first += chunk)
         futures.emplace_back(std::async(std::launch::async, classify_layers, first, std::min(layers_count, first + chunk)));
     for (auto& f : futures) {
-        for (uint32_t i : f.get())
+        const Kept kept = f.get();
+        for (uint32_t i : kept.shell)
             m_shell_bitset.set(i);
+        for (uint32_t i : kept.exposed)
+            m_exposed_bitset.set(i);
     }
 }
 #endif // ENABLE_OPENGL_ES
@@ -1447,13 +1571,16 @@ void ViewerImpl::update_enabled_entities()
     std::vector<uint32_t> enabled_options_reduced;
     std::vector<uint32_t> enabled_segments_rest;
     const uint32_t layer_stride = std::max<uint32_t>(1, m_settings.reduced_detail_layer_stride);
+    // Only the shell mode knows which segments are exposed surfaces, so only it can skip layers at
+    // rest, and in either set only it can keep the surfaces of the layers it skips.
+    const bool shell_reduced = build_reduced && m_settings.reduced_detail_mode == EReducedDetailMode::ShellOnly;
+    const bool shell_rest = build_rest && m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly;
+    const uint32_t rest_stride = shell_rest ? std::max<uint32_t>(1, m_settings.rest_layer_stride) : 1;
     // Whatever else is dropped, both ends of the visible layer range are kept whole: the top is the
     // surface the user is looking at, and the only layer drawn at full color in top-layer-only
     // mode; the bottom is exposed whenever the range is cut short.
     const Interval& layers_range = m_layers.get_view_range();
-    if (((build_reduced && m_settings.reduced_detail_mode == EReducedDetailMode::ShellOnly) ||
-         (build_rest && m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)) &&
-        m_shell_bitset.size != m_vertices.size())
+    if ((shell_reduced || shell_rest) && m_shell_bitset.size != m_vertices.size())
         update_shell_bitset();
 #endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
@@ -1507,12 +1634,20 @@ void ViewerImpl::update_enabled_entities()
 #ifndef ENABLE_OPENGL_ES
         const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
         const bool keep_anyway = whole_layer || !v.is_extrusion();
-        if (build_rest && !v.is_option() && (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
-            enabled_segments_rest.push_back(static_cast<uint32_t>(i));
+        const bool exposed = v.is_extrusion() && m_exposed_bitset.size == m_vertices.size() && m_exposed_bitset[i];
+        if (build_rest && !v.is_option()) {
+            const bool skipped = !whole_layer && rest_stride > 1 && (v.layer_id % rest_stride) != 0;
+            if (skipped ? exposed : (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
+                enabled_segments_rest.push_back(static_cast<uint32_t>(i));
+        }
         if (!build_reduced)
             continue;
-        if (!whole_layer && (v.layer_id % layer_stride) != 0)
+        if (!whole_layer && (v.layer_id % layer_stride) != 0) {
+            // the exposed surfaces of a skipped layer stay, so that a step does not vanish
+            if (shell_reduced && exposed)
+                enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
             continue;
+        }
         if (v.is_option())
             enabled_options_reduced.push_back(static_cast<uint32_t>(i));
         else if (keep_anyway || reduced_set_keeps(m_settings.reduced_detail_mode, i, v))
@@ -1772,6 +1907,17 @@ void ViewerImpl::set_rest_detail_mode(EReducedDetailMode mode)
         return;
     m_settings.rest_detail_mode = mode;
     m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_rest_layer_stride(uint32_t value)
+{
+    value = std::max<uint32_t>(1, value);
+    if (m_settings.rest_layer_stride == value)
+        return;
+    m_settings.rest_layer_stride = value;
+    // only the shell rest set is built from it
+    if (m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)
+        m_settings.update_enabled_entities = true;
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
@@ -2396,6 +2542,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    glsafe(glUniform1f(m_uni_segments_height_scale_id, active_height_scale()));
 
     glsafe(glDisable(GL_CULL_FACE));
 

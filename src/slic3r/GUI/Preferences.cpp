@@ -2022,8 +2022,8 @@ void PreferencesDialog::create_items()
            "Use it when a plate of large objects is slow to draw even when the view is not moving.\n"
            "Nothing: the full preview.\n"
            "Internal infill: sparse and solid infill hidden inside the walls is left out.\n"
-           "Everything but the shell: only the toolpaths on the visible surface of the print are drawn. "
-           "Holes narrower than 5 mm are treated as solid."),
+           "Everything but the shell: only the toolpaths on the visible surface of the print are drawn, and layers thinner than a couple of pixels on screen are merged, "
+           "so that looking from above costs little more than the top surfaces. Holes narrower than 5 mm are treated as solid."),
         "preview_rest_detail_mode",
         {_L("Nothing"), _L("Internal infill"), _L("Everything but the shell")},
         {"full", "no_infill", "shell"},

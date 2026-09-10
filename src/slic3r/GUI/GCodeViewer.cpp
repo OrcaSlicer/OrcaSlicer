@@ -1178,6 +1178,20 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
     m_rest_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_rest_detail_mode"));
     apply_reduced_detail_settings();
+    // the median z step between layers, robust to the first layer and to variable layer height
+    {
+        std::vector<float> steps;
+        for (size_t i = 1; i < m_viewer.get_layers_count(); ++i) {
+            const float step = m_viewer.get_layer_z(i) - m_viewer.get_layer_z(i - 1);
+            if (step > 0.0f)
+                steps.push_back(step);
+        }
+        m_typical_layer_height = 0.0f;
+        if (!steps.empty()) {
+            std::nth_element(steps.begin(), steps.begin() + steps.size() / 2, steps.end());
+            m_typical_layer_height = steps[steps.size() / 2];
+        }
+    }
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
@@ -1632,6 +1646,8 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
 
+    update_rest_layer_stride();
+
     render_toolpaths();
 
     float legend_height = 0.0f;
@@ -1916,7 +1932,28 @@ void GCodeViewer::update_layers_slider_mode()
 
 void GCodeViewer::set_interacting(bool interacting)
 {
+    m_interacting = interacting;
     m_viewer.set_reduced_detail(m_reduced_detail_while_dragging && interacting);
+}
+
+// ORCA: with the shell drawn at rest, layers thinner than a couple of pixels on screen are merged:
+// the walls of one layer in N are drawn N layers tall, which looks the same and costs 1/N. N follows
+// the view, from 1 side-on and zoomed in to the cap looking straight down, where the walls are edge-on
+// and every layer's exposed surfaces are all there is to see. Changing N rebuilds the sets, so it is
+// left alone while the user is dragging.
+void GCodeViewer::update_rest_layer_stride()
+{
+    if (m_interacting || m_rest_detail_mode != libvgcode::EReducedDetailMode::ShellOnly || m_typical_layer_height <= 0.0f)
+        return;
+    static constexpr double MERGE_BELOW_PX = 2.0;
+    static constexpr unsigned int MAX_STRIDE = 64;
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const double dz = std::abs(camera.get_dir_forward().z());
+    const double tilt = std::sqrt(std::max(0.0, 1.0 - dz * dz));
+    const double layer_px = static_cast<double>(m_typical_layer_height) * camera.get_zoom() * tilt;
+    const unsigned int stride = (layer_px * MAX_STRIDE <= MERGE_BELOW_PX) ? MAX_STRIDE :
+        std::clamp(static_cast<unsigned int>(MERGE_BELOW_PX / layer_px), 1u, MAX_STRIDE);
+    m_viewer.set_rest_layer_stride(stride);
 }
 
 // ORCA: libvgcode only builds a reduced set while its mode is not Off, so the preference switch is
