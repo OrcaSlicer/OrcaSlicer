@@ -1053,6 +1053,8 @@ static std::vector<std::string> s_Preset_print_options{
     "wall_sequence",
     "is_infill_first",
     "sparse_infill_density",
+    "max_infill_bridge_length",
+    "sparse_infill_top_offset",
     "fill_multiline",
     "gyroid_optimized",
     "sparse_infill_pattern",

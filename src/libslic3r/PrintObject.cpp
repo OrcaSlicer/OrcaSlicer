@@ -21,6 +21,7 @@
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
+#include "Fill/FillGyroid.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Format/STL.hpp"
 #include "format.hpp"
@@ -679,6 +680,11 @@ void PrintObject::prepare_infill()
 
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
+    m_print->throw_if_canceled();
+
+    // Raise the sparse infill density below top shells so the top solid layers do not have to
+    // bridge more than max_infill_bridge_length. Must run after combine_infill(), see below.
+    this->gradual_infill();
     m_print->throw_if_canceled();
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -1421,6 +1427,8 @@ bool PrintObject::invalidate_state_by_config_options(
                    || opt_key == "skeleton_infill_density"
                    || opt_key == "skin_infill_density"
                    || opt_key == "infill_lock_depth"
+                   || opt_key == "max_infill_bridge_length"
+                   || opt_key == "sparse_infill_top_offset"
                    || opt_key == "skin_infill_depth") {
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "sparse_infill_density") {
@@ -4457,6 +4465,159 @@ void PrintObject::combine_infill()
                 }
             }
         }
+    }
+}
+
+// Orca: effective sparse infill line spacing is
+//     line_spacing = extrusion_width * fill_multiline * factor / density
+// where `factor` is the number of parallel sweeps the pattern lays down, because
+// FillRectilinear::fill_surface_by_multilines() divides the density between them.
+// Returns 0 for a pattern that does not follow this model or is not a line lattice at all
+// (concentric, honeycomb, adaptive/support cubic, lightning, TPMS, the zag family); the
+// feature is simply a no-op for those.
+static double infill_line_spacing_factor(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipRectilinear:
+    case ipAlignedRectilinear:
+    case ipMonotonic:
+    case ipMonotonicLine:
+    case ipLine:      return 1.;
+    case ipGrid:      return 2.;
+    case ipTriangles:
+    case ipCubic:     return 3.;
+    // Gyroid divides by the constant DensityAdjust rather than by a sweep count. Note that its
+    // waves rescale with density instead of nesting, so unlike the patterns above the first
+    // layer of each density step is not fully supported by the one below it; every layer after
+    // it is. Accepted: one soft layer per step is a far smaller defect than a sagging top
+    // shell, and gyroid is what users pick for exactly the parts this feature targets.
+    case ipGyroid:    return 1. / FillGyroid::DensityAdjust;
+    // Stars and quarter cubic shift their pattern phase with the density, so a denser layer
+    // does not contain the lines of the sparser one below it and the added lines would rest on
+    // nothing. Excluded deliberately.
+    default:          return 0.;
+    }
+}
+
+// Raise the sparse infill density in the layers below a top shell, so that the top solid
+// layers never have to span more than max_infill_bridge_length between two infill lines.
+//
+// The density is only ever DOUBLED, never interpolated. For the lattice patterns accepted by
+// infill_line_spacing_factor() doubling halves the line spacing while keeping every line of
+// the coarser level, so each added line stands on the pattern that the layer below already
+// prints and supports itself from the first densified layer upwards. Picking an arbitrary
+// intermediate density instead would lay lines that rest on nothing and droop exactly like the
+// top shell they were meant to hold up.
+//
+// Runs after combine_infill() on purpose: infill combination keeps the sparse infill only on
+// the topmost layer of each combined group and turns the rest into stInternalVoid, so any
+// density assigned before that step would be discarded again.
+// ponytail: by this point bridge_over_infill() has already classified the solid layer above as
+// an internal bridge, so a densified region still prints its first solid layer with bridge
+// flow - harmless, just no longer necessary. Reordering would mean teaching combine_infill()
+// about the density bands.
+void PrintObject::gradual_infill()
+{
+    BOOST_LOG_TRIVIAL(trace) << "gradual_infill()";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegion       &region = this->printing_region(region_id);
+        const PrintRegionConfig &config = region.config();
+        const double max_span = config.max_infill_bridge_length.value;
+        const double base     = 0.01 * config.sparse_infill_density.value;
+        if (max_span <= 0. || base <= 0. || base >= 1.)
+            continue;
+        const double factor = infill_line_spacing_factor(config.sparse_infill_pattern.value);
+        if (factor <= 0.)
+            continue;
+
+        // The gap a top shell has to span is line_spacing - extrusion_width. Solving
+        // line_spacing - width <= max_span for the density gives the density we need.
+        const double width    = region.flow(*this, frInfill, m_config.layer_height, false).spacing();
+        const double required = width * std::max(1, config.fill_multiline.value) * factor / (max_span + width);
+        // Number of doublings needed to get from the configured density to the required one.
+        int steps = 0;
+        for (double d = base; d < required && d * 2. <= 1.; d *= 2.)
+            ++ steps;
+        if (steps == 0)
+            continue;
+        const size_t band = size_t(std::max(1, config.sparse_infill_top_offset.value));
+        // Splitting a fill surface costs the remainder some infill, because each piece is then
+        // filled on its own and loses the lines that no longer fit. A band narrower than one
+        // lattice cell of the density it would be given holds no lines at all, so it cannot pay
+        // that back: densifying under a thin ring of solid infill next to a wall made the layer
+        // extrude LESS sparse infill than it did before. Such bands are dropped below.
+        const double densest    = std::min(1., base * std::exp2(double(steps)));
+        const float  min_width  = float(scale_(width * std::max(1, config.fill_multiline.value) * factor / densest));
+
+        // Everything that has to be carried by the sparse infill underneath it. Bottom surfaces
+        // are included and cost nothing: they have no sparse infill below them to densify.
+        std::vector<Polygons> shell(m_layers.size());
+        for (size_t i = 0; i < m_layers.size(); ++ i)
+            for (const Surface &surface : m_layers[i]->regions()[region_id]->fill_surfaces.surfaces)
+                if (surface.is_solid())
+                    polygons_append(shell[i], to_polygons(surface.expolygon));
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id, steps, band, base, min_width, &shell](const tbb::blocked_range<size_t> &range) {
+            for (size_t i = range.begin(); i < range.end(); ++ i) {
+                m_print->throw_if_canceled();
+                LayerRegion *layerm = m_layers[i]->regions()[region_id];
+                if (! layerm->fill_surfaces.has(stInternal))
+                    continue;
+
+                // Band m holds the area whose nearest shell above is between (m-1)*band and
+                // m*band layers up; the closer the shell, the denser the infill.
+                std::vector<std::pair<float, ExPolygons>> bands;
+                Polygons   accumulated;
+                ExPolygons previous;
+                for (int m = 1; m <= steps; ++ m) {
+                    for (size_t j = i + size_t(m - 1) * band + 1; j <= i + size_t(m) * band && j < shell.size(); ++ j)
+                        polygons_append(accumulated, shell[j]);
+                    ExPolygons current = union_ex(accumulated);
+                    ExPolygons ring    = diff_ex(current, previous);
+                    if (! ring.empty())
+                        bands.emplace_back(float(std::min(1., base * std::exp2(double(steps - m + 1)))), std::move(ring));
+                    previous = std::move(current);
+                }
+                if (bands.empty())
+                    continue;
+
+                Surfaces out;
+                out.reserve(layerm->fill_surfaces.surfaces.size() + bands.size());
+                bool densified = false;
+                for (const Surface &surface : layerm->fill_surfaces.surfaces) {
+                    if (surface.surface_type != stInternal) {
+                        out.push_back(surface);
+                        continue;
+                    }
+                    ExPolygons rest { surface.expolygon };
+                    for (const auto &band_area : bands) {
+                        if (rest.empty())
+                            break;
+                        ExPolygons hit = intersection_ex(rest, band_area.second);
+                        // Drop the pieces that are nowhere wide enough to hold the denser lattice:
+                        // they would add no line of their own while still splitting the surface.
+                        hit.erase(std::remove_if(hit.begin(), hit.end(),
+                                                 [min_width](const ExPolygon &e) { return offset_ex(e, - min_width).empty(); }),
+                                  hit.end());
+                        if (hit.empty())
+                            continue;
+                        rest = diff_ex(rest, hit);
+                        for (ExPolygon &expoly : hit) {
+                            Surface dense(surface, std::move(expoly));
+                            dense.density_override = band_area.first;
+                            out.push_back(std::move(dense));
+                        }
+                        densified = true;
+                    }
+                    for (ExPolygon &expoly : rest)
+                        out.push_back(Surface(surface, std::move(expoly)));
+                }
+                if (densified)
+                    layerm->fill_surfaces.surfaces = std::move(out);
+            }
+        });
     }
 }
 
