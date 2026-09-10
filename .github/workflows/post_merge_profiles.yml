@@ -41,7 +41,7 @@ env:
   TOOL_ASSET: generate_system_cache_Linux_Ubuntu2404_nightly
   # Where per-vendor ZIP assets are published; OrcaCloud's OTA reads this repo.
   PROFILES_OWNER: OrcaSlicer
-  PROFILES_REPO: orcaslicer_profiles
+  PROFILES_REPO: orcaslicer-profiles
 
 jobs:
   publish_profile_caches:
