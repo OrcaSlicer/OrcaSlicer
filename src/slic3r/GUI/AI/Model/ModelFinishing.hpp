@@ -61,4 +61,13 @@ ModelFinishingResult finish_model_obj(
     const ModelFinishingOptions& options,
     const std::function<bool()>& canceled = {});
 
+// Supports OBJ and GLB sources and preserves the selected output format.
+// GLB textures are sampled into the same editable colors used by the preview;
+// the source GLB and its texture maps are retained unchanged.
+ModelFinishingResult finish_model_artifact(
+    const boost::filesystem::path& source,
+    const boost::filesystem::path& destination,
+    const ModelFinishingOptions& options,
+    const std::function<bool()>& canceled = {});
+
 } // namespace Slic3r::AI

@@ -25,7 +25,7 @@ MODEL_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
 DEFAULT_MODEL_FACE_LIMIT = 300000
 GENERATION_PROFILES = ("quality", "performance")
 DEFAULT_GENERATION_PROFILE = "quality"
-GENERATION_PROFILE_FACE_LIMITS = {"quality": 2000000, "performance": 300000}
+GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 MOCK_PALETTE_RECOMMENDATION = {
     "summary": "暖色主体配合深色结构、浅色层次和冷色点缀",
     "colors": [
@@ -77,7 +77,7 @@ f 2 3 4
 
 
 def _load_mock_obj():
-    configured_path = os.environ.get("ORCASLICER_AI_MOCK_OBJ_PATH", "").strip()
+    configured_path = os.environ.get("ORCASLICER_AI_MOCK_MODEL_PATH", os.environ.get("ORCASLICER_AI_MOCK_OBJ_PATH", "")).strip()
     if not configured_path:
         return TINY_OBJ
     try:
@@ -91,6 +91,7 @@ def _load_mock_obj():
 
 
 MOCK_OBJ = _load_mock_obj()
+MOCK_FORMAT = "glb" if MOCK_OBJ.startswith(b"glTF") else "obj"
 
 _jobs = {}
 _jobs_lock = threading.Lock()
@@ -292,7 +293,7 @@ def advance_job(job, status_call=False):
     elif step == 1:
         job.update(state="running", phase="generating", message="Generating model geometry.", progress=40)
     elif step == 2:
-        job.update(state="running", phase="converting", message="Converting generated geometry.", progress=70)
+        job.update(state="running", phase="generating", message="Finishing generated geometry.", progress=70)
     elif step == 3:
         job.update(state="running", phase="downloading_artifact", message="Preparing the generated artifact.", progress=90)
     else:
@@ -303,9 +304,9 @@ def advance_job(job, status_call=False):
             progress=100,
             artifact={
                 "ready": True,
-                "format": "obj",
-                "color_encoding": "vertex_colors",
-                "filename": "orcaslicer-model-%s.obj" % job["id"],
+                "format": MOCK_FORMAT,
+                "color_encoding": "textures_or_vertex_colors" if MOCK_FORMAT == "glb" else "vertex_colors",
+                "filename": "orcaslicer-model-%s.%s" % (job["id"], MOCK_FORMAT),
                 "size_bytes": len(MOCK_OBJ),
             },
         )
@@ -412,7 +413,7 @@ class Handler(BaseHTTPRequestHandler):
                             "relief", "ink_relief", "diorama", "custom",
                         ],
                         "style_recommendation": {"available": True, "local_only": True},
-                        "artifact_formats": ["obj"],
+                        "artifact_formats": ["glb", "obj"],
                         "face_limits": sorted(set(GENERATION_PROFILE_FACE_LIMITS.values())),
                         "default_face_limit": GENERATION_PROFILE_FACE_LIMITS[DEFAULT_GENERATION_PROFILE],
                         "generation_profiles": list(GENERATION_PROFILES),
@@ -745,7 +746,7 @@ class Handler(BaseHTTPRequestHandler):
         if kind == "preview":
             self.send_bytes(TINY_PNG, "image/png", filename)
         else:
-            self.send_bytes(MOCK_OBJ, "model/obj", filename)
+            self.send_bytes(MOCK_OBJ, "model/gltf-binary" if MOCK_FORMAT == "glb" else "model/obj", filename)
 
     def require_native_client(self):
         if self.headers.get("X-OrcaSlicer-Client") != "native":

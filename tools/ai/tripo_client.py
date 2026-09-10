@@ -253,21 +253,20 @@ def _generation_payload(model: str, face_limit: int, generation_profile: str) ->
         )
     if generation_profile not in _GENERATION_PROFILES:
         raise TripoError("The generation profile must be quality or performance.")
-    high_quality = generation_profile == "quality"
     return {
         "model": model,
         "smart_low_poly": False,
-        "face_limit": face_limit,
+        "face_limit": min(face_limit, 1000000),
         "texture": True,
         "pbr": True,
-        "texture_quality": "extreme" if high_quality else "standard",
-        "geometry_quality": "detailed" if high_quality else "standard",
+        "texture_quality": "standard",
+        "geometry_quality": "standard",
         "quad": False,
-        "export_uv": high_quality,
+        "export_uv": True,
     }
 
 
-def create_text_task(prompt: str, face_limit: int = 2000000, generation_profile: str = "quality") -> str:
+def create_text_task(prompt: str, face_limit: int = 1000000, generation_profile: str = "quality") -> str:
     if not isinstance(prompt, str) or not prompt.strip():
         raise TripoError("A text prompt is required.")
     _, _, model = _config()
@@ -318,7 +317,7 @@ def upload_image(path: str | os.PathLike[str]) -> str:
     return token
 
 
-def create_image_task(file_token: str, face_limit: int = 2000000, generation_profile: str = "quality") -> str:
+def create_image_task(file_token: str, face_limit: int = 1000000, generation_profile: str = "quality") -> str:
     if not isinstance(file_token, str) or not file_token:
         raise TripoError("An uploaded image reference is required.")
     _, _, model = _config()
@@ -339,7 +338,7 @@ _MULTIVIEW_ORDER = ("front", "left", "back", "right")
 
 def create_multiview_task(
     view_tokens: Mapping[str, str],
-    face_limit: int = 2000000,
+    face_limit: int = 1000000,
     generation_profile: str = "quality",
 ) -> str:
     if not isinstance(view_tokens, Mapping):
@@ -372,7 +371,7 @@ def create_texture_task(
     image_token: str | Sequence[str],
     *,
     texture_alignment: str = "original_image",
-    texture_quality: str = "detailed",
+    texture_quality: str = "standard",
     texture_seed: int | None = None,
 ) -> str:
     """Regenerate only the texture of an existing Tripo geometry task."""

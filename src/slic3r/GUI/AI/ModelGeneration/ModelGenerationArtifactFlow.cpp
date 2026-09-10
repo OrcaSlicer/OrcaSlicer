@@ -68,16 +68,16 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
 {
     if (!m_ready || m_job_id.empty() || m_shutdown)
         return;
-    if (m_artifact_format != "obj") {
+    if ((m_artifact_format != "obj" && m_artifact_format != "glb")) {
         m_artifact_download_started = false;
-        m_status->SetLabel(_L("只能预览和导入生成的 OBJ 模型。"));
-        m_result_summary->SetLabel(_L("当前生成结果不是受支持的 OBJ 格式。"));
+        m_status->SetLabel(_L("支持预览和导入 OBJ、GLB 模型。"));
+        m_result_summary->SetLabel(_L("当前生成结果不是受支持的 OBJ 或 GLB 格式。"));
         refresh_controls();
         return;
     }
-    if (m_artifact_color_encoding != "vertex_colors") {
+    if (m_artifact_format == "obj" && m_artifact_color_encoding != "vertex_colors") {
         m_artifact_download_started = false;
-        m_status->SetLabel(_L("生成的 OBJ 不包含受支持的顶点颜色。"));
+        m_status->SetLabel(_L("生成的模型不包含受支持的顶点颜色。"));
         m_result_summary->SetLabel(_L("缺少颜色信息，无法继续彩色模型流程。"));
         refresh_controls();
         return;
@@ -87,7 +87,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
     m_color_intent_path.clear();
     m_busy = true;
     update_progress(94, 4, _L("下载模型"));
-    m_status->SetLabel(_L("正在下载并校验生成的 OBJ 模型..."));
+    m_status->SetLabel(_L("正在下载并校验生成的模型..."));
     m_model_stats->SetLabel(_L("正在加载模型..."));
     m_model_preview_message->SetLabel(_L("下载完成后将在此处显示彩色 3D 预览。"));
     refresh_controls();
@@ -105,7 +105,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
                     weak->finish_model_preview_download(path, sequence);
                     return;
                 }
-                weak->m_status->SetLabel(_L("正在校验模型颜色意图与 OBJ 的绑定..."));
+                weak->m_status->SetLabel(_L("正在校验模型颜色意图与模型的绑定..."));
                 weak->m_color_intent_path = temp_path(weak->m_job_id + "-color-intent", "json");
                 weak->m_client.download_color_intent(
                     weak->m_job_id, weak->m_color_intent_schema, weak->m_color_intent_sha256,
@@ -129,7 +129,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
                                 return;
                             weak->m_color_intent_path.clear();
                             weak->m_color_intent_schema.clear(); weak->m_color_intent_sha256.clear();
-                            weak->m_result_summary->SetLabel(_L("颜色清单不可用，将使用 OBJ 自身颜色：") + from_u8(error));
+                            weak->m_result_summary->SetLabel(_L("颜色清单不可用，将使用模型自身颜色：") + from_u8(error));
                             weak->finish_model_preview_download(path, sequence);
                         });
                     });
@@ -161,7 +161,7 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
             m_color_intent_path, m_color_intent_schema, m_color_intent_sha256, path)) {
         m_color_intent_path.clear();
         m_color_intent_schema.clear(); m_color_intent_sha256.clear();
-        m_result_summary->SetLabel(_L("颜色清单不匹配，将使用 OBJ 自身颜色继续。"));
+        m_result_summary->SetLabel(_L("颜色清单不匹配，将使用模型自身颜色继续。"));
     }
 
     load_model_preview_async(path, m_job_palette,
@@ -189,7 +189,7 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
     m_result_summary->SetLabel(visual_gate_blocked
         ? _L("模型已可用。外观检查仅作提示，可继续导入或进行本地美颜。")
         : m_color_intent_path.empty()
-            ? _L("模型已下载并通过 OBJ 解析，可继续按旧版兼容方式导入准备页。")
+            ? _L("模型已下载并通过解析，可继续导入准备页。")
             : _L("模型与颜色意图已校验，可继续导入准备页。"));
     const size_t artifact_size = boost::filesystem::file_size(path);
     save_library_entry(artifact_size, triangle_count, dimensions.x(), dimensions.y(),
@@ -206,10 +206,10 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
         m_busy = false;
         m_artifact_download_started = false;
         m_model_preview_ready = false;
-        m_status->SetLabel(_L("OBJ 模型解析失败，已保留本地文件。"));
+        m_status->SetLabel(_L("模型解析失败，已保留本地文件。"));
         m_result_summary->SetLabel(_L("无法显示 3D 预览：") + from_u8(error));
         m_model_stats->SetLabel(_L("模型预览不可用"));
-        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的 OBJ 文件。"));
+        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的模型文件。"));
         refresh_controls();
     });
 }

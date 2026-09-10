@@ -32,7 +32,7 @@ except ImportError:
 
 
 _MODEL_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
-_GENERATION_PROFILE_FACE_LIMITS = {"quality": 2000000, "performance": 300000}
+_GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class ModelTaskRequest:
     prompt: str = ""
     image_path: Path | None = None
     image_paths: Mapping[str, Path] | None = None
-    face_limit: int = 2000000
+    face_limit: int = 1000000
     generation_profile: str = "quality"
 
 
@@ -62,7 +62,7 @@ class TextureTaskRequest:
     source_task_id: str
     image_path: Path
     texture_alignment: str = "geometry"
-    texture_quality: str = "detailed"
+    texture_quality: str = "standard"
 
 
 @dataclass(frozen=True)
@@ -249,7 +249,9 @@ class ModelProviderGateway:
                 provider="tripo",
                 operation="model_generation",
             )
-        if request.face_limit != _GENERATION_PROFILE_FACE_LIMITS[request.generation_profile]:
+        if request.face_limit != _GENERATION_PROFILE_FACE_LIMITS[request.generation_profile] and not (
+            request.generation_profile == "quality" and request.face_limit == 2000000
+        ):  # Retain frozen requests; the adapter caps their standard-geometry payload.
             raise ProviderGatewayError(
                 "The model face target does not match the selected generation profile.",
                 code="invalid_model_request",

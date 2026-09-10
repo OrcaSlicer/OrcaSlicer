@@ -247,6 +247,7 @@ private:
     bool m_finishing_before {false};
     std::function<void()> m_finishing_restore_context;
     std::function<void()> m_finishing_source_context;
+    std::function<void()> m_finishing_redo_preview;
 
     wxStaticText*   m_prompt_label { nullptr };
     wxTextCtrl*     m_prompt { nullptr };
@@ -409,7 +410,7 @@ private:
     std::string m_job_custom_style;
     AIModelGenerationClient::ImagePrintSettings m_job_print_settings;
     size_t m_job_palette_color_count { Slic3r::AI::kLegacyDefaultTargetPaletteColors };
-    int m_job_face_limit { 2000000 };
+    int m_job_face_limit { 1000000 };
     std::string m_job_generation_profile { "quality" };
     std::string m_job_id;
     std::string m_job_phase;

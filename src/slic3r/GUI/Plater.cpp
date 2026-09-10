@@ -1,3 +1,4 @@
+#include "AI/Orca/FilamentColorPack.hpp"
 #include "Plater.hpp"
 #include "AIAssistantPanel.hpp"
 #include "AI/SmartSlicing/SmartSlicingFeatureHost.hpp"
@@ -3092,6 +3093,10 @@ Sidebar::Sidebar(Plater *parent)
     update_filaments_area_height(); // ORCA
 
     wrapper_sizer->Add(p->m_panel_filament_content, 0, wxEXPAND);
+    auto* color_packs = new wxButton(p->m_filament_area_wrapper, wxID_ANY, _L("耗材色卡包…"));
+    color_packs->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { show_filament_color_packs(this); });
+    wrapper_sizer->Add(color_packs, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
+
 
     // ---- Mixed-color filament section ----
     // A mixed filament is a virtual slot realized from 2-3 physical filaments at slicing time.
@@ -3355,18 +3360,19 @@ void Sidebar::update_ai_workflow_step(AIWorkflowStep step, AIWorkflowStatus stat
     Layout();
 }
 
-void Sidebar::finish_ai_workflow(bool success, const wxString& summary)
+void Sidebar::finish_ai_workflow(bool success, const wxString& summary, bool cancelled)
 {
     if (!m_ai_workflow_active)
         return;
     if (m_ai_workflow_summary != nullptr) {
         m_ai_workflow_summary->SetLabel(summary);
-        m_ai_workflow_summary->SetForegroundColour(success ? wxColour(46, 125, 50) : wxColour(179, 38, 30));
+        m_ai_workflow_summary->SetForegroundColour(cancelled ? wxColour(100, 100, 100) : success ? wxColour(46, 125, 50) : wxColour(179, 38, 30));
         m_ai_workflow_summary->Wrap(FromDIP(340));
     }
     if (p && p->scrolled)
         p->scrolled->Layout();
     Layout();
+    if (cancelled) for (auto& step : m_ai_workflow_steps) if (step) step->SetLabel(wxEmptyString);
     m_ai_workflow_active = false;
 }
 

@@ -170,6 +170,7 @@ private:
     std::vector<std::array<float, 3>> m_painted_vertices;
     std::vector<std::array<int, 3>>   m_painted_indices;
     std::vector<std::array<float, 3>> m_face_colors_rgb;
+    std::map<std::array<std::size_t, 3>, std::vector<size_t>> m_face_color_groups;
     std::vector<std::array<float, 3>> m_original_face_colors_rgb;
     std::vector<std::array<float, 3>> m_filament_colors_rgb;
     std::map<std::array<std::size_t, 3>, std::array<float, 3>> m_color_map;

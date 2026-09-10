@@ -190,6 +190,29 @@ TEST_CASE("vertex color geometric seams preserve region boundaries", "[AI][Verte
     }
 }
 
+TEST_CASE("Similar color clicks accumulate connected patches without selecting disconnected colors", "[VertexColorRegion]")
+{
+    auto mesh = seamed_square_mesh();
+    // A disconnected triangle has the same blue as the second patch.
+    mesh.vertices.insert(mesh.vertices.end(), {{10, 0, 0}, {11, 0, 0}, {10, 1, 0}});
+    mesh.indices.emplace_back(6, 7, 8);
+    auto colors = solid_colors(mesh.vertices.size(), {0, 0, 1, 1});
+    for (size_t i = 0; i < 3; ++i) colors[i] = {1, 0, 0, 1};
+    AI::VertexColorRegionEditor editor;
+    std::string error;
+    REQUIRE(editor.initialize(std::move(mesh), std::move(colors), error));
+    AI::RegionSelectionSettings settings;
+    REQUIRE(editor.update_selection(0, AI::RegionSelectionOperation::AddSimilar, settings) == 1);
+    const auto first = editor.selected_faces();
+    REQUIRE(editor.update_selection(1, AI::RegionSelectionOperation::AddSimilar, settings) == 2);
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{1, 1, 0});
+    CHECK(editor.update_selection(1, AI::RegionSelectionOperation::AddSimilar, settings) == 2);
+    REQUIRE(editor.restore_selection(first));
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{1, 0, 0});
+    CHECK(editor.update_selection(1, AI::RegionSelectionOperation::Replace, settings) == 1);
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{0, 1, 0});
+}
+
 TEST_CASE("vertex color local patches support add and remove", "[AI][VertexColorRegion]")
 {
     AI::VertexColorRegionEditor editor;

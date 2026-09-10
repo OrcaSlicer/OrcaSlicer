@@ -202,8 +202,8 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
         if (!m_busy && m_finishing_workbench && (m_finishing_tool->GetSelection() < 2 || m_finishing_tool->GetSelection() == 5)) preview_model_finishing();
     });
     m_finishing_tool->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
-        m_model_preview->clear_selection();
         const int tool = m_finishing_tool->GetSelection();
+        if (tool != 1 && tool != 4 && tool != 5) m_model_preview->clear_selection();
         m_finishing_smooth->SetValue(tool != 3 && tool != 5);
         m_finishing_repair->SetValue(tool == 3);
         if (tool == 5) {
@@ -309,6 +309,8 @@ void ModelGenerationPanel::update_finishing_selection()
     if (m_finishing_workbench && m_finishing_tool->GetSelection() == 4) { refresh_local_recolor_controls(); return; }
     m_model_preview->set_selection_enabled(local && !m_busy && m_finishing_candidate.empty());
     if (!local) return;
+    m_finishing_selection_status->SetLabel(wxString::Format(_L("已选 %llu 个面 · 未选区域受保护"),
+        static_cast<unsigned long long>(m_model_preview->selected_face_count())));
     AI::RegionSelectionSettings settings;
     settings.local_radius_ratio = float(m_finishing_radius->GetValue()) * 0.006f;
     settings.normal_angle_degrees = 65.0f;
@@ -333,7 +335,7 @@ void ModelGenerationPanel::refresh_model_finishing()
         m_finishing_candidate.clear(); m_finishing_source.clear(); m_finishing_undo_path.clear();
     }
     const bool pending = !m_finishing_candidate.empty();
-    const bool ready = m_model_preview_ready && is_nonempty_obj(m_displayed_model_path);
+    const bool ready = m_model_preview_ready && is_nonempty_model(m_displayed_model_path);
     m_finishing_panel->Show(m_finishing_workbench && (ready || m_finishing_running || pending));
     const bool editable = ready && !m_busy;
     const int tool = m_finishing_tool->GetSelection();
@@ -416,7 +418,7 @@ void ModelGenerationPanel::preview_model_finishing()
         return;
     }
     const auto source = m_displayed_model_path;
-    if (!is_nonempty_obj(source)) {
+    if (!is_nonempty_model(source)) {
         m_finishing_status->SetLabel(_L("模型文件已不存在，请从模型库重新加载。")); return;
     }
     AI::ModelFinishingOptions options {!cleanup && m_finishing_smooth->GetValue(), !local && m_finishing_repair->GetValue(), m_finishing_strength->GetValue() / 100.0};
@@ -444,7 +446,7 @@ void ModelGenerationPanel::preview_model_finishing()
         printable = m_job_use_printable_colors, manifest = m_color_intent_path,
         schema = m_color_intent_schema, hash = m_color_intent_sha256, format = m_artifact_format,
         encoding = m_artifact_color_encoding, quality = m_model_quality, visual = m_visual_quality,
-        refinement = m_model_refinement, library = m_library_model_loaded] {
+        refinement = m_model_refinement, library = m_library_model_loaded, color_state] {
         m_job_id = job; m_displayed_model_job_id = displayed;
         m_artifact_path = artifact; m_displayed_model_path = source;
         m_job_palette = palette; m_job_palette_roles = roles;
@@ -455,9 +457,10 @@ void ModelGenerationPanel::preview_model_finishing()
         m_model_quality = quality; m_visual_quality = visual; m_model_refinement = refinement;
         m_library_model_loaded = library; m_ready = true; m_artifact_download_started = true;
         m_model_preview_ready = true;
+        m_model_preview->restore_color_trial(color_state);
     };
     m_finishing_id = "finish-" + new_request_id();
-    const auto destination = source.parent_path() / temp_path(m_finishing_id, "obj").filename();
+    const auto destination = source.parent_path() / temp_path(m_finishing_id, AI::model_artifact_format(source)).filename();
     m_finishing_canceled = std::make_shared<std::atomic<bool>>(false);
     const auto canceled = m_finishing_canceled;
     m_finishing_running = true; m_busy = true;
@@ -468,7 +471,7 @@ void ModelGenerationPanel::preview_model_finishing()
     const uint64_t sequence = m_sequence;
     try {
       m_finishing_worker = std::thread([weak, source, destination, options, canceled, sequence, color_state] {
-        const auto result = AI::finish_model_obj(source, destination, options, [canceled] { return canceled->load(); });
+        const auto result = AI::finish_model_artifact(source, destination, options, [canceled] { return canceled->load(); });
         auto prepared = std::make_shared<ModelPreview3D::PreparedModel>();
         std::string preview_error;
         if (result.success && result.changed() && !canceled->load()) {
@@ -568,7 +571,7 @@ void ModelGenerationPanel::select_local_finishing_version(const boost::filesyste
     m_displayed_model_job_id = id;
     m_displayed_model_palette.clear(); m_displayed_model_palette_roles.clear();
     m_color_intent_path.clear(); m_color_intent_schema.clear(); m_color_intent_sha256.clear();
-    m_artifact_format = "obj"; m_artifact_color_encoding = "vertex_colors";
+    m_artifact_format = AI::model_artifact_format(path); m_artifact_color_encoding = "vertex_colors";
     m_ready = true; m_library_model_loaded = true; m_artifact_download_started = false;
     m_awaiting_confirmation = false; m_awaiting_palette_confirmation = false;
     m_last_imported_model_path.clear();
@@ -642,7 +645,9 @@ void ModelGenerationPanel::discard_model_finishing()
 void ModelGenerationPanel::undo_model_finishing()
 {
     if (m_busy || m_finishing_undo_path.empty()) return;
+    const auto redo_colors = m_model_preview->color_trial_state();
     if (!show_finishing_version(m_finishing_undo_path)) return;
+    m_finishing_redo_preview = [this, redo_colors] { m_model_preview->restore_color_trial(redo_colors); };
     m_finishing_redo_path = m_finishing_accepted_path;
     m_finishing_redo_id = m_displayed_model_job_id;
     m_finishing_redo_source = m_finishing_undo_path;
@@ -663,6 +668,7 @@ void ModelGenerationPanel::redo_model_finishing()
     m_finishing_undo_path = m_finishing_redo_source;
     m_finishing_accepted_path = m_finishing_redo_path;
     select_local_finishing_version(m_finishing_redo_path, m_finishing_redo_id);
+    if (m_finishing_redo_preview) m_finishing_redo_preview();
     m_finishing_redo_path.clear();
     m_finishing_status->SetLabel(_L("已重做修整，恢复已保存版本。"));
     m_status->SetLabel(m_finishing_status->GetLabel());

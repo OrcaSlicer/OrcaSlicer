@@ -1,9 +1,67 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "slic3r/GUI/AI/ModelGeneration/ModelPreviewPalette.hpp"
+#include "slic3r/GUI/AI/ModelGeneration/PortraitColorPackMapping.hpp"
+#include "slic3r/GUI/AI/Orca/FilamentColorPack.hpp"
 #include <limits>
 
 using namespace Slic3r::GUI::PreviewPalette;
+
+TEST_CASE("Portrait card keeps skin and lips separate and recolors cool clothing", "[FilamentColorPack]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const std::vector<Color> source {{46.f/255,46.f/255,49.f/255}, {57.f/255,67.f/255,59.f/255},
+        {92.f/255,91.f/255,94.f/255}, {176.f/255,80.f/255,69.f/255},
+        {204.f/255,148.f/255,112.f/255}, {233.f/255,233.f/255,236.f/255}};
+    const auto mapping = portrait_pack_mapping(source, card);
+    REQUIRE(mapping.enabled);
+    REQUIRE(mapping.mapping_colors == source);
+    CHECK(mapping.target_colors == std::vector<Color>{card[1], card[4], card[5], card[3], card[0], card[2]});
+    auto reversed = source; std::reverse(reversed.begin(), reversed.end());
+    auto expected = mapping.target_colors; std::reverse(expected.begin(), expected.end());
+    CHECK(portrait_pack_mapping(reversed, card).target_colors == expected);
+    CHECK(portrait_pack_mapping({{.96f,.95f,.94f}}, card).target_colors == std::vector<Color>{card[2]});
+    CHECK_FALSE(portrait_pack_mapping({}, card).enabled);
+    CHECK_FALSE(portrait_pack_mapping(source, {}).enabled);
+}
+
+TEST_CASE("Portrait matching preserves locally painted filament colors on repeated application", "[FilamentColorPack]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const std::vector<Color> edited {{.2f,.2f,.2f}, {92.f/255,91.f/255,94.f/255},
+        {176.f/255,80.f/255,69.f/255}, card[4], {204.f/255,148.f/255,112.f/255},
+        {233.f/255,233.f/255,236.f/255}};
+    const auto mapped = portrait_pack_mapping(edited, card);
+    CHECK(mapped.target_colors == std::vector<Color>{card[1], card[5], card[3], card[4], card[0], card[2]});
+    CHECK(portrait_pack_mapping(mapped.target_colors, card).target_colors == mapped.target_colors);
+    auto shuffled = card; std::reverse(shuffled.begin(), shuffled.end());
+    CHECK(portrait_pack_mapping(shuffled, card).target_colors == shuffled);
+    auto rounded = card[4]; rounded[1] = .54902f;
+    CHECK(portrait_pack_mapping({rounded}, card).target_colors == std::vector<Color>{card[4]});
+}
+
+TEST_CASE("The portrait color pack preserves the supplied physical slot order", "[FilamentColorPack]")
+{
+    const auto pack = Slic3r::GUI::young_portrait_color_pack();
+    REQUIRE(pack.valid());
+    REQUIRE(pack.colors == std::vector<std::string>{"#F7E2DA", "#282629", "#F6F7F9", "#EA9A92", "#668CB6", "#958B86"});
+    REQUIRE(pack.labels.size() == pack.colors.size());
+}
+
+TEST_CASE("Color packs reject incomplete and nonphysical color cards", "[FilamentColorPack]")
+{
+    auto pack = Slic3r::GUI::young_portrait_color_pack();
+    SECTION("Incomplete slot metadata") { pack.labels.pop_back(); }
+    SECTION("Non RGB color") { pack.colors[0] = "cmyk(5,14,14,0)"; }
+    SECTION("Malformed channel") { pack.colors[0] = "#FFHHFF"; }
+    SECTION("More than six physical colors") { pack.colors.push_back("#FFFFFF"); pack.labels.push_back("extra"); }
+    SECTION("Unnamed card") { pack.name.clear(); }
+    REQUIRE_FALSE(pack.valid());
+}
 
 TEST_CASE("Preview palettes stay bounded and deterministic for a color gradient", "[ModelPreviewPalette]")
 {

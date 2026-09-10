@@ -35,6 +35,8 @@ void clear_textured_mesh(TexturedMesh& out)
     out.material_ids.clear();
     out.material_texture_map.clear();
     out.material_colors.clear();
+    out.precomputed_vertex_colors.clear();
+    out.precomputed_face_colors.clear();
 }
 
 void set_error_message(std::string* error_message, const std::string& message)
@@ -176,7 +178,8 @@ std::array<float, 4> get_material_color(const aiMaterial& material)
     return {1.f, 1.f, 1.f, 1.f};
 }
 
-bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, std::string& error)
+bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, std::string& error,
+                  std::vector<std::array<float, 4>>* raw_vertex_colors)
 {
     if (mesh.mNumVertices > static_cast<size_t>(std::numeric_limits<int>::max()) - vertex_offset) {
         error = "Assimp mesh has too many vertices for TexturedMesh indices";
@@ -186,6 +189,10 @@ bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, 
     for (unsigned int i = 0; i < mesh.mNumVertices; ++i) {
         const aiVector3D& v = mesh.mVertices[i];
         out.vertices.push_back({v.x, v.y, v.z});
+        if (raw_vertex_colors) {
+            const aiColor4D color = mesh.HasVertexColors(0) ? mesh.mColors[0][i] : aiColor4D(1.f, 1.f, 1.f, 1.f);
+            raw_vertex_colors->push_back({color.r, color.g, color.b, color.a});
+        }
 
         if (mesh.HasTextureCoords(0)) {
             const aiVector3D& uv = mesh.mTextureCoords[0][i];
@@ -269,9 +276,11 @@ std::string scene_failure_summary(const std::string& path, const char* assimp_er
 
 } // namespace
 
-bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std::string* error_message)
+bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std::string* error_message,
+                               std::vector<std::array<float, 4>>* raw_vertex_colors)
 {
     clear_textured_mesh(out);
+    if (raw_vertex_colors) raw_vertex_colors->clear();
 
     Assimp::Importer importer;
     const unsigned int flags = assimp_import_flags(path);
@@ -298,7 +307,7 @@ bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std:
         if (!mesh || !mesh->HasPositions())
             continue;
         std::string mesh_error;
-        if (!collect_mesh(*mesh, vertex_offset, out, mesh_error)) {
+        if (!collect_mesh(*mesh, vertex_offset, out, mesh_error, raw_vertex_colors)) {
             const std::string message = mesh_error + ": " + path;
             BOOST_LOG_TRIVIAL(error) << "AssimpImport: " << message;
             set_error_message(error_message, message);

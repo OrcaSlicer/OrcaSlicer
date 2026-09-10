@@ -1,4 +1,5 @@
 #include "ModelGenerationPresentation.hpp"
+#include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -116,6 +117,8 @@ bool is_supported_image(const boost::filesystem::path& path)
     return image.IsOk() && image.GetWidth() >= MIN_SOURCE_IMAGE_EDGE &&
            image.GetHeight() >= MIN_SOURCE_IMAGE_EDGE;
 }
+
+bool is_nonempty_model(const boost::filesystem::path& path) { return AI::is_model_artifact(path); }
 
 bool is_nonempty_obj(const boost::filesystem::path& path)
 {

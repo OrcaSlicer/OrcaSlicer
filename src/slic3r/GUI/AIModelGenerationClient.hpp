@@ -154,7 +154,7 @@ public:
         std::string prepared_prompt;
         std::string user_prompt;
         int         progress { 0 };
-        int         face_limit { 2000000 };
+        int         face_limit { 1000000 };
         std::string generation_profile { "quality" };
         std::string style;
         std::string custom_style;

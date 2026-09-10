@@ -7,8 +7,10 @@
 #include "test_utils.hpp"
 
 #include <array>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <set>
 
 using namespace Slic3r;
@@ -58,6 +60,101 @@ TEST_CASE("Fixed import palettes reject invalid colors and mismatched source cen
     settings.fixed_mapping_palette.clear();
     settings.fixed_palette = {{256,0,0}};
     CHECK_FALSE(face_colors_to_painting(mesh, painted, settings));
+}
+
+TEST_CASE("Vertex color boundary splits preserve closed surfaces and color regions", "[ModelVertexColors][ColorBoundary]")
+{
+    const int color_count = GENERATE(1, 2, 3, 4);
+    const int face_rotation = GENERATE(0, 1, 2);
+    CAPTURE(color_count, face_rotation);
+    using Color = std::array<size_t, 3>;
+    const std::array<Color, 4> source_colors = {{{255,0,0}, {0,255,0}, {0,0,255}, {255,255,255}}};
+    const std::array<Color, 4> target_colors = {{{20,30,40}, {50,100,150}, {160,170,180}, {200,210,220}}};
+    TexturedMesh textured;
+    textured.vertices = {{0,0,0}, {60,0,0}, {0,0,100}, {0,40,0}};
+    textured.indices = {{0,2,1}, {0,1,3}, {1,2,3}, {2,0,3}};
+    for (auto& face : textured.indices) {
+        const auto original = face;
+        for (int corner = 0; corner < 3; ++corner)
+            face[corner] = original[(corner + face_rotation) % 3];
+    }
+    for (size_t i = 0; i < textured.vertices.size(); ++i) {
+        const auto& color = source_colors[i % color_count];
+        textured.precomputed_vertex_colors.push_back({color[0] / 255.f, color[1] / 255.f, color[2] / 255.f, 1.f});
+    }
+    textured.precomputed_face_colors.assign(textured.indices.size(), {128,128,128});
+    TexturePaintingSettings settings;
+    settings.smooth_weight = 0;
+    settings.fixed_mapping_palette.assign(source_colors.begin(), source_colors.begin() + color_count);
+    settings.fixed_palette.assign(target_colors.begin(), target_colors.begin() + color_count);
+
+    indexed_triangle_set original;
+    for (const auto& v : textured.vertices)
+        original.vertices.emplace_back(v[0], v[1], v[2]);
+    for (const auto& f : textured.indices)
+        original.indices.emplace_back(f[0], f[1], f[2]);
+    REQUIRE(its_num_open_edges(original) == 0);
+    PaintedMesh painted;
+    REQUIRE(face_colors_to_painting(textured, painted, settings));
+    REQUIRE(painted.face_colors.size() == painted.indices.size());
+    indexed_triangle_set result;
+    for (const auto& v : painted.vertices)
+        result.vertices.emplace_back(v[0], v[1], v[2]);
+    for (const auto& f : painted.indices) {
+        for (int index : f) {
+            REQUIRE(index >= 0);
+            REQUIRE(size_t(index) < result.vertices.size());
+        }
+        result.indices.emplace_back(f[0], f[1], f[2]);
+    }
+    CHECK(its_num_open_edges(result) == 0);
+    CHECK_THAT(its_volume(result), Catch::Matchers::WithinRel(its_volume(original), 1e-6f));
+    std::array<bool, 4> retained_corners {};
+    std::map<Color, double> base_color_areas;
+    for (size_t fi = 0; fi < result.indices.size(); ++fi) {
+        const auto& face = result.indices[fi];
+        const Vec3f& a = result.vertices[face[0]];
+        const Vec3f& b = result.vertices[face[1]];
+        const Vec3f& c = result.vertices[face[2]];
+        const double area = (b - a).cross(c - a).norm() / 2.;
+        CHECK(area > 0.);
+        for (size_t vi = 0; vi < original.vertices.size(); ++vi) {
+            if (a.isApprox(original.vertices[vi]) || b.isApprox(original.vertices[vi]) || c.isApprox(original.vertices[vi])) {
+                retained_corners[vi] = true;
+                CHECK(painted.face_colors[fi] == target_colors[vi % color_count]);
+            }
+        }
+        if (std::abs(a.y()) < 1e-6f && std::abs(b.y()) < 1e-6f && std::abs(c.y()) < 1e-6f)
+            base_color_areas[painted.face_colors[fi]] += area;
+    }
+    for (bool retained : retained_corners)
+        CHECK(retained);
+    if (color_count == 4) {
+        // The y=0 face has its widest angle at the origin. The centre cut
+        // leaves that corner a quarter of the area and gives each other color
+        // three eighths, regardless of the face's cyclic index order.
+        const double base_area = 60. * 100. / 2.;
+        CHECK_THAT(base_color_areas[target_colors[0]], Catch::Matchers::WithinRel(base_area / 4., 1e-6));
+        CHECK_THAT(base_color_areas[target_colors[1]], Catch::Matchers::WithinRel(base_area * 3. / 8., 1e-6));
+        CHECK_THAT(base_color_areas[target_colors[2]], Catch::Matchers::WithinRel(base_area * 3. / 8., 1e-6));
+    }
+
+    Model model;
+    ModelVolume* volume = model.add_object()->add_volume(TriangleMesh(original), ModelVolumeType::MODEL_PART, false);
+    std::vector<FilamentMatch> matches;
+    for (size_t i = 0; i < painted.cluster_colors.size(); ++i) {
+        FilamentMatch match;
+        match.cluster_index = int(i);
+        match.filament_index = int(i % 3);
+        matches.push_back(match);
+    }
+    REQUIRE(apply_painted_mesh_to_volume(painted, matches, *volume));
+    CHECK(its_num_open_edges(volume->mesh().its) == 0);
+    CHECK_THAT(its_volume(volume->mesh().its), Catch::Matchers::WithinRel(its_volume(original), 1e-6f));
+    for (const auto& match : matches) {
+        const auto state = static_cast<EnforcerBlockerType>(static_cast<int>(EnforcerBlockerType::Extruder1) + match.filament_index);
+        CHECK(volume->mmu_segmentation_facets.has_facets(*volume, state));
+    }
 }
 
 namespace {

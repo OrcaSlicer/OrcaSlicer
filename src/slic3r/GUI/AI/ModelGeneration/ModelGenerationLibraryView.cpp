@@ -2,6 +2,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "ModelImageDisplayCopy.hpp"
+#include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include <algorithm>
 #include <wx/button.h>
 #include <wx/clipbrd.h>
@@ -38,7 +39,8 @@ void ModelGenerationPanel::refresh_library()
                 std::max(1, int(thumbnail.GetWidth() * scale)), std::max(1, int(thumbnail.GetHeight() * scale)), wxIMAGE_QUALITY_HIGH)));
             format->SetBackgroundColour(wxColour(160, 160, 160));
         } else {
-            format = new wxStaticText(card, wxID_ANY, _L("无缩略图\nOBJ"));
+            const wxString extension = wxString::FromUTF8(AI::model_artifact_format(entry.model_path)).Upper();
+            format = new wxStaticText(card, wxID_ANY, _L("无缩略图") + "\n" + extension);
         }
         row->Add(format, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(12));
         auto* text = new wxBoxSizer(wxVERTICAL);

@@ -39,6 +39,7 @@ from color_intent import (
     write_color_intent_manifest,
 )
 from network_policy import network_diagnostics
+from glb_artifact import Glb, GlbError, prepare_generated_glb, write_analysis_obj
 
 from openai_preprocessor import (
     IDENTITY_FIRST_PORTRAIT_STYLES,
@@ -159,7 +160,7 @@ MODEL_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
 DEFAULT_MODEL_FACE_LIMIT = 300000
 GENERATION_PROFILES = ("quality", "performance")
 DEFAULT_GENERATION_PROFILE = "quality"
-GENERATION_PROFILE_FACE_LIMITS = {"quality": 2000000, "performance": 300000}
+GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 MAX_GENERATION_ATTEMPTS = 1
 JOB_STATE_FILENAME = "job.json"
 JOB_STATE_VERSION = 1
@@ -219,7 +220,7 @@ PORTRAIT_HEAD_GEOMETRY_MAX_SUBJECT_OCCUPANCY = 0.96
 PORTRAIT_REAR_PLATE_MIN_RUN_RATIO = 0.60
 PORTRAIT_REAR_PLATE_MAX_START_RATIO = 0.15
 DEFAULT_MODEL_SIZE_MM = 100.0
-MODEL_ARTIFACT_FORMAT = "obj"
+MODEL_ARTIFACT_FORMAT = "glb"
 MODEL_QUALITY_FILENAME = "model-quality.json"
 STYLE_IDS = (
     "sculpture", "realistic", "portrait_sketch", "cartoon", "low_poly", "relief", "ink_relief", "diorama", "custom",
@@ -1433,7 +1434,7 @@ def _adopt_legacy_completed_job(job_id: str) -> Job | None:
     job.message = "Recovered historical model library entry."
     job.progress = 100
     job.artifact_path = artifact
-    job.artifact_format = MODEL_ARTIFACT_FORMAT
+    job.artifact_format = "obj"  # This adoption path is for legacy OBJ jobs.
     attempts_path = directory / "attempts.json"
     try:
         if attempts_path.is_file() and attempts_path.stat().st_size <= MAX_JOB_STATE_BYTES:
@@ -1605,7 +1606,7 @@ def _public_job(job: Job) -> dict[str, Any]:
         "artifact": {
             "ready": artifact_ready,
             "format": job.artifact_format if artifact_ready else "",
-            "color_encoding": "vertex_colors" if artifact_ready and job.artifact_format == "obj" else "",
+            "color_encoding": ("textures_or_vertex_colors" if job.artifact_format == "glb" else "vertex_colors") if artifact_ready else "",
             "filename": artifact_filename,
             "size_bytes": artifact_size if artifact_ready else 0,
             "color_intent": {
@@ -1744,7 +1745,7 @@ def _apply_printable_image_pipeline(job: Job, raw_preview: Path) -> dict[str, in
 
 
 def _write_job_color_intent(job: Job, artifact: Path) -> None:
-    if not job.palette:
+    if not job.palette or artifact.suffix.lower() == ".glb":
         job.color_intent_path, job.color_intent_schema, job.color_intent_sha256 = None, "", ""
         return
     appearance = job.raw_preview_path or job.model_reference_path
@@ -6112,7 +6113,7 @@ def _promote_attempt_artifact(candidate: Path, artifact: Path) -> None:
     try:
         if candidate.resolve() != artifact.resolve():
             shutil.copyfile(candidate, artifact)
-        for filename in (MODEL_QUALITY_FILENAME, "vertex-color-metrics.json"):
+        for filename in (MODEL_QUALITY_FILENAME, "vertex-color-metrics.json", "analysis-model.obj", "provider-model.glb"):
             source = candidate.parent / filename
             destination = artifact.parent / filename
             if not source.is_file() or source.resolve() == destination.resolve():
@@ -6168,6 +6169,72 @@ def _refresh_stale_face_limit_report(path: Path, palette: tuple[str, ...]) -> No
         write_model_quality_report(quality, report_path)
     except ModelQualityError as exc:
         raise TripoError(str(exc)) from None
+
+
+def _analysis_artifact(artifact: Path) -> Path:
+    if artifact.suffix.lower() != ".glb":
+        return artifact
+    analysis = artifact.parent / "analysis-model.obj"
+    if not analysis.is_file() or analysis.stat().st_mtime_ns < artifact.stat().st_mtime_ns:
+        try:
+            write_analysis_obj(artifact, analysis)
+        except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+            raise TripoError(f"The GLB could not be read for model checks: {exc}") from None
+    return analysis
+
+
+def _download_generation_artifact(job: Job, generation_id: str, attempt_number: int = 1, resume: bool = False) -> Path:
+    existing = job.attempts[attempt_number - 1] if len(job.attempts) >= attempt_number else {}
+    # Resume a conversion that was already submitted by an older client. New
+    # tasks always consume the generation result and never create a conversion.
+    if existing.get("conversion_task_id"):
+        return _download_conversion(job, generation_id, "obj", attempt_number, True)
+    directory = job.directory / f"attempt-{attempt_number:02d}"
+    directory.mkdir(exist_ok=True)
+    candidate = directory / "model.glb"
+    if resume and candidate.is_file():
+        try:
+            _validate_artifact(candidate, "glb")
+            _analysis_artifact(candidate)
+            return candidate
+        except TripoError:
+            diagnostic_event("model.glb_cache.invalid", level="WARNING")
+    with _JOBS_LOCK:
+        job.phase = "downloading_artifact"
+        job.message = "Downloading the generated model."
+        job.progress = 75
+        _persist_job(job)
+    result = _MODEL_PROVIDER_GATEWAY.wait_for_task(generation_id, stop_event=job.stop_event)
+    _stop_boundary(job)
+    raw = directory / "artifact-raw.download"
+    _MODEL_PROVIDER_GATEWAY.download_artifact(result, raw, MAX_ARTIFACT_BYTES)
+    _stop_boundary(job)
+    with raw.open("rb") as stream:
+        is_glb = stream.read(4) == b"glTF"
+    if not is_glb:
+        # Retain compatibility with providers/frozen jobs that return OBJ/ZIP.
+        return _prepare_obj_artifact(raw, directory, job.palette, job.palette_roles)
+    original = directory / "provider-model.glb"
+    raw.replace(original)
+    analysis = directory / "analysis-model.obj"
+    try:
+        prepare_generated_glb(original, candidate, analysis, DEFAULT_MODEL_SIZE_MM)
+    except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+        raise TripoError(f"The generated GLB could not be prepared: {exc}") from None
+    _stop_boundary(job)
+    with _JOBS_LOCK:
+        job.phase = "checking_model"
+        job.message = "Checking model geometry and colors."
+        job.progress = 99
+        _persist_job(job)
+    quality = analyze_printable_obj(analysis, ModelQualityThresholds(max_faces=MAX_MODEL_FACES),
+                                    allow_repairable_topology=True)
+    try:
+        write_model_quality_report(quality, directory / MODEL_QUALITY_FILENAME)
+    except ModelQualityError:
+        diagnostic_event("model.quality_report.unavailable", level="WARNING")
+    _write_obj_vertex_color_metrics(analysis, directory / "vertex-color-metrics.json")
+    return candidate
 
 
 def _download_conversion(
@@ -7485,6 +7552,11 @@ def _validate_artifact(path: Path, format_name: str, allow_repairable_obj: bool 
     if format_name == "obj":
         _validate_obj_vertex_colors(path)
         _validate_obj_topology(path, allow_repairable=allow_repairable_obj, quality_advisory=True)
+    if format_name == "glb":
+        try:
+            Glb(path).mesh(with_colors=False)
+        except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+            raise TripoError(f"The generated GLB is invalid: {exc}") from None
     if format_name == "3mf" and not signature.startswith(b"PK\x03\x04"):
         raise TripoError("Tripo returned an invalid 3MF artifact.")
     if format_name == "stl":
@@ -7608,12 +7680,11 @@ def _generate_job(
             )
             _stop_boundary(job)
             try:
-                candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number, True) if resume else \
-                    _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number)
-                face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+                candidate = _download_generation_artifact(job, generation_id, attempt_number, resume)
+                face_count, _, _ = _validate_obj_topology(_analysis_artifact(candidate), quality_advisory=True)
                 warning = _validate_face_target(face_count, job.face_limit)
                 job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
-                artifact = job.directory / "model-vertex-color.obj"
+                artifact = job.directory / ("model.glb" if candidate.suffix.lower() == ".glb" else "model-vertex-color.obj")
                 _promote_attempt_artifact(candidate, artifact)
                 _record_attempt(job, attempt_number, status="accepted", artifact=str(candidate.name), error="")
                 break
@@ -7646,7 +7717,7 @@ def _generate_job(
             if job.stop_event.is_set():
                 raise JobStopped()
             job.artifact_path = artifact
-            job.artifact_format = MODEL_ARTIFACT_FORMAT
+            job.artifact_format = artifact.suffix.lower().lstrip(".")
             job.state = "ready"
             job.phase = "ready"
             job.message = (
@@ -7787,7 +7858,7 @@ def _retexture_job(
                 source_task_id=source_task_id,
                 image_path=reference,
                 texture_alignment="geometry",
-                texture_quality="extreme" if job.generation_profile == "quality" else "standard",
+                texture_quality="standard",
             ),
             existing_task_id=generation_id,
             authorization=authorization,
@@ -7802,11 +7873,11 @@ def _retexture_job(
             progress=_progress_callback(job, 20, 70),
         )
         _stop_boundary(job)
-        candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, 1, resume)
-        face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+        candidate = _download_generation_artifact(job, generation_id, 1, resume)
+        face_count, _, _ = _validate_obj_topology(_analysis_artifact(candidate), quality_advisory=True)
         warning = _validate_face_target(face_count, job.face_limit)
         job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
-        artifact = job.directory / "model-vertex-color.obj"
+        artifact = job.directory / ("model.glb" if candidate.suffix.lower() == ".glb" else "model-vertex-color.obj")
         _promote_attempt_artifact(candidate, artifact)
         _record_attempt(job, 1, status="accepted", artifact=str(candidate.name), error="")
         visual_quality = _automatic_visual_review(job, artifact)
@@ -7815,7 +7886,7 @@ def _retexture_job(
             if job.stop_event.is_set():
                 raise JobStopped()
             job.artifact_path = artifact
-            job.artifact_format = MODEL_ARTIFACT_FORMAT
+            job.artifact_format = artifact.suffix.lower().lstrip(".")
             job.state = "ready"
             job.phase = "ready"
             job.message = (
@@ -8177,7 +8248,7 @@ class Handler(BaseHTTPRequestHandler):
                                 _MODEL_PROVIDER_GATEWAY.model_generation_available(),
                             "sources": ["text", "image"],
                             "styles": list(STYLE_IDS),
-                            "artifact_formats": [MODEL_ARTIFACT_FORMAT],
+                            "artifact_formats": ["glb", "obj"],
                             "face_limits": sorted(set(GENERATION_PROFILE_FACE_LIMITS.values())),
                             "default_face_limit": GENERATION_PROFILE_FACE_LIMITS[DEFAULT_GENERATION_PROFILE],
                             "generation_profiles": list(GENERATION_PROFILES),
@@ -8747,7 +8818,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise RequestError("invalid_job_state", "Model quality cannot be checked while the job is running.", 409)
             artifact = job.artifact_path
             artifact_format = job.artifact_format
-        if artifact is None or artifact_format != "obj":
+        if artifact is None or artifact_format not in {"obj", "glb"}:
             raise RequestError("artifact_not_ready", "The model OBJ is not available for quality checking.", 409)
         try:
             resolved_artifact = artifact.resolve(strict=True)
@@ -8755,7 +8826,7 @@ class Handler(BaseHTTPRequestHandler):
         except (OSError, ValueError):
             raise RequestError("artifact_not_ready", "The registered model OBJ is unavailable.", 409) from None
         quality = analyze_printable_obj(
-            resolved_artifact,
+            _analysis_artifact(resolved_artifact),
             allow_repairable_topology=True,
             target_palette=job.palette,
         )
@@ -8784,7 +8855,7 @@ class Handler(BaseHTTPRequestHandler):
             if job.state in {"preprocessing", "queued", "running", "stopping"}:
                 raise RequestError("job_busy", "Model generation is still running.", 409)
             artifact = job.artifact_path
-        if artifact is None or job.artifact_format != MODEL_ARTIFACT_FORMAT:
+        if artifact is None or job.artifact_format not in {"obj", "glb"}:
             raise RequestError("artifact_not_ready", "The model OBJ is not available for visual review.", 409)
         try:
             resolved_directory = job.directory.resolve(strict=True)
@@ -8801,7 +8872,7 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError):
                 reference = None
         review_model_visual_quality(
-            resolved_artifact,
+            _analysis_artifact(resolved_artifact),
             resolved_directory,
             description=job.user_prompt,
             style=job.style,
@@ -8849,6 +8920,7 @@ class Handler(BaseHTTPRequestHandler):
             content_type = _stored_image_type(path) if kind in image_kinds or kind.startswith("mask-") else \
                 "application/json; charset=utf-8" if kind in {"metadata", "color-intent"} else {
                 "obj": "model/obj",
+                "glb": "model/gltf-binary",
                 "3mf": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
                 "stl": "model/stl",
             }.get(job.artifact_format, "application/octet-stream")

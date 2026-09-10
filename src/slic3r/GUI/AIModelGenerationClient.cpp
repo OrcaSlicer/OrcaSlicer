@@ -621,7 +621,7 @@ void AIModelGenerationClient::download_artifact(const std::string& job_id, const
                                                  const boost::filesystem::path& path,
                                                  PathFn on_complete, ErrorFn on_error)
 {
-    if (format != "obj" && format != "3mf" && format != "stl") {
+    if (format != "obj" && format != "glb" && format != "3mf" && format != "stl") {
         if (on_error)
             on_error("The generated artifact format is not supported.");
         return;
@@ -737,7 +737,7 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
     status.prepared_prompt = job.value("prepared_prompt", std::string());
     status.user_prompt = job.value("user_prompt", std::string());
     status.progress = std::clamp(job.value("progress", 0), 0, 100);
-    status.face_limit = job.value("face_limit", 2000000);
+    status.face_limit = job.value("face_limit", 1000000);
     status.generation_profile = job.value("generation_profile", std::string("quality"));
     status.style = job.value("style", std::string());
     status.custom_style = job.value("custom_style", std::string());

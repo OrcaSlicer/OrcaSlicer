@@ -1,4 +1,5 @@
 #include "VertexColorRegionEditor.hpp"
+#include "ModelArtifact.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -467,7 +468,7 @@ size_t VertexColorRegionEditor::update_selection(size_t seed_face, RegionSelecti
 {
     if (!ready() || seed_face >= m_mesh.indices.size())
         return m_selected_face_count;
-    const std::vector<size_t> region = operation == RegionSelectionOperation::Replace
+    const std::vector<size_t> region = (operation == RegionSelectionOperation::Replace || operation == RegionSelectionOperation::AddSimilar)
         ? smart_region(seed_face, settings) : local_patch(seed_face, settings);
     if (operation == RegionSelectionOperation::Replace) {
         std::fill(m_selected_faces.begin(), m_selected_faces.end(), uint8_t(0));
@@ -668,6 +669,20 @@ bool VertexColorRegionEditor::write_obj_copy(const boost::filesystem::path& sour
     if (!ready()) {
         error = "No vertex-color model is loaded.";
         return false;
+    }
+    if (model_artifact_format(source) == "glb" || model_artifact_format(destination) == "glb") {
+        TriangleMesh source_mesh; ObjInfo colors;
+        if (!load_model_artifact(source, source_mesh, colors, error)) return false;
+        if (source_mesh.its.vertices.size() != m_mesh.vertices.size() || source_mesh.its.indices != m_mesh.indices) {
+            error = "The source model changed while recoloring. Please reload it.";
+            return false;
+        }
+        for (size_t i = 0; i < m_mesh.vertices.size(); ++i)
+            if ((source_mesh.its.vertices[i] - m_mesh.vertices[i]).squaredNorm() > 1e-10f) {
+                error = "The source geometry changed while recoloring. Please reload it.";
+                return false;
+            }
+        return write_model_artifact(destination, m_mesh, m_vertex_colors, error);
     }
     boost::filesystem::ifstream input(source);
     if (!input) {

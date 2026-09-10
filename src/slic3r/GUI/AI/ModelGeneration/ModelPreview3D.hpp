@@ -2,6 +2,7 @@
 
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/AI/Model/VertexColorRegionEditor.hpp"
+#include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include "ModelColorPreviewShader.hpp"
 #include "ModelPreviewPalette.hpp"
 #include "ModelPreviewColorControls.hpp"
@@ -197,7 +198,7 @@ public:
         const FileStamp initial_stamp = file_stamp(path);
         TriangleMesh mesh;
         ObjInfo obj_info;
-        if (!load_obj(path.string().c_str(), &mesh, obj_info, error) || mesh.empty())
+        if (!AI::load_model_artifact(path, mesh, obj_info, error) || mesh.empty())
             return false;
 
         const indexed_triangle_set& its = mesh.its;
@@ -525,6 +526,11 @@ public:
     PreviewPalette::ColorTrialMapping color_trial_mapping() const {
         return {m_color_trial_enabled, m_color_trial->mapping_colors(), m_trial_palette};
     }
+    PreviewPalette::ColorTrialMapping import_color_mapping() const {
+        if (m_color_trial_enabled) return color_trial_mapping();
+        const auto colors = m_trial_histogram ? m_trial_histogram->palette(6, {}, true) : m_trial_palette;
+        return {!colors.empty(), colors, colors};
+    }
     bool region_selection_preparing() const { return !m_region_editor.ready() && region_editing_ready() && bool(m_region_preparation); }
     bool region_editing_ready() const {
         return !m_region_prepare_failed && (m_region_editor.ready() || current_region_preparation() || (!m_pending_mesh.indices.empty() &&
@@ -571,6 +577,10 @@ public:
     bool apply_selection_color(const RGBA& color, const boost::filesystem::path& source,
                                const boost::filesystem::path& destination, std::string& error)
     {
+        if (source != m_model_path || !same_stamp(m_model_stamp, file_stamp(source))) {
+            error = "The source model changed while recoloring. Please reload it.";
+            return false;
+        }
         return m_region_editor.apply_color_to_obj_copy(color, source, destination, error);
     }
 

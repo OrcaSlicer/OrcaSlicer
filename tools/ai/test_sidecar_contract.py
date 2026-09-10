@@ -128,6 +128,38 @@ class SidecarHealthContractTests(unittest.TestCase):
             finally:
                 PRODUCTION._close_parent_process_handle(handle)
 
+    def test_glb_download_recheck_and_visual_review_keep_the_registered_artifact(self):
+        from test_glb_artifact import fixture
+        with tempfile.TemporaryDirectory() as directory, temporary_environment(ORCASLICER_AI_OUTPUT_DIR=directory):
+            job = PRODUCTION._new_job("text", ())
+            artifact = job.directory / "model.glb"
+            fixture(artifact)
+            original = artifact.read_bytes()
+            job.artifact_path = artifact
+            job.artifact_format = "glb"
+            job.state = job.phase = "ready"
+            with PRODUCTION._JOBS_LOCK:
+                PRODUCTION._JOBS[job.id] = job
+            try:
+                with sidecar_server(PRODUCTION.Handler) as port:
+                    url = f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{job.id}"
+                    headers = {"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"}
+                    with urllib.request.urlopen(urllib.request.Request(url + "/artifact", headers=headers), timeout=5) as response:
+                        self.assertEqual(response.headers.get_content_type(), "model/gltf-binary")
+                        self.assertEqual(response.read(), original)
+                    with urllib.request.urlopen(urllib.request.Request(url + "/recheck", data=b"{}", headers=headers), timeout=5) as response:
+                        self.assertEqual(json.load(response)["job"]["artifact"]["format"], "glb")
+                    with mock.patch.object(PRODUCTION, "review_model_visual_quality") as review:
+                        with urllib.request.urlopen(urllib.request.Request(url + "/visual-review", data=b"{}", headers=headers), timeout=5) as response:
+                            self.assertEqual(response.status, 200)
+                        self.assertEqual(review.call_args.args[0].suffix, ".obj")
+                        self.assertTrue(review.call_args.args[0].is_file())
+                self.assertEqual(artifact.read_bytes(), original)
+                self.assertEqual(job.artifact_path, artifact)
+            finally:
+                with PRODUCTION._JOBS_LOCK:
+                    PRODUCTION._JOBS.pop(job.id, None)
+
     def test_parent_monitor_stops_server_after_parent_exits(self):
         stopped = threading.Event()
 
@@ -538,9 +570,9 @@ class SidecarHealthContractTests(unittest.TestCase):
             generation["style_recommendation"],
             {"available": True, "local_only": True},
         )
-        self.assertEqual(generation["artifact_formats"], ["obj"])
-        self.assertEqual(generation["face_limits"], [300000, 2000000])
-        self.assertEqual(generation["default_face_limit"], 2000000)
+        self.assertEqual(generation["artifact_formats"], ["glb", "obj"])
+        self.assertEqual(generation["face_limits"], [300000, 1000000])
+        self.assertEqual(generation["default_face_limit"], 1000000)
         self.assertEqual(generation["generation_profiles"], ["quality", "performance"])
         self.assertEqual(generation["default_generation_profile"], "quality")
         self.assertIn("model_reference", generation["printable_image_pipeline"]["outputs"])
@@ -995,7 +1027,7 @@ class SidecarHealthContractTests(unittest.TestCase):
 
                 self.assertEqual(payload["job"]["state"], "queued")
                 self.assertEqual(payload["job"]["generation_profile"], "quality")
-                self.assertEqual(payload["job"]["face_limit"], 2000000)
+                self.assertEqual(payload["job"]["face_limit"], 1000000)
                 submit.assert_called_once()
                 args = submit.call_args.args
                 self.assertIs(args[0], job)

@@ -517,9 +517,9 @@ static bool adaptive_split_by_vertex_clusters(
 
     TriVertices out_vertices = original_vertices;
     TriFaces    out_faces;
-    out_faces.reserve(original_faces.size() * 5);
+    out_faces.reserve(original_faces.size() * 6);
     out_face_colors.clear();
-    out_face_colors.reserve(original_faces.size() * 5);
+    out_face_colors.reserve(original_faces.size() * 6);
 
     auto edge_key = [](std::size_t a, std::size_t b) -> uint64_t {
         return a < b ? ((static_cast<uint64_t>(a) << 32) | b)
@@ -587,10 +587,6 @@ static bool adaptive_split_by_vertex_clusters(
         const std::size_t m01 = midpoint_of_edge(v[0], v[1]);
         const std::size_t m12 = midpoint_of_edge(v[1], v[2]);
         const std::size_t m20 = midpoint_of_edge(v[2], v[0]);
-        emit(v[0], m01, m20, c[0]);
-        emit(m01, v[1], m12, c[1]);
-        emit(m12, v[2], m20, c[2]);
-
         const TriVertex& p0 = original_vertices[v[0]];
         const TriVertex& p1 = original_vertices[v[1]];
         const TriVertex& p2 = original_vertices[v[2]];
@@ -602,16 +598,27 @@ static bool adaptive_split_by_vertex_clusters(
         if (sq_opposite_v1 > widest_len) { widest = 1; widest_len = sq_opposite_v1; }
         if (sq_opposite_v2 > widest_len) { widest = 2; }
 
+        const std::size_t midpoints[3] = {m01, m12, m20};
+        const std::size_t mc = append_interior_midpoint(midpoints[(widest + 2) % 3], midpoints[widest]);
+        // The centre cut ends on a corner triangle's edge. Split that triangle
+        // at the same point too, preserving its color without a T-junction.
+        for (int corner = 0; corner < 3; ++corner) {
+            const std::size_t next = midpoints[corner], previous = midpoints[(corner + 2) % 3];
+            if (corner == widest) {
+                emit(v[corner], next, mc, c[corner]);
+                emit(v[corner], mc, previous, c[corner]);
+            } else {
+                emit(v[corner], next, previous, c[corner]);
+            }
+        }
+
         if (widest == 0) {
-            const std::size_t mc = append_interior_midpoint(m20, m01);
             emit(m12, m20, mc,  c[1]);
             emit(mc,  m01, m12, c[2]);
         } else if (widest == 1) {
-            const std::size_t mc = append_interior_midpoint(m01, m12);
             emit(m20, m01, mc,  c[0]);
             emit(mc,  m12, m20, c[2]);
         } else {
-            const std::size_t mc = append_interior_midpoint(m12, m20);
             emit(m01, m12, mc,  c[1]);
             emit(mc,  m20, m01, c[0]);
         }

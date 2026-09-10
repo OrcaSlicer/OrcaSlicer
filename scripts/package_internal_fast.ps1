@@ -30,8 +30,15 @@ if ($LASTEXITCODE -ne 0 -or $currentHead -notmatch '^[0-9a-fA-F]{40}$') {
     throw 'Unable to determine the current full Git revision.'
 }
 $currentBranch = (& git -C $repoRoot branch --show-current).Trim()
-if ($LASTEXITCODE -ne 0 -or $currentBranch -ne 'codex/orca-integration-v2') {
-    throw "Fast internal packages must be built from codex/orca-integration-v2, not '$currentBranch'."
+$teamConfig = Get-Content -LiteralPath (Join-Path $repoRoot '.github\team-collaboration.json') -Raw | ConvertFrom-Json
+$packageBranches = @($teamConfig.branches.PSObject.Properties.Value)
+if ($LASTEXITCODE -ne 0 -or $currentBranch -notin $packageBranches) {
+    throw "Internal packages require a configured team branch, not '$currentBranch'."
+}
+$packageKind = if ($currentBranch -eq $teamConfig.integration_branch) { 'integration' } else { 'development' }
+$integrationHead = (& git -C $repoRoot rev-parse "refs/remotes/origin/$($teamConfig.integration_branch)").Trim()
+if ($LASTEXITCODE -ne 0 -or $integrationHead -notmatch '^[0-9a-fA-F]{40}$') {
+    throw 'Fetch the team integration branch before packaging.'
 }
 $worktreeChanges = @(& git -C $repoRoot status --porcelain --untracked-files=all)
 if ($LASTEXITCODE -ne 0) {
@@ -45,6 +52,9 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
     $OutputDir = Join-Path $repoRoot 'build\windows-installer'
 }
 $resolvedOutputDir = [System.IO.Path]::GetFullPath($OutputDir)
+if ((Test-Path -LiteralPath $resolvedOutputDir) -and @(Get-ChildItem -LiteralPath $resolvedOutputDir -Force).Count -gt 0) {
+    throw 'Use an empty output directory for each build attempt; existing artifacts must not be replaced.'
+}
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 
 if ([string]::IsNullOrWhiteSpace($Revision)) {
@@ -123,7 +133,11 @@ if ($LASTEXITCODE -ne 0) {
 
 # An incremental build is normally a no-op, but it prevents a stale binary from
 # being relabelled with the current source revision.
-& $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui --parallel
+if ($cacheText -match '(?m)^CMAKE_GENERATOR:INTERNAL=Visual Studio') {
+    & $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui -- /m:2 /p:CL_MPCount=1 /p:UseMultiToolTask=false /p:BuildInParallel=false /nologo /v:minimal
+} else {
+    & $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui --parallel 2
+}
 if ($LASTEXITCODE -ne 0) {
     throw "Incremental Release build failed with exit code $LASTEXITCODE."
 }
@@ -260,6 +274,12 @@ foreach ($artifact in @($finalInstaller, $portablePackage)) {
     }
 }
 
+$finalSourceHead = (& git -C $repoRoot rev-parse HEAD).Trim()
+$finalSourceChanges = @(& git -C $repoRoot status --porcelain --untracked-files=all)
+if ($LASTEXITCODE -ne 0 -or $finalSourceHead -ne $currentHead -or $finalSourceChanges.Count -gt 0) {
+    throw 'Source changed during packaging. Keep this attempt for diagnosis and rebuild from a stable source revision.'
+}
+
 $integrationLockPath = Join-Path $repoRoot 'docs\architecture\ai-integration-lock.json'
 if (-not (Test-Path -LiteralPath $integrationLockPath -PathType Leaf)) {
     throw "AI integration lock is missing: $integrationLockPath"
@@ -267,11 +287,16 @@ if (-not (Test-Path -LiteralPath $integrationLockPath -PathType Leaf)) {
 $integrationLock = Get-Content -LiteralPath $integrationLockPath -Raw | ConvertFrom-Json
 $manifestPath = "$finalInstaller.manifest.json"
 $releaseManifest = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     created_utc = [DateTime]::UtcNow.ToString('o')
     installer = $finalName
     installer_sha256 = $hash
     source_commit = $currentHead
+    source_branch = $currentBranch
+    source_clean = $true
+    build_kind = $packageKind
+    integration_baseline_commit = $integrationHead
+    build_id = "$packageKind-$($currentHead.Substring(0,12))-windows-$architecture-Release-$Revision"
     application_version = $version
     package_revision = $Revision
     distribution_channel = 'internal'

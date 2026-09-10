@@ -16,7 +16,8 @@ namespace Slic3r::AI {
 enum class RegionSelectionOperation {
     Replace,
     Add,
-    Remove
+    Remove,
+    AddSimilar
 };
 
 struct RegionSelectionSettings {

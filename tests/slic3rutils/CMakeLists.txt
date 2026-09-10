@@ -24,6 +24,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_audit.cpp
     test_vertex_color_region_editor.cpp
     test_model_finishing.cpp
+    test_model_artifact.cpp
     test_orca_model_preparation.cpp
     test_smart_slicing_candidates.cpp
     test_smart_slicing_coordinator.cpp

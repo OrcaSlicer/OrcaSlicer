@@ -1,4 +1,5 @@
 #include "ModelFinishing.hpp"
+#include "ModelArtifact.hpp"
 #include "ModelColorCleanup.hpp"
 
 #include "libslic3r/Point.hpp"
@@ -512,6 +513,47 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
         boost::system::error_code ignored;
         boost::filesystem::remove(temporary, ignored);
     }
+    return result;
+}
+ModelFinishingResult finish_model_artifact(const boost::filesystem::path& source,
+    const boost::filesystem::path& destination, const ModelFinishingOptions& options,
+    const std::function<bool()>& canceled)
+{
+    if (model_artifact_format(source) == "obj" && model_artifact_format(destination) == "obj")
+        return finish_model_obj(source, destination, options, canceled);
+    ModelFinishingResult result;
+    auto input_obj = destination; input_obj += ".source.obj";
+    auto output_obj = destination; output_obj += ".edited.obj";
+    bool owns_input = false, owns_output = false, owns_destination = false;
+    try {
+        if (boost::filesystem::exists(destination) || boost::filesystem::exists(input_obj) || boost::filesystem::exists(output_obj))
+            throw std::runtime_error("The output already exists; choose a new model version.");
+        if (canceled && canceled()) throw Canceled {};
+        const auto source_hash = file_hash(source, canceled);
+        TriangleMesh mesh; ObjInfo colors; std::string error;
+        if (!load_model_artifact(source, mesh, colors, error) ||
+            !write_model_artifact(input_obj, mesh.its, colors.vertex_colors, error))
+            throw std::runtime_error(error);
+        owns_input = true;
+        result = finish_model_obj(input_obj, output_obj, options, canceled);
+        owns_output = result.success;
+        result.source_sha256 = source_hash;
+        if (result.success) {
+            result.success = false;
+            if (canceled && canceled()) throw Canceled {};
+            if (!load_model_artifact(output_obj, mesh, colors, error)) throw std::runtime_error(error);
+            if (file_hash(source, canceled) != source_hash) throw std::runtime_error("The source model changed during finishing. Please reload it.");
+            if (!write_model_artifact(destination, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
+            owns_destination = true;
+            result.output_sha256 = file_hash(destination, canceled);
+            result.success = true;
+        }
+    } catch (const Canceled&) { result.success = false; result.canceled = true; }
+      catch (const std::exception& error) { result.success = false; result.error = error.what(); }
+    boost::system::error_code ignored;
+    if (owns_input) boost::filesystem::remove(input_obj, ignored);
+    if (owns_output) boost::filesystem::remove(output_obj, ignored);
+    if (owns_destination && !result.success) boost::filesystem::remove(destination, ignored);
     return result;
 }
 } // namespace Slic3r::AI

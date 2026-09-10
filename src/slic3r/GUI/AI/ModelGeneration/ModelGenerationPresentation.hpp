@@ -53,6 +53,7 @@ int display_progress(const AIModelGenerationClient::JobStatus& status);
 bool is_transient_sidecar_poll_error(const std::string& error);
 std::string new_request_id();
 bool is_supported_image(const boost::filesystem::path& path);
+bool is_nonempty_model(const boost::filesystem::path& path);
 bool is_nonempty_obj(const boost::filesystem::path& path);
 boost::filesystem::path generated_models_root();
 boost::filesystem::path temp_path(const std::string& job_id, const std::string& extension);
