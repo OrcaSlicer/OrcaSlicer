@@ -2142,7 +2142,7 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         // legacy tail of this function ends in a default rectangle built from width/height,
         // which for an entity sketch are whatever they happened to be initialised to — so a
         // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles:
-        // snaporca-88v) used to extrude into a box the user never drew, silently. Failing here
+        // 88v) used to extrude into a box the user never drew, silently. Failing here
         // costs the caller an error message; falling through cost them wrong geometry that
         // looked deliberate. The legacy profile/shape paths below are still reached by sketches
         // that legitimately carry no entities at all.
@@ -2751,7 +2751,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         // Neutral plane = horizontal plane through the body's bbox bottom, pull direction +Z.
         // The face pivots about the line where it meets the neutral plane and tilts by the angle.
         // ponytail: neutral plane / pull direction fixed to world up; pick-based neutral plane
-        // deferred (same as the datum-plane pick types, snaporca-dgv).
+        // deferred (same as the datum-plane pick types, dgv).
         Bnd_Box bb; BRepBndLib::Add(result, bb);
         Standard_Real xmin, ymin, zmin, xmax, ymax, zmax;
         bb.Get(xmin, ymin, zmin, xmax, ymax, zmax);
@@ -3537,7 +3537,7 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
 }
 
 // Volume of a shape, 0 for anything that isn't a solid we can measure. Used to catch a
-// subtraction that removed nothing (snaporca-daf).
+// subtraction that removed nothing (daf).
 static double solid_volume(const TopoDS_Shape& s)
 {
     if (s.IsNull()) return 0.0;
@@ -3591,7 +3591,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
         // an agent especially — then has no signal at all that the hole it asked for was never
         // drilled: same body, same volume, ok:true. Measure the volume across the op and refuse
         // the no-op. Only for removals: every other feature type may legitimately leave the volume
-        // alone (a Transform certainly does). snaporca-daf.
+        // alone (a Transform certainly does). daf.
         const bool removes = f.type == CadFeatureType::Hole
                           || f.type == CadFeatureType::Thread
                           || ((f.type == CadFeatureType::Extrude || f.type == CadFeatureType::Revolve
@@ -3625,7 +3625,7 @@ bool CadDocument::recompute()
     // made a sketch-only design unsaveable AND unopenable: DesignPanel::recompute_guarded syncs
     // the 3MF recipe only "on success", so nothing was written, and deserialize_recipe ends with
     // `return recompute()`, so a project that did carry a recipe was refused on load with
-    // "Could not restore the CAD model" while its features sat correctly in the list. snaporca-mtav.
+    // "Could not restore the CAD model" while its features sat correctly in the list. mtav.
     bool any_solid_feature = false;
     try {
         // Parametric pass: evaluate document variables, then each feature's expression bindings,

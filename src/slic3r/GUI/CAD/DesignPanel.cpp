@@ -62,7 +62,7 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 
-// English-only pin for the Design tab (see snaporca-design-ux-contract): one lever
+// English-only pin for the Design tab (see design-ux-contract): one lever
 // de-translates this whole TU so our strings never half-translate against the host's
 // localized chrome. Host UI still follows the app locale; only this tab is pinned EN.
 // GOTCHA: every _L(...) in this file must take a STRING LITERAL (FromUTF8 wants const char*).
@@ -452,7 +452,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         }
     };
     m_keys_sketch['Q'] = [this] {
-        // With geometry selected, Q converts THAT geometry (snaporca-6zic) — the reading
+        // With geometry selected, Q converts THAT geometry (6zic) — the reading
         // everyone arrives with from other sketchers. With nothing selected it keeps its
         // old meaning: arm construction for whatever you draw next.
         if (m_viewport && m_viewport->is_sketching() &&
@@ -547,7 +547,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // still BUILT — that is what registers its "fly:<family>#<row>" address and its Shift+key —
     // but it is never placed on the bar. Hiding rather than skipping construction is deliberate:
     // the addresses are created inside the widget-building loops, so not building would silently
-    // delete 42 verbs from the offer while they still rendered. snaporca-7ih records the cleanup
+    // delete 42 verbs from the offer while they still rendered. 7ih records the cleanup
     // that lets the construction go away too.
     // What stays: the two doc-row imports (consumed by add_doc below) and the view controls,
     // which are chrome_only in the atlas and so have no offer row to fall back on.
@@ -577,7 +577,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // outright for a family the bar no longer carries. It used to sit INSIDE the build
             // loop, so a retired family still had to be constructed and then Hide()n: skipping it
             // would have deleted 42 verbs from the offer while their rows still rendered and did
-            // nothing when picked. snaporca-7ih.
+            // nothing when picked. 7ih.
             // Keyed on "fly:<family>#<row>" so the generated table can name a variant without the
             // item struct growing a field at 26 call sites.
             for (size_t i = 0; i < vars.size(); ++i) {
@@ -746,7 +746,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // Thicken and were then asked to point at something. Reached from the offer the
                 // verb is invoked ON a face, so discarding it opened the card reading "(pick a
                 // solid face)" over an immediate "thicken: face not found" — the user pointed at
-                // the face and the card said it could not find one. snaporca-kgx.
+                // the face and the card said it could not find one. kgx.
                 // The index is per-body, so it only survives if the body combo landed on the body
                 // it came from; selected_body_default() above returns exactly that when valid.
                 if (m_thicken_body->GetSelection() != m_sel_solid_body)
@@ -1267,7 +1267,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // The offer reaches each tool by its ratified address; without these the offer could
             // name a family but only ever arm its FIRST tool: picking "Rectangle" ran key:R and
             // gave you a corner rectangle, with oblique and rounded unreachable. Keyed on the icon
-            // id (already unique per family) so no call site grows an argument. snaporca-6vs.
+            // id (already unique per family) so no call site grows an argument. 6vs.
             for (size_t i = 0; i < vars.size(); ++i) {
                 const DesignSketchTool::Mode mode = vars[i].mode;
                 const wxString               hint = vars[i].hint;
@@ -1423,7 +1423,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // the offer's Create > Polygon submenu. They used to sit inline in this row, then in a
         // sidebar card; both put the choice somewhere you had to leave the geometry to reach,
         // and the count cannot be recovered afterwards (a drawn polygon's inline editor offers
-        // Side and Angle, never the count). snaporca-e1p.
+        // Side and Angle, never the count). e1p.
         auto arm_polygon = [this, select_tool] {
             push_polygon_params();
             select_tool(DesignSketchTool::Mode::Polygon,
@@ -1444,7 +1444,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // where you chose the tool — not behind a card you must open to discover it existed.
         // Each address opens the tool exactly as its shortcut does, then says which one.
         // The members are read at INVOCATION, not capture: the cards are built after this row.
-        // snaporca-e1p.
+        // e1p.
         auto open_feature = [this](int key) {
             auto it = m_keys_feature.find(key);
             if (it != m_keys_feature.end() && it->second) it->second();
@@ -1745,7 +1745,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // NO plane row. A sketch takes its plane from what is picked in the VIEWPORT — a planar face
     // on a solid, or one of the reference-plane ghosts clicked in 3D — resolved by
     // sketch_plane_from_selection(). A three-row XY/XZ/YZ combo could not express either of those
-    // targets, so it displayed a value that was at best redundant and at worst false. snaporca-e1p.
+    // targets, so it displayed a value that was at best redundant and at worst false. e1p.
 
     m_width = make_spin(m_cards, 20);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Width / X")), 0, wxALIGN_CENTER_VERTICAL);
@@ -1808,7 +1808,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // tool — the offer's Create > Polygon submenu names the common side counts and the two
         // fits, and arming from there sets both. A spin field on the left could not be reached
         // without leaving the geometry, and the count is unrecoverable afterwards: the inline
-        // editor a drawn polygon opens offers Side and Angle, never the count. snaporca-e1p.
+        // editor a drawn polygon opens offers Side and Angle, never the count. e1p.
     }
 
     // --- Extrude dialog (consumes the selected sketch) ---
@@ -3027,7 +3027,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // on a solid, or one of the reference-plane ghosts — because that is where the user is
         // looking and pointing. A combo duplicated that decision somewhere the geometry could not
         // see it, and once a face could be picked it went further and displayed a stale row that
-        // contradicted the real target. snaporca-e1p.
+        // contradicted the real target. e1p.
         // Kept as a member, not a local: the card has to be able to STOP saying this. It asked
         // for a plane even when one had just been picked, directly contradicting the status line
         // two inches below it, which by then read "Sketching on XZ".
@@ -3138,7 +3138,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // "slow double-click renames" the old comment promised does not survive wxGTK, which fires
     // ITEM_ACTIVATED first), none of the seven header icons renames, and F2 is a function key
     // nothing announces. A user who wants to name a sketch tries the row, and now the row
-    // answers. snaporca-rename.
+    // answers. rename.
     m_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, [this](wxTreeEvent& e) {
         m_tree->SelectItem(e.GetItem());          // right-click targets what it points at
         const int sel = tree_selection();
@@ -3622,7 +3622,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Selection no longer writes the status line: on_sketch_step owns it, says the same thing
     // for Select mode and — unlike this callback, which also fired while an edit-op mirrored its
     // picks into the selection — never claims "N selected, Delete removes them" in the middle of
-    // a Mirror gesture, where Delete does nothing of the sort. snaporca-1c0c.
+    // a Mirror gesture, where Delete does nothing of the sort. 1c0c.
 
     // Onshape flow: clicking inside a closed-loop face commits the sketch and opens
     // the Extrude dialog (with a ghost preview) targeting that sketch.
@@ -3667,7 +3667,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // exists to remove. Only a stroke hit carries an entity (an interior click is a region,
         // not a line), so a click inside a loop deliberately leaves the field alone rather than
         // resetting it to something arbitrary. The sketch picker follows the same pick, so
-        // pointing at a line in a different sketch retargets both together. snaporca-3648.
+        // pointing at a line in a different sketch retargets both together. 3648.
         if (m_active == Tool::Rib && entity >= 0) {
             if (m_rib_sketch != nullptr)
                 for (unsigned i = 0; i < m_rib_sketch->GetCount(); ++i)
@@ -3741,7 +3741,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_edge = (level == 3) ? edge : -1;
         m_sel_solid_vertex = (level == 4);
         // Keep the hit face even at whole-body level: the cycle's first click means "this body",
-        // but the user pointed AT a face and a sketch should be able to use it. snaporca-3a2.
+        // but the user pointed AT a face and a sketch should be able to use it. 3a2.
         m_pick_face_body = (level >= 1) ? body : -1;
         m_pick_face      = (level >= 1) ? face : -1;
         // Last pick wins: selecting a solid drops any stale committed-sketch loop selection.
@@ -3762,7 +3762,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (m_active == Tool::Dressup) { sync_dressup_target(); update_fillet_gizmo(); refresh_preview(); }
         // Boolean card open: the VIEWPORT is how you choose the two operands. Until now they
         // could only come from two combos — the one control the charter names for this tool
-        // (e1p item 4), and the same pair snaporca-7xx caught silently resolving every row to
+        // (e1p item 4), and the same pair 7xx caught silently resolving every row to
         // index 0. The highlight already flowed card -> viewport; this closes the loop the
         // other way. First pick is the target (kept), second is the tool (consumed); the
         // combos mirror both, so the typed half of L2 still works and still round-trips.
@@ -3787,7 +3787,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             }
         }
         // Mirror card open: the body you point at is the body that gets mirrored. Same one-way
-        // flow Boolean had (snaporca-310o) and the same fix — the combo stays as the typed half.
+        // flow Boolean had (310o) and the same fix — the combo stays as the typed half.
         // Only one operand here, so there is no slot to alternate and no swap to do.
         if (m_active == Tool::Mirror && m_sel_solid_body >= 0 && m_mirror_body != nullptr &&
             m_sel_solid_body < int(m_mirror_body->GetCount())) {
@@ -3914,12 +3914,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
-        // Each sub-element line ends by naming the NEXT click (snaporca-gem). Escalation to the
+        // Each sub-element line ends by naming the NEXT click (gem). Escalation to the
         // whole body is a gesture nothing on screen would otherwise reveal, and the status line
         // is the only surface that can teach it at the moment it applies. It REPLACES the old
         // per-level verb hints ("right-click to push/pull it", "Fillet/Chamfer to dress it")
         // rather than joining them: the line is clipped at the panel edge past ~55 characters
-        // (set_status's Wrap() does not take effect — snaporca-8cc), and those verbs are shown
+        // (set_status's Wrap() does not take effect — 8cc), and those verbs are shown
         // with their icons in the offer anyway, while this gesture is shown nowhere else.
         // Both clauses fit now that the line is drawn over the viewport instead of squeezed
         // into the panel. Say "what applies to it", never "verbs" — that is this codebase's
@@ -4173,13 +4173,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // select_tool() is what the sketch keys call — so the first letter after entering
         // sketch mode fell through to the feature map, matched nothing (feature keys are
         // Shift+letter), and did nothing. The mouse worked only because the toolbar flyout
-        // reaches select_tool() directly. That is why all 17 keys read as dead. snaporca-0ud.
+        // reaches select_tool() directly. That is why all 17 keys read as dead. 0ud.
         const bool sketch_mode = (m_ui_mode == UiMode::Sketch);
         // Never steal editing keys from a focused text field or an open in-canvas value field —
         // Delete/Ctrl+Z there must edit the text, not the model.
         const bool in_text = (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) != nullptr)
                              || (m_viewport && m_viewport->inline_busy());
-        if (getenv("SNAPORCA_KEYTRACE")) {
+        if (getenv("ORCA_CAD_KEYTRACE")) {
             wxWindow* fw = wxWindow::FindFocus();
             fprintf(stderr, "[KEYTRACE] key=%d ui_mode=%d is_sketching=%d in_text=%d inline_busy=%d focus=%s\n",
                     key, int(m_ui_mode), (m_viewport && m_viewport->is_sketching()) ? 1 : 0, in_text ? 1 : 0,
@@ -4256,7 +4256,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Delete — the selected sketch entities (or the last drawn one if none is selected), or the
         // selected feature in Feature mode. Focus-independent, same reason as undo above.
         // WXK_BACK too: on a keyboard whose Del is a chord (every laptop this runs on), Del is
-        // the one destructive key nobody can reach, and Backspace is what users press. snaporca-oql1.
+        // the one destructive key nobody can reach, and Backspace is what users press. oql1.
         if (!in_text && (key == WXK_DELETE || (key == WXK_BACK && sketching))) {
             if (sketching) { m_viewport->delete_selected_or_last_sketch_entity(); return; }
             if (m_ui_mode == UiMode::Feature && m_active == Tool::None
@@ -4451,7 +4451,7 @@ void DesignPanel::set_ui_mode(UiMode m)
     if (m != UiMode::Sketch) m_sketch_on.clear();   // no stale "on the picked face" on the next hint
     // The DoF readout describes a SKETCH's constraint state, so it means nothing back in Feature
     // mode — where it nonetheless stayed on screen after every Confirm, Cancel and Escape
-    // (snaporca-752). Cleared here rather than at those three exits because this is the one place
+    // (752). Cleared here rather than at those three exits because this is the one place
     // all of them pass through, and a fourth exit added later would otherwise reintroduce it.
     // Constrain mode keeps it: that is where the number is the whole point.
     if (m == UiMode::Feature && m_dof_status != nullptr) {
@@ -4691,7 +4691,7 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
 //
 // This used to be written in exactly ONE place — on_commit(), as a side effect of Commit to
 // Plate — so a user who modelled for an hour and pressed Ctrl+S saved a project containing no
-// feature history at all, and the app reported success (snaporca-vjk5). The 3MF exporter was
+// feature history at all, and the app reported success (vjk5). The 3MF exporter was
 // never at fault: nothing had handed it a recipe.
 //
 // Every save path (Ctrl+S, Save As, autosave, crash recovery) reads model.cad_recipe, so
@@ -5080,7 +5080,7 @@ void DesignPanel::on_add_extrude()
     } else if (extrude_uses_loop()) {
         // Extrude just the selected loop (its entity subset), leaving the source sketch's
         // other loops intact and still selectable.
-        if (::getenv("SNAPORCA_PICK_TRACE"))
+        if (::getenv("ORCA_CAD_PICK_TRACE"))
             std::fprintf(stderr, "[pick] on_add_extrude: feat=%d reg=%d ents=%zu\n",
                          m_extrude_sketch_ref, m_sel_sketch_region,
                          m_viewport->selected_loop_entities().size());
@@ -5152,11 +5152,11 @@ void DesignPanel::on_add_dressup()
 // Hole and Thread LATCH the geometry they were opened or picked on; Thicken / Shell / Draft read
 // the live selection instead. Both models are right for what they are — a placement tool with its
 // own plane state, versus an operation whose operand IS the selected face — and the latch is the
-// kinder of the two now that a click on empty canvas clears the selection (snaporca-od0): a stray
+// kinder of the two now that a click on empty canvas clears the selection (od0): a stray
 // click costs a Thicken pick, and costs a Hole nothing. What was missing is that nothing in the
 // Hole/Thread card NAMED the latched face, so after such a click the only words on screen were
 // the viewport's "Nothing selected" — over a ghost still drawn on the face Confirm would drill.
-// That reads as a contradiction and was filed as one (snaporca-200). The card now says what it
+// That reads as a contradiction and was filed as one (200). The card now says what it
 // holds, the way the other three cards already do. Pass -1 for "none, using the plane dropdown".
 void DesignPanel::set_hole_target_label(int face)
 {
@@ -6025,7 +6025,7 @@ SketchPlane DesignPanel::plane_from_choice(int row) const
 // clicking one of the ghost planes in 3D (on_datum_base_picked) rather than by opening the combo.
 // Before this, a picked face was ignored and the only way onto it was to build a Coincident datum
 // plane first and then find it in a dropdown — three steps and a junk feature in the tree for the
-// most common gesture in solid modelling. snaporca-3a2.
+// most common gesture in solid modelling. 3a2.
 SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
 {
     SketchPlane p;
@@ -6080,7 +6080,7 @@ bool DesignPanel::sketch_map_applies() const
 // actually REACHED, so the menu describes what is highlighted — a header that names a face while
 // the whole body is lit would be lying, and this menu's whole value is that it tells the truth
 // about the selection. (Sketching on the face you merely clicked is unaffected: that path is
-// sketch_plane_from_selection, which deliberately uses m_pick_face. snaporca-3a2.)
+// sketch_plane_from_selection, which deliberately uses m_pick_face. 3a2.)
 int DesignPanel::offer_selection_kind() const
 {
     if (sketch_map_applies()) {
@@ -6203,7 +6203,7 @@ void DesignPanel::set_status(const wxString& text)
     // sets the colour on it just before calling here, so this stays the one place that knows
     // both. What the user reads is drawn along the BASE OF THE VIEWPORT: in the panel the line
     // was clipped at ~73 characters with no warning and no wrap (Wrap() never took effect —
-    // snaporca-8cc), which silently length-limited every hint in the tab. The viewport's bottom
+    // 8cc), which silently length-limited every hint in the tab. The viewport's bottom
     // margin has the whole window width, so a sentence can be a sentence.
     if (m_viewport != nullptr) {
         // wxNullColour means "no opinion", and the dark default text colour is nearly invisible
@@ -6218,7 +6218,7 @@ void DesignPanel::set_status(const wxString& text)
 }
 
 
-// The sentence for the step the armed sketch tool is on (snaporca-1c0c). One table, so a tool's
+// The sentence for the step the armed sketch tool is on (1c0c). One table, so a tool's
 // gesture is described in one place and the description cannot drift from the code that reads the
 // clicks: the step counts here are the ones DesignSketchTool::render previews and on_mouse
 // consumes. `step` = anchors already placed (edit-ops: 0 none, 1 first pick down, 2 ready to
@@ -6414,7 +6414,7 @@ wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString&
 // honest source for that is the loop that builds the rows.
 static void offer_trace(const char* fmt, ...)
 {
-    static const bool on = std::getenv("SNAPORCA_KEYTRACE") != nullptr;
+    static const bool on = std::getenv("ORCA_CAD_KEYTRACE") != nullptr;
     if (!on) return;
     va_list ap;
     va_start(ap, fmt);
@@ -6430,13 +6430,13 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     const int      kind = offer_selection_kind();
     const uint32_t bit  = offer_bit(OfferSel(kind));
     // Which verb MAP applies is a question about the MODE, not about whether a session is
-    // running — the same distinction the keyboard already had to learn (snaporca-0ud). Gated on
+    // running — the same distinction the keyboard already had to learn (0ud). Gated on
     // is_sketching() the offer opened on entering a sketch showing the FEATURE rows, every one
     // of them refusing the sketch selection, so it read as a menu of nine dead entries.
     const bool     sketching = sketch_map_applies();
     // The offer ladder reads THIS, not the pixels: the trace is emitted from the same loop that
     // builds the menu, so it cannot drift from what the user is shown. Gated on the existing
-    // SNAPORCA_KEYTRACE so a rig run needs one env var, not two. snaporca-<offer ladder>.
+    // ORCA_CAD_KEYTRACE so a rig run needs one env var, not two. <offer ladder>.
     offer_trace("open kind=%d sketching=%d bodies=%d", kind, sketching ? 1 : 0,
                 int(m_doc.bodies.size()));
 
@@ -6551,7 +6551,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
     }
 
-    // --- Mate palette section (snaporca-lukg part B) ---
+    // --- Mate palette section (lukg part B) ---
     // Fed by CadDocument::mate_options() so the offer can never disagree with the kernel about
     // which assembly mates a connector pair admits. Shown only when the document holds at least
     // two ENABLED CoordSys features: below that the whole section would be one permanently dead
@@ -7020,7 +7020,7 @@ wxString DesignPanel::idle_hint() const
         : _L("No solid yet — select a sketch and right-click it to Extrude.");
 }
 
-// The Design tab is no longer the visible page (snaporca-dlj). The status line is a popup floating
+// The Design tab is no longer the visible page (dlj). The status line is a popup floating
 // over the GL canvas, so it does NOT go away when this page does — it stayed up over Prepare and
 // over the home screen, still reading like a live Design selection ("selected (whole body) —
 // right-click for what applies to it") on a tab that has no such selection and no such menu.
@@ -7123,7 +7123,7 @@ void DesignPanel::refresh_tree()
     // recompute() returns FALSE for a document that has no solid ("no solid-producing features",
     // CadDocument.cpp) — which is precisely a document the user has only drawn sketches in. So
     // drawing a profile, pressing Confirm and saving wrote a 3MF with no orca_cad.bin in it
-    // at all, and the app reported success: the whole design was gone on reopen (snaporca-mtav).
+    // at all, and the app reported success: the whole design was gone on reopen (mtav).
     // The three sites that say "a lone sketch yields an empty body; that is expected" call
     // m_doc.recompute() directly and so never reached the sync either. One hook here covers all
     // of them, including the live sketch tool's own commit path.
@@ -9092,7 +9092,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_hole_through->SetValue(f.hole_through);
         m_hole_x->SetValue(f.hole_x);
         m_hole_y->SetValue(f.hole_y);
-        // Re-latch the on-face state FROM THE STORED FEATURE (snaporca-uif9). m_hole_on_face is
+        // Re-latch the on-face state FROM THE STORED FEATURE (uif9). m_hole_on_face is
         // only ever cleared by the Hole flyout and by the plane combo, so after any on-face hole
         // it stays true — and a re-edit then drilled on whatever face was latched last, which may
         // be a different face, a different body, or a body since rebuilt. f is the only source
@@ -9123,7 +9123,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_thread_x->SetValue(f.thread_x);
         m_thread_y->SetValue(f.thread_y);
         if (m_thread_std) m_thread_std->SetSelection(0);   // Custom: spins reflect the stored feature
-        // Same latch, same failure, same fix as Hole above (snaporca-uif9).
+        // Same latch, same failure, same fix as Hole above (uif9).
         m_thread_on_face    = !is_base_plane(f.plane, m_doc.modeling_origin);
         m_thread_face_plane = f.plane;
         m_thread_face_body  = m_thread_on_face ? f.target_body : -1;
@@ -9702,7 +9702,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         // The plane is STRUCTURAL, like Extrude's profile source. While EDITING it is preserved
         // from the seeded original — the card carries no plane control and the old combo silently
         // collapsed a face plane to a base plane through the modeling origin. While ADDING it
-        // comes from what is picked in the viewport. snaporca-e1p.
+        // comes from what is picked in the viewport. e1p.
         if (!editing) { wxString where; f.plane = sketch_plane_from_selection(where); }
         f.width  = m_width->GetValue();
         f.height = m_height->GetValue();
@@ -10032,7 +10032,7 @@ void DesignPanel::update_fillet_gizmo()
 }
 
 // Push the active Hole card's plane + position + diameter/depth to the viewport gizmo.
-// Grey the FEATURE buttons whose tool cannot run yet, and say why in the tooltip (snaporca-o9j).
+// Grey the FEATURE buttons whose tool cannot run yet, and say why in the tooltip (o9j).
 // Tommaso reported the array controls as MISSING; they were not, but Pattern with no body
 // accepted the click, opened nothing, and wrote its refusal somewhere other than where the click
 // happened — from the user's seat that is indistinguishable from a dead button. A control that

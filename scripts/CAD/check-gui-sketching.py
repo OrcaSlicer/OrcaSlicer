@@ -9,16 +9,16 @@ cannot say the Design tab meets its goal. This one draws with synthetic clicks a
 values into the in-canvas field, then reads the result back through the socket, which is used
 here ONLY as an instrument, never as an author.
 
-Runs INSIDE the headless rig container (Xvfb :10 + openbox + the app with SNAPORCA_MCP set):
+Runs INSIDE the headless rig container (Xvfb :10 + openbox + the app with ORCA_CAD_MCP set):
 
-    docker cp scripts/CAD/check-gui-sketching.py snaporca-gui:/tmp/ && \
-    docker exec snaporca-gui python3 /tmp/check-gui-sketching.py [rung ...]
+    docker cp scripts/CAD/check-gui-sketching.py orcacad-gui:/tmp/ && \
+    docker exec orcacad-gui python3 /tmp/check-gui-sketching.py [rung ...]
 
 With no arguments every rung runs. Exit 0 = every property held.
 """
 import json, math, os, re, socket, subprocess, sys, time
 
-SOCK  = os.environ.get("SNAPORCA_MCP", "/tmp/mcp.sock")
+SOCK  = os.environ.get("ORCA_CAD_MCP", "/tmp/mcp.sock")
 DISP  = os.environ.get("DISPLAY", ":10")
 _n = 0
 _fail = 0
@@ -225,7 +225,7 @@ def leave_sketch():
 # "no sketch opened after plane click + Shift+S"; the unshifted Construction checkbox reported
 # "0 construction axis". Both name the wrong subsystem. Canvas coordinates are immune because
 # clickmm() derives them from the live canvas geometry — only the chrome constants need this.
-CHROME_DY = int(os.environ.get("SNAPORCA_CHROME_DY", "26"))
+CHROME_DY = int(os.environ.get("ORCA_CAD_CHROME_DY", "26"))
 
 DESIGN_TAB = (128, 29 + CHROME_DY)
 
@@ -1873,7 +1873,7 @@ def rung_scale():
           f"every cut-out is exactly {side:.6f} squared")
     # Now the part that matters: draw ONE more entity by hand, on top of all that.
     #
-    # No Escape here, deliberately: this rung is the regression test for snaporca-j7gc, where a
+    # No Escape here, deliberately: this rung is the regression test for j7gc, where a
     # bulk sketch_add made while a creation tool is armed was read as a drawn gesture, opened that
     # tool's value field and swallowed the next key and click until one Escape dismissed it. The
     # gesture below has to land on the FIRST try. Fixed by resyncing m_autoedit_seen in

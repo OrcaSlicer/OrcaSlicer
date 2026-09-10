@@ -57,7 +57,7 @@ public:
     void clear_document();      // New Project / Open Project: drop the document with the project
     // Rebuild off the UI thread (progress dialog only if it turns out to be slow), so a feature
     // op on a heavy imported solid does not freeze the window. Returns m_doc.recompute()'s result.
-    // Push the document's recipe into the Model so ANY save path persists it (snaporca-vjk5).
+    // Push the document's recipe into the Model so ANY save path persists it (vjk5).
     void sync_recipe_to_model();
     bool recompute_guarded(const wxString& message);
 
@@ -173,7 +173,7 @@ private:
     // Which body a tool should act on when it opens: the one picked in the VIEWPORT, else
     // the first. Selection comes first and the tool consumes it — every body combo used to
     // default to index 0, so picking body 3 and opening Mirror silently mirrored body 1.
-    // Clamped to the list, so it is safe to hand straight to SetSelection. snaporca-e1p.
+    // Clamped to the list, so it is safe to hand straight to SetSelection. e1p.
     int  selected_body_default() const;
     void populate_body_choices(int as_of_feature = -1);
     // Fill `c` with the bodies as they existed just before `as_of_feature` and select
@@ -279,7 +279,7 @@ private:
     // The plane the Thread tool builds on: a picked cylindrical face (axis) or the dropdown.
     SketchPlane thread_plane() const;
     // Name the geometry the card has LATCHED, so it never has to be inferred from the viewport.
-    // Pass -1 for "none, falling back to the plane dropdown". See snaporca-200.
+    // Pass -1 for "none, falling back to the plane dropdown". See 200.
     void        set_hole_target_label(int face);
     void        set_thread_target_label(int face, int edge);
     CadFeature build_candidate(Tool t) const;
@@ -489,13 +489,13 @@ private:
     // Polygon's two parameters are chosen FROM THE TOOL, in the offer's Polygon submenu, not
     // from a card on the left: the side count cannot be edited after drawing (the inline editor
     // offers Side and Angle only), so it has to be settled at the moment the tool is armed —
-    // which is exactly where the offer already is. snaporca-e1p.
+    // which is exactly where the offer already is. e1p.
     int               m_poly_sides{6};           // 3..64; the submenu names the common ones
     bool              m_poly_circumscribed{false};
 
     // Which reference plane a sketch falls back to when no face is picked: 0/1/2 = XY/XZ/YZ,
     // >=3 indexes resolve_datum_planes(). Set by CLICKING a ghost plane in the viewport — there is
-    // deliberately no dropdown for it. snaporca-e1p.
+    // deliberately no dropdown for it. e1p.
     int               m_ref_plane{0};
     // m_ref_plane is always a VALID plane, so it cannot itself distinguish "the user chose XY"
     // from "nobody has chosen anything yet". This does.
@@ -703,7 +703,7 @@ private:
     // The face actually under the last solid click, INDEPENDENT of the whole/face/edge cycle level.
     // The first click on a solid selects the WHOLE body, but the ray has already resolved which face
     // it hit and the callback passes it. "Sketch on the face I clicked" must not require discovering
-    // that a second click refines the selection, so keep it instead of throwing it away. snaporca-3a2.
+    // that a second click refines the selection, so keep it instead of throwing it away. 3a2.
     int               m_pick_face_body{-1};
     int               m_pick_face{-1};
     // What the live sketch was actually opened on ("the picked face", "XY", a datum's name), so the
@@ -767,7 +767,7 @@ private:
     double            m_hole_umin{0}, m_hole_umax{0}, m_hole_vmin{0}, m_hole_vmax{0};
     // Says which face the latch above is holding. Thicken/Shell/Draft show theirs because their
     // face IS the live selection; this one has to be shown precisely BECAUSE it is not, and the
-    // status line goes on saying "Nothing selected" while the ghost keeps drilling. snaporca-200.
+    // status line goes on saying "Nothing selected" while the ghost keeps drilling. 200.
     wxStaticText*     m_hole_target_label{nullptr};
 
     ComboBox*         m_thread_plane{nullptr};
@@ -885,7 +885,7 @@ private:
     // The guidance sentence for the step the armed sketch tool is on, kept so a transient
     // readout (the live length/angle while a segment is being dragged) can be appended to it
     // instead of replacing it — the guidance used to vanish on the first mouse move after a
-    // click, which is precisely when it is needed. snaporca-1c0c.
+    // click, which is precisely when it is needed. 1c0c.
     wxString          m_sketch_step;
     // mode is a DesignSketchTool::Mode; passed as an int because this header deliberately does
     // not include the tool's, and the .cpp (which does) casts it back.

@@ -23,7 +23,7 @@ The verb in the name is the role:
 | `check-sketch-engine-corpus.py` | The same ladder graded against a systematic sample of real drawings instead of shapes we chose. | Kernel + corpus |
 | `check-gui-sketching.py` | The same profiles drawn the way a person draws them — synthetic mouse gestures and typed values. | Headless GUI |
 | `check-gui-context-menu.py` | That right-click is the pivot of the design gesture, and adapts to what was clicked. | Headless GUI |
-| `check-mcp-sketch.py` | The sketch layer driven over the MCP socket, asserting what decides whether a profile is buildable. | Headless GUI + `SNAPORCA_MCP` |
+| `check-mcp-sketch.py` | The sketch layer driven over the MCP socket, asserting what decides whether a profile is buildable. | Headless GUI + `ORCA_CAD_MCP` |
 
 **`run-kernel-tests.sh` is the only one CI can run.** The rest need a live
 application with an OpenGL canvas and synthetic input, which hosted runners do not

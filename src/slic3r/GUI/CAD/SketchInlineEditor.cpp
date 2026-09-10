@@ -52,7 +52,7 @@ bool parse_value(const char* text, double& out)
 
 // One machine-readable line per event of the click-edit contract, for the UX check that runs
 // after every build (scripts/CAD/check-gui-click-edit.py). Deliberately NOT the same switch as
-// SNAPORCA_KEYTRACE: that one is a debugging firehose, this one is an assertion surface and its
+// ORCA_CAD_KEYTRACE: that one is a debugging firehose, this one is an assertion surface and its
 // format is a contract the script parses.
 //
 // The pair that matters is `open` vs `commit`: the check always types a value DIFFERENT from the
@@ -61,7 +61,7 @@ bool parse_value(const char* text, double& out)
 // the user actually gets can.
 void ux_trace(const char* event, const std::string& title, const std::string& detail)
 {
-    if (!std::getenv("SNAPORCA_UXTRACE")) return;
+    if (!std::getenv("ORCA_CAD_UXTRACE")) return;
     std::fprintf(stderr, "[UX] %s title=%s %s\n", event, title.c_str(), detail.c_str());
     std::fflush(stderr);
 }
@@ -175,7 +175,7 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
     // different causes — no FRAMES (this canvas repaints on demand only, so an idle canvas never
     // processes ImGui's queued characters) versus frames that run while the input is not active —
     // and they are indistinguishable from outside.
-    if (std::getenv("SNAPORCA_UXTRACE")) {
+    if (std::getenv("ORCA_CAD_UXTRACE")) {
         const ImGuiIO& io = ImGui::GetIO();
         std::fprintf(stderr, "[UX] frame title=%s want_text=%d want_kb=%d active=%d buf=%s\n",
                      m_title.c_str(), (int) io.WantTextInput, (int) io.WantCaptureKeyboard,

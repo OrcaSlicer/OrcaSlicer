@@ -4,7 +4,7 @@ What the Design tab actually costs a maintainer who merges it. Written to be che
 every number below is reproducible with the command that produced it, and the places where
 a number is still missing say so instead of guessing.
 
-Measured on Linux x86_64, OCCT V7_6_0, in the `snaporca-deps` build image.
+Measured on Linux x86_64, OCCT V7_6_0, in the `snapmaker-deps` build image.
 
 ## Summary
 
@@ -75,7 +75,7 @@ producing them honestly needs a build this machine cannot do:
 
 1. **Windows DLL delta.** OCCT builds shared on Windows, so the shipped cost there is real
    DLL bytes rather than linker-selected objects. That needs a Windows build to size —
-   tracked as the cross-platform build proof (`snaporca-gix`).
+   tracked as the cross-platform build proof (`gix`).
 2. **Clean-build time delta.** Measuring it means building the deps prefix twice, with the
    flag ON and OFF, on the same machine. The incremental figures from day-to-day work do not
    answer the question and are not offered as if they did.

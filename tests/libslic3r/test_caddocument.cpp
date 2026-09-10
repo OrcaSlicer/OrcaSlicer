@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
 // Substring assertions, spelled so this file compiles UNCHANGED on both forks.
-// Catch2 v2 (snaporca) spells it Matchers::Contains; v3 (orca_cad / mainline) spells it
+// Catch2 v2 (Snapmaker) spells it Matchers::Contains; v3 (orca_cad / mainline) spells it
 // Matchers::ContainsSubstring and gives Contains an incompatible meaning — range-contains-
 // ELEMENT — which fails to compile against a std::string rather than failing a test.
 // Using find() sidesteps the rename entirely; INFO keeps the actual string in the report.
@@ -613,7 +613,7 @@ TEST_CASE("entity constraints: point-on-line positions a centre onto an axis", "
 // vendored solver (slvs/dsc.h FindById, "Cannot find handle"), taking every later test with
 // it, and was quarantined for it. Fixed in SketchSolver: a full circle can no longer be handed
 // to SLVS_C_ARC_LINE_TANGENT, which dereferences arc endpoints a circle does not have. See
-// snaporca-tkz.
+// tkz.
 TEST_CASE("entity constraints: tangent/midpoint/symmetric/angle", "[CadDocument][sketch]")
 {
     using R = SketchPointRole;
@@ -962,7 +962,7 @@ TEST_CASE("extrude taper + up-to-face distance", "[CadDocument]")
     }
 }
 
-// Was [known-broken] until the numbers were actually measured (snaporca-kzy). The geometry
+// Was [known-broken] until the numbers were actually measured (kzy). The geometry
 // was right all along; the TEST compared against the wrong reference. An internal thread bores
 // at the MINOR radius (radius - depth) and then carves the groove out to radius + depth, so a
 // tapped hole keeps the crests between turns and therefore holds MORE material than a plain
@@ -1330,7 +1330,7 @@ TEST_CASE("datum plane: offset + tilt resolution and sketching on it", "[CadDocu
 
     // A datum-plane-only document has no solid, and that is a benign SUCCESS, not a benign
     // failure. It used to return false, and "benign failure" is exactly the phrasing that hid
-    // snaporca-mtav: two callers read the false as "unusable document" and threw the design
+    // mtav: two callers read the false as "unusable document" and threw the design
     // away — the 3MF recipe was never written, and a project that had one was refused on load.
     CadDocument only_plane;
     only_plane.add_plane(0, 10.0, 0.0, 0, "P");
@@ -1416,7 +1416,7 @@ TEST_CASE("draft tapers a solid face about the body base", "[CadDocument]")
 
 TEST_CASE("a split renumbers the bodies a later feature indexes", "[CadDocument][cut]")
 {
-    // Pins the invariant the Design tab's re-edit path depends on (snaporca-oz7): a stored
+    // Pins the invariant the Design tab's re-edit path depends on (oz7): a stored
     // target_body indexes the body list AS IT WAS when that feature ran, and a Cut placed
     // later in the tree changes that list. If this test ever fails, the GUI's
     // fill_body_choice() replay-to-timeline-slot assumption needs revisiting with it.
@@ -2502,7 +2502,7 @@ TEST_CASE("datum plane construction methods", "[CadDocument][plane]")
     }
 }
 
-// Mirrors the snaporca [Deviation] case (snaporca carries it in test_geometry.cpp; here it lives
+// Mirrors the Snapmaker [Deviation] case (Snapmaker carries it in test_geometry.cpp; here it lives
 // alongside the CAD suite). GeometryEngine::surface_deviation = one-sided Hausdorff used by the
 // MCP validate_against acceptance metric.
 TEST_CASE("surface_deviation: identical solids ~0, shifted solid ~shift", "[Deviation]")
@@ -5310,7 +5310,7 @@ TEST_CASE("thicken-surface makes a solid from a sheet", "[CadDocument][surface]"
     REQUIRE_THAT(double(tx1), WithinAbs(double(sx1), 2.1));
 }
 
-// Regression for snaporca-lu27, with the rig's own numbers. A 60x60x40 four-walled open box
+// Regression for lu27, with the rig's own numbers. A 60x60x40 four-walled open box
 // used to report volume 96000 and an inertia diagonal of [-4.2e7, -4.2e7, -6.9e7] — negative
 // principal moments, which no real body can have. VolumeProperties was being integrated over
 // an open shell as though it were closed, and std::abs() on the mass hid the only obvious tell.
@@ -5352,7 +5352,7 @@ TEST_CASE("mass properties of a sheet body report area only, never a volume",
     REQUIRE(solid.inertia[8] > 0.0);
 }
 
-// snaporca-wm4s. The wall of a thickened open box must contain the corner material. Thickening
+// wm4s. The wall of a thickened open box must contain the corner material. Thickening
 // each face along its own normal and sewing (MakeThickSolidBySimple) leaves the four vertical
 // corners empty and measured 29648.15 where the geometry requires 44000; the two controls below
 // were exact before and must stay exact, since they are what a corner-only fix must not disturb.
@@ -7309,7 +7309,7 @@ TEST_CASE("interference: detects a clash created by a mate", "[CadDocument][inte
 // A filleted solid must reach the plate as a watertight mesh. OCCT emits one degenerate
 // triangle at the pole of every corner sphere patch; welded, its v->v edge counts as an open
 // edge and the slicer tells the user to go repair the model in another CAD application --
-// the exact round trip this feature exists to remove. snaporca-agw.
+// the exact round trip this feature exists to remove. agw.
 TEST_CASE("CadDocument filleted solid tessellates watertight", "[CadDocument]")
 {
     CadDocument doc;
@@ -7339,7 +7339,7 @@ TEST_CASE("CadDocument filleted solid tessellates watertight", "[CadDocument]")
 // into the params whether or not it converged, so reading geometry back unconditionally made
 // every failed attempt destructive -- and the fillet degrade ladder tries a deliberately
 // over-constrained rung FIRST, so a filleted corner was wrecked before the rung that works
-// ever got a chance. snaporca-pl5.
+// ever got a chance. pl5.
 TEST_CASE("Failed sketch solve leaves geometry untouched", "[CadDocument]")
 {
     using R  = SketchPointRole;
@@ -7415,7 +7415,7 @@ TEST_CASE("Failed sketch solve leaves geometry untouched", "[CadDocument]")
 // A subtraction whose tool misses the target is a perfectly legal boolean that removes nothing,
 // so OCCT reports success and the feature lands in the recipe with ok:true and an unchanged body.
 // That is how a hole placed with world coordinates instead of plane-frame ones read as "drilled"
-// three times in a row while the volume never moved. snaporca-daf.
+// three times in a row while the volume never moved. daf.
 TEST_CASE("A cut that removes no material is an error, not a silent success", "[CadDocument]")
 {
     // 20 x 20 box, 20 tall, centred on the origin of the XY plane.
@@ -7472,7 +7472,7 @@ TEST_CASE("A cut that removes no material is an error, not a silent success", "[
 // Anything else returns a null wire, and build_sketch_wire used to answer that by falling through
 // to its legacy tail — which ends in a rectangle built from width/height. For an entity sketch
 // those are whatever they were initialised to, so the extrude produced a box nobody drew.
-// snaporca-88v.
+// 88v.
 TEST_CASE("An entity sketch that forms no wire fails instead of extruding a default box", "[CadDocument]")
 {
     auto circle = [](Vec2d c, double r) {
@@ -7562,7 +7562,7 @@ CadDocument plate_doc(const std::vector<SketchEntity>& entities, double distance
 
 } // namespace
 
-// snaporca-88v: a sketch may hold more than one closed loop. The Extrude path builds the
+// 88v: a sketch may hold more than one closed loop. The Extrude path builds the
 // sketch's planar region via SketchEngine::entities_to_wires + wires_to_face: the largest loop
 // is the outer boundary, every other loop a hole. Volumes are the proof — a plate with a hole
 // must subtract the hole, not merely "not throw".
@@ -7637,7 +7637,7 @@ TEST_CASE("entities_to_wires returns one wire per loop", "[CadDocument][sketchwi
 // Sketching on a picked face is the most common gesture in solid modelling, and it was impossible:
 // the plane came from a combo of base + datum planes only, so the sole route onto a face was to
 // build a Coincident datum plane first. plane_of_face is the shared derivation that makes the
-// viewport selection usable directly. snaporca-3a2.
+// viewport selection usable directly. 3a2.
 TEST_CASE("plane_of_face gives a sketchable plane for a planar face only", "[CadDocument]")
 {
     // 20 x 20 x 20 box on XY, so its top face sits at z = 20 with +Z normal.
@@ -7689,7 +7689,7 @@ TEST_CASE("plane_of_face gives a sketchable plane for a planar face only", "[Cad
     }
 }
 
-// snaporca-5425 — POSITIVE-CONTRACT variant. A feature that left a body with a null
+// 5425 — POSITIVE-CONTRACT variant. A feature that left a body with a null
 // TopoDS_Shape used to be tolerated: recompute() returned true and the document kept
 // advertising the body. The new guard makes that a hard failure. This test asserts the
 // contract the guard preserves on the healthy side: a normal box + fillet document
@@ -7727,7 +7727,7 @@ TEST_CASE("recompute on a healthy box + fillet leaves no body null and no error 
 }
 
 // ============================================================================
-// snaporca-rgbj — does a chamfer chain degenerate from a KERNEL defect, or from
+// rgbj — does a chamfer chain degenerate from a KERNEL defect, or from
 // how the DRIVER captured its edge ids? Experiment, not a fix.
 //
 // CadFeature::dressup_edge is a GLOBAL edge id: an ordinal into
@@ -8242,7 +8242,7 @@ TEST_CASE("add_extrude_entities builds a plate with a bore (clockwise circle)", 
 }
 
 
-// snaporca-mtav. A document that has only sketches in it is not a broken document, it is the
+// mtav. A document that has only sketches in it is not a broken document, it is the
 // state every design passes through between drawing a profile and extruding it. recompute()
 // used to call that "no solid-producing features" and return false, and two things downstream
 // read that false as "the document is unusable": the GUI syncs the 3MF recipe only after a

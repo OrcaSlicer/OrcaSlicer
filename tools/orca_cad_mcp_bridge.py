@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Zero-dependency stdio MCP server bridging to the SnapOrca/Orca-CAD control socket.
+"""Zero-dependency stdio MCP server bridging to the Orca/Orca-CAD control socket.
 
 Speaks MCP (JSON-RPC 2.0 over newline-delimited stdio) to an MCP client (Claude Code),
 and forwards each tool call to the app's Unix-domain control socket (opened by the GUI
-when launched with SNAPORCA_MCP set). The tool list is built *live* from the app's own
+when launched with ORCA_CAD_MCP set). The tool list is built *live* from the app's own
 `describe_tools` reply — introspection drives the schema, so new kernel methods surface
 without touching this file.
 
-Usage:  snaporca_mcp_bridge.py [SOCKET_PATH]   (default /tmp/snaporca-mcp.sock)
-The app must be running with SNAPORCA_MCP set; if the socket is down, tools/list falls
+Usage:  orca_cad_mcp_bridge.py [SOCKET_PATH]   (default /tmp/orca-cad-mcp.sock)
+The app must be running with ORCA_CAD_MCP set; if the socket is down, tools/list falls
 back to the slice-1 set and tool calls report the connection error (never crash).
 """
 import sys, os, json, socket, itertools
 
-SOCK_PATH = sys.argv[1] if len(sys.argv) > 1 else "/tmp/snaporca-mcp.sock"
-SERVER_INFO = {"name": "snaporca-cad", "version": "0.1"}
+SOCK_PATH = sys.argv[1] if len(sys.argv) > 1 else "/tmp/orca-cad-mcp.sock"
+SERVER_INFO = {"name": "orca-cad", "version": "0.1"}
 _app_id = itertools.count(1)
 
 # --- app control-socket round-trip --------------------------------------------

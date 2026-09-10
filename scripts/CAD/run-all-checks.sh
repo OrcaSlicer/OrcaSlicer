@@ -10,7 +10,7 @@
 #   FULL=1 scripts/CAD/run-all-checks.sh          # corpus over ALL 997 sheets (~25 min)
 #   SKIP_GUI=1 scripts/CAD/run-all-checks.sh      # kernel only, for a machine with no rig
 #
-# The rig container is expected to be up with the app running and SNAPORCA_MCP set; bring it up
+# The rig container is expected to be up with the app running and ORCA_CAD_MCP set; bring it up
 # with scripts/CAD/start-headless-gui.sh inside it. The corpus lives at /corpus in that container.
 set -uo pipefail
 # ../.. -- this script lives in scripts/CAD/, so one level up is scripts/, not the repo
@@ -19,7 +19,7 @@ set -uo pipefail
 # scripts/scripts/ and reporting instant failures that were all the same typo.
 cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
 
-# orcacad-gui, NOT snaporca-gui: that is the other fork's rig, and defaulting to it makes
+# orcacad-gui, NOT snapmaker-gui: that is the other fork's rig, and defaulting to it makes
 # this gate verify the wrong fork's binary while reporting green. run-kernel-tests.sh
 # carries the same warning about the build volume, where the defect was found first.
 C="${C:-orcacad-gui}"
@@ -53,13 +53,13 @@ run_in_rig() {                      # copy the script in fresh, then run it ther
 # FIRST, and it needs no rig: the offer table the menu is compiled from must be what the atlas
 # says. The header calls itself GENERATED and had been hand-edited anyway — which cost four rows
 # that existed only in the header, one row wired to the wrong action, and a count of 91 for a
-# 92-row array, so the last verb was unreachable (snaporca-z8rs, snaporca-ziam).
+# 92-row array, so the last verb was unreachable (z8rs, ziam).
 # docs/CAD/, not docs/: SoftFever moved the design docs into the CAD subfolder
 # (bbd1989e1e) and this line kept the old path, so the rung failed on a missing file
 # rather than on anything about the table. The other fork still has docs/ux/.
 step "offer table matches the atlas" python3 docs/CAD/ux/mockups/gen_offer_table.py --check
 
-step "kernel suite" scripts/CAD/run-kernel-tests.sh --vol "${KVOL:-snaporca_kerneltest}"
+step "kernel suite" scripts/CAD/run-kernel-tests.sh --vol "${KVOL:-orcacad_kerneltest}"
 
 if [ -z "${SKIP_GUI:-}" ]; then
     step "engine ladder (rungs 1-8, scripted geometry)" \
@@ -71,7 +71,7 @@ if [ -z "${SKIP_GUI:-}" ]; then
     step "gesture ladder (mouse and keyboard)" \
         run_in_rig scripts/CAD/check-gui-sketching.py /tmp/check-gui-sketching.py
     # The offer ladder needs TWO extra things the others do not: the app must have been launched
-    # with SNAPORCA_KEYTRACE=1 (its [OFFER] lines are the whole instrument), and it reads the
+    # with ORCA_CAD_KEYTRACE=1 (its [OFFER] lines are the whole instrument), and it reads the
     # generated offer table to predict what each selection should show — which is not in the
     # container's own baked source tree, so it is copied in beside the script — /tmp, where
     # run_in_rig puts the script, is one of the paths the ladder looks in.

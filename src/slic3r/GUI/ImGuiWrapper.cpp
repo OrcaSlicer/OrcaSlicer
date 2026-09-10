@@ -517,7 +517,7 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
         // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
         // function returns true — so such a probe stays silent whether or not the key arrived.
         // A day was lost to reading that silence as evidence.
-        if (std::getenv("SNAPORCA_UXTRACE")) {
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
             fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
                     (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
             fflush(stderr);

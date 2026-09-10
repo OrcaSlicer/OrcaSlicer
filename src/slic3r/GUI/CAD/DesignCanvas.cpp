@@ -97,7 +97,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // this point is known good (ImGui reports want_text=1 and our InputText active), so if these
     // lines do not appear the character never got past the panel's CHAR_HOOK / the focus chain,
     // and no amount of work inside the field will help. Skips always: a pure observer.
-    if (m_canvas_widget != nullptr && std::getenv("SNAPORCA_UXTRACE")) {
+    if (m_canvas_widget != nullptr && std::getenv("ORCA_CAD_UXTRACE")) {
         m_canvas_widget->Bind(wxEVT_CHAR, [](wxKeyEvent& e) {
             fprintf(stderr, "[UX] canvas_char key=%d\n", e.GetKeyCode());
             fflush(stderr);
@@ -1240,7 +1240,7 @@ void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
 }
 
 // SetLabel + Wrap + Fit, in that order and always together. Moving the status out of the panel
-// removed the clipping of snaporca-8cc but not the underlying problem: the chip is a top-level
+// removed the clipping of 8cc but not the underlying problem: the chip is a top-level
 // popup that Fit()s to its text, so a long sentence simply grew past the right edge of the canvas
 // and hung over the window. Wrapping to the room actually available is what makes the earlier
 // promise — "a sentence can be a sentence" — true at every window width, including the charter's
@@ -1274,7 +1274,7 @@ void DesignCanvas::place_status_hud()
     const wxPoint bl = m_canvas_widget->ClientToScreen(
         wxPoint(kLeftInset, cs.GetHeight() - hs.GetHeight() - 12));
     // No Raise() and no focus juggling: a popup neither takes focus nor falls behind. This was
-    // caught with SNAPORCA_KEYTRACE — shift+S logged a line, the following R logged nothing, and
+    // caught with ORCA_CAD_KEYTRACE — shift+S logged a line, the following R logged nothing, and
     // the only thing between them was the first status update showing this window.
     if (!m_status_hud->IsShown()) m_status_hud->Show();   // Show before Move (GTK ignores pre-map Move)
     m_status_hud->Move(bl);

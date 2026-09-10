@@ -23,18 +23,18 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# orcacad-deps, NOT snaporca-deps: this fork is mainline-based and needs Eigen 5.0.1,
-# CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snaporca-deps has.
+# orcacad-deps, NOT snapmaker-deps: this fork is mainline-based and needs Eigen 5.0.1,
+# CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snapmaker-deps has.
 # With the wrong image CMake dies at configure, which is exactly why this fork went
 # M1-M8 without ever compiling (see commit 1633005bba).
 IMAGE="${IMAGE:-orcacad-deps}"
-# Must NOT default to snaporca_buildcache: that is the other fork's volume, and pointing
+# Must NOT default to snapmaker_buildcache: that is the other fork's volume, and pointing
 # this fork at it makes the two silently trade build artefacts. build-gui-incremental.sh had the
 # identical defect and was fixed to orcacad_buildcache; this script was missed.
 VOL="${BUILD_VOL:-orcacad_kerneltest}"
 # No exclusions. Both cases that used to be quarantined now run: the solver SIGABRT on
-# circle-line tangency is fixed (snaporca-tkz), and the internal-thread case turned out to have
-# correct geometry and a wrong reference in the test (snaporca-kzy). A green run here now means
+# circle-line tangency is fixed (tkz), and the internal-thread case turned out to have
+# correct geometry and a wrong reference in the test (kzy). A green run here now means
 # the whole CAD suite passed, not "everything except the two we gave up on".
 #
 # ...and that claim was still not true, because the default tag was [CadDocument] alone while

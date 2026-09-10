@@ -1,13 +1,13 @@
 # Rig build traps
 
-The build rig is two long-lived containers, `snaporca-gui` and `orcacad-gui`, one per fork. Each
-mounts only its fork's build volume (`snaporca_buildcache` / `orcacad_buildcache`) at
+The build rig is two long-lived containers, `snapmaker-gui` and `orcacad-gui`, one per fork. Each
+mounts only its fork's build volume (`snapmaker_buildcache` / `orcacad_buildcache`) at
 `/OrcaSlicer/build`, its fork's `resources/`, and a shots directory — nothing else. They run the
 binary; they do not build it. Rebuild with `scripts/CAD/build-gui.sh`.
 
 | fork repo | project() | deps image | build volume | GUI container | binary |
 |---|---|---|---|---|---|
-| `snaporca` | `Snapmaker_Orca` | `snaporca-deps` | `snaporca_buildcache` | `snaporca-gui` | `snapmaker-orca` |
+| `Snapmaker` | `Snapmaker_Orca` | `snapmaker-deps` | `snapmaker_buildcache` | `snapmaker-gui` | `snapmaker-orca` |
 | `orca_cad` | `OrcaSlicer` | `orcacad-deps` | `orcacad_buildcache` | `orcacad-gui` | `orca-slicer` |
 
 `scripts/CAD/build-gui.sh` exists alongside `scripts/CAD/build-gui-incremental.sh` for one reason: it does a
@@ -29,7 +29,7 @@ reports an unknown target, and `orca-slicer` / `OrcaSlicer` have been replaced b
 
 **Cause.** The GUI image's baked `/OrcaSlicer` tree is the Jun-13 Snapmaker-derived source
 (`project(Snapmaker_Orca)`, executable `snapmaker-orca`). `orcacad-deps` is layered on
-`snaporca-deps`, so even on the mainline fork the baked tree is the other fork's. A `cmake .`
+`snapmaker-deps`, so even on the mainline fork the baked tree is the other fork's. A `cmake .`
 there reconfigures the shared build dir under the wrong project name.
 
 **Fix.** Build only via `scripts/CAD/build-gui.sh`, which starts a throwaway container from the deps
@@ -64,10 +64,10 @@ Did you initialize submodules?` (the `FATAL_ERROR` guarding `PYBIND11_SOURCE_DIR
 fork's root `CMakeLists.txt`, near line 948).
 
 **Cause.** The deps image predates that requirement. Only the mainline (`orca_cad`) fork has
-`deps_src/pybind11` and the requirement; snaporca has neither.
+`deps_src/pybind11` and the requirement; Snapmaker has neither.
 
 **Fix.** Mount `deps_src` over the baked tree — `scripts/CAD/build-gui.sh` does. Corollary: mounting a
-snaporca tree into an `orcacad-deps` build reproduces this error exactly.
+Snapmaker tree into an `orcacad-deps` build reproduces this error exactly.
 
 ---
 
@@ -96,7 +96,7 @@ you ever configure by hand, run it twice.
 **Cause.** The cache carries `SLIC3R_CAD=ON`, but the root `CMakeLists.txt` actually configured is
 a stale baked copy that predates the gate and never runs `add_definitions(-DSLIC3R_CAD)` (the
 gate is `if (SLIC3R_CAD)` / `add_definitions(-DSLIC3R_CAD)` in the root list — line 179/180 in
-snaporca, 319/320 in orca_cad). Every `#ifdef SLIC3R_CAD` block therefore compiles out while the
+Snapmaker, 319/320 in orca_cad). Every `#ifdef SLIC3R_CAD` block therefore compiles out while the
 option still reads ON.
 
 **Fix.** Always mount the live `CMakeLists.txt` and `cmake/` — never inherit them from the image.
@@ -109,12 +109,12 @@ all mount both.
 
 `ninja <target>` writes `/OrcaSlicer/build/src/Release/<binary>`; only `build_linux.sh`
 additionally packages to `/OrcaSlicer/build/package/bin/<binary>`. `orca_cad`'s
-`scripts/CAD/start-headless-gui.sh` defaults `BIN` to `src/Release/orca-slicer`, but snaporca's defaults to
-`package/bin/snapmaker-orca`. So after a target-only rebuild on snaporca, launching
+`scripts/CAD/start-headless-gui.sh` defaults `BIN` to `src/Release/orca-slicer`, but Snapmaker's defaults to
+`package/bin/snapmaker-orca`. So after a target-only rebuild on Snapmaker, launching
 `start-headless-gui.sh` with its default runs the **stale packaged** binary — the change under test is
 invisible and the session hunts a phantom. Pass `BIN` explicitly:
 
-    docker exec -e BIN=/OrcaSlicer/build/src/Release/snapmaker-orca snaporca-gui /OrcaSlicer/scripts/CAD/start-headless-gui.sh
+    docker exec -e BIN=/OrcaSlicer/build/src/Release/snapmaker-orca snapmaker-gui /OrcaSlicer/scripts/CAD/start-headless-gui.sh
 
 `scripts/CAD/build-gui.sh` prints the correct line for the current fork when it finishes.
 

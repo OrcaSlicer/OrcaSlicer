@@ -19,7 +19,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# orcacad-deps, NOT snaporca-deps: see the note in run-kernel-tests.sh — the wrong image
+# orcacad-deps, NOT snapmaker-deps: see the note in run-kernel-tests.sh — the wrong image
 # fails at CMake configure, not at link time.
 IMAGE="${IMAGE:-orcacad-deps}"
 BUILD_VOL="${BUILD_VOL:-orcacad_buildcache}"
@@ -32,11 +32,11 @@ echo "REPO=$REPO  IMAGE=$IMAGE  BUILD_VOL=$BUILD_VOL"
 # the build fails with "class GLCanvas3D has no member named set_design_sketch_tool".
 #
 # build_linux.sh must be mounted for the same reason, and here the stale copy is guaranteed
-# wrong rather than merely risky: orcacad-deps is layered on snaporca-deps, so the baked script
+# wrong rather than merely risky: orcacad-deps is layered on snapmaker-deps, so the baked script
 # is the OTHER fork's and builds `--target Snapmaker_Orca`. This fork's target is `OrcaSlicer`,
 # so without this mount configure succeeds and then ninja dies on "unknown target".
 # scripts/ likewise: build_linux.sh's packaging step sources scripts/appimage_lib_policy.sh,
-# which the baked snaporca tree does not have, so a fully successful link still exited
+# which the baked Snapmaker tree does not have, so a fully successful link still exited
 # non-zero with "missing AppImage helper" and the binary check never ran.
 
 # ---- OOM guard (2026-08-21) -------------------------------------------------------------

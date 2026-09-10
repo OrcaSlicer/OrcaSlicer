@@ -1,4 +1,4 @@
-"""The muzzle has to READ, not just be present — snaporca-wi3z.
+"""The muzzle has to READ, not just be present — wi3z.
 
 Faithfully scaled, the part's ridge is 11.3 mm on an 83 mm face: 13.6 % of the width. At glyph
 size that is a scratch. A glyph is a symbol, not a scale model, so the question is how much

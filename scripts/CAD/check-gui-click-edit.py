@@ -14,7 +14,7 @@ again. A user cannot be told to click the field first; when they do not, they ge
 number and report "the label value is not editable". So this ladder types IMMEDIATELY after the
 field opens, exactly as a person does, and fails if the prefill is what gets committed.
 
-WHAT IT GRADES. The app emits one line per event under SNAPORCA_UXTRACE=1:
+WHAT IT GRADES. The app emits one line per event under ORCA_CAD_UXTRACE=1:
 
     [UX] open    title=Length prefill=154.76
     [UX] commit  title=Length typed=80 value=80.0000
@@ -29,7 +29,7 @@ that matters — a field that is on screen but deaf commits its prefill, and eve
     scripts/CAD/check-gui-click-edit.py --display :10 --bin build/src/Release/orca-slicer
 
 With --attach it drives an already-running app instead of launching one; the app must have been
-started with SNAPORCA_UXTRACE=1 and its stderr redirected to --trace.
+started with ORCA_CAD_UXTRACE=1 and its stderr redirected to --trace.
 Exit 0 = every field took what was typed.
 """
 import argparse, json, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
@@ -175,7 +175,7 @@ def launch():
     # the process was alive, `xdotool search` on the rig display found nothing, and the window
     # was sitting on the user's own screen. Silent, and it drives a stray app at someone's face.
     env.pop("WAYLAND_DISPLAY", None)
-    env.update(DISPLAY=DISP, GDK_BACKEND="x11", SNAPORCA_UXTRACE="1",
+    env.update(DISPLAY=DISP, GDK_BACKEND="x11", ORCA_CAD_UXTRACE="1",
                LIBGL_ALWAYS_SOFTWARE="1", GALLIUM_DRIVER="llvmpipe",
                # The rig's Xvfb has no input-method daemon, and a dead ibus context makes a
                # GtkEntry drop every character while the app looks fine. It cannot affect the
@@ -186,7 +186,7 @@ def launch():
                # the Design panel at all. Without it "the field never opened" is indistinguishable
                # from "we never got into sketch mode", and the first run of this ladder reported
                # seven product failures that were really one driver racing a still-loading app.
-               SNAPORCA_KEYTRACE="1", SNAPORCA_MCP=A.sock,
+               ORCA_CAD_KEYTRACE="1", ORCA_CAD_MCP=A.sock,
                SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt",
                WEBKIT_DISABLE_DMABUF_RENDERER="1", WEBKIT_DISABLE_COMPOSITING_MODE="1")
     if os.path.exists(A.sock):
