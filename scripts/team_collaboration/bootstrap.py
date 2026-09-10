@@ -200,7 +200,13 @@ def codeowners(repo, config, lock):
         require(isinstance(paths, list) and paths, f"Integration lock is missing {key}")
         paths = [ownership_path(path) for path in paths]
         if key == "model_generation_owned_paths":
-            paths += ["src/slic3r/GUI/AI/Model/ModelFinishing.cpp", "src/slic3r/GUI/AI/Model/ModelFinishing.hpp"]
+            # This fixed wildcard is part of the verifier's existing CODEOWNERS
+            # contract; lock-supplied paths remain strictly literal above.
+            paths += ["src/slic3r/GUI/AI/Model/ModelFinishing.*",
+                      "src/slic3r/GUI/AI/Model/ModelFinishing.cpp",
+                      "src/slic3r/GUI/AI/Model/ModelFinishing.hpp",
+                      "src/slic3r/GUI/AI/Model/ModelColorCleanup.hpp",
+                      "src/slic3r/GUI/AI/Model/ModelObjText.hpp"]
         if key == "integration_owned_paths":
             paths += ["scripts/team_collaboration", "tools/team_integration",
                       "scripts/team_ci_candidate.py", "scripts/test_team_ci_candidate.py", "deps"]

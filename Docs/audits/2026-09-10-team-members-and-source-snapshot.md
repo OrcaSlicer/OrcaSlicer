@@ -33,7 +33,7 @@
 - 当前工作树的 Windows Release `OrcaSlicer_app_gui` 与 `slic3rutils_tests` 增量编译成功；保留既有 `LNK4098 LIBCMT` 警告。随包 Python 3.12.13／Pillow 12.2.0 隔离 PNG 往返校验通过。
 - `[ModelFinishing],[VertexColorRegion],[ModelPreviewPalette]` 随机顺序运行：51 个用例、5,135 个断言通过。
 - `python scripts/verify_ai_integration.py --json`：`ok=true`，`errors=[]`，没有跳过 Git 检查。
-- 分支配置生成器 14 项离线测试通过；暂存源码完整性及 `git diff --cached --check` 通过。
+- 分支配置生成器 15 项离线测试通过；最终校验发现生成器漏掉既有的 `ModelFinishing.*` CODEOWNER 规则，已修正生成器并用实际集成校验器补充正反回归测试，未削弱门禁。两个新增模型头文件也显式归模型负责人和维护负责人。暂存源码完整性及 `git diff --cached --check` 通过。
 - 本轮没有重做已有审计中的主窗口旅程，也没有调用付费生成服务。本机结果不代替新 PR 候选的 Linux/macOS 构建或三人审批验收。
 
 本地日志：`.tmp/team-push-20260910-build.log`、`.tmp/team-push-20260910-tests.log`、`.tmp/team-push-20260910-integration.json`。推送完成后以实际远程 SHA 与 Actions 状态为准；这份准备记录不证明集成已合入、飞书已部署或自动归档已启用。

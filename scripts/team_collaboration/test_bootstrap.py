@@ -3,6 +3,7 @@
 import contextlib
 import copy
 import io
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -28,6 +29,33 @@ def complete_config():
 class ConfigTests(unittest.TestCase):
     def test_unconfigured_example_is_valid(self):
         bootstrap.validate_config(bootstrap.read_json(EXAMPLE))
+
+    def test_generated_codeowners_satisfy_actual_integration_verifier(self):
+        repository = Path(__file__).resolve().parents[2]
+        lock = bootstrap.read_json(repository / "docs/architecture/ai-integration-lock.json")
+        verifier_path = repository / "scripts/verify_ai_integration.py"
+        spec = importlib.util.spec_from_file_location("team_bootstrap_integration_verifier", verifier_path)
+        verifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(verifier)
+        generated = bootstrap.codeowners(repository, complete_config(), lock)
+        for filename in ("ModelColorCleanup.hpp", "ModelObjText.hpp"):
+            self.assertIn(f"/src/slic3r/GUI/AI/Model/{filename} @fixture-model @fixture-maintenance", generated)
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            (fixture / ".github").mkdir()
+            owners_path = fixture / ".github/CODEOWNERS"
+            owners_path.write_text(generated, encoding="utf-8")
+
+            def ownership_errors():
+                return [error for error in verifier.validate_source_constants(lock, fixture)
+                        if ".github/CODEOWNERS" in error["message"]]
+
+            self.assertEqual(ownership_errors(), [])
+            # Prove the real contract catches the previous generator output.
+            without_wildcard = "\n".join(line for line in generated.splitlines()
+                                         if not line.startswith("/src/slic3r/GUI/AI/Model/ModelFinishing.* "))
+            owners_path.write_text(without_wildcard, encoding="utf-8")
+            self.assertTrue(any("model finishing CODEOWNER" in error["message"] for error in ownership_errors()))
 
     def test_config_rejects_permissions_and_identity_injection(self):
         mutations = [

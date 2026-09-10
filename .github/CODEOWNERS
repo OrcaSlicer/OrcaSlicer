@@ -5,8 +5,11 @@
 
 # model_generation_owned_paths
 /src/slic3r/AI/ModelGeneration/ @arsenaltj @tangjiajie15191661723-web
+/src/slic3r/GUI/AI/Model/ModelColorCleanup.hpp @arsenaltj @tangjiajie15191661723-web
+/src/slic3r/GUI/AI/Model/ModelFinishing.* @arsenaltj @tangjiajie15191661723-web
 /src/slic3r/GUI/AI/Model/ModelFinishing.cpp @arsenaltj @tangjiajie15191661723-web
 /src/slic3r/GUI/AI/Model/ModelFinishing.hpp @arsenaltj @tangjiajie15191661723-web
+/src/slic3r/GUI/AI/Model/ModelObjText.hpp @arsenaltj @tangjiajie15191661723-web
 /src/slic3r/GUI/AI/ModelGeneration/ @arsenaltj @tangjiajie15191661723-web
 /src/slic3r/GUI/AIModelGenerationClient.cpp @arsenaltj @tangjiajie15191661723-web
 /src/slic3r/GUI/AIModelGenerationClient.hpp @arsenaltj @tangjiajie15191661723-web
