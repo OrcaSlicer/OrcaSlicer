@@ -1620,7 +1620,7 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         Http::get(download_url_str)
                             .timeout_connect(5)
                             .on_progress(check_cancel)
-                            .on_error([&vendor_id, &retry_count, max_retries](std::string body, std::string error, unsigned http_status) {
+                            .on_error([&vendor_id, &retry_count](std::string body, std::string error, unsigned http_status) {
                                 BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] download failed for new vendor " << vendor_id
                                                            << " (attempt " << retry_count << "/" << max_retries << "): " << error;
                             })
