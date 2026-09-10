@@ -2,7 +2,7 @@
 
 日期：2026-09-08
 
-**2026-09-09 三人协作实施：** 用户已接受 [ADR-007](Docs/architecture/ADR-007-three-developer-feishu-integration.md)，选择现有公开仓库 `arsenaltj/OrcaSlicer`，并明确新建分支、弃用旧开发分支。新四分支使用 `codex/team/{model-generation,smart-slicing,maintenance,integration}`，旧分支保留历史、不覆盖。`origin` 已连接此仓库。通知／候选检查、分支准备和 CI 的本地实现及上线状态见[实施记录](Docs/audits/2026-09-09-team-feishu-integration.md)。两位同事账号、飞书应用／群和持续在线服务机仍待补齐；采用新流程不代表自动合入、远程保护或完整产品验收已上线。
+**2026-09-09 三人协作实施（2026-09-10 负责人更新）：** 用户已接受 [ADR-007](Docs/architecture/ADR-007-three-developer-feishu-integration.md)，选择现有公开仓库 `arsenaltj/OrcaSlicer`，并明确新建分支、弃用旧开发分支。新四分支使用 `codex/team/{model-generation,smart-slicing,maintenance,integration}`，旧分支保留历史、不覆盖。`origin` 已连接此仓库。三位 GitHub 负责人现已确认：`arsenaltj` 负责模型生成，`tony20160206` 负责智能切片，`tangjiajie15191661723-web` 负责维护及集成协调；团队配置与生成的 CODEOWNERS 已使用真实账号。还需确认协作者权限、新名单进入受保护集成基线及真实 PR 互审，飞书应用／稳定身份／群和持续在线服务机仍待接入。通知／候选检查、分支准备和 CI 的本地实现及上线状态见[实施记录](Docs/audits/2026-09-09-team-feishu-integration.md)，当前操作规则见[团队手册](Docs/coordination/team-integration-sop.md)。采用新流程不代表自动合入或完整产品验收已上线。
 
 **2026-09-09 性能、提示与美颜调整：** 当前请求要求先体验再修改。保留单色写实，多色写实和风格化不限色；质量检查改为提示，保留文件可解析性与任务有效性约束。已完成后台模型预览、取消生成结束自动视觉复核、本地表面柔化和版本恢复改进。详细耗时、真实模型体验、验证范围及后续复测结果统一记录在[本次审计](Docs/audits/2026-09-09-performance-advisory-finishing.md)，覆盖旧文档中质量检查阻断下一步的要求。
 

@@ -4,7 +4,7 @@
 
 ## 事实与决策入口
 
-- 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
+- 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[日常同步、合入与版本存档](coordination/team-integration-sop.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
 
 - 当前实现：工作树代码和对应测试；报告须说明使用 HEAD 还是含未提交修改的工作树。
 - 最新体验与修改：[性能、质量提示和 3D 美颜](audits/2026-09-09-performance-advisory-finishing.md)，含实际模型加载、美颜保存回退与原生导入取消验证；质量判断不再拦截下一步。

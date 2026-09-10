@@ -2,6 +2,10 @@
 
 日期：2026-09-09。这是三人协作基础设施的实施记录，产品功能和真实打印验收仍使用各自报告。
 
+**2026-09-10 成员及源码更新：** 三位 GitHub 账号已确认，同事 A 已有 write 权限，同事 B 的 write 邀请已发出；生成三人 CODEOWNERS，并保存本地最新源码及两处跨平台字符串修正。详见[成员接入与源码快照](2026-09-10-team-members-and-source-snapshot.md)。下面的缺账号／旧构建状态属于更早记录，新配置进入集成仍需真实成员参与的首次迁移 PR。
+
+**2026-09-10 后续核查：** [候选及原生构建 run 34362293686](https://github.com/arsenaltj/OrcaSlicer/actions/runs/34362293686) 已结束，整体失败。Windows 构建和 C++ 测试成功；Linux/macOS 在该提交 `ModelGenerationPanel.cpp` 第 2818、3315 行的三元表达式出现 `wxString`／`const wxChar *` 类型歧义，相关测试未执行。下文“仍在运行”是前一日记录，不能作为当前通过证据。本轮细化了根 AGENTS 和[团队操作手册](../coordination/team-integration-sop.md)，覆盖同步前后通知、PR 串行合入及逐构建版本档案；未修改产品源码、启用自动合并或部署飞书。完整版本归档仍待实现，修复云端基线是上线前置工作。
+
 ## 已确定的工作方式
 
 用户已接受 ADR-007，使用公开仓库 `arsenaltj/OrcaSlicer`；重新创建四条 `codex/team/*` 分支，旧开发分支停止用于新工作并保留历史。当前用户 GitHub 登录名已通过 API 确认是 `arsenaltj`，负责模型生成。两位同事的账号暂缺，没有填写虚假身份或邀请未知账号。
