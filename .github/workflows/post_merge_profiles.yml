@@ -47,6 +47,10 @@ jobs:
   publish_profile_caches:
     name: Publish profile caches
     if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
+    # FOLDER_MERGERS is an environment-scoped variable, shared with the PR
+    # merge bot. Keep this environment free of protection rules so this
+    # push-triggered job does not wait for a reviewer.
+    environment: merge-delegation
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -60,6 +64,8 @@ jobs:
       - name: Resolve changed vendors
         id: vendors
         shell: bash
+        env:
+          FOLDER_MERGERS: ${{ vars.FOLDER_MERGERS }}
         run: |
           set -euo pipefail
           base='${{ github.event.before }}'
@@ -93,6 +99,51 @@ jobs:
             echo "vendors=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          # A vendor is eligible only when both the profile directory and its
+          # sibling bundle JSON are covered by at least one FOLDER_MERGERS
+          # grant. The account part is intentionally ignored here: this is a
+          # post-merge safety check, not an authorization check for a command.
+          grants=()
+          while IFS= read -r raw_line; do
+            line="${raw_line#"${raw_line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [ -n "$line" ] || continue
+            [[ "$line" == \#* ]] && continue
+            [[ "$line" == *:* ]] || continue
+
+            grant="${line#*:}"
+            grant="${grant#"${grant%%[![:space:]]*}"}"
+            grant="${grant%"${grant##*[![:space:]]}"}"
+            while [[ "$grant" == */ ]]; do grant="${grant%/}"; done
+            grants+=("$grant")
+          done <<< "${FOLDER_MERGERS:-}"
+
+          is_granted() {
+            local path="$1"
+            local grant
+            for grant in "${grants[@]:-}"; do
+              if [[ "$path" == "$grant" || "$path" == "$grant/"* ]]; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          unauthorized=()
+          for v in "${vendors[@]}"; do
+            if ! is_granted "resources/profiles/$v" || ! is_granted "resources/profiles/$v.json"; then
+              unauthorized+=("$v")
+            fi
+          done
+
+          if [ "${#unauthorized[@]}" -ne 0 ]; then
+            echo "Changed vendor profiles are not covered by FOLDER_MERGERS: ${unauthorized[*]}"
+            echo "No profile caches will be published for this push."
+            echo "vendors=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           printf 'Changed vendors: %s\n' "${vendors[*]}"
           echo "vendors=${vendors[*]}" >> "$GITHUB_OUTPUT"
 
