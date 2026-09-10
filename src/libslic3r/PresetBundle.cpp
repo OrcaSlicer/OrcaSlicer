@@ -4981,7 +4981,7 @@ static void apply_mixed_config_relocations(DynamicPrintConfig&                  
     case coBools: {
         auto*       live   = static_cast<ConfigOptionBools*>(opt);
         const auto* frozen = static_cast<const ConfigOptionBools*>(snapshot.get());
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const unsigned char cell = from < frozen->values.size() ? frozen->values[from] : 0;
             if (live->values.size() <= to)
                 live->values.resize(to + 1, 0);
@@ -4992,7 +4992,7 @@ static void apply_mixed_config_relocations(DynamicPrintConfig&                  
     case coStrings: {
         auto*       live   = static_cast<ConfigOptionStrings*>(opt);
         const auto* frozen = static_cast<const ConfigOptionStrings*>(snapshot.get());
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
             if (live->values.size() <= to)
                 live->values.resize(to + 1, std::string{});
@@ -5028,7 +5028,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
         auto*             live   = static_cast<ConfigOptionBools*>(opt);
         std::unique_ptr<ConfigOption> snapshot(opt->clone());
         const auto*       frozen  = static_cast<const ConfigOptionBools*>(snapshot.get());
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const bool cell = from < frozen->values.size() ? frozen->values[from] : false;
             if (live->values.size() <= to)
                 live->values.resize(to + 1, false);
@@ -5044,7 +5044,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
         auto*             live   = static_cast<ConfigOptionStrings*>(opt);
         std::unique_ptr<ConfigOption> snapshot(opt->clone());
         const auto*       frozen  = static_cast<const ConfigOptionStrings*>(snapshot.get());
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
             if (live->values.size() <= to)
                 live->values.resize(to + 1, std::string{});
@@ -5060,7 +5060,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
         auto*             live   = static_cast<ConfigOptionInts*>(opt);
         std::unique_ptr<ConfigOption> snapshot(opt->clone());
         const auto*       frozen  = static_cast<const ConfigOptionInts*>(snapshot.get());
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const int cell = from < frozen->values.size() ? frozen->values[from] : 0;
             if (live->values.size() <= to)
                 live->values.resize(to + 1, 0);
@@ -5087,7 +5087,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
     move_ints("filament_volume_map");
     {
         const std::vector<std::vector<std::string>> frozen = ams_multi_color_filment;
-        for (const auto [from, to] : moves) {
+        for (const auto& [from, to] : moves) {
             const std::vector<std::string> cell = from < frozen.size() ? frozen[from] : std::vector<std::string>();
             if (ams_multi_color_filment.size() <= to)
                 ams_multi_color_filment.resize(to + 1, std::vector<std::string>{});
