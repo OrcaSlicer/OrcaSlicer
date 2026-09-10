@@ -448,6 +448,31 @@ TEST_CASE("Presets inheriting each other in a cycle are reported, not loaded", "
     CHECK(bundle.has_errors());
 }
 
+TEST_CASE("A preset held back for its parent reports its substitutions once", "[Preset][Inherits][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+
+    // The child sorts before its parent, so it is held back for a pass and its file is read
+    // twice. The bogus boolean makes every read produce a substitution.
+    const fs::path preset_dir = temp_dir.path() / PRESET_PRINT_NAME;
+    fs::create_directories(preset_dir);
+    std::ofstream((preset_dir / "AA Child.json").string())
+        << R"({"type":"process","name":"AA Child","from":"User","version":"1.0.0",)"
+        << R"("inherits":"ZZ Root","spiral_mode":"sometimes"})";
+    write_sparse_preset(preset_dir / "ZZ Root.json", "ZZ Root", "", {{"layer_height", "0.3"}});
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Enable);
+
+    REQUIRE(bundle.prints.find_preset("AA Child") != nullptr);
+    // A read that ends in the preset being held back must not leave its substitutions behind,
+    // otherwise the same preset is listed once per pass it waited.
+    CHECK(std::count_if(substitutions.begin(), substitutions.end(),
+                        [](const PresetConfigSubstitutions &s) { return s.preset_name == "AA Child"; }) == 1);
+}
+
 TEST_CASE("Renamed printer/process names are normalized into compatible lists on load", "[Preset][Rename]")
 {
     PresetBundle bundle;
