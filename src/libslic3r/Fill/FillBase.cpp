@@ -291,9 +291,9 @@ std::pair<float, Point> Fill::_infill_direction(const Surface *surface) const
 
     // Bounding box is the bounding box of a perl object Slic3r::Print::Object (c++ object Slic3r::PrintObject)
     // The bounding box is only undefined in unit tests.
-    Point out_shift = empty(this->bounding_box) ?
+    Point out_shift = ((empty(this->bounding_box) ?
     	surface->expolygon.contour.bounding_box().center() :
-        this->bounding_box.center();
+        this->bounding_box.center())) + this->shift;
 
 #if 0
     if (empty(this->bounding_box)) {
@@ -320,7 +320,6 @@ std::pair<float, Point> Fill::_infill_direction(const Surface *surface) const
     } else {
 //    	printf("Layer_ID undefined!\n");
     }
-
     out_angle += float(M_PI/2.);
     return std::pair<float, Point>(out_angle, out_shift);
 }

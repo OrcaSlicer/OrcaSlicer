@@ -614,14 +614,80 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         } else if (m_opt.opt_key == "sparse_infill_rotate_template" || m_opt.opt_key == "solid_infill_rotate_template") {
             string ustr(str.utf8_string());
             if (!ConfigOptionFloats::validate_string(ustr)) {
+                
+                // Orca: Glyphs and keyboard layout corrector
+                // A set of meta commands in an incorrect keyboard layout or with similar glyphs breaks the command structure.
+                // There is an attempt to automatically correct this before the string is critically distorted.
+                // Cyrillic and Greek glyphs and the Russian layout have been added initially. Other national variants may be added.
+                // The glyph table contains similar letter shapes.
+                // The layout table contains the correspondence of the pressed national letter in the English layout.
+                for (char& ch : ustr) { 
+                    if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
+                        wstring wstr(str.ToStdWstring());
+                        wstring const in_glyph[]{L"АΑ", L"а",    L"ВΒ", L"в",    L"СҪ",  L"сҫ", L"",  L"",        L"ЕЁΕ",     L"е",      L"",     L"",   L"",
+                                                 L"",   L"НҢҤΗ", L"һ",  L"ΙІЇӀ", L"іїι", L"Ј",  L"ј", L"КЌҚҜҞҠΚ", L"кќқҝҟҡκ", L"",       L"",     L"МΜ", L"м",
+                                                 L"Ν",  L"пπ",   L"ОΟ", L"оο",   L"РΡ",  L"рρ", L"",  L"",        L"",        L"",       L"Ѕ",    L"ѕ",  L"TҬΤ",
+                                                 L"ҭτ", L"",     L"υ",  L"",     L"ν",   L"",   L"",  L"ХҲΧ",     L"хҳχ",     L"УўЎҮҰΥ", L"ўүұу", L"Ζ",  L""};
+                        wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П",
+                                                           L"п", L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь",
+                                                           L"Т", L"т", L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е",
+                                                           L"е", L"Г", L"г", L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я"};
+                        string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"};
+                        for (int i = 0; i < out_symbol.size(); i++) {
+                            wstring gl = in_glyph[i];
+                            wstring kb = in_keyboard_layout[i];
+                            string out_string(out_symbol.substr(i, 1));
+                            wstring out_char(out_string.begin(), out_string.end());
+                            if (!gl.empty()) {
+                                wregex glstr(L"([" + gl + L"])");
+                                wstr = std::regex_replace(wstr, glstr, out_char);
+                            } 
+                            if (!kb.empty()) {
+                                wregex kbstr(L"([" + kb + L"])");
+                                wstr = std::regex_replace(wstr, kbstr, out_char);
+                            }
+                        }
+                        ustr = wxString(wstr).utf8_string();
+                        break;
+                    }
+                }                
+                
+                // adjustment of the decimal separator
+                ustr = std::regex_replace(ustr, std::regex("(\\d)(,)(\\d)"), "$1.$3");
+
+                // validate density percents
                 string      v;
                 std::smatch match;
-                string      ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
-                                     u8"[BT][!]?|[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[BT]?[!*]?" :
-                                     u8"[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[!*]?";
+
+                // remove all unnecessary zeros 
+                std::regex pattern("([Dd][+\\-]?[\\d.]+[%:]?)"); 
+                while (std::regex_search(ustr, match, pattern)) {
+                    string match_str(match[1].str());
+                    v += match.prefix().str();
+                    if (match_str.back() == ':' || match_str.back() == '%') {
+                        v += match_str;
+                    } else {
+                        string repl_str = match.str();
+                        size_t r(repl_str.find_first_of("0123456789."));
+                        if (r < repl_str.length()) {
+                            v += repl_str.substr(0, r);
+                            double number(std::strtod(&repl_str[r], nullptr));
+                            v += get_str_value_wo_zeros(number) + ((number > 1) ? "%" : "");
+                        } else
+                            v += match[1].str();
+                    }
+                    ustr = match.suffix().str();
+                } 
+                ustr = v + ustr;
+                v    = "";
+
+                // split into separate commands
+                string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
+                             u8"[BT][!]?|[#]?[\\d.]+[!]?|(?:[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?|[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?|[XYxy][+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[&@%\'\"c]?[m]{0,2})+(?:[!]?[*][\\d]*|[*][\\d]*[!]?)?[\\^~/NnZz$LlUuQq#MCc]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[%#\'\"c]?[m]{0,2}[BT]?(?:[!]?[*][\\d]+|[*][\\d]+[!]?)?" :
+                             u8"[#]?[\\d.]+[!]?|(?:[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?|[XYxy][+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[&@%\'\"c]?[m]{0,2})+(?:[!]?[*][\\d]*|[*][\\d]*[!]?)?[\\^~/NnZz$LlUuQq#MCc]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[%#\'\"c]?[m]{0,2}(?:[!]?[*][\\d]+|[*][\\d]+[!]?)?";
 
                 while (std::regex_search(ustr, match, std::regex(ps))) {
-                    for (auto x : match) v += x.str() + ", ";
+                    for (std::ssub_match const &x : match) v += x.str() + ", ";
                     ustr = match.suffix().str();
                 }
                 v = v.substr(0, v.length() - 2);

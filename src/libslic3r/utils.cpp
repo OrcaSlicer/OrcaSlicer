@@ -1542,6 +1542,20 @@ std::string format_diameter_to_str(double diameter, int precision)
     return oss.str();
 }
 
+std::string get_str_value_wo_zeros(double in)
+{
+    std::string repl_str = Slic3r::format("%f", in);
+    size_t s             = repl_str.find_first_not_of('0');
+    size_t e             = repl_str.length() - 1;
+    size_t d             = repl_str.find('.');
+    if (d < repl_str.length()) {
+        e = repl_str.find_last_not_of('0');
+        if (d == e)
+            e--;
+    }
+    return repl_str.substr(s, e - s + 1);
+}
+
 // Returns platform-specific string to be used as log output or parsed in SysInfoDialog.
 // The latter parses the string with (semi)colons as separators, it should look about as
 // "desc1: value1; desc2: value2" or similar (spaces should not matter).
