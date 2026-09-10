@@ -134,7 +134,9 @@ public:
     }
 
 private:
+#if defined(__WXMSW__) || defined(__APPLE__)
     int m_suspended_count = 0;
+#endif
 };
 
 static bool needs_filament_swatch_border(const wxColour& colour)
