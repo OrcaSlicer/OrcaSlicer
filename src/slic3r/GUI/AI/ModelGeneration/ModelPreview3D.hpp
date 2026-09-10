@@ -124,7 +124,7 @@ public:
             if (delta == 0)
                 return;
             const double turns = double(event.GetWheelRotation()) / double(delta);
-            m_zoom = std::clamp(m_zoom * std::pow(1.15, turns), 0.45, 2.5);
+            m_zoom = std::clamp(m_zoom * std::pow(1.15, turns), 0.45, 12.0);
             m_canvas->Refresh(false);
         });
         m_canvas->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& event) {
@@ -133,6 +133,9 @@ public:
         });
         m_canvas->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent&) { finish_drag(); });
         m_canvas->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& event) {
+            if (!event.ControlDown() && (event.GetKeyCode() == 'F' || event.GetKeyCode() == 'f')) {
+                focus_selection(); return;
+            }
             if (!m_selection_enabled) {
                 event.Skip();
                 return;
@@ -300,7 +303,7 @@ public:
         m_trial_palette = std::move(prepared.trial_palette);
         m_trial_histogram = std::move(prepared.trial_histogram);
         triangle_count = m_triangle_count;
-        dimensions = m_bounds.size().cast<double>();
+        dimensions = m_model_dimensions = prepared.bounds.size().cast<double>();
         color_count = m_color_count;
         m_palette = palette;
         m_has_model = true;
@@ -332,7 +335,7 @@ public:
         m_color_count = color_count = cached->colors;
         m_trial_palette = std::move(cached->trial_palette);
         m_trial_histogram = std::move(cached->trial_histogram);
-        dimensions = m_bounds.size().cast<double>();
+        dimensions = m_model_dimensions = cached->dimensions;
         m_palette = palette;
         m_has_model = true;
         m_color_trial->load(m_trial_histogram, m_trial_palette);
@@ -347,6 +350,13 @@ public:
     bool load_model(const boost::filesystem::path& path, const std::vector<std::string>& palette,
                     size_t& triangle_count, Vec3d& dimensions, size_t& color_count, std::string& error)
     {
+        // Accepting an already displayed preview should not reparse the OBJ or
+        // rebuild GPU buffers. The file stamp still invalidates external edits.
+        if (m_has_model && path == m_model_path && palette == m_palette && same_stamp(m_model_stamp, file_stamp(path))) {
+            triangle_count = m_triangle_count; color_count = m_color_count;
+            dimensions = m_model_dimensions;
+            return true;
+        }
         if (try_load_cached_model(path, palette, triangle_count, dimensions, color_count))
             return true;
         PreparedModel prepared;
@@ -487,6 +497,28 @@ public:
         return result;
     }
     void set_gray_view(bool enabled) { m_gray_view = enabled; m_canvas->Refresh(false); }
+    void set_selection_overlay_visible(bool visible) { m_selection_overlay_visible = visible; m_canvas->Refresh(false); }
+    bool focus_selection() {
+        if (!m_region_editor.ready() || !m_region_editor.selected_face_count()) return false;
+        const auto& mesh = m_region_editor.mesh();
+        const auto& selected = m_region_editor.selected_faces();
+        BoundingBoxf3 bounds;
+        for (size_t i = 0; i < selected.size(); ++i) if (selected[i])
+            for (int k = 0; k < 3; ++k) bounds.merge(mesh.vertices[mesh.indices[i][k]].cast<double>());
+        const auto rotation = view_rotation();
+        const Vec3d offset = rotation.linear() * (bounds.center() - m_bounds.center()).cast<double>();
+        const double radius = std::max(0.001, 0.5 * m_bounds.size().norm());
+        m_pan_x = -offset.x() / radius; m_pan_y = -offset.y() / radius;
+        const double aspect = double(std::max(1, m_canvas->GetClientSize().x)) / std::max(1, m_canvas->GetClientSize().y);
+        const Vec3d full = rotation.linear().cwiseAbs() * (0.5 * m_bounds.size().cast<double>());
+        const Vec3d patch = rotation.linear().cwiseAbs() * (0.5 * bounds.size().cast<double>());
+        m_zoom = std::clamp(std::max(full.y(), full.x() / aspect) /
+            std::max(0.001, 1.25 * std::max(patch.y(), patch.x() / aspect)), 0.45, 12.0);
+        m_canvas->Refresh(false);
+        return true;
+    }
+    ModelPreviewColorControls::State color_trial_state() const { return m_color_trial->state(); }
+    void restore_color_trial(const ModelPreviewColorControls::State& state) { m_color_trial->restore(state); }
     void set_color_controls_visible(bool visible) { m_color_trial->Show(visible && m_has_model); Layout(); }
     // Capture on the UI thread; callers own the copy and cannot mutate preview
     // controls, project slots or the source mesh through this snapshot.
@@ -614,6 +646,7 @@ private:
         indexed_triangle_set mesh;
         std::vector<RGBA> vertex_colors;
         BoundingBoxf3 bounds;
+        Vec3d dimensions {Vec3d::Zero()};
         boost::filesystem::path path;
         FileStamp stamp;
         size_t triangles {0};
@@ -674,6 +707,7 @@ private:
             m_cached_preview->vertex_colors = std::move(m_pending_vertex_colors);
         }
         m_cached_preview->bounds = m_bounds;
+        m_cached_preview->dimensions = m_model_dimensions;
         m_cached_preview->path = m_model_path;
         m_cached_preview->stamp = m_model_stamp;
         m_cached_preview->triangles = m_triangle_count;
@@ -983,7 +1017,7 @@ private:
                     model->render(shader);
                 if (multisample) glsafe(::glEnable(GL_MULTISAMPLE));
                 if (dither) glsafe(::glEnable(GL_DITHER));
-                if (m_selection_model != nullptr) {
+                if (m_selection_model != nullptr && m_selection_overlay_visible) {
                     shader->set_uniform("gray_view", false);
                     shader->set_uniform("use_uniform_color", true);
                     shader->set_uniform("preview_color_count", 0);
@@ -1046,6 +1080,7 @@ private:
     std::vector<std::vector<uint8_t>> m_selection_history;
     std::vector<std::string> m_palette;
     BoundingBoxf3 m_bounds;
+    Vec3d m_model_dimensions {Vec3d::Zero()};
     wxPoint m_last_mouse;
     wxPoint m_drag_start;
     std::function<void(size_t)> m_selection_changed;
@@ -1076,6 +1111,7 @@ private:
     bool m_dragging {false};
     bool m_drag_moved {false};
     bool m_selection_enabled {false};
+    bool m_selection_overlay_visible {true};
     bool m_has_model {false};
     bool m_paint_diagnostics_logged {false};
     bool m_render_diagnostics_logged {false};

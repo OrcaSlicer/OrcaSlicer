@@ -212,9 +212,12 @@ private:
     wxChoice* m_finishing_tool {nullptr};
     wxPanel* m_finishing_selection_controls {nullptr};
     wxStaticText* m_finishing_selection_status {nullptr};
+    wxStaticText* m_finishing_cleanup_hint {nullptr};
     wxChoice* m_finishing_selection_operation {nullptr};
     wxSlider* m_finishing_radius {nullptr};
     wxCheckBox* m_finishing_gray {nullptr};
+    wxCheckBox* m_finishing_overlay {nullptr};
+    wxStaticText* m_finishing_strength_value {nullptr};
     wxButton* m_finishing_redo {nullptr};
     bool m_finishing_workbench {false};
     bool m_finishing_compare_held {false};

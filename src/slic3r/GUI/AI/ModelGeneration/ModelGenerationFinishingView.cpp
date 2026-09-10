@@ -99,7 +99,7 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     wrap_workbench_text(hint, FromDIP(260));
     sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_finishing_tool = new wxChoice(m_finishing_panel, wxID_ANY);
-    for (const auto& label : {_L("整体美颜"), _L("局部修整"), _L("六色试色"), _L("网格修复"), _L("局部改色")})
+    for (const auto& label : {_L("整体美颜"), _L("局部修整"), _L("六色试色"), _L("网格修复"), _L("局部改色"), _L("局部去杂色")})
         m_finishing_tool->Append(label);
     m_finishing_tool->SetSelection(0);
     sizer->Add(m_finishing_tool, 0, wxEXPAND | wxALL, FromDIP(10));
@@ -109,7 +109,7 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     m_finishing_selection_controls = new wxPanel(m_finishing_panel);
     auto* selection = new wxBoxSizer(wxVERTICAL);
     auto* selection_hint = new wxStaticText(m_finishing_selection_controls, wxID_ANY,
-        _L("短按模型添加局部区域，拖动旋转。高亮部分参与柔化，未选部分保持原样。"));
+        _L("短按模型添加局部区域，拖动旋转。高亮部分参与处理，未选部分保持原样。"));
     wrap_workbench_text(selection_hint, FromDIP(260));
     selection->Add(selection_hint, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
     m_finishing_selection_operation = new wxChoice(m_finishing_selection_controls, wxID_ANY);
@@ -128,8 +128,24 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     selection_actions->Add(undo_selection, 0, wxRIGHT, FromDIP(6));
     selection_actions->Add(clear_selection);
     selection->Add(selection_actions);
+    auto* focus_selection = new wxButton(m_finishing_selection_controls, wxID_ANY, _L("放大选区（F）"));
+    focus_selection->SetToolTip(_L("将选中的区域放到画面中央；“完整显示模型”可恢复全貌。"));
+    selection->Add(focus_selection, 0, wxEXPAND | wxTOP, FromDIP(8));
+    auto* show_selection = m_finishing_overlay = new wxCheckBox(m_finishing_panel, wxID_ANY, _L("显示选区高亮"));
+    show_selection->SetValue(true);
+    show_selection->SetToolTip(_L("取消勾选可看清选区内原本的颜色和细节；选区仍然有效。"));
+    focus_selection->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        if (!m_model_preview->focus_selection()) {
+            m_finishing_status->SetLabel(_L("请先点选模型上的区域，再放大查看。"));
+            refresh_model_finishing();
+        }
+    });
+    show_selection->Bind(wxEVT_CHECKBOX, [this, show_selection](wxCommandEvent&) {
+        m_model_preview->set_selection_overlay_visible(show_selection->GetValue());
+    });
     m_finishing_selection_controls->SetSizer(selection);
     sizer->Add(m_finishing_selection_controls, 0, wxEXPAND | wxALL, FromDIP(10));
+    sizer->Add(show_selection, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_finishing_selection_operation->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { update_finishing_selection(); });
     m_finishing_radius->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) { update_finishing_selection(); });
     undo_selection->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { m_model_preview->undo_selection(); });
@@ -143,7 +159,18 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     m_finishing_smooth->SetValue(true);
     sizer->Add(m_finishing_smooth, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_finishing_strength = new wxSlider(m_finishing_panel, wxID_ANY, 15, 0, 100,
-        wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL | wxSL_LABELS);
+        wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL);
+    m_finishing_cleanup_hint = new wxStaticText(m_finishing_panel, wxID_ANY,
+        _L("去杂力度：先选中杂色及周围主色，再预览。只合并被同一颜色包围的小色块；大片杂色可用“局部改色”统一。"));
+    wrap_workbench_text(m_finishing_cleanup_hint, FromDIP(260));
+    sizer->Add(m_finishing_cleanup_hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+    // Native wxSL_LABELS creates sibling labels that overlap after tool panels
+    // are shown/hidden. Keep the value in our sizer with the rest of the form.
+    m_finishing_strength_value = new wxStaticText(m_finishing_panel, wxID_ANY, _L("处理强度：15%"));
+    sizer->Add(m_finishing_strength_value, 0, wxLEFT | wxRIGHT, FromDIP(10));
+    m_finishing_strength->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) {
+        m_finishing_strength_value->SetLabel(wxString::Format(_L("处理强度：%d%%"), m_finishing_strength->GetValue()));
+    });
     m_finishing_strength->SetToolTip(_L("强度越高，柔化越明显。保护轮廓与细小结构；可随时调整并重新预览。"));
     sizer->Add(m_finishing_strength, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_finishing_repair = new wxCheckBox(m_finishing_panel, wxID_ANY, _L("网格清理与面朝向修复"));
@@ -172,14 +199,24 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     m_finishing_undo->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { undo_model_finishing(); });
     m_finishing_redo->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { redo_model_finishing(); });
     m_finishing_strength->Bind(wxEVT_SCROLL_THUMBRELEASE, [this](wxScrollEvent&) {
-        if (!m_busy && m_finishing_workbench && m_finishing_tool->GetSelection() < 2) preview_model_finishing();
+        if (!m_busy && m_finishing_workbench && (m_finishing_tool->GetSelection() < 2 || m_finishing_tool->GetSelection() == 5)) preview_model_finishing();
     });
     m_finishing_tool->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
         m_model_preview->clear_selection();
         const int tool = m_finishing_tool->GetSelection();
-        m_finishing_smooth->SetValue(tool != 3);
+        m_finishing_smooth->SetValue(tool != 3 && tool != 5);
         m_finishing_repair->SetValue(tool == 3);
+        if (tool == 5) {
+            m_finishing_strength->SetValue(35);
+        }
+        // Color tools must show the surface colors, even when the previous
+        // geometry tool was inspected as a gray model.
+        if (tool == 2 || tool == 4 || tool == 5) {
+            m_finishing_gray->SetValue(false);
+            m_model_preview->set_gray_view(false);
+        }
         m_finishing_status->SetLabel(tool == 2 ? _L("在模型下方试色，可切回原色。选定方案会带入导入配色，最终按实际耗材确认。")
+            : tool == 5 ? _L("选中领子等需要清理的区域，预览去杂效果。小色块也可能是有意细节，请对比后保存；可撤销。")
             : tool == 4 ? _L("点选模型，再用右侧工具换色。改色保存为新版本，原件保留。")
             : tool == 1 ? _L("先点选局部区域，再调整强度。边缘渐变柔化，未选区域保持原样。")
             : tool == 3 ? _L("清理重复／退化面并校正面朝向；不自动补洞或删除部件。")
@@ -268,7 +305,7 @@ void ModelGenerationPanel::set_finishing_workbench(bool enabled)
 
 void ModelGenerationPanel::update_finishing_selection()
 {
-    const bool local = m_finishing_workbench && m_finishing_tool->GetSelection() == 1;
+    const bool local = m_finishing_workbench && (m_finishing_tool->GetSelection() == 1 || m_finishing_tool->GetSelection() == 5);
     if (m_finishing_workbench && m_finishing_tool->GetSelection() == 4) { refresh_local_recolor_controls(); return; }
     m_model_preview->set_selection_enabled(local && !m_busy && m_finishing_candidate.empty());
     if (!local) return;
@@ -300,26 +337,36 @@ void ModelGenerationPanel::refresh_model_finishing()
     m_finishing_panel->Show(m_finishing_workbench && (ready || m_finishing_running || pending));
     const bool editable = ready && !m_busy;
     const int tool = m_finishing_tool->GetSelection();
-    const bool local = tool == 1;
+    const bool cleanup = tool == 5;
+    const bool local = tool == 1 || cleanup;
     const bool color = tool == 2 || tool == 4;
     m_model_preview->set_color_controls_visible(!m_finishing_workbench || tool == 2);
     m_finishing_selection_controls->Show(local);
+    m_finishing_overlay->Show(local || tool == 4);
+    m_finishing_overlay->Enable(editable && !pending);
     m_finishing_selection_controls->Enable(editable && !pending);
     m_finishing_tool->Enable(editable && !pending);
-    m_finishing_preset->Show(!color && tool != 3);
-    m_finishing_smooth->Show(!color && tool != 3);
+    m_finishing_preset->Show(!color && tool != 3 && !cleanup);
+    m_finishing_smooth->Show(!color && tool != 3 && !cleanup);
     m_finishing_strength->Show(!color && tool != 3);
+    m_finishing_strength_value->Show(!color && tool != 3);
+    m_finishing_strength_value->SetLabel(wxString::Format(_L("处理强度：%d%%"), m_finishing_strength->GetValue()));
+    m_finishing_cleanup_hint->Show(cleanup);
+    m_finishing_gray->Show(!color && !cleanup);
+    m_finishing_strength->SetToolTip(cleanup
+        ? _L("力度越大，可合并的杂色块越大。仅处理选区内部；不会自动识别五官、纽扣或花纹。")
+        : _L("强度越高，柔化越明显。保护轮廓与细小结构；可随时调整并重新预览。"));
     m_finishing_repair->Show(tool == 3);
     m_finishing_compare_model->Show(pending);
     m_finishing_compare_model->Enable(editable);
     m_finishing_compare_model->SetLabel(m_finishing_before ? _L("当前为处理前") : _L("按住查看处理前"));
     m_finishing_compare_model->GetParent()->Layout();
     m_finishing_preview->Enable(editable);
-    m_finishing_preview->SetLabel(pending ? _L("按当前强度重新预览") : _L("预览处理效果"));
+    m_finishing_preview->SetLabel(pending ? _L("按当前强度重新预览") : cleanup ? _L("预览去杂效果") : _L("预览处理效果"));
     m_finishing_preset->Enable(editable);
     m_finishing_smooth->Enable(editable);
     m_finishing_repair->Enable(editable);
-    m_finishing_strength->Enable(editable && m_finishing_smooth->GetValue());
+    m_finishing_strength->Enable(editable && (cleanup || m_finishing_smooth->GetValue()));
     for (wxButton* button : {m_finishing_compare, m_finishing_accept, m_finishing_discard}) {
         button->Show(pending); button->Enable(editable);
     }
@@ -357,19 +404,27 @@ void ModelGenerationPanel::refresh_model_finishing()
 void ModelGenerationPanel::preview_model_finishing()
 {
     if (m_busy || m_shutdown || !m_model_preview_ready) return;
-    const bool local = m_finishing_tool->GetSelection() == 1;
+    const bool cleanup = m_finishing_tool->GetSelection() == 5;
+    const bool local = m_finishing_tool->GetSelection() == 1 || cleanup;
     auto selected_faces = local ? (m_finishing_candidate.empty() ? m_model_preview->selected_face_indices()
         : m_finishing_options.selected_faces) : std::vector<size_t>{};
     if (local && selected_faces.empty()) {
-        m_finishing_status->SetLabel(_L("请先在模型上点选要柔化的区域；未选区域不会改变。")); return;
+        m_finishing_status->SetLabel(cleanup ? _L("请先选中杂色及周围主色，例如整片绿色领子；未选区域不会改变。")
+            : _L("请先在模型上点选要柔化的区域；未选区域不会改变。"));
+        wrap_workbench_text(m_finishing_status, FromDIP(260));
+        m_finishing_panel->Layout();
+        return;
     }
     const auto source = m_displayed_model_path;
     if (!is_nonempty_obj(source)) {
         m_finishing_status->SetLabel(_L("模型文件已不存在，请从模型库重新加载。")); return;
     }
-    AI::ModelFinishingOptions options {m_finishing_smooth->GetValue(), !local && m_finishing_repair->GetValue(), m_finishing_strength->GetValue() / 100.0};
+    AI::ModelFinishingOptions options {!cleanup && m_finishing_smooth->GetValue(), !local && m_finishing_repair->GetValue(), m_finishing_strength->GetValue() / 100.0};
+    options.clean_color_spots = cleanup;
+    if (cleanup) options.cleanup_palette = m_finishing_candidate.empty()
+        ? m_model_preview->color_trial_mapping().mapping_colors : m_finishing_options.cleanup_palette;
     options.selected_faces = std::move(selected_faces);
-    if (!options.smooth_surface && !options.repair_mesh) {
+    if (!options.smooth_surface && !options.repair_mesh && !options.clean_color_spots) {
         m_finishing_status->SetLabel(_L("请至少选择表面美化或网格修复。")); return;
     }
     if (!m_finishing_candidate.empty()) {
@@ -379,6 +434,7 @@ void ModelGenerationPanel::preview_model_finishing()
         m_finishing_candidate.clear();
     }
     if (m_finishing_worker.joinable()) m_finishing_worker.join();
+    const auto color_state = m_model_preview->color_trial_state();
     m_finishing_options = options;
     m_finishing_redo_path.clear();
     m_finishing_source = source;
@@ -406,12 +462,12 @@ void ModelGenerationPanel::preview_model_finishing()
     const auto canceled = m_finishing_canceled;
     m_finishing_running = true; m_busy = true;
     m_finishing_cancel->Enable();
-    m_finishing_status->SetLabel(_L("正在本地处理三维表面，原始模型保持不变……"));
+    m_finishing_status->SetLabel(cleanup ? _L("正在清理选区内的小杂色块，可取消……") : _L("正在本地处理三维表面，原始模型保持不变……"));
     refresh_controls();
     wxWeakRef<ModelGenerationPanel> weak(this);
     const uint64_t sequence = m_sequence;
     try {
-      m_finishing_worker = std::thread([weak, source, destination, options, canceled, sequence] {
+      m_finishing_worker = std::thread([weak, source, destination, options, canceled, sequence, color_state] {
         const auto result = AI::finish_model_obj(source, destination, options, [canceled] { return canceled->load(); });
         auto prepared = std::make_shared<ModelPreview3D::PreparedModel>();
         std::string preview_error;
@@ -419,7 +475,7 @@ void ModelGenerationPanel::preview_model_finishing()
             try { ModelPreview3D::prepare_model(destination, *prepared, preview_error); }
             catch (const std::exception& e) { preview_error = e.what(); }
         }
-        wxGetApp().CallAfter([weak, source, destination, result, sequence, canceled, prepared, preview_error] {
+        wxGetApp().CallAfter([weak, source, destination, result, sequence, canceled, prepared, preview_error, color_state] {
             if (!weak || weak->m_shutdown || sequence != weak->m_sequence) {
                 if (result.success) { boost::system::error_code ignored; boost::filesystem::remove(destination, ignored); }
                 return;
@@ -435,7 +491,9 @@ void ModelGenerationPanel::preview_model_finishing()
             else if (!result.success) self->m_finishing_status->SetLabel(_L("处理未完成，原件已保留：") + from_u8(result.error));
             else if (!result.changed()) {
                 boost::system::error_code ignored; boost::filesystem::remove(destination, ignored);
-                self->m_finishing_status->SetLabel(_L("当前设置没有改变模型；可扩大选区或调整强度，边界与锐边保持保护。"));
+                self->m_finishing_status->SetLabel(self->m_finishing_options.clean_color_spots
+                    ? _L("未找到可合并的小杂色块。可扩大选区包含周围主色，或用“局部改色”处理大片杂色。")
+                    : _L("当前设置没有改变模型；可扩大选区或调整强度，边界与锐边保持保护。"));
             } else {
                 const auto view = self->m_model_preview->view_state();
                 size_t triangles = 0, colors = 0; Vec3d dimensions; std::string error = preview_error;
@@ -446,10 +504,19 @@ void ModelGenerationPanel::preview_model_finishing()
                     self->refresh_controls(); return;
                 }
                 self->m_model_preview->restore_view(view);
+                self->m_model_preview->restore_color_trial(color_state);
+                // Match the before-view summary before exposing comparison:
+                // a stale loading row changes the viewport height on first compare.
+                self->m_model_stats->SetLabel(wxString::Format(_L("%llu 个三角面 · %llu 个原始色值\n%.1f × %.1f × %.1f mm"),
+                    static_cast<unsigned long long>(triangles), static_cast<unsigned long long>(colors),
+                    dimensions.x(), dimensions.y(), dimensions.z()));
                 self->m_finishing_candidate = destination; self->m_finishing_before = false;
                 self->m_finishing_compare->SetLabel(_L("查看处理前"));
                 self->m_model_preview_message->SetLabel(_L("处理后 · 尚未接受；可旋转模型并查看处理前对比。"));
-                self->m_finishing_status->SetLabel(wxString::Format(
+                self->m_finishing_status->SetLabel(self->m_finishing_options.clean_color_spots ? wxString::Format(
+                    _L("已清理 %llu 处小杂色块，调整 %llu 个顶点颜色。造型不变；请对比细节后接受新版本。"),
+                    static_cast<unsigned long long>(result.cleaned_color_regions),
+                    static_cast<unsigned long long>(result.recolored_vertices)) : wxString::Format(
                     _L("已柔化 %llu 个顶点，清理 %llu 个面，校正 %llu 个面。开放边 %llu 条，非流形边 %llu 条（仅作提醒）。"),
                     static_cast<unsigned long long>(result.moved_vertices),
                     static_cast<unsigned long long>(result.removed_degenerate_faces + result.removed_duplicate_faces),
@@ -474,14 +541,16 @@ void ModelGenerationPanel::preview_model_finishing()
 bool ModelGenerationPanel::show_finishing_version(const boost::filesystem::path& path)
 {
     const auto view = m_model_preview->view_state();
+    const auto color_state = m_model_preview->color_trial_state();
     size_t triangles = 0, colors = 0; Vec3d dimensions = Vec3d::Zero(); std::string error;
     if (!m_model_preview->load_model(path, {}, triangles, dimensions, colors, error)) {
         m_model_preview_ready = false;
         m_finishing_status->SetLabel(_L("预览加载失败，原件仍保留：") + from_u8(error));
         return false;
     }
-    m_model_preview->set_color_controls_visible(!m_finishing_workbench || m_finishing_tool->GetSelection() == 2);
     m_model_preview->restore_view(view);
+    m_model_preview->restore_color_trial(color_state);
+    m_model_preview->set_color_controls_visible(!m_finishing_workbench || m_finishing_tool->GetSelection() == 2);
     m_model_preview_ready = true;
     m_model_stats->SetLabel(wxString::Format(_L("%llu 个三角面 · %llu 个原始色值\n%.1f × %.1f × %.1f mm"),
         static_cast<unsigned long long>(triangles), static_cast<unsigned long long>(colors),
@@ -524,6 +593,8 @@ void ModelGenerationPanel::accept_model_finishing()
         {"triangle_count", m_finishing_result.faces_after},
         {"dimensions", m_finishing_result.dimensions},
         {"finishing", {{"smooth_surface", m_finishing_options.smooth_surface}, {"repair_mesh", m_finishing_options.repair_mesh},
+            {"clean_color_spots", m_finishing_options.clean_color_spots}, {"cleanup_palette", m_finishing_options.cleanup_palette},
+            {"cleaned_color_regions", m_finishing_result.cleaned_color_regions}, {"recolored_vertices", m_finishing_result.recolored_vertices},
             {"selected_faces", m_finishing_options.selected_faces},
             {"strength", m_finishing_options.strength}, {"moved_vertices", m_finishing_result.moved_vertices},
             {"protected_vertices", m_finishing_result.protected_vertices},

@@ -39,9 +39,9 @@ public:
         row->Add(new wxStaticText(this, wxID_ANY, _L("色")), 0, wxALIGN_CENTER_VERTICAL);
         box->Add(row, 0, wxEXPAND | wxALL, FromDIP(6));
         auto* options = new wxBoxSizer(wxHORIZONTAL);
-        m_fidelity = new wxCheckBox(this, wxID_ANY, _L("优先保留不同色相"));
+        m_fidelity = new wxCheckBox(this, wxID_ANY, _L("尽量保留小面积彩色"));
         m_fidelity->SetValue(true);
-        m_fidelity->SetToolTip(_L("给有一定面积的少数彩色保留位置；不是人物或衣物识别。取消后按面积聚类。"));
+        m_fidelity->SetToolTip(_L("缩减颜色时，尽量保留有一定面积的少数彩色，例如嘴唇红、衣服绿。不是自动识别人脸或衣物；取消后更偏向大面积颜色。"));
         options->Add(m_fidelity, 1, wxALIGN_CENTER_VERTICAL);
         auto* reset = new wxButton(this, wxID_ANY, _L("重置试色"));
         options->Add(reset, 0);
@@ -117,6 +117,41 @@ public:
     const std::vector<Color>& mapping_colors() const { return m_mapping_colors; }
     bool enabled() const { return m_enabled; }
     bool lighting() const { return m_lighting->GetValue(); }
+    struct State {
+        std::vector<Color> colors, mapping_colors;
+        std::array<bool, 6> locks {};
+        int source {0}, count {6};
+        bool enabled {false}, fidelity {true}, lighting {false};
+        wxString project_signature, notice;
+    };
+    State state() const {
+        State saved;
+        saved.colors = m_colors; saved.mapping_colors = m_mapping_colors;
+        for (size_t i = 0; i < 6; ++i) saved.locks[i] = m_locks[i]->GetValue();
+        saved.source = m_source->GetSelection(); saved.count = m_count->GetValue();
+        saved.enabled = m_enabled; saved.fidelity = m_fidelity->GetValue(); saved.lighting = lighting();
+        saved.project_signature = m_project_signature; saved.notice = m_notice;
+        return saved;
+    }
+    // Same-workpiece comparison/editing keeps the user's assignments. A new
+    // library model still uses load() and starts with its own suggestions.
+    void restore(const State& saved) {
+        if (!m_histogram || saved.colors.empty() || saved.colors.size() > 6 ||
+            saved.colors.size() != saved.mapping_colors.size()) return;
+        m_source->SetSelection(saved.source); m_count->SetValue(saved.count);
+        m_fidelity->SetValue(saved.fidelity); m_lighting->SetValue(saved.lighting);
+        m_colors = saved.colors; m_mapping_colors = saved.mapping_colors;
+        m_enabled = saved.enabled; m_notice = saved.notice;
+        for (size_t i = 0; i < 6; ++i) m_locks[i]->SetValue(saved.locks[i]);
+        if (saved.source == 1) {
+            m_project_signature = saved.project_signature;
+            if (read_project()) {
+                m_notice = _L("工程耗材已变化，已恢复原色，请重新对照。");
+                recompute(false); return;
+            }
+        }
+        changed();
+    }
     std::function<void()> on_changed;
 private:
     static wxColour wx_color(Color c) {

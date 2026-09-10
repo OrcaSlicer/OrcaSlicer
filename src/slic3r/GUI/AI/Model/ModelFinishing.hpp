@@ -17,6 +17,10 @@ struct ModelFinishingOptions {
     // order). Empty means the whole surface. A local selection requires
     // repair_mesh=false; vertices incident to unselected faces stay fixed.
     std::vector<size_t> selected_faces;
+    // Color-only cleanup requires an explicit selection and normalized source
+    // palette centers. Centers classify colors; they never replace source RGB.
+    bool clean_color_spots {false};
+    std::vector<std::array<float, 3>> cleanup_palette;
 };
 
 struct ModelFinishingResult {
@@ -34,6 +38,8 @@ struct ModelFinishingResult {
     size_t removed_degenerate_faces {0};
     size_t removed_duplicate_faces {0};
     size_t reversed_faces {0};
+    size_t cleaned_color_regions {0};
+    size_t recolored_vertices {0};
     // For local smoothing these counts describe the examined selection patch,
     // including its open border, rather than a whole-model quality report.
     size_t boundary_edges {0};
@@ -41,13 +47,14 @@ struct ModelFinishingResult {
     double max_displacement {0.0};
     double displacement_limit {0.0};
     bool changed() const {
-        return moved_vertices || removed_degenerate_faces || removed_duplicate_faces || reversed_faces;
+        return moved_vertices || removed_degenerate_faces || removed_duplicate_faces || reversed_faces || recolored_vertices;
     }
 };
 
 // Edits a new triangle OBJ beside its source so relative MTL/texture references
-// remain valid. Vertex order, color values, UVs, materials and components stay
-// intact. No provider, printer, preset, or Orca project mutation takes place.
+// remain valid. Vertex order, UVs, materials and components stay intact. Colors
+// change only for explicit color cleanup; geometry is unchanged in that mode.
+// No provider, printer, preset, or Orca project mutation takes place.
 ModelFinishingResult finish_model_obj(
     const boost::filesystem::path& source,
     const boost::filesystem::path& destination,

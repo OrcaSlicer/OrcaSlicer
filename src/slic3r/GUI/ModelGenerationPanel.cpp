@@ -1404,7 +1404,7 @@ wxWindow* ModelGenerationPanel::build_preview_panel(wxWindow* parent)
     });
     m_apply_region_color->Bind(wxEVT_BUTTON, &ModelGenerationPanel::on_apply_local_recolor, this);
     m_model_preview->set_selection_changed_callback([this](size_t selected_faces) {
-        if (m_finishing_workbench && m_finishing_tool->GetSelection() == 1) {
+        if (m_finishing_workbench && (m_finishing_tool->GetSelection() == 1 || m_finishing_tool->GetSelection() == 5)) {
             if (m_busy || !m_finishing_candidate.empty()) selected_faces = m_finishing_options.selected_faces.size();
             m_finishing_selection_status->SetLabel(wxString::Format(_L("已选 %llu 个面 · 未选区域受保护"),
                 static_cast<unsigned long long>(selected_faces)));
@@ -2664,7 +2664,11 @@ void ModelGenerationPanel::import_local_artifact(const boost::filesystem::path& 
     update_library_import_status(library_job_id);
     m_last_imported_model_path = path;
     m_client.record_journey_event("model_imported", library_job_id);
+    // The displayed work remains available after import, including its reference
+    // image for starting another design from the same input.
+    const auto reference_image_path = m_reference_image_path;
     cleanup_files();
+    m_reference_image_path = reference_image_path;
     if (!job_id.empty())
         m_client.remove(job_id, [] {}, [](std::string) {});
     m_poll_timer.Stop();
@@ -2816,7 +2820,7 @@ void ModelGenerationPanel::refresh_controls()
                            : _L("导入到准备页"));
     m_import->SetToolTip(m_visual_quality.available && !m_visual_quality.import_recommended
                              ? _L("外观检查仅供参考，可继续导入；请对照原图确认效果。")
-                             : wxEmptyString);
+                             : wxString());
     m_discard->SetLabel(_L("重新开始"));
     m_clear_image->Show(image_input);
     m_upload_notice->Show(image_input);
@@ -2871,7 +2875,8 @@ void ModelGenerationPanel::refresh_controls()
     m_apply_model_refinement->Enable(!m_busy && m_model_refinement.available &&
                                      !m_model_refinement.prompt_suffix.empty() &&
                                      !refinement_already_applied);
-    m_discard->Enable(!m_busy && (!m_job_id.empty() || m_ready));
+    const bool has_restartable_work = !m_job_id.empty() || m_ready || m_model_preview_ready || m_style_preview_ready;
+    m_discard->Enable(!m_busy && has_restartable_work);
 
     const bool show_preprocess = !m_busy && (!m_ready || stale_job) &&
         (m_job_id.empty() || stale_job || (!m_awaiting_confirmation && !m_ready) ||
@@ -2881,7 +2886,7 @@ void ModelGenerationPanel::refresh_controls()
     m_stop->Show(m_busy);
     m_retry_service->Show(!m_service_available && !m_busy);
     m_import->Show(!m_busy && m_ready && !stale_job);
-    m_discard->Show(!m_busy && (!m_job_id.empty() || m_ready));
+    m_discard->Show(!m_busy && has_restartable_work);
     if (!m_busy && ((m_job_id.empty() && !m_ready) || stale_job))
         update_progress(0, 1, _L("输入"));
     if (!m_busy && stale_job)
@@ -3312,7 +3317,7 @@ void ModelGenerationPanel::on_apply_model_refinement(wxCommandEvent&)
         refresh_controls();
         return;
     }
-    const wxString candidate = prompt + (prompt.empty() ? wxEmptyString : _L("\n\n")) + suffix;
+    const wxString candidate = prompt + (prompt.empty() ? wxString() : _L("\n\n")) + suffix;
     const auto encoded = candidate.ToUTF8();
     if (!encoded || encoded.length() > MAX_MODEL_INPUT_BYTES) {
         m_status->SetLabel(_L("文字输入接近长度上限，请先精简原描述再应用优化建议。"));
@@ -3392,7 +3397,7 @@ void ModelGenerationPanel::refresh_local_recolor_controls()
             ready && !m_busy && !m_model_quality.thin_local_face_indices.empty());
     }
     if (m_model_preview != nullptr)
-        m_model_preview->set_selection_enabled(editing || (m_finishing_workbench && m_finishing_tool->GetSelection() == 1 && !m_busy && m_finishing_candidate.empty()));
+        m_model_preview->set_selection_enabled(editing || (m_finishing_workbench && (m_finishing_tool->GetSelection() == 1 || m_finishing_tool->GetSelection() == 5) && !m_busy && m_finishing_candidate.empty()));
 
     const std::vector<std::string> palette = local_recolor_palette();
     if (palette != m_region_palette) {
