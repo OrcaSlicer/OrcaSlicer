@@ -23,7 +23,8 @@ int main(int argc, char* argv[])
 #else
         ("path,p", po::value<std::string>()->default_value("../../../resources/profiles"), "Path to profiles directory")
 #endif
-        ("log_level,l", po::value<int>()->default_value(2), "Log level (0=trace, 2=info, 4=error)");
+        ("log_level,l", po::value<int>()->default_value(2), "Log level (0=trace, 2=info, 4=error)")
+        ("vendor,v", po::value<std::string>()->default_value(""), "Vendor name. Optional; generate the cache for this vendor only (the Orca filament library is always included as the inheritance base). All vendors if not specified.");
     // clang-format on
 
     po::variables_map vm;
@@ -38,6 +39,7 @@ int main(int argc, char* argv[])
 
     const std::string profiles_path = vm["path"].as<std::string>();
     const int         log_level     = vm["log_level"].as<int>();
+    const std::string vendor        = vm["vendor"].as<std::string>();
 
     if (!fs::exists(profiles_path) || !fs::is_directory(profiles_path)) {
         std::cerr << "Error: '" << profiles_path << "' is not a valid directory\n";
@@ -59,8 +61,12 @@ int main(int argc, char* argv[])
     preset_bundle->set_is_validation_mode(true);
     preset_bundle->set_default_suppressed(true);
     preset_bundle->set_generate_vendor_caches(true);
+    // Empty == every vendor. Otherwise only this vendor (plus the always-loaded
+    // Orca filament library) is parsed, so only its <vendor>.opc is written.
+    preset_bundle->set_vendor_to_validate(vendor);
 
-    std::cout << "Loading system presets from: " << profiles_path << "\n";
+    std::cout << "Loading system presets from: " << profiles_path
+              << (vendor.empty() ? "" : " (vendor: " + vendor + ")") << "\n";
 
     try {
         // In validation mode data_dir() is the profiles directory set above, so the
@@ -68,6 +74,14 @@ int main(int argc, char* argv[])
         preset_bundle->load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent);
     } catch (const std::exception& ex) {
         std::cerr << "Failed to load presets: " << ex.what() << "\n";
+        return 1;
+    }
+
+    // A specific vendor must have produced its own cache; the always-loaded
+    // filament library alone would otherwise mask a misspelt or removed name.
+    if (!vendor.empty() && !fs::exists(fs::path(profiles_path) / (vendor + ".opc"))) {
+        std::cerr << "No cache was generated for vendor '" << vendor << "' under " << profiles_path
+                  << " - check the vendor name.\n";
         return 1;
     }
 
