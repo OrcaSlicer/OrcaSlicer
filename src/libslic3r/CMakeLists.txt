@@ -558,6 +558,12 @@ if (_opts)
     target_compile_options(libslic3r_cgal PRIVATE "${_opts_bad}")
 endif()
 
+if (IS_CLANG_CL)
+    # CGAL passes /fp:strict /fp:except-. clang-cl reports the second as overriding part of
+    # the first; the settings cc1 receives are the same ones MSVC produces from that pair.
+    target_compile_options(libslic3r_cgal PRIVATE -Wno-overriding-option)
+endif ()
+
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs)
 
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
