@@ -1,5 +1,6 @@
 #include "PluginManager.hpp"
 
+#include <exception>
 #include <libslic3r/Utils.hpp>
 #include <memory>
 #include <pybind11/embed.h>
@@ -2085,6 +2086,26 @@ ExecutionResult PluginManager::run_script_capability(const std::string& plugin_k
     }
 
     return result;
+}
+
+void PluginManager::dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx) {
+    for (const auto& cap : get_plugin_capabilities()) {
+        if (!cap || !cap->is_enabled()) continue;
+        try {
+            cap->on_lifecycle_event(evt, ctx);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
+                                       << "' on_lifecycle_event(" << lifecycle_event_to_string(evt) << ") threw: " << ex.what()
+                                       << " [ctx name='" << ctx.name << "', code=" << lifecycle_evt_code_to_string(ctx.code)
+                                       << ", msg='" << ctx.msg << "']";
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
+                                       << "' on_lifecycle_event(" << lifecycle_event_to_string(evt)
+                                       << ") threw a non-standard exception"
+                                       << " [ctx name='" << ctx.name << "', code=" << lifecycle_evt_code_to_string(ctx.code)
+                                       << ", msg='" << ctx.msg << "']";
+        }
+    }
 }
 
 } // namespace Slic3r

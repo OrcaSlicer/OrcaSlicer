@@ -132,6 +132,12 @@ public:
     {
         ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE, void, Base, on_cancelled);
     }
+
+    void on_lifecycle_event(LifecycleEvent event, const LifecycleEventContext& ctx) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE, void, Base, on_lifecycle_event, event, ctx);
+    }
 };
 
 class PyPluginInterfaceTrampoline : public PyPluginCommonTrampoline<PluginCapabilityInterface>
