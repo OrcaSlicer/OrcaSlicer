@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Generic HIPS @Tiertime",
+	"inherits": "fdm_filament_hips",
+	"renamed_from": "Tiertime Generic HIPS",
+	"from": "system",
+	"setting_id": "3Vm99hmTMTFPKNGk",
+	"filament_id": "OFsFon5l",
+	"instantiation": "true",
+	"filament_is_support": [
+		"1"
+	],
+	"compatible_printers": [
+		"Tiertime UP400 Pro 0.4 nozzle",
+		"Tiertime UP400 Pro 0.6 nozzle",
+		"Tiertime UP400 Pro 0.8 nozzle",
+		"Tiertime UP310 Pro 0.4 nozzle"
+	]
+}

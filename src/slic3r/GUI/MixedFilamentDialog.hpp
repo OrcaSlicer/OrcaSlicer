@@ -115,7 +115,6 @@ private:
     wxColour        comp_colour(size_t i) const;
 
     MixedFilamentResult         m_result;
-    bool                        m_edit_mode{false};
     std::vector<std::string>    m_physical_colors;
     std::vector<std::string>    m_physical_names;
     std::vector<std::string>    m_physical_types;

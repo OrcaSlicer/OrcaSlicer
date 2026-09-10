@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @FLSun",
+	"inherits": "fdm_filament_tpu",
+	"renamed_from": "FLSun Generic TPU",
+	"from": "system",
+	"setting_id": "gJ3UZr4n4K8DPdBz",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	],
+	"compatible_printers": [
+		"FLSun Q5 0.4 nozzle",
+		"FLSun QQ-S Pro 0.4 nozzle",
+		"FLSun Super Racer 0.4 nozzle",
+		"FLSun V400 0.4 nozzle"
+	]
+}

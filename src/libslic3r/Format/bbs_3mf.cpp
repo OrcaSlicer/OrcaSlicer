@@ -102,45 +102,6 @@ struct ZipUnicodePathExtraField
     }
 };
 
-// Validate that a relative file path does not escape the root directory via path traversal.
-static bool is_path_within_root(const std::string& file_path, const boost::filesystem::path& root)
-{
-    if (file_path.empty())
-        return false;
-
-    boost::filesystem::path p(file_path);
-    if (p.is_absolute())
-        return false;
-
-    // Reject any path component that is ".."
-    for (const auto& component : p) {
-        if (component == "..")
-            return false;
-    }
-
-    // Resolve the full path and verify it starts with the canonical root (also catches symlink escapes)
-    try {
-        boost::filesystem::path full_path = root / p;
-        boost::filesystem::path canonical_root = boost::filesystem::weakly_canonical(root);
-        boost::filesystem::path canonical_full = boost::filesystem::weakly_canonical(full_path);
-
-        auto root_str = canonical_root.string();
-        auto full_str = canonical_full.string();
-        if (full_str.length() < root_str.length())
-            return false;
-        if (full_str.compare(0, root_str.length(), root_str) != 0)
-            return false;
-        // Ensure it's a proper prefix (not just a substring of a longer directory name)
-        if (full_str.length() > root_str.length() &&
-            full_str[root_str.length()] != boost::filesystem::path::preferred_separator)
-            return false;
-    } catch (const boost::filesystem::filesystem_error&) {
-        return false;
-    }
-
-    return true;
-}
-
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
 // 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
@@ -8963,7 +8924,7 @@ private:
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inital and interval = " << m_interval;
         m_next_backup = boost::get_system_time() + boost::posix_time::seconds(m_interval);
         boost::unique_lock lock(m_mutex);
-        m_thread = std::move(boost::thread(boost::ref(*this)));
+        m_thread = boost::thread(boost::ref(*this));
     }
 
     ~_BBS_Backup_Manager() {

@@ -1,7 +1,7 @@
 {
 	"name": "Lulzbot",
 	"url": "https://ohai.lulzbot.com/group/taz-6/",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Lulzbot configurations",
 	"machine_model_list": [
@@ -62,16 +62,16 @@
 	],
 	"filament_list": [
 		{
-			"name": "Lulzbot 2.85mm ABS",
-			"sub_path": "filament/Lulzbot 2.85mm ABS.json"
+			"name": "Generic ABS @Lulzbot",
+			"sub_path": "filament/Generic ABS @Lulzbot.json"
 		},
 		{
-			"name": "Lulzbot 2.85mm PETG",
-			"sub_path": "filament/Lulzbot 2.85mm PETG.json"
+			"name": "Generic PETG @Lulzbot",
+			"sub_path": "filament/Generic PETG @Lulzbot.json"
 		},
 		{
-			"name": "Lulzbot 2.85mm PLA",
-			"sub_path": "filament/Lulzbot 2.85mm PLA.json"
+			"name": "Generic PLA @Lulzbot",
+			"sub_path": "filament/Generic PLA @Lulzbot.json"
 		}
 	],
 	"machine_list": [

@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "144877656",
+	"filament_id": "OFt7SngH",
 	"instantiation": "false",
 	"hot_plate_temp": [
 		"110"

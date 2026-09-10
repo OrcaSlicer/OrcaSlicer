@@ -5,10 +5,10 @@
 using namespace Slic3r;
 
 // Golden vectors from the Python reference generate_preset_setting_id (defined in
-// scripts/assign_vendor_setting_ids.py). The C++ generate_preset_setting_id() MUST stay
-// byte-identical to it, otherwise app-side on-the-fly ids would diverge from the
+// scripts/orca_id_tool.py). The C++ generate_preset_setting_id() MUST stay byte-identical
+// to it, otherwise app-side on-the-fly ids would diverge from the
 // script-assigned ones in the profiles. Regenerate a vector with:
-//   python3 -c "from assign_vendor_setting_ids import generate_preset_setting_id as g; print(g('Afinia','filament','Afinia ABS @Afinia H400'))"
+//   python3 -c "import sys; sys.path.insert(0, 'scripts'); from orca_id_tool import generate_preset_setting_id as g; print(g('Afinia','filament','Afinia ABS @Afinia H400'))"
 TEST_CASE("preset setting_id matches the Python reference", "[Preset][setting_id]") {
     struct Vec { const char* vendor; const char* type; const char* name; const char* expected; };
     const Vec vectors[] = {

@@ -3137,7 +3137,7 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
 		// Skip all custom G-codes above this layer and skip all extruder switches.
 		for (; custom_gcode_it != custom_gcode_per_print_z.gcodes.rend() && (
             (print_z_above > lt.print_z && custom_gcode_it->print_z > 0.5 * (lt.print_z + print_z_above))
-            || custom_gcode_it->type == CustomGCode::ToolChange); ++ custom_gcode_it);
+            || custom_gcode_it->type == CustomGCode::ToolChange); ++ custom_gcode_it) {}
         print_z_above = lt.print_z;
 		if (custom_gcode_it == custom_gcode_per_print_z.gcodes.rend())
 			// Custom G-codes were processed.
