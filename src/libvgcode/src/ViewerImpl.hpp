@@ -101,6 +101,8 @@ public:
     void set_reduced_detail_mode(EReducedDetailMode mode);
     uint32_t get_reduced_detail_layer_stride() const { return m_settings.reduced_detail_layer_stride; }
     void set_reduced_detail_layer_stride(uint32_t value);
+    EReducedDetailMode get_rest_detail_mode() const { return m_settings.rest_detail_mode; }
+    void set_rest_detail_mode(EReducedDetailMode mode);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -507,6 +509,13 @@ private:
     unsigned int m_enabled_options_reduced_tex_id{ 0 };
     size_t m_enabled_options_reduced_count{ 0 };
     //
+    // OpenGL buffer to store the segments drawn at rest while Settings::rest_detail_mode is not Off.
+    // Every layer is drawn at rest, so the options are the full set and need no counterpart.
+    //
+    unsigned int m_enabled_segments_rest_buf_id{ 0 };
+    unsigned int m_enabled_segments_rest_tex_id{ 0 };
+    size_t m_enabled_segments_rest_count{ 0 };
+    //
     // Caches for size of data sent to gpu, in bytes
     //
     size_t m_positions_tex_size{ 0 };
@@ -516,18 +525,22 @@ private:
     size_t m_enabled_options_tex_size{ 0 };
 
     // The set the next draw reads from: the reduced one only while the user is dragging, and only
-    // if a reduced set is being built at all.
+    // if a reduced set is being built at all; otherwise the rest set, if one is being built.
     bool use_reduced_set() const {
         return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off;
     }
+    bool build_rest_set() const {
+        return m_settings.rest_detail_mode != EReducedDetailMode::Off && m_settings.rest_detail_mode != EReducedDetailMode::LayersOnly;
+    }
+    bool use_rest_set() const { return !use_reduced_set() && build_rest_set(); }
     size_t active_segments_count() const {
-        return use_reduced_set() ? m_enabled_segments_reduced_count : m_enabled_segments_count;
+        return use_reduced_set() ? m_enabled_segments_reduced_count : use_rest_set() ? m_enabled_segments_rest_count : m_enabled_segments_count;
     }
     unsigned int active_segments_buf_id() const {
-        return use_reduced_set() ? m_enabled_segments_reduced_buf_id : m_enabled_segments_buf_id;
+        return use_reduced_set() ? m_enabled_segments_reduced_buf_id : use_rest_set() ? m_enabled_segments_rest_buf_id : m_enabled_segments_buf_id;
     }
     unsigned int active_segments_tex_id() const {
-        return use_reduced_set() ? m_enabled_segments_reduced_tex_id : m_enabled_segments_tex_id;
+        return use_reduced_set() ? m_enabled_segments_reduced_tex_id : use_rest_set() ? m_enabled_segments_rest_tex_id : m_enabled_segments_tex_id;
     }
     size_t active_options_count() const {
         return use_reduced_set() ? m_enabled_options_reduced_count : m_enabled_options_count;
@@ -539,8 +552,8 @@ private:
         return use_reduced_set() ? m_enabled_options_reduced_tex_id : m_enabled_options_tex_id;
     }
 
-    // Whether the segment starting at vertex i belongs to the reduced set under the current mode
-    bool reduced_set_keeps(size_t i, const PathVertex& v) const;
+    // Whether the segment starting at vertex i belongs to the set built under the given mode
+    bool reduced_set_keeps(EReducedDetailMode mode, size_t i, const PathVertex& v) const;
     void update_shell_bitset();
 #endif // ENABLE_OPENGL_ES
 

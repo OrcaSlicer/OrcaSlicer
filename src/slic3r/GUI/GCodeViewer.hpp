@@ -234,6 +234,7 @@ private:
     bool m_reduced_detail_while_dragging{ false };
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::NoInternalInfill };
     unsigned int m_reduced_detail_layer_stride{ 4 };
+    libvgcode::EReducedDetailMode m_rest_detail_mode{ libvgcode::EReducedDetailMode::Off };
     void apply_reduced_detail_settings();
 
     float m_legend_height;
@@ -352,6 +353,8 @@ public:
     // the preference's string value: "layers", "no_infill" or "shell"
     void set_reduced_detail_mode(const std::string& mode);
     void set_reduced_detail_layer_stride(unsigned int value);
+    // what is left out even at rest: "full", "no_infill" or "shell"
+    void set_rest_detail_mode(const std::string& mode);
     static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);

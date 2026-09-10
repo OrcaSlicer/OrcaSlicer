@@ -107,6 +107,16 @@ void Viewer::set_reduced_detail_layer_stride(uint32_t value)
     m_impl->set_reduced_detail_layer_stride(value);
 }
 
+EReducedDetailMode Viewer::get_rest_detail_mode() const
+{
+    return m_impl->get_rest_detail_mode();
+}
+
+void Viewer::set_rest_detail_mode(EReducedDetailMode mode)
+{
+    m_impl->set_rest_detail_mode(mode);
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);

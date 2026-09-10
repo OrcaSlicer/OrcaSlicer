@@ -2016,6 +2016,30 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_reduced_detail_layer_stride);
 
+    auto item_rest_detail_mode = create_item_combobox(
+        _L("Always leave out"),
+        _L("What the preview leaves out at all times, dragging or not, with every layer drawn. "
+           "Use it when a plate of large objects is slow to draw even when the view is not moving.\n"
+           "Nothing: the full preview.\n"
+           "Internal infill: sparse and solid infill hidden inside the walls is left out.\n"
+           "Everything but the shell: only the toolpaths on the visible surface of the print are drawn. "
+           "Holes narrower than 5 mm are treated as solid."),
+        "preview_rest_detail_mode",
+        {_L("Nothing"), _L("Internal infill"), _L("Everything but the shell")},
+        {"full", "no_infill", "shell"},
+        // ORCA: apply the new mode immediately to the currently loaded preview
+        [](std::string value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_rest_detail_mode(value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_rest_detail_mode);
+
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),
         _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),

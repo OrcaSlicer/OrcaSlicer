@@ -1176,6 +1176,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_reduced_detail_while_dragging = get_app_config()->get_bool("preview_reduced_detail_while_dragging");
     m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
     m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
+    m_rest_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_rest_detail_mode"));
     apply_reduced_detail_settings();
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
@@ -1924,6 +1925,13 @@ void GCodeViewer::apply_reduced_detail_settings()
 {
     m_viewer.set_reduced_detail_mode(m_reduced_detail_while_dragging ? m_reduced_detail_mode : libvgcode::EReducedDetailMode::Off);
     m_viewer.set_reduced_detail_layer_stride(m_reduced_detail_layer_stride);
+    m_viewer.set_rest_detail_mode(m_rest_detail_mode);
+}
+
+void GCodeViewer::set_rest_detail_mode(const std::string& mode)
+{
+    m_rest_detail_mode = reduced_detail_mode_from_string(mode);
+    apply_reduced_detail_settings();
 }
 
 void GCodeViewer::set_reduced_detail_while_dragging(bool value)
@@ -1946,6 +1954,8 @@ void GCodeViewer::set_reduced_detail_layer_stride(unsigned int value)
 
 libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
 {
+    if (mode == "full")
+        return libvgcode::EReducedDetailMode::Off;
     if (mode == "layers")
         return libvgcode::EReducedDetailMode::LayersOnly;
     if (mode == "shell")

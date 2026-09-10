@@ -212,6 +212,12 @@ void AppConfig::set_defaults()
             set("preview_reduced_detail_mode", "no_infill");
     }
 
+    {
+        const std::string mode = get("preview_rest_detail_mode");
+        if (mode != "full" && mode != "no_infill" && mode != "shell")
+            set("preview_rest_detail_mode", "full");
+    }
+
     if (get("preview_reduced_detail_layer_stride").empty())
         set("preview_reduced_detail_layer_stride", "4");
     else {

@@ -33,6 +33,9 @@ struct Settings
 		bool reduced_detail{ false };
 		EReducedDetailMode reduced_detail_mode{ EReducedDetailMode::Off };
 		uint32_t reduced_detail_layer_stride{ 4 };
+		// ORCA: what is left out even at rest, with every layer drawn. Bound whenever the reduced set
+		// above is not. Off draws everything.
+		EReducedDetailMode rest_detail_mode{ EReducedDetailMode::Off };
 		//
 		// Required update flags
 		//

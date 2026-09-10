@@ -896,10 +896,13 @@ void ViewerImpl::reset()
     m_enabled_options_count = 0;
     m_enabled_segments_reduced_count = 0;
     m_enabled_options_reduced_count = 0;
+    m_enabled_segments_rest_count = 0;
     m_shell_bitset = BitSet<>();
 
     m_settings_used_for_ranges = std::nullopt;
 
+    delete_textures(m_enabled_segments_rest_tex_id);
+    delete_buffers(m_enabled_segments_rest_buf_id);
     delete_textures(m_enabled_options_reduced_tex_id);
     delete_buffers(m_enabled_options_reduced_buf_id);
     delete_textures(m_enabled_segments_reduced_tex_id);
@@ -1162,6 +1165,11 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_enabled_options_reduced_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_reduced_tex_id));
 
+        glsafe(glGenBuffers(1, &m_enabled_segments_rest_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_rest_buf_id));
+        glsafe(glGenTextures(1, &m_enabled_segments_rest_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_rest_tex_id));
+
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, old_bound_texture));
 #endif // ENABLE_OPENGL_ES
@@ -1182,9 +1190,9 @@ static bool is_interior_infill(EGCodeExtrusionRole role)
            role == EGCodeExtrusionRole::InternalBridgeInfill;
 }
 
-bool ViewerImpl::reduced_set_keeps(size_t i, const PathVertex& v) const
+bool ViewerImpl::reduced_set_keeps(EReducedDetailMode mode, size_t i, const PathVertex& v) const
 {
-    switch (m_settings.reduced_detail_mode) {
+    switch (mode) {
     case EReducedDetailMode::NoInternalInfill: return !is_interior_infill(v.role);
     case EReducedDetailMode::ShellOnly:        return m_shell_bitset[i];
     default:                                   return true;
@@ -1434,14 +1442,17 @@ void ViewerImpl::update_enabled_entities()
 #ifndef ENABLE_OPENGL_ES
     // ORCA: the reduced sets are filled by the same walk, so switching to them costs no rebuild.
     const bool build_reduced = m_settings.reduced_detail_mode != EReducedDetailMode::Off;
+    const bool build_rest = build_rest_set();
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
+    std::vector<uint32_t> enabled_segments_rest;
     const uint32_t layer_stride = std::max<uint32_t>(1, m_settings.reduced_detail_layer_stride);
     // Whatever else is dropped, both ends of the visible layer range are kept whole: the top is the
     // surface the user is looking at, and the only layer drawn at full color in top-layer-only
     // mode; the bottom is exposed whenever the range is cut short.
     const Interval& layers_range = m_layers.get_view_range();
-    if (build_reduced && m_settings.reduced_detail_mode == EReducedDetailMode::ShellOnly &&
+    if (((build_reduced && m_settings.reduced_detail_mode == EReducedDetailMode::ShellOnly) ||
+         (build_rest && m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)) &&
         m_shell_bitset.size != m_vertices.size())
         update_shell_bitset();
 #endif // ENABLE_OPENGL_ES
@@ -1494,14 +1505,17 @@ void ViewerImpl::update_enabled_entities()
             enabled_segments.push_back(static_cast<uint32_t>(i));
 
 #ifndef ENABLE_OPENGL_ES
+        const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
+        const bool keep_anyway = whole_layer || !v.is_extrusion();
+        if (build_rest && !v.is_option() && (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
+            enabled_segments_rest.push_back(static_cast<uint32_t>(i));
         if (!build_reduced)
             continue;
-        const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
         if (!whole_layer && (v.layer_id % layer_stride) != 0)
             continue;
         if (v.is_option())
             enabled_options_reduced.push_back(static_cast<uint32_t>(i));
-        else if (whole_layer || !v.is_extrusion() || reduced_set_keeps(i, v))
+        else if (keep_anyway || reduced_set_keeps(m_settings.reduced_detail_mode, i, v))
             enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
 #endif // ENABLE_OPENGL_ES
     }
@@ -1534,6 +1548,14 @@ void ViewerImpl::update_enabled_entities()
 
     m_enabled_segments_reduced_count = enabled_segments_reduced.size();
     m_enabled_options_reduced_count = enabled_options_reduced.size();
+    m_enabled_segments_rest_count = enabled_segments_rest.size();
+
+    if (build_rest) {
+        assert(m_enabled_segments_rest_buf_id > 0);
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_rest_buf_id));
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_segments_rest.size() * sizeof(uint32_t),
+                            enabled_segments_rest.empty() ? nullptr : enabled_segments_rest.data(), GL_STATIC_DRAW));
+    }
 
     if (build_reduced) {
         assert(m_enabled_segments_reduced_buf_id > 0);
@@ -1741,6 +1763,14 @@ void ViewerImpl::set_reduced_detail_layer_stride(uint32_t value)
     if (m_settings.reduced_detail_layer_stride == value)
         return;
     m_settings.reduced_detail_layer_stride = value;
+    m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_rest_detail_mode(EReducedDetailMode mode)
+{
+    if (m_settings.rest_detail_mode == mode)
+        return;
+    m_settings.rest_detail_mode = mode;
     m_settings.update_enabled_entities = true;
 }
 

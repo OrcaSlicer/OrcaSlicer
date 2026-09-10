@@ -112,6 +112,12 @@ public:
     void set_reduced_detail_mode(EReducedDetailMode mode);
     uint32_t get_reduced_detail_layer_stride() const;
     void set_reduced_detail_layer_stride(uint32_t value);
+    //
+    // ORCA: what is left out even at rest, with every layer drawn. Off draws everything.
+    // EReducedDetailMode::LayersOnly means the same as Off here.
+    //
+    EReducedDetailMode get_rest_detail_mode() const;
+    void set_rest_detail_mode(EReducedDetailMode mode);
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //
