@@ -884,6 +884,7 @@ public:
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
+    void force_toolbar_render_update();
     void enable_select_plate_toolbar(bool enable);
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
@@ -1268,7 +1269,7 @@ private:
     // and cast it onto the build plate. Realistic view only.
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
-    void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
     void _render_wireframe_overlay();
