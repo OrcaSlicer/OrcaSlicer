@@ -1,11 +1,11 @@
 {
     "type": "filament",
     "name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
-    "inherits": "Hyper PLA @Creality K2 Pro 0.4 nozzle",
+    "inherits": "Generic PLA @K2 Pro-all",
     "from": "system",
     "setting_id": "5cRMCk2BACUUEhp0",
     "instantiation": "true",
-    "filament_id": "JYPLC01",
+    "filament_id": "OF4E0SLW",
     "filament_vendor": [
         "JAYO"
     ],
