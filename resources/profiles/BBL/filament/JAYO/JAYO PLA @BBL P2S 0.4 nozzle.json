@@ -3,6 +3,7 @@
     "name": "JAYO PLA @BBL P2S 0.4 nozzle",
     "inherits": "Bambu PLA Basic @BBL P2S",
     "from": "system",
+    "setting_id": "Cqu1WJanoxatsSkL",
     "instantiation": "true",
     "filament_id": "OFeUeunN",
     "filament_vendor": [
