@@ -3,6 +3,7 @@
     "name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
     "inherits": "Generic PLA @BBL A1",
     "from": "system",
+    "setting_id": "JsLFYbnrsN2d5nwu",
     "instantiation": "true",
     "filament_id": "OF4E0SLW",
     "filament_vendor": [
