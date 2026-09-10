@@ -113,7 +113,7 @@ TEST_CASE("slvs: over-constrained / inconsistent is detected", "[slvs]")
     CHECK_FALSE(res.ok);   // SLVS_RESULT_INCONSISTENT
 }
 
-// snaporca-yww4. libslvs sizes its System with a compile-time `MAX_UNKNOWNS = 1024`, and the
+// yww4. libslvs sizes its System with a compile-time `MAX_UNKNOWNS = 1024`, and the
 // solver is handed every entity in the sketch at 2 params per point — so a sketch of about 480
 // lines is the last one that fits and the next comes back TOO_MANY_UNKNOWNS. Because
 // try_add_constraints rolls a failed batch back, that turned into: every auto-inferred constraint

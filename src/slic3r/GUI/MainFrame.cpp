@@ -1361,7 +1361,7 @@ void MainFrame::init_tabpanel() {
         m_design_page = new wxPanel(this);
         m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
         m_design_page->Hide();
-        start_mcp_control_if_enabled();   // opens the MCP socket iff SNAPORCA_MCP is set
+        start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
 

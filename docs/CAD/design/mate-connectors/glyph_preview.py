@@ -1,4 +1,4 @@
-"""Render the SIMPLIFIED glyph exactly as render_mate_face() draws it — snaporca-x0kd.
+"""Render the SIMPLIFIED glyph exactly as render_mate_face() draws it — x0kd.
 
 This is the panel the study was missing. simplify_study.py measured a FLAT outline and
 relief_sheet.py measured the FULL 1508-facet part; neither showed the simplified glyph WITH its

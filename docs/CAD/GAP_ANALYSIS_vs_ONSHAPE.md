@@ -1,4 +1,4 @@
-# SnapOrca-CAD vs Onshape — capability gap analysis
+# Orca-CAD vs Onshape — capability gap analysis
 
 Generated 2026-07-22 by enumerating the source, not from recollection:
 `CadFeatureType` and `add_*` in `src/libslic3r/CAD/CadDocument.hpp`, `Tool` in
@@ -6,19 +6,19 @@ Generated 2026-07-22 by enumerating the source, not from recollection:
 `SketchConstraintType` + `SketchEntity::Type` in `src/libslic3r/CAD/SketchEngine.hpp`,
 and the JSON-RPC dispatch in `src/slic3r/GUI/CAD/McpControl.cpp`.
 
-**Scope note.** Onshape is a cloud PLM platform; SnapOrca is a Design tab inside a
+**Scope note.** Onshape is a cloud PLM platform; Orca is a Design tab inside a
 slicer. A large share of Onshape's surface (release management, branching, real-time
 collaboration, FEA, rendering, PDM) is out of scope by construction and is listed
 separately at the bottom rather than counted as a "missing tool".
 
 ---
 
-## 1. What SnapOrca already has
+## 1. What Orca already has
 
 ### 2D sketcher — near parity with Onshape
 This is the strongest area. Very little is missing.
 
-| Category | SnapOrca |
+| Category | Orca |
 |---|---|
 | Entities | Line, Polyline, Arc (3-point / tangent / center), Circle (center / 2-point / 3-point), Point, Ellipse, Elliptical arc, B-spline |
 | Shapes | Rectangle (corner / center / oblique / rounded), Slot, Arc-slot, Polygon |
@@ -88,7 +88,7 @@ Studio + configurations are a core differentiator, and this is the cheapest Tier
 item to close for the size of the payoff.
 
 **4. Surface modelling.** Absent. No surface extrude/revolve/loft/sweep, no fill,
-knit, trim/extend surface, offset surface, or thicken. SnapOrca is solid-only.
+knit, trim/extend surface, offset surface, or thicken. Orca is solid-only.
 *Impact:* organic/complex shapes and repair of imported junk geometry are impossible.
 OCCT already provides all of it (`TKOffset`, `TKBRep`), so the kernel is not the
 blocker — only UI and feature plumbing.
@@ -106,7 +106,7 @@ blocker — only UI and feature plumbing.
 | **Split body** | Cut removes material; splitting one body into two independently-usable bodies is absent. Very relevant for print-in-parts. | Medium |
 | **Thicken** | Solid from a surface/face offset. | Needs surfaces |
 | **Rib** | Standard structural feature. | Medium |
-| **Delete face / move face / replace face** | Direct/dumb-solid editing — the main tool for fixing imported STEP. Given SnapOrca imports STEP *and* meshes, its absence is felt. | Medium |
+| **Delete face / move face / replace face** | Direct/dumb-solid editing — the main tool for fixing imported STEP. Given Orca imports STEP *and* meshes, its absence is felt. | Medium |
 | **Datum axis, coordinate system** | Only datum *planes* exist. Axes are needed for revolve/pattern references. | Yes |
 | **Mass properties** | `GeometryEngine` computes a volume internally, but there is no volume/mass/COM/inertia readout. For print cost/time estimation this is nearly free to expose. | Yes — trivial |
 | **Measure tool in the GUI** | `measure` exists over MCP but there is no interactive measure in the UI. | Yes |
@@ -123,7 +123,7 @@ blocker — only UI and feature plumbing.
 Version control with branching/merging, release management, real-time multi-user
 collaboration, cloud PDM, FeatureScript custom-feature authoring, simulation/FEA,
 photorealistic rendering, app store/integrations. These are Onshape-the-platform,
-not Onshape-the-modeller. Not defects in SnapOrca.
+not Onshape-the-modeller. Not defects in Orca.
 
 ---
 
@@ -140,7 +140,7 @@ the most capability per unit of work:
 5. **Split body** — high value for print-in-parts workflows.
 6. **Project edges into sketch** — the sketcher's most conspicuous hole.
 7. **Surface modelling** — large, but OCCT already ships the algorithms.
-8. **Assemblies** — largest effort; only worth it if SnapOrca targets multi-part products.
+8. **Assemblies** — largest effort; only worth it if Orca targets multi-part products.
 
 Deliberately last: drawings and sheet metal — high cost, low relevance to an
 FDM-oriented tool.
@@ -149,7 +149,7 @@ FDM-oriented tool.
 
 ## 4. Honest summary
 
-SnapOrca's **sketcher is at or near Onshape parity**, and its **solid feature set
+Orca's **sketcher is at or near Onshape parity**, and its **solid feature set
 covers the mainstream modelling path** (sketch → extrude/revolve/sweep/loft →
 dress-up → boolean/pattern). What is absent is *breadth*: assemblies, surfaces,
 sheet metal, drawings, and — most importantly for a tool calling itself parametric —

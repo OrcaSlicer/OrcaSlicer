@@ -36,8 +36,8 @@ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
 # them comes up looking perfectly healthy: the window is there, status says app up, and every
 # ladder then dies on "Connection refused" — which reads as a dead app rather than a rig that was
 # started without its instrument. The script that launches the rig is where they belong.
-export SNAPORCA_MCP="${SNAPORCA_MCP:-/tmp/mcp.sock}"
-export SNAPORCA_KEYTRACE="${SNAPORCA_KEYTRACE:-1}"
+export ORCA_CAD_MCP="${ORCA_CAD_MCP:-/tmp/mcp.sock}"
+export ORCA_CAD_KEYTRACE="${ORCA_CAD_KEYTRACE:-1}"
 export LD_LIBRARY_PATH="$LIBPY:$LIBPY2:${LD_LIBRARY_PATH:-}"
 mkdir -p /root/.config          # startup dies in boost::filesystem::create_directory without this
 

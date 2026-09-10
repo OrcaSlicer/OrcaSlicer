@@ -94,7 +94,7 @@ public:
     void set_on_segment_drawn(std::function<void(double, double)> cb);
     void set_on_cursor_metrics(std::function<void(double, double, bool)> cb);
     void set_on_solve_state(std::function<void(int, bool, bool)> cb);  // dof, ok, has_constraints
-    // Live per-step guidance from the armed sketch tool (mode, step, picks). snaporca-1c0c.
+    // Live per-step guidance from the armed sketch tool (mode, step, picks). 1c0c.
     void set_on_sketch_step(std::function<void(DesignSketchTool::Mode, int, int)> cb);
     void apply_segment_length(double len);  // exact length, then commit & repaint
     void keep_segment_as_drawn();           // commit as-drawn & repaint
@@ -219,12 +219,12 @@ public:
     void set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl);
     void set_datum_planes(std::vector<SketchPlane> planes,
                            std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
-    // Mate connectors, drawn as frames so their verse and polarity are visible (snaporca-wgsc).
+    // Mate connectors, drawn as frames so their verse and polarity are visible (wgsc).
     void set_mate_connectors(std::vector<DesignSketchTool::MateConnectorGlyph> g);
     void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l);
     void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
     // The status line, shown along the BASE OF THE VIEWPORT rather than in the side panel:
-    // the panel clips it at ~73 characters with no warning (snaporca-8cc), the viewport's
+    // the panel clips it at ~73 characters with no warning (8cc), the viewport's
     // bottom margin has the whole window width to spare. Empty text hides it.
     void set_status_text(const wxString& text, const wxColour& colour);
     // Take the status line down / bring it back when the Design page leaves and re-enters view.

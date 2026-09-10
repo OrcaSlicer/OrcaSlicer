@@ -9,7 +9,7 @@ static const Vec2d kBearOutline[] = {        // 12 verts, RDP eps 0.030, CCW
 static const Vec2d kBearChin[] = {            // the CHIN BAR, flat. The muzzle is relief — see kBearCrest.
     {-0.2682, -0.3578}, {+0.2628, -0.3578}, {+0.2237, -0.1786},
 };
-// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (snaporca-wi3z).
+// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (wi3z).
 static const Vec3d kBearMarks[] = {
     {-0.1997, +0.1760, +0.0590},
     {+0.1947, +0.1760, +0.0590},

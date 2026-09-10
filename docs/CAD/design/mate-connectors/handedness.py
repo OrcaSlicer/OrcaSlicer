@@ -1,4 +1,4 @@
-"""Give the bear a handedness mark that survives rasterisation — snaporca-wi3z, Tommaso's call 2.
+"""Give the bear a handedness mark that survives rasterisation — wi3z, Tommaso's call 2.
 
 The study showed the left/right cue lives in sub-millimetre corner radii and is therefore invisible
 at glyph size: one pixel is 2.6 mm at 32 px. Roll and verse are safe; handedness is not.

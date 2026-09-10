@@ -1,6 +1,6 @@
 # Mate connectors: aligning with the mainstream CAD systems
 
-Research date: 2026-08-05. Written against `orca_cad` / `snaporca` at the M8 state
+Research date: 2026-08-05. Written against `orca_cad` / `Snapmaker` at the M8 state
 (`CadDocument.{hpp,cpp}`, `apply_mate`, `datum_frame`, the `Mate` card in `DesignPanel.cpp`).
 
 **Brief:** align with the mate-connector concept as the main CAD programs actually implement it,
@@ -300,7 +300,7 @@ times.
 
 **C2 — The roll is unspecified.** Aligning Z leaves one rotation about Z undetermined. Something must
 pin it, and if that something is world-derived, the frame does not rotate with its part. **This
-codebase shipped exactly this bug** (`snaporca-en4`): a face-only connector took Z from the face
+codebase shipped exactly this bug** (`en4`): a face-only connector took Z from the face
 normal but X from `coordsys_x_hint`, a world constant, so Fastened and Slider claimed to lock an
 orientation the frame could not see. Fixed 2026-07-26 by deriving X from the face's own first usable
 edge — but note the fix's own caveat: *"replaying an older document whose face-only connector fed a
@@ -512,7 +512,7 @@ Source of record: `CadDocument.hpp:26,247-252,298-310`; `CadDocument.cpp:1669` (
 **Already aligned — do not "fix" these:** the five types and their DOF; the frame definition (A1);
 Z as the joint axis (A2); superimpose-then-relax (A3); the fixed/moving asymmetry in the data model
 (A5); DOF wording in the type list (A7); free-DOF preservation (A8); right-handed frames under mirror
-(R14); and `snaporca-en4`'s fix, which put roll derivation on the body where it belongs (C2).
+(R14); and `en4`'s fix, which put roll derivation on the body where it belongs (C2).
 
 **The pattern worth naming: the kernel is in good shape and the concept is under-explained.** Half the
 requirements here are wording and drawing, not geometry. The two real engineering items are R9 (origin
@@ -668,7 +668,7 @@ is a symbol, not a part — it must not shrink with the model. Nothing about tha
 The glyph was therefore implemented and driven on the rig. Screenshots: `g-0*.png`, left in the workspace `artifacts/shots/` and not moved into the repo.
 Five findings, none of which a mock could have produced:
 
-**F1 — Three axis arms lose to one.** Rendered side by side (`SNAPORCA_GLYPH=A` vs default), the
+**F1 — Three axis arms lose to one.** Rendered side by side (`ORCA_CAD_GLYPH=A` vs default), the
 Onshape-style RGB trio crowds a 22 px disc: the arrowheads are as large as the disc, they bury the
 gold quadrant, and at an oblique angle the three heads pile into a coloured smudge. Worse, **it is
 indistinguishable from the move gizmo and the bed triad**, which are already RGB arrow trios in this
@@ -827,7 +827,7 @@ conversation it arrived in points at "glyph".
 It changes the meaning of every stored document containing a mate. Options: (a) invert and migrate,
 writing `direction=Aligned` where `mate_flip` was false; (b) invert only for new mates and store
 `direction` explicitly from now on. (b) is safer and costs one field. Note this project has taken one
-such semantic hit knowingly before — the `snaporca-en4` fix — and the golden fixture survived, so the
+such semantic hit knowingly before — the `en4` fix — and the golden fixture survived, so the
 migration path is a known quantity. **If G3 (live preview) lands first, this matters much less.**
 
 **D2 — How far to take origin candidates?** [R9]
@@ -911,7 +911,7 @@ R18's loud refusals carrying the honesty.
 [Joint kinematics — the six lower pairs and their DOF](https://erc-bpgc.github.io/handbook/mechanical/Joint%20Kinematics/) ·
 [ISO 10303-105 — Kinematics (STEP integrated resource)](https://www.iso.org/standard/78589.html)
 
-**Internal** — `snaporca-en4` (closed 2026-07-26, fixes C2 here) · `CadDocument.cpp:1669`
+**Internal** — `en4` (closed 2026-07-26, fixes C2 here) · `CadDocument.cpp:1669`
 `datum_frame` · `CadDocument.cpp:2961` `apply_mate` · `CadDocument.cpp:1302` `add_mate`
 
 **Second opinion** — an independent review by Kimi Code (2026-08-05) contributed the

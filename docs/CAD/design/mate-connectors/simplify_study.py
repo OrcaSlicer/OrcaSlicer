@@ -1,4 +1,4 @@
-"""Reduce the bear face to the fewest marks that still read at glyph size — snaporca-wi3z.
+"""Reduce the bear face to the fewest marks that still read at glyph size — wi3z.
 
 Geometry comes from bear_outline.json, which extract_outline.py pulled off the supplied male
 B-rep's back plate: the outer wire IS the silhouette, the inner wires are the two eyes and the

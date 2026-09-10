@@ -9,8 +9,8 @@
 #
 # The consequence was that scripts/CAD/run-kernel-tests.sh failed at CMake CONFIGURE time,
 # before a single source file compiled, so THIS FORK'S KERNEL SUITE COULD NOT RUN AT ALL.
-# Every kernel change ported here was parity-checked against snaporca and never independently
-# tested (snaporca-w80c). The Snapmaker fork does not hit this: its base requires neither
+# Every kernel change ported here was parity-checked against Snapmaker and never independently
+# tested (w80c). The Snapmaker fork does not hit this: its base requires neither
 # assimp nor OpenCV.
 #
 # WHY A LAYER AND NOT A FULL DEPS REBUILD. Rebuilding every dependency takes hours and would

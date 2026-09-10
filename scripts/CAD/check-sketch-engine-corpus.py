@@ -35,7 +35,7 @@ import sys
 import tempfile
 import time
 
-SOCK = os.environ.get("SNAPORCA_MCP", "/tmp/mcp.sock")
+SOCK = os.environ.get("ORCA_CAD_MCP", "/tmp/mcp.sock")
 TOL = 1e-6          # exact-comparison tolerance (all inputs are lines)
 WELD = 0.05         # endpoint-coincidence tolerance, in PDF units
 
@@ -295,7 +295,7 @@ def grade(pdf, name, report):
         # same rule the engine now uses (DesignSketchTool::region_loops). A vertex is exactly
         # where two loops touch in a real drawing, and a ray cast from a point lying ON the
         # polygon under test answers by rounding: that alone accounted for every one of the 6
-        # sheets where the two attributions used to disagree. snaporca-5hvl.
+        # sheets where the two attributions used to disagree. 5hvl.
         probes = [interior_point(r) for r in rings]
         mine_parent = {}
         for i, r in enumerate(rings):

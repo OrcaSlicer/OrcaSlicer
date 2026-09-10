@@ -121,7 +121,7 @@ def main():
         # A verb may carry a NOTE: the reason it exists, emitted as a C++ comment above its row.
         # Without somewhere to put it, a rationale written into the generated header is deleted by
         # the next regeneration — which is how the model-mode "Constrain sketch" row came to exist
-        # in the header and not in the atlas at all (snaporca-ziam). The map exists once; so does
+        # in the header and not in the atlas at all (ziam). The map exists once; so does
         # the explanation.
         for ln in ([v["note"]] if isinstance(v.get("note"), str) else v.get("note") or []):
             lines.append(f"    // {ln}")

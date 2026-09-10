@@ -64,7 +64,7 @@ public:
                       Constrain };
     // Which tool is armed, and how many anchors it has down. Read-only, for the offer ladder:
     // "the menu armed the verb I chose" is otherwise unassertable, and a menu walk that lands one
-    // row off arms a NEIGHBOURING tool and then grades whatever that drew. snaporca-ekt9.
+    // row off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
     Mode mode() const { return m_mode; }
     int  pending_points() const { return int(m_points.size()); }
     void emit_step_hint();   // fires on_step_changed when the step actually moved
@@ -133,13 +133,16 @@ public:
     bool has_entities() const { return !m_entities.empty(); }
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas);
     // Right-click on a draw tool: true when an in-progress anchor was abandoned, false when
-    // there was nothing to abandon — and false is what lets the offer menu open. snaporca-ghcz.
+    // there was nothing to abandon — and false is what lets the offer menu open. ghcz.
     bool right_abandon();
     // True if the LAST right-press was consumed as a gesture terminator (end a polyline chain,
     // abandon an anchor, exit a tool). Read-and-clear: the canvas asks on the matching release to
     // decide whether that right-click was the user's, in which case it opens the offer.
     bool take_right_consumed() { const bool b = m_right_consumed; m_right_consumed = false; return b; }
     void render(GLCanvas3D& canvas);
+    // The in-canvas value field, drawn by render() before any early return. Owned by
+    // DesignCanvas; null until it sets it. Not a window — see SketchInlineEditor.hpp.
+    class SketchInlineEditor* inline_editor{nullptr};
 
     // Persistent committed sketches to draw even when no session is active (e.g. an
     // un-consumed sketch left visible after its extrude is removed). Each carries its
@@ -210,7 +213,7 @@ public:
     // feature index + the clicked closed-region index within it (-1 = no specific loop).
     // entity = the sketch entity index under the cursor when the click landed on a loop
     // STROKE, else -1 for an interior/region hit. Carried because a tool can legitimately
-    // want the LINE you pointed at, not just the loop it belongs to (Rib, snaporca-3648).
+    // want the LINE you pointed at, not just the loop it belongs to (Rib, 3648).
     std::function<void(int feature, int region, int entity)> on_display_sketch_selected;
     // Double-click on a committed sketch stroke: open THAT feature for editing. Selecting a line
     // and then hunting for an Edit button in a panel is the dependency this tab exists to remove.
@@ -339,7 +342,7 @@ public:
 
     // Mate connectors. Until now a connector was visible only to a program — resolve_datum_coordsys
     // had exactly one consumer, the MCP socket — so the frame a mate is built on could not be seen
-    // at all. The glyph has to answer two questions on sight (snaporca-wgsc): which way does Z point
+    // at all. The glyph has to answer two questions on sight (wgsc): which way does Z point
     // (the VERSE), and which of the pair is anchored versus driven (the POLARITY). Nothing in any
     // surveyed CAD system encodes the second one.
     struct MateConnectorGlyph {
@@ -437,7 +440,7 @@ public:
     // Live readout while drawing a Line/Polyline segment (anchor->cursor metrics).
     std::function<void(double length, double angle_deg, bool locked)> on_cursor_metrics;
 
-    // Live step guidance (snaporca-1c0c). The armed tool reports WHICH STEP of its gesture the
+    // Live step guidance (1c0c). The armed tool reports WHICH STEP of its gesture the
     // user is on, every time that changes, so the status line can name the next click instead of
     // repeating the one-shot sentence written when the tool was armed. step = anchors/picks
     // already down (Mirror: 0 = no axis, 1 = axis down, 2 = ready to apply); picks = size of the
@@ -676,7 +679,7 @@ private:
     // weld_tol:    how far apart two endpoints may be and still be called Coincident.
     // Both default to GESTURE slack. A scripted add passes zero for both: the caller has
     // already said exactly what it means, and every non-zero window is a window in which the
-    // inference rewrites it. snaporca-8xg1.
+    // inference rewrites it. 8xg1.
     void infer_auto_constraints(int base, double ang_tol_rad = 3.0 * M_PI / 180.0,
                                 double weld_tol = 1e-3);
 
@@ -936,7 +939,7 @@ private:
     // A selectable sketch region: its own boundary, plus the loops nested INSIDE it, which
     // are its holes. Modelling holes is what makes "the plate with the hole in it" a thing the
     // user can point at — without it a sketch is N disjoint filled polygons and the only
-    // selectable things are the rectangle alone or the circle alone (snaporca-txp8).
+    // selectable things are the rectangle alone or the circle alone (txp8).
     struct RegionLoop {
         std::vector<Vec2d> poly;
         std::vector<int>   ents;
@@ -1162,7 +1165,7 @@ private:
         Vec3d              vertex_pt{Vec3d::Zero()};
     };
     bool resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, SolidPick& out) const;
-    // HOVER PRE-HIGHLIGHT (snaporca-9xw part 3). Vertex-beats-edge-beats-face is a rule the user
+    // HOVER PRE-HIGHLIGHT (9xw part 3). Vertex-beats-edge-beats-face is a rule the user
     // cannot see until after they commit to a click; showing the outcome under the pointer is
     // what makes the precedence learnable at all, and is the charter's L5 (one click, one visible
     // change) read honestly — the change has to be predictable before the click, not only after.

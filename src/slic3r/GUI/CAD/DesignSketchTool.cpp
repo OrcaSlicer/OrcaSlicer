@@ -2,6 +2,7 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <imgui/imgui.h>
@@ -307,7 +308,7 @@ void DesignSketchTool::set_tool(Mode mode)
 
 void DesignSketchTool::cancel()
 {
-    close_session_chrome();     // same orphaned-field freeze as finish() — see snaporca-yce
+    close_session_chrome();     // same orphaned-field freeze as finish() — see yce
     m_active = false;
     m_step_mode_last = -1;
     m_points.clear();
@@ -452,7 +453,7 @@ void DesignSketchTool::delete_selected()
     // now-deleted entity and freeze the flow" — it was simply never called from here. Measured:
     // delete a rectangle whose Width/Height were still queued, draw a circle, type its radius —
     // the field opens, the digits go in, and the radius does not move, because the field belongs
-    // to a rectangle that no longer exists. snaporca-ua9g.
+    // to a rectangle that no longer exists. ua9g.
     reset_autoedit();
 
     // And re-solve, so the sketch's reported degrees of freedom describe the sketch that is
@@ -462,7 +463,7 @@ void DesignSketchTool::delete_selected()
     if (on_selection_changed) on_selection_changed(0);
 }
 
-// Convert the selection to/from construction geometry (snaporca-6zic). The Construction
+// Convert the selection to/from construction geometry (6zic). The Construction
 // checkbox only ever set the mode for what you draw NEXT, so a line drawn as real geometry
 // could never become a guide, nor a guide become real. Whole Feature groups flip together:
 // a rectangle is four Line entities and converting three of them is never what was meant.
@@ -1383,10 +1384,22 @@ std::string DesignSketchTool::dimtype_title(DimType k) const {
 // Draw-then-edit dispatcher: mirror the Select-mode quote-click logic, but target the
 // freshly-drawn selection's PRIMARY value and use the tentative (clean-cancel) path for
 // scalar quotes. Runs after render_live_quotes, so the live-quote state is populated.
+// Why a draw-then-edit chain did not start. Four early returns can swallow it, and from outside
+// they are indistinguishable: the shape appears, no field opens, and nothing says which guard
+// fired. check-gui-click-edit.py reports that as "a value field opened (nothing did)" for every
+// tool at once, which reads like a total product failure and is not necessarily one.
+static void trace_autoedit(const char* why, size_t n)
+{
+    if (!std::getenv("ORCA_CAD_UXTRACE")) return;
+    fprintf(stderr, "[UX] autoedit %s steps=%zu\n", why, n);
+    fflush(stderr);
+}
+
 void DesignSketchTool::open_primary_autoedit()
 {
-    if (!on_inline_edit || m_awaiting_length) return;   // no host, or a field is already open
-    if (!m_active) return;                              // session ended before the deferred tick
+    if (!on_inline_edit) { trace_autoedit("skip: no on_inline_edit host", 0); return; }
+    if (m_awaiting_length) { trace_autoedit("skip: a field is already open", 0); return; }
+    if (!m_active) { trace_autoedit("skip: session ended before the deferred tick", 0); return; }
 
     // Build ONE ordered list of edit steps covering EVERY characteristic dimension of the
     // freshly-drawn shape — scalar quotes (constraint-based) AND geometric editors — so every
@@ -1494,6 +1507,8 @@ void DesignSketchTool::open_primary_autoedit()
             [this, fi](double v){ set_rect_angle(fi, v); }, span(fi), "Angle" });
     }
 
+    trace_autoedit(m_autoedit_dims.empty() ? "built NO steps (no live quote matched)" : "opening",
+                   m_autoedit_dims.size());
     if (!m_autoedit_dims.empty()) {
         m_autoedit_dim_idx = 0;
         open_next_autoedit_dim();
@@ -2393,7 +2408,7 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     m_constraints.resize(mark);                 // roll back the conflicting batch
     // No re-solve to "restore": a failed solve no longer touches the geometry
     // (SketchSolver.cpp only writes back on success), so m_entities still holds the
-    // prior solved state exactly. snaporca-pl5.
+    // prior solved state exactly. pl5.
     return false;
 }
 
@@ -2501,11 +2516,11 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     //    never costs the others. Every rule only pins a relation that is ALREADY true, so
     //    nothing the user drew is moved by this.
     //    A SCRIPTED ADD IS NOT A DRAWN GESTURE — the rule this function already states at its
-    //    bulk call site, which passes zero tolerances for exactly that reason (snaporca-8xg1).
+    //    bulk call site, which passes zero tolerances for exactly that reason (8xg1).
     //    Relational inference must obey it too, and for a second reason beyond tolerance:
     //    EqualRadius couples entities that are geometrically far apart, so on a real drawing it
     //    merges independent connected components into one huge system and defeats the
-    //    component partitioning that makes large sketches solvable at all (snaporca-yww4).
+    //    component partitioning that makes large sketches solvable at all (yww4).
     //    Measured 2026-08-31 on the corpus rung: geometry stayed correct (32/32 sheets clean)
     //    but seven of the largest sheets hit main-thread timeout — MPD681 among them, the very
     //    sheet named in the comment at the bulk call site. Exact-equality would not save it
@@ -2636,7 +2651,7 @@ bool DesignSketchTool::add_imported_regions(
     // Art is not "just drawn", so it must NOT enter the draw-then-edit queue. Without this the
     // glyph contours are treated as fresh entities and a Length field opens on the first of
     // them — on a word, that is one value editor per segment, and an open field freezes the
-    // canvas (snaporca-yce). reset_autoedit() marks every entity as already seen.
+    // canvas (yce). reset_autoedit() marks every entity as already seen.
     reset_autoedit();
     // The new lines carry no constraints, so the solver has nothing to move; resolve anyway so
     // the degrees-of-freedom readout counts them instead of going stale.
@@ -3107,7 +3122,7 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
 {
     const std::vector<RegionLoop> loops = region_loops(d.entities);
     // What did the sketch decompose into, and what is under the click? This is the trace that
-    // settled snaporca-txp8 — it prints the loop table with each loop's hole count, so
+    // settled txp8 — it prints the loop table with each loop's hole count, so
     // "containment is wrong" and "the click landed elsewhere" stop being indistinguishable.
     // Guarded rather than merely silent: hit_display_sketch runs on every pick, and the message
     // costs a string build and a heap allocation per loop even when nothing consumes it.
@@ -3145,7 +3160,7 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
             if (h >= 0 && h < int(loops.size()) && point_in_poly(p, loops[h].poly)) { in_hole = true; break; }
         if (!in_hole) { face_feat = d.feature; face_reg = r; }
     }
-    // edge_ent is printed because it is now DELIVERED (snaporca-3648) — a tool can ask for the
+    // edge_ent is printed because it is now DELIVERED (3648) — a tool can ask for the
     // line you pointed at, not just its loop, and "which entity did that click resolve to" is
     // otherwise unanswerable from outside.
     dp_pick_trace("region hit -> feat=%d reg=%d (edge_feat=%d edge_reg=%d edge_ent=%d)",
@@ -3249,11 +3264,11 @@ void DesignSketchTool::select_body(int body)
 
 // Pick tracing. Selection failures on a real desktop have repeatedly turned out to be an
 // event that never arrived rather than a ray that missed, and the two look identical from
-// the UI. Set SNAPORCA_PICK_TRACE=1 and the whole press->release->ray path narrates itself
+// the UI. Set ORCA_CAD_PICK_TRACE=1 and the whole press->release->ray path narrates itself
 // on stderr. Off by default: no cost, no noise.
 static bool dp_pick_trace_on()
 {
-    static const bool on = ::getenv("SNAPORCA_PICK_TRACE") != nullptr;
+    static const bool on = ::getenv("ORCA_CAD_PICK_TRACE") != nullptr;
     return on;
 }
 
@@ -3279,7 +3294,7 @@ static void dp_pick_trace(const char* fmt, ...)
 //
 // ponytail: crossing over a triangle sample set. A rectangle small enough to sit entirely
 // inside one flat triangle selects nothing — drag a bigger one, or click. Real multi-body
-// selection (and the homogeneous-set rule that goes with it) is snaporca-9xw.
+// selection (and the homogeneous-set rule that goes with it) is 9xw.
 void DesignSketchTool::pick_bodies_in_rectangle()
 {
     if (m_solid_mesh == nullptr || m_solid_tri_body == nullptr || m_solid_bodies == nullptr)
@@ -3471,7 +3486,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     m_sel_vertex_pt = p.vertex_pt;
     m_solid_sel     = p.kind;
 
-    // CLICK AGAIN ON THE SAME THING -> THE WHOLE BODY (snaporca-gem). Pointing at a face and
+    // CLICK AGAIN ON THE SAME THING -> THE WHOLE BODY (gem). Pointing at a face and
     // pointing at its body are different intents, and until now only the rubber band could
     // express the second one — so the status line said "face 0 selected" while the user
     // believed they had taken the body, and every body verb had to opt into the face kinds to
@@ -3808,23 +3823,23 @@ void DesignSketchTool::clear_extrude_gizmo()
 // cone travels, an open collar receives. No surveyed CAD system encodes this at all; both ends of
 // their mates are drawn identically, which is why "which part moves?" is a standing complaint.
 //
-// SNAPORCA_GLYPH=A|B selects the treatment while this is being judged on the rig:
+// ORCA_CAD_GLYPH=A|B selects the treatment while this is being judged on the rig:
 //   A  three short axis arms, no head differentiation  (the Onshape baseline)
 //   B  one-sided Z arrow, filled vs open head          (the proposal)          -- default
 void DesignSketchTool::render_mate_connectors()
 {
     if (m_mate_connectors.empty()) return;
     static const bool style_A = [] {
-        const char* s = ::getenv("SNAPORCA_GLYPH");
+        const char* s = ::getenv("ORCA_CAD_GLYPH");
         return s && (*s == 'A' || *s == 'a');
     }();
     // The face treatment, on by default. Read every frame rather than latched in a static, so
     // toggling the preference takes effect on the next repaint instead of at the next launch —
     // it is a look, and a look you cannot A/B without restarting will not get compared.
-    // SNAPORCA_GLYPH=D forces the disc regardless, which is how the rig drives the other branch.
+    // ORCA_CAD_GLYPH=D forces the disc regardless, which is how the rig drives the other branch.
     const bool face_style = !style_A
                          && wxGetApp().app_config->get_bool("design_connector_face_glyph")
-                         && [] { const char* s = ::getenv("SNAPORCA_GLYPH");
+                         && [] { const char* s = ::getenv("ORCA_CAD_GLYPH");
                                  return !(s && (*s == 'D' || *s == 'd')); }();
 
     const Camera& cam = wxGetApp().plater()->get_camera();
@@ -4006,7 +4021,7 @@ void DesignSketchTool::render_mate_connectors()
 }
 
 // ---------------------------------------------------------------------------------------------
-// THE FACE TREATMENT of the mate connector (snaporca-x0kd). The disc + roll quadrant answers
+// THE FACE TREATMENT of the mate connector (x0kd). The disc + roll quadrant answers
 // "where is X" with a shape that has to be learned; a face does not. Face orientation is
 // hardwired perception -- a toddler reads a face's roll and verse with no instruction at all --
 // and that is the whole reason this exists. Default ON, switchable in Preferences for users who
@@ -4038,7 +4053,7 @@ static const Vec2d kBearOutline[] = {        // 12 verts, RDP eps 0.030, CCW
 static const Vec2d kBearChin[] = {            // the CHIN BAR, flat. The muzzle is relief — see kBearCrest.
     {-0.2682, -0.3578}, {+0.2628, -0.3578}, {+0.2237, -0.1786},
 };
-// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (snaporca-wi3z).
+// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (wi3z).
 static const Vec3d kBearMarks[] = {
     {-0.1997, +0.1760, +0.0590},
     {+0.1947, +0.1760, +0.0590},
@@ -6421,7 +6436,7 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
 
     // NESTING. A loop drawn inside another one is that one's HOLE. Without this a sketch is
     // just N disjoint filled polygons, so "the plate with the hole" is not expressible and the
-    // multi-loop kernel path (snaporca-88v) is unreachable from the viewport — which is exactly
+    // multi-loop kernel path (88v) is unreachable from the viewport — which is exactly
     // what Tommaso hit: a rectangle with a circle inside extruded to a plain box, because only
     // the rectangle loop could be picked and only its entities were passed on.
     //
@@ -6435,7 +6450,7 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
     // polygon being tested answers by rounding, so the same drawing can be read either way.
     // Measured on the StudyCadCam corpus: the engine and an independent containment check
     // disagreed on 6 of 39 sheets, and every disagreement was a probe point sitting on the other
-    // loop's boundary. snaporca-5hvl.
+    // loop's boundary. 5hvl.
     auto poly_area = [](const std::vector<Vec2d>& q) {
         double a2 = 0.0;
         for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++)
@@ -6535,7 +6550,7 @@ int DesignSketchTool::region_at(const Vec2d& p) const
 
 // ---- rendering --------------------------------------------------------------
 
-// Chop a polyline into dashes (snaporca-imlq). Construction geometry is dashed in every CAD;
+// Chop a polyline into dashes (imlq). Construction geometry is dashed in every CAD;
 // this one painted it solid grey, which against the under-constrained orange reads as "another
 // line", not as "reference only". The dash and gap arrive in WORLD units — the caller scales them
 // by units-per-pixel, so the dash keeps its size on screen at any zoom instead of turning into a
@@ -7971,7 +7986,7 @@ void DesignSketchTool::confirm_op()
         // The sources as they stand BEFORE any of this op's constraints exist. Two jobs: every
         // copy is reflected from the untouched original (so a batch that moves the sketch cannot
         // feed a later copy moved geometry), and the invariant at the bottom has something to
-        // compare against. snaporca-mirror-slot.
+        // compare against. mirror-slot.
         const std::vector<SketchEntity> before = m_entities;
         const size_t cmark = m_constraints.size();
         std::vector<std::pair<int, SketchEntity>> fresh;   // copy index -> its pristine reflection
@@ -8018,7 +8033,7 @@ void DesignSketchTool::confirm_op()
         // postcondition on the geometry, and if a source moved it keeps the copies — which are
         // exactly what the preview showed — and drops the whole constraint web that moved them.
         // Restoring the sources needs no re-solve: the pre-batch state was itself solved, and a
-        // failed solve does not write back (snaporca-pl5).
+        // failed solve does not write back (pl5).
         // BOTH HALVES. Watching only the sources caught the slot (whose web dragged everything)
         // and missed the rounded rectangle, where the solver held the sources still and put the
         // COPIES somewhere else: an arc has five degrees of freedom and Symmetric on centre plus
@@ -8434,7 +8449,7 @@ const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
     return nullptr;
 }
 
-// Which step of the armed gesture is live, reported only when it moves (snaporca-1c0c). Called
+// Which step of the armed gesture is live, reported only when it moves (1c0c). Called
 // from render(), which is the one place EVERY state change passes through — a per-call-site
 // notification would have to be added to each of the thirty-odd tool branches and would be
 // forgotten by the next one. Cheap: three ints compared per frame.
@@ -8465,6 +8480,11 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     m_dim_label_seq = 0;
     m_render_scale  = canvas.get_scale();
     emit_step_hint();   // before the early returns: an armed tool on an empty sketch still guides
+    // The value field, BEFORE every early return below. It can be up in Constrain mode on a
+    // committed feature and on an empty sketch, and a field that is not drawn is a field that is
+    // not there — there is no window to fall back to any more.
+    if (inline_editor != nullptr)
+        inline_editor->render(*wxGetApp().imgui(), m_render_scale);
     (void)canvas;
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
@@ -8733,7 +8753,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         // Mirror's is the axis, Fillet/Chamfer's is the first of the two lines — and until now
         // every pick painted the same white, so the picture could not answer "what did I select
         // as what". Violet, not cyan: cyan means SELECTED here and nothing else may wear it.
-        // snaporca-vd6v.
+        // vd6v.
         const bool op_ref = is_edit_op_mode() && int(i) == m_op_a;
         ColorRGBA col;
         if (editing_this)        col = editing;
@@ -8813,7 +8833,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (!sel_handles.empty()) draw_vertices(m_highlight_model, sel_handles, sel_col);
 
         // Midpoint of every segment, drawn smaller and cooler than the endpoint handles
-        // (snaporca-te8v). Without it the Midpoint snap is invisible: it exists in the
+        // (te8v). Without it the Midpoint snap is invisible: it exists in the
         // inference engine but the user has nothing to aim at. Construction lines get one
         // too — you constrain to them as readily as to real geometry.
         std::vector<Vec2d> mids;
@@ -8857,6 +8877,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // next render_live_quotes(), so the deferred open still sees this frame's values.
     if (m_autoedit_pending) {
         m_autoedit_pending = false;
+        trace_autoedit("pending -> deferring open", 0);
         wxGetApp().CallAfter([this] { open_primary_autoedit(); });
     }
     if (is_edit_op_mode())
@@ -9334,7 +9355,7 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // the 39 corpus drawings the loops that came back wrong were all TINY (1.4 to 13 mm^2), out
     // by up to 7e-4 relative, because a 0.005 degree tilt on a 0.3 mm chord is inside 1e-4.
     // With zero, only a segment that is EXACTLY axis-aligned is constrained, and constraining
-    // something already true cannot move it. snaporca-8xg1.
+    // something already true cannot move it. 8xg1.
     // The weld window closes too. Two endpoints a micron apart are not the same point when a
     // caller typed both of them: on MPD681, 20 of 363 scripted segments were dragged onto a
     // common point up to 0.0021 mm away, because welding is TRANSITIVE and three vertices near
@@ -9349,7 +9370,7 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // while m_awaiting_length) and swallows every letter (in_text includes inline_busy()). The
     // symptom was that the first key and click after sketch_add did nothing until one Escape had
     // dismissed the field. Resyncing the baseline here leaves an ALREADY open field alone; it
-    // only stops this add from being read as something the user just drew. snaporca-j7gc.
+    // only stops this add from being read as something the user just drew. j7gc.
     m_autoedit_seen = int(m_entities.size());
     return base;
 }
@@ -9561,7 +9582,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
         // counts only m_selection, so right-clicking a sketch point produced the EMPTY
         // vocabulary and every SkPoint row in the atlas was unreachable from the menu. Other
         // entities keep the handle pick: a line's endpoint is a drag target, not a thing with a
-        // vocabulary of its own. snaporca-lnri.
+        // vocabulary of its own. lnri.
         if (ei >= 0 && ei < int(m_entities.size())
             && m_entities[ei].type == SketchEntity::Type::Point) {
             if (std::find(m_selection.begin(), m_selection.end(), ei) != m_selection.end())
@@ -9643,8 +9664,8 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
 // suppresses the menu whenever it is set, so right-click became a no-op that also hid the one door
 // to half the vocabulary (47 of 86 verbs have no shortcut). Measured on the rig: with Line armed,
 // two right-clicks in a row produced no menu and no tool change; only Escape freed it.
-// Same rule as snaporca-xmh6, which said it for the selection: clearing nothing is not a gesture
-// terminator. snaporca-ghcz.
+// Same rule as xmh6, which said it for the selection: clearing nothing is not a gesture
+// terminator. ghcz.
 bool DesignSketchTool::right_abandon()
 {
     if (m_points.empty())
@@ -9979,7 +10000,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // consumed from here on. Left-drag no longer orbits in this canvas — DesignCanvas puts
         // orbit on middle-drag and pan on right-drag, the CAD convention — so nothing downstream
         // is being starved of a gesture it used to own.
-        // HOVER PRE-HIGHLIGHT (snaporca-9xw part 3): say what a click would take, before it is
+        // HOVER PRE-HIGHLIGHT (9xw part 3): say what a click would take, before it is
         // taken. Plain motion only — no button down, no band running — because during a drag the
         // pointer is doing something else and a promise about clicking would be a lie. Returns
         // false so the event still reaches the camera; this only asks for a repaint, it does not
@@ -10069,7 +10090,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         m_display_pick = -1; m_display_pick_region = -1;  // clicked bare plate -> drop highlight
-        // ...and the SOLID selection goes with it (snaporca-od0). A click that hits nothing has to
+        // ...and the SOLID selection goes with it (od0). A click that hits nothing has to
         // mean what a rubber band that sweeps nothing already means — pick_bodies_in_rectangle
         // clears on an empty sweep, and the two gestures cannot disagree about the same outcome.
         // Until now the face survived a click on bare plate, so "click away, then click the face
@@ -10717,7 +10738,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown() && m_points.empty())
-            return false;               // no chain to end — snaporca-ghcz, let the offer open
+            return false;               // no chain to end — ghcz, let the offer open
         if (evt.RightDown()) {
             // END the chain — do NOT close it. This used to call push_closed_lines() for three
             // or more points, i.e. it drew a final segment from the last point back to the
@@ -11096,7 +11117,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown() && m_points.empty())
-            return false;               // no poles down — snaporca-ghcz, let the offer open
+            return false;               // no poles down — ghcz, let the offer open
         if (evt.LeftDClick() || evt.RightDown()) {
             if (m_points.size() >= 2) {
                 const int base = int(m_entities.size());

@@ -11,16 +11,16 @@ action and no shortcut, so a key-driven ladder cannot reach them at all.
 This ladder drives the menu. Nothing here is asserted from pixels:
 
   WHAT WAS CLICKED  -> the offer's own [OFFER] trace, emitted by show_offer_menu from the same
-                       loop that builds the rows (SNAPORCA_KEYTRACE). It cannot drift from what
+                       loop that builds the rows (ORCA_CAD_KEYTRACE). It cannot drift from what
                        the user is shown, which a hand-written expectation list would.
   WHAT IS OFFERED   -> the same trace, compared against DesignOffer.hpp parsed independently.
                        "The menu shows exactly the verbs the table says apply here" is a
                        property; a copied list of row names is a transcription.
   WHAT IT PRODUCED  -> the MCP socket, read-only, exactly as in the gesture ladder.
 
-Run inside the rig container, with the app launched under SNAPORCA_KEYTRACE=1:
+Run inside the rig container, with the app launched under ORCA_CAD_KEYTRACE=1:
 
-    docker exec snaporca-gui python3 /OrcaSlicer/scripts/CAD/check-gui-context-menu.py [rung ...]
+    docker exec orcacad-gui python3 /OrcaSlicer/scripts/CAD/check-gui-context-menu.py [rung ...]
 """
 import importlib.util
 import math
@@ -38,13 +38,13 @@ _spec = importlib.util.spec_from_file_location("gui_ladder", os.path.join(HERE, 
 G = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(G)
 
-LOG = os.environ.get("SNAPORCA_GUI_LOG", "/tmp/gui-session.log")
+LOG = os.environ.get("ORCA_CAD_GUI_LOG", "/tmp/gui-session.log")
 
 # The rig container's /OrcaSlicer is the image's own baked source tree, not this checkout, so the
 # generated header is not where a repo-relative path expects it. Look in both places and say which
 # one was read — a ladder that silently graded against the WRONG table would be worse than one
 # that refuses to start.
-HEADER_CANDIDATES = [os.environ.get("SNAPORCA_OFFER_HPP", ""),
+HEADER_CANDIDATES = [os.environ.get("ORCA_CAD_OFFER_HPP", ""),
                      os.path.join(HERE, "..", "src", "slic3r", "GUI", "CAD", "DesignOffer.hpp"),
                      os.path.join(HERE, "DesignOffer.hpp")]
 
@@ -61,12 +61,12 @@ def load_table():
     """Every verb in DesignOffer.hpp, as dicts. The independent half of the comparison.
 
     Parsed from the generated header rather than from tool_atlas.json on purpose: the header is
-    what the binary was compiled from, and the two have been out of step before (snaporca-ziam,
+    what the binary was compiled from, and the two have been out of step before (ziam,
     where regenerating the header silently dropped the Constrain row).
     """
     path = next((p for p in HEADER_CANDIDATES if p and os.path.exists(p)), None)
     if path is None:
-        raise SystemExit("no DesignOffer.hpp found; set SNAPORCA_OFFER_HPP or copy it beside "
+        raise SystemExit("no DesignOffer.hpp found; set ORCA_CAD_OFFER_HPP or copy it beside "
                          "this script (tried: " + ", ".join(filter(None, HEADER_CANDIDATES)) + ")")
     print(f"offer table: {os.path.realpath(path)}")
     src = open(path).read()
@@ -301,7 +301,7 @@ def rung_kinds():
     # Empty space first: nothing is selected, so the sketch vocabulary's no-selection row set.
     # Right-click has two jobs on a draw tool, and which one it does depends on whether an
     # anchor is down. Both are asserted here: the version that consumed EVERY right-click made
-    # the offer unreachable from any armed tool (snaporca-ghcz), which is the goal's own
+    # the offer unreachable from any armed tool (ghcz), which is the goal's own
     # mechanism failing silently.
     hi = y1 - (y1 - y0) * 0.12
     o = open_offer(cx, hi)
@@ -766,7 +766,7 @@ def rung_curves():
                     f"and it takes a typed radius exactly: {got:.9f} (asked 30.0)")
             # The DoF of ONE CIRCLE is three. Asserted here because it is where the lie showed:
             # after a delete the solver was never re-run, so this reported the DoF of the
-            # geometry that had just been erased. snaporca-ua9g.
+            # geometry that had just been erased. ua9g.
             G.check("VERTEX", G.describe()["dof"] == 2,
                     f"and the sketch reports the DoF of what is actually in it: {G.describe()['dof']}")
 
@@ -1198,7 +1198,7 @@ def main():
     if not os.path.exists(LOG):
         G.die(f"no {LOG} — launch the app through scripts/CAD/start-headless-gui.sh")
     if "[OFFER]" not in open(LOG, errors="replace").read()[-400000:]:
-        print(f"note: no [OFFER] lines in {LOG} yet — the app must run with SNAPORCA_KEYTRACE=1")
+        print(f"note: no [OFFER] lines in {LOG} yet — the app must run with ORCA_CAD_KEYTRACE=1")
     want = sys.argv[1:] or list(RUNGS)
     # TWICE. From a cold launch the app shows the Home page over the Design tab, and the first
     # click only selects the tab — the second is what brings the viewport forward. A ladder that

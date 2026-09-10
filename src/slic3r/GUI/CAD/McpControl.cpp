@@ -113,7 +113,7 @@ json describe_tools()
     // Hand-written descriptor. The bridge turns this into MCP tool schemas; later
     // slices grow this list (ideally from the kernel directly).
     return json{
-        {"app", "SnapOrca CAD"},
+        {"app", "Orca CAD"},
         {"protocol", "jsonrpc-2.0"},
         {"slice", 5},
         // Read this before using any face or edge id.
@@ -2201,9 +2201,9 @@ void server_thread(std::string sock_path)
 
 void start_mcp_control_if_enabled()
 {
-    const char* env = std::getenv("SNAPORCA_MCP");
+    const char* env = std::getenv("ORCA_CAD_MCP");
     if (!env || !*env) return;
-    std::string path = (std::strcmp(env, "1") == 0) ? "/tmp/snaporca-mcp.sock" : env;
+    std::string path = (std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
     static bool started = false;
     if (started) return;
     started = true;

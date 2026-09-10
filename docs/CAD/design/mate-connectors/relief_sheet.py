@@ -1,4 +1,4 @@
-"""Flat glyph vs 3D relief, at the elevations that killed the disc — snaporca-wi3z.
+"""Flat glyph vs 3D relief, at the elevations that killed the disc — wi3z.
 
 The flat study collapsed at 16 deg because anything drawn IN the connector's plane foreshortens by
 sin(elevation). This renders the SAME bear as its real relief (1508 facets off the supplied male)

@@ -2,7 +2,7 @@
 # Rebuild the GUI binary the design rig launches — in a THROWAWAY container, writing into the
 # same build-cache volume the rig's long-lived GUI container reads from.
 #
-# NEVER build inside the GUI container (snaporca-gui / orcacad-gui). Its baked /OrcaSlicer tree
+# NEVER build inside the GUI container (snapmaker-gui / orcacad-gui). Its baked /OrcaSlicer tree
 # is the Jun-13 Snapmaker-derived source, so a `cmake .` in there silently reconfigures the
 # shared build dir as project(Snapmaker_Orca) and this fork's targets vanish. That is Trap 1 of
 # five; all of them, with symptoms and exact recovery commands, are in docs/rig_build_traps.md.
@@ -21,7 +21,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # the wrong volume the two forks silently trade build artefacts.
 PROJECT="$(sed -n 's/^project(\([A-Za-z_0-9]*\)).*/\1/p' "$REPO/CMakeLists.txt" | head -1)"
 case "$PROJECT" in
-    Snapmaker_Orca) PREFIX=snaporca; BIN=snapmaker-orca ;;
+    Snapmaker_Orca) PREFIX=snapmaker; BIN=snapmaker-orca ;;
     OrcaSlicer)     PREFIX=orcacad;  BIN=orca-slicer    ;;
     *) echo "FATAL: unrecognised project($PROJECT) in $REPO/CMakeLists.txt" >&2; exit 2 ;;
 esac

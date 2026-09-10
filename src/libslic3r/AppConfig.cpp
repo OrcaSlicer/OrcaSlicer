@@ -325,7 +325,7 @@ void AppConfig::set_defaults()
     // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
     // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
     // verse read without being learned, which no abstract glyph achieves. Turning it off
-    // restores the conventional CAD representation for users who expect it (snaporca-x0kd).
+    // restores the conventional CAD representation for users who expect it (x0kd).
     if (get("design_connector_face_glyph").empty())
         set_bool("design_connector_face_glyph", true);
 #endif

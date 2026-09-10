@@ -403,7 +403,7 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
     // from the corpse. The fillet degrade ladder hit this on every corner — rung 1 (a
     // tangent on each leg) is legitimately over-constrained against the legs' own H/V, and
     // its wreckage then failed rungs 2 and 3, which solve cleanly on their own. The arc
-    // ended up with no constraints at all and the solver snapped the corner shut. snaporca-pl5.
+    // ended up with no constraints at all and the solver snapped the corner shut. pl5.
     if (!out.ok) return out;
     for (size_t i = 0; i < entities.size(); ++i) {
         SketchEntity& e = entities[i];

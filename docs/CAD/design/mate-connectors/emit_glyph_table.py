@@ -1,4 +1,4 @@
-"""Emit the simplified bear as a C++ table for the viewport glyph — snaporca-wi3z.
+"""Emit the simplified bear as a C++ table for the viewport glyph — wi3z.
 
 Everything is normalised to the part's own bounding span and centred, so the renderer scales by
 one radius R in screen pixels and nothing here carries millimetres. Emitting rather than
@@ -79,7 +79,7 @@ L.append("};")
 L.append(f"static const Vec2d kBearChin[] = {{            // the CHIN BAR, flat. The muzzle is relief — see kBearCrest.")
 L.append("    "+", ".join(f"{{{fmt(x)}, {fmt(y)}}}" for x,y in TRI)+",")
 L.append("};")
-L.append("// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (snaporca-wi3z).")
+L.append("// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (wi3z).")
 L.append("static const Vec3d kBearMarks[] = {")
 for cx,cy,r in E: L.append(f"    {{{fmt(cx)}, {fmt(cy)}, {fmt(r)}}},")
 L.append(f"    {{{fmt(DOT[0])}, {fmt(DOT[1])}, {fmt(DOT[2])}}},")
