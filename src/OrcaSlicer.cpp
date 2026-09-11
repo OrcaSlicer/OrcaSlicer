@@ -2622,12 +2622,21 @@ int CLI::run(int argc, char **argv)
     //      is_compatible_with_printer() reads that as "no constraint" and accepts every printer.
     //      Translate the two keys back. Index 0 of the expression group is the print preset -- the
     //      group is filled print, filaments, printer (PresetBundle.cpp).
+    //      The raw keys win whenever they carry something. A project the CLI exported itself has the
+    //      real compatible_printers_condition AND an all-empty compatible_machine_expression_group,
+    //      so copying the group's first entry unconditionally would overwrite a valid condition with
+    //      "" and accept every printer. The renamed keys are only a fallback, and an empty value is
+    //      never written over a real one.
     auto cli_process_compat_config = [](const DynamicPrintConfig &project_cfg) -> DynamicPrintConfig {
         DynamicPrintConfig cfg = project_cfg;
-        if (const auto *list = project_cfg.option<ConfigOptionStrings>("print_compatible_printers"))
+        const auto *raw_list = project_cfg.option<ConfigOptionStrings>("compatible_printers");
+        const auto *list     = project_cfg.option<ConfigOptionStrings>("print_compatible_printers");
+        if ((raw_list == nullptr || raw_list->values.empty()) && list != nullptr && !list->values.empty())
             cfg.set_key_value("compatible_printers", new ConfigOptionStrings(list->values));
-        const auto *group = project_cfg.option<ConfigOptionStrings>("compatible_machine_expression_group");
-        if (group != nullptr && !group->values.empty())
+        const auto *raw_cond = project_cfg.option<ConfigOptionString>("compatible_printers_condition");
+        const auto *group    = project_cfg.option<ConfigOptionStrings>("compatible_machine_expression_group");
+        if ((raw_cond == nullptr || raw_cond->value.empty()) && group != nullptr && !group->values.empty() &&
+            !group->values.front().empty())
             cfg.set_key_value("compatible_printers_condition", new ConfigOptionString(group->values.front()));
         return cfg;
     };
