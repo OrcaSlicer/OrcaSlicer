@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG-CF @FF G4",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "K9ME1F4oJkPi8jRu",
+	"filament_id": "OFuFEtKX",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

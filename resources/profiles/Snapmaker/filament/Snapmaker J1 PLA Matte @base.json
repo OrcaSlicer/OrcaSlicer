@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "1192769348",
+	"filament_id": "OFY3AB7j",
 	"instantiation": "false",
 	"filament_density": [
 		"1.32"

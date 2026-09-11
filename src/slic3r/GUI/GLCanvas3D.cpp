@@ -155,6 +155,11 @@ std::string& get_filament_mixture_warning_text(){
     return filament_mixture_warning_text;
 }
 
+std::string& get_single_extruder_mixed_filament_warning_text(){
+    static std::string single_extruder_mixed_filament_warning_text;
+    return single_extruder_mixed_filament_warning_text;
+}
+
 
 static std::string format_number(float value)
 {
@@ -2186,7 +2191,7 @@ void GLCanvas3D::render(bool only_init)
 
 	// Negative coordinate means out of the window, likely because the window was deactivated.
 	// In that case the tooltip should be hidden.
-    if (m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0. || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
+    if ((m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0.) || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
         if (tooltip.empty())
             tooltip = m_layers_editing.get_tooltip(*this);
 
@@ -2886,23 +2891,37 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
-                float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
-                float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
-                // BBS
-                float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
+                float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
-                const Print* print = m_process->fff_print();
                 const Print* current_print = part_plate->fff_print();
-                if (!need_wipe_tower && part_plate->get_extruders(true).size() < 2) continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
-                float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
+                // Body and brim from this plate's own estimate: m_process->fff_print() is the
+                // selected plate's, so an auto brim drew every tower with that plate's brim.
+                const WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config);
+                // The estimate is also the answer to whether this plate prints a tower;
+                // deciding it here as well only gave the two room to drift.
+                if (footprint.depth <= 0.) continue;
+                float brim_width = float(footprint.brim_width);
+                Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-                // The stored position is already clamped onto the bed, by
-                // set_default_wipe_tower_pos_for_plate and again on every drag.
+                // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
+                // filament count, so redo its clamp here on every reload — unconditionally: a
+                // paint-triggered reload can arrive before the background process invalidates
+                // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
+                {
+                    Vec3d clamped_pos, clamped_size;
+                    part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size);
+                    if (std::abs(x - (float) clamped_pos(0)) > EPSILON || std::abs(y - (float) clamped_pos(1)) > EPSILON) {
+                        x = (float) clamped_pos(0);
+                        y = (float) clamped_pos(1);
+                        ConfigOptionFloat wt_x_opt(x), wt_y_opt(y);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_id, 0);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_id, 0);
+                    }
+                }
+
                 if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                     // update for wipe tower position
                     int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
@@ -2984,6 +3003,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             bool mix_pla_and_petg = cur_plate->check_mixture_of_pla_and_petg(full_config_temp);
             _set_warning_notification(EWarning::MixUsePLAAndPETG, !mix_pla_and_petg);
 
+            bool single_extruder_mixed_risk = cur_plate->check_single_extruder_mixed_filament_risk(full_config_temp, get_single_extruder_mixed_filament_warning_text());
+            _set_warning_notification(EWarning::SingleExtruderMixedFilament, single_extruder_mixed_risk);
+
             bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, wxGetApp().preset_bundle->filament_presets, get_nozzle_filament_incompatible_text());
             _set_warning_notification(EWarning::NozzleFilamentIncompatible, !filament_nozzle_compatible);
 
@@ -3010,6 +3032,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
            _set_warning_notification(EWarning::TPUPrintableError, false);
            _set_warning_notification(EWarning::FilamentPrintableError, false);
            _set_warning_notification(EWarning::MixUsePLAAndPETG, false);
+           _set_warning_notification(EWarning::SingleExtruderMixedFilament, false);
            _set_warning_notification(EWarning::PrimeTowerOutside, false);
            _set_warning_notification(EWarning::MultiExtruderPrintableError,false);
            _set_warning_notification(EWarning::MultiExtruderHeightOutside,false);
@@ -4159,7 +4182,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // https://github.com/OrcaSlicer/OrcaSlicer/pull/14999#issuecomment-5151344759
     // We solve this by correcting the state of the event from the actual mouse state querying with `wxGetMouseState()`
     // so it works like on other platforms.
-    {
+    // Only fill in state the event does not carry, to preserve wx's synthetic right button for Ctrl+left.
+    if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY)) {
         const auto state = wxGetMouseState();
         evt.SetLeftDown(state.LeftIsDown());
         evt.SetMiddleDown(state.MiddleIsDown());
@@ -5035,7 +5059,21 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     }
 
     //BBS: notify instance updates to part plater list
-    m_selection.notify_instance_update(-1, 0);
+    // Only what moved: the selected instances, or every instance of an object one of whose
+    // parts moved. Notifying a plate about an instance that stayed put invalidates its slice
+    // result, and notifying instance 0 alone left a moved copy unregistered on its new plate.
+    {
+        std::set<std::pair<int, int>> notified;
+        for (unsigned int i : m_selection.get_volume_idxs()) {
+            const GLVolume* v          = m_volumes.volumes[i];
+            const int       object_idx = v->object_idx();
+            if (object_idx < 0 || object_idx >= static_cast<int>(m_model->objects.size()))
+                continue;
+            const std::pair<int, int> key(object_idx, selection_mode == Selection::Volume ? -1 : v->instance_idx());
+            if (notified.insert(key).second)
+                m_selection.notify_instance_update(key.first, key.second);
+        }
+    }
 
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
@@ -8902,7 +8940,10 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
             }
             else {
-                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice()))
+                // A plate using a mixed filament whose components are broken cannot be sliced,
+                // so surface that on the plate toolbar the same way an unsliceable plate is.
+                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice())
+                    || wxGetApp().plater()->sidebar().has_broken_mixed_filament(plate_list.get_plate(i)))
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
                 else {
                     if (plate_list.get_plate(i)->get_slicing_percent() < 0.0f)
@@ -9196,7 +9237,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                                     view3d_canvas->get_gizmos_manager().reset_all_states(); // close all gizmos
                                     view3d_canvas->reload_scene(true);
                                 }
-                                app.mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+                                app.mainframe->select_tab(TAB_ID_PREPARE);
                             }
                         }
                     });
@@ -9224,7 +9265,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
         ImVec2 size      = ImVec2(button_width, button_height);
         ImVec2 end_pos   = ImVec2(start_pos.x + size.x, start_pos.y + size.y);
         // ORCA show additional information depends on state
-        auto draw_info_btn = [end_pos, f_scale, margin, window_bg](std::string str, ImVec4 bg_color, ImVec4 fg_color){
+        auto draw_info_btn = [end_pos, f_scale, margin](std::string str, ImVec4 bg_color, ImVec4 fg_color){
             GImGui->FontSize = 15.0f * f_scale;
             ImVec2 txt_slice_sz  = ImGui::CalcTextSize(str.c_str());
             ImVec2 btn_pad       = ImVec2(8.f, 1.f) * f_scale;
@@ -9480,7 +9521,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         Plater*    p   = wxGetApp().plater();
         AppConfig* cfg = wxGetApp().app_config;
 
-        auto create_menu_item = [this, sc](
+        auto create_menu_item = [sc](
             const std::string& name,
             bool enable,
             bool condition,
@@ -9497,7 +9538,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
-            [this]{
+            []{
                 wxGetApp().toggle_show_3d_navigator();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
             }
@@ -9506,7 +9547,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
-            [this]{
+            []{
                 wxGetApp().toggle_canvas_zoom_button();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
             }
@@ -9517,13 +9558,13 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
-            [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
+            [p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            [this]{wxGetApp().toggle_show_outline();}
+            []{wxGetApp().toggle_show_outline();}
         );
 
         create_menu_item( _utf8(L("Wireframe")),
@@ -9535,7 +9576,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Realistic View")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
-            [this, &cfg]{
+            [&cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
                 cfg->save();
             }
@@ -9546,7 +9587,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
-            [this, &cfg]{
+            [&cfg]{
                 cfg->set_bool("use_perspective_camera", !(cfg->get_bool("use_perspective_camera")));
                 wxGetApp().update_ui_from_settings();
             }
@@ -9563,7 +9604,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Gridlines")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_plate_gridlines(),
-            [this]{wxGetApp().toggle_show_plate_gridlines();}
+            []{wxGetApp().toggle_show_plate_gridlines();}
         );
 
         ImGui::Separator();
@@ -9571,7 +9612,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
-            [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
+            [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
         );
 
         ImGui::PopItemFlag();
@@ -9669,6 +9710,13 @@ void GLCanvas3D::_render_paint_toolbar() const
             }
         }
     }
+    // ORCA: the loop above only labels a slot whose preset was found in the preset collection,
+    // while the render loop below iterates extruder_num. Pad the label arrays so a slot without a
+    // matching preset cannot index past them; a garbage std::string crashes ImGui::CalcTextSize.
+    while (int(filament_text_first_line.size()) < extruder_num) {
+        filament_text_first_line.emplace_back();
+        filament_text_second_line.emplace_back();
+    }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float canvas_w = float(get_canvas_size().get_width());
@@ -9698,6 +9746,10 @@ void GLCanvas3D::_render_paint_toolbar() const
     bool disabled = !wxGetApp().plater()->can_fillcolor();
     ColorRGBA rgba;
 
+    // Gradient mixed filaments fade over Z, so their swatch is drawn as that fade rather than
+    // the single blended colour in `colors`. Every other slot's ramp is empty.
+    const auto& gradient_ramps = wxGetApp().plater()->get_filament_gradient_ramps();
+
     for (int i = 0; i < extruder_num; i++) {
         if (i > 0)
             ImGui::SameLine();
@@ -9711,6 +9763,8 @@ void GLCanvas3D::_render_paint_toolbar() const
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max))
                 wxPostEvent(m_canvas, IntEvent(EVT_GLTOOLBAR_FILLCOLOR, i + 1));
         }
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty())
+            ImGuiWrapper::draw_gradient_ramp(draw_list, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), gradient_ramps[i]);
         if (ImGui::IsItemHovered() && i < 9) {
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max)) {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 20.0f * f_scale, 10.0f * f_scale });
@@ -9726,7 +9780,13 @@ void GLCanvas3D::_render_paint_toolbar() const
 
     const float text_offset_y = 4.0f * em_unit * f_scale;
     for (int i = 0; i < extruder_num; i++) {
-        decode_color(colors[i], rgba);
+        // A gradient slot's swatch shows its fade instead of the blended colour in `colors`, so the
+        // labels take their contrast from the colour printed at the middle of the fade they sit on.
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty()) {
+            const wxColour& c = gradient_ramps[i][gradient_ramps[i].size() / 2];
+            rgba = ColorRGBA(c.Red(), c.Green(), c.Blue(), c.Alpha());
+        } else
+            decode_color(colors[i], rgba);
         float  gray       = 0.299 * rgba.r_uchar() + 0.587 * rgba.g_uchar() + 0.114 * rgba.b_uchar();
         ImVec4 text_color = gray < 80 ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0, 0, 0, 1.0f);
 
@@ -9734,18 +9794,18 @@ void GLCanvas3D::_render_paint_toolbar() const
         ImVec2 number_label_size = ImGui::CalcTextSize(std::to_string(i + 1).c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - number_label_size.x) / 2);
-        ImGui::TextColored(text_color, std::to_string(i + 1).c_str());
+        ImGui::TextColored(text_color, "%s", std::to_string(i + 1).c_str());
         imgui.pop_bold_font();
 
         ImVec2 filament_first_line_label_size = ImGui::CalcTextSize(filament_text_first_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_first_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_first_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_first_line[i].c_str());
 
         ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y + filament_first_line_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_second_line[i].c_str());
     }
 
     if (ImGui::GetWindowWidth() == constraint_window_width) {
@@ -9972,9 +10032,9 @@ void GLCanvas3D::_render_assemble_info() const
     double size1 = m_selection.get_bounding_box().size()(1);
     double size2 = m_selection.get_bounding_box().size()(2);
     if (!m_selection.is_empty()) {
-        ImGui::Text(_L("Volume:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Volume:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f", size0 * size1 * size2);
-        ImGui::Text(_L("Size:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Size:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f x %.2f x %.2f", size0, size1, size2);
     }
     imgui->end();
@@ -10570,6 +10630,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     case EWarning::MixUsePLAAndPETG:
         text = _u8L("PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality.");
         break;
+    case EWarning::SingleExtruderMixedFilament:
+        text = get_single_extruder_mixed_filament_warning_text();
+        break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
         break;
@@ -10602,9 +10665,8 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                         wxString    region = L"en";
                         if (language.find("zh") == 0)
                         	region = L"zh";
-                        // Use the generic dual-nozzle PLA+PETG guide rather than the H2D-specific page
-                        // so the link is relevant for all dual-extrusion printers, not just Bambu H2D. (#12073)
-                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/pla-and-petg-dual-extrusion", region));
+                        // Although this link looks like it's only for the H2D, its guidance is generic.
+                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/h2d-pla-and-petg-mutual-support", region));
                         return false;
                     });
             }
@@ -10618,6 +10680,14 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             else{
                 notification_manager.close_slicing_customize_error_notification(NotificationType::BBLNozzleFilamentIncompatible, NotificationLevel::WarningNotificationLevel);
             }
+        }
+        else if (warning == EWarning::SingleExtruderMixedFilament) {
+            // Close by type: check_single_extruder_mixed_filament_risk() clears the shared text
+            // buffer on every call, so a close-by-text would miss once the risk is gone.
+            if (state)
+                notification_manager.push_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel, text);
+            else
+                notification_manager.close_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel);
         }
         else {
             if (state)
@@ -10738,24 +10808,14 @@ bool GLCanvas3D::is_flushing_matrix_error() {
     if (!Sidebar::should_show_SEMM_buttons())
         return false;
 
+    std::vector<int> plate_extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_extruders(true);
+    if (plate_extruders.size() < 2)
+        return false;
+
     const auto                &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
-
-    for (auto multiplier : config_multiplier) {
-        if (multiplier == 0) return true;
-    }
-
-    int  matrix_len = config_matrix.size() / config_multiplier.size();
-    int  row_len    = std::sqrt(matrix_len);
-    for (int i = 0; i < config_matrix.size(); i++)
-    {
-        int relative_id = i % matrix_len;
-        int row_id      = relative_id / row_len;
-        int col_id      = relative_id % row_len;
-        if (row_id != col_id && config_matrix[i] == 0) return true;
-    }
-    return false;
+    return has_zero_flush_volume_for_used_filaments(config_matrix, config_multiplier, plate_extruders);
 }
 
 bool GLCanvas3D::_is_any_volume_outside() const

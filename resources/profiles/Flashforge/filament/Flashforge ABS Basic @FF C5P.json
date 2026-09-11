@@ -4,6 +4,10 @@
 	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "UTWbwTYuXYbBx3uw",
+	"filament_id": "OFibWuBd",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

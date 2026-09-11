@@ -3,7 +3,7 @@
 	"name": "Fiberon PA6-CF20 @Snapmaker U1 base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFL57",
+	"filament_id": "OFEabreg",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

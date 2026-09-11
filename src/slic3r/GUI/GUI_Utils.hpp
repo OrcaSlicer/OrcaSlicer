@@ -155,6 +155,9 @@ public:
                 update_dark_config();
                 on_sys_color_changed();
                 event.Skip();
+#else
+                // Not calling Skip() is what stops the event propagating on Windows.
+                (void) this;
 #endif // __WINDOWS__
 
         });

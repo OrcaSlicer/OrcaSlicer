@@ -40,7 +40,7 @@ public:
 
     void SetBitmap(ScalableBitmap &bitmap);
 
-    bool Enable(bool enable = true);
+    bool Enable(bool enable = true) override;
 
     void Rescale();
 

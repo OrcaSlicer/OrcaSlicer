@@ -15,39 +15,6 @@ namespace Slic3r { namespace GUI {
 
 namespace {
 
-// Low-specificity element defaults (no !important) for UNSTYLED plugin HTML, so a bare
-// plugin page looks native while any CSS the plugin ships still wins. Built on the
-// --orca-* variables the host injects (see WebViewHostDialog); document-start injected
-// AFTER the host contract so the variables are defined (shares the base injector's
-// WebView2 timing guard).
-std::string plugin_defaults_user_script()
-{
-    std::string css;
-    css += "<style id=\"orca-plugin-defaults\">";
-    css += "html,body{background:var(--orca-bg);color:var(--orca-fg);"
-           "font-family:var(--orca-font);font-size:13px;}";
-    css += "body{margin:0;}";
-    css += "h1,h2,h3,h4,h5,h6{color:var(--orca-fg);font-weight:600;}";
-    css += "a{color:var(--orca-accent);}";
-    css += "hr{border:0;border-top:1px solid var(--orca-border);}";
-    css += "button{font:inherit;color:var(--orca-accent-fg);background:var(--orca-accent);"
-           "border:1px solid var(--orca-accent);border-radius:4px;padding:5px 14px;cursor:pointer;}";
-    css += "button:hover{filter:brightness(1.1);}";
-    css += "button:disabled{opacity:.5;cursor:default;}";
-    css += "input,select,textarea{font:inherit;color:var(--orca-fg);"
-           "background:var(--orca-bg);border:1px solid var(--orca-border);"
-           "border-radius:4px;padding:4px 8px;}";
-    css += "input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orca-accent);}";
-    css += "table{border-collapse:collapse;}";
-    css += "th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--orca-border);}";
-    css += "th{color:var(--orca-muted);font-weight:600;}";
-    css += "::-webkit-scrollbar{width:12px;height:12px;}";
-    css += "::-webkit-scrollbar-thumb{background:var(--orca-border);border-radius:6px;}";
-    css += "::-webkit-scrollbar-track{background:transparent;}";
-    css += "</style>";
-    return WebViewHostDialog::document_start_injector(css, "orca-plugin-defaults", "beforeend");
-}
-
 // Injected into the top-level page at document start (before the plugin's own
 // scripts). Defines window.orca as the only host surface the page may use. It
 // references window.wx lazily (at call time) so it never races the backend's
@@ -129,7 +96,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
 void PluginWebDialog::add_user_scripts()
 {
     if (wxWebView* wv = browser()) {
-        wv->AddUserScript(wxString::FromUTF8(plugin_defaults_user_script()));
+        wv->AddUserScript(wxString::FromUTF8(WebViewHostDialog::plugin_defaults_user_script()));
         wv->AddUserScript(ORCA_BRIDGE_JS);
     }
 }

@@ -31,7 +31,7 @@ public:
     bool is_timelapse_storage_low(const std::string& storage) const;
 
 private:
-    MachineObject *m_owner;
+    [[maybe_unused]] MachineObject *m_owner;
     SdcardState    m_sdcard_state  { NO_SDCARD };
     // timelapse storage space info (from device push cam data)
     int tl_internal_free_kb{-1};

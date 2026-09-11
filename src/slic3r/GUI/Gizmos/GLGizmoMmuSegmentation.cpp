@@ -78,6 +78,9 @@ void GLGizmoMmuSegmentation::init_extruders_data()
     m_extruders_colors      = wxGetApp().plater()->get_extruders_colors();
     m_selected_extruder_idx = 0;
 
+    m_gradient_ramps = wxGetApp().plater()->get_filament_gradient_ramps();
+    m_gradient_ramps.resize(m_extruders_colors.size());
+
     // keep remap table consistent with current extruder count
     m_extruder_remap.resize(m_extruders_colors.size());
     for (size_t i = 0; i < m_extruder_remap.size(); ++i)
@@ -305,15 +308,32 @@ void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
 }
 
 // ORCA
-bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale)
+bool GLGizmoMmuSegmentation::draw_color_button(int idx, const char* id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale)
 {
+    // Inset of the frame stroked below, which is what trims the swatch down to its visible shape.
+    const float frame_inset = 1.5f;
+
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     std::string label_id  = std::to_string(idx) + id_str + std::to_string(idx);
     ImVec2      pos       = ImGui::GetCursorScreenPos();
     ImVec2      size      = ImVec2(27.f * scale, 27.f * scale);
     ImVec4      color_vec = ImGuiWrapper::to_ImVec4(color);
     ImU32       br_color  = ImGui::ColorConvertFloat4ToU32(active ? ImGuiWrapper::COL_ORCA : m_is_dark_mode ? ImVec4(.35f, .35f, .35f, 1) : ImVec4(.85f, .85f, .85f, 1));
-    bool        dark_tone = (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
+    // Every caller labels the button with the 1 based slot number, so idx - 1 picks out the slot's fade.
+    const std::vector<wxColour>* gradient = gradient_of(idx - 1);
+    // The centered slot number sits at the swatch's mid height, so take its contrast from the colour
+    // printed there rather than from the slot's blended color.
+    bool dark_tone = gradient ? (*gradient)[gradient->size() / 2].GetLuminance() < 0.51 :
+                                (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
+
+    // Paint a gradient mixed filament's fade before the button and keep the button transparent, so
+    // the slot number and the frame below stay on top of it. The bands cannot round their corners,
+    // so the fade is inset to the frame, which masks it into the shape a plain color slot gets.
+    if (gradient) {
+        ImGuiWrapper::draw_gradient_ramp(draw_list, {pos.x + frame_inset * scale, pos.y + frame_inset * scale},
+                                         {pos.x + size.x - frame_inset * scale, pos.y + size.y - frame_inset * scale}, *gradient);
+        color_vec.w = 0.f; // let the fade show through
+    }
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 7.f * scale);
@@ -329,7 +349,7 @@ bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, cons
     auto drawBorder = [&](float d, float r, float t, ImU32 col) {
         draw_list->AddRect({pos.x + d * scale, pos.y + d * scale}, {pos.x + size.x - d * scale , pos.y + size.y - d * scale}, col, r * scale, 0, t * scale);
     };
-    drawBorder(1.5f, 3.f, 4.f, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
+    drawBorder(frame_inset, 3.f, 4.f, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
     if(active)
         drawBorder(.5f, 4.f , 2.f, br_color);
     else
@@ -433,7 +453,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_selected_extruder_idx = extruder_idx;
         }
 
-        if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT) && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
@@ -731,6 +751,10 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
             continue;
 
         int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        // A volume may be assigned to a mixed-color slot, whose index can sit past the
+        // physical colour list; fall back to the first colour rather than reading OOB.
+        if (extruder_idx >= (int)m_extruders_colors.size())
+            extruder_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -753,6 +777,9 @@ void GLGizmoMmuSegmentation::update_triangle_selectors_colors()
         TriangleSelectorPatch* selector = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
         int extruder_idx = m_volumes_extruder_idxs[i];
         int extruder_color_idx = std::max(0, extruder_idx - 1);
+        // A mixed-color slot can index past the physical colour list; fall back to the first colour.
+        if (extruder_color_idx >= (int)m_extruders_colors.size())
+            extruder_color_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[extruder_color_idx]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());

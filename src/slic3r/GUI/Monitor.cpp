@@ -186,17 +186,17 @@ void MonitorPanel::init_tabpanel()
 
     //m_status_add_machine_panel = new AddMachinePanel(m_tabpanel);
     m_status_info_panel        = new StatusPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_status_info_panel, _L("Status"), "", true);
+    m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
 
     m_media_file_panel = new MediaFilePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), "", false);
-    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), "", false);
+    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
+    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), false);
 
     m_upgrade_panel = new UpgradePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), "", false);
+    m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
 
     m_hms_panel = new HMSPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    "", false);
+    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    false);
 
     std::string network_ver = Slic3r::NetworkAgent::get_version();
     if (!network_ver.empty()) {
@@ -413,7 +413,10 @@ void MonitorPanel::update_hms_tag()
 bool MonitorPanel::Show(bool show)
 {
 #ifdef __APPLE__
-    wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
+    // Notebook::InsertPage() hides every page it appends, so this also runs while MainFrame is
+    // still constructing, before GUI_App::mainframe is assigned. Same guard as Plater::Show().
+    if (wxGetApp().mainframe)
+        wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
 #endif
 
     NetworkAgent* m_agent = wxGetApp().getAgent();

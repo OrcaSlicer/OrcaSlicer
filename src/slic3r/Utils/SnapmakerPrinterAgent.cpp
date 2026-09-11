@@ -39,7 +39,7 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
             std::string  p_color = p.config.opt_string("default_filament_colour", 0u);
             unsigned int p_color_value;
             if (!p_color.empty()) {
-                unsigned int hash_pos = p_color.find("#");
+                size_t       hash_pos = p_color.find("#");
                 p_color_value         = std::stoul(p_color.substr(hash_pos != std::string::npos ? hash_pos + 1 : 0), nullptr, 16);
             } else {
                 // Default to black if no color specified in profile. Assume other profiles might be a closer color match.

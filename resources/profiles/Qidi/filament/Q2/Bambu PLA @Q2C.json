@@ -3,7 +3,7 @@
 	"name": "Bambu PLA@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OF1dpPrW",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"100"

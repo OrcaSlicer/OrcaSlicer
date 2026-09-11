@@ -3,7 +3,7 @@
 	"name": "Bambu PETG HF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFG02",
+	"filament_id": "OFovEIbw",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

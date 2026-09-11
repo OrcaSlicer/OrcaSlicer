@@ -3,7 +3,7 @@
 	"name": "Fiberon PA612-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OGFL53",
+	"filament_id": "OFS2tn6G",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"5"

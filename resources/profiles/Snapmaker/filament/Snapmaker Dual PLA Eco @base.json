@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Eco @base",
 	"inherits": "fdm_filament_pla_eco",
 	"from": "system",
-	"filament_id": "200803790",
+	"filament_id": "OFyPG8v2",
 	"instantiation": "false",
 	"filament_density": [
 		"1.26"
