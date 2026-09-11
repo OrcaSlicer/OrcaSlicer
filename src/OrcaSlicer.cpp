@@ -2820,11 +2820,20 @@ int CLI::run(int argc, char **argv)
             %current_printer_name %current_printer_system_name %current_process_name %current_process_system_name %process_compatible;
     }
     if (!process_compatible && !new_printer_name.empty() && !current_printer_name.empty() && (new_printer_name != current_printer_name)) {
-        //set all printer to compatible
-        if (new_process_name.empty())
-            process_compatible = true;
+        //ORCA: the compatibility check above has already said no for this printer. This block used to
+        //      overturn that verdict unconditionally whenever the 3MF's own process was kept -- and did
+        //      so before consulting upward_compatible_machine, so the vendor's list was never enforced
+        //      either. The (auto) preset below then wrote the new printer into its own
+        //      compatible_printers, and the result was g-code for one machine carrying a process tuned
+        //      for another, reported as success (#15450).
+        //
+        //      The overturn predates a working check. While the check could not evaluate
+        //      compatible_printers_condition (#15449) it rejected every condition-based process, and
+        //      this rescue was what let legitimate re-targets through -- which is presumably why the
+        //      reject branch below was commented out. With the condition evaluated, a "no" here is a
+        //      real no, so only the vendor's upward_compatible_machine list may overturn it.
         machine_switch = true;
-        BOOST_LOG_TRIVIAL(info) << boost::format("switch to new printers, set to compatible");
+        BOOST_LOG_TRIVIAL(info) << boost::format("switch to new printer %1%: process not compatible, consulting upward_compatible_machine") % new_printer_name;
         if (upward_compatible_printers.size() > 0) {
             for (int index = 0; index < upward_compatible_printers.size(); index++) {
                 if (upward_compatible_printers[index] == new_printer_system_name) {
@@ -2840,11 +2849,16 @@ int CLI::run(int argc, char **argv)
                 flush_and_exit(CLI_3MF_NEW_MACHINE_NOT_SUPPORTED);
             }
         }
-        /*else {
-            BOOST_LOG_TRIVIAL(error) <<__FUNCTION__ << boost::format(" %1%: current 3mf file not support upward_compatible_printers, can not change machine preset.")%__LINE__;
+        else if (new_process_name.empty()) {
+            //ORCA: restored. With no upward list and the 3MF's own process kept, nothing vouches for the
+            //      switch. When a process was supplied as well, fall through to CLI_PROCESS_NOT_COMPATIBLE
+            //      below instead -- the machine change is fine there, the supplied pair is what failed.
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" %1%: the 3mf's process is not compatible with %2% and the 3mf lists no upward_compatible_machine; "
+                                                                      "supply a process for the new printer with --load-settings")
+                                            % __LINE__ % new_printer_name;
             record_exit_reson(outfile_dir, CLI_3MF_NOT_SUPPORT_MACHINE_CHANGE, 0, cli_errors[CLI_3MF_NOT_SUPPORT_MACHINE_CHANGE], sliced_info);
             flush_and_exit(CLI_3MF_NOT_SUPPORT_MACHINE_CHANGE);
-        }*/
+        }
     }
 
     if (!process_compatible) {
