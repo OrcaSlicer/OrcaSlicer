@@ -1716,7 +1716,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	return plate_extruders;
 }
 
-std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const
+std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots) const
 {
     std::vector<int> plate_extruders;
 
@@ -1877,7 +1877,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // Expand mixed filament slots to their physical components. A mixed slot is virtual and
     // is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
     // physical filaments it resolves to instead.
-    {
+    if (expand_mixed_slots) {
         auto* is_mixed_opt = full_config.option<ConfigOptionBools>("filament_is_mixed");
         auto* comp_strs_opt = full_config.option<ConfigOptionStrings>("filament_mixed_components");
         if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
