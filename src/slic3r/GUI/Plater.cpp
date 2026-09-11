@@ -17191,7 +17191,13 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
-    , m_action(2)
+    // Default to the action the user chose last time, which this dialog already records in
+    // "import_project_action" on OK. Falls back to LoadType::OpenProject rather than
+    // LoadGeometry: this dialog is shown for a *project* file, and importing geometry only
+    // silently discards the embedded printer, filament and process settings.
+    , m_action(std::max(1, std::min(2, wxGetApp().app_config->get("import_project_action").empty()
+                                       ? 1
+                                       : std::atoi(wxGetApp().app_config->get("import_project_action").c_str()))))
 {
     // def setting
     SetBackgroundColour(m_def_color);
@@ -17316,7 +17322,7 @@ void ProjectDropDialog::on_dpi_changed(const wxRect& suggested_rect)
 }
 
 //BBS: remove GCodeViewer as seperate APP logic
-bool Plater::load_files(const wxArrayString& filenames)
+bool Plater::load_files(const wxArrayString& filenames, bool from_url)
 {
     const std::regex pattern_drop(".*[.](stp|step|stl|oltp|obj|amf|3mf|svg|zip|drc)", std::regex::icase);
     const std::regex pattern_gcode_drop(".*[.](gcode|g)", std::regex::icase);
@@ -17425,7 +17431,7 @@ bool Plater::load_files(const wxArrayString& filenames)
 
     switch (loadfiles_type) {
     case LoadFilesType::Single3MF:
-        open_3mf_file(normal_paths[0]);
+        open_3mf_file(normal_paths[0], from_url);
         break;
 
     case LoadFilesType::SingleOther: {
@@ -17508,7 +17514,7 @@ LoadType determine_load_type(std::string filename, std::string override_setting)
     }
 }
 
-bool Plater::open_3mf_file(const fs::path &file_path)
+bool Plater::open_3mf_file(const fs::path &file_path, bool from_url)
 {
     std::string filename = encode_path(file_path.filename().string().c_str());
     if (!boost::algorithm::iends_with(filename, ".3mf")) {
@@ -17517,7 +17523,12 @@ bool Plater::open_3mf_file(const fs::path &file_path)
 
     bool not_empty_plate = !model().objects.empty();
     bool load_setting_ask_when_relevant = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR) == OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT;
-    LoadType load_type = determine_load_type(filename, (not_empty_plate && load_setting_ask_when_relevant) ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
+    // A project opened from an orcaslicer:// link is not an ambiguous drop: the user clicked
+    // "Open in OrcaSlicer" on that specific project, so do not escalate to the "Open as project
+    // / Import geometry only" prompt merely because the plate is occupied. The global Load
+    // Behaviour setting is still honoured, and load_project() still asks about unsaved changes.
+    LoadType load_type = determine_load_type(filename,
+        (!from_url && not_empty_plate && load_setting_ask_when_relevant) ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
 
     if (load_type == LoadType::Unknown) return false;
 
