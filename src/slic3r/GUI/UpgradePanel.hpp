@@ -134,6 +134,37 @@ protected:
     wxStaticLine* m_extinguish_line_above = nullptr;;
     uiDeviceUpdateVersion* m_extinguish_version = nullptr;
 
+    /* filament track switch info*/
+    wxBoxSizer*            m_filatrack_sizer = nullptr;
+    wxStaticBitmap*        m_filatrack_img = nullptr;
+    wxStaticLine*          m_filatrack_line_above = nullptr;
+    uiDeviceUpdateVersion* m_filatrack_version = nullptr;
+
+    /* rotary attachment info (Orca: accessory firmware version display) */
+    wxBoxSizer*            m_rotary_sizer = nullptr;
+    wxStaticBitmap*        m_rotary_img = nullptr;
+    wxStaticLine*          m_rotary_line_above = nullptr;
+    uiDeviceUpdateVersion* m_rotary_version = nullptr;
+
+    /* exhaust fan info (Orca: accessory firmware version display) */
+    wxBoxSizer*            m_exhaustfan_sizer = nullptr;
+    wxStaticBitmap*        m_exhaustfan_img = nullptr;
+    wxStaticLine*          m_exhaustfan_line_above = nullptr;
+    uiDeviceUpdateVersion* m_exhaustfan_version = nullptr;
+
+    /* AMS hub / filament buffer info (Orca: accessory firmware version display for the amshub_version_info path) */
+    wxBoxSizer*            m_amshub_sizer = nullptr;
+    wxStaticBitmap*        m_amshub_img = nullptr;
+    wxStaticLine*          m_amshub_line_above = nullptr;
+    uiDeviceUpdateVersion* m_amshub_version = nullptr;
+
+    /* nozzle rack (H2C induction hotend rack) — opens wgtDeviceNozzleRackUpgradeDlg */
+    wxBoxSizer*     m_nozzle_rack_sizer = nullptr;
+    wxStaticBitmap* m_nozzle_rack_img = nullptr;
+    wxStaticLine*   m_nozzle_rack_line_above = nullptr;
+    wxStaticText*   m_nozzle_rack_text = nullptr;
+    Button*         m_nozzle_rack_update_btn = nullptr;
+
     /* upgrade widgets */
     wxBoxSizer*     m_upgrading_sizer;
     wxStaticText *  m_staticText_upgrading_info;
@@ -155,6 +186,8 @@ protected:
     ScalableBitmap m_img_cutting;
     ScalableBitmap m_img_laser;
     ScalableBitmap m_img_extinguish;
+    ScalableBitmap m_img_filatrack;
+    ScalableBitmap m_img_nozzle_rack;
     ScalableBitmap upgrade_gray_icon;
     ScalableBitmap upgrade_green_icon;
     ScalableBitmap upgrade_yellow_icon;
@@ -212,16 +245,33 @@ private:
     void createCuttingWidgets(wxBoxSizer* main_left_sizer);
     void createLaserWidgets(wxBoxSizer* main_left_sizer);
     void createExtinguishWidgets(wxBoxSizer* main_left_sizer);
+    void createFilaTrackSwitchWidgets(wxBoxSizer* main_left_sizer);
+    void createRotaryWidgets(wxBoxSizer* main_left_sizer);      // Orca: accessory firmware version display
+    void createExhaustFan(wxBoxSizer* main_left_sizer);         // Orca: accessory firmware version display
+    void createAmshubWidgets(wxBoxSizer* main_left_sizer);      // Orca: accessory firmware version display
+    void createNozzleRackWidgets(wxBoxSizer* main_left_sizer);
 
     void update_air_pump(MachineObject* obj);
     void update_cut(MachineObject* obj);
     void update_laszer(MachineObject* obj);
     void update_extinguish(MachineObject* obj);
+    void update_filatrack(MachineObject* obj);
+    void update_rotary(MachineObject* obj);                     // Orca: accessory firmware version display
+    void update_exhaustfan(MachineObject* obj);                 // Orca: accessory firmware version display
+    void update_amshub(MachineObject* obj);                     // Orca: accessory firmware version display
+    void update_nozzle_rack(MachineObject* obj);
 
     void show_air_pump(bool show = true);
     void show_cut(bool show = true);
     void show_laszer(bool show = true);
     void show_extinguish(bool show = true);
+    void show_filatrack(bool show = true);
+    void show_rotary(bool show = true);                         // Orca: accessory firmware version display
+    void show_exhaustfan(bool show = true);                     // Orca: accessory firmware version display
+    void show_amshub(bool show = true);                         // Orca: accessory firmware version display
+    void show_nozzle_rack(bool show = true);
+
+    void on_nozzle_rack_update(wxCommandEvent& event);
 };
 
 //enum UpgradeMode {

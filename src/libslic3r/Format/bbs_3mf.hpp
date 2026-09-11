@@ -48,6 +48,18 @@ public:
 };
 
 
+// Mixed (virtual) filament used by a plate. Mixed filaments are virtual slots that get
+// resolved to their physical components before g-code statistics, so they never appear in
+// slice_filaments_info. They are recorded here separately so a plate's mixed-color usage
+// can be recovered from slice_info.
+struct PlateMixedFilamentInfo
+{
+    int         id{0};         // 1-based virtual filament slot id
+    std::string type;
+    std::string color;         // blended display color, "#RRGGBB"
+    std::string components;    // 1-based physical component ids, comma separated, e.g. "1,3"
+};
+
 //BBS: define plate data list related structures
 struct PlateData
 {
@@ -73,6 +85,7 @@ struct PlateData
     std::map<int, std::pair<int, int>> obj_inst_map;
     std::string     printer_model_id;
     std::string     nozzle_diameters;
+    std::string     nozzle_volume_types;
     std::string     gcode_file;
     std::string     gcode_file_md5;
     std::string     thumbnail_file;
@@ -88,6 +101,8 @@ struct PlateData
     std::string     first_layer_time;
     std::string     plate_name;
     std::vector<FilamentInfo> slice_filaments_info;
+    // Mixed (virtual) filaments used by this plate; empty when no mixed filament is used.
+    std::vector<PlateMixedFilamentInfo> mixed_filaments_info;
     std::vector<size_t> skipped_objects;
     DynamicPrintConfig config;
     bool            is_support_used {false};
@@ -101,6 +116,13 @@ struct PlateData
     std::vector<unsigned int> filament_change_sequence;
     std::vector<unsigned int> nozzle_change_sequence;
     std::vector<int> optimal_assignment;
+
+    // Multi-nozzle grouping surface. nozzles_info accumulates the <nozzle> tags read from a
+    // gcode.3mf; nozzle_group_result is the slicer's per-filament→nozzle assignment carried into the
+    // saved 3mf metadata (write) and reconstructed on load. Both are empty/nullopt for single-nozzle
+    // prints, so the saved-3mf output for single-nozzle printers is byte-identical.
+    std::vector<MultiNozzleUtils::NozzleInfo> nozzles_info;
+    std::optional<MultiNozzleUtils::LayeredNozzleGroupResult> nozzle_group_result;
 
     // Hexadecimal number,
     // the 0th digit corresponds to extruder 1
@@ -137,11 +159,27 @@ enum class SaveStrategy
     SkipAuxiliary       = 1 << 9,
     UseLoadedId         = 1 << 10,
     ShareMesh           = 1 << 11,
+    // Keep this separate from SplitModel, which uses the 0x1000 bit as part of its
+    // production-extension value.
+    MinimalPublished    = 1 << 13,
 
     SplitModel = 0x1000 | ProductionExt,
     Encrypted  = SecureContentExt | SplitModel,
     Backup = 0x10000 | WithGcode | Silence | SkipStatic | SplitModel,
 };
+
+// Model metadata keys of a "published" 3MF (see MinimalPublished): the flag marks a minimal,
+// tag-less publish export, the others carry the author-selected settings payload. Namespaced
+// with the "orca_published" prefix because metadata_items round-trips verbatim through other
+// slicers, where a bare "published" key could collide.
+inline constexpr const char *ORCA_PUBLISHED_TAG          = "orca_published";
+inline constexpr const char *ORCA_PUBLISHED_KEYS_TAG     = "orca_published_keys";
+inline constexpr const char *ORCA_PUBLISHED_MATERIAL_TAG = "orca_published_material_keys";
+inline constexpr const char *ORCA_PUBLISHED_CONFIG_TAG   = "orca_published_config";
+
+// Published files are produced with "1". The importer and the GUI loader both gate on this
+// exact value, so a "0"/"false"/unknown value is rejected consistently.
+bool is_published_3mf_flag(const std::string &value);
 
 inline SaveStrategy operator | (SaveStrategy lhs, SaveStrategy rhs)
 {
@@ -254,6 +292,9 @@ extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSub
         bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0);
 
 extern std::string bbs_3mf_get_thumbnail(const char * path);
+
+// Lightweight check: does this 3mf carry the "published" (orca_published == "1") marker? Only reads the 3D/3dmodel.model metadata node
+extern bool bbs_3mf_is_published(const std::string &path);
 
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);

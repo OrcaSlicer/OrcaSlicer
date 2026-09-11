@@ -2,7 +2,7 @@
 	"type": "machine_model",
 	"name": "Flashforge Creator 5",
 	"model_id": "Flashforge-Creator-5",
-	"nozzle_diameter": "0.4;0.6;0.8",
+	"nozzle_diameter": "0.25;0.4;0.6;0.8",
 	"machine_tech": "FFF",
 	"family": "Flashforge",
 	"bed_model": "flashforge_c5_buildplate_model.stl",

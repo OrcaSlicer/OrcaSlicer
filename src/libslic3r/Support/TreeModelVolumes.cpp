@@ -32,7 +32,7 @@ namespace Slic3r::TreeSupport3D
 using namespace std::literals;
 
 // or warning
-// had to use a define beacuse the macro processing inside macro BOOST_LOG_TRIVIAL()
+// had to use a define because the macro processing inside macro BOOST_LOG_TRIVIAL()
 #define error_level_not_in_cache debug
 
 //FIXME Machine border is currently ignored.
@@ -469,7 +469,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             });
 
             // 2) Sum over top / bottom ranges.
-            const bool processing_last_mesh = outline_idx == layer_outline_indices.size();
+            const bool processing_last_mesh = outline_idx == layer_outline_indices.back();
             tbb::parallel_for(tbb::blocked_range<LayerIndex>(data.begin(), data.end()),
                 [&collision_areas_offsetted, &outlines, &machine_border = m_machine_border, &anti_overhang = m_anti_overhang, radius, 
                     xy_distance, z_distance_bottom_layers, z_distance_top_layers, min_resolution = m_min_resolution, &data, processing_last_mesh, &throw_on_cancel]

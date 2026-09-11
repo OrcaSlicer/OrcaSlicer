@@ -133,8 +133,8 @@ void ExtrusionLine::simplify(const int64_t smallest_line_segment_squared, const 
         const auto    height_2 = int64_t(double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2));
         const int64_t extrusion_area_error = calculateExtrusionAreaDeviationError(previous, current, next);
         // Orca: The value of `height_2` is squared, so we need to compare it with the squared value
-        if ((height_2 <= Slic3r::sqr(scaled<coord_t>(0.005)) // Almost exactly colinear (barring rounding errors).
-             && Line::distance_to_infinite(current.p, previous.p, next.p) <= scaled<double>(0.005)) // Make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= Slic3r::sqr(colinear_vertex_tolerance()) // Almost exactly colinear (barring rounding errors).
+             && Line::distance_to_infinite(current.p, previous.p, next.p) <= double(colinear_vertex_tolerance())) // Make sure that height_2 is not small because of cancellation of positive and negative areas
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {

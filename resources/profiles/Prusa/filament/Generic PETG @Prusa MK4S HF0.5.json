@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Prusa MK4S HF0.5",
+	"inherits": "Generic PETG @Prusa MK4S HF0.4",
+	"renamed_from": "Prusa Generic PETG @MK4S HF0.5;Prusa Generic PETG MK4S HF0.5",
+	"from": "system",
+	"setting_id": "lu9twhsjDkBT1kyn",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S HF0.5 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"29"
+	]
+}

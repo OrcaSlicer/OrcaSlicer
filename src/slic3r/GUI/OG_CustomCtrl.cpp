@@ -158,7 +158,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             ctrl_line.height = size.y;
     };
 
-    auto add_buttons_width = [&h_pos, this] (int blinking_button_width) {
+    auto add_buttons_width = [&h_pos] (int blinking_button_width) {
 #ifndef DISABLE_BLINKING
 #  ifndef DISABLE_UNDO_SYS
         h_pos += 3 * blinking_button_width;
@@ -230,7 +230,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                     // add label if any
                     if (is_multioption_line && !option.label.empty()) {
                         //!            To correct translation by context have to use wxGETTEXT_IN_CONTEXT macro from wxWidget 3.1.1
-                        auto label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ? _CTX(option.label, "Layers") :
+                        auto label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ? _L_CONTEXT(option.label, "Layers") :
                                                                                                                                      _(option.label);
                         // BBS
                         // label += ":";
@@ -882,7 +882,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         if (is_multioption_line && !option.label.empty()) {
             //!            To correct translation by context have to use wxGETTEXT_IN_CONTEXT macro from wxWidget 3.1.1
             label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ?
-                    _CTX(option.label, "Layers") : _(option.label);
+                    _L_CONTEXT(option.label, "Layers") : _(option.label);
             //if (!ctrl->opt_group->option_label_at_right) // BBS
                 //label += ":";
 

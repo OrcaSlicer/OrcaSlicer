@@ -1,6 +1,7 @@
 #include "TroubleshootDialog.hpp"
 #include "I18N.hpp"
 
+#include "BuildCommit.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -71,7 +72,7 @@ wxFlexGridSizer* TroubleshootDialog::create_item_loaded_profiles()
     auto gen_stats = GetProfilesOverview();
     gen_stats      = ""; // clear mem. not needed after generating m_..._act, m_..._usr variables
    
-    auto add_sizer = [this, g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
+    auto add_sizer = [g_sizer, create_label](PresetCollection* col, wxString label, int in_use, int user) {
         int sys = 0;
         for (auto it = col->begin(); it != col->end(); it++) {
             if (it->is_system)
@@ -137,9 +138,9 @@ TroubleshootDialog::TroubleshootDialog()
     version->SetFont(version_font);
     version->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
 
-    auto build = new Button(this, wxString(GIT_COMMIT_HASH));
+    auto build = new Button(this, wxString(build_commit_label));
     build->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(GIT_COMMIT_HASH);
+    auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(build_commit_hash);
     build->SetToolTip(hash_url);
     build->Bind(wxEVT_BUTTON, [hash_url](wxCommandEvent &e) {
          wxLaunchDefaultBrowser(hash_url);
@@ -178,7 +179,7 @@ TroubleshootDialog::TroubleshootDialog()
         return wxTheClipboard->SetData(new wxTextDataObject(GetSysInfoAll()));
     });
 
-    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines, sys_copy_btn](wxCommandEvent &e) {
+    sys_less_btn->Bind(wxEVT_BUTTON, [this, sys_panel, sys_less_btn, sys_info_lines](wxCommandEvent &e) {
         m_sys_panel_mode = !m_sys_panel_mode;
         sys_panel->SetText(sys_info_lines(m_sys_panel_mode));
         sys_less_btn->SetLabel(m_sys_panel_mode ? _L("Hide") : _L("Show"));
@@ -186,7 +187,7 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"));
+    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
 
     // RIGHT SIZER //////////////////////
 
@@ -226,7 +227,7 @@ TroubleshootDialog::TroubleshootDialog()
     };
 
     auto info_desc_1 = create_info_line(_L("We need information for diagnosing source of the issue. Check wiki page for detailed guide."));
-    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a zip file."));
+    auto info_desc_2 = create_info_line(_L("Pack button collects project file and logs of current session onto a ZIP archive."));
     auto info_desc_3 = create_info_line(_L("Any additional visual examples like images or screen recordings might be helpful while reporting the issue."));
     wxBoxSizer *info_desc_sizer = new wxBoxSizer(wxVERTICAL);
     info_desc_sizer->Add(info_desc_1, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
@@ -264,7 +265,7 @@ TroubleshootDialog::TroubleshootDialog()
     });
 
     // PROFILES
-    auto prf_sys_cache_tip = _L("Cleans and rebuilds system profiles cache on next launch");
+    auto prf_sys_cache_tip = _L("Cleans and rebuilds system profiles cache on next launch.");
     auto prf_sys_cache_szr = create_label(_L("Clean system profiles cache"), prf_sys_cache_tip);
     auto prf_sys_cache_btn = create_btn(_L("Clean"), prf_sys_cache_tip);
     prf_sys_cache_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
@@ -272,8 +273,8 @@ TroubleshootDialog::TroubleshootDialog()
     });
     prf_sys_cache_szr->Add(prf_sys_cache_btn, 0, wxALIGN_CENTER_VERTICAL);
 
-    auto prf_loaded_szr = create_label(_L("Loaded profiles overview"), _L("This section shows information for loaded profiles"));
-    auto prf_loaded_btn = create_btn(_L("Export") + dots, _L("Exports detailed overview of loaded profiles in json format"));
+    auto prf_loaded_szr = create_label(_L("Loaded profiles overview"), _L("This section shows information for loaded profiles."));
+    auto prf_loaded_btn = create_btn(_L("Export") + dots, _L("Exports detailed overview of loaded profiles in json format."));
     prf_loaded_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         return ExportAsJson(GetProfilesOverview(),"ProfilesOverview");
     });
@@ -283,7 +284,7 @@ TroubleshootDialog::TroubleshootDialog()
 
     // MORE
     auto cfg_folder_szr = create_label(_L("Configurations folder"), "");
-    auto cfg_folder_btn = create_btn(_L("Browse") + "...", _L("Opens configurations folder"));
+    auto cfg_folder_btn = create_btn(_L("Browse") + "...", _L("Opens configurations folder."));
     cfg_folder_btn->Bind(wxEVT_BUTTON, [this, data_dir](wxCommandEvent &e) {
         BrowseFolder(data_dir.string());
     });
@@ -292,7 +293,7 @@ TroubleshootDialog::TroubleshootDialog()
     auto log_level_szr = create_label(_L("Log level"), "");
     log_level_szr->Add(create_item_log_level_combo(), 0, wxALIGN_CENTER_VERTICAL);
 
-    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a zip file."));
+    auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a ZIP archive."));
     auto log_pack_btn = create_btn(_L("Pack") + "...", "");
     log_pack_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         auto data_dir   = boost::filesystem::path(Slic3r::data_dir());
@@ -354,7 +355,7 @@ TroubleshootDialog::TroubleshootDialog()
     m_sizer->AddSpacer(FromDIP(20));
     m_sizer->Add(right_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(15));
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     Layout();
     Fit();
     CenterOnParent();
@@ -371,7 +372,7 @@ wxString TroubleshootDialog::GetSysInfoAll()
 {
     wxString info;
     info += "Version   :  " + wxString(SoftFever_VERSION) + "\n"
-          + "Build     :  " + wxString(GIT_COMMIT_HASH)   + "\n"
+          + "Build     :  " + wxString(build_commit_label) + "\n"
           + "Package   :  " + GetPackageType() + "\n"
           + "Platform  :  " + GetOSinfo()      + "\n"
           + "Processor :  " + GetCPUinfo() + "\n"
@@ -807,7 +808,11 @@ wxString TroubleshootDialog::GetRAMinfo()
 wxString TroubleshootDialog::GetGPUinfo()
 {
     auto gl_info = OpenGLManager::get_gl_info();
-    return gl_info.get_renderer()+ "  GLSL:" +  gl_info.get_glsl_version();
+#if !SLIC3R_OPENGL_ES
+    return gl_info.get_renderer() + "  GLSL:" + gl_info.get_glsl_version() + (gl_info.is_core_profile() ? "  Core" : "  Compatibility");
+#else
+    return gl_info.get_renderer() + "  GLSL:" + gl_info.get_glsl_version() + "  ES";
+#endif
 }
 
 wxString TroubleshootDialog::GetMONinfo()
@@ -922,7 +927,7 @@ void TroubleshootDialog::PackAll()
             auto res = MessageDialog(this, 
                 _L("The current project has unsaved changes. Would you like to save before continuing\?") +
                 "\n\n" +
-                _L("Select NO to close dialog and review project"),
+                _L("Select NO to close dialog and review project."),
                 wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
             ).ShowModal();
             if (res == wxID_YES)

@@ -28,11 +28,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          # tests/data is referenced by absolute path (TEST_DATA_DIR).
+          # Tests reach outside tests/ at runtime: tests/data (TEST_DATA_DIR) and
+          # resources/profiles (PROFILES_DIR) by baked-in absolute path, plus
+          # resources/info (nozzle data) via resources_dir() during a real slice.
+          # Check out all of resources/ so no test hits a missing-file path.
           sparse-checkout: |
             .github
             scripts
             tests
+            resources
       - name: Apt-Install Dependencies
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps

@@ -266,7 +266,12 @@ bool OpenGLManager::init_gl(bool popup_error)
         else
             s_compressed_textures_supported = false;
 
-        if (GLAD_GL_ARB_framebuffer_object) {
+        if (s_gl_info.is_version_greater_or_equal_to(3, 0)) {
+            // ARB framebuffer became a mandatory part of core OpenGL 3.0
+            s_framebuffers_type = EFramebufferType::Arb;
+            BOOST_LOG_TRIVIAL(info) << "Opengl version >= 30, FrameBuffer Type ARB." << std::endl;
+        }
+        else if (GLAD_GL_ARB_framebuffer_object) {
             s_framebuffers_type = EFramebufferType::Arb;
             BOOST_LOG_TRIVIAL(info) << "Found Framebuffer Type ARB."<< std::endl;
         }

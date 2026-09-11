@@ -35,6 +35,21 @@
 #include "PrinterWebView.hpp"
 #include "calib_dlg.hpp"
 #include "MultiMachinePage.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
+
+// Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
+// names rather than positional indices so optional pages cannot shift them.
+#define TAB_ID_HOME          "home"
+#define TAB_ID_PREPARE       "prepare"
+#define TAB_ID_PREVIEW       "preview"
+#define TAB_ID_MONITOR       "monitor"
+// Printer-agents mode shows the legacy web page alongside the native Device tab, so it needs an
+// id of its own: sharing TAB_ID_MONITOR makes every name lookup resolve to whichever of the two
+// comes first, which silently defeats PluginPages' selection round-trip across a tab relayout.
+#define TAB_ID_MONITOR_WEB   "monitor_web"
+#define TAB_ID_MULTI_DEVICE  "multi_device"
+#define TAB_ID_PROJECT       "project"
+#define TAB_ID_CALIBRATION   "calibration"
 
 #define ENABEL_PRINT_ALL 0
 
@@ -79,7 +94,6 @@ class SettingsDialog : public DPIDialog//DPIDialog
 {
     //wxNotebook* m_tabpanel { nullptr };
     Notebook* m_tabpanel{ nullptr };
-    MainFrame*      m_main_frame { nullptr };
     wxMenuBar*      m_menubar{ nullptr };
 public:
     SettingsDialog(MainFrame* mainframe);
@@ -115,7 +129,7 @@ class MainFrame : public DPIFrame
     wxMenuItem* m_menu_item_reslice_now { nullptr };
     wxSizer*    m_main_sizer{ nullptr };
 
-    size_t      m_last_selected_tab;
+    wxString    m_last_selected_tab;
 
     std::string     get_base_name(const wxString &full_name, const char *extension = nullptr) const;
     std::string     get_dir_name(const wxString &full_name) const;
@@ -164,6 +178,7 @@ class MainFrame : public DPIFrame
     {
         FileHistory(int max) : wxFileHistory(max) {}
         std::wstring GetThumbnailUrl(int index) const;
+        bool        GetPublished(int index) const;
 
         virtual void AddFileToHistory(const wxString &file);
         virtual void RemoveFileFromHistory(size_t i);
@@ -174,6 +189,7 @@ class MainFrame : public DPIFrame
         void SetMaxFiles(int max);
     private:
         std::deque<std::string> m_thumbnails;
+        std::deque<bool>        m_published_files; // parallel to m_thumbnails: is it a published 3mf?
         bool m_load_called = false;
     };
 
@@ -214,19 +230,6 @@ public:
 #ifdef __APPLE__
     bool get_mac_full_screen() { return m_mac_fullscreen; }
 #endif
-    //BBS GUI refactor
-    enum TabPosition
-    {
-        tpHome          = 0,
-        tp3DEditor      = 1,
-        tpPreview       = 2,
-        tpMonitor       = 3,
-        tpMultiDevice   = 4,
-        tpProject       = 5,
-        tpCalibration   = 6,
-        tpAuxiliary     = 7,
-        toDebugTool     = 8,
-    };
 
     //BBS: add slice&&print status update logic
     enum SlicePrintEventType
@@ -326,8 +329,8 @@ public:
     // When tab == -1, will be selected last selected tab
     //BBS: GUI refactor
     void        select_tab(wxPanel* panel);
-    void        select_tab(size_t tab = size_t(-1));
-    void        request_select_tab(TabPosition pos);
+    void        select_tab(const wxString& id = wxString());
+    void        request_select_tab(const wxString& id);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
@@ -340,6 +343,8 @@ public:
     bool can_upload() const;
     void save_project();
     bool save_project_as(const wxString& filename = wxString());
+    // Open the Publish dialog and export the selected settings as a published 3MF.
+    void publish_project();
 
     void        add_to_recent_projects(const wxString& filename);
     void        get_recent_projects(boost::property_tree::wptree &tree, int images);
@@ -358,8 +363,11 @@ public:
     void RunScript(wxString js);
 
     //SoftFever
-    void show_device(bool bBBLPrinter);
+    void show_device(bool should_use_native);
     void fit_tab_labels(); // ORCA
+    // True while either of the two tabs backed by m_plater is selected.
+    bool is_prepare_or_preview_tab() const;
+    PluginPages& plugin_pages() { return m_plugin_pages; }
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
     FlowRateCalibrationDialog* m_flow_rate_calib_dlg{ nullptr };
@@ -385,6 +393,7 @@ public:
     CalibrationPanel*     m_calibration{ nullptr };
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
+    PluginPages           m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };

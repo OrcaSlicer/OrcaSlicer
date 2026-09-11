@@ -32,6 +32,14 @@ class Flow;
 namespace Slic3r::Arachne
 {
 
+// ORCA: Tolerance of the "almost exactly colinear" early-out shared by the two simplify() passes
+// (this file and WallToolPaths.cpp). That test drops a vertex regardless of the user's Maximum wall
+// resolution/deviation, so it has to stay at the scale of coordinate rounding noise. A larger value
+// silently decimates finely tessellated curves: on a circle, one vertex may be removed whenever the
+// sagitta of the resulting chord falls below the tolerance, which halves the point count and turns
+// smooth arcs into corners the firmware has to decelerate through.
+inline coord_t colinear_vertex_tolerance() { return coord_t(SCALED_EPSILON); }
+
 /*!
  * Represents a polyline (not just a line) that is to be extruded with variable
  * line width.

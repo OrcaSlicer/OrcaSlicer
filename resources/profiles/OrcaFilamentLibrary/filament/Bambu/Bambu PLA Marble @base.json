@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Marble @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA07",
+	"filament_id": "OF9OlTWH",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

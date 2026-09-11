@@ -1,0 +1,51 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 95A HF @BBL H2DP 0.4 nozzle",
+	"inherits": "Bambu TPU 95A HF @BBL H2DP",
+	"from": "system",
+	"setting_id": "GFSU00_21",
+	"instantiation": "true",
+	"filament_deretraction_speed": [
+		"10",
+		"10",
+		"50"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"16"
+	],
+	"filament_retraction_length": [
+		"2",
+		"2",
+		"0.8"
+	],
+	"filament_retraction_speed": [
+		"10",
+		"10",
+		"50"
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"nil",
+		"Slope Lift"
+	],
+	"nozzle_temperature": [
+		"230",
+		"230",
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230",
+		"230",
+		"240"
+	],
+	"slow_down_min_speed": [
+		"10",
+		"10",
+		"40"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D Pro 0.4 nozzle"
+	]
+}

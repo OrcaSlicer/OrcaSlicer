@@ -399,6 +399,26 @@ std::string slice_two_cubes_apart(double gap, std::initializer_list<Slic3r::Conf
 	return gcode(print);
 }
 
+void place_two_cube_instances_apart(double gap, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items,
+	Print &print, Model &model)
+{
+	DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+	config.set_deserialize_strict(config_items);
+	config.set_key_value("gcode_comments", new ConfigOptionBool(true));
+
+	ModelObject *object = model.add_object();
+	object->name += "object.stl";
+	object->add_volume(cube(20));
+	object->add_instance()->set_offset(Vec3d(80, 80, 0));
+	object->add_instance()->set_offset(Vec3d(80 + 20 + gap, 80, 0));
+	object->ensure_on_bed();
+	print.auto_assign_extruders(object);
+
+	print.apply(model, config);
+	print.validate();
+	print.set_status_silent();
+}
+
 std::set<double> layers_with_role(const std::string &gcode, const std::string &role)
 {
     std::set<double> layers;
@@ -471,17 +491,6 @@ SCENARIO("init_print functionality", "[test_helpers]") {
 			THEN("Export gcode functions outputs text.") {
 				REQUIRE(! Slic3r::Test::gcode(print).empty());
 			}
-#if 0
-			THEN("Embedded meshes exported") {
-				std::string path = "C:\\data\\temp\\embedded_meshes\\";
-				for (auto kvp : Slic3r::Test::mesh_names) {
-					Slic3r::TriangleMesh m = mesh(kvp.first);
-					std::string name = kvp.second;
-					REQUIRE(Slic3r::store_stl((path + name + ".stl").c_str(), &m, true) == true);
-					REQUIRE(Slic3r::store_obj((path + name + ".obj").c_str(), &m) == true);
-				}
-			}
-#endif
 		}
 	}
 }

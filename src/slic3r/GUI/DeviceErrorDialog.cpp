@@ -5,6 +5,10 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "ReleaseNote.hpp"
+#include "wxExtensions.hpp"
+
+#include <wx/mstream.h>
+#include <wx/dcmemory.h>
 
 namespace Slic3r {
 namespace GUI
@@ -88,10 +92,22 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
         if (m_obj) { m_obj->command_clean_print_error_uiop(m_obj->print_error); }
         e.Skip();
     });
+
+    m_request_timer = new wxTimer(this);
+    Bind(wxEVT_TIMER, &DeviceErrorDialog::on_request_timeout, this, m_request_timer->GetId());
 }
 
 DeviceErrorDialog::~DeviceErrorDialog()
 {
+    // Orca: invalidate any in-flight cloud snapshot callback (the request has no cancel handle)
+    *m_alive = false;
+
+    if (m_request_timer) {
+        m_request_timer->Stop();
+        delete m_request_timer;
+        m_request_timer = nullptr;
+    }
+
     if (web_request.IsOk() && web_request.GetState() == wxWebRequest::State_Active)
     {
         BOOST_LOG_TRIVIAL(info) << "web_request: cancelled";
@@ -103,6 +119,11 @@ DeviceErrorDialog::~DeviceErrorDialog()
 void DeviceErrorDialog::on_webrequest_state(wxWebRequestEvent& evt)
 {
     BOOST_LOG_TRIVIAL(trace) << "monitor: monitor_panel web request state = " << evt.GetState();
+
+    // A local/HTTP illustration resolved (or the cloud path fell back to it): stop the watchdog.
+    m_request_cancelled.store(true);
+    clear_request_timer();
+
     switch (evt.GetState())
     {
     case wxWebRequest::State_Completed:
@@ -120,13 +141,132 @@ void DeviceErrorDialog::on_webrequest_state(wxWebRequestEvent& evt)
     case wxWebRequest::State_Cancelled:
     case wxWebRequest::State_Unauthorized:
     {
-        m_error_picture->SetBitmap(wxBitmap());
+        m_error_picture->SetBitmap(make_placeholder_image(_L("Network unavailable")));
+        Layout();
+        Fit();
         break;
     }
     case wxWebRequest::State_Active:
     case wxWebRequest::State_Idle: break;
     default: break;
     }
+}
+
+void DeviceErrorDialog::on_request_timeout(wxTimerEvent& event)
+{
+    if (m_request_cancelled.load()) { return; }
+    // Same fallback order as the cloud callback: local/HTTP illustration first, placeholder last.
+    if (!get_fail_snapshot_from_local(m_local_img_url)) {
+        m_error_picture->SetBitmap(make_placeholder_image(_L("Network unavailable")));
+    }
+    Layout();
+    Fit();
+}
+
+void DeviceErrorDialog::clear_request_timer()
+{
+    if (m_request_timer && m_request_timer->IsRunning()) {
+        m_request_timer->Stop();
+    }
+}
+
+wxBitmap DeviceErrorDialog::make_placeholder_image(const wxString& text)
+{
+    const int w = FromDIP(320);
+    const int h = FromDIP(180);
+
+    wxBitmap bmp(wxSize(w, h));
+    wxMemoryDC dc(bmp);
+    dc.SetBackground(wxBrush(wxColour(238, 238, 238)));
+    dc.Clear();
+
+    ScalableBitmap icon = ScalableBitmap(this, "dev_hms_diag_loading", 80);
+    wxBitmap icon_bmp = icon.bmp();
+    if (icon_bmp.IsOk()) {
+        int ix = (w - icon_bmp.GetWidth()) / 2;
+        int iy = (h - icon_bmp.GetHeight()) / 3;
+        dc.DrawBitmap(icon_bmp, ix, iy, true);
+    }
+
+    dc.SetTextForeground(wxColour(158, 158, 158));
+    dc.SetFont(Label::Body_14);
+    wxSize txtSize = dc.GetTextExtent(text);
+    int tx = (w - txtSize.GetWidth()) / 2;
+    int ty = h - txtSize.GetHeight() - FromDIP(45);
+    dc.DrawText(text, tx, ty);
+
+    dc.SelectObject(wxNullBitmap);
+    return bmp;
+}
+
+bool DeviceErrorDialog::get_fail_snapshot_from_cloud()
+{
+    if (!m_obj || m_obj->m_print_error_img_id.empty()) { return false; }
+
+    NetworkAgent* agent = wxGetApp().getAgent();
+    if (!agent) { return false; }
+
+    // Orca: the cloud request has no cancel handle, so guard the callback against dialog
+    // destruction with a liveness token (m_alive, cleared in the dtor) and marshal onto the UI
+    // thread via the always-valid app handler instead of this->CallAfter. The raw bytes are
+    // decoded on the UI thread so no wxImage (non-atomic refcount) is shared across threads.
+    // m_request_seq guards against a callback from a previous error painting over the
+    // current one when the dialog is reused by a later show_error_code().
+    auto alive = m_alive;
+    const int seq = m_request_seq;
+    int ret = agent->get_hms_snapshot(m_obj->get_dev_id(), m_obj->m_print_error_img_id,
+        [this, alive, seq](std::string body, int status) {
+            if (!alive->load()) { return; }
+            wxGetApp().CallAfter([this, alive, seq, body = std::move(body), status]() {
+                if (!alive->load()) { return; }
+                if (seq != m_request_seq) { return; }
+                m_request_cancelled.store(true);
+                clear_request_timer();
+
+                wxImage image;
+                bool ok = false;
+                if (status == 200) {
+                    wxMemoryInputStream stream(body.data(), body.size());
+                    ok = image.LoadFile(stream, wxBITMAP_TYPE_ANY);
+                    if (!ok) { BOOST_LOG_TRIVIAL(error) << "get_fail_snapshot_from_cloud: failed to resolve stream"; }
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << "get_fail_snapshot_from_cloud: status = " << status;
+                }
+
+                if (ok) {
+                    wxImage resize_img = image.Scale(FromDIP(320), FromDIP(180), wxIMAGE_QUALITY_HIGH);
+                    m_error_picture->SetBitmap(wxBitmap(resize_img));
+                } else if (!get_fail_snapshot_from_local(m_local_img_url)) {
+                    m_error_picture->SetBitmap(make_placeholder_image(_L("Network unavailable")));
+                }
+                Layout();
+                Fit();
+            });
+        });
+
+    return ret == 0; // dispatched; the frame arrives later via the callback
+}
+
+bool DeviceErrorDialog::get_fail_snapshot_from_local(const wxString& image_url)
+{
+    if (image_url.empty()) { return false; }
+
+    const wxImage& img = wxGetApp().get_hms_query()->query_image_from_local(image_url);
+    if (!img.IsOk() && image_url.Contains("http"))
+    {
+        web_request = wxWebSession::GetDefault().CreateRequest(this, image_url);
+        BOOST_LOG_TRIVIAL(trace) << "monitor: create new webrequest, state = " << web_request.GetState();
+        if (web_request.GetState() == wxWebRequest::State_Idle) web_request.Start();
+        BOOST_LOG_TRIVIAL(trace) << "monitor: start new webrequest, state = " << web_request.GetState();
+    }
+    else
+    {
+        m_request_cancelled.store(true);
+        clear_request_timer();
+        const wxImage& resize_img = img.Scale(FromDIP(320), FromDIP(180), wxIMAGE_QUALITY_HIGH);
+        m_error_picture->SetBitmap(wxBitmap(resize_img));
+    }
+    return true;
 }
 
 void DeviceErrorDialog::init_button(ActionButton style, wxString buton_text)
@@ -170,6 +310,7 @@ void DeviceErrorDialog::init_button_list()
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));
     init_button(NO_REMINDER_NEXT_TIME, _L("No Reminder Next Time"));
+    init_button(REFRESH_NOZZLE, _L("Recheck"));
     init_button(IGNORE_NO_REMINDER_NEXT_TIME, _L("Ignore. Don't Remind Next Time"));
     init_button(IGNORE_RESUME, _L("Ignore this and Resume"));
     init_button(PROBLEM_SOLVED_RESUME, _L("Problem Solved and Resume"));
@@ -178,6 +319,10 @@ void DeviceErrorDialog::init_button_list()
     init_button(CANCEL, _L("Cancel"));
     init_button(STOP_DRYING, _L("Stop Drying"));
     init_button(PROCEED, _L("Proceed"));
+    init_button(OK_JUMP_RACK, _L("OK"));
+    init_button(ABORT, _L("Abort"));
+    init_button(DISABLE_PURIFICATION, _L("Disable Purification for This Print"));
+    init_button(DONT_REMIND_NEXT_TIME, _L("Don't Remind Me"));
     init_button(DBL_CHECK_CANCEL, _L("Cancel"));
     init_button(DBL_CHECK_DONE, _L("Done"));
     init_button(DBL_CHECK_RETRY, _L("Retry"));
@@ -241,6 +386,7 @@ wxString DeviceErrorDialog::show_error_code(int error_code)
     Raise();
 
 #ifndef __linux__
+    // Orca: skip RequestUserAttention on Linux/Wayland (urgency-hint deadlock).
     // On Linux (especially Wayland) RequestUserAttention(wxUSER_ATTENTION_ERROR) maps to
     // gtk_window_set_urgency_hint(TRUE) which can leave the window in an urgent-but-unfocused
     // state — clicks no longer reach any widget in the app and the user has to kill the
@@ -305,22 +451,23 @@ void DeviceErrorDialog::update_contents(const wxString& title, const wxString& t
     }
 
     /* image */
-    if (!image_url.empty())
+    // Orca: tiered image slot — prefer the printer's captured camera frame of the failure
+    // (cloud, keyed by m_print_error_img_id), else the local/HTTP HMS illustration, else hide.
+    // Reuses m_error_picture + on_webrequest_state (single widget, no second request). The
+    // loading placeholder and 10s watchdog are armed only for the async cloud fetch; the local
+    // path keeps its existing behavior.
+    m_local_img_url = image_url;
+    m_request_cancelled.store(false);
+    ++m_request_seq; // invalidate any snapshot fetch still in flight for the previous error
+    clear_request_timer();
+    if (get_fail_snapshot_from_cloud())
     {
-        const wxImage& img = wxGetApp().get_hms_query()->query_image_from_local(image_url);
-        if (!img.IsOk() && image_url.Contains("http"))
-        {
-            web_request = wxWebSession::GetDefault().CreateRequest(this, image_url);
-            BOOST_LOG_TRIVIAL(trace) << "monitor: create new webrequest, state = " << web_request.GetState();
-            if (web_request.GetState() == wxWebRequest::State_Idle) web_request.Start();
-            BOOST_LOG_TRIVIAL(trace) << "monitor: start new webrequest, state = " << web_request.GetState();
-        }
-        else
-        {
-            const wxImage& resize_img = img.Scale(FromDIP(320), FromDIP(180), wxIMAGE_QUALITY_HIGH);
-            m_error_picture->SetBitmap(wxBitmap(resize_img));
-        }
-
+        m_error_picture->SetBitmap(make_placeholder_image(_L("Loading ...")));
+        m_request_timer->StartOnce(10000);
+        m_error_picture->Show();
+    }
+    else if (get_fail_snapshot_from_local(image_url))
+    {
         m_error_picture->Show();
     }
     else
@@ -349,7 +496,10 @@ void DeviceErrorDialog::update_contents(const wxString& title, const wxString& t
         auto text_size = m_error_msg_label->GetBestSize();
         if (text_size.y < FromDIP(360))
         {
-            if (!image_url.empty())
+            // Orca: reserve the image area exactly when an image is coming (cloud snapshot,
+            // local illustration, or the loading placeholder) - m_error_picture's visibility
+            // was decided above, so no blank slot is reserved when neither source is usable.
+            if (m_error_picture->IsShown())
             {
                 m_scroll_area->SetMinSize(wxSize(FromDIP(320), text_size.y + FromDIP(220)));
             }
@@ -459,6 +609,29 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
             } catch(...){
                 BOOST_LOG_TRIVIAL(error) << "DeviceErrorDialog: Action Proceed missing params.";
             }
+        }
+        break;
+    }
+    case DeviceErrorDialog::REFRESH_NOZZLE: {
+        m_obj->command_refresh_nozzle();
+        break;
+    }
+    case DeviceErrorDialog::OK_JUMP_RACK: {
+        Slic3r::GUI::wxGetApp().mainframe->jump_to_monitor();
+        Slic3r::GUI::wxGetApp().mainframe->m_monitor->jump_to_Rack();
+        break;
+    }
+    case DeviceErrorDialog::ABORT: {
+        m_obj->command_ams_control("abort");
+        break;
+    }
+    case DeviceErrorDialog::DISABLE_PURIFICATION: {
+        m_obj->command_purification_disable();
+        break;
+    }
+    case DeviceErrorDialog::DONT_REMIND_NEXT_TIME: {
+        if (!m_action_json.is_null()) {
+            m_obj->command_dont_remind_next_time(m_action_json);
         }
         break;
     }

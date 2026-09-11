@@ -2,6 +2,9 @@
 #include "CustomGCode.hpp"
 #include "I18N.hpp"
 #include "PrintConfig.hpp"
+#include "ClipperUtils.hpp"
+#include "Geometry/ArcWelder.hpp"
+#include "Line.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -99,9 +102,87 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_max_jerk_z = LIMITS(machine_max_jerk_z);
     m_max_jerk_e = LIMITS(machine_max_jerk_e);
     m_resolution = print_config.resolution.value;
-
 #undef LIMITS
 #undef LIMITS_UINT
+    // Orca: capture the printable area(s) so a spiral lift can be skipped when its
+    // circle would leave the boundary and collide with the print limits. Full polygons
+    // are stored (not a bounding box) so the check stays correct for non-rectangular
+    // beds, and per-extruder areas are kept so printers with different boundaries per
+    // extruder use the right limit for whichever extruder is active.
+    auto to_scaled_polygon = [](const Pointfs &pts) {
+        Polygon poly;
+        poly.points.reserve(pts.size());
+        for (const Vec2d &p : pts)
+            poly.points.emplace_back(coord_t(scale_(p.x())), coord_t(scale_(p.y())));
+        poly.make_counter_clockwise();
+        return poly;
+    };
+
+    m_bed_printable_area.points.clear();
+    m_extruder_printable_areas.clear();
+
+    if (print_config.printable_area.values.size() >= 3)
+        m_bed_printable_area = to_scaled_polygon(print_config.printable_area.values);
+
+    const std::vector<Pointfs> &extruder_areas = print_config.extruder_printable_area.values;
+    if (!extruder_areas.empty()) {
+        m_extruder_printable_areas.resize(extruder_areas.size());
+        for (size_t i = 0; i < extruder_areas.size(); ++i) {
+            if (extruder_areas[i].size() < 3) {
+                // No dedicated area for this extruder: it can reach the whole bed.
+                m_extruder_printable_areas[i] = m_bed_printable_area;
+                continue;
+            }
+            Polygon extruder_poly = to_scaled_polygon(extruder_areas[i]);
+            if (m_bed_printable_area.points.size() < 3) {
+                m_extruder_printable_areas[i] = std::move(extruder_poly);
+                continue;
+            }
+            // The reachable area is the extruder area clipped to the bed. Bed shapes are
+            // convex in practice, so keep the largest resulting contour.
+            Polygons clipped = intersection(extruder_poly, m_bed_printable_area);
+            const Polygon *largest = nullptr;
+            double          best_area = 0.;
+            for (const Polygon &p : clipped) {
+                double a = std::abs(p.area());
+                if (a > best_area) { best_area = a; largest = &p; }
+            }
+            m_extruder_printable_areas[i] = largest ? *largest : std::move(extruder_poly);
+        }
+    }
+}
+
+const Polygon *GCodeWriter::active_printable_area() const
+{
+    if (const Extruder *e = this->filament()) {
+        size_t id = e->extruder_id();
+        if (id < m_extruder_printable_areas.size() && m_extruder_printable_areas[id].points.size() >= 3)
+            return &m_extruder_printable_areas[id];
+    }
+    if (m_bed_printable_area.points.size() >= 3)
+        return &m_bed_printable_area;
+    return nullptr;
+}
+
+bool GCodeWriter::spiral_lift_fits_printable_area(const Vec2d &center, double radius) const
+{
+    const Polygon *area = this->active_printable_area();
+    if (area == nullptr)
+        return true; // Boundary unknown: don't restrict (preserve previous behavior).
+
+    const Point  c        = Point::new_scale(center.x(), center.y());
+    const double r_scaled = scale_(radius);
+    const double r2       = r_scaled * r_scaled;
+
+    // The spiral traces a full circle of `radius` around `center`, so the center must lie
+    // inside the printable area and every edge must be at least `radius` away from it.
+    if (!area->contains(c))
+        return false;
+    const Points &pts = area->points;
+    for (size_t i = 0, n = pts.size(); i < n; ++i)
+        if (Line::distance_to_squared(c, pts[i], pts[(i + 1) % n]) < r2)
+            return false;
+    return true;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -110,6 +191,7 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     m_filament_extruders.clear();
     //ORCA: Reset current extruder ID and clear pointers to prevent dangling pointers when extruders are recreated.
     m_curr_extruder_id = -1;
+    m_cached_extruder_idx = 0;
     std::fill(m_curr_filament_extruder.begin(), m_curr_filament_extruder.end(), nullptr);
     m_filament_extruders.reserve(extruder_ids.size());
     for (unsigned int extruder_id : extruder_ids)
@@ -594,42 +676,61 @@ std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, boo
 
 std::string GCodeWriter::toolchange_prefix() const
 {
-    std::string gcode = "T";
+    // Orca: the manual-filament-change tag must stay ahead of the flavor selection so
+    // MMU manual-change handling keeps working.
     if (config.manual_filament_change)
-        gcode = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change) + "T";
-    else {
-        if (m_is_bbl_printers)
-            gcode = "M1020 S";
-        else {
-            if (FLAVOR_IS(gcfMakerWare))
-                gcode = "M135 T";
-            else if (FLAVOR_IS(gcfSailfish))
-                gcode = "M108 T";
-        }
-    }
-    return gcode;
+        return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change) + "T";
+    return FLAVOR_IS(gcfMakerWare) ? "M135 T" :
+           FLAVOR_IS(gcfSailfish)  ? "M108 T" : "T";
 }
 
-std::string GCodeWriter::toolchange(unsigned int filament_id)
+std::string GCodeWriter::toolchange(unsigned int filament_id, int nozzle_id)
 {
     // set the new extruder
     auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
     assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
     m_curr_extruder_id = filament_extruder_iter->extruder_id();
     m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
+    m_cached_extruder_idx = get_extruder_index(this->config, filament_id);
 
     // return the toolchange command
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
+    // Orca: also emit for non-BBL single-extruder multi-filament setups (MMU-style).
     if (this->multiple_extruders || (this->config.filament_diameter.values.size() > 1 && !is_bbl_printers())) {
-        // Orca: call toolchange_prefix() to get the correct command prefix based on the configuration and flavor.
-        gcode << this->toolchange_prefix() << filament_id;
+        // Orca: manual filament change keeps its tag line even on BBL machines, so the
+        // M1020 form must not shadow it. nozzle_id is signed: the null-safe nozzle
+        // lookup legitimately yields -1 ("no specific nozzle"), matching the literal
+        // H-1 the stock change templates emit; an unsigned would wrap.
+        if (m_is_bbl_printers && !config.manual_filament_change)
+            gcode << "M1020 S" << filament_id << " H" << nozzle_id;
+        else
+            gcode << this->toolchange_prefix() << filament_id;
         if (GCodeWriter::full_gcode_comment)
             gcode << " ; change extruder";
         gcode << "\n";
         gcode << this->reset_e(true);
     }
     return gcode.str();
+}
+
+// Current parked-retract length of the filament's extruder, share-aware. m_filament_extruders is
+// sorted by id (see toolchange), so a lower_bound lookup finds the entry; unknown filament ids
+// degrade to 0 rather than dereferencing end().
+double GCodeWriter::get_extruder_retracted_length(const int filament_id)
+{
+    double res = 0.0;
+    auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(),
+        [filament_id](const Extruder &e) { return (int) e.id() < filament_id; });
+    if (filament_extruder_iter == m_filament_extruders.end() || (int) filament_extruder_iter->id() != filament_id)
+        return res;
+
+    if (filament_extruder_iter->is_share_extruder())
+        res = filament_extruder_iter->get_share_retracted_length();
+    else
+        res = filament_extruder_iter->get_single_retracted_length();
+
+    return res;
 }
 
 std::string GCodeWriter::set_speed(double F, const std::string &comment, const std::string &cooling_marker)
@@ -658,7 +759,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     GCodeG1Formatter w;
     w.emit_xy(point_on_plate);
     auto speed = m_is_first_layer
-        ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id())) : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
+        ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx) : this->config.travel_speed.get_at(m_cached_extruder_idx);
     w.emit_f(speed * 60.0);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -711,14 +812,19 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
     }
 
     // BBS: spiral lift only safe with known position
-    // TODO: check the arc will move within bed area
     if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
         double radius = target_lift / (2 * PI * atan(filament()->travel_slope()));
         // static spiral alignment when no move in x,y plane.
-        // spiral centra is a radius distance to the right (y=0) 
+        // spiral centra is a radius distance to the right (y=0)
         Vec2d ij_offset = { radius, 0 };
-        if (target_lift > 0) {
+        // Orca: keep the spiral inside the active extruder's printable area, otherwise
+        // fall back to a normal lift to avoid colliding with the print boundary. m_pos
+        // includes the plate offset, so remove it to match the printable area coordinates.
+        const Vec2d spiral_center = { m_pos.x() - m_x_offset + ij_offset.x(), m_pos.y() - m_y_offset + ij_offset.y() };
+        if (target_lift > 0 && this->spiral_lift_fits_printable_area(spiral_center, radius)) {
             lift_move = this->_spiral_travel_to_z(m_pos(2) + target_lift, ij_offset, "spiral lift Z");
+        } else if (target_lift > 0) {
+            lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
         }
     }
     //BBS: if position is unknown use normal lift
@@ -744,7 +850,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         // BBS
     Vec3d dest_point = point;
     auto travel_speed =
-        m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id())) : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
+        m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx) : this->config.travel_speed.get_at(m_cached_extruder_idx);
     //BBS: a z_hop need to be handle when travel
     if (std::abs(m_to_lift) > EPSILON) {
         assert(std::abs(m_lifted) < EPSILON);
@@ -773,7 +879,15 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
-                slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                // Orca: only perform the spiral lift if its full circle stays inside the
+                // printable area of the active extruder, otherwise fall back to a normal
+                // lift to avoid colliding with the print boundary. `source` is already in
+                // bed coordinates (plate offset removed), matching the printable area.
+                const Vec2d spiral_center = { source.x() + ij_offset.x(), source.y() + ij_offset.y() };
+                if (this->spiral_lift_fits_printable_area(spiral_center, radius))
+                    slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                else
+                    slop_move = _travel_to_z(target.z(), "normal lift Z");
             }
             //BBS: SlopeLift
             else if (m_to_lift_type == LiftType::SlopeLift &&
@@ -841,13 +955,13 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     {
         //force to move xy first then z after filament change
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
-        w.emit_f(this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id())) * 60.0);
+        w.emit_f(this->config.travel_speed.get_at(m_cached_extruder_idx) * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
         GCodeG1Formatter w;
         w.emit_xyz(point_on_plate);
-        w.emit_f(this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id())) * 60.0);
+        w.emit_f(this->config.travel_speed.get_at(m_cached_extruder_idx) * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string();
     }
@@ -880,10 +994,10 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 {
     m_pos(2) = z;
 
-    double speed = this->config.travel_speed_z.get_at(get_extruder_index(this->config, filament()->id()));
+    double speed = this->config.travel_speed_z.get_at(m_cached_extruder_idx);
     if (speed == 0.) {
-        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id()))
-                                 : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
+        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx)
+                                 : this->config.travel_speed.get_at(m_cached_extruder_idx);
     }
 
     GCodeG1Formatter w;
@@ -897,53 +1011,56 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
     std::string output;
-    double speed = this->config.travel_speed_z.get_at(get_extruder_index(this->config, filament()->id()));
+    double speed = this->config.travel_speed_z.get_at(m_cached_extruder_idx);
 
     if (speed == 0.) {
-        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id()))
-                                 : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
+        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx)
+                                 : this->config.travel_speed.get_at(m_cached_extruder_idx);
     }
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
-        std::ostringstream oss;
         const double z_start = m_pos(2); // starting Z height
-
-        // --------------------------------------------------------------------
-        // Determine number of segments based on Resolution
-        // --------------------------------------------------------------------
-        const double ref_resolution = 0.01; // reference resolution in mm
-        const double ref_segments  = 8.0;  // reference number of segments at reference resolution
-        
-        // number of linear segments to use for approximating the arc, clamp between 4 and 16
-        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 16);
-        // --------------------------------------------------------------------
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
         const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
         const double cx = px + ij_offset(0);            // center x
         const double cy = py + ij_offset(1);            // center y
         const double radius = ij_offset.norm();         // radius
+
+        // Number of linear segments approximating the circle, chosen so that a chord never deviates
+        // from the true arc by more than the slicing resolution. A resolution of 0 means "no
+        // simplification", which has no finite segment count, so it takes the upper bound.
+        constexpr size_t min_segments = 8;              // keep a small spiral visibly round
+        constexpr size_t max_segments = 128;            // bound the emitted G-code
+        const int segments = int(m_resolution > 0. ?
+            std::clamp(Geometry::ArcWelder::arc_discretization_steps(radius, 2. * M_PI, m_resolution), min_segments, max_segments) :
+            max_segments);
+
         const double a0 = std::atan2(py - cy, px - cx); // start angle
-        const double delta = 2.0 * M_PI;                // CCW full circle
 
-        if (full_gcode_comment)
-            oss << ";" << comment << "\n";
+        auto emit_point = [&output](const Vec3d &point) {
+            GCodeG1Formatter w;
+            w.emit_xyz(point);
+            output += w.string();
+        };
 
-        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+        output.reserve(size_t(segments) * 40);          // ~40 characters per emitted G1 line
+
+        GCodeG1Formatter w;                             // set feedrate
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+        output += w.string();
 
         // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
         for (int i = 1; i < segments; ++i) {
-            double t = double(i) / segments;            // parametric position along arc
-            double a = a0 + delta * t;                  // CCW arc param
-            double x = cx + radius * std::cos(a);       // point on circle
-            double y = cy + radius * std::sin(a);       // point on circle
-            double zz = z_start + (z - z_start) * t;    // interpolated Z height
-
-            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+            const double t = double(i) / segments;      // parametric position along arc
+            const double a = a0 + 2. * M_PI * t;        // CCW arc param, full circle
+            emit_point(Vec3d(cx + radius * std::cos(a), // point on circle
+                             cy + radius * std::sin(a),
+                             z_start + (z - z_start) * t)); // interpolated Z height
         }
 
-        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
-        output = oss.str();
+        emit_point(Vec3d(px, py, z));                   // final point to ensure exactness
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
 
@@ -1101,7 +1218,7 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
     return gcode;
 }
 
-std::string GCodeWriter::unretract()
+std::string GCodeWriter::unretract(float extra_retract)
 {
     std::string gcode;
 
@@ -1117,7 +1234,9 @@ std::string GCodeWriter::unretract()
             //BBS
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
             GCodeG1Formatter w;
-            w.emit_e(filament()->E());
+            // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
+            // default -> identical to the plain deretract E position.
+            w.emit_e(filament()->E() + extra_retract);
             w.emit_f(filament()->deretract_speed() * 60.);
             //BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
@@ -1250,8 +1369,9 @@ std::string GCodeWriter::set_extruder(unsigned int filament_id)
     auto filament_ext_it = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
     unsigned int extruder_id = filament_ext_it->extruder_id();
     assert(filament_ext_it != m_filament_extruders.end() && filament_ext_it->id() == filament_id);
-    //TODO: optmize here, pass extruder_id to toolchange
-    return this->need_toolchange(filament_id) ? this->toolchange(filament_id) : "";
+    // Orca: writer-only context (calibration paths) has no nozzle grouping; the
+    // filament's own extruder id is the correct degenerate nozzle value.
+    return this->need_toolchange(filament_id) ? this->toolchange(filament_id, (int) extruder_id) : "";
 }
 
 void GCodeWriter::init_extruder(unsigned int filament_id)
@@ -1261,6 +1381,7 @@ void GCodeWriter::init_extruder(unsigned int filament_id)
         assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
         m_curr_extruder_id = filament_extruder_iter->extruder_id();
         m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
+        m_cached_extruder_idx = get_extruder_index(this->config, filament_id);
     }
 }
 

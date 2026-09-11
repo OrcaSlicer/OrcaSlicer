@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "eUNygrv7weqgX7e0",
+	"name": "QIDI TPU-Aero @Qidi X-Plus 5 0.6 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI TPU-Aero@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

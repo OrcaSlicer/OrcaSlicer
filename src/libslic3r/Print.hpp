@@ -17,12 +17,14 @@
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "ObjectID.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Geometry>
 
 #include <functional>
 #include <set>
+#include <unordered_map>
 
 #include "calib.hpp"
 
@@ -38,6 +40,7 @@ class SupportLayer;
 class TreeSupportData;
 class TreeSupport;
 class ExtrusionLayers;
+namespace MultiNozzleUtils { class NozzleGroupResultBase; class LayeredNozzleGroupResult; }
 
 #define MAX_OUTER_NOZZLE_DIAMETER   4
 // BBS: move from PrintObjectSlice.cpp
@@ -99,6 +102,14 @@ enum PrintObjectStep {
     posCount,
 };
 
+enum class SlicingPipelineStepPlugin {
+    posSlice, posPerimeters, posEstimateCurledExtrusions, posPrepareInfill, posInfill, posIroning, posContouring,
+    posSupportMaterial, posDetectOverhangsForLift, posSimplifyPath, psWipeTower, psSkirtBrim,
+    // Fires from the GUI G-code export/post-process seam (PostProcessor.cpp), NOT from Print::process().
+    // At this step the plugin edits the exported G-code file in place; see SlicingPipelinePluginCapability for the full contract.
+    psGCodePostProcess
+};
+
 // A PrintRegion object represents a group of volumes to print
 // sharing the same config (including the same assigned extruder(s))
 class PrintRegion
@@ -106,9 +117,9 @@ class PrintRegion
 public:
     PrintRegion() = default;
     PrintRegion(const PrintRegionConfig &config);
-    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     PrintRegion(PrintRegionConfig &&config);
-    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     ~PrintRegion() = default;
 
 // Methods NOT modifying the PrintRegion's state:
@@ -118,6 +129,10 @@ public:
     // Identifier of this PrintRegion in the list of Print::m_print_regions.
     int                         print_region_id() const throw() { return m_print_region_id; }
     int                         print_object_region_id() const throw() { return m_print_object_region_id; }
+    // Volume identity used to differentiate same-config regions when per-part gradient is enabled.
+    // Default-constructed (invalid) means this region is not tied to a specific volume — preserves
+    // existing behavior for all paths not using per_part_gradient.
+    ObjectID                    gradient_volume_id() const throw() { return m_gradient_volume_id; }
 	// 1-based extruder identifier for this region and role.
 	unsigned int 				extruder(FlowRole role) const;
     Flow                        flow(const PrintObject &object, FlowRole role, double layer_height, bool first_layer = false) const;
@@ -147,6 +162,10 @@ private:
     int                m_print_region_id { -1 };
     int                m_print_object_region_id { -1 };
     int                m_ref_cnt { 0 };
+    // Per-part gradient: when non-invalid, this region belongs exclusively to one ModelVolume,
+    // letting same-color volumes within a combined ModelObject be tracked separately for gradient
+    // emission. Default invalid -> region keying behaves exactly as before.
+    ObjectID           m_gradient_volume_id;
 };
 
 inline bool operator==(const PrintRegion &lhs, const PrintRegion &rhs) { return lhs.config_hash() == rhs.config_hash() && lhs.config() == rhs.config(); }
@@ -294,6 +313,11 @@ public:
     // This transformation is used to calculate VolumeExtents.
     Transform3d                                 trafo_bboxes;
     std::vector<ObjectID>                       cached_volume_ids;
+
+    // Per-part gradient: the slot_per_part_enabled bit vector that produced these regions.
+    // Print::apply compares it against the current one to detect a change that PrintRegionConfig
+    // alone would not reveal, and regenerates the regions when it differs.
+    std::vector<bool>                           last_slot_per_part_enabled;
 
     void ref_cnt_inc() { ++ m_ref_cnt; }
     void ref_cnt_dec() { if (-- m_ref_cnt == 0) delete this; }
@@ -758,6 +782,9 @@ struct WipeTowerData
 
     // Depth of the wipe tower to pass to GLCanvas3D for exact bounding box:
     float                                                 depth;
+    // Effective width (a rib wall squares the tower): the estimate until generation, then the
+    // generated width, so it never disagrees with depth.
+    float                                                 width;
     std::vector<std::pair<float, float>>                  z_and_depth_pairs;
     float                                                 brim_width;
     float                                                 height;
@@ -771,11 +798,13 @@ struct WipeTowerData
         used_filament.clear();
         number_of_toolchanges = -1;
         depth = 0.f;
+        width = 0.f;
         brim_width = 0.f;
+        height = 0.f;
         rib_offset = Vec2f::Zero();
         wipe_tower_mesh_data  = std::nullopt;
     }
-    void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall);
+    void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall, float cone_angle = 0.f);
 
 private:
 	// Only allow the WipeTowerData to be instantiated internally by Print, 
@@ -891,6 +920,11 @@ private: // Prevents erroneous use by other classes.
     typedef std::pair<PrintObject *, bool>         PrintObjectInfo;
 
 public:
+    using SlicingPipelineHookFn = std::function<void(Print&, const PrintObject*, SlicingPipelineStepPlugin)>;
+    // Cross-layer injection (mirrors ConfigBase::set_resolve_capability_fn): the GUI/plugin
+    // layer registers a dispatcher; libslic3r stays free of any plugin/Python dependency.
+    static void set_slicing_pipeline_hook_fn(SlicingPipelineHookFn fn) { s_slicing_pipeline_hook_fn = std::move(fn); }
+
     Print() = default;
 	virtual ~Print() { this->clear(); }
 
@@ -913,8 +947,8 @@ public:
     // If preview_data is not null, the preview_data is filled in for the G-code visualization (not used by the command line Slic3r).
     std::string         export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     //return 0 means successful
-    int                 export_cached_data(const std::string& dir_path, bool with_space=false);
-    int                 load_cached_data(const std::string& directory);
+    int                 export_cached_data(const std::string& dir_path, bool with_space=false) override;
+    int                 load_cached_data(const std::string& directory) override;
 
     // methods for handling state
     bool                is_step_done(PrintStep step) const { return Inherited::is_step_done(step); }
@@ -958,7 +992,7 @@ public:
             [object_id](const PrintObject *obj) { return obj->id() == object_id; });
         return (it == m_objects.end()) ? nullptr : *it;
     }
-    //BBS: Function to get m_brimMap;
+    // Orca: Old callers still expect object-keyed brim paths.
     std::map<ObjectID, ExtrusionEntityCollection>&
         get_brimMap() { return m_brimMap; }
 
@@ -973,11 +1007,11 @@ public:
     struct SkirtBrimGroup {
         struct Brim {
             ExtrusionEntityCollection brim;
-            std::vector<ObjectID>     object_ids;
+            std::vector<ObjectInstanceID> instances;
         };
 
         ExtrusionEntityCollection skirt;
-        std::vector<ObjectID>     object_ids;
+        std::vector<ObjectInstanceID> instances;
         // Brims stay separate unless Combine brims merges colliding brims inside this group.
         std::vector<Brim>         brims;
     };
@@ -1003,14 +1037,49 @@ public:
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
-    void update_filament_maps_to_config(std::vector<int> f_maps);
+    void update_filament_maps_to_config(std::vector<int> f_maps, std::vector<int> f_volume_maps = std::vector<int>{}, std::vector<int> f_nozzle_maps = std::vector<int>{});
+    // Write-back for a selector (per-layer planned) grouping result. When a filament actually
+    // migrates between nozzle variants, rebuilds the per-slot filament arrays so it holds one
+    // slot per variant and recomputes the extruder retract overrides against the expanded
+    // slots — update_filament_maps_to_config's single-slot rebuild cannot represent a
+    // migration. A result without migration reduces to a single grouping and takes the
+    // three-map write-back like the static paths.
+    void update_to_config_by_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult& group_result);
     void apply_config_for_render(const DynamicConfig &config);
 
     // 1 based group ids
     std::vector<int> get_filament_maps() const;
     FilamentMapMode  get_filament_map_mode() const;
+    std::vector<int> get_filament_volume_maps() const;
+    std::vector<int> get_filament_nozzle_maps() const;
     // get the group label of filament
     size_t get_extruder_id(unsigned int filament_id) const;
+
+    // The region every extruder can reach,
+    // i.e. the intersection of all per-extruder printable areas. Falls back to the full printable_area
+    // for single-nozzle printers and whenever extruder_printable_area is not populated (all current
+    // single/dual profiles), so the wipe-tower-center clamp is byte-identical to full-bed clamping there.
+    Polygons get_extruder_shared_printable_polygon() const;
+
+    // Logical (extruder, nozzle) grouping result produced by ToolOrdering during reorder.
+    // Consumed by GCode via get_layered_nozzle_group_result()->get_nozzle_id(filament, layer) etc.
+    void set_nozzle_group_result(std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> result) { m_nozzle_group_result = result; }
+    std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> get_nozzle_group_result() const { return m_nozzle_group_result; }
+    std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> get_layered_nozzle_group_result() const;
+
+    // True only when the project opts into the per-layer filament selector
+    // (enable_filament_dynamic_map) in auto-for-flush mode on a multi-extruder machine. Gates the
+    // dynamic (per-layer) regroup branch in ToolOrdering::reorder_extruders_for_minimum_flush_volume,
+    // the sequential (by-object) plan stitching in Print::process, and GCode's use of the cached
+    // sequential plans. No profile sets the flag, so the static grouping path (byte-identical
+    // output) is the only one taken unless the user enables the selector.
+    bool is_dynamic_group_reorder() const;
+
+    // Per-object tool orderings planned by the sequential (by-object) selector regroup with
+    // cross-object nozzle-status threading. GCode export must consume these exact plans: a fresh
+    // per-object construction would re-plan from a different seed and diverge from the published
+    // stitched result. Empty on the static path.
+    const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
     void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
@@ -1023,6 +1092,10 @@ public:
         m_slice_used_filaments = used_filaments;
     }
     std::vector<unsigned int> get_slice_used_filaments(bool first_layer) const { return first_layer ? m_slice_used_filaments_first_layer : m_slice_used_filaments;}
+    void set_slice_used_mixed_filaments(const std::vector<unsigned int> &used_mixed_filaments) {
+        m_slice_used_mixed_filaments = used_mixed_filaments;
+    }
+    const std::vector<unsigned int>& get_slice_used_mixed_filaments() const { return m_slice_used_mixed_filaments; }
 
     /**
     * @brief Determines the unprintable filaments for each extruder based on its physical attributes
@@ -1036,6 +1109,18 @@ public:
     * @return A vector of sets representing unprintable filaments for each extruder.Return an empty vecto if extruder num is 1
     */
     std::vector<std::set<int>> get_physical_unprintable_filaments(const std::vector<unsigned int>& used_filaments) const;
+
+    /**
+    * @brief Determines the forbidden nozzle volume types for each used filament
+    *
+    * A filament may declare the extruder variants it supports. Every volume type offered by the
+    * printer's extruders that the filament does not support is forbidden for that filament.
+    * Hybrid volumes are ignored on both sides, and filaments declaring no variants are unrestricted.
+    *
+    * @param used_filaments Totally used filaments when slicing
+    * @return A map from used filament index to the set of nozzle volume types it cannot print on
+    */
+    std::map<int, std::set<NozzleVolumeType>> get_filament_unprintable_flow(const std::vector<unsigned int> &used_filaments) const;
 
     std::vector<double> get_extruder_printable_height() const;
     std::vector<Polygons> get_extruder_printable_polygons() const;
@@ -1120,7 +1205,12 @@ public:
     bool is_all_objects_are_short() const {
         return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
     }
-    
+
+    // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
+    // per-(extruder x volume type) column in the expanded variant arrays, cached by grouping context.
+    int get_filament_config_indx(int filament_id, int layer_id);
+    int get_nozzle_config_index(int filament_id, int layer_id);
+
     // Orca: Implement prusa's filament shrink compensation approach
     // Returns if all used filaments have same shrinkage compensations.
      bool has_same_shrinkage_compensations() const;
@@ -1130,6 +1220,57 @@ public:
     std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
 
 protected:
+    struct FilamentIndexKey
+    {
+        int              filament_id;
+        ExtruderType     extruder;
+        NozzleVolumeType nozzle_volume_type;
+
+        bool operator==(const FilamentIndexKey &other) const
+        {
+            return filament_id == other.filament_id && extruder == other.extruder && nozzle_volume_type == other.nozzle_volume_type;
+        }
+    };
+
+    struct PrintIndexKey
+    {
+        int              filament_id;
+        int              extruder_id;
+        ExtruderType     extruder;
+        NozzleVolumeType nozzle_volume_type;
+
+        bool operator==(const PrintIndexKey &other) const
+        {
+            return filament_id == other.filament_id && extruder_id == other.extruder_id && extruder == other.extruder && nozzle_volume_type == other.nozzle_volume_type;
+        }
+    };
+
+    struct FilamentIndexKeyHash
+    {
+        std::size_t operator()(const FilamentIndexKey &k) const
+        {
+            size_t h1 = std::hash<int>{}(k.filament_id);
+            size_t h2 = std::hash<int>{}(static_cast<int>(k.extruder));
+            size_t h3 = std::hash<int>{}(static_cast<int>(k.nozzle_volume_type));
+            return h1 ^ (h2 << 8) ^ (h3 << 12);
+        }
+    };
+    struct PrintIndexKeyHash
+    {
+        std::size_t operator()(const PrintIndexKey &k) const
+        {
+            size_t h1 = std::hash<int>{}(k.filament_id);
+            size_t h2 = std::hash<int>{}(k.extruder_id);
+            size_t h3 = std::hash<int>{}(static_cast<int>(k.extruder));
+            size_t h4 = std::hash<int>{}(static_cast<int>(k.nozzle_volume_type));
+            return h1 ^ (h2 << 8) ^ (h3 << 12) ^ (h4 << 16);
+        }
+    };
+    using FilamentIndexMap = std::unordered_map<FilamentIndexKey, int, FilamentIndexKeyHash>;
+    using PrintIndexMap = std::unordered_map<PrintIndexKey, int, PrintIndexKeyHash>;
+    int get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap &index_map);
+    int get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, PrintIndexMap &index_map);
+
     // Invalidates the step, and its depending steps in Print.
     bool                invalidate_step(PrintStep step);
 
@@ -1143,9 +1284,26 @@ private:
     void                _make_skirt();
     void                _make_wipe_tower();
     void                finalize_first_layer_convex_hull();
+    void                update_filament_self_index_cache();
+    // Deduplicates, per filament, the (extruder type x volume type) variants the grouping
+    // result routes it through; filaments the plan never routes get their default-map
+    // assignment so the slot resolution never depends on the (mutable) filament_map. config
+    // must carry extruder_type; returns false when it does not. Both the slice-time write-back
+    // and the apply-time reproduction call this with m_ori_full_print_config so the two
+    // expansions resolve identical slots.
+    bool                collect_filament_variant_uses(const MultiNozzleUtils::LayeredNozzleGroupResult& group_result,
+                                                      const DynamicPrintConfig& config,
+                                                      std::unordered_map<int, std::vector<FilamentVariantUse>>& uses) const;
 
     // Islands of objects and their supports extruded at the 1st layer.
     Polygons            first_layer_islands() const;
+
+    static SlicingPipelineHookFn s_slicing_pipeline_hook_fn;
+    bool m_pipeline_plugin_active { false };
+    void run_pipeline_hook(SlicingPipelineStepPlugin step, const PrintObject* object) {
+        if (m_pipeline_plugin_active && s_slicing_pipeline_hook_fn)
+            s_slicing_pipeline_hook_fn(*this, object, step);
+    }
 
     PrintConfig                             m_config;
     PrintObjectConfig                       m_default_object_config;
@@ -1160,12 +1318,12 @@ private:
     ExtrusionEntityCollection               m_skirt;
     std::vector<SkirtBrimGroup>             m_skirt_brim_groups;
     bool                                    m_has_shared_per_object_skirt { false };
-    // BBS: collecting extrusion paths to build brim by objs
+    // Orca: Object-keyed brim paths kept for existing code.
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;
-    std::map<ObjectID, ExtrusionEntityCollection>         m_supportBrimMap;
-    // Orca: cached occupied brim footprints used when grouping per-object skirts.
-    std::map<ObjectID, ExPolygons>                        m_objectBrimAreas;
-    std::map<ObjectID, ExPolygons>                        m_supportBrimAreas;
+    // Orca: Actual brim paths keyed by object instance.
+    std::map<ObjectInstanceID, ExtrusionEntityCollection> m_brimMapByInstance;
+    // Orca: Translated brim areas keyed by instance, used to find touching brims.
+    std::map<ObjectInstanceID, ExPolygons>                m_objectBrimAreasByInstance;
     // Convex hull of the 1st layer extrusions.
     // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
     // It does NOT encompass user extrusions generated by custom G-code,
@@ -1175,6 +1333,24 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+
+    // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
+    std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
+
+    // Sequential (by-object) selector plans, keyed by object; see sequential_dynamic_orderings().
+    // Rebuilt (or cleared) on every process().
+    std::map<const PrintObject*, ToolOrdering> m_sequential_dynamic_orderings;
+
+    // Used to cache filament parameter information
+    FilamentIndexMap m_filament_index_map;
+    // Used to cache printer and process parameter information
+    PrintIndexMap m_nozzle_index_map;
+    // Orca: filament ids already reported as missing a nozzle-group entry this slice. get_config_index()
+    // falls back per-filament/per-layer in the g-code hot path, so this dedupes its log to once per
+    // filament instead of flooding thousands of identical error lines. Cleared with the caches each slice.
+    std::set<int> m_missing_nozzle_group_logged;
+    // save the config value of "filament_self_index"
+    std::vector<int> m_filament_self_index;
 
     // Following section will be consumed by the GCodeGenerator.
     ToolOrdering 							m_tool_ordering;
@@ -1187,6 +1363,8 @@ private:
 
     std::vector<unsigned int> m_slice_used_filaments;
     std::vector<unsigned int> m_slice_used_filaments_first_layer;
+    // 0-based mixed (virtual) filament slots actually used on this plate.
+    std::vector<unsigned int> m_slice_used_mixed_filaments;
 
     //BBS: plate's origin
     Vec3d   m_origin {0, 0, 0};

@@ -1234,7 +1234,7 @@ PrintHostQueueDialog::PrintHostQueueDialog(wxWindow *parent)
     job_list->AppendProgressColumn(_L("Progress"),      wxDATAVIEW_CELL_INERT, widths[1], wxALIGN_LEFT, wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
     append_text_column(_L("Status"),widths[2]);
     append_text_column(_L("Host"),  widths[3]);
-    append_text_column(_CTX(L_CONTEXT("Size", "OfFile"), "OfFile"), widths[4]);
+    append_text_column(_L_CONTEXT(L_CONTEXT("Size", "OfFile"), "OfFile"), widths[4]);
     append_text_column(_L("Filename"),      widths[5]);
     append_text_column(_L("Message"), widths[6]);
     //append_text_column(_L("Error Message"), -1, wxALIGN_CENTER, wxDATAVIEW_COL_HIDDEN);
@@ -2062,7 +2062,7 @@ void CrealityPrintHostSendDialog::init()
             }
 
             for (auto* c : m_slot_combos) {
-                c->Bind(wxEVT_COMBOBOX, [this, ext_slot_idx](wxCommandEvent& e) {
+                c->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
                     int sel = e.GetSelection();
                     if (sel >= 0 && sel < (int)m_printer_slots.size() &&
                         m_printer_slots[sel].box_id == 0) {

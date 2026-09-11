@@ -36,6 +36,9 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusNotSupportedPrintAll: return "PrintStatusNotSupportedPrintAll";
     case PrintStatusBlankPlate: return "PrintStatusBlankPlate";
     case PrintStatusUnsupportedPrinter: return "PrintStatusUnsupportedPrinter";
+    case PrintStatusRackNozzleMappingWaiting: return "PrintStatusRackNozzleMappingWaiting";
+    case PrintStatusRackNozzleMappingError: return "PrintStatusRackNozzleMappingError";
+    case PrintStatusFilaSwitcherError: return "PrintStatusFilaSwitcherError";
     case PrintStatusColorQuantityExceed: return "PrintStatusColorQuantityExceed";
     // Handle filament errors
     case PrintStatusAmsOnSettingup: return "PrintStatusAmsOnSettingup";
@@ -47,13 +50,26 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusTimelapseNoSdcard: return "PrintStatusTimelapseNoSdcard";
     case PrintStatusTimelapseWarning: return "PrintStatusTimelapseWarning";
     case PrintStatusMixAmsAndVtSlotWarning: return "PrintStatusMixAmsAndVtSlotWarning";
+    case PrintStatusRackNozzleMappingWarning: return "PrintStatusRackNozzleMappingWarning";
+    case PrintStatusFilaSwitcherSlicingNotMatch: return "PrintStatusFilaSwitcherSlicingNotMatch";
     case PrintStatusWarningKvalueNotUsed: return "PrintStatusWarningKvalueNotUsed";
     case PrintStatusHasFilamentInBlackListWarning: return "PrintStatusHasFilamentInBlackListWarning";
     case PrintStatusFilamentWarningHighChamberTemp: return "PrintStatusFilamentWarningHighChamberTemp";
     case PrintStatusFilamentWarningHighChamberTempCloseDoor: return "PrintStatusFilamentWarningHighChamberTempCloseDoor";
     case PrintStatusFilamentWarningHighChamberTempSoft: return "PrintStatusFilamentWarningHighChamberTempSoft";
     case PrintStatusFilamentWarningUnknownHighChamberTempSoft: return "PrintStatusFilamentWarningUnknownHighChamberTempSoft";
+    case PrintStatusNozzleNoMatchedHotends: return "PrintStatusNozzleNoMatchedHotends";
+    case PrintStatusNozzleRackMaximumInstalled: return "PrintStatusNozzleRackMaximumInstalled";
+    case PrintStatusRackReading: return "PrintStatusRackReading";
+    case PrintStatusRackNozzleNumUnmeetWarning: return "PrintStatusRackNozzleNumUnmeetWarning";
+    case PrintStatusHasUnreliableNozzleWarning: return "PrintStatusHasUnreliableNozzleWarning";
     case PrintStatusWarningExtFilamentNotMatch: return "PrintStatusWarningExtFilamentNotMatch";
+    case PrintStatusFilamentWarningNozzleHRC: return "PrintStatusFilamentWarningNozzleHRC";
+    case PrintStatusTPUUnsupportCaliOn: return "PrintStatusTPUUnsupportCaliOn";
+    case PrintStatusTPUUnsuggestCali: return "PrintStatusTPUUnsuggestCali";
+    case PrintStatusSmartNozzleBlobNeedAuto: return "PrintStatusSmartNozzleBlobNeedAuto";
+    case PrintStatusFilamentWarningRemainNotEnough: return "PrintStatusFilamentWarningRemainNotEnough";
+    case PrintStatusPrintTimeEstimateWarning: return "PrintStatusPrintTimeEstimateWarning";
     case PrintStatusReadingFinished: return "PrintStatusReadingFinished";
     case PrintStatusSendingCanceled: return "PrintStatusSendingCanceled";
     case PrintStatusAmsMappingSuccess: return "PrintStatusAmsMappingSuccess";
@@ -92,8 +108,16 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusTPUUnsupportAutoCali: return _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
     case PrintStatusWarningKvalueNotUsed: return _L("Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value.");
     case PrintStatusNotSupportedPrintAll: return _L("This printer does not support printing all plates.");
-    case PrintStatusColorQuantityExceed: return _L("The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support.");
+    // Orca: %s-parameterized so the real per-printer max color count can be filled in by the caller
+    // (SelectMachine formats it via get_pre_state_msg before add()); default templates keep the wording.
+    case PrintStatusColorQuantityExceed: return _L("The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support.");
     case PrintStatusWarningExtFilamentNotMatch: return _L("The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool.");
+    // Same text as the blocking "auto" case (PrintStatusTPUUnsupportAutoCali); CaliOn is a
+    // non-blocking advisory (Send stays enabled).
+    case PrintStatusTPUUnsupportCaliOn: return _L("TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process.");
+    case PrintStatusFilamentWarningRemainNotEnough: return _L("The filament in the AMS may be insufficient for this print. Please refill or replace it.");
+    // SmartNozzleBlobNeedAuto text is passed via add_with_link (clickable "Switch"), not here.
+    // PrintTimeEstimateWarning has no call site and no message string.
     }
     return wxEmptyString;
 }
@@ -135,6 +159,92 @@ void PrePrintChecker::add(PrintDialogStatus state, wxString msg, wxString tip, c
     }
 
     info.wiki_url = wiki_url;
+
+    switch (info.type) {
+    case prePrintInfoType::Filament:
+        if (std::find(filamentList.begin(), filamentList.end(), info) == filamentList.end()) {
+            filamentList.push_back(info);
+        }
+        break;
+    case prePrintInfoType::Printer:
+        if (std::find(printerList.begin(), printerList.end(), info) == printerList.end()) {
+            printerList.push_back(info);
+        }
+        break;
+    default: break;
+    }
+}
+
+// Orca: minimal callback-link variant of add(): stores an internal click action
+// (link_callback) rendered as a trailing link instead of the wiki-url launcher.
+void PrePrintChecker::add_with_link(PrintDialogStatus state, wxString msg, wxString link_label, std::function<void()> link_callback)
+{
+    prePrintInfo info;
+
+    if (is_error(state)) {
+        info.level = prePrintInfoLevel::Error;
+    } else if (is_warning(state)) {
+        info.level = prePrintInfoLevel::Warning;
+    } else {
+        info.level = prePrintInfoLevel::Normal;
+    }
+
+    if (is_error_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_error_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    } else if (is_warning_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_warning_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    }
+
+    info.msg           = msg;
+    info.link_label    = link_label;
+    info.link_callback = link_callback;
+
+    switch (info.type) {
+    case prePrintInfoType::Filament:
+        if (std::find(filamentList.begin(), filamentList.end(), info) == filamentList.end()) {
+            filamentList.push_back(info);
+        }
+        break;
+    case prePrintInfoType::Printer:
+        if (std::find(printerList.begin(), printerList.end(), info) == printerList.end()) {
+            printerList.push_back(info);
+        }
+        break;
+    default: break;
+    }
+}
+
+// Orca: acknowledgement-checkbox variant of add(); see add_with_link() for the shared classification.
+void PrePrintChecker::add_with_checkbox(PrintDialogStatus state, wxString msg, wxString checkbox_label, bool checked, std::function<void(bool)> checkbox_callback)
+{
+    prePrintInfo info;
+
+    if (is_error(state)) {
+        info.level = prePrintInfoLevel::Error;
+    } else if (is_warning(state)) {
+        info.level = prePrintInfoLevel::Warning;
+    } else {
+        info.level = prePrintInfoLevel::Normal;
+    }
+
+    if (is_error_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_error_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    } else if (is_warning_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_warning_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    }
+
+    info.msg              = msg;
+    info.checkbox_label   = checkbox_label;
+    info.checkbox_checked = checked;
+    info.checkbox_callback = checkbox_callback;
 
     switch (info.type) {
     case prePrintInfoType::Filament:
@@ -219,7 +329,15 @@ bool PrinterMsgPanel::UpdateInfos(const std::vector<prePrintInfo>& infos)
             label->SetForegroundColour(_GetLabelColour(info));
 
 
-            if (info.wiki_url.empty())
+            if (!info.link_label.empty())
+            {
+                // Orca: internal callback link (e.g. "Clean up files") instead of a wiki url
+                label->SetLabel(info.msg + " " + info.link_label);
+                label->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
+                label->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_ARROW); });
+                label->Bind(wxEVT_LEFT_DOWN, [info](wxMouseEvent& event) { if (info.link_callback) info.link_callback(); });
+            }
+            else if (info.wiki_url.empty())
             {
                 label->SetLabel(info.msg);
             }
@@ -234,6 +352,18 @@ bool PrinterMsgPanel::UpdateInfos(const std::vector<prePrintInfo>& infos)
             label->Wrap(this->GetMinSize().GetWidth());
             label->Show();
             m_sizer->Add(label, 0, wxBOTTOM, FromDIP(4));
+        }
+
+        // Orca: acknowledgement checkbox rendered beneath the message (e.g. a nozzle diameter that
+        // differs from the one the printer remembers, which the user may legitimately override).
+        if (!info.checkbox_label.empty())
+        {
+            wxCheckBox* checkbox = new wxCheckBox(this, wxID_ANY, info.checkbox_label);
+            checkbox->SetForegroundColour(_GetLabelColour(info));
+            checkbox->SetValue(info.checkbox_checked);
+            auto cb = info.checkbox_callback;
+            checkbox->Bind(wxEVT_CHECKBOX, [cb](wxCommandEvent& e) { if (cb) cb(e.IsChecked()); });
+            m_sizer->Add(checkbox, 0, wxBOTTOM, FromDIP(4));
         }
     }
 

@@ -4,6 +4,7 @@
 #include "../Preset.hpp"
 #include "../Utils.hpp"
 #include "../LocalesUtils.hpp"
+#include "../FilamentMixer.hpp"
 #include "../GCode.hpp"
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
@@ -100,45 +101,6 @@ struct ZipUnicodePathExtraField
         return Slic3r::decode_path(path.c_str());
     }
 };
-
-// Validate that a relative file path does not escape the root directory via path traversal.
-static bool is_path_within_root(const std::string& file_path, const boost::filesystem::path& root)
-{
-    if (file_path.empty())
-        return false;
-
-    boost::filesystem::path p(file_path);
-    if (p.is_absolute())
-        return false;
-
-    // Reject any path component that is ".."
-    for (const auto& component : p) {
-        if (component == "..")
-            return false;
-    }
-
-    // Resolve the full path and verify it starts with the canonical root (also catches symlink escapes)
-    try {
-        boost::filesystem::path full_path = root / p;
-        boost::filesystem::path canonical_root = boost::filesystem::weakly_canonical(root);
-        boost::filesystem::path canonical_full = boost::filesystem::weakly_canonical(full_path);
-
-        auto root_str = canonical_root.string();
-        auto full_str = canonical_full.string();
-        if (full_str.length() < root_str.length())
-            return false;
-        if (full_str.compare(0, root_str.length(), root_str) != 0)
-            return false;
-        // Ensure it's a proper prefix (not just a substring of a longer directory name)
-        if (full_str.length() > root_str.length() &&
-            full_str[root_str.length()] != boost::filesystem::path::preferred_separator)
-            return false;
-    } catch (const boost::filesystem::filesystem_error&) {
-        return false;
-    }
-
-    return true;
-}
 
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
@@ -246,6 +208,8 @@ static constexpr const char* BUILD_TAG = "build";
 static constexpr const char* ITEM_TAG = "item";
 static constexpr const char* METADATA_TAG = "metadata";
 static constexpr const char* FILAMENT_TAG = "filament";
+static constexpr const char* MIXED_FILAMENT_TAG = "mixed_filament";
+static constexpr const char* MIXED_FILAMENT_COMPONENTS_TAG = "components";
 static constexpr const char* SLICE_WARNING_TAG = "warning";
 static constexpr const char* WARNING_MSG_TAG = "msg";
 static constexpr const char *FILAMENT_ID_TAG   = "id";
@@ -347,6 +311,7 @@ static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_NUMS_ATTR = "other_laye
 static constexpr const char* SPIRAL_VASE_MODE = "spiral_mode";
 static constexpr const char* FILAMENT_MAP_MODE_ATTR = "filament_map_mode";
 static constexpr const char* FILAMENT_MAP_ATTR = "filament_maps";
+static constexpr const char* FILAMENT_VOL_MAP_ATTR = "filament_volume_maps";
 static constexpr const char* LIMIT_FILAMENT_MAP_ATTR = "limit_filament_maps";
 static constexpr const char* GCODE_FILE_ATTR = "gcode_file";
 static constexpr const char* THUMBNAIL_FILE_ATTR = "thumbnail_file";
@@ -677,6 +642,11 @@ bool bbs_is_valid_object_type(const std::string& type)
 
 namespace Slic3r {
 
+bool is_published_3mf_flag(const std::string &value)
+{
+    return value == "1";
+}
+
 void PlateData::parse_filament_info(GCodeProcessorResult *result)
 {
     if (!result) return;
@@ -699,12 +669,48 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         info.id = it->first;
         info.used_g = used_filament_g;
         info.used_m = used_filament_m;
+
+        // Stamp each filament's logical-nozzle assignment onto the saved 3mf so the device/monitor can
+        // reconstruct it. This block runs for every print: reorder_extruders_for_minimum_flush_volume
+        // runs unconditionally and stores a (non-null) 1-nozzle result even for a single-extruder print,
+        // so result->nozzle_group_result is non-null here for single-nozzle printers too. The stamped
+        // nozzle_diameter is the grouping result's rounded matching-key value; the 3mf writer decides the
+        // final saved diameter (see has_multi_nozzle_extruder). group_id and volume_type are unaffected.
+        if (result && result->nozzle_group_result) {
+            auto nozzles_for_filament = result->nozzle_group_result->get_nozzles_for_filament(it->first);
+            if (!nozzles_for_filament.empty()) {
+                info.group_id.reserve(nozzles_for_filament.size());
+                std::set<double> diameters;
+                std::set<NozzleVolumeType> volume_types;
+                for (const auto& nozzle : nozzles_for_filament) {
+                    info.group_id.emplace_back(nozzle.group_id);
+                    diameters.insert(string_to_double_decimal_point(nozzle.diameter));
+                    volume_types.insert(nozzle.volume_type);
+                }
+                std::sort(info.group_id.begin(), info.group_id.end());
+                info.group_id.erase(std::unique(info.group_id.begin(), info.group_id.end()), info.group_id.end());
+                if (!diameters.empty())
+                    info.nozzle_diameter = *diameters.begin();
+                if (volume_types.size() > 1)
+                    info.nozzle_volume_type = get_nozzle_volume_type_string(nvtHybrid);
+                else if (!volume_types.empty())
+                    info.nozzle_volume_type = get_nozzle_volume_type_string(*volume_types.begin());
+            }
+        }
+
         auto model_volume_it = ps.model_volumes_per_extruder.find(it->first);
         auto support_volume_it = ps.support_volumes_per_extruder.find(it->first);
         info.used_for_object = model_volume_it != ps.model_volumes_per_extruder.end() && model_volume_it->second > EPSILON;
         info.used_for_support = support_volume_it != ps.support_volumes_per_extruder.end() && support_volume_it->second > EPSILON;
         slice_filaments_info.push_back(info);
     }
+
+    // Carry the layer-aware grouping result into the plate so the 3mf writer can emit the <nozzle> tags
+    // and the enable_filament_dynamic_map flag. Only a LayeredNozzleGroupResult (the slicer output) is
+    // stored; a device-side StaticNozzleGroupResult loaded from a 3mf is not re-serialized here.
+    auto layered_group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(result->nozzle_group_result);
+    if (layered_group_result)
+        nozzle_group_result = *layered_group_result;
 
     /* only for test
     GCodeProcessorResult::SliceWarning sw;
@@ -1177,6 +1183,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // add backup & restore logic
         bool _load_model_from_file(std::string filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config, ConfigSubstitutionContext& config_substitutions, Import3mfProgressFn proFn = nullptr,
             BBLProject* project = nullptr, int plate_id = 0);
+
+        // A minimal published 3MF carries no slicer tags (any tag would make old receivers show
+        // a baked-in, wrong "old version" popup on their geometry-only fallback), so it
+        // classifies as From_Other. It is still a fully structured OrcaSlicer file though:
+        // identified by its own metadata, it keeps BBS-grade geometry handling (no instance
+        // splitting, no transform baking, no renaming) in this build. Old receivers without the
+        // publish feature don't know the metadata and take their third-party geometry path.
+        // Reads the parse-time metadata: the model XML carries it before its resources, while
+        // m_model->model_info is only filled in after the whole XML has been parsed.
+        bool _is_published_3mf() const {
+            const auto it = this->model_info.metadata_items.find(ORCA_PUBLISHED_TAG);
+            return it != this->model_info.metadata_items.end() && is_published_3mf_flag(it->second);
+        }
+
         bool _is_svg_shape_file(const std::string &filename) const;
         bool _extract_from_archive(mz_zip_archive& archive, std::string const & path, std::function<bool (mz_zip_archive& archive, const mz_zip_archive_file_stat& stat)>, bool restore = false);
         bool _extract_xml_from_archive(mz_zip_archive& archive, std::string const & path, XML_StartElementHandler start_handler, XML_EndElementHandler end_handler);
@@ -1278,10 +1298,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _handle_end_config_metadata();
 
         bool _handle_start_config_filament(const char** attributes, unsigned int num_attributes);
+        bool _handle_start_config_mixed_filament(const char** attributes, unsigned int num_attributes);
         bool _handle_end_config_filament();
 
         bool _handle_start_config_warning(const char** attributes, unsigned int num_attributes);
         bool _handle_end_config_warning();
+
+        bool _handle_start_config_nozzle(const char** attributes, unsigned int num_attributes);
+        bool _handle_end_config_nozzle();
 
         //BBS: add plater config parse functions
         bool _handle_start_config_plater(const char** attributes, unsigned int num_attributes);
@@ -1618,8 +1642,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate->is_label_object_enabled = it->second->is_label_object_enabled;
             plate->skipped_objects = it->second->skipped_objects;
             plate->slice_filaments_info = it->second->slice_filaments_info;
+            plate->nozzles_info = it->second->nozzles_info;
             plate->printer_model_id = it->second->printer_model_id;
             plate->nozzle_diameters = it->second->nozzle_diameters;
+            plate->nozzle_volume_types = it->second->nozzle_volume_types;
             plate->filament_maps = it->second->filament_maps;
             plate->filament_change_sequence = it->second->filament_change_sequence;
             plate->nozzle_change_sequence = it->second->nozzle_change_sequence;
@@ -1995,7 +2021,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         lock.close();
 
-        if (!m_is_bbl_3mf) {
+        if (!m_is_bbl_3mf && !_is_published_3mf()) {
             // if the 3mf was not produced by OrcaSlicer and there is more than one instance,
             // split the object in as many objects as instances
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", found 3mf from other vendor, split as instance");
@@ -2289,9 +2315,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate_data_list[it->first-1]->is_support_used = it->second->is_support_used;
             plate_data_list[it->first-1]->is_label_object_enabled = it->second->is_label_object_enabled;
             plate_data_list[it->first-1]->slice_filaments_info = it->second->slice_filaments_info;
+            plate_data_list[it->first-1]->nozzles_info  = it->second->nozzles_info;
             plate_data_list[it->first-1]->skipped_objects = it->second->skipped_objects;
             plate_data_list[it->first-1]->printer_model_id = it->second->printer_model_id;
             plate_data_list[it->first-1]->nozzle_diameters = it->second->nozzle_diameters;
+            plate_data_list[it->first-1]->nozzle_volume_types = it->second->nozzle_volume_types;
             plate_data_list[it->first-1]->filament_maps = it->second->filament_maps;
             plate_data_list[it->first-1]->filament_change_sequence = it->second->filament_change_sequence;
             plate_data_list[it->first-1]->nozzle_change_sequence = it->second->nozzle_change_sequence;
@@ -2650,6 +2678,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return;
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
+
+            // Heal any gradient-curve slots corrupted by the legacy "|" separator collision
+            // (see FilamentMixer::sanitize_mixed_gradient_curve_array). The 3MF JSON itself
+            // is safe (";" + C-style escape), but older projects saved through the buggy
+            // export_selections/load_selections path may already carry single-point entries
+            // that fail MakerWorld's "curve needs >= 2 points" check.
+            if (auto* curve_opt = config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
+                Slic3r::sanitize_mixed_gradient_curve_array(curve_opt->values);
         }
     }
 
@@ -3467,8 +3503,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             res = _handle_start_config_plater_instance(attributes, num_attributes);
         else if (::strcmp(FILAMENT_TAG, name) == 0)
             res = _handle_start_config_filament(attributes, num_attributes);
+        else if (::strcmp(MIXED_FILAMENT_TAG, name) == 0)
+            res = _handle_start_config_mixed_filament(attributes, num_attributes);
         else if (::strcmp(SLICE_WARNING_TAG, name) == 0)
             res = _handle_start_config_warning(attributes, num_attributes);
+        else if (::strcmp(NOZZLE_TAG, name) == 0)
+            res = _handle_start_config_nozzle(attributes, num_attributes);
         else if (::strcmp(ASSEMBLE_TAG, name) == 0)
             res = _handle_start_assemble(attributes, num_attributes);
         else if (::strcmp(ASSEMBLE_ITEM_TAG, name) == 0)
@@ -3503,6 +3543,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             res = _handle_end_config_plater();
         else if (::strcmp(FILAMENT_TAG, name) == 0)
             res = _handle_end_config_filament();
+        else if (::strcmp(NOZZLE_TAG, name) == 0)
+            res = _handle_end_config_nozzle();
         else if (::strcmp(INSTANCE_TAG, name) == 0)
             res = _handle_end_config_plater_instance();
         else if (::strcmp(ASSEMBLE_TAG, name) == 0)
@@ -3543,7 +3585,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             m_index_paths.insert({ object.first.second, object.first.first});
         }
 
-        if (!m_is_bbl_3mf) {
+        if (!m_is_bbl_3mf && !_is_published_3mf()) {
             // if the 3mf was not produced by OrcaSlicer and there is only one object,
             // set the object name to match the filename
             if (m_model->objects.size() == 1)
@@ -4460,6 +4502,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     m_curr_plater->config.set_key_value("filament_map", new ConfigOptionInts(filament_map));
                 }
             }
+            else if (key == FILAMENT_VOL_MAP_ATTR) {
+                if (m_curr_plater){
+                    auto filament_volume_map = get_vector_from_string(value);
+                    for (size_t idx = 0; idx < filament_volume_map.size(); ++idx) {
+                        // The map feeds per-filament slot resolution and grouping. Clamp any
+                        // higher volume-type back to Standard(0) on load: Hybrid(2) is only an
+                        // in-memory grouping seed that is never persisted, and TPU High Flow(3)
+                        // is clamped with the same information loss on every load.
+                        if (filament_volume_map[idx] > 1) {
+                            filament_volume_map[idx] = 0;
+                        }
+                    }
+                    m_curr_plater->config.set_key_value("filament_volume_map", new ConfigOptionInts(filament_volume_map));
+                }
+            }
             else if (key == GCODE_FILE_ATTR)
             {
                 m_curr_plater->gcode_file = value;
@@ -4569,6 +4626,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (m_curr_plater)
                     m_curr_plater->printer_model_id = value;
             }
+            else if (key == NOZZLE_VOLUME_TYPE_ATTR)
+            {
+                if (m_curr_plater)
+                    m_curr_plater->nozzle_volume_types = value;
+            }
             else if (key == NOZZLE_DIAMETERS_ATTR)
             {
                 if (m_curr_plater)
@@ -4616,7 +4678,59 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
+    bool _BBS_3MF_Importer::_handle_start_config_mixed_filament(const char** attributes, unsigned int num_attributes)
+    {
+        if (m_curr_plater) {
+            std::string id         = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_ID_TAG);
+            std::string type       = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_TYPE_TAG);
+            std::string color      = bbs_get_attribute_value_string(attributes, num_attributes, FILAMENT_COLOR_TAG);
+            std::string components = bbs_get_attribute_value_string(attributes, num_attributes, MIXED_FILAMENT_COMPONENTS_TAG);
+            PlateMixedFilamentInfo mixed_info;
+            mixed_info.id         = atoi(id.c_str());
+            mixed_info.type       = type;
+            mixed_info.color      = color;
+            mixed_info.components = components;
+            m_curr_plater->mixed_filaments_info.push_back(mixed_info);
+        }
+        return true;
+    }
+
     bool _BBS_3MF_Importer::_handle_end_config_filament()
+    {
+        // do nothing
+        return true;
+    }
+
+    bool _BBS_3MF_Importer::_handle_start_config_nozzle(const char** attributes, unsigned int num_attributes)
+    {
+        // Read the per-plate <nozzle> tags. Older 3mf without <nozzle> tags leave nozzles_info
+        // empty; load_nozzle_infos_with_compatibility then rebuilds the list from the per-filament
+        // group_id / filament_map on the device side.
+        if (m_curr_plater) {
+            // id="0" extruder_id="1" nozzle_diameter="0.4" volume_type="Standard"
+            std::string id             = bbs_get_attribute_value_string(attributes, num_attributes, "id");
+            std::string extruder_id    = bbs_get_attribute_value_string(attributes, num_attributes, "extruder_id");
+            std::string nozzle_diameter= bbs_get_attribute_value_string(attributes, num_attributes, "nozzle_diameter");
+            std::string volume_type    = bbs_get_attribute_value_string(attributes, num_attributes, "volume_type");
+
+            auto volume_type_str_to_enum = ConfigOptionEnum<NozzleVolumeType>::get_enum_values();
+
+            MultiNozzleUtils::NozzleInfo nozzle_info;
+            nozzle_info.group_id    = atoi(id.c_str());
+            nozzle_info.extruder_id = atoi(extruder_id.c_str()) - 1;
+            nozzle_info.diameter    = nozzle_diameter;
+
+            if (volume_type_str_to_enum.count(volume_type))
+                nozzle_info.volume_type = NozzleVolumeType(volume_type_str_to_enum.at(volume_type));
+            else
+                nozzle_info.volume_type = NozzleVolumeType::nvtStandard;
+
+            m_curr_plater->nozzles_info.push_back(nozzle_info);
+        }
+        return true;
+    }
+
+    bool _BBS_3MF_Importer::_handle_end_config_nozzle()
     {
         // do nothing
         return true;
@@ -5194,7 +5308,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             TriangleMesh triangle_mesh(std::move(its), volume_data.mesh_stats);
 
-            if (!m_is_bbl_3mf) {
+            if (!m_is_bbl_3mf && !_is_published_3mf()) {
                 // if the 3mf was not produced by OrcaSlicer and there is only one instance,
                 // bake the transformation into the geometry to allow the reload from disk command
                 // to work properly
@@ -5840,6 +5954,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_save_gcode { false };        // whether to save gcode for normal save
         bool m_skip_model { false };        // skip model when exporting .gcode.3mf
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
+        bool m_minimal_published { false }; // published 3MF: omit the project config, the embedded preset files and the slicer tags
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_share_mesh { false };        // whether to share mesh between objects
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
@@ -5939,6 +6054,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_skip_auxiliary = store_params.strategy & SaveStrategy::SkipAuxiliary;
         m_share_mesh       = store_params.strategy & SaveStrategy::ShareMesh;
         m_from_backup_save = store_params.strategy & SaveStrategy::Backup;
+        m_minimal_published = store_params.strategy & SaveStrategy::MinimalPublished;
 
         m_use_loaded_id = store_params.strategy & SaveStrategy::UseLoadedId;
 
@@ -6348,7 +6464,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             // Adds slic3r print config file ("Metadata/Slic3r_PE.config").
             // This file contains the content of FullPrintConfig / SLAFullPrintConfig.
-            if (config != nullptr) {
+            // Omitted for minimal published 3MF: OrcaSlicer versions without the publish feature
+            // then fall back to importing the geometry only, and new versions read the published
+            // payload from the model metadata instead.
+            if (config != nullptr && !m_minimal_published) {
                 // BBS: change to json format
                 // if (!_add_print_config_file_to_archive(archive, *config)) {
                 if (!_add_project_config_file_to_archive(archive, *config, model)) { return false; }
@@ -6361,8 +6480,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (cb_cancel) return false;
             }
 
-            // BBS: add project config
-            if (project_presets.size() > 0) {
+            // BBS: add project config (omitted for minimal published 3MF)
+            if (!m_minimal_published && project_presets.size() > 0) {
                 // BBS: add project embedded preset files
                 _add_project_embedded_presets_to_archive(archive, model, project_presets);
 
@@ -6834,10 +6953,31 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // Orca: PRIVACY: do not store creation & modification date in 3mf
                 metadata_item_map[BBL_CREATION_DATE_TAG] = "";
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
-                // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION
-                metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
+                // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION.
+                // A minimal published 3MF writes no slicer tags at all: any tag would route old
+                // receivers onto a geometry-only fallback whose baked-in popup misreports the
+                // file ("old OrcaSlicer version" / "BambuStudio"), while tag-less files classify
+                // as From_Other and import the geometry silently.
+                if (m_minimal_published) {
+                    // metadata_item_map is seeded from the input file's metadata_items above, so a
+                    // project opened from a regular Orca/BBS 3MF still carries the slicer-identifying
+                    // tags it came with. Erase every one of them - not just the two most common -
+                    // so a published 3MF is fully tag-less: old receivers classify it as From_Other
+                    // and import the geometry silently instead of showing a baked-in "old version"
+                    // popup, and no version marker survives to seed a later re-save.
+                    metadata_item_map.erase(BBL_APPLICATION_TAG);
+                    metadata_item_map.erase(ORCASLICER_TAG);
+                    metadata_item_map.erase(BBS_3MF_VERSION);
+                    metadata_item_map.erase(BBS_3MF_VERSION1);
+                } else {
+                    metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
+                }
             }
-            metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
+            // The Bambu 3MF version marker is part of the slicer identity: omit it for a minimal
+            // published file along with the tags erased above (skipping the overwrite alone would
+            // leave the value the source file seeded into metadata_item_map).
+            if (!m_minimal_published)
+                metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
             if (!model.mk_name.empty()) {
                 metadata_item_map[BBL_MAKERLAB_TAG] = xml_escape(model.mk_name);
@@ -6860,7 +7000,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 BOOST_LOG_TRIVIAL(info) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
-                if (item.first == BBL_APPLICATION_TAG) {
+                if (item.first == BBL_APPLICATION_TAG && !m_minimal_published) {
+                    // The OrcaSlicer tag is only written for files that carry the Application
+                    // tag, which a minimal published 3MF erases (see the map assignment above):
+                    // the explicit !m_minimal_published guard keeps the tag-less guarantee from
+                    // depending on that erase happening to run first.
                     stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
                            << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
                 }
@@ -7980,6 +8124,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     stream << "\"/>\n";
                 }
 
+                ConfigOptionInts* filament_volume_maps_opt = plate_data->config.option<ConfigOptionInts>("filament_volume_map");
+                if (filament_map_mode_opt != nullptr && filament_volume_maps_opt != nullptr) {
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FILAMENT_VOL_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    const std::vector<int>& volume_values = filament_volume_maps_opt->values;
+                    for (int i = 0; i < volume_values.size(); ++i) {
+                        stream << volume_values[i];
+                        if (i != (volume_values.size() - 1))
+                            stream << " ";
+                    }
+                    stream << "\"/>\n";
+                }
+
                 if (save_gcode)
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << GCODE_FILE_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << xml_escape(plate_data->gcode_file) << "\"/>\n";
                 if (!plate_data->gcode_file.empty()) {
@@ -8119,7 +8275,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 [](unsigned int filament_id) { return filament_id + 1; });
 
             const std::string plate_key = "plate_" + std::to_string(idx + 1);
-            sequence_json[plate_key]["sequence"] = filament_sequence;
+            // Dynamic-map plates write the sequence under "filament_sequence"; every other plate (the
+            // whole shipping fleet + H2C static mode) keeps the "sequence" key, so the saved 3mf is
+            // byte-identical to the older format. The reader accepts both.
+            const bool enable_dynamic_map = plate_data->nozzle_group_result && plate_data->nozzle_group_result->is_support_dynamic_nozzle_map();
+            const std::string seq_key = enable_dynamic_map ? "filament_sequence" : "sequence";
+            sequence_json[plate_key][seq_key] = filament_sequence;
             sequence_json[plate_key]["nozzle_sequence"] = plate_data->nozzle_change_sequence;
             sequence_json[plate_key]["optimal_assignment"] = plate_data->optimal_assignment;
         }
@@ -8205,6 +8366,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (nozzle_diameter_option)
                     nozzle_diameters_str = nozzle_diameter_option->serialize();
 
+                // True when any extruder carries a cluster of interchangeable nozzles (max nozzle count
+                // > 1). Such an extruder's per-nozzle diameters are not expressible in the per-extruder
+                // nozzle_diameter config, so the saved <filament>/<nozzle> diameters must come from the
+                // grouping result. For a single-nozzle-per-extruder printer the true diameter is the raw
+                // config value; the grouping result rounds it to the nearest of {0.2,0.4,0.6,0.8} for its
+                // internal matching key, so reading that back would rewrite a non-standard nozzle
+                // (e.g. 0.5 -> 0.4). Use this flag to keep the exact config value in that case.
+                auto* extruder_max_nozzle_count_option = dynamic_cast<const ConfigOptionInts*>(config.option("extruder_max_nozzle_count"));
+                const bool has_multi_nozzle_extruder = extruder_max_nozzle_count_option &&
+                    std::any_of(extruder_max_nozzle_count_option->values.begin(), extruder_max_nozzle_count_option->values.end(),
+                                [](int v) { return v > 1; });
+
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PRINTER_MODEL_ID_ATTR       << "\" " << VALUE_ATTR << "=\"" << plate_data->printer_model_id << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << NOZZLE_DIAMETERS_ATTR       << "\" " << VALUE_ATTR << "=\"" << nozzle_diameters_str << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << TIMELAPSE_TYPE_ATTR << "\" " << VALUE_ATTR << "=\"" << timelapse_type << "\"/>\n";
@@ -8214,7 +8387,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << OUTSIDE_ATTR      << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->toolpath_outside << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SUPPORT_USED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_support_used << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LABEL_OBJECT_ENABLED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_label_object_enabled << "\"/>\n";
-                stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << false << "\"/>\n";
+                // Report the plate's dynamic-map state from the grouping result. The result is present
+                // for the whole fleet (a static single-nozzle result too), so this if-branch is normally
+                // taken; is_support_dynamic_nozzle_map() is false for any non-dynamic (static /
+                // single-extruder) result ⇒ byte-identical to the previously hard-coded value. The else
+                // is a defensive fallback for a missing result.
+                if (plate_data && plate_data->nozzle_group_result)
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << plate_data->nozzle_group_result->is_support_dynamic_nozzle_map() << "\"/>\n";
+                else
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ENABLE_FILAMENT_DYNAMIC_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << false << "\"/>\n";
                 {
                     bool has_filament_switcher = config.has("has_filament_switcher") ? config.opt_bool("has_filament_switcher") : false;
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << HAS_FILAMENT_SWITCHER_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << has_filament_switcher << "\"/>\n";
@@ -8329,7 +8510,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     if (std::find(used_nozzle_groups.begin(), used_nozzle_groups.end(), nozzle_group_id) == used_nozzle_groups.end())
                         used_nozzle_groups.push_back(nozzle_group_id);
                     const std::string filament_nozzle_group_id = it->group_id.empty() ? std::to_string(nozzle_group_id) : join_int_list_comma(it->group_id);
-                    const double filament_nozzle_diameter = it->nozzle_diameter > 0.0 ? it->nozzle_diameter : get_nozzle_diameter(nozzle_group_id);
+                    // Single-nozzle extruders: exact config diameter; clusters keep the result's rounded
+                    // value (see has_multi_nozzle_extruder).
+                    const double filament_nozzle_diameter = (has_multi_nozzle_extruder && it->nozzle_diameter > 0.0)
+                                                                ? it->nozzle_diameter : get_nozzle_diameter(nozzle_group_id);
                     const std::string filament_nozzle_volume_type = it->nozzle_volume_type.empty() ? get_nozzle_volume_type(nozzle_group_id) : it->nozzle_volume_type;
 
                     stream << "    <" << FILAMENT_TAG << " " << FILAMENT_ID_TAG << "=\"" << std::to_string(it->id + 1) << "\" "
@@ -8345,16 +8529,41 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                            << FILAMENT_USED_FOR_SUPPORT << "=\"" << std::boolalpha << it->used_for_support << "\"/>\n";
                 }
 
+                // Mixed (virtual) filaments used by this plate. These are resolved to physical
+                // components before g-code statistics, so they are not present in the <filament>
+                // list above and are recorded separately here.
+                for (auto it = plate_data->mixed_filaments_info.begin(); it != plate_data->mixed_filaments_info.end(); it++)
+                {
+                    stream << "    <" << MIXED_FILAMENT_TAG << " " << FILAMENT_ID_TAG << "=\"" << std::to_string(it->id) << "\" "
+                           << FILAMENT_TYPE_TAG << "=\"" << it->type << "\" "
+                           << FILAMENT_COLOR_TAG << "=\"" << it->color << "\" "
+                           << MIXED_FILAMENT_COMPONENTS_TAG << "=\"" << it->components << "\"/>\n";
+                }
+
                 for (auto it = plate_data->warnings.begin(); it != plate_data->warnings.end(); it++) {
                     stream << "    <" << SLICE_WARNING_TAG << " msg=\"" << it->msg << "\" level=\"" << std::to_string(it->level) << "\" error_code =\"" << it->error_code << "\"  />\n";
                 }
 
-                for (int nozzle_group_id : used_nozzle_groups) {
-                    stream << "    <" << NOZZLE_TAG << " "
-                           << "id=\"" << nozzle_group_id << "\" "
-                           << "extruder_id=\"" << nozzle_group_id + 1 << "\" "
-                           << "nozzle_diameter=\"" << get_nozzle_diameter_str(nozzle_group_id) << "\" "
-                           << "volume_type=\"" << get_nozzle_volume_type(nozzle_group_id) << "\"/>\n";
+                // Emit the <nozzle> tags from the grouping result. Single-nozzle-per-extruder printers
+                // override the diameter with the exact config value (see has_multi_nozzle_extruder); the
+                // else is a defensive fallback for a missing result.
+                if (plate_data->nozzle_group_result) {
+                    auto used_nozzle_list = plate_data->nozzle_group_result->get_used_nozzles_in_extruder();
+                    for (auto& used_nozzle : used_nozzle_list) {
+                        if (!has_multi_nozzle_extruder && nozzle_diameter_option &&
+                            used_nozzle.extruder_id >= 0 && used_nozzle.extruder_id < (int) nozzle_diameter_option->values.size()) {
+                            used_nozzle.diameter = get_nozzle_diameter_str(used_nozzle.extruder_id);
+                        }
+                        stream << "    <" << NOZZLE_TAG << " " << used_nozzle.serialize() << "/>\n";
+                    }
+                } else {
+                    for (int nozzle_group_id : used_nozzle_groups) {
+                        stream << "    <" << NOZZLE_TAG << " "
+                               << "id=\"" << nozzle_group_id << "\" "
+                               << "extruder_id=\"" << nozzle_group_id + 1 << "\" "
+                               << "nozzle_diameter=\"" << get_nozzle_diameter_str(nozzle_group_id) << "\" "
+                               << "volume_type=\"" << get_nozzle_volume_type(nozzle_group_id) << "\"/>\n";
+                    }
                 }
 
                 if (!plate_data->layer_filaments.empty()) {
@@ -8635,7 +8844,7 @@ public:
         auto model = object.get_model();
         auto o = m_temp_model.add_object(object);
         int backup_id = model->get_object_backup_id(object);
-        push_task({ AddObject, (size_t) backup_id, object.get_model()->get_backup_path(), o, 1 });
+        push_task({ AddObject, (size_t) backup_id, object.get_model()->get_backup_path(), o, { 1 } });
     }
 
     void remove_object_mesh(ModelObject& object) {
@@ -8645,7 +8854,7 @@ public:
     void backup_soon() {
         boost::lock_guard lock(m_mutex);
         m_other_changes_backup = true;
-        m_tasks.push_back({ Backup, 0, std::string(), nullptr, ++m_task_seq });
+        m_tasks.push_back({ Backup, 0, std::string(), nullptr, { ++m_task_seq } });
         m_cond.notify_all();
     }
 
@@ -8663,7 +8872,7 @@ public:
             m_ui_tasks.clear();
             m_tasks.clear();
         }
-        m_tasks.push_back({ RemoveBackup, model.id().id, model.get_backup_path(), nullptr, removeAll });
+        m_tasks.push_back({ RemoveBackup, model.id().id, model.get_backup_path(), nullptr, { removeAll } });
         ++m_task_seq;
         if (model.is_need_backup()) {
             m_other_changes = false;
@@ -8764,7 +8973,7 @@ private:
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inital and interval = " << m_interval;
         m_next_backup = boost::get_system_time() + boost::posix_time::seconds(m_interval);
         boost::unique_lock lock(m_mutex);
-        m_thread = std::move(boost::thread(boost::ref(*this)));
+        m_thread = boost::thread(boost::ref(*this));
     }
 
     ~_BBS_Backup_Manager() {
@@ -8878,7 +9087,7 @@ public:
                 else
                     m_cond.wait(lock);
                 if (m_interval > 0 && boost::get_system_time() > m_next_backup) {
-                    m_tasks.push_back({ Backup, 0, std::string(), nullptr, ++m_task_seq });
+                    m_tasks.push_back({ Backup, 0, std::string(), nullptr, { ++m_task_seq } });
                     m_next_backup += boost::posix_time::seconds(m_interval);
                     // Maybe wakeup from power sleep
                     if (m_next_backup < boost::get_system_time())
@@ -8972,6 +9181,126 @@ std::string bbs_3mf_get_thumbnail(const char *path)
     bool res = importer.get_thumbnail(path, data);
     if (!res) importer.log_errors();
     return data;
+}
+
+namespace {
+
+// Parses just the model-file <metadata> elements, mirroring the importer's
+// _handle_start_metadata/_handle_end_metadata (attribute-order independent, entity-unescaped,
+// whitespace tolerant). Stops the parser as soon as the published flag node is read so the
+// geometry/resources that follow are skipped, which keeps the per-file cost small.
+struct PublishedXmlProbe
+{
+    XML_Parser parser{nullptr};
+    bool       in_metadata{false};
+    bool       found{false};
+    bool       published{false};
+    std::string curr_name;
+    std::string curr_value;
+
+    static std::string attribute(const char** attrs, const char* key)
+    {
+        if (attrs == nullptr)
+            return std::string();
+        // expat hands the attrs as a NULL-terminated {name, value, ...} array.
+        for (unsigned int a = 0; attrs[a] != nullptr; a += 2)
+            if (::strcmp(attrs[a], key) == 0 && attrs[a + 1] != nullptr)
+                return attrs[a + 1];
+        return std::string();
+    }
+
+    static void XMLCALL start(void* user_data, const char* name, const char** attrs)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (::strcmp(name, METADATA_TAG) == 0) {
+            self->in_metadata = true;
+            self->curr_name   = attribute(attrs, NAME_ATTR);
+            self->curr_value.clear();
+        } else {
+            self->in_metadata = false;
+        }
+    }
+
+    static void XMLCALL characters(void* user_data, const XML_Char* s, int len)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (self->in_metadata)
+            self->curr_value.append(s, len);
+    }
+
+    static void XMLCALL end(void* user_data, const char* name)
+    {
+        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        if (!self->in_metadata || ::strcmp(name, METADATA_TAG) != 0)
+            return;
+        self->in_metadata = false;
+        if (self->curr_name == ORCA_PUBLISHED_TAG) {
+            self->published = is_published_3mf_flag(xml_unescape(self->curr_value));
+            self->found     = true;
+            if (self->parser != nullptr)
+                XML_StopParser(self->parser, false);
+        }
+    }
+};
+
+} // namespace
+
+bool bbs_3mf_is_published(const std::string &path)
+{
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+
+    struct close_lock
+    {
+        mz_zip_archive *archive;
+        void            close()
+        {
+            if (archive) {
+                close_zip_reader(archive);
+                archive = nullptr;
+            }
+        }
+        ~close_lock() { close(); }
+    } lock{&archive};
+
+    if (!open_zip_reader(&archive, path))
+        return false;
+
+    // Read just the model XML (the metadata node sits before the resources, so the probe below
+    // stops early) rather than by a raw substring match; no geometry parsing.
+    int index = mz_zip_reader_locate_file(&archive, MODEL_FILE.c_str(), nullptr, 0);
+    if (index < 0)
+        return false;
+    mz_zip_archive_file_stat stat;
+    if (!mz_zip_reader_file_stat(&archive, index, &stat))
+        return false;
+    std::string xml(stat.m_uncomp_size, '\0');
+    if (!mz_zip_reader_extract_to_mem(&archive, index, xml.data(), xml.size(), 0))
+        return false;
+
+    XML_Parser parser = XML_ParserCreate(nullptr);
+    if (parser == nullptr)
+        return false;
+
+    PublishedXmlProbe probe;
+    probe.parser = parser;
+    XML_SetUserData(parser, &probe);
+    XML_SetElementHandler(parser, PublishedXmlProbe::start, PublishedXmlProbe::end);
+    XML_SetCharacterDataHandler(parser, PublishedXmlProbe::characters);
+    // Never resolve external entities from a file we are only probing.
+    XML_SetExternalEntityRefHandler(parser, nullptr);
+    XML_SetEntityDeclHandler(parser, nullptr);
+
+    const XML_Status status = XML_Parse(parser, xml.data(), static_cast<int>(xml.size()), 1);
+    // XML_StopParser(parser, false) from the end handler makes XML_Parse return
+    // XML_STATUS_ERROR with XML_ERROR_ABORTED - treat that as success (we stopped on the flag).
+    const bool parse_ok = (status == XML_STATUS_OK) ||
+                          (XML_GetErrorCode(parser) == XML_ERROR_ABORTED && probe.found);
+    XML_ParserFree(parser);
+
+    if (!parse_ok)
+        return false;
+    return probe.published;
 }
 
 bool load_gcode_3mf_from_stream(std::istream &data, DynamicPrintConfig *config, Model *model, PlateDataPtrs *plate_data_list, Semver *file_version)

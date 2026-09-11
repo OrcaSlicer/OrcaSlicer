@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "MTq8xcAKCWABLI2k",
+	"name": "QIDI PLA Basic @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA Basic@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

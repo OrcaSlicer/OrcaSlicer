@@ -353,6 +353,7 @@ bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Ca
                 rot = Vec3d(rot.x(), -rot.z(), rot.y());
             rot = Vec3d(rot.x() * pitchmult, rot.y() * yawmult, rot.z() * rollmult);
             camera.rotate_local_around_target(Vec3d(rot.x(), - rot.z(), rot.y()));
+            camera.auto_type(Camera::EType::Perspective);
 	    } else {
 	    	assert(input_queue_item.is_buttons());
 	        switch (input_queue_item.type_or_buttons) {
@@ -497,7 +498,7 @@ void Mouse3DController::render_settings_dialog(GLCanvas3D& canvas) const
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 20.0f));
     static ImVec2 last_win_size(0.0f, 0.0f);
     bool shown = true;
-    if (imgui.begin(_L("3Dconnexion settings"), &shown, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse || ImGuiWindowFlags_NoTitleBar)) {
+    if (imgui.begin(_L("3Dconnexion settings"), &shown, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar)) {
         if (shown) {
             ImVec2 win_size = ImGui::GetWindowSize();
             if (last_win_size.x != win_size.x || last_win_size.y != win_size.y) {

@@ -62,7 +62,7 @@ struct TreeSupportMeshGroupSettings {
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
         this->support_roof_line_width   = support_material_interface_flow(&print_object, config.layer_height).scaled_width();
         const int bottom_interface_layers = number_of_support_interface_bottom_layers(config);
-        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && bottom_interface_layers > 0;
+        this->support_bottom_enable     = bottom_interface_layers > 0;
         this->support_bottom_height     = this->support_bottom_enable ?
             bottom_interface_layers * this->layer_height :
             0;
@@ -705,7 +705,7 @@ public:
     SupportGeneratorLayersPtr&  top_contacts_mutable() { return this->top_contacts; }
 
 public:
-    // Insert the contact layer and some of the inteface and base interface layers below.
+    // Insert the contact layer and some of the interface and base interface layers below.
     void add_roofs(std::vector<Polygons> &&new_roofs, const size_t insert_layer_idx)
     {
         if (! new_roofs.empty()) {

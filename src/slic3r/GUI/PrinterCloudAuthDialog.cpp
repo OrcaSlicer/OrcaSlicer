@@ -95,7 +95,7 @@ void PrinterCloudAuthDialog::OnScriptMessage(wxWebViewEvent& evt)
         }
         Close();
     } catch (std::exception& e) {
-        wxMessageBox(e.what(), "parse json failed", wxICON_WARNING);
+        wxMessageBox(e.what(), _L("parse json failed"), wxICON_WARNING);
         Close();
     }
 }

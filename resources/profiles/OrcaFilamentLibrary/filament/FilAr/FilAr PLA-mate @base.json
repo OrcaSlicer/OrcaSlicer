@@ -3,7 +3,7 @@
     "name": "FilAr PLA-mate @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "FILARB02",
+    "filament_id": "OFtOoWIj",
     "instantiation": "false",
     "filament_type": [
         "PLA"

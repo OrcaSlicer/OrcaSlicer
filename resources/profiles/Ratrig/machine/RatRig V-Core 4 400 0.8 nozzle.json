@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "RatRig V-Core 4 400 0.8 nozzle",
 	"inherits": "fdm_klipper_common",
+	"default_print_profile": "0.30mm Big @RatRig V-Core 4 0.8",
 	"from": "system",
 	"setting_id": "DQ7Lzsuk87A4qtav",
 	"instantiation": "true",

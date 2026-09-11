@@ -33,13 +33,13 @@
 		"0"
 	],
 	"close_fan_the_first_x_layers": [
-		"3"
+		"1"
 	],
 	"compatible_printers_condition": "",
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
-		"80"
+		"70"
 	],
 	"cool_plate_temp": [
 		"60"
@@ -47,20 +47,17 @@
 	"cool_plate_temp_initial_layer": [
 		"60"
 	],
-	"default_filament_colour": [
-		""
-	],
 	"dont_slow_down_outer_wall": [
 		"0"
 	],
 	"during_print_exhaust_fan_speed": [
-		"60"
+		"70"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"eng_plate_temp": [
 		"60"
@@ -102,7 +99,7 @@
 		"; filament end gcode \n"
 	],
 	"filament_flow_ratio": [
-		"0.99"
+		"0.966"
 	],
 	"filament_is_support": [
 		"0"
@@ -117,7 +114,7 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"18"
+		"20"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -126,7 +123,7 @@
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
-		"40"
+		"30"
 	],
 	"filament_multitool_ramming_volume": [
 		"5"
@@ -139,6 +136,9 @@
 	],
 	"filament_retract_before_wipe": [
 		"nil"
+	],
+	"filament_retract_length_toolchange": [
+		"5"
 	],
 	"filament_retract_lift_above": [
 		"nil"
@@ -159,13 +159,13 @@
 		"nil"
 	],
 	"filament_retraction_length": [
-		"0.8"
+		"1.2"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil"
 	],
 	"filament_retraction_speed": [
-		"30"
+		"nil"
 	],
 	"filament_shrink": [
 		"100%"
@@ -207,19 +207,19 @@
 		"nil"
 	],
 	"filament_z_hop": [
-		"nil"
+		"0.4"
 	],
 	"filament_z_hop_types": [
-		"nil"
+		"Slope Lift"
 	],
 	"full_fan_speed_layer": [
 		"0"
 	],
 	"hot_plate_temp": [
-		"55"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"55"
+		"65"
 	],
 	"idle_temperature": [
 		"0"
@@ -231,7 +231,7 @@
 		"220"
 	],
 	"nozzle_temperature_range_high": [
-		"230"
+		"240"
 	],
 	"nozzle_temperature_range_low": [
 		"190"
@@ -246,7 +246,7 @@
 		"0.4157"
 	],
 	"pressure_advance": [
-		"0.026"
+		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -267,7 +267,7 @@
 		"-1"
 	],
 	"temperature_vitrification": [
-		"60"
+		"45"
 	],
 	"textured_cool_plate_temp": [
 		"40"
@@ -276,9 +276,9 @@
 		"40"
 	],
 	"textured_plate_temp": [
-		"60"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"60"
+		"65"
 	]
 }

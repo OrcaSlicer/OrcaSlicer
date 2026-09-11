@@ -3,7 +3,7 @@
 	"name": "Arena PET-CF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFT01",
+	"filament_id": "OFc87pL3",
 	"instantiation": "false",
 	"temperature_vitrification": [
 		"185"

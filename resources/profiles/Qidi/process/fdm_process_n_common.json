@@ -84,7 +84,6 @@
 	"locked_skin_infill_pattern": "crosszag",
 	"locked_skeleton_infill_pattern": "zigzag",
 	"max_travel_detour_distance": "0",
-	"machine_prepare_compensation_time": "260",
 	"minimum_sparse_infill_area": "15",
 	"only_one_wall_top": "1",
 	"outer_wall_acceleration": [

@@ -1456,7 +1456,7 @@ void TriangleSelectorPatch::update_triangles_per_patch()
         return touching_triangles;
     };
 
-    auto calc_fragment_area = [this](const TrianglePatch& patch, float max_limit_area, int stride) {
+    auto calc_fragment_area = [](const TrianglePatch& patch, float max_limit_area, int stride) {
         double total_area = 0.f;
         const std::vector<int>& ti = patch.triangle_indices;
         /*for (int i = 0; i < ti.size() / 3; i++) {

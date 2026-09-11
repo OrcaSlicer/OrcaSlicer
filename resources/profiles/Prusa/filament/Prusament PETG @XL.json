@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PETG @XL",
-	"inherits": "fdm_filament_pet",
+	"inherits": "Prusament PETG @base",
 	"from": "system",
 	"setting_id": "vPPD8EkKFy5j8pg5",
 	"instantiation": "true",

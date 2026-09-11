@@ -3,7 +3,7 @@
 	"name": "BETA PLA Transparent @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB14",
+	"filament_id": "OFJnEaCp",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

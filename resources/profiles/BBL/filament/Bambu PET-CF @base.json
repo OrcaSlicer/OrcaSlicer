@@ -3,7 +3,7 @@
 	"name": "Bambu PET-CF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFT01",
+	"filament_id": "OFHa48An",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"cool_plate_temp": [
@@ -45,6 +45,27 @@
 	"filament_adhesiveness_category": [
 		"800"
 	],
+    "filament_dev_chamber_drying_bed_temperature": [
+        "90"
+    ],
+    "filament_dev_ams_drying_ams_limitations": [
+        "1"
+    ],
+    "filament_dev_ams_drying_heat_distortion_temperature": [
+        "165"
+    ],
+    "filament_dev_drying_cooling_temperature": [
+        "150"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "80",
+        "65",
+        "80"
+    ],
+    "filament_dev_drying_softening_temperature": [
+        "150"
+    ],
 	"hot_plate_temp": [
 		"100"
 	],

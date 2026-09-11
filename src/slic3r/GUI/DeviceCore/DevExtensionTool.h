@@ -31,7 +31,7 @@ protected:
     DevExtensionTool(MachineObject* obj);
 
 private:
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 
     enum MountState
     {

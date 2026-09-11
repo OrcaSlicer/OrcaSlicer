@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa XL 5T",
-	"default_filament_profile": "Prusa Generic PLA @XL 5T",
+	"default_filament_profile": "Generic PLA @Prusa XL 5T",
 	"default_print_profile": "0.20mm Speed @Prusa XL 5T 0.4",
 	"printer_variant": "0.4",
 	"nozzle_diameter": [

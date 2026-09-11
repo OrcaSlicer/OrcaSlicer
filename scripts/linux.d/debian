@@ -27,6 +27,9 @@ REQUIRED_DEV_PACKAGES=(
     ninja-build
     texinfo
     wget
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]
