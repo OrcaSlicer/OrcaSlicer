@@ -22,7 +22,6 @@
 
 #include <cstdio>
 #include <string>
-#include <optional>
 #include <cstring>
 #include <iostream>
 #include <math.h>
@@ -3805,11 +3804,24 @@ int CLI::run(int argc, char **argv)
     //      values into m_extra_config. Only keys whose value the override actually changed are
     //      recorded -- a typed value equal to the loaded one modifies nothing -- and each lands in
     //      the column(s) whose preset type owns it: [0] process, [1..n-2] filaments, [n-1] printer.
-    std::map<std::string, std::optional<std::string>> cli_override_before;
-    for (const std::string &key : m_config.keys())
-        if (m_extra_config.has(key))
-            cli_override_before[key] = m_print_config.has(key) ? std::optional<std::string>(m_print_config.opt_serialize(key))
-                                                               : std::nullopt;
+    //
+    //      "Changed" is judged the way the value is read: a list is compared entry by entry with a
+    //      missing entry read as the first, as get_at() does -- so --nozzle-temperature 245 against
+    //      245,245,245 is no change, although the two serialize differently.
+    //
+    //      A key the loaded config does not carry at all is always recorded, even if the typed value
+    //      equals the built-in default. On reopen the GUI restores an unlisted key from the SYSTEM
+    //      preset, which need not match that default: a 3MF written before an option existed leaves
+    //      it absent here, and --sparse-infill-density 20% (the default) against a Prusa system 15%
+    //      would otherwise go unrecorded and be reverted. Over-recording is cosmetic; under-recording
+    //      loses the value.
+    std::map<std::string, std::unique_ptr<ConfigOption>> cli_override_before;
+    for (const std::string &key : m_config.keys()) {
+        if (!m_extra_config.has(key))
+            continue;
+        const ConfigOption *loaded = m_print_config.option(key);
+        cli_override_before[key].reset(loaded != nullptr ? loaded->clone() : nullptr); // null: always recorded
+    }
 
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()
     // (command line options override --load files)
@@ -3828,18 +3840,45 @@ int CLI::run(int argc, char **argv)
                 columns[index] = Slic3r::escape_strings_cstyle(keys);
             }
         };
+        auto same_value = [](const ConfigOption *a, const ConfigOption *b) {
+            if (a == nullptr || b == nullptr)
+                return false;
+            const auto *va = dynamic_cast<const ConfigOptionVectorBase *>(a);
+            const auto *vb = dynamic_cast<const ConfigOptionVectorBase *>(b);
+            if (va == nullptr || vb == nullptr)
+                return va == vb && a->serialize() == b->serialize();
+            const std::vector<std::string> ea = va->vserialize(), eb = vb->vserialize();
+            if (ea.empty() || eb.empty())
+                return ea.empty() && eb.empty();
+            for (size_t i = 0; i < std::max(ea.size(), eb.size()); ++i)
+                if (ea[i < ea.size() ? i : 0] != eb[i < eb.size() ? i : 0])
+                    return false;
+            return true;
+        };
+        //ORCA: always true after the resize to filament_count + 2 above, and nothing in between can
+        //      shrink the column vector -- different_settings_to_system is not a CLI option. Kept as
+        //      a check rather than an assert: release builds compile asserts out, so an assert would
+        //      protect nothing, while a build with _GLIBCXX_ASSERTIONS would abort on columns[0].
         if (columns.size() >= 2) {
             for (const auto &[key, before] : cli_override_before) {
-                if (!m_print_config.has(key) || (before && *before == m_print_config.opt_serialize(key)))
+                if (same_value(before.get(), m_print_config.option(key)))
                     continue;
-                if (owned_by(Preset::print_options(), key))
+                bool recorded = false;
+                if (owned_by(Preset::print_options(), key)) {
                     add_to_column(0, key);
-                if (owned_by(Preset::filament_options(), key))
+                    recorded = true;
+                }
+                if (owned_by(Preset::filament_options(), key)) {
                     for (size_t i = 1; i + 1 < columns.size(); ++i)
                         add_to_column(i, key);
-                if (owned_by(Preset::printer_options(), key))
+                    recorded = true;
+                }
+                if (owned_by(Preset::printer_options(), key)) {
                     add_to_column(columns.size() - 1, key);
-                BOOST_LOG_TRIVIAL(info) << boost::format("CLI: override %1% recorded in different_settings_to_system") % key;
+                    recorded = true;
+                }
+                if (recorded)
+                    BOOST_LOG_TRIVIAL(info) << boost::format("CLI: override %1% recorded in different_settings_to_system") % key;
             }
         }
     }
