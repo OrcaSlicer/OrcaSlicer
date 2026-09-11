@@ -5964,13 +5964,14 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     imgui->text(_L("Spacing"));
     ImGui::SameLine(1.2 * cursor_slider_left);
     ImGui::PushItemWidth(window_width - slider_icon_width);
-    // The box beside it is unbounded, so clamping here would cap a stored spacing at 100.
-    bool b_Spacing = imgui->bbl_slider_float_style("##Spacing", &settings_out.distance, 0.f, 100.0f, "%5.2f", 1.0f, false);
+    bool b_Spacing = imgui->bbl_slider_float_style("##Spacing", &settings_out.distance, 0.f, 100.0f, "%5.2f", 1.0f, /*clamp=*/false);
     ImGui::SameLine(window_width - slider_icon_width + 1.3 * cursor_slider_left);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_spacing_input = ImGui::BBLDragFloat("##spacing_input", &settings_out.distance, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (b_Spacing || b_spacing_input)
+    if (b_Spacing || b_spacing_input) {
+        settings_out.distance = std::max(0.f, settings_out.distance);
         appcfg->set("arrange", dist_key.c_str(), float_to_string_decimal_point(settings_out.distance));
+    }
     imgui->text(_L("0 means auto spacing."));
 
     ImGui::Separator();
