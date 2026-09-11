@@ -1954,6 +1954,7 @@ void GCodeViewer::update_rest_layer_stride()
     const unsigned int stride = (layer_px * MAX_STRIDE <= MERGE_BELOW_PX) ? MAX_STRIDE :
         std::clamp(static_cast<unsigned int>(MERGE_BELOW_PX / layer_px), 1u, MAX_STRIDE);
     m_viewer.set_rest_layer_stride(stride);
+    m_viewer.set_rest_view_from_above(camera.get_dir_forward().z() < 0.0);
 }
 
 // ORCA: libvgcode only builds a reduced set while its mode is not Off, so the preference switch is

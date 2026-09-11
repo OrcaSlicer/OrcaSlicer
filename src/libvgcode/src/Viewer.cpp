@@ -127,6 +127,16 @@ void Viewer::set_rest_layer_stride(uint32_t value)
     m_impl->set_rest_layer_stride(value);
 }
 
+bool Viewer::is_rest_view_from_above() const
+{
+    return m_impl->is_rest_view_from_above();
+}
+
+void Viewer::set_rest_view_from_above(bool value)
+{
+    m_impl->set_rest_view_from_above(value);
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);

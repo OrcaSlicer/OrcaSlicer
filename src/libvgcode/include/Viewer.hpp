@@ -125,6 +125,12 @@ public:
     //
     uint32_t get_rest_layer_stride() const;
     void set_rest_layer_stride(uint32_t value);
+    //
+    // ORCA: whether the camera is above the print. With layers skipped at rest, only the surfaces
+    // that side of the print can see are kept in the skipped layers.
+    //
+    bool is_rest_view_from_above() const;
+    void set_rest_view_from_above(bool value);
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //

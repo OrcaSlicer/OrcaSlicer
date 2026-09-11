@@ -40,6 +40,9 @@ struct Settings
 		// tall; the exposed surfaces of every layer stay. Meant to follow how many layers fit in a
 		// pixel at the current view, so that it changes nothing visible.
 		uint32_t rest_layer_stride{ 1 };
+		// ORCA: whether the camera is above the print; decides whether the surfaces kept in the
+		// skipped layers at rest are the ones visible from above or from below
+		bool rest_view_from_above{ true };
 		//
 		// Required update flags
 		//

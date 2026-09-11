@@ -900,6 +900,8 @@ void ViewerImpl::reset()
     m_enabled_segments_rest_count = 0;
     m_shell_bitset = BitSet<>();
     m_exposed_bitset = BitSet<>();
+    m_top_visible_bitset = BitSet<>();
+    m_bottom_visible_bitset = BitSet<>();
 
     m_settings_used_for_ranges = std::nullopt;
 
@@ -1403,10 +1405,16 @@ static void close_gaps(OccupancyGrid& grid, int radius, ClosingScratch& scratch)
 // is missing. A segment is kept when at least half of the cells it crosses are shell cells: walls
 // run along the shell, infill only touches it at the ends. Purely geometric, so it works as well
 // for the wipe tower, whose every segment shares one role, as for the objects.
+// The same pass records the highest and lowest layer occupying each cell over the whole print,
+// which tells the segments that are the topmost or bottommost thing at their place: exposure to the
+// next layer alone would also keep whatever sits under an overhang, and the edge of a tower whose
+// footprint lands a cell differently from one layer to the next.
 void ViewerImpl::update_shell_bitset()
 {
     m_shell_bitset = BitSet<>(m_vertices.size());
     m_exposed_bitset = BitSet<>(m_vertices.size());
+    m_top_visible_bitset = BitSet<>(m_vertices.size());
+    m_bottom_visible_bitset = BitSet<>(m_vertices.size());
     if (m_vertices.size() < 2 || m_layers.empty())
         return;
 
@@ -1438,6 +1446,7 @@ void ViewerImpl::update_shell_bitset()
     const int nx = static_cast<int>((max_x - min_x) / cell) + 1 + 2 * margin;
     const int ny = static_cast<int>((max_y - min_y) / cell) + 1 + 2 * margin;
 
+    const auto cell_index = [nx](int x, int y) { return static_cast<size_t>(y) * nx + x; };
     const auto cell_of = [&](float x, float y) {
         const int cx = std::clamp(static_cast<int>((x - origin_x) / cell), margin, nx - 1 - margin);
         const int cy = std::clamp(static_cast<int>((y - origin_y) / cell), margin, ny - 1 - margin);
@@ -1476,10 +1485,25 @@ void ViewerImpl::update_shell_bitset()
     const OccupancyGrid nothing(nx, ny);
 
     // Classifies the layers in [first_layer, last_layer) and returns the segments kept, and among
-    // them the exposed ones. Each call owns its grids, so the layer range can be split across threads.
-    struct Kept { std::vector<uint32_t> shell; std::vector<uint32_t> exposed; };
+    // them the exposed ones, plus the highest and lowest of these layers occupying each cell. Each
+    // call owns its grids, so the layer range can be split across threads.
+    static constexpr int32_t NO_LAYER = -1;
+    struct Kept {
+        std::vector<uint32_t> shell;
+        std::vector<uint32_t> exposed;
+        std::vector<int32_t> top;
+        std::vector<int32_t> bottom;
+        // the rectangle of cells these layers touched, inclusive; empty while min > max
+        int min_x{ 0 };
+        int min_y{ 0 };
+        int max_x{ -1 };
+        int max_y{ -1 };
+    };
+    const size_t cells_count = static_cast<size_t>(nx) * static_cast<size_t>(ny);
     const auto classify_layers = [&](size_t first_layer, size_t last_layer) {
         Kept kept;
+        kept.top.assign(cells_count, NO_LAYER);
+        kept.bottom.assign(cells_count, NO_LAYER);
         std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
         OccupancyGrid shell_cells(nx, ny);
         OccupancyGrid exposed_cells(nx, ny);
@@ -1508,10 +1532,22 @@ void ViewerImpl::update_shell_bitset()
 
             shell_cells.clear();
             exposed_cells.clear();
+            if (!cur.empty()) {
+                kept.min_x = (kept.max_x < kept.min_x) ? cur.min_x : std::min(kept.min_x, cur.min_x);
+                kept.min_y = (kept.max_y < kept.min_y) ? cur.min_y : std::min(kept.min_y, cur.min_y);
+                kept.max_x = std::max(kept.max_x, cur.max_x);
+                kept.max_y = std::max(kept.max_y, cur.max_y);
+            }
             for (int y = cur.min_y; y <= cur.max_y; ++y) {
                 for (int x = cur.min_x; x <= cur.max_x; ++x) {
                     if (!cur.at(x, y))
                         continue;
+                    // layers come in ascending order, so the first occupant is the lowest
+                    int32_t& top = kept.top[cell_index(x, y)];
+                    int32_t& bottom = kept.bottom[cell_index(x, y)];
+                    top = static_cast<int32_t>(layer);
+                    if (bottom == NO_LAYER)
+                        bottom = static_cast<int32_t>(layer);
                     const bool exposed = !below.at(x, y) || !above.at(x, y);
                     if (exposed || !cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1))
                         shell_cells.set(x, y);
@@ -1546,12 +1582,60 @@ void ViewerImpl::update_shell_bitset()
     std::vector<std::future<Kept>> futures;
     for (size_t first = 0; first < layers_count; first += chunk)
         futures.emplace_back(std::async(std::launch::async, classify_layers, first, std::min(layers_count, first + chunk)));
+    std::vector<int32_t> top_layer(cells_count, NO_LAYER);
+    std::vector<int32_t> bottom_layer(cells_count, NO_LAYER);
     for (auto& f : futures) {
         const Kept kept = f.get();
         for (uint32_t i : kept.shell)
             m_shell_bitset.set(i);
         for (uint32_t i : kept.exposed)
             m_exposed_bitset.set(i);
+        for (int y = kept.min_y; y <= kept.max_y; ++y) {
+            for (int x = kept.min_x; x <= kept.max_x; ++x) {
+                const size_t c = cell_index(x, y);
+                if (kept.top[c] == NO_LAYER)
+                    continue;
+                top_layer[c] = std::max(top_layer[c], kept.top[c]);
+                bottom_layer[c] = (bottom_layer[c] == NO_LAYER) ? kept.bottom[c] : std::min(bottom_layer[c], kept.bottom[c]);
+            }
+        }
+    }
+
+    // A segment is visible from straight above when its layer is the topmost occupant of at least
+    // half its cells, and from below likewise with the bottommost.
+    struct Visible { std::vector<uint32_t> top; std::vector<uint32_t> bottom; };
+    const auto find_visible = [&](size_t first_layer, size_t last_layer) {
+        Visible visible;
+        for (size_t layer = first_layer; layer < last_layer; ++layer) {
+            const auto [first, last] = layer_segments(layer);
+            for (size_t i = first; i < last; ++i) {
+                if (!is_drawn_extrusion(i))
+                    continue;
+                int total = 0;
+                int on_top = 0;
+                int on_bottom = 0;
+                for_each_cell(i, [&](int x, int y) {
+                    ++total;
+                    on_top += top_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
+                    on_bottom += bottom_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
+                });
+                if (2 * on_top >= total)
+                    visible.top.push_back(static_cast<uint32_t>(i));
+                if (2 * on_bottom >= total)
+                    visible.bottom.push_back(static_cast<uint32_t>(i));
+            }
+        }
+        return visible;
+    };
+    std::vector<std::future<Visible>> visible_futures;
+    for (size_t first = 0; first < layers_count; first += chunk)
+        visible_futures.emplace_back(std::async(std::launch::async, find_visible, first, std::min(layers_count, first + chunk)));
+    for (auto& f : visible_futures) {
+        const Visible visible = f.get();
+        for (uint32_t i : visible.top)
+            m_top_visible_bitset.set(i);
+        for (uint32_t i : visible.bottom)
+            m_bottom_visible_bitset.set(i);
     }
 }
 #endif // ENABLE_OPENGL_ES
@@ -1634,10 +1718,13 @@ void ViewerImpl::update_enabled_entities()
 #ifndef ENABLE_OPENGL_ES
         const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
         const bool keep_anyway = whole_layer || !v.is_extrusion();
-        const bool exposed = v.is_extrusion() && m_exposed_bitset.size == m_vertices.size() && m_exposed_bitset[i];
+        const bool classified = v.is_extrusion() && m_exposed_bitset.size == m_vertices.size();
+        const bool exposed = classified && m_exposed_bitset[i];
         if (build_rest && !v.is_option()) {
             const bool skipped = !whole_layer && rest_stride > 1 && (v.layer_id % rest_stride) != 0;
-            if (skipped ? exposed : (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
+            // a skipped layer keeps only what the camera's side of the print can see of it
+            const bool visible = classified && (m_settings.rest_view_from_above ? m_top_visible_bitset[i] : m_bottom_visible_bitset[i]);
+            if (skipped ? visible : (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
                 enabled_segments_rest.push_back(static_cast<uint32_t>(i));
         }
         if (!build_reduced)
@@ -1917,6 +2004,16 @@ void ViewerImpl::set_rest_layer_stride(uint32_t value)
     m_settings.rest_layer_stride = value;
     // only the shell rest set is built from it
     if (m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)
+        m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_rest_view_from_above(bool value)
+{
+    if (m_settings.rest_view_from_above == value)
+        return;
+    m_settings.rest_view_from_above = value;
+    // it only matters while the shell rest set skips layers
+    if (m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly && m_settings.rest_layer_stride > 1)
         m_settings.update_enabled_entities = true;
 }
 

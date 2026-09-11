@@ -105,6 +105,8 @@ public:
     void set_rest_detail_mode(EReducedDetailMode mode);
     uint32_t get_rest_layer_stride() const { return m_settings.rest_layer_stride; }
     void set_rest_layer_stride(uint32_t value);
+    bool is_rest_view_from_above() const { return m_settings.rest_view_from_above; }
+    void set_rest_view_from_above(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -332,6 +334,10 @@ private:
     // the subset of those that are exposed from above or below: the surfaces a view from the top
     // or bottom sees, kept in every layer even while layers are being skipped
     BitSet<> m_exposed_bitset;
+    // narrower still: the segments that are the topmost, or the bottommost, thing at their place
+    // in the whole print, which is all a view from straight above, or below, can see
+    BitSet<> m_top_visible_bitset;
+    BitSet<> m_bottom_visible_bitset;
 #endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring
