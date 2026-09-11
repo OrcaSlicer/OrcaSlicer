@@ -569,7 +569,6 @@ public:
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
-    void            switch_staff_pick(bool on);
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);
@@ -583,7 +582,6 @@ public:
     void            persist_window_geometry(wxTopLevelWindow *window, bool default_maximized = false);
     void            update_ui_from_settings();
 
-    bool            switch_language();
     bool            load_language(wxString language, bool initial);
 
     Tab*            get_tab(Preset::Type type);
@@ -801,7 +799,6 @@ private:
     bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
     void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
-    bool            select_language();
 
     // Dynamic printer agent selection - internal helpers for switch_printer_agent
     // and the plugin load/unload callbacks (init_plugin_gui_wiring).

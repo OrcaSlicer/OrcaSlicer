@@ -22,6 +22,7 @@
         Match       regexes; each must match at least one output line
         NotMatch    regexes; none may match any output line
         NotExists   paths that must not exist after the case runs
+        DateStampedZip  require a bundle date from during this case's invocation
 
 .PARAMETER Name
     Run only the cases whose name matches this regex. Headings with no
@@ -108,12 +109,6 @@ New-Item -ItemType Directory -Force -Path $noVs | Out-Null
 $slnDir = Join-Path $fixtures 'sln'
 New-Item -ItemType Directory -Force -Path $slnDir | Out-Null
 Set-Content -Path (Join-Path $slnDir 'OrcaSlicer.sln') -Value '' -Encoding ascii
-
-# The pack stamp is checked against real dates, so a locale-dependent parse
-# in the script cannot pass by looking date-shaped. Yesterday is accepted too,
-# so a run that crosses midnight does not flake.
-$dateStamps = @((Get-Date -Format 'yyyyMMdd'), (Get-Date).AddDays(-1).ToString('yyyyMMdd'))
-$stampPattern = '_(' + ($dateStamps -join '|') + ')\.zip$'
 
 $cases = @(
     'argument handling'
@@ -326,12 +321,12 @@ $cases = @(
        Contains = @('OrcaSlicer_dep_win-x64_')
        NotContains = @('-clang', '-Release') }
     @{ Name = 'the bundle is stamped with today, not a shuffled date'; Args = @('-p')
-       Match = @($stampPattern) }
+       DateStampedZip = $true }
     # powershell.exe is not in System32 itself, so a trimmed PATH used to
     # leave the stamp empty and the bundle named OrcaSlicer_dep_win-x64_.zip.
     @{ Name = 'the bundle is stamped even with a bare PATH'; Args = @('-p')
        Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
-       Match = @($stampPattern) }
+       DateStampedZip = $true }
     @{ Name = '-p packs without rebuilding'; Args = @('-p')
        Match = @('^\+ .*(7z\.exe a|tar\.exe -a -c -f) ')
        NotContains = @('cmake -S deps') }
@@ -861,7 +856,7 @@ function Invoke-BuildScript {
 
 $knownFields = @(
     'Name', 'Args', 'ExpectExit', 'DryRun', 'First', 'Env',
-    'Contains', 'NotContains', 'Match', 'NotMatch', 'NotExists'
+    'Contains', 'NotContains', 'Match', 'NotMatch', 'NotExists', 'DateStampedZip'
 )
 
 function Test-Case {
@@ -876,7 +871,9 @@ function Test-Case {
     $expect = 0
     if ($Case.ContainsKey('ExpectExit')) { $expect = $Case['ExpectExit'] }
 
+    $started = Get-Date
     $result = Invoke-BuildScript -Arguments $argv -Environment $Case['Env']
+    $finished = Get-Date
 
     $problems = @()
 
@@ -898,6 +895,15 @@ function Test-Case {
         $problems += "first line was '$($lines[0])'"
     }
     foreach ($pattern in $Case['Match']) {
+        if (@($lines | Where-Object { $_ -match $pattern }).Count -eq 0) {
+            $problems += "no line matching /$pattern/"
+        }
+    }
+    if ($Case['DateStampedZip']) {
+        # Bound the accepted dates to this invocation so crossing midnight is
+        # valid without allowing an unrelated past or future date.
+        $dateStamps = @($started.ToString('yyyyMMdd'), $finished.ToString('yyyyMMdd')) | Select-Object -Unique
+        $pattern = '_(' + ($dateStamps -join '|') + ')\.zip$'
         if (@($lines | Where-Object { $_ -match $pattern }).Count -eq 0) {
             $problems += "no line matching /$pattern/"
         }
