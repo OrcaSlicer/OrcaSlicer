@@ -331,11 +331,8 @@ private:
     // computed on demand by update_shell_bitset() for EReducedDetailMode::ShellOnly
     //
     BitSet<> m_shell_bitset;
-    // the subset of those that are exposed from above or below: the surfaces a view from the top
-    // or bottom sees, kept in every layer even while layers are being skipped
-    BitSet<> m_exposed_bitset;
-    // narrower still: the segments that are the topmost, or the bottommost, thing at their place
-    // in the whole print, which is all a view from straight above, or below, can see
+    // the segments that are the topmost, or the bottommost, thing at their place in the whole
+    // print: what a view from above, or below, sees of a layer, kept even while layers are skipped
     BitSet<> m_top_visible_bitset;
     BitSet<> m_bottom_visible_bitset;
 #endif // ENABLE_OPENGL_ES
@@ -537,12 +534,15 @@ private:
     size_t m_enabled_options_tex_size{ 0 };
 
     // The set the next draw reads from: the reduced one only while the user is dragging, and only
-    // if a reduced set is being built at all; otherwise the rest set, if one is being built.
-    bool use_reduced_set() const {
-        return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off;
-    }
+    // if a reduced set is being built at all; otherwise the rest set, if one is being built. A rest
+    // set already smaller than the reduced one, as it is with layers merged looking from above,
+    // stays bound through the drag: it was right for the camera the drag started from.
     bool build_rest_set() const {
         return m_settings.rest_detail_mode != EReducedDetailMode::Off && m_settings.rest_detail_mode != EReducedDetailMode::LayersOnly;
+    }
+    bool use_reduced_set() const {
+        return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off &&
+               !(build_rest_set() && m_enabled_segments_rest_count < m_enabled_segments_reduced_count);
     }
     bool use_rest_set() const { return !use_reduced_set() && build_rest_set(); }
     // how many layers each drawn segment of the bound set stands in for

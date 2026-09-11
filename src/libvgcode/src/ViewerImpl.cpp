@@ -899,7 +899,6 @@ void ViewerImpl::reset()
     m_enabled_options_reduced_count = 0;
     m_enabled_segments_rest_count = 0;
     m_shell_bitset = BitSet<>();
-    m_exposed_bitset = BitSet<>();
     m_top_visible_bitset = BitSet<>();
     m_bottom_visible_bitset = BitSet<>();
 
@@ -1194,11 +1193,19 @@ static bool is_interior_infill(EGCodeExtrusionRole role)
            role == EGCodeExtrusionRole::InternalBridgeInfill;
 }
 
+// ORCA: what can never be a visible surface whatever the geometry says: the interior roles, and
+// gap fill, which sits between walls. Short sparse-infill segments hugging a wall would otherwise
+// pass the geometric test by the thousand.
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return is_interior_infill(role) || role == EGCodeExtrusionRole::GapFill;
+}
+
 bool ViewerImpl::reduced_set_keeps(EReducedDetailMode mode, size_t i, const PathVertex& v) const
 {
     switch (mode) {
     case EReducedDetailMode::NoInternalInfill: return !is_interior_infill(v.role);
-    case EReducedDetailMode::ShellOnly:        return m_shell_bitset[i];
+    case EReducedDetailMode::ShellOnly:        return !is_hidden_in_shell(v.role) && m_shell_bitset[i];
     default:                                   return true;
     }
 }
@@ -1401,18 +1408,18 @@ static void close_gaps(OccupancyGrid& grid, int radius, ClosingScratch& scratch)
 // EReducedDetailMode::ShellOnly can leave out everything the walls hide. Each layer is rasterized
 // into a coarse occupancy grid and closed, so that its footprint is solid whatever the infill;
 // a cell is then on the shell when it is filled and any of its six neighbours (four in the layer,
-// the layer below, the layer above) is not, and exposed when it is the layer below or above that
-// is missing. A segment is kept when at least half of the cells it crosses are shell cells: walls
-// run along the shell, infill only touches it at the ends. Purely geometric, so it works as well
-// for the wipe tower, whose every segment shares one role, as for the objects.
+// the layer below, the layer above) is not. A segment is kept when at least half of the cells it
+// crosses are shell cells: walls run along the shell, infill only touches it at the ends. Purely
+// geometric, so it works as well for the wipe tower, whose every segment shares one role, as for
+// the objects.
 // The same pass records the highest and lowest layer occupying each cell over the whole print,
-// which tells the segments that are the topmost or bottommost thing at their place: exposure to the
-// next layer alone would also keep whatever sits under an overhang, and the edge of a tower whose
-// footprint lands a cell differently from one layer to the next.
+// which tells the segments that are the topmost or bottommost thing at their place, the only ones
+// a view from above or below sees of a layer. Exposure to the neighbouring layer alone would also
+// count whatever sits under an overhang, and the edge of a tower whose footprint lands a cell
+// differently from one layer to the next.
 void ViewerImpl::update_shell_bitset()
 {
     m_shell_bitset = BitSet<>(m_vertices.size());
-    m_exposed_bitset = BitSet<>(m_vertices.size());
     m_top_visible_bitset = BitSet<>(m_vertices.size());
     m_bottom_visible_bitset = BitSet<>(m_vertices.size());
     if (m_vertices.size() < 2 || m_layers.empty())
@@ -1484,13 +1491,12 @@ void ViewerImpl::update_shell_bitset()
 
     const OccupancyGrid nothing(nx, ny);
 
-    // Classifies the layers in [first_layer, last_layer) and returns the segments kept, and among
-    // them the exposed ones, plus the highest and lowest of these layers occupying each cell. Each
-    // call owns its grids, so the layer range can be split across threads.
+    // Classifies the layers in [first_layer, last_layer) and returns the segments kept, plus the
+    // highest and lowest of these layers occupying each cell. Each call owns its grids, so the layer
+    // range can be split across threads.
     static constexpr int32_t NO_LAYER = -1;
     struct Kept {
         std::vector<uint32_t> shell;
-        std::vector<uint32_t> exposed;
         std::vector<int32_t> top;
         std::vector<int32_t> bottom;
         // the rectangle of cells these layers touched, inclusive; empty while min > max
@@ -1506,7 +1512,6 @@ void ViewerImpl::update_shell_bitset()
         kept.bottom.assign(cells_count, NO_LAYER);
         std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
         OccupancyGrid shell_cells(nx, ny);
-        OccupancyGrid exposed_cells(nx, ny);
         ClosingScratch scratch;
         const auto footprint = [&](size_t layer) -> OccupancyGrid& { return footprints[layer % 3]; };
         const auto prepare = [&](size_t layer) {
@@ -1531,7 +1536,6 @@ void ViewerImpl::update_shell_bitset()
             const OccupancyGrid& above = (layer + 1 < layers_count) ? footprint(layer + 1) : nothing;
 
             shell_cells.clear();
-            exposed_cells.clear();
             if (!cur.empty()) {
                 kept.min_x = (kept.max_x < kept.min_x) ? cur.min_x : std::min(kept.min_x, cur.min_x);
                 kept.min_y = (kept.max_y < kept.min_y) ? cur.min_y : std::min(kept.min_y, cur.min_y);
@@ -1548,11 +1552,9 @@ void ViewerImpl::update_shell_bitset()
                     top = static_cast<int32_t>(layer);
                     if (bottom == NO_LAYER)
                         bottom = static_cast<int32_t>(layer);
-                    const bool exposed = !below.at(x, y) || !above.at(x, y);
-                    if (exposed || !cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1))
+                    if (!below.at(x, y) || !above.at(x, y) ||
+                        !cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1))
                         shell_cells.set(x, y);
-                    if (exposed)
-                        exposed_cells.set(x, y);
                 }
             }
 
@@ -1562,16 +1564,12 @@ void ViewerImpl::update_shell_bitset()
                     continue;
                 int total = 0;
                 int on_shell = 0;
-                int on_exposed = 0;
                 for_each_cell(i, [&](int x, int y) {
                     ++total;
                     on_shell += shell_cells.at(x, y);
-                    on_exposed += exposed_cells.at(x, y);
                 });
                 if (2 * on_shell >= total)
                     kept.shell.push_back(static_cast<uint32_t>(i));
-                if (2 * on_exposed >= total)
-                    kept.exposed.push_back(static_cast<uint32_t>(i));
             }
         }
         return kept;
@@ -1588,8 +1586,6 @@ void ViewerImpl::update_shell_bitset()
         const Kept kept = f.get();
         for (uint32_t i : kept.shell)
             m_shell_bitset.set(i);
-        for (uint32_t i : kept.exposed)
-            m_exposed_bitset.set(i);
         for (int y = kept.min_y; y <= kept.max_y; ++y) {
             for (int x = kept.min_x; x <= kept.max_x; ++x) {
                 const size_t c = cell_index(x, y);
@@ -1718,20 +1714,21 @@ void ViewerImpl::update_enabled_entities()
 #ifndef ENABLE_OPENGL_ES
         const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
         const bool keep_anyway = whole_layer || !v.is_extrusion();
-        const bool classified = v.is_extrusion() && m_exposed_bitset.size == m_vertices.size();
-        const bool exposed = classified && m_exposed_bitset[i];
+        const bool classified = v.is_extrusion() && !is_hidden_in_shell(v.role) && m_top_visible_bitset.size == m_vertices.size();
+        const bool visible_from_above = classified && m_top_visible_bitset[i];
+        const bool visible_from_below = classified && m_bottom_visible_bitset[i];
         if (build_rest && !v.is_option()) {
             const bool skipped = !whole_layer && rest_stride > 1 && (v.layer_id % rest_stride) != 0;
             // a skipped layer keeps only what the camera's side of the print can see of it
-            const bool visible = classified && (m_settings.rest_view_from_above ? m_top_visible_bitset[i] : m_bottom_visible_bitset[i]);
+            const bool visible = m_settings.rest_view_from_above ? visible_from_above : visible_from_below;
             if (skipped ? visible : (keep_anyway || reduced_set_keeps(m_settings.rest_detail_mode, i, v)))
                 enabled_segments_rest.push_back(static_cast<uint32_t>(i));
         }
         if (!build_reduced)
             continue;
         if (!whole_layer && (v.layer_id % layer_stride) != 0) {
-            // the exposed surfaces of a skipped layer stay, so that a step does not vanish
-            if (shell_reduced && exposed)
+            // the surfaces of a skipped layer that either side can see stay, so that a step does not vanish
+            if (shell_reduced && (visible_from_above || visible_from_below))
                 enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
             continue;
         }
