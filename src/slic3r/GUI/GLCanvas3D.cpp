@@ -2057,6 +2057,8 @@ void GLCanvas3D::render(bool only_init)
     // ORCA: while the preference is on and nothing the scene pass draws has changed since the
     // last full frame, that frame is shown again and only the overlays are drawn on top of it
     const bool preview_scene = m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data();
+    if (preview_scene)
+        _update_preview_interaction();
     bool scene_from_cache = false;
     bool scene_to_cache = false;
     if (preview_scene && _scene_cache_enabled() && !m_scene_cache.broken) {
@@ -8573,6 +8575,26 @@ void GLCanvas3D::_render_wireframe_overlay()
 }
 
 //BBS: GUI refactor: add canvas size as parameters
+// ORCA: dragging the camera, the navigator or either slider is when the preview has to keep up
+// with continuous input, so that is when the reduced toolpath set earns its visible coarseness.
+// A wheel step has no duration, so it holds the reduced set for a settle time instead, and the
+// frame that restores the full detail is scheduled for when that time runs out. The level is
+// chosen before the draw and before the scene cache is consulted, so a change lands in this very
+// frame and never shows a kept frame of the other level.
+void GLCanvas3D::_update_preview_interaction()
+{
+    IMSlider* layers_slider = m_gcode_viewer.get_layers_slider();
+    IMSlider* moves_slider  = m_gcode_viewer.get_moves_slider();
+    const auto now = std::chrono::steady_clock::now();
+    const bool settling = now < m_preview_interaction_until;
+    const bool dragging = m_mouse.dragging || m_navigator_dragging || layers_slider->is_dragging() || moves_slider->is_dragging();
+    m_gcode_viewer.set_interacting(dragging || settling);
+    if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
+        m_preview_settle_pending = true;
+        schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
+}
+
 bool GLCanvas3D::_scene_cache_enabled() const
 {
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool("preview_cache_static_scene");
@@ -8669,20 +8691,6 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height, bool draw_sc
 {
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
-
-    // ORCA: dragging the camera, the navigator or either slider is when the preview has to keep up
-    // with continuous input, so that is when the reduced toolpath set earns its visible coarseness.
-    // A wheel step has no duration, so it holds the reduced set for a settle time instead, and the
-    // frame that restores the full detail is scheduled for when that time runs out. The level is
-    // chosen before the draw, so a change lands in this very frame.
-    const auto now = std::chrono::steady_clock::now();
-    const bool settling = now < m_preview_interaction_until;
-    const bool dragging = m_mouse.dragging || m_navigator_dragging || layers_slider->is_dragging() || moves_slider->is_dragging();
-    m_gcode_viewer.set_interacting(dragging || settling);
-    if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
-        m_preview_settle_pending = true;
-        schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
-    }
 
     m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE, draw_scene);
 

@@ -1308,6 +1308,9 @@ private:
     void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height, bool draw_scene = true);
+    // ORCA: decides whether the preview draws its reduced set this frame; runs before the scene
+    // cache is consulted, since the decision changes what the scene pass draws
+    void _update_preview_interaction();
     // ORCA: scene cache, see SceneCache
     bool _scene_cache_enabled() const;
     bool _scene_cache_prepare(int width, int height);
