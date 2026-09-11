@@ -2682,22 +2682,28 @@ void MachineObject::set_online_state(bool on_off)
 
 bool MachineObject::is_info_ready(bool check_version) const
 {
-    if (check_version && module_vers.empty())
+    const auto curr_time = std::chrono::system_clock::now();
+    const auto push_age = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_push_time);
+    const bool has_recent_full_status = m_full_msg_count > 0 && m_push_count > 0
+                                     && push_age.count() >= 0 && push_age.count() < PUSHINFO_TIMEOUT;
+
+    // X2D firmware may omit the legacy info/get_version reply while still returning a complete
+    // push_status payload. Its status payload includes the capability flags used by the UI, so a
+    // recent full message is sufficient proof of readiness for this model.
+    if (check_version && module_vers.empty() && !(printer_type == "N6" && has_recent_full_status))
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": not ready, failed to check version";
         return false;
     }
 
-    std::chrono::system_clock::time_point curr_time = std::chrono::system_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::microseconds>(last_push_time - curr_time);
-    if (m_full_msg_count > 0 && m_push_count > 0 && diff.count() < PUSHINFO_TIMEOUT) {
+    if (has_recent_full_status) {
         return true;
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__
         << ": not ready, m_full_msg_count=" << m_full_msg_count
         << ", m_push_count=" << m_push_count
-        << ", diff.count()=" << diff.count()
+        << ", push_age=" << push_age.count()
         << ", dev_id=" << dev_id;
     return false;
 }
