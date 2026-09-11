@@ -1,4 +1,6 @@
 #include "ExportPresetBundleDialog.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_App.hpp"
 #include "ConfigWizard.hpp"
 #include "I18N.hpp"

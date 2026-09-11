@@ -4,6 +4,8 @@
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+#include "libslic3r/Thread.hpp"
 
 namespace Slic3r {
 namespace GUI {

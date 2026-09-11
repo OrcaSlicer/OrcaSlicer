@@ -1,5 +1,6 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "json_diff.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 

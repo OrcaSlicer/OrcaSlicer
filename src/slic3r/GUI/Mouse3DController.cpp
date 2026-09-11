@@ -1,6 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
 #include "Mouse3DController.hpp"
+#include "GUI.hpp"
 
 #include "Camera.hpp"
 #include "GUI_App.hpp"

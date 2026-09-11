@@ -14,6 +14,7 @@
 
 //Previous defintions
 class wxGrid;
+class ProgressBar;
 
 namespace Slic3r {
 

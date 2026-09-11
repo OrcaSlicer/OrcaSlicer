@@ -3,6 +3,11 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
+#include "DeviceManager.hpp"
+#include "DeviceCore/DevConfigUtil.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "libslic3r/Thread.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
@@ -13,6 +18,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/nowide/utf8_codecvt.hpp>
 #undef pid_t
 #include <boost/process.hpp>

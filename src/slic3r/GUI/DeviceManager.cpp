@@ -1,5 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "DeviceManager.hpp"
+#include "HMS.hpp"
+#include "I18N.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"

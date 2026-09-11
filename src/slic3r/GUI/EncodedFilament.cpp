@@ -1,4 +1,5 @@
 #include "EncodedFilament.hpp"
+#include "slic3r/Utils/json_diff.hpp"
 
 #include "GUI_App.hpp"
 

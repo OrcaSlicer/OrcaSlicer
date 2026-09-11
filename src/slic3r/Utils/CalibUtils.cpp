@@ -3,6 +3,7 @@
 #include "../GUI/GUI_App.hpp"
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceManager.hpp"
+#include "NetworkAgent.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
 #include "libslic3r/CutUtils.hpp"

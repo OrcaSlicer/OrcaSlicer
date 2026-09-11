@@ -6,6 +6,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include <wx/filename.h>
 #include <wx/display.h>
 #include <wx/wfstream.h>
 #include "wx/clipbrd.h"

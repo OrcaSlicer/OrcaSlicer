@@ -3,6 +3,7 @@
 
 #include <boost/log/trivial.hpp>
 #include "Http.hpp"
+#include "json_diff.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <sstream>

@@ -1,4 +1,5 @@
 #include "CrealityPrint.hpp"
+#include "json_diff.hpp"
 
 #include <algorithm>
 #include <map>

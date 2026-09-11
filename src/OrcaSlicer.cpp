@@ -77,8 +77,9 @@ using namespace nlohmann;
 #include "libslic3r/ObjColorUtils.hpp"
 
 #include "OrcaSlicer.hpp"
-//BBS: add exception handler for win32
+#include <wx/filename.h>
 #include <wx/stdpaths.h>
+//BBS: add exception handler for win32
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif

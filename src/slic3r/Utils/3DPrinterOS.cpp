@@ -1,4 +1,5 @@
 #include "3DPrinterOS.hpp"
+#include "json_diff.hpp"
 
 #include <algorithm>
 #include <sstream>

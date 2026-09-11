@@ -66,6 +66,7 @@ class Tab;
 class PrintHostQueueDialog;
 class Plater;
 class MainFrame;
+class WebViewPanel;
 class ParamsDialog;
 #ifdef __WXGTK__
 class ResizeEdgePanel;

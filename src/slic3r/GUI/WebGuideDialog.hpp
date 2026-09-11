@@ -29,6 +29,7 @@
 #include "GUI_App.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
+#include "slic3r/Utils/json_diff.hpp"
 
 #include <atomic>
 #include <memory>

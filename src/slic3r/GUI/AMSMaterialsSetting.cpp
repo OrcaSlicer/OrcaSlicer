@@ -2,6 +2,8 @@
 #include "ExtrusionCalibration.hpp"
 #include "MsgDialog.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
 #include <algorithm>
