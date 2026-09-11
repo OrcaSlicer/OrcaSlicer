@@ -218,10 +218,24 @@ TEST_CASE("Changing slicing_pipeline_plugin invalidates posSlice", "[slicing_pip
     CHECK_FALSE(print.objects().front()->is_step_done(posSlice)); // re-slice required
 }
 
+// Editing a slicing plugin's config (print_plugin_config_overrides) must re-run posSlice, where the
+// plugin transforms each layer's geometry; otherwise the cached slice keeps the old config's result.
+TEST_CASE("Changing print_plugin_config_overrides invalidates posSlice", "[slicing_pipeline]") {
+    Slic3r::Print print; Slic3r::Model model;
+    auto config = Slic3r::DynamicPrintConfig::full_print_config();
+    init_print({cube(20)}, print, model, config);
+    print.process();
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    config.set_key_value("print_plugin_config_overrides",
+        new Slic3r::ConfigOptionString("[{\"type\":\"slicing-pipeline\",\"name\":\"Twistify\",\"config\":{\"twist_deg_per_mm\":2.0}}]"));
+    print.apply(model, config);
+    CHECK_FALSE(print.objects().front()->is_step_done(posSlice)); // re-slice required
+}
+
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 // A similarity transform (rotate + uniform scale) applied to slices at Step.posSlice, matching
-// what the Twistify sample (sandboxes/orca_twistify_plugin_example_any.py) does. This C++ analogue
+// what the Twistify plugin (sandboxes/orca_twistify_plugin_any.py) does. This C++ analogue
 // rotates every region's slices a fixed 45 deg about the object's base-footprint center -- the same
 // seam and cascade the sample drives through the slices.set() + Layer::make_slices() path. Two
 // end-to-end invariants after process() confirm the approach:

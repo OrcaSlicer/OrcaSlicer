@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pla",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFL99",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"70"
@@ -37,6 +36,9 @@
 	],
 	"filament_max_volumetric_speed": [
 		"12"
+	],
+	"filament_multitool_ramming_flow": [
+		"20"
 	],
 	"filament_scarf_seam_type": [
 		"none"

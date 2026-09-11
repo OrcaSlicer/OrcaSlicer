@@ -12,6 +12,7 @@
 #include <vector>
 
 #define PLUGIN_SUBSCRIBED_DIR "_subscribed"
+#define PLUGIN_DATA_DIR "plugin_data"
 
 namespace Slic3r {
 
@@ -81,11 +82,23 @@ inline nlohmann::json py_to_json(const pybind11::handle& o)
     return py::str(o).cast<std::string>(); // fallback: str()
 }
 
+struct PluginPermissions
+{
+    std::vector<std::string> fs_read;
+    std::vector<std::string> fs_readwrite;
+    std::vector<std::string> network_http;
+    std::vector<std::string> network_socket;
+    std::vector<std::string> process;
+};
+
 struct PluginInstallState {
     std::string installed_from;      // "local" | "cloud"
     std::string installed_version;
     std::string plugin_name;
     std::string cloud_uuid;          // empty for local
+
+    PluginPermissions permissions;
+
     bool enabled = true;
     std::vector<std::pair<std::string, bool>> capabilities; // name -> enabled, ordered
 };
@@ -156,8 +169,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry);
 
-// Reads only the cloud identity (uuid) back into the descriptor; plugin_key is always derived.
-void read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
+// Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
+// sidecar was present and valid.
+bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 

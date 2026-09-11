@@ -574,11 +574,6 @@ TEST_CASE("Convex polygon intersection on two squares touching one vertex", "[Ge
     Polygon B = A;
     B.translate(10 / SCALING_FACTOR, 10 / SCALING_FACTOR);
 
-    SVG svg{std::string("one_vertex_touch") + ".svg"};
-    svg.draw(A, "blue");
-    svg.draw(B, "green");
-    svg.Close();
-
     bool is_inters = Geometry::convex_polygons_intersect(A, B);
 
     REQUIRE(is_inters == false);

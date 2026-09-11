@@ -360,7 +360,7 @@ void CaliPresetCustomRangePanel::create_panel(wxWindow* parent)
                 int max_decimal_length;
                 if (i <= 1)
                     max_decimal_length = 3;
-                else if (i >= 2)
+                else
                     max_decimal_length = 4;
                 if (decimal_number > max_decimal_length) {
                     int allowed_length = number.length() - decimal_number + max_decimal_length;
@@ -1015,7 +1015,7 @@ wxBoxSizer* CalibrationPresetPage::create_ams_items_sizer(MachineObject* obj, wx
     auto ams_items_sizer = new wxBoxSizer(wxHORIZONTAL);
     for (auto &info : ams_info) {
         auto preview_ams_item = new AMSPreview(ams_preview_panel, wxID_ANY, info, info.ams_type);
-        preview_ams_item->Update(info);
+        preview_ams_item->UpdateInfo(info);
         preview_ams_item->Open();
         ams_preview_list.push_back(preview_ams_item);
         std::string ams_id = preview_ams_item->get_ams_id();

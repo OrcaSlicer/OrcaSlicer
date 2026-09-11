@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "WEyrSDtW2CJeLQmg",
+	"name": "QIDI PETG Tough @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PETG Tough@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

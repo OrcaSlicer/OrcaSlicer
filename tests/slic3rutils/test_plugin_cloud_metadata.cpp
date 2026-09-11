@@ -13,6 +13,7 @@
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <fstream>
 #include <string>
 
@@ -48,9 +49,44 @@ const char* const CLOUD_PLUGIN_SOURCE = R"PY(# /// script
 # version = "1.0"
 # ///
 print('ok')
+
+import orca
+class stubscript(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "stubscript"
+    def execute(self):
+        return orca.ExecutionResult.success("Stub orca script.")
+
+@orca.plugin
+class stubpackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(stubscript)
 )PY";
 
 } // namespace
+
+TEST_CASE("plugin latest version uses the authoritative catalog field", "[PluginDescriptor]")
+{
+    PluginDescriptor descriptor;
+    descriptor.version        = "1.3.0";
+    descriptor.latest_version = "1.3.0";
+    PluginChangelog changelog;
+    changelog.version = "1.2.0";
+    descriptor.changelog.push_back(changelog);
+
+    CHECK(descriptor.latest_available_version() == "1.3.0");
+}
+
+TEST_CASE("plugin latest version falls back to the descriptor version", "[PluginDescriptor]")
+{
+    PluginDescriptor descriptor;
+    descriptor.version = "1.1.0";
+    PluginChangelog changelog;
+    changelog.version = "1.0.0";
+    descriptor.changelog.push_back(changelog);
+
+    CHECK(descriptor.latest_available_version() == "1.1.0");
+}
 
 // Regression: update_cloud_metadata() replaces a matched entry's descriptor wholesale with the
 // cloud catalog record (`entry = cloud_entry`). Configuration used to ride on the descriptor, so
@@ -129,4 +165,31 @@ TEST_CASE("cloud metadata refresh preserves a plugin's stored config", "[PluginC
     reloaded.load();
     REQUIRE(reloaded.has_config(id));
     CHECK(reloaded.get_config(id)->config == configured);
+
+    // A local package can remain after the cloud subscription disappears. The cloud identity is
+    // retained for diagnosis, but the orphaned state must suppress update availability until the
+    // plugin is returned by a later cloud refresh.
+    PluginDescriptor orphaned_record = cloud_record;
+    orphaned_record.cloud->orphaned = true;
+    orphaned_record.cloud->update_available = true;
+    manager.update_cloud_metadata({orphaned_record});
+
+    const PluginDescriptor orphaned = find_by_uuid();
+    REQUIRE(orphaned.cloud.has_value());
+    CHECK(orphaned.cloud->orphaned);
+    CHECK_FALSE(orphaned.has_error());
+    CHECK(orphaned.get_update_status() == PluginUpdateStatus::Normal);
+
+    // Orphaned is informational only: the local package must remain loadable and usable.
+    std::string load_error;
+    manager.load_plugin(uuid, /*skip_deps=*/true);
+    REQUIRE(manager.wait_for_plugin_load(uuid, std::chrono::seconds(120), load_error));
+    INFO("load error: " << load_error);
+    CHECK(load_error.empty());
+    CHECK(manager.is_plugin_loaded(uuid));
+    CHECK(manager.unload_plugin(uuid));
+
+    // Seeing the plugin in a subsequent cloud response clears the orphaned marker.
+    manager.update_cloud_metadata({cloud_record});
+    CHECK_FALSE(find_by_uuid().cloud->orphaned);
 }

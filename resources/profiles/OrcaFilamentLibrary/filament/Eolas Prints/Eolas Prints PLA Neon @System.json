@@ -1,6 +1,6 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP004",
+	"filament_id": "OFrFBEfd",
 	"setting_id": "sKgUBhF3VvETDkwg",
 	"name": "Eolas Prints PLA Neon @System",
 	"from": "system",
@@ -43,6 +43,9 @@
 		"1000"
 	],
 	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"filament_multitool_ramming_flow": [
 		"10"
 	]
 }

@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "FILL3D PA @base",
 	"from": "system",
-	"filament_id": "FILL3D006",
+	"filament_id": "OFJNeELv",
 	"instantiation": "false",
 	"inherits": "fdm_filament_pa",
 	"filament_vendor": [

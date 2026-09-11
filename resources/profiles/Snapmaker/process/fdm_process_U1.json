@@ -33,7 +33,6 @@
 	"wall_loops": "2",
 	"inner_wall_line_width": "0.45",
 	"inner_wall_speed": "40",
-	"print_settings_id": "",
 	"raft_layers": "0",
 	"seam_position": "nearest",
 	"skirt_distance": "2",

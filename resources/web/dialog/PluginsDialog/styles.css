@@ -251,6 +251,11 @@ body.pane-resizing {
   font-weight: 600;
 }
 
+.source-cell.source-orphaned {
+  color: var(--plugin-status-warn);
+  font-weight: 600;
+}
+
 .source-cell.source-local {
   color: var(--plugin-source-neutral-text);
 }
@@ -648,6 +653,10 @@ body.pane-resizing {
   color: var(--plugin-status-danger);
 }
 
+.detail-warning-text {
+  color: var(--plugin-status-warn);
+}
+
 .detail-status-chip {
   display: inline-flex;
   align-items: center;
@@ -913,6 +922,11 @@ body.pane-resizing {
 .plugin-source-badge.source-subscribed {
   background: var(--plugin-source-subscribed-bg);
   color: var(--plugin-source-subscribed-text);
+}
+
+.plugin-source-badge.source-orphaned {
+  background: var(--plugin-status-warn-bg);
+  color: var(--plugin-status-warn);
 }
 
 .plugin-cloud-link {

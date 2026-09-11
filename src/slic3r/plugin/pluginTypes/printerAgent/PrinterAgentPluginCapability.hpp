@@ -19,7 +19,7 @@ namespace Slic3r {
 class PrinterAgentPluginCapability : public PluginCapabilityInterface, public IPrinterAgent
 {
 public:
-    static void RegisterBindings(pybind11::module_& module, pybind11::enum_<PluginCapabilityType>& pluginTypes);
+    static void RegisterBindings(pybind11::module_& module);
 
     PluginCapabilityType get_type() const override { return PluginCapabilityType::PrinterConnection; }
 

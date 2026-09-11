@@ -82,6 +82,9 @@ struct FillParams
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
 
+    // Orca: corner smoothing factor in the range [0, 1].
+    double      smooth_factor { 0. };
+
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
     coordf_t    lateral_lattice_angle_2    { 0.f };

@@ -2,6 +2,7 @@
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
+#include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/Plater.hpp>
 
@@ -55,6 +56,15 @@ void host_bindings::register_app(py::module_& host)
         return current_plater()->model();
     }, py::return_value_policy::reference);
     host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference);
+    // UI language of the running app ("en_US", "ru_RU", ...), so plugins can
+    // localize their own dialogs. The app config file that stores this value
+    // is deny-listed by the audit hook (it sits next to cloud secrets), so a
+    // read-only accessor is the supported way to get just the language.
+    host.def("app_language", []() -> std::string {
+        if (wxTheApp == nullptr)
+            throw std::runtime_error("OrcaSlicer application is not initialized");
+        return GUI::into_u8(GUI::wxGetApp().current_language_code_safe());
+    });
 }
 
 } // namespace Slic3r

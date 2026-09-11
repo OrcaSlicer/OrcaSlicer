@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "e2HuHVJZck2nKANa",
+	"name": "QIDI PET-CF @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PET-CF@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.025"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

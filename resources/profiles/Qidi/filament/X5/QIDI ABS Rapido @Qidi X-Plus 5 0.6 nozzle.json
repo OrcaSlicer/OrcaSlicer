@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"setting_id": "0np334pRpl3qa8Uq",
+	"name": "QIDI ABS Rapido @Qidi X-Plus 5 0.6 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI ABS Rapido@X-Plus 5-Series",
+	"nozzle_temperature": [
+		"250"
+	],
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

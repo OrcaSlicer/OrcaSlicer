@@ -28,7 +28,7 @@ public:
     void SetAutoRefillEnabled(bool enable) { m_enable_auto_refill = enable; }
 
 private:
-    DevFilaSystem* m_owner = nullptr;
+    [[maybe_unused]] DevFilaSystem* m_owner = nullptr;
 
     std::optional<bool> m_enable_detect_on_insert = false;
     bool m_enable_detect_on_powerup = false;

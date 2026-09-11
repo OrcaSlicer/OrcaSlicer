@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PAHT-CF @System",
-	"inherits": "Elegoo PAHT @base",
+	"inherits": "Elegoo PAHT-CF @base",
 	"from": "system",
 	"setting_id": "S073oXCeOlTEqh6L",
 	"instantiation": "true",
@@ -22,6 +22,9 @@
 		"0.96"
 	],
 	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_multitool_ramming_flow": [
 		"6"
 	],
 	"nozzle_temperature": [

@@ -119,7 +119,7 @@ PublishDialog::PublishDialog(Plater *plater)
     top_sizer->Add(m_main_sizer, 1, wxALL | wxEXPAND, 0);
     top_sizer->Add(FromDIP(30), 0, 0, wxEXPAND, 0);
 
-    this->SetSizer(top_sizer);
+    this->SetSizerAndFit(top_sizer);
     this->Layout();
 
     this->Centre(wxBOTH);

@@ -352,7 +352,7 @@ bool load_svg(const char *path, Model *model, std::string &message)
             for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                 gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                 aPnt.Transform(aTrsf);
-                points.emplace_back(std::move(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z())));
+                points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
             }
             // BBS: copy triangles
             const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();

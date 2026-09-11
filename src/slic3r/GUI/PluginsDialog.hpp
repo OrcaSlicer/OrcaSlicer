@@ -2,6 +2,7 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
+#include "Widgets/ProgressDialog.hpp"
 #include "PluginSource.hpp"
 #include "PluginStatus.hpp"
 #include "PluginSort.hpp"
@@ -68,6 +69,7 @@ private:
     bool get_descriptor(const std::string& plugin_key, Slic3r::PluginDescriptor& descriptor) const;
 
     void refresh_plugin_metadata_async(const wxString& title, const wxString& message, bool fetch_cloud);
+    void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
@@ -96,9 +98,8 @@ private:
     void open_plugin_folder(const Slic3r::PluginDescriptor& plugin);
     void delete_local_plugin(const Slic3r::PluginDescriptor& plugin);
     void unsubscribe_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
-    void reinstall_local_plugin(const std::string& plugin_key);
+    void reload_local_plugin(const std::string& plugin_key, bool clear_cache);
     void reinstall_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
-    void delete_mine_local_and_cloud_plugin(const std::string& plugin_key);
 
     // In the future, we can allow users to choose which plugin version they want to install.
     template<typename Run, typename OnFinish>
@@ -107,12 +108,12 @@ private:
                          const wxString& title,
                          const wxString& message,
                          int maximum = 100,
-                         int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
+                         int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE, // | wxPD_CAN_ABORT for cancel button
                          bool finish_after_dialog_destroyed = false)
     {
         const auto alive = m_alive;
-        wxProgressDialog* progress = new wxProgressDialog(title, message, maximum, this, style);
-        wxTimer* timer             = new wxTimer();
+        ProgressDialog* progress = new ProgressDialog(title, message, maximum, this, style);
+        wxTimer* timer           = new wxTimer();
 
         timer->Bind(wxEVT_TIMER, [alive, progress, message](wxTimerEvent&) {
             if (alive->load(std::memory_order_acquire) && progress)

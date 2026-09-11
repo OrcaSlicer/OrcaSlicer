@@ -3,17 +3,9 @@
 	"name": "Cubicon PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "ypwdJAu0NlEsWpf4",
-	"filament_id": "P510cfa0",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Cubicon xCeler-I 0.4 nozzle",
-		"Cubicon xCeler-Plus 0.4 nozzle"
-	],
+	"filament_id": "OFEwRwmL",
+	"instantiation": "false",
 	"default_filament_colour": "",
-	"filament_settings_id": [
-		"CBC_MTC_0"
-	],
 	"filament_type": [
 		"PLA"
 	],

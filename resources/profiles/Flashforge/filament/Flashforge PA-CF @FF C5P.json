@@ -4,6 +4,10 @@
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "RX2Tg8KpwQpCbkLI",
+	"filament_id": "OFGxuI0n",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

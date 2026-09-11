@@ -103,6 +103,7 @@ struct PluginDialogItem
     bool loading   = false;
 
     bool is_cloud_plugin       = false;
+    bool orphaned              = false;
     bool has_local_package     = false;
     bool unauthorized          = false;
     bool has_script_capability = false;
@@ -138,6 +139,9 @@ PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
     descriptor.plugin_root.clear();
     descriptor.entry_path.clear();
     descriptor.installed_version.clear();
+    // No local package is left behind, so the package verdict and any load error it produced go with it.
+    descriptor.metadata_valid = false;
+    descriptor.clear_error();
     if (descriptor.cloud.has_value()) {
         descriptor.cloud->installed        = false;
         descriptor.cloud->update_available = false;
@@ -243,6 +247,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["sharing_token"]         = dialog_item.sharing_token;
     payload_item["thumbnail_url"]         = dialog_item.thumbnail_url;
     payload_item["installed"]             = dialog_item.has_local_package;
+    payload_item["orphaned"]              = dialog_item.orphaned;
     payload_item["installed_version"]     = dialog_item.installed_version;
     payload_item["latest_version"]        = dialog_item.latest_version;
     return payload_item;
@@ -265,7 +270,8 @@ PluginSource derive_plugin_source(const PluginDescriptor& descriptor)
     const bool is_cloud       = descriptor.is_cloud_plugin();
     const bool is_mine        = is_cloud && has_cloud_meta && descriptor.cloud->is_mine;
 
-    // Source is ownership/locality only; issue states never replace this badge.
+    if (is_cloud && has_cloud_meta && descriptor.cloud->orphaned)
+        return PluginSource::Orphaned;
     if (is_mine)
         return PluginSource::Mine;
     if (is_cloud)
@@ -278,29 +284,36 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
     PluginAvailableActions available_actions;
     const bool is_loading             = item.status == PluginStatus::Loading;
     const bool is_cloud               = item.is_cloud_plugin;
+    const bool is_orphaned            = item.orphaned;
     const bool is_mine                = item.source == PluginSource::Mine;
     const bool has_local              = item.has_local_package;
     const bool authorized_for_install = !item.unauthorized;
 
-    available_actions.toggle_installs_cloud_plugin = is_cloud && !has_local && authorized_for_install;
+    available_actions.toggle_installs_cloud_plugin = is_cloud && !is_orphaned && !has_local && authorized_for_install;
     available_actions.can_toggle                   = !is_loading && (has_local || available_actions.toggle_installs_cloud_plugin);
 
     auto add_action = [&available_actions](const char* id, const char* label, bool enabled = true, bool danger = false) {
         available_actions.context_actions.push_back(PluginContextAction{id, label, enabled, danger});
     };
 
-    if (is_cloud) {
-        if (is_mine)
-            add_action("delete_mine_plugin", "Delete", true, true);
-        else
-            add_action("unsubscribe_plugin", "Unsubscribe", true, true);
+    // Owned cloud plugins fall through to the local delete: it removes the installed package only.
+    // Deleting a plugin from the cloud is a plugin hub operation and is never offered here.
+    if (is_cloud && !is_orphaned && !is_mine) {
+        add_action("unsubscribe_plugin", "Unsubscribe", true, true);
     } else if (has_local) {
         add_action("delete_plugin", "Delete", true, true);
     }
 
     add_action("open_folder", "Show in folder", has_local);
 
-    add_action("reinstall_plugin", "Reinstall");
+    if (!is_orphaned) {
+        if (is_cloud) {
+            add_action("reinstall_plugin", "Reinstall");
+        } else {
+            add_action("reload_plugin", "Reload");
+            add_action("clear_cache_reload_plugin", "Delete cache and reload");
+        }
+    }
 
     return available_actions;
 }
@@ -353,6 +366,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.error_text            = descriptor.normalized_error();
     item.has_error             = descriptor.has_error();
     item.is_cloud_plugin       = descriptor.is_cloud_plugin();
+    item.orphaned              = descriptor.cloud.has_value() && descriptor.cloud->orphaned;
     item.has_local_package     = descriptor.has_local_package();
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
@@ -585,7 +599,35 @@ bool PluginsDialog::get_descriptor(const std::string& plugin_key, PluginDescript
 
 void PluginsDialog::refresh_plugin_metadata_async(const wxString& title, const wxString& message, bool fetch_cloud)
 {
-    run_with_dialog([fetch_cloud]() { refresh_plugin_metadata_blocking(fetch_cloud); }, [this]() { send_plugins(); }, title, message);
+    run_with_dialog([fetch_cloud]() { refresh_plugin_metadata_blocking(fetch_cloud); }, [this]() {
+        prompt_for_missing_plugins();
+        send_plugins();
+    }, title, message);
+}
+
+void PluginsDialog::prompt_for_missing_plugins()
+{
+    PluginManager& manager = PluginManager::instance();
+    const std::vector<PluginDescriptor> missing = manager.get_missing_plugin_descriptors();
+    if (missing.empty())
+        return;
+
+    wxString names;
+    std::vector<std::string> keys;
+    keys.reserve(missing.size());
+    for (const PluginDescriptor& plugin : missing) {
+        keys.push_back(plugin.plugin_key);
+        names += "\n- ";
+        names += plugin_display_name(plugin.plugin_key);
+    }
+
+    const int result = wxMessageBox(
+        wxString::Format(_L("The following installed plugins were not found on disk:\n%s\n\nRemove them from OrcaSlicer?"), names),
+        _L("Missing Plugins"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+    restore_z_order();
+
+    if (result == wxYES)
+        manager.remove_missing_plugins(keys);
 }
 
 void PluginsDialog::refresh_plugins()
@@ -737,13 +779,13 @@ void PluginsDialog::handle_plugin_menu_action(const std::string& plugin_key, con
         delete_local_plugin(row_data);
     } else if (action == "unsubscribe_plugin") {
         unsubscribe_cloud_plugin(row_data);
-    } else if (action == "delete_mine_plugin") {
-        delete_mine_local_and_cloud_plugin(plugin_key);
+    } else if (action == "reload_plugin") {
+        reload_local_plugin(plugin_key, /*clear_cache=*/false);
+    } else if (action == "clear_cache_reload_plugin") {
+        reload_local_plugin(plugin_key, /*clear_cache=*/true);
     } else if (action == "reinstall_plugin") {
         if (row_data.is_cloud_plugin())
             reinstall_cloud_plugin(row_data);
-        else
-            reinstall_local_plugin(plugin_key);
     }
 }
 
@@ -1064,19 +1106,25 @@ void PluginsDialog::open_plugin_hub()
 void PluginsDialog::delete_local_plugin(const PluginDescriptor& plugin)
 {
     const wxString plugin_name = from_u8(plugin.name);
-    const int rc = wxMessageBox(wxString::Format(_L("Delete plugin \"%s\"?\n\nThis permanently removes the plugin folder."), plugin_name),
-                                kDeletePluginTitle, wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+    const int rc               = wxMessageBox(
+        wxString::Format(plugin.is_cloud_plugin() ?
+                             _L("Delete plugin \"%s\"?\n\nThis removes the local plugin files. The plugin stays in the cloud "
+                                "and can be reinstalled.") :
+                             _L("Delete plugin \"%s\"?\n\nThis permanently removes the plugin folder."),
+                         plugin_name),
+        kDeletePluginTitle, wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
     restore_z_order();
     if (rc != wxYES)
         return;
 
     auto state = std::make_shared<PluginOperationState>();
     run_with_dialog(
-        [plugin_key = plugin.plugin_key, should_refresh = plugin.is_cloud_plugin(), state]() {
+        [plugin_key = plugin.plugin_key, cloud_row = as_cloud_only_descriptor(plugin), state]() {
             std::string error;
             const bool succeeded = PluginManager::instance().delete_plugin(plugin_key, error);
-            if (succeeded && should_refresh)
-                refresh_plugin_metadata_blocking(kFetchCloudMeta);
+            // Keep the cloud row listed so the plugin stays reinstallable without waiting on a cloud fetch.
+            if (succeeded && cloud_row.is_cloud_plugin())
+                PluginManager::instance().update_cloud_metadata(std::vector<PluginDescriptor>{cloud_row});
             store_plugin_operation_result(state, succeeded, std::move(error));
         },
         [this, state, plugin_name]() {
@@ -1123,7 +1171,7 @@ void PluginsDialog::unsubscribe_cloud_plugin(const PluginDescriptor& plugin)
         _L("Unsubscribing plugin"), _L("Deleting local files and unsubscribing plugin..."));
 }
 
-void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
+void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clear_cache)
 {
     if (plugin_key.empty())
         return;
@@ -1132,10 +1180,33 @@ void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
     std::pair<bool, std::string> reload_result{false, ""};
     try {
         reload_result = run_with_dialog_wait(
-            [plugin_key, was_loaded]() -> std::pair<bool, std::string> {
+            [plugin_key, was_loaded, clear_cache]() -> std::pair<bool, std::string> {
                 PluginManager& manager = PluginManager::instance();
+
+                boost::filesystem::path cache_dir;
+                if (clear_cache) {
+                    PluginDescriptor descriptor;
+                    if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
+                        return {false, "Plugin not found."};
+
+                    boost::filesystem::path resolved_root;
+                    std::string                  resolve_error;
+                    if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
+                                                     "Refusing to clear a plugin cache outside the local plugin directory.",
+                                                     resolved_root, resolve_error))
+                        return {false, resolve_error};
+                    cache_dir = resolved_root / "__whl_extracted__";
+                }
+
                 if (!manager.unload_plugin(plugin_key))
                     return {false, "Failed to unload plugin."};
+
+                if (clear_cache) {
+                    boost::system::error_code ec;
+                    boost::filesystem::remove_all(cache_dir, ec);
+                    if (ec)
+                        return {false, "Failed to clear plugin cache: " + ec.message()};
+                }
 
                 manager.load_plugin(plugin_key, false);
                 std::string error;
@@ -1217,30 +1288,6 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
 
     send_plugins();
     show_status(wxString::Format(_L("Reloaded \"%s\"."), plugin_display_name(plugin_key)), "success");
-}
-
-void PluginsDialog::delete_mine_local_and_cloud_plugin(const std::string& plugin_key)
-{
-    PluginDescriptor descriptor;
-    const std::string display  = get_descriptor(plugin_key, descriptor) ? descriptor.name : std::string{};
-    const wxString plugin_name = from_u8(display.empty() ? plugin_key : display);
-    const int rc               = wxMessageBox(
-        wxString::Format(_L("Delete plugin \"%s\" from local and cloud?\n\nThis permanently removes the local plugin files and "
-                            "deletes the plugin from the cloud. This action cannot be undone."),
-                         plugin_name),
-        kDeletePluginTitle, wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
-    restore_z_order();
-    if (rc != wxYES)
-        return;
-
-    std::string error;
-    if (!PluginManager::instance().delete_mine_local_and_cloud_plugin(plugin_key, error)) {
-        show_status(error.empty() ? _L("Failed to delete plugin from local and cloud.") : from_u8(error), "error");
-        return;
-    }
-
-    send_plugins();
-    show_status(wxString::Format(_L("Deleted \"%s\"."), plugin_name), "success");
 }
 
 }} // namespace Slic3r::GUI

@@ -3,7 +3,7 @@
 	"name": "Bambu PC FR @base",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"filament_id": "OGFC01",
+	"filament_id": "OFg57Nmc",
 	"instantiation": "false",
 	"filament_cost": [
 		"0"

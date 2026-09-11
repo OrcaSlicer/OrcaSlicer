@@ -6,6 +6,10 @@
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
 
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
+
 BEGIN_EVENT_TABLE(TextInput, StaticBox)
 
 EVT_PAINT(TextInput::paintEvent)
@@ -60,6 +64,11 @@ void TextInput::Create(wxWindow *     parent,
     state_handler.attach({&label_color, & text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveInputBorder(text_ctrl);
+#endif
+
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetInitialSize(text_ctrl->GetBestSize());
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
@@ -76,7 +85,7 @@ void TextInput::Create(wxWindow *     parent,
         e.SetId(GetId());
         ProcessEventLocally(e);
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     if (!icon.IsEmpty()) {
         this->icon = ScalableBitmap(this, icon.ToStdString(), 16);
     }
@@ -127,6 +136,15 @@ void TextInput::SetIcon_1(const wxString &icon) {
         return;
     }
     this->icon_1 = ScalableBitmap(this, icon.ToStdString(), 14);
+    Rescale();
+}
+
+// Set icon_1 from a raw bitmap. Note: won't auto-rescale on DPI change
+// since ScalableBitmap::name() will be empty. Caller should re-set after DPI change.
+void TextInput::SetIcon_1(const wxBitmap &icon) {
+    this->icon_1 = ScalableBitmap();
+    if (icon.IsOk())
+        this->icon_1.bmp() = icon;
     Rescale();
 }
 

@@ -13,7 +13,7 @@ TEST_CASE("Overhanging point should be supported", "[SupGen]") {
     // Pyramid with 45 deg slope
     TriangleMesh mesh = make_pyramid(10.f, 10.f);
     mesh.rotate_y(float(PI));
-    mesh.WriteOBJFile("Pyramid.obj");
+    write_debug_obj("sla_supptgen/Pyramid.obj", mesh);
 
     sla::SupportPoints pts = calc_support_pts(mesh);
 
@@ -55,7 +55,7 @@ TEST_CASE("Overhanging horizontal surface should be supported", "[SupGen]") {
 
     TriangleMesh mesh = make_cube(width, depth, height);
     mesh.translate(0., 0., 5.); // lift up
-    mesh.WriteOBJFile("Cuboid.obj");
+    write_debug_obj("sla_supptgen/Cuboid.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);
@@ -81,7 +81,7 @@ TEST_CASE("Overhanging edge should be supported", "[SupGen]") {
     TriangleMesh mesh = make_prism(width, depth, height);
     mesh.rotate_y(float(PI)); // rotate on its back
     mesh.translate(0., 0., height);
-    mesh.WriteOBJFile("Prism.obj");
+    write_debug_obj("sla_supptgen/Prism.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);
@@ -106,7 +106,7 @@ TEST_CASE("Hollowed cube should be supported from the inside", "[SupGen][Hollowe
 
     hollow_mesh(mesh, HollowingConfig{});
 
-    mesh.WriteOBJFile("cube_hollowed.obj");
+    write_debug_obj("sla_supptgen/cube_hollowed.obj", mesh);
 
     auto bb = mesh.bounding_box();
     auto h  = float(bb.max.z() - bb.min.z());
@@ -129,7 +129,7 @@ TEST_CASE("Two parallel plates should be supported", "[SupGen][Hollowed]")
     mesh_high.translate(0., 0., 10.); // lift up
     mesh.merge(mesh_high);
 
-    mesh.WriteOBJFile("parallel_plates.obj");
+    write_debug_obj("sla_supptgen/parallel_plates.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);

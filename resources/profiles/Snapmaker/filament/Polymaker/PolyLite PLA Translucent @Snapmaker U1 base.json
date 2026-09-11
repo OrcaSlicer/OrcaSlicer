@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Translucent @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL68",
+	"filament_id": "OFy02QHU",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

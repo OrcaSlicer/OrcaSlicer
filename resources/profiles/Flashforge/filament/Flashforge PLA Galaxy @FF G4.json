@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Galaxy @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "Tzvo3oILQJc4SQko",
+	"filament_id": "OFJJ0Ar3",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

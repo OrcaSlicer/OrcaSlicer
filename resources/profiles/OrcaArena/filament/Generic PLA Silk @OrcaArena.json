@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @OrcaArena",
+	"inherits": "Generic PLA Silk @OrcaArena base",
+	"renamed_from": "OrcaArena Generic PLA Silk",
+	"from": "system",
+	"setting_id": "rvJjX9QsHM1O1CGD",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"filament_retraction_length": [
+		"0.5"
+	],
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

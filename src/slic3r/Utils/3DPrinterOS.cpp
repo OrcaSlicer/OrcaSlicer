@@ -323,7 +323,7 @@ bool C3DPrinterOS::login(wxString& msg) const
     msg.clear();
     std::string token = get_api_auth_token(msg);
     if (token.empty()) {
-        msg = _L("Error. Can't get api token for authorization");
+        msg = _L("Error. Can't get API token for authorization");
         return false;
     }
 
@@ -627,7 +627,7 @@ void C3DPrinterOS::send_form(
             responseTree.put("result", false);
             responseTree.put("message", error);
         })
-        .on_complete([&, this](std::string body, unsigned) {
+        .on_complete([&](std::string body, unsigned) {
             std::stringstream ss(body);
             try {
                 pt::read_json(ss, responseTree);

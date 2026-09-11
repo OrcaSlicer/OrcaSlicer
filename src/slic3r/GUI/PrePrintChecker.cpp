@@ -218,6 +218,49 @@ void PrePrintChecker::add_with_link(PrintDialogStatus state, wxString msg, wxStr
     }
 }
 
+// Orca: acknowledgement-checkbox variant of add(); see add_with_link() for the shared classification.
+void PrePrintChecker::add_with_checkbox(PrintDialogStatus state, wxString msg, wxString checkbox_label, bool checked, std::function<void(bool)> checkbox_callback)
+{
+    prePrintInfo info;
+
+    if (is_error(state)) {
+        info.level = prePrintInfoLevel::Error;
+    } else if (is_warning(state)) {
+        info.level = prePrintInfoLevel::Warning;
+    } else {
+        info.level = prePrintInfoLevel::Normal;
+    }
+
+    if (is_error_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_error_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    } else if (is_warning_printer(state)) {
+        info.type = prePrintInfoType::Printer;
+    } else if (is_warning_filament(state)) {
+        info.type = prePrintInfoType::Filament;
+    }
+
+    info.msg              = msg;
+    info.checkbox_label   = checkbox_label;
+    info.checkbox_checked = checked;
+    info.checkbox_callback = checkbox_callback;
+
+    switch (info.type) {
+    case prePrintInfoType::Filament:
+        if (std::find(filamentList.begin(), filamentList.end(), info) == filamentList.end()) {
+            filamentList.push_back(info);
+        }
+        break;
+    case prePrintInfoType::Printer:
+        if (std::find(printerList.begin(), printerList.end(), info) == printerList.end()) {
+            printerList.push_back(info);
+        }
+        break;
+    default: break;
+    }
+}
+
 
 //void PrePrintMsgBoard::add(const wxString &msg, const wxString &tips, bool is_error)
 //{
@@ -309,6 +352,18 @@ bool PrinterMsgPanel::UpdateInfos(const std::vector<prePrintInfo>& infos)
             label->Wrap(this->GetMinSize().GetWidth());
             label->Show();
             m_sizer->Add(label, 0, wxBOTTOM, FromDIP(4));
+        }
+
+        // Orca: acknowledgement checkbox rendered beneath the message (e.g. a nozzle diameter that
+        // differs from the one the printer remembers, which the user may legitimately override).
+        if (!info.checkbox_label.empty())
+        {
+            wxCheckBox* checkbox = new wxCheckBox(this, wxID_ANY, info.checkbox_label);
+            checkbox->SetForegroundColour(_GetLabelColour(info));
+            checkbox->SetValue(info.checkbox_checked);
+            auto cb = info.checkbox_callback;
+            checkbox->Bind(wxEVT_CHECKBOX, [cb](wxCommandEvent& e) { if (cb) cb(e.IsChecked()); });
+            m_sizer->Add(checkbox, 0, wxBOTTOM, FromDIP(4));
         }
     }
 

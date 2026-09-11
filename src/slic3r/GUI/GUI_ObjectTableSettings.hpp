@@ -70,7 +70,7 @@ public:
     bool        add_missed_options(ModelConfig *config_to, const DynamicPrintConfig &config_from);
     //return visible count
     int         update_extra_column_visible_status(ConfigOptionsGroup* option_group, const std::vector<SimpleSettingData>& option_keys, ModelConfig* config);
-    void        update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category);
+    void        update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category, const std::string& changed_opt_key = "");
     void        UpdateAndShow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category);
     void        ValueChanged(int row, bool is_object, ModelObject* object, ModelConfig* config, const std::string& category, const std::string& key);
     void        resetAllValues(int row, bool is_object, ModelObject* object, ModelConfig* config, const std::string& category);

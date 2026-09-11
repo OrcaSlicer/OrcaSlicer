@@ -11,6 +11,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Slicing.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Arrange.hpp"
 #include "Plater.hpp"
 #include "libslic3r/Model.hpp"
@@ -96,7 +97,7 @@ private:
     Vec3d m_origin;
     int m_width;
     int m_depth;
-    int m_height;
+    double m_height;
     float m_height_to_lid;
     float m_height_to_rod;
     bool m_printable;
@@ -227,7 +228,7 @@ public:
     static void load_render_colors();
 
     PartPlate();
-    PartPlate(PartPlateList *partplate_list, Vec3d origin, int width, int depth, int height, Plater* platerObj, Model* modelObj, bool printable=true, PrinterTechnology tech = ptFFF);
+    PartPlate(PartPlateList *partplate_list, Vec3d origin, int width, int depth, double height, Plater* platerObj, Model* modelObj, bool printable=true, PrinterTechnology tech = ptFFF);
     ~PartPlate();
 
     bool operator<(PartPlate&) const;
@@ -328,7 +329,7 @@ public:
     Vec3d get_center_origin();
     /* size and position related functions*/
     //set position and size
-    void set_pos_and_size(Vec3d& origin, int width, int depth, int height, bool with_instance_move, bool do_clear = true);
+    void set_pos_and_size(Vec3d& origin, int width, int depth, double height, bool with_instance_move, bool do_clear = true);
 
     // BBS
     Vec2d get_size() const { return Vec2d(m_width, m_depth); }
@@ -339,11 +340,16 @@ public:
 
     Vec3d get_origin() { return m_origin; }
     //Vec3d calculate_wipe_tower_size(const DynamicPrintConfig &config, const double w, const double wipe_volume, int plate_extruder_size = 0, bool use_global_objects = false) const;
-    Vec3d estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false, bool enable_wrapping_detection = false) const;
-    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false) const;
+    // plate_extruder_size: a floor on the filaments purged on the plate; its own are always
+    //                      counted, so 0 sizes for exactly those.
+    // use_global_objects skips the containment test, which the CLI needs before objects are
+    // assigned to plates - the layer height is then the project's thinnest, which over-reserves.
+    WipeTowerFootprint estimate_wipe_tower_footprint(const DynamicPrintConfig & config, int plate_extruder_size = 0, bool use_global_objects = false) const;
+    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
     std::vector<int> get_extruders(bool conside_custom_gcode = false) const;
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
@@ -354,6 +360,9 @@ public:
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
+    // Warns when a mixed-color filament is used on a single-nozzle printer, where every
+    // component switch costs a full filament change and purge.
+    bool check_single_extruder_mixed_filament_risk(const DynamicPrintConfig &config, std::string &warning_text) const;
     bool check_mixture_filament_compatible(const DynamicPrintConfig& config, std::string &error_msg);
     bool check_compatible_of_nozzle_and_filament(const DynamicPrintConfig & config, const std::vector<std::string>& filament_presets, std::string& error_msg);
 
@@ -363,6 +372,8 @@ public:
     bool contain_instance_totally(ModelObject* object, int instance_id) const;
     //judge whether instance is totally included in plate or not
     bool contain_instance_totally(int obj_id, int instance_id) const;
+    //judge whether any of the object's instances is totally included in plate or not
+    bool contain_any_instance_totally(int obj_id) const;
 
     //judge whether the plate's origin is at the left of instance or not
     bool is_left_top_of(int obj_id, int instance_id);
@@ -425,6 +436,9 @@ public:
     const BoundingBox get_bounding_box_crd();
     BoundingBoxf3 get_plate_box() {return get_build_volume();}
     BoundingBoxf3 get_build_volume(bool use_share = false);
+    // Polygon counterpart of get_build_volume(true), in scaled world coordinates. The bounding box
+    // that one returns hides the corners a non-rectangular bed does not have.
+    Polygon get_shared_printable_polygon() const;
 
     const std::vector<BoundingBoxf3>& get_exclude_areas() { return m_exclude_bounding_box; }
 
@@ -584,7 +598,7 @@ class PartPlateList : public ObjectBase
 
     int m_plate_width;
     int m_plate_depth;
-    int m_plate_height;
+    double m_plate_height;
 
     float m_height_to_lid;
     float m_height_to_rod;
@@ -669,16 +683,6 @@ public:
                 offset = Vec2d(0, 0);
             }
 
-            TexturePart(const TexturePart& part) {
-                this->x = part.x;
-                this->y = part.y;
-                this->w = part.w;
-                this->h = part.h;
-                this->offset = part.offset;
-                this->buffer    = part.buffer;
-                this->filename  = part.filename;
-                this->texture   = part.texture;
-            }
             void update_pos(float xx, float yy, float ww, float hh) {
                 x = xx;
                 y = yy;
@@ -702,12 +706,12 @@ public:
     static bool is_load_cali_texture;
     static bool is_load_extruder_only_area_textures;
 
-    PartPlateList(int width, int depth, int height, Plater* platerObj, Model* modelObj, PrinterTechnology tech = ptFFF);
+    PartPlateList(int width, int depth, double height, Plater* platerObj, Model* modelObj, PrinterTechnology tech = ptFFF);
     PartPlateList(Plater* platerObj, Model* modelObj, PrinterTechnology tech = ptFFF);
     ~PartPlateList();
 
     //this may be happened after machine changed
-    void reset_size(int width, int depth, int height, bool reload_objects = true, bool update_shapes = false);
+    void reset_size(int width, int depth, double height, bool reload_objects = true, bool update_shapes = false);
     //clear all the instances in the plate, but keep the plates
     void clear(bool delete_plates = false, bool release_print_list = false, bool except_locked = false, int plate_index = -1);
     //clear all the instances in the plate, and delete the plates, only keep the first default plate
@@ -721,7 +725,7 @@ public:
     //get the plate stride
     double plate_stride_x();
     double plate_stride_y();
-    void get_plate_size(int& width, int& depth, int& height) {
+    void get_plate_size(int& width, int& depth, double& height) {
         width = m_plate_width;
         depth = m_plate_depth;
         height = m_plate_height;

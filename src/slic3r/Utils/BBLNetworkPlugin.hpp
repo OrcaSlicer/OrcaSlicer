@@ -119,7 +119,7 @@ typedef int (*func_get_model_mall_rating_result)(void *agent, int job_id, std::s
 typedef int (*func_get_mw_user_preference)(void *agent, std::function<void(std::string)> callback);
 typedef int (*func_get_mw_user_4ulist)(void *agent, int seed, int limit, std::function<void(std::string)> callback);
 
-// Legacy function pointer types (for older DLL versions)
+// Legacy function pointer types (for the 01.10.01 DLL)
 typedef int (*func_start_print_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
 typedef int (*func_start_local_print_with_record_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
 typedef int (*func_start_send_gcode_to_sdcard_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
@@ -128,10 +128,25 @@ typedef int (*func_start_sdcard_print_legacy)(void* agent, PrintParams_Legacy pa
 typedef int (*func_send_message_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
 typedef int (*func_send_message_to_printer_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
 
-// Added by the 02.08.01.52 plugin ABI (null on older plugins).
+// 02.03.00 function pointer types. Only PrintParams differs from the current ABI; send_message
+// and send_message_to_printer already take the flag argument in this series.
+typedef int (*func_start_print_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_local_print_with_record_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_send_gcode_to_sdcard_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_local_print_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+typedef int (*func_start_sdcard_print_0203)(void* agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+
+// bind() gained dev_model in 02.08.01; the legacy and 02.03.00 series share the older form.
+typedef int (*func_bind_pre0208)(void *agent, std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
+
+// Exported by every supported generation, but only bound here.
 typedef int (*func_set_on_user_login_fn)(void *agent, OnUserLoginFn fn);
 typedef std::string (*func_get_studio_info_url)(void *agent);
+
+// Present since 02.03.00, null on the legacy plugin.
 typedef int (*func_report_consent)(void *agent, std::string expand);
+
+// Added by the 02.08.01.52 plugin ABI (null on older plugins).
 typedef int (*func_get_camera_url_for_golive)(void *agent, std::string dev_id, std::string sdev_id, std::function<void(std::string)> callback);
 typedef int (*func_get_hms_snapshot)(void *agent, std::string& dev_id, std::string& file_name, std::function<void(std::string, int)> callback);
 typedef int (*func_get_filament_spools)(void *agent, FilamentQueryParams params, std::string* http_body);
@@ -279,12 +294,13 @@ public:
                         const std::string& attempted_path);
 
     // ========================================================================
-    // Legacy Network Flag
+    // Plug-in ABI Generation
     // ========================================================================
 
     static bool is_legacy_version(const std::string& version) { return version == BAMBU_NETWORK_AGENT_VERSION_LEGACY; }
-    bool use_legacy_network() const { return m_use_legacy_network; }
-    void set_use_legacy_network(bool legacy) { m_use_legacy_network = legacy; }
+    // The generation the loaded library speaks - what every call must dispatch on.
+    NetworkAbi network_abi() const { return m_network_abi; }
+    bool use_legacy_network() const { return m_network_abi == NetworkAbi::Legacy; }
 
     // ========================================================================
     // Function Pointer Accessors
@@ -401,10 +417,12 @@ public:
     func_sync_ams_filaments get_sync_ams_filaments() const { return m_sync_ams_filaments; }
 
     // ========================================================================
-    // Legacy Helper
+    // ABI Conversion Helpers
     // ========================================================================
 
+    // Both move out of `param`, so convert only inside the branch that will actually run.
     static PrintParams_Legacy as_legacy(PrintParams& param);
+    static PrintParams_0203 as_0203(PrintParams& param);
 
 private:
     // Singleton instance pointer (heap-allocated for explicit lifetime control)
@@ -431,8 +449,8 @@ private:
     // Load error state
     NetworkLibraryLoadError m_load_error;
 
-    // Legacy network compatibility flag
-    bool m_use_legacy_network{false};
+    // ABI generation of the currently loaded library
+    NetworkAbi m_network_abi{NetworkAbi::Unsupported};
 
     // Function pointers
     func_check_debug_consistent m_check_debug_consistent{nullptr};

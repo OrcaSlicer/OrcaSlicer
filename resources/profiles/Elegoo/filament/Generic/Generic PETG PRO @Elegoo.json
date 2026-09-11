@@ -4,6 +4,7 @@
 	"name": "Generic PETG PRO @Elegoo",
 	"renamed_from": "Elegoo Generic PETG PRO",
 	"from": "system",
+	"filament_id": "OFllmFhT",
 	"instantiation": "true",
 	"inherits": "Generic PETG @base",
 	"cool_plate_temp": [

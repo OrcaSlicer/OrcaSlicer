@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Artillery PLA Tough",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "hLFvQXsyyUrguGEp",
+	"filament_id": "OF0R5Wc7",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Artillery Sidewinder X3 Pro 0.4 nozzle",

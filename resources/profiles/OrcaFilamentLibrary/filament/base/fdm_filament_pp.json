@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pp",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFP97",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"70"
@@ -36,6 +35,9 @@
 		"0.93"
 	],
 	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_multitool_ramming_flow": [
 		"12"
 	],
 	"filament_type": [
