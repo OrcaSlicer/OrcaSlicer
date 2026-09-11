@@ -872,7 +872,7 @@ namespace Slic3r
                         obj->m_is_online = elem["dev_online"].get<bool>();
                     if (elem.contains("dev_model_name") && !elem["dev_model_name"].is_null()) {
                         auto printer_type = elem["dev_model_name"].get<std::string>();
-                        for (const std::pair<std::string, std::vector<std::string>> &pair : device_subseries) {
+                        for (const auto &pair : device_subseries) {
                             auto it = std::find(pair.second.begin(), pair.second.end(), printer_type);
                             if (it != pair.second.end())
                             {

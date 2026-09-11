@@ -46,6 +46,8 @@ public:
 protected:
     void eraseEvent(wxEraseEvent& evt);
 
+    void sizeEvent(wxSizeEvent& evt);
+
     void paintEvent(wxPaintEvent& evt);
 
     void render(wxDC& dc);

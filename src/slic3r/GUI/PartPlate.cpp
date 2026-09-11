@@ -1112,7 +1112,7 @@ void PartPlate::show_tooltip(const std::string tooltip)
 {
     const auto scale = m_plater->get_current_canvas3D()->get_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6 * scale, 3 * scale});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, {3 * scale});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3 * scale);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGuiWrapper::COL_WINDOW_BACKGROUND);
     ImGui::PushStyleColor(ImGuiCol_Border, {0, 0, 0, 0});
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
@@ -1917,7 +1917,7 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-		if (!contain_instance_totally(obj_idx, 0))
+		if (!contain_any_instance_totally(obj_idx))
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
@@ -2088,7 +2088,7 @@ bool PartPlate::check_single_extruder_mixed_filament_risk(const DynamicPrintConf
                                             "which may significantly increase waste and the risk of nozzle / waste-chute clogging.");
 
     for (int obj_idx = 0; obj_idx < (int)m_model->objects.size(); ++obj_idx) {
-        if (!contain_instance_totally(obj_idx, 0))
+        if (!contain_any_instance_totally(obj_idx))
             continue;
         ModelObject *mo = m_model->objects[obj_idx];
         int obj_ext = mo->config.has("extruder") ? mo->config.extruder() : 1;
@@ -2307,7 +2307,7 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
         return wipe_tower_size;
 
     for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (!use_global_objects && !contain_instance_totally(obj_idx, 0))
+        if (!use_global_objects && !contain_any_instance_totally(obj_idx))
             continue;
 
         BoundingBoxf3 bbox = m_model->objects[obj_idx]->bounding_box();

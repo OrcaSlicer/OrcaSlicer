@@ -4971,12 +4971,8 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                     }
                 }
 
-                if (!has_inserted) {
-                    if (finish_block_tcr.gcode.empty())
-                        finish_block_tcr = finish_block_tcr;
-                    else
-                        finish_layer_tcr = merge_tcr(finish_layer_tcr, finish_block_tcr);
-                }
+                if (!has_inserted && !finish_block_tcr.gcode.empty())
+                    finish_layer_tcr = merge_tcr(finish_layer_tcr, finish_block_tcr);
             }
         }
         // record the contact layers of different categories

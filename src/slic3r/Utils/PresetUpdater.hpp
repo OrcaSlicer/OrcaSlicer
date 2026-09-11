@@ -1,7 +1,9 @@
 #ifndef slic3r_PresetUpdate_hpp_
 #define slic3r_PresetUpdate_hpp_
 
+#include <functional>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include <wx/event.h>
@@ -59,6 +61,12 @@ public:
 	void on_update_notification_confirm();
     void do_printer_config_update();
 	void check_vendor_update(const std::string& vendor_id);
+	// Orca: async, mirrors check_vendor_update()/sync_vendor_config() — the network query and any
+	// download/install work happen on a background thread; only the confirmation dialog runs on
+	// the UI thread. `callback` is invoked on the UI thread with the ids of vendors that were
+	// installed (empty if none were found, or the user declined) and whether the user declined.
+	void check_new_vendors(const std::set<std::string>& system_vendors,
+	                        std::function<void(std::vector<std::string> installed_vendors, bool declined)> callback);
 
 	bool version_check_enabled() const;
 

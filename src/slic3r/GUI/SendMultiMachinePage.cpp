@@ -814,13 +814,13 @@ wxBoxSizer* SendMultiMachinePage::create_item_title(wxString title, wxWindow* pa
     wxBoxSizer* m_sizer_title = new wxBoxSizer(wxHORIZONTAL);
 
     auto m_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    m_title->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_title->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_title->SetFont(::Label::Head_13);
     m_title->Wrap(-1);
     m_title->SetToolTip(tooltip);
 
     auto m_line = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_line->SetBackgroundColour(DESIGN_GRAY400_COLOR);
+    m_line->SetBackgroundColour(SEND_DESIGN_GRAY400_COLOR);
 
     m_sizer_title->Add(m_title, 0, wxALIGN_CENTER | wxALL, 3);
     m_sizer_title->Add(0, 0, 0, wxLEFT, 9);
@@ -843,7 +843,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow*
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
 
     auto checkbox_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    checkbox_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     checkbox_title->SetFont(::Label::Body_13);
 
     auto size = checkbox_title->GetTextExtent(title);
@@ -867,12 +867,12 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
 {
     wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
     auto input_title = new wxStaticText(parent, wxID_ANY, str_before);
-    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     input_title->SetFont(::Label::Body_13);
     input_title->SetToolTip(tooltip);
     input_title->Wrap(-1);
 
-    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, SEND_DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
@@ -880,7 +880,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
     input->GetTextCtrl()->SetValidator(validator);
 
     auto second_title = new wxStaticText(parent, wxID_ANY, str_after, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    second_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_13);
     second_title->SetToolTip(tooltip);
     second_title->Wrap(-1);
@@ -1337,7 +1337,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_tip_text->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetLabel(_L("Please select the devices you would like to manage here (up to 6 devices)"));
-    m_tip_text->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_tip_text->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_tip_text->SetFont(::Label::Head_20);
     m_tip_text->Wrap(-1);
 

@@ -678,7 +678,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
         wxBoxSizer *loading_Sizer = new wxBoxSizer(wxHORIZONTAL);
         m_gif_ctrl = new wxAnimationCtrl(m_loading_page, wxID_ANY, wxNullAnimation, wxDefaultPosition, wxDefaultSize, wxAC_DEFAULT_STYLE);
-        auto gif_path = Slic3r::var("loading.gif").c_str();
+        const wxString gif_path = from_u8(Slic3r::var("loading.gif"));
         if (m_gif_ctrl->LoadFile(gif_path)){
             m_gif_ctrl->SetSize(m_gif_ctrl->GetAnimation().GetSize());
             m_gif_ctrl->Play();
@@ -1547,7 +1547,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
                     auto sai_nz_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
                     if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID) {
                         pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
-                    } else if ((target_machine_nozzle_id == MAIN_EXTRUDER_ID)) {
+                    } else if (target_machine_nozzle_id == MAIN_EXTRUDER_ID) {
                         pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     }
 

@@ -66,7 +66,6 @@ class ParamsPanel : public wxPanel
 {
 #if __WXOSX__
     wxWindow*            m_tmp_panel;
-    int                 m_size_move = -1;
 #endif // __WXOSX__
 
 	private:

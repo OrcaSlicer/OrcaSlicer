@@ -2779,7 +2779,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     std::map<int, std::map<int, GCodePosInfo>> gcode_path_pos; // object_id, filament_id, pos
     for (const GCodeProcessorResult::MoveVertex &move : m_result.moves) {
         // sometimes, the start line extrude was outside the edge of plate a little, this is allowed, so do not include into the gcode_path_pos
-        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/)
+        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/) {
             if (move.extrusion_role == ExtrusionRole::erCustom) {
                 /*if (move.is_arc_move_with_interpolation_points()) {
                     for (int i = 0; i < move.interpolation_points.size(); i++) {
@@ -2801,6 +2801,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z = std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z,
                                                                                                    move.print_z);
             }
+        }
     }
 
     bool valid = true;

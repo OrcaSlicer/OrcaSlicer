@@ -254,10 +254,8 @@ int Http::priv::xfercb(void *userp, curl_off_t dltotal, curl_off_t dlnow, curl_o
 	bool cb_cancel = false;
 
 	if (self->progressfn) {
-		double speed;
+		double speed = 0.;
         curl_easy_getinfo(self->curl, CURLINFO_SPEED_UPLOAD, &speed);
-		if (speed > 0.01)
-			speed = speed;
 		Progress progress(dltotal, dlnow, ultotal, ulnow, self->buffer, speed);
 		self->progressfn(progress, cb_cancel);
 	}
@@ -323,8 +321,10 @@ void Http::priv::form_add_file(const char *name, const fs::path &path, const cha
 	// We can't use CURLFORM_FILECONTENT, because curl doesn't support Unicode filenames on Windows
 	// and so we use CURLFORM_STREAM with boost ifstream to read the file.
 
+	std::string filename_str;
 	if (filename == nullptr) {
-		filename = path.string().c_str();
+		filename_str = path.string();
+		filename = filename_str.c_str();
 	}
 
 	form_files.emplace_back(path, offset, length);
