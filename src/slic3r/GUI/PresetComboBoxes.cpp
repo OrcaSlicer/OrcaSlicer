@@ -386,7 +386,15 @@ wxString PresetComboBox::get_preset_item_name(unsigned int index)
 
 wxString PresetComboBox::get_preset_name(const Preset & preset)
 {
-    return from_u8(preset.name/* + suffix(preset)*/);
+    wxString prefix = "";
+    if (preset.is_default || preset.is_system)
+        prefix = "(S) ";
+    else if (preset.is_project_embedded)
+        prefix = "(P) ";
+    else
+        prefix = "(U) ";
+
+    return prefix + from_u8(preset.name);
 }
 
 void PresetComboBox::update(std::string select_preset_name)
@@ -1011,9 +1019,11 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
-        {
+        wxString selected_alias = GetItemAlias(GetSelection());
+        if (selected_alias.IsEmpty())
+            selected_alias = GetString(GetSelection());
+        const std::string selected_preset = selected_alias.ToUTF8().data();
+        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified())) {
             const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
             if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
                 wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
@@ -1124,7 +1134,15 @@ void PlaterPresetComboBox::show_edit_menu()
 
 wxString PlaterPresetComboBox::get_preset_name(const Preset& preset)
 {
-    return from_u8(preset.label(false));
+    wxString prefix = "";
+    if (preset.is_default || preset.is_system)
+        prefix = "(S) ";
+    else if (preset.is_project_embedded)
+        prefix = "(P) ";
+    else
+        prefix = "(U) ";
+
+    return prefix + from_u8(preset.label(false));
 }
 
 // Only the compatible presets are shown.
@@ -1681,10 +1699,17 @@ void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
 
 wxString TabPresetComboBox::get_preset_name(const Preset& preset)
 {
-    if (preset.is_from_bundle())
-        return from_u8(preset.label(false));
+    wxString name = preset.is_from_bundle() ? from_u8(preset.label(false)) : from_u8(preset.label(true));
+
+    wxString prefix = "";
+    if (preset.is_default || preset.is_system)
+        prefix = "(S) ";
+    else if (preset.is_project_embedded)
+        prefix = "(P) ";
     else
-        return from_u8(preset.label(true));
+        prefix = "(U) ";
+
+    return prefix + name;
 }
 
 // Update the choice UI from the list of presets.
@@ -1735,8 +1760,8 @@ void TabPresetComboBox::update()
         wxBitmap* bmp = get_bmp(preset);
         assert(bmp);
 
-        const wxString name = from_u8(preset.name);
-        preset_aliases[name] = get_preset_name(preset).utf8_string();
+        const wxString name  = get_preset_name(preset); 
+        preset_aliases[name] = preset.name;             
         if (preset.is_system)
             preset_descriptions.emplace(name, from_u8(preset.description));
 
@@ -1798,6 +1823,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("Project-inside presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = project_embedded_presets.begin(); it != project_embedded_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1810,7 +1836,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("User presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = nonsys_presets.begin(); it != nonsys_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1830,7 +1856,7 @@ void TabPresetComboBox::update()
             }
             // Use Append with group parameter for sub-dropdown grouping
             int item_id = Append(from_u8(preset_aliases[it->first]), *it->second.first, from_u8(preset_bundle_ids[it->first]), bundle_name);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1844,7 +1870,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("System presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = system_presets.begin(); it != system_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
