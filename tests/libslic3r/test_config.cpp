@@ -1161,3 +1161,57 @@ TEST_CASE("min_object_distance yields no floor when an FFF config lacks the opti
         CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
     }
 }
+
+TEST_CASE("Static print configs compare, order and hash by their option values", "[Config]")
+{
+    // PrintObjectConfig comes from PRINT_CONFIG_CLASS_DEFINE; PrintConfig combines MachineEnvelopeConfig
+    // and GCodeConfig through PRINT_CONFIG_CLASS_DERIVED_DEFINE. Both generate hash(), operator==,
+    // operator< and the option registration from the same option list.
+    SECTION("default-constructed configs are equal and find their options by key")
+    {
+        PrintObjectConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+        REQUIRE_FALSE(a < b);
+        REQUIRE_FALSE(b < a);
+        REQUIRE(a.optptr("layer_height") == &a.layer_height);
+        REQUIRE(a.optptr("brim_object_gap") == &a.brim_object_gap);
+    }
+
+    SECTION("one differing option makes the configs unequal and orders them")
+    {
+        PrintObjectConfig a, b;
+        b.layer_height.value = a.layer_height.value + 0.05;
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+        REQUIRE(a < b);
+        REQUIRE_FALSE(b < a);
+    }
+
+    SECTION("ordering is decided by the first option in declaration order that differs")
+    {
+        PrintObjectConfig a, b;
+        a.brim_object_gap.value = b.brim_object_gap.value + 1.0;  // declared first
+        a.layer_height.value    = b.layer_height.value - 0.05;    // declared later, points the other way
+        REQUIRE(b < a);
+        REQUIRE_FALSE(a < b);
+    }
+
+    SECTION("a derived config sees differences in its parents and in its own options")
+    {
+        PrintConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+
+        b.gcode_flavor.value = b.gcode_flavor.value == gcfMarlinLegacy ? gcfKlipper : gcfMarlinLegacy;  // GCodeConfig parent
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+
+        PrintConfig c, d;
+        d.skirt_distance.value = c.skirt_distance.value + 1.0;  // PrintConfig's own list
+        REQUIRE(c != d);
+        REQUIRE(c.hash() != d.hash());
+        REQUIRE(c.optptr("skirt_distance") == &c.skirt_distance);
+        REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
+    }
+}
