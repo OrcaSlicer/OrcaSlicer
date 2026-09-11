@@ -235,6 +235,9 @@ private:
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::NoInternalInfill };
     unsigned int m_reduced_detail_layer_stride{ 4 };
     libvgcode::EReducedDetailMode m_rest_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    // ORCA: draw the sliced objects as solid shapes instead of toolpaths while dragging
+    bool m_solid_model_while_dragging{ false };
+    void render_solid_model(int canvas_width, int canvas_height);
     void apply_reduced_detail_settings();
     // whether the user is dragging or a wheel burst is settling, as told by set_interacting()
     bool m_interacting{ false };

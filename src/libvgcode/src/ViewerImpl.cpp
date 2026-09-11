@@ -1779,6 +1779,11 @@ void ViewerImpl::update_enabled_entities()
         }
         if (!build_reduced)
             continue;
+        if (m_settings.reduced_detail_mode == EReducedDetailMode::EndLayersOnly) {
+            if (whole_layer)
+                (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+            continue;
+        }
         if (!whole_layer && (v.layer_id % layer_stride) != 0) {
             // the surfaces of a skipped layer that either side can see stay, so that a step does not vanish
             if (shell_reduced && (visible_from_above || visible_from_below))

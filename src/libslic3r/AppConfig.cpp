@@ -208,7 +208,7 @@ void AppConfig::set_defaults()
 
     {
         const std::string mode = get("preview_reduced_detail_mode");
-        if (mode != "layers" && mode != "no_infill" && mode != "shell")
+        if (mode != "layers" && mode != "no_infill" && mode != "shell" && mode != "solid")
             set("preview_reduced_detail_mode", "no_infill");
     }
 

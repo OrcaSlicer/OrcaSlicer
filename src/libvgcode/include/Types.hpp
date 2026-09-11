@@ -172,6 +172,9 @@ enum class EReducedDetailMode : uint8_t
     NoInternalInfill,
     // only the segments on the visible surface of the print are kept
     ShellOnly,
+    // only the bottom and top of the visible layer range are kept, for a caller that draws the
+    // print itself some other way and needs just the two faces the range cuts open
+    EndLayersOnly,
     COUNT
 };
 

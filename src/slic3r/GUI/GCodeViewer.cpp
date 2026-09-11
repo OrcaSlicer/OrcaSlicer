@@ -1175,6 +1175,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // ORCA: simplify the preview while the user is dragging
     m_reduced_detail_while_dragging = get_app_config()->get_bool("preview_reduced_detail_while_dragging");
     m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
+    m_solid_model_while_dragging = m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly;
     m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
     m_rest_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_rest_detail_mode"));
     apply_reduced_detail_settings();
@@ -1653,8 +1654,15 @@ void GCodeViewer::reset()
 void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin, bool draw_scene)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    if (draw_scene)
-        render_shells(canvas_width, canvas_height);
+    // while dragging in the solid model mode the objects stand in for their toolpaths, cut to the
+    // visible layer range; the toolpath set then holds only the range's bottom and top layers
+    const bool solid_model = m_interacting && m_solid_model_while_dragging && m_viewer.is_reduced_detail();
+    if (draw_scene) {
+        if (solid_model)
+            render_solid_model(canvas_width, canvas_height);
+        else
+            render_shells(canvas_width, canvas_height);
+    }
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
@@ -2007,6 +2015,7 @@ void GCodeViewer::set_reduced_detail_while_dragging(bool value)
 void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
 {
     m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
+    m_solid_model_while_dragging = m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly;
     apply_reduced_detail_settings();
 }
 
@@ -2020,6 +2029,8 @@ libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const
 {
     if (mode == "full")
         return libvgcode::EReducedDetailMode::Off;
+    if (mode == "solid")
+        return libvgcode::EReducedDetailMode::EndLayersOnly;
     if (mode == "layers")
         return libvgcode::EReducedDetailMode::LayersOnly;
     if (mode == "shell")
@@ -2415,6 +2426,19 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
         object_count++;
     }
 
+    // the prime tower as it was sliced, so that the solid model shows what the print shows; it
+    // keeps its opaque colour and so never appears among the translucent shells
+    if (print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data) {
+        const PrintConfig& config = print.config();
+        const int plate_idx = print.get_plate_index();
+        const Vec3d plate_origin = print.get_plate_origin();
+        const float x = static_cast<float>(config.wipe_tower_x.get_at(plate_idx) + plate_origin.x());
+        const float y = static_cast<float>(config.wipe_tower_y.get_at(plate_idx) + plate_origin.y());
+        m_shells.volumes.load_real_wipe_tower_preview(1000, x, y, print.wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                      print.wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh, true,
+                                                      static_cast<float>(config.wipe_tower_rotation_angle), false, initialized);
+    }
+
     // Orca: disable wipe tower shell
     // if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF) {
         //     // BBS: adds wipe tower's volume
@@ -2663,6 +2687,47 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
     shader->stop_using();
 
     glsafe(::glDepthMask(GL_TRUE));
+}
+
+// The sliced objects and the prime tower drawn opaque, in their filament colours, cut to the
+// visible layer range by the shader's z range. The toolpaths of the range's bottom and top layers
+// are drawn afterwards and cap the cut.
+void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
+{
+    if (m_shells.volumes.empty())
+        return;
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if (shader == nullptr)
+        return;
+
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    const float z_top = m_viewer.get_layer_z(layers[1]) - m_z_offset + 0.001f;
+    const float z_bottom = (layers[0] > 0) ? m_viewer.get_layer_z(layers[0] - 1) - m_z_offset - 0.001f : -FLT_MAX;
+
+    std::vector<float> alphas;
+    alphas.reserve(m_shells.volumes.volumes.size());
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        alphas.push_back(volume->color.a());
+        volume->color.a(1.0f);
+        volume->set_render_color();
+    }
+    m_shells.volumes.set_z_range(z_bottom, z_top);
+
+    shader->start_using();
+    shader->set_uniform("emission_factor", 0.1f);
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_far", camera.get_far_z());
+    shader->set_uniform("z_near", camera.get_near_z());
+    m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+    shader->set_uniform("emission_factor", 0.0f);
+    shader->stop_using();
+
+    m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    size_t k = 0;
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        volume->color.a(alphas[k++]);
+        volume->set_render_color();
+    }
 }
 
 //BBS

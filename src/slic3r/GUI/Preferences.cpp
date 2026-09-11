@@ -1977,10 +1977,12 @@ void PreferencesDialog::create_items()
            "Skip layers only: every toolpath of the drawn layers is kept.\n"
            "Skip internal infill: sparse and solid infill hidden inside the walls is left out.\n"
            "Shell only: only the toolpaths on the visible surface of the print are drawn, including the outside of the prime tower. "
-           "Removes the most, and holes narrower than 5 mm are treated as solid."),
+           "Removes the most of the toolpath modes, and holes narrower than 5 mm are treated as solid.\n"
+           "Solid model: the sliced objects and the prime tower are drawn as solid shapes in their filament colours instead of toolpaths, "
+           "cut to the visible layer range with the range's bottom and top layers drawn on top. Cheapest of all; supports are not shown, and the layer setting below does not apply."),
         "preview_reduced_detail_mode",
-        {_L("Skip layers only"), _L("Skip internal infill"), _L("Shell only")},
-        {"layers", "no_infill", "shell"},
+        {_L("Skip layers only"), _L("Skip internal infill"), _L("Shell only"), _L("Solid model")},
+        {"layers", "no_infill", "shell", "solid"},
         // ORCA: apply the new mode immediately to the currently loaded preview
         [](std::string value) {
             if (Plater* plater = wxGetApp().plater()) {

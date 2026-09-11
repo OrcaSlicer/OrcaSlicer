@@ -565,7 +565,7 @@ private:
     bool use_rest_set() const { return !use_reduced_set() && build_rest_set(); }
     // how many layers each drawn segment of the bound set stands in for
     float active_height_scale() const {
-        if (use_reduced_set())
+        if (use_reduced_set() && m_settings.reduced_detail_mode != EReducedDetailMode::EndLayersOnly)
             return static_cast<float>(std::max<uint32_t>(1, m_settings.reduced_detail_layer_stride));
         if (use_rest_set() && m_settings.rest_detail_mode == EReducedDetailMode::ShellOnly)
             return static_cast<float>(std::max<uint32_t>(1, m_settings.rest_layer_stride));
