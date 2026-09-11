@@ -3,7 +3,7 @@
 	"name": "BETA HIPS @base",
 	"inherits": "fdm_filament_hips",
 	"from": "system",
-	"filament_id": "BHIB00",
+	"filament_id": "OFlmxlDG",
 	"instantiation": "false",
 	"filament_is_support": [
 		"1"

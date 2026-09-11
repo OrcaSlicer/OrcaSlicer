@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Aero @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA11",
+	"filament_id": "OFBSW57R",
 	"instantiation": "false",
 	"description": "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero).",
 	"fan_min_speed": [

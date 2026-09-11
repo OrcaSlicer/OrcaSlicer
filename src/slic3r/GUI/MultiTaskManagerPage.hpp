@@ -99,7 +99,6 @@ private:
     wxBoxSizer* page_sizer{ nullptr };
     wxBoxSizer* m_sizer_task_list{ nullptr };
     wxScrolledWindow* m_task_list{ nullptr };
-    wxStaticText* m_selected_num{ nullptr };
 
     // table head
     wxPanel* m_table_head_panel{ nullptr };
@@ -113,7 +112,6 @@ private:
     Button* m_action{ nullptr };
 
     // ctrl button for all
-    int m_sel_number{0};
     wxPanel* m_ctrl_btn_panel{ nullptr };
     wxBoxSizer* m_btn_sizer{ nullptr };
     Button* btn_stop_all{ nullptr };
@@ -160,15 +158,12 @@ private:
     wxBoxSizer* m_sizer_task_list{ nullptr };
     wxBoxSizer* m_main_sizer{ nullptr };
     wxScrolledWindow* m_task_list{ nullptr };
-    wxStaticText* m_selected_num{ nullptr };
 
     // Flipping pages
     int                         m_current_page{ 0 };
     int                         m_total_page{0};
     int                         m_total_count{ 0 };
     int                         m_count_page_item{ 10 };
-    bool                        prev{ false };
-    bool                        next{ false };
     Button*                     btn_last_page{ nullptr };
     Button*                     btn_next_page{ nullptr };
     wxStaticText*               st_page_number{ nullptr };
@@ -191,7 +186,6 @@ private:
     Button*                     m_action{ nullptr };
 
     // ctrl button for all
-    int                         m_sel_number;
     wxPanel*                    m_ctrl_btn_panel{ nullptr };
     wxBoxSizer*                 m_btn_sizer{ nullptr };
     Button*                     btn_pause_all{ nullptr };

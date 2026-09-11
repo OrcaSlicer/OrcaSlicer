@@ -22,6 +22,7 @@
         Match       regexes; each must match at least one output line
         NotMatch    regexes; none may match any output line
         NotExists   paths that must not exist after the case runs
+        DateStampedZip  require a bundle date from during this case's invocation
 
 .PARAMETER Name
     Run only the cases whose name matches this regex. Headings with no
@@ -92,6 +93,12 @@ New-Item -ItemType Directory -Force -Path $clangDir | Out-Null
 Copy-Item "$env:SystemRoot\System32\where.exe" (Join-Path $clangDir 'clang-cl.exe') -Force
 $clangOnPath = "$clangDir;$env:PATH"
 
+# A ccache that only has to exist. Nothing runs it; the script only locates it.
+$cacheDir = Join-Path $fixtures 'cache'
+New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+Copy-Item "$env:SystemRoot\System32\where.exe" (Join-Path $cacheDir 'ccache.exe') -Force
+$ccacheOnPath = "$cacheDir;$env:PATH"
+
 # ProgramFiles(x86) is where the script looks for vswhere, so an empty one
 # stands in for a machine whose Visual Studio has no clang toolset.
 $noVs = Join-Path $fixtures 'no-vs'
@@ -102,12 +109,6 @@ New-Item -ItemType Directory -Force -Path $noVs | Out-Null
 $slnDir = Join-Path $fixtures 'sln'
 New-Item -ItemType Directory -Force -Path $slnDir | Out-Null
 Set-Content -Path (Join-Path $slnDir 'OrcaSlicer.sln') -Value '' -Encoding ascii
-
-# The pack stamp is checked against real dates, so a locale-dependent parse
-# in the script cannot pass by looking date-shaped. Yesterday is accepted too,
-# so a run that crosses midnight does not flake.
-$dateStamps = @((Get-Date -Format 'yyyyMMdd'), (Get-Date).AddDays(-1).ToString('yyyyMMdd'))
-$stampPattern = '_(' + ($dateStamps -join '|') + ')\.zip$'
 
 $cases = @(
     'argument handling'
@@ -121,7 +122,7 @@ $cases = @(
                     'Examples:', 'Environment:')  }
     @{ Name = 'the environment section shows what to set'; Args = @('--help'); DryRun = $false
        Contains = @('ORCA_DEPS_CMAKE_ARGS', 'ORCA_SLICER_CMAKE_ARGS', 'ORCA_UPDATER_SIG_KEY', 'NINJA_STATUS',
-                    'set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_PCH=OFF', '(PowerShell)', 'debugscript') }
+                    'set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_BUILD_SANDBOXES=ON', '(PowerShell)', 'debugscript') }
     @{ Name = 'section headers do not widen the flag column'; Args = @('--help'); DryRun = $false
        Match = @('^   -d, --deps  +Download') }
     # Windows Terminal opens at 120 columns and wraps at 120, so 119 is the
@@ -294,6 +295,14 @@ $cases = @(
        Contains = @('-DBUILD_TESTS=ON') }
     @{ Name = '-a enables ASAN for the slicer'; Args = @('-s', '-a')
        Contains = @('-DSLIC3R_ASAN=ON') }
+    @{ Name = '--no-pch turns the precompiled header off'; Args = @('-s', '--no-pch')
+       Contains = @('-DSLIC3R_PCH=OFF') }
+    @{ Name = '--no-pch says so in the banner'; Args = @('-s', '--no-pch')
+       Contains = @('Precompiled header: off') }
+    @{ Name = 'the precompiled header is on unless asked'; Args = @('-s')
+       NotContains = @('SLIC3R_PCH') }
+    @{ Name = '--no-pch works without a cache'; Args = @('-s', '--no-pch')
+       NotContains = @('COMPILER_LAUNCHER') }
     @{ Name = 'the slicer build runs gettext'; Args = @('-s')
        Contains = @('run_gettext.bat') }
     # tools\7z.exe needs a 7z.dll beside it, which the repo does not carry,
@@ -312,17 +321,59 @@ $cases = @(
        Contains = @('OrcaSlicer_dep_win-x64_')
        NotContains = @('-clang', '-Release') }
     @{ Name = 'the bundle is stamped with today, not a shuffled date'; Args = @('-p')
-       Match = @($stampPattern) }
+       DateStampedZip = $true }
     # powershell.exe is not in System32 itself, so a trimmed PATH used to
     # leave the stamp empty and the bundle named OrcaSlicer_dep_win-x64_.zip.
     @{ Name = 'the bundle is stamped even with a bare PATH'; Args = @('-p')
        Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
-       Match = @($stampPattern) }
+       DateStampedZip = $true }
     @{ Name = '-p packs without rebuilding'; Args = @('-p')
        Match = @('^\+ .*(7z\.exe a|tar\.exe -a -c -f) ')
        NotContains = @('cmake -S deps') }
     @{ Name = 'deps and slicer build in one invocation'; Args = @('-d', '-s', '-x', '-l')
        Contains = @('cmake -S deps', 'cmake -B "build-clang" ') }
+
+    'the compiler cache'
+    @{ Name = '--cache needs clang-cl and Ninja'; Args = @('-s', '--cache', 'ccache'); ExpectExit = 1
+       Contains = @('needs clang-cl and Ninja') }
+    # cl.exe is out of scope, since ccache refuses every compile under /Zi.
+    @{ Name = '--cache under Ninja still needs clang-cl'; Args = @('-s', '-x', '--cache', 'ccache'); ExpectExit = 1
+       Contains = @('needs clang-cl and Ninja') }
+    @{ Name = 'an unknown --cache value is rejected'; Args = @('-s', '-x', '--cache', 'nope'); ExpectExit = 1
+       Contains = @('Expected ccache, sccache or off') }
+    # A bare PATH, since the machine running the tests may have sccache installed.
+    @{ Name = 'a --cache tool that is not there is caught early'; Args = @('-s', '-l', '-x', '--cache', 'sccache'); ExpectExit = 1
+       Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
+       Contains = @('is not on PATH') }
+    @{ Name = '--cache takes any casing'; Args = @('-s', '-l', '-x', '--cache', 'CCACHE')
+       Env = @{ PATH = $ccacheOnPath }
+       Contains = @('ccache.exe') }
+    @{ Name = '--cache off asks for no launcher'; Args = @('-s', '-x', '--cache', 'off')
+       NotContains = @('COMPILER_LAUNCHER') }
+    @{ Name = 'no --cache asks for no launcher'; Args = @('-s', '-x')
+       NotContains = @('COMPILER_LAUNCHER') }
+    @{ Name = '--cache turns the precompiled header off'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
+       Env = @{ PATH = $ccacheOnPath }
+       Contains = @('-DSLIC3R_PCH=OFF', 'COMPILER_LAUNCHER') }
+    # Without it the objects name the build directory and only that tree can use them.
+    @{ Name = '--cache asks for relative debug paths'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
+       Env = @{ PATH = $ccacheOnPath }
+       Contains = @('-DSLIC3R_RELATIVE_DEBUG_PATHS=ON') }
+    @{ Name = 'no --cache leaves the debug paths alone'; Args = @('-s', '-l', '-x')
+       NotContains = @('SLIC3R_RELATIVE_DEBUG_PATHS') }
+    # The resolved path, not the bare name, so PATH cannot change it later.
+    @{ Name = '--cache names the resolved path in the banner'; Args = @('-s', '-l', '-x', '--cache', 'ccache')
+       Env = @{ PATH = $ccacheOnPath }
+       Match = @('^Compiler cache: .*/ccache\.exe$') }
+    @{ Name = '--cache reaches the dependency configure too'; Args = @('-d', '-l', '-x', '--cache', 'ccache')
+       Env = @{ PATH = $ccacheOnPath }
+       Contains = @('-DCMAKE_C_COMPILER_LAUNCHER=') }
+    # Nothing records a launcher without a configure, so the tool is not needed.
+    # Reaching the cmake check on a bare PATH is what proves it was skipped.
+    @{ Name = '--no-configure asks for no cache tool'; Args = @('-s', '-l', '-x', '--no-configure', '--cache', 'ccache'); ExpectExit = 1
+       Env = @{ PATH = 'C:\Windows\system32;C:\Windows' }
+       Contains = @('CMake was not found')
+       NotContains = @('is not on PATH') }
 
     'the developer loop'
     @{ Name = '--slicer-target builds one target'; Args = @('-s', '--slicer-target', 'libslic3r')
@@ -805,7 +856,7 @@ function Invoke-BuildScript {
 
 $knownFields = @(
     'Name', 'Args', 'ExpectExit', 'DryRun', 'First', 'Env',
-    'Contains', 'NotContains', 'Match', 'NotMatch', 'NotExists'
+    'Contains', 'NotContains', 'Match', 'NotMatch', 'NotExists', 'DateStampedZip'
 )
 
 function Test-Case {
@@ -820,7 +871,9 @@ function Test-Case {
     $expect = 0
     if ($Case.ContainsKey('ExpectExit')) { $expect = $Case['ExpectExit'] }
 
+    $started = Get-Date
     $result = Invoke-BuildScript -Arguments $argv -Environment $Case['Env']
+    $finished = Get-Date
 
     $problems = @()
 
@@ -842,6 +895,15 @@ function Test-Case {
         $problems += "first line was '$($lines[0])'"
     }
     foreach ($pattern in $Case['Match']) {
+        if (@($lines | Where-Object { $_ -match $pattern }).Count -eq 0) {
+            $problems += "no line matching /$pattern/"
+        }
+    }
+    if ($Case['DateStampedZip']) {
+        # Bound the accepted dates to this invocation so crossing midnight is
+        # valid without allowing an unrelated past or future date.
+        $dateStamps = @($started.ToString('yyyyMMdd'), $finished.ToString('yyyyMMdd')) | Select-Object -Unique
+        $pattern = '_(' + ($dateStamps -join '|') + ')\.zip$'
         if (@($lines | Where-Object { $_ -match $pattern }).Count -eq 0) {
             $problems += "no line matching /$pattern/"
         }

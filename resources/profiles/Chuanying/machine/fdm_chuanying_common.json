@@ -124,7 +124,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Chuanying Generic PLA"
+		"Generic PLA @Chuanying"
 	],
 	"default_print_profile": "0.20mm Standard @Chuanying X1",
 	"bed_exclude_area": [

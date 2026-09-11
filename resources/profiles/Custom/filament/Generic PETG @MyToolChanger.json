@@ -5,7 +5,6 @@
 	"inherits": "Generic PETG @System",
 	"from": "system",
 	"setting_id": "4qShNrl9EWAVBfeG",
-	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_cooling_final_speed": [
 		"3.5"

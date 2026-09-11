@@ -3,7 +3,7 @@
 	"name": "Fiberon PA6-GF25 @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFL58",
+	"filament_id": "OF5B9sUc",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

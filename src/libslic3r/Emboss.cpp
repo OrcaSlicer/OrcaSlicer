@@ -968,10 +968,10 @@ EmbossStyles Emboss::get_font_list_by_register() {
 }
 
 // TODO: Fix global function
-bool CALLBACK EnumFamCallBack(LPLOGFONT       lplf,
-                              LPNEWTEXTMETRIC lpntm,
-                              DWORD           FontType,
-                              LPVOID          aFontList)
+int CALLBACK EnumFamCallBack(const LOGFONT    *lplf,
+                             const TEXTMETRIC *lpntm,
+                             DWORD             FontType,
+                             LPARAM            aFontList)
 {
     std::vector<std::wstring> *fontList =
         (std::vector<std::wstring> *) (aFontList);
@@ -988,7 +988,7 @@ EmbossStyles Emboss::get_font_list_by_enumeration() {
 
     HDC                       hDC = GetDC(NULL);
     std::vector<std::wstring> font_names;
-    EnumFontFamilies(hDC, (LPCTSTR) NULL, (FONTENUMPROC) EnumFamCallBack,
+    EnumFontFamilies(hDC, (LPCTSTR) NULL, EnumFamCallBack,
                      (LPARAM) &font_names);
 
     EmbossStyles font_list;

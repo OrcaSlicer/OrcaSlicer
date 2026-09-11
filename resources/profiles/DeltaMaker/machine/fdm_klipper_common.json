@@ -124,7 +124,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"DeltaMaker Generic PLA"
+		"Generic PLA @DeltaMaker"
 	],
 	"default_print_profile": "0.20mm Standard @DeltaMaker 2 0.35 nozzle",
 	"bed_exclude_area": [

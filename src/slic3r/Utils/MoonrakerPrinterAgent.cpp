@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cctype>
+#include <map>
 #include <thread>
 
 namespace {
@@ -619,51 +620,70 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 {
     const std::string upper = trim_and_upper(filament_type);
 
-    // Map to OrcaFilamentLibrary preset IDs (compatible with all printers)
-    // Source: resources/profiles/OrcaFilamentLibrary/filament/
+    // Normalize reported material names (trimmed, uppercased) to an OrcaFilamentLibrary
+    // generic family. The family's filament_id is resolved from the loaded system presets
+    // below rather than hardcoded, so profile id re-mints never require touching this table.
+    // scripts/test_moonraker_lane_data.py parses this initializer; keep the {"A", "B"} format.
+    static const std::map<std::string, std::string> type_to_ofl_family = {
+        // PLA variants
+        {"PLA", "PLA"},
+        {"PLA-CF", "PLA-CF"},
+        {"PLA SILK", "PLA Silk"},
+        {"PLA-SILK", "PLA Silk"},
+        {"PLA HIGH SPEED", "PLA High Speed"},
+        {"PLA-HS", "PLA High Speed"},
+        {"PLA HS", "PLA High Speed"},
 
-    // PLA variants
-    if (upper == "PLA")           return "OGFL99";
-    if (upper == "PLA-CF")        return "OGFL98";
-    if (upper == "PLA SILK" || upper == "PLA-SILK") return "OGFL96";
-    if (upper == "PLA HIGH SPEED" || upper == "PLA-HS" || upper == "PLA HS") return "OGFL95";
+        // ABS/ASA variants
+        {"ABS", "ABS"},
+        {"ASA", "ASA"},
 
-    // ABS/ASA variants
-    if (upper == "ABS")           return "OGFB99";
-    if (upper == "ASA")           return "OGFB98";
+        // PETG/PET variants
+        {"PETG", "PETG"},
+        {"PET", "PETG"},
+        {"PCTG", "PCTG"},
 
-    // PETG/PET variants
-    if (upper == "PETG" || upper == "PET") return "OGFG99";
-    if (upper == "PCTG")          return "OGFG97";
+        // PA/Nylon variants
+        {"PA", "PA"},
+        {"NYLON", "PA"},
+        {"PA-CF", "PA-CF"},
+        {"PPA", "PPA-CF"},
+        {"PPA-CF", "PPA-CF"},
+        {"PPA-GF", "PPA-GF"},
 
-    // PA/Nylon variants
-    if (upper == "PA" || upper == "NYLON") return "OGFN99";
-    if (upper == "PA-CF")         return "OGFN98";
-    if (upper == "PPA" || upper == "PPA-CF") return "OGFN97";
-    if (upper == "PPA-GF")        return "OGFN96";
+        // PC variants
+        {"PC", "PC"},
 
-    // PC variants
-    if (upper == "PC")            return "OGFC99";
+        // PP/PE variants
+        {"PE", "PE"},
+        {"PP", "PP"},
 
-    // PP/PE variants
-    if (upper == "PE")            return "OGFP99";
-    if (upper == "PP")            return "OGFP97";
+        // Support materials
+        {"PVA", "PVA"},
+        {"HIPS", "HIPS"},
+        {"BVOH", "BVOH"},
 
-    // Support materials
-    if (upper == "PVA")           return "OGFS99";
-    if (upper == "HIPS")          return "OGFS98";
-    if (upper == "BVOH")          return "OGFS97";
+        // TPU variants
+        {"TPU", "TPU"},
 
-    // TPU variants
-    if (upper == "TPU")           return "OGFU99";
+        // Other materials
+        {"EVA", "EVA"},
+        {"PHA", "PHA"},
+        {"COPE", "CoPE"},
+        {"SBS", "SBS"},
+    };
 
-    // Other materials
-    if (upper == "EVA")           return "OGFR99";
-    if (upper == "PHA")           return "OGFR98";
-    if (upper == "COPE")          return "OGFLC99";
-    if (upper == "SBS")           return "OFLSBS99";
+    auto it = type_to_ofl_family.find(upper);
+    if (it == type_to_ofl_family.end())
+        return UNKNOWN_FILAMENT_ID;
 
-    // Unknown material
+    if (auto* bundle = GUI::wxGetApp().preset_bundle) {
+        const Preset* preset = bundle->filaments.find_preset("Generic " + it->second + " @System");
+        if (preset != nullptr && preset->is_system && !preset->filament_id.empty())
+            return preset->filament_id;
+    }
+
+    // Unknown material, or no loaded preset data to resolve against
     return UNKNOWN_FILAMENT_ID;
 }
 

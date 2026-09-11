@@ -93,8 +93,8 @@ class PresetBundle;
 
 // Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
 // Pure function of a system preset's identity, so the value can be assigned by
-// scripts/assign_vendor_setting_ids.py and recomputed here when a profile ships
-// without it. MUST stay byte-identical to scripts/assign_vendor_setting_ids.py.
+// scripts/orca_id_tool.py and recomputed here when a profile ships without it.
+// MUST stay byte-identical to scripts/orca_id_tool.py.
 // This is NOT the per-user cloud-sync setting_id
 // (OrcaCloudServiceAgent::generate_uuid_for_setting_id) - do not conflate them.
 std::string generate_preset_setting_id(const std::string& vendor,
@@ -558,7 +558,7 @@ public:
     void            add_default_preset(const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &preset_name);
 
     // Load ini files of the particular type from the provided directory path.
-    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, std::function<void(Preset&)> preset_loaded_fn = nullptr, const PresetOrigin &load_origin = PresetOrigin());
+    void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, std::function<void(Preset&)> preset_loaded_fn = nullptr, const PresetOrigin &load_origin = PresetOrigin(), bool read_only = false);
 
     //BBS: update user presets directory
     void            update_user_presets_directory(const std::string& dir_path, const std::string& type);
@@ -631,6 +631,22 @@ public:
     // All presets are marked as not modified and the new preset is activated.
     //BBS: add project embedded preset logic
     void            save_current_preset(const std::string &new_name, bool detach = false, bool save_to_project = false, Preset* _curr_preset = nullptr);
+    // Insert a standalone user preset holding the full resolved config (no inheritance,
+    // no vendor links): the libslic3r equivalent of "Detach from parent". Takes a
+    // resolved config, clears parent/vendor/alias metadata, stamps filament_settings_id.
+    // Unlike save_current_preset it does not force-select or diff against a parent.
+    // Used by the published-3MF Full Publish path. The optional filament_id seeds the
+    // preset's stable material grouping (get_filament_presets groups user bases by
+    // filament_id); the published entry's filament_id is forwarded so the copy keeps
+    // the author's grouping.
+    // The copy is a project-embedded preset ("Preset Inside Project"): it lives inside
+    // the loaded project only, is serialized into the saved .3mf via
+    // get_current_project_embedded_presets(), and is never written to the user's
+    // library directory.
+    // Returns the final (uniquified) name; on collision the suffix rule is:
+    // "<base>" -> "<base> (Published)" -> "<base> (Published 2)" ...
+    std::string     add_detached_preset(const std::string &name_base, DynamicPrintConfig config,
+                                        const std::string &filament_id = std::string());
 
     // Delete the current preset, activate the first visible preset.
     // returns true if the preset was deleted successfully.
