@@ -28,7 +28,7 @@ TEST_CASE("AppAction composes a stable id from prefix:title:source_key", "[speed
 {
     CHECK(AppAction::compose_id("test", "Action title", "src-key") == "test:Action title:src-key");
     // source_key (not the display name) carries identity, so it is the third field.
-    CHECK(AppAction::compose_id("script", "Do Thing", "pack.py") == "script:Do Thing:Action source");
+    CHECK(AppAction::compose_id("script", "Do Thing", "pack.py") == "script:Do Thing:pack.py");
 }
 
 TEST_CASE("AppAction definitions are immutable after construction", "[speeddial][actions]")
