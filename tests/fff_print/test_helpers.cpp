@@ -217,7 +217,11 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));
 
 	// flush_volumes_matrix must be sized filaments*filaments or export rejects it.
-	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush } });
+	// The prime tower defaults to y=220, off the 200x200 test bed; since upstream verifies the
+	// tower footprint at generation (81357695c5) that aborts the slice, so park it on the bed.
+	// A test's `extra` below still overrides it.
+	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush },
+	                                { "wipe_tower_x", "50" }, { "wipe_tower_y", "50" } });
 
 	if (extra.size() > 0)
 		config.set_deserialize_strict(extra);
