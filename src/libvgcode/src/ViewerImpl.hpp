@@ -335,6 +335,10 @@ private:
     // print: what a view from above, or below, sees of a layer, kept even while layers are skipped
     BitSet<> m_top_visible_bitset;
     BitSet<> m_bottom_visible_bitset;
+    // the inner wall segments that run right beside an outer wall: the first inner wall, which
+    // fills the step of a sloped surface between one layer's outer wall and the next, too narrow
+    // for the grid to see
+    BitSet<> m_near_shell_bitset;
 #endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring

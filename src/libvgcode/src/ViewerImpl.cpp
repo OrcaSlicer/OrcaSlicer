@@ -20,6 +20,7 @@
 #include <cfloat>
 #include <future>
 #include <thread>
+#include <unordered_map>
 
 namespace libvgcode {
 
@@ -899,6 +900,7 @@ void ViewerImpl::reset()
     m_enabled_options_reduced_count = 0;
     m_enabled_segments_rest_count = 0;
     m_shell_bitset = BitSet<>();
+    m_near_shell_bitset = BitSet<>();
     m_top_visible_bitset = BitSet<>();
     m_bottom_visible_bitset = BitSet<>();
 
@@ -1205,7 +1207,12 @@ bool ViewerImpl::reduced_set_keeps(EReducedDetailMode mode, size_t i, const Path
 {
     switch (mode) {
     case EReducedDetailMode::NoInternalInfill: return !is_interior_infill(v.role);
-    case EReducedDetailMode::ShellOnly:        return !is_hidden_in_shell(v.role) && m_shell_bitset[i];
+    case EReducedDetailMode::ShellOnly:
+        // the first inner wall fills the step of a sloped surface between one layer's outer wall
+        // and the next, too narrow for the grid to see; whatever is the visible top or bottom of a
+        // step stays whatever its role
+        return (!is_hidden_in_shell(v.role) && m_shell_bitset[i]) || m_near_shell_bitset[i] ||
+               m_top_visible_bitset[i] || m_bottom_visible_bitset[i];
     default:                                   return true;
     }
 }
@@ -1420,6 +1427,7 @@ static void close_gaps(OccupancyGrid& grid, int radius, ClosingScratch& scratch)
 void ViewerImpl::update_shell_bitset()
 {
     m_shell_bitset = BitSet<>(m_vertices.size());
+    m_near_shell_bitset = BitSet<>(m_vertices.size());
     m_top_visible_bitset = BitSet<>(m_vertices.size());
     m_bottom_visible_bitset = BitSet<>(m_vertices.size());
     if (m_vertices.size() < 2 || m_layers.empty())
@@ -1497,6 +1505,7 @@ void ViewerImpl::update_shell_bitset()
     static constexpr int32_t NO_LAYER = -1;
     struct Kept {
         std::vector<uint32_t> shell;
+        std::vector<uint32_t> near_shell;
         std::vector<int32_t> top;
         std::vector<int32_t> bottom;
         // the rectangle of cells these layers touched, inclusive; empty while min > max
@@ -1512,6 +1521,8 @@ void ViewerImpl::update_shell_bitset()
         kept.bottom.assign(cells_count, NO_LAYER);
         std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
         OccupancyGrid shell_cells(nx, ny);
+        // the outer wall segments of the layer, by every cell they cross
+        std::unordered_map<size_t, std::vector<uint32_t>> outer_walls_by_cell;
         ClosingScratch scratch;
         const auto footprint = [&](size_t layer) -> OccupancyGrid& { return footprints[layer % 3]; };
         const auto prepare = [&](size_t layer) {
@@ -1557,8 +1568,44 @@ void ViewerImpl::update_shell_bitset()
                         shell_cells.set(x, y);
                 }
             }
-
             const auto [first, last] = layer_segments(layer);
+            outer_walls_by_cell.clear();
+            for (size_t i = first; i < last; ++i) {
+                const EGCodeExtrusionRole role = m_vertices[i].role;
+                if (is_drawn_extrusion(i) && (role == EGCodeExtrusionRole::ExternalPerimeter || role == EGCodeExtrusionRole::OverhangPerimeter))
+                    for_each_cell(i, [&](int x, int y) { outer_walls_by_cell[cell_index(x, y)].push_back(static_cast<uint32_t>(i)); });
+            }
+            // an inner wall segment is the first inner wall when its midpoint lies within a line
+            // and a half of an outer wall segment of the same layer
+            const auto beside_outer_wall = [&](size_t i) {
+                const Vec3& a = m_vertices[i].position;
+                const Vec3& b = m_vertices[i + 1].position;
+                const float mx = 0.5f * (a[0] + b[0]);
+                const float my = 0.5f * (a[1] + b[1]);
+                const float reach = 1.5f * m_vertices[i].width;
+                const auto [cx, cy] = cell_of(mx, my);
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const auto it = outer_walls_by_cell.find(cell_index(cx + dx, cy + dy));
+                        if (it == outer_walls_by_cell.end())
+                            continue;
+                        for (uint32_t o : it->second) {
+                            const Vec3& p = m_vertices[o].position;
+                            const Vec3& q = m_vertices[o + 1].position;
+                            const float ex = q[0] - p[0];
+                            const float ey = q[1] - p[1];
+                            const float len2 = ex * ex + ey * ey;
+                            const float t = (len2 > 0.0f) ? std::clamp(((mx - p[0]) * ex + (my - p[1]) * ey) / len2, 0.0f, 1.0f) : 0.0f;
+                            const float ddx = mx - (p[0] + t * ex);
+                            const float ddy = my - (p[1] + t * ey);
+                            if (ddx * ddx + ddy * ddy <= reach * reach)
+                                return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
             for (size_t i = first; i < last; ++i) {
                 if (!is_drawn_extrusion(i))
                     continue;
@@ -1570,6 +1617,8 @@ void ViewerImpl::update_shell_bitset()
                 });
                 if (2 * on_shell >= total)
                     kept.shell.push_back(static_cast<uint32_t>(i));
+                if (m_vertices[i].role == EGCodeExtrusionRole::Perimeter && beside_outer_wall(i))
+                    kept.near_shell.push_back(static_cast<uint32_t>(i));
             }
         }
         return kept;
@@ -1586,6 +1635,8 @@ void ViewerImpl::update_shell_bitset()
         const Kept kept = f.get();
         for (uint32_t i : kept.shell)
             m_shell_bitset.set(i);
+        for (uint32_t i : kept.near_shell)
+            m_near_shell_bitset.set(i);
         for (int y = kept.min_y; y <= kept.max_y; ++y) {
             for (int x = kept.min_x; x <= kept.max_x; ++x) {
                 const size_t c = cell_index(x, y);
@@ -1597,8 +1648,9 @@ void ViewerImpl::update_shell_bitset()
         }
     }
 
-    // A segment is visible from straight above when its layer is the topmost occupant of at least
-    // half its cells, and from below likewise with the bottommost.
+    // A segment is visible from straight above when its layer is the topmost occupant of any of its
+    // cells, and from below likewise with the bottommost: the exposed band of a sloped surface is
+    // narrower than the infill chords that fill it, so touching it is what counts.
     struct Visible { std::vector<uint32_t> top; std::vector<uint32_t> bottom; };
     const auto find_visible = [&](size_t first_layer, size_t last_layer) {
         Visible visible;
@@ -1615,9 +1667,9 @@ void ViewerImpl::update_shell_bitset()
                     on_top += top_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
                     on_bottom += bottom_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
                 });
-                if (2 * on_top >= total)
+                if (on_top > 0)
                     visible.top.push_back(static_cast<uint32_t>(i));
-                if (2 * on_bottom >= total)
+                if (on_bottom > 0)
                     visible.bottom.push_back(static_cast<uint32_t>(i));
             }
         }
@@ -1714,7 +1766,7 @@ void ViewerImpl::update_enabled_entities()
 #ifndef ENABLE_OPENGL_ES
         const bool whole_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
         const bool keep_anyway = whole_layer || !v.is_extrusion();
-        const bool classified = v.is_extrusion() && !is_hidden_in_shell(v.role) && m_top_visible_bitset.size == m_vertices.size();
+        const bool classified = v.is_extrusion() && m_top_visible_bitset.size == m_vertices.size();
         const bool visible_from_above = classified && m_top_visible_bitset[i];
         const bool visible_from_below = classified && m_bottom_visible_bitset[i];
         if (build_rest && !v.is_option()) {

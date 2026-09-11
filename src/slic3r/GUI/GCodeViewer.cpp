@@ -1947,10 +1947,22 @@ void GCodeViewer::update_rest_layer_stride()
         return;
     static constexpr double MERGE_BELOW_PX = 2.0;
     static constexpr unsigned int MAX_STRIDE = 64;
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    const double dz = std::abs(camera.get_dir_forward().z());
-    const double tilt = std::sqrt(std::max(0.0, 1.0 - dz * dz));
-    const double layer_px = static_cast<double>(m_typical_layer_height) * camera.get_zoom() * tilt;
+    Camera& camera = wxGetApp().plater()->get_camera();
+    // how tall one layer is on screen: a step of one layer height projected through the camera's
+    // own matrices at the centre of the toolpaths and at the point the camera looks at, whichever
+    // is taller. Perspective makes the near corners of a tall print larger than that, but merging
+    // is judged where the user looks, not at the worst corner.
+    const Matrix4d view_projection = camera.get_projection_matrix().matrix() * camera.get_view_matrix().matrix();
+    const std::array<int, 4>& viewport = camera.get_viewport();
+    const auto to_pixels = [&](const Vec3d& p) {
+        const Vec4d clip = view_projection * Vec4d(p.x(), p.y(), p.z(), 1.0);
+        const double w = (std::abs(clip.w()) < 1e-9) ? 1e-9 : clip.w();
+        return Vec2d(0.5 * viewport[2] * clip.x() / w, 0.5 * viewport[3] * clip.y() / w);
+    };
+    const Vec3d step(0.0, 0.0, static_cast<double>(m_typical_layer_height));
+    double layer_px = 0.0;
+    for (const Vec3d& p : { m_paths_bounding_box.center(), camera.get_target() })
+        layer_px = std::max(layer_px, (to_pixels(p + step) - to_pixels(p)).norm());
     const unsigned int stride = (layer_px * MAX_STRIDE <= MERGE_BELOW_PX) ? MAX_STRIDE :
         std::clamp(static_cast<unsigned int>(MERGE_BELOW_PX / layer_px), 1u, MAX_STRIDE);
     m_viewer.set_rest_layer_stride(stride);
