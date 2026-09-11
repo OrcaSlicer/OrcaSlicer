@@ -2040,6 +2040,14 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_rest_detail_mode);
 
+    auto item_cache_static_scene = create_item_checkbox(
+        _L("Keep the drawn preview while nothing moves"),
+        _L("Keep the last drawn preview and show it again for frames in which neither the camera nor the toolpaths changed, "
+           "so that hovering, tooltips and notifications no longer redraw a large print. The scene is redrawn as soon as anything in it changes."),
+        "preview_cache_static_scene"
+    );
+    g_sizer->Add(item_cache_static_scene);
+
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),
         _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),

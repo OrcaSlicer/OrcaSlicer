@@ -137,6 +137,16 @@ void Viewer::set_rest_view_from_above(bool value)
     m_impl->set_rest_view_from_above(value);
 }
 
+uint64_t Viewer::get_state_version() const
+{
+    return m_impl->get_state_version();
+}
+
+bool Viewer::has_pending_updates() const
+{
+    return m_impl->has_pending_updates();
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);

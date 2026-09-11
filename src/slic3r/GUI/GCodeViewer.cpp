@@ -1178,6 +1178,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
     m_rest_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_rest_detail_mode"));
     apply_reduced_detail_settings();
+    ++m_scene_version;
     // the median z step between layers, robust to the first layer and to variable layer height
     {
         std::vector<float> steps;
@@ -1594,11 +1595,21 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
 
 void GCodeViewer::update_shells_color_by_extruder(const DynamicPrintConfig *config)
 {
+    ++m_scene_version;
     if (config != nullptr)
         m_shells.volumes.update_colors_by_extruder(config, false);
 }
 
-void GCodeViewer::set_shell_transparency(float alpha) { m_shells.volumes.set_transparency(alpha); }
+void GCodeViewer::set_shell_transparency(float alpha)
+{
+    m_shells.volumes.set_transparency(alpha);
+    ++m_scene_version;
+}
+
+std::array<uint64_t, 2> GCodeViewer::scene_version() const
+{
+    return { (m_scene_version << 2) | (m_shells.visible ? 1u : 0u) | (m_no_render_path ? 2u : 0u), m_viewer.get_state_version() };
+}
 
 //BBS: always load shell at preview
 void GCodeViewer::reset_shell()
@@ -1610,6 +1621,7 @@ void GCodeViewer::reset_shell()
 
 void GCodeViewer::reset()
 {
+    ++m_scene_version;
     //BBS: should also reset the result id
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
@@ -1638,17 +1650,19 @@ void GCodeViewer::reset()
 }
 
 //BBS: GUI refactor: add canvas width and height
-void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin, bool draw_scene)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    render_shells(canvas_width, canvas_height);
+    if (draw_scene)
+        render_shells(canvas_width, canvas_height);
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
 
     update_rest_layer_stride();
 
-    render_toolpaths();
+    if (draw_scene)
+        render_toolpaths();
 
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
@@ -2336,6 +2350,7 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
+    ++m_scene_version;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
         //BBS: update force previewing logic

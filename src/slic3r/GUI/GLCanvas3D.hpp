@@ -736,6 +736,33 @@ public:
     std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
+
+    // ORCA: the last fully drawn preview scene, shown again while nothing it draws has changed
+    struct SceneCache
+    {
+        unsigned int fbo{ 0 };
+        unsigned int color{ 0 };
+        unsigned int depth{ 0 };
+        int default_fbo{ 0 };
+        int width{ 0 };
+        int height{ 0 };
+        int samples{ 0 };
+        bool stencil{ false };
+        // the kept image matches the key below
+        bool valid{ false };
+        // a blit failed on this driver: never try again this session
+        bool broken{ false };
+        Matrix4d view{ Matrix4d::Zero() };
+        Matrix4d projection{ Matrix4d::Zero() };
+        int hover_plate{ -1 };
+        int current_plate{ -1 };
+        bool world_axes{ false };
+        uint64_t canvas_version{ 0 };
+        std::array<uint64_t, 2> viewer_version{ 0, 0 };
+    };
+    SceneCache m_scene_cache;
+    // bumped on changes to what the scene pass draws that neither the camera nor the viewer track
+    uint64_t m_scene_version{ 0 };
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
@@ -1280,7 +1307,12 @@ private:
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
     void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
-    void _render_gcode(int canvas_width, int canvas_height);
+    void _render_gcode(int canvas_width, int canvas_height, bool draw_scene = true);
+    // ORCA: scene cache, see SceneCache
+    bool _scene_cache_enabled() const;
+    bool _scene_cache_prepare(int width, int height);
+    void _scene_cache_blit(bool store);
+    void _scene_cache_release();
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();

@@ -95,7 +95,12 @@ public:
     // Draw the preview from the reduced set of entities. Meant to be held only while the user is
     // dragging; the sets are already built, so this is just a buffer binding and never rebuilds.
     //
-    void set_reduced_detail(bool value) { m_settings.reduced_detail = value; }
+    void set_reduced_detail(bool value) {
+        if (m_settings.reduced_detail != value) {
+            m_settings.reduced_detail = value;
+            ++m_state_version;
+        }
+    }
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
     EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
     void set_reduced_detail_mode(EReducedDetailMode mode);
@@ -107,6 +112,10 @@ public:
     void set_rest_layer_stride(uint32_t value);
     bool is_rest_view_from_above() const { return m_settings.rest_view_from_above; }
     void set_rest_view_from_above(bool value);
+    uint64_t get_state_version() const { return m_state_version; }
+    bool has_pending_updates() const {
+        return m_settings.update_view_full_range || m_settings.update_enabled_entities || m_settings.update_colors;
+    }
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -339,6 +348,11 @@ private:
     // fills the step of a sloped surface between one layer's outer wall and the next, too narrow
     // for the grid to see
     BitSet<> m_near_shell_bitset;
+    //
+    // ORCA: bumped whenever what render() draws changes: on every applied update, on a change of
+    // the bound set, on load and reset
+    //
+    uint64_t m_state_version{ 0 };
 #endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring

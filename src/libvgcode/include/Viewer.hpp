@@ -131,6 +131,13 @@ public:
     //
     bool is_rest_view_from_above() const;
     void set_rest_view_from_above(bool value);
+    //
+    // ORCA: a counter that changes whenever what render() draws changes, and whether an update is
+    // still pending that the next render() will apply. Together they tell a caller whether a frame
+    // it has kept from an earlier render() can be shown again.
+    //
+    uint64_t get_state_version() const;
+    bool has_pending_updates() const;
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //

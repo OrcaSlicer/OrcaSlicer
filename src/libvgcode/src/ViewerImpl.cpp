@@ -899,6 +899,7 @@ void ViewerImpl::reset()
     m_enabled_segments_reduced_count = 0;
     m_enabled_options_reduced_count = 0;
     m_enabled_segments_rest_count = 0;
+    ++m_state_version;
     m_shell_bitset = BitSet<>();
     m_near_shell_bitset = BitSet<>();
     m_top_visible_bitset = BitSet<>();
@@ -1844,6 +1845,7 @@ void ViewerImpl::update_enabled_entities()
 #endif // ENABLE_OPENGL_ES
 
     m_settings.update_enabled_entities = false;
+    ++m_state_version;
 }
 
 static float encode_color(const Color& color) {
@@ -1953,6 +1955,7 @@ void ViewerImpl::update_colors()
     
     update_colors_texture();
     m_settings.update_colors = false;
+    ++m_state_version;
 }
 
 void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
@@ -2562,6 +2565,7 @@ void ViewerImpl::update_view_full_range()
     }
 
     m_settings.update_view_full_range = false;
+    ++m_state_version;
 }
 
 void ViewerImpl::update_color_ranges()

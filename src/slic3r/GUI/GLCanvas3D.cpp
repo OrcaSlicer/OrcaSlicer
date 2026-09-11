@@ -1224,6 +1224,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
 GLCanvas3D::~GLCanvas3D()
 {
+    _scene_cache_release();
     if (_set_current()) {
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
@@ -1328,6 +1329,7 @@ bool GLCanvas3D::init()
 
 void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
     m_is_dark = is_dark;
+    ++m_scene_version;
     // Bed color
     m_bed.on_change_color_mode(is_dark);
     // GcodeViewer color
@@ -2050,6 +2052,46 @@ void GLCanvas3D::render(bool only_init)
     }
 
     // draw scene
+    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
+
+    // ORCA: while the preference is on and nothing the scene pass draws has changed since the
+    // last full frame, that frame is shown again and only the overlays are drawn on top of it
+    const bool preview_scene = m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data();
+    bool scene_from_cache = false;
+    bool scene_to_cache = false;
+    if (preview_scene && _scene_cache_enabled() && !m_scene_cache.broken) {
+        const int current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
+        const std::array<uint64_t, 2> viewer_version = m_gcode_viewer.scene_version();
+        const bool unchanged = m_scene_cache.valid &&
+            m_scene_cache.width == cnv_size.get_width() && m_scene_cache.height == cnv_size.get_height() &&
+            m_scene_cache.view == camera.get_view_matrix().matrix() && m_scene_cache.projection == camera.get_projection_matrix().matrix() &&
+            m_scene_cache.hover_plate == hover_id && m_scene_cache.current_plate == current_plate &&
+            m_scene_cache.world_axes == m_show_world_axes && m_scene_cache.canvas_version == m_scene_version &&
+            m_scene_cache.viewer_version == viewer_version && !m_gcode_viewer.scene_update_pending();
+        if (unchanged) {
+            _scene_cache_blit(false);
+            scene_from_cache = !m_scene_cache.broken;
+        }
+        if (!scene_from_cache && _scene_cache_prepare(cnv_size.get_width(), cnv_size.get_height())) {
+            m_scene_cache.valid = false;
+            m_scene_cache.view = camera.get_view_matrix().matrix();
+            m_scene_cache.projection = camera.get_projection_matrix().matrix();
+            m_scene_cache.hover_plate = hover_id;
+            m_scene_cache.current_plate = current_plate;
+            m_scene_cache.world_axes = m_show_world_axes;
+            m_scene_cache.canvas_version = m_scene_version;
+            m_scene_cache.viewer_version = viewer_version;
+            scene_to_cache = true;
+        }
+    }
+    else
+        m_scene_cache.valid = false;
+
+    if (scene_from_cache) {
+        // the preview's panels and its marker are drawn on top of the frame shown again
+        _render_gcode(cnv_size.get_width(), cnv_size.get_height(), false);
+    }
+    else {
     glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
     // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
@@ -2070,7 +2112,6 @@ void GLCanvas3D::render(bool only_init)
         show_grid = false;
 
     /* view3D render*/
-    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         if (!no_partplate)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
@@ -2146,6 +2187,13 @@ void GLCanvas3D::render(bool only_init)
 
     if (_is_fxaa_enabled())
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    // ORCA: keep the finished scene, with its depth, for the frames that follow
+    if (scene_to_cache) {
+        _scene_cache_blit(true);
+        m_scene_cache.valid = !m_scene_cache.broken;
+    }
+    }
 
     // draw overlays
     _render_overlays();
@@ -8522,7 +8570,99 @@ void GLCanvas3D::_render_wireframe_overlay()
 }
 
 //BBS: GUI refactor: add canvas size as parameters
-void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
+bool GLCanvas3D::_scene_cache_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool("preview_cache_static_scene");
+}
+
+// Makes the cache's framebuffer match the window: same size, same sample count, a depth buffer of
+// the same format, so that colour and depth can be blitted both ways. Returns false when it cannot.
+bool GLCanvas3D::_scene_cache_prepare(int width, int height)
+{
+    SceneCache& cache = m_scene_cache;
+    glsafe(::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &cache.default_fbo));
+    int samples = 0;
+    glsafe(::glGetIntegerv(GL_SAMPLES, &samples));
+    int depth_bits = 0;
+    int stencil_bits = 0;
+    const GLenum depth_query = (cache.default_fbo == 0) ? GL_DEPTH : GL_DEPTH_ATTACHMENT;
+    const GLenum stencil_query = (cache.default_fbo == 0) ? GL_STENCIL : GL_DEPTH_ATTACHMENT;
+    glsafe(::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, depth_query, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_bits));
+    glsafe(::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, stencil_query, GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencil_bits));
+    const bool stencil = stencil_bits > 0;
+    if (cache.fbo != 0 && cache.width == width && cache.height == height && cache.samples == samples && cache.stencil == stencil)
+        return true;
+
+    _scene_cache_release();
+    const GLenum depth_format = stencil ? GL_DEPTH24_STENCIL8 : (depth_bits <= 16) ? GL_DEPTH_COMPONENT16 : (depth_bits >= 32) ? GL_DEPTH_COMPONENT32 : GL_DEPTH_COMPONENT24;
+    glsafe(::glGenRenderbuffers(1, &cache.color));
+    glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, cache.color));
+    if (samples > 0)
+        glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA8, width, height));
+    else
+        glsafe(::glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height));
+    glsafe(::glGenRenderbuffers(1, &cache.depth));
+    glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, cache.depth));
+    if (samples > 0)
+        glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, depth_format, width, height));
+    else
+        glsafe(::glRenderbufferStorage(GL_RENDERBUFFER, depth_format, width, height));
+    glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, 0));
+    glsafe(::glGenFramebuffers(1, &cache.fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, cache.fbo));
+    glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, cache.color));
+    glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, cache.depth));
+    const GLenum status = ::glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(cache.default_fbo)));
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        BOOST_LOG_TRIVIAL(warning) << "Preview scene cache disabled: framebuffer incomplete, status " << status;
+        _scene_cache_release();
+        cache.broken = true;
+        return false;
+    }
+    cache.width = width;
+    cache.height = height;
+    cache.samples = samples;
+    cache.stencil = stencil;
+    return true;
+}
+
+// Copies colour and depth from the window into the cache (store) or back (restore). A driver that
+// refuses the blit marks the cache broken, and the preview falls back to drawing every frame.
+void GLCanvas3D::_scene_cache_blit(bool store)
+{
+    SceneCache& cache = m_scene_cache;
+    if (cache.fbo == 0)
+        return;
+    const GLuint window = static_cast<GLuint>(cache.default_fbo);
+    glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, store ? window : cache.fbo));
+    glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, store ? cache.fbo : window));
+    while (::glGetError() != GL_NO_ERROR) {}
+    ::glBlitFramebuffer(0, 0, cache.width, cache.height, 0, 0, cache.width, cache.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    const GLenum error = ::glGetError();
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, window));
+    if (error != GL_NO_ERROR) {
+        BOOST_LOG_TRIVIAL(warning) << "Preview scene cache disabled: framebuffer blit failed with GL error " << error;
+        cache.broken = true;
+        _scene_cache_release();
+    }
+}
+
+void GLCanvas3D::_scene_cache_release()
+{
+    SceneCache& cache = m_scene_cache;
+    if (cache.fbo != 0)
+        glsafe(::glDeleteFramebuffers(1, &cache.fbo));
+    if (cache.color != 0)
+        glsafe(::glDeleteRenderbuffers(1, &cache.color));
+    if (cache.depth != 0)
+        glsafe(::glDeleteRenderbuffers(1, &cache.depth));
+    cache.fbo = cache.color = cache.depth = 0;
+    cache.width = cache.height = 0;
+    cache.valid = false;
+}
+
+void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height, bool draw_scene)
 {
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
@@ -8541,7 +8681,7 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
         schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
     }
 
-    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
+    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE, draw_scene);
 
     if (layers_slider->is_need_post_tick_event()) {
         auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());

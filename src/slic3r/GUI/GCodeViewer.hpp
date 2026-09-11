@@ -251,6 +251,8 @@ private:
 
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
+    // ORCA: bumped on every change to what the scene pass draws that libvgcode does not track
+    uint64_t m_scene_version{ 0 };
     bool m_is_dark = false;
 
     libvgcode::Viewer m_viewer;
@@ -283,7 +285,12 @@ public:
     //BBS: add all plates filament statistics
     void render_all_plates_stats(const std::vector<const GCodeProcessorResult*>& gcode_result_list, bool show = true) const;
     //BBS: GUI refactor: add canvas width and height
-    void render(int canvas_width, int canvas_height, int right_margin);
+    // draw_scene = false records the legend, the sliders and the marker only, for a frame whose
+    // toolpaths are shown again from a kept image
+    void render(int canvas_width, int canvas_height, int right_margin, bool draw_scene = true);
+    // ORCA: what the scene pass draws, as two counters that change whenever it would look different
+    std::array<uint64_t, 2> scene_version() const;
+    bool scene_update_pending() const { return m_viewer.has_pending_updates(); }
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);

@@ -212,6 +212,10 @@ void AppConfig::set_defaults()
             set("preview_reduced_detail_mode", "no_infill");
     }
 
+    // ORCA: keep the drawn preview scene while nothing in it changes
+    if (get("preview_cache_static_scene").empty())
+        set_bool("preview_cache_static_scene", false);
+
     {
         const std::string mode = get("preview_rest_detail_mode");
         if (mode != "full" && mode != "no_infill" && mode != "shell")
