@@ -25,6 +25,7 @@
 #include "wxExtensions.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/ComboBox.hpp"
 
 #ifdef __WXMSW__
 #define wxMSW true
@@ -532,10 +533,8 @@ public:
 
 private:
     struct PluginRow {
-        ScalableButton* select_btn { nullptr };
-        wxTextCtrl*     display { nullptr };
+        ComboBox*       display { nullptr };
         ScalableButton* remove_btn { nullptr };
-        ScalableButton* add_btn { nullptr };
         wxBoxSizer*     sizer { nullptr };
     };
 
@@ -553,7 +552,7 @@ private:
     wxBoxSizer*             m_main_sizer { nullptr };
     std::vector<PluginRow>  m_rows;
     std::vector<std::string> m_values;
-    ScalableButton*         m_standalone_add_btn { nullptr };
+    Button*                  m_standalone_add_btn { nullptr };
     std::function<std::string()> m_selector;
 };
 
@@ -628,8 +627,10 @@ private:
     void on_button_click(wxCommandEvent &WXUNUSED(ev));
     void save_colors_to_config();
 private:
+#if !defined(__linux__) && !defined(__LINUX__)
     wxColourData*  m_clrData{nullptr};
     wxColourPickerWidget* m_picker_widget{nullptr};
+#endif
 };
 
 class PointCtrl : public Field {

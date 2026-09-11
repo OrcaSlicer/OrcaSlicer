@@ -631,6 +631,22 @@ public:
     // All presets are marked as not modified and the new preset is activated.
     //BBS: add project embedded preset logic
     void            save_current_preset(const std::string &new_name, bool detach = false, bool save_to_project = false, Preset* _curr_preset = nullptr);
+    // Insert a standalone user preset holding the full resolved config (no inheritance,
+    // no vendor links): the libslic3r equivalent of "Detach from parent". Takes a
+    // resolved config, clears parent/vendor/alias metadata, stamps filament_settings_id.
+    // Unlike save_current_preset it does not force-select or diff against a parent.
+    // Used by the published-3MF Full Publish path. The optional filament_id seeds the
+    // preset's stable material grouping (get_filament_presets groups user bases by
+    // filament_id); the published entry's filament_id is forwarded so the copy keeps
+    // the author's grouping.
+    // The copy is a project-embedded preset ("Preset Inside Project"): it lives inside
+    // the loaded project only, is serialized into the saved .3mf via
+    // get_current_project_embedded_presets(), and is never written to the user's
+    // library directory.
+    // Returns the final (uniquified) name; on collision the suffix rule is:
+    // "<base>" -> "<base> (Published)" -> "<base> (Published 2)" ...
+    std::string     add_detached_preset(const std::string &name_base, DynamicPrintConfig config,
+                                        const std::string &filament_id = std::string());
 
     // Delete the current preset, activate the first visible preset.
     // returns true if the preset was deleted successfully.
