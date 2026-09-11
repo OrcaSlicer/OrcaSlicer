@@ -5,6 +5,7 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/colour.h>
 #include <wx/panel.h>
 // BBS
 #include <wx/notebook.h>
@@ -85,6 +86,10 @@ using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
+
+// Sentinel filament id meaning "use the slot the sidebar context menu was opened on"
+// (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
+inline constexpr int kSidebarContextMenuFilamentId = -2;
 
 #define EVT_PUBLISHING_START        1
 #define EVT_PUBLISHING_STOP         2
@@ -188,7 +193,7 @@ public:
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
-    void add_custom_filament(wxColour new_col);
+    void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -262,6 +267,20 @@ public:
     std::vector<PlaterPresetComboBox*>&   combos_filament();
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
+
+    // Mixed-color filament sidebar section
+    void add_mixed_filament();
+    void edit_mixed_filament(size_t idx);
+    void delete_mixed_filament_at(size_t idx);
+    void decompose_filament_color(int filament_idx);
+    void recalc_filament_scroll_sizes();
+    void update_mixed_filament_list();
+    bool has_broken_mixed_filament() const;
+    bool has_broken_mixed_filament(const PartPlate* plate) const;
+    void collect_physical_filament_info(std::vector<std::string>& color_strs,
+                                        std::vector<std::string>& names,
+                                        std::vector<std::string>& types,
+                                        std::vector<size_t>* config_indices = nullptr);
     Search::OptionsSearcher&        get_searcher();
     std::string&                    get_search_line();
     void                            update_printer_thumbnail();
@@ -290,7 +309,7 @@ public:
     Plater(const Plater &) = delete;
     Plater &operator=(Plater &&) = delete;
     Plater &operator=(const Plater &) = delete;
-    ~Plater() = default;
+    ~Plater();
 
     bool Show(bool show = true);
 
@@ -313,6 +332,11 @@ public:
     const SLAPrint& sla_print() const;
     SLAPrint& sla_print();
 
+    // Helper: returns config indices where filament_is_mixed == true
+    std::vector<size_t> mixed_filament_config_indices() const;
+    // Helper: returns config indices where filament_is_mixed == false
+    std::vector<size_t> physical_filament_config_indices() const;
+
     int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
@@ -328,7 +352,8 @@ public:
     bool open_3mf_file(const fs::path &file_path);
     int  get_3mf_file_count(std::vector<fs::path> paths);
     void add_file();
-    void add_model(bool imperial_units = false, std::string fname = "");
+    // Returns false when no object was added (e.g. the user cancelled the load dialog).
+    bool add_model(bool imperial_units = false, std::string fname = "");
     void import_zip_archive();
     void import_sl1_archive();
     void extract_config_from_project();
@@ -382,9 +407,7 @@ public:
     bool preview_zip_archive(const boost::filesystem::path& archive_path);
 
     // BBS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
-    // To be called when providing a list of files to the GUI slic3r on command line.
-    std::vector<size_t> load_files(const std::vector<std::string>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
+    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr);
     // to be called on drag and drop
     bool load_files(const wxArrayString& filenames);
 
@@ -494,6 +517,13 @@ public:
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
+    // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
+    // pure export that leaves the in-memory project untouched.
+    int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
+    // Session-level stash of the last published selection, seeded into the Publish dialog on
+    // open and written on publish or on loading a published 3MF
+    bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material) const;
+    void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
     void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
@@ -567,7 +597,7 @@ public:
 
     void on_filament_change(size_t filament_idx);
     void on_filament_count_change(size_t extruders_count);
-    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
+    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1, const std::vector<unsigned char>& is_mixed_before_delete = {});
     std::vector<Slic3r::ColorRGBA> get_extruders_colors();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -582,6 +612,12 @@ public:
     std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result = nullptr) const;
     std::vector<std::string> get_filament_colors_render_info() const;
     std::vector<std::string> get_filament_color_render_type() const;
+
+    // Per slot, the colours a gradient mixed filament actually prints, sampled bottom (index 0)
+    // to top, so the sidebar, the paint gizmo and the extruder icons draw the same fade the
+    // editor previews rather than a straight blend of two endpoints. A slot that is not a
+    // gradient mixed filament gets an empty ramp. Cached; recomputed when the config changes.
+    const std::vector<std::vector<wxColour>>& get_filament_gradient_ramps() const;
     std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;
 
     void set_global_filament_map_mode(FilamentMapMode mode);
@@ -719,6 +755,25 @@ public:
     //BBS: partplate list related functions
     PartPlateList& get_partplate_list();
     void validate_current_plate(bool& model_fits, bool& validate_error);
+    // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
+    // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
+    // *block_toggled when the blocked state changed since the previous call (so the caller can refresh
+    // the Slice button). Helper for validate_current_plate and the reslice() gate.
+    bool refresh_missing_plugin_block(bool* block_toggled = nullptr);
+    // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
+    // notification is active, so it clears automatically once the required plugin is available.
+    void revalidate_current_plate_if_plugins_missing();
+    // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
+    // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
+    // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
+    void install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs);
+    // Activate the given inactive plugin refs (load the plugin / enable the capability). No progress
+    // dialog; the loads run on a background worker that re-validates the plate once they settle, so
+    // the notification clears (or flips to broken if the plugin lacks the capability).
+    void enable_inactive_plugins(const std::vector<std::string>& refs);
+    // True when the active preset references plugins that are missing and not yet acknowledged, as
+    // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
+    bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
     //BBS: update progress result
@@ -936,6 +991,10 @@ public:
 
     bool is_loading_project() const { return m_loading_project; }
 
+    void mark_plate_toolbar_image_dirty();
+    bool is_plate_toolbar_image_dirty() const;
+    void clear_plate_toolbar_image_dirty();
+
 private:
     struct priv;
     std::unique_ptr<priv> p;
@@ -956,6 +1015,7 @@ private:
     std::string m_preview_only_filename;
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
+    bool m_b_plate_toolbar_image_dirty{ true };
 
     void suppress_snapshots();
     void allow_snapshots();

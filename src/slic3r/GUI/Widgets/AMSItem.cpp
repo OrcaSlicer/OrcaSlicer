@@ -3,6 +3,7 @@
 #include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
+#include "../FilamentBitmapUtils.hpp"
 #include "../Utils/WxFontUtils.hpp"
 
 #include "slic3r/GUI/DeviceTab/uiAmsHumidityPopup.h"
@@ -64,6 +65,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     this->ams_type = AMSModel(ams->GetAmsType());
 
     nozzle_id = ams->GetExtruderId();
+    switch_pos = ams->GetSwitcherPos(); // Orca: carry the switch inlet for inlet-aware panel placement
     cans.clear();
     for (int i = 0; i < ams->GetTrays().size(); i++) {
         auto    it = ams->GetTrays().find(std::to_string(i));
@@ -112,7 +114,6 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
                 info.ctype = 0;
                 info.material_colour = AMS_TRAY_DEFAULT_COL;
                 info.material_state = AMSCanType::AMS_CAN_TYPE_THIRDBRAND;
-                wxColour(255, 255, 255);
             }
 
             if (it->second->is_tray_info_ready() && obj->cali_version >= 0) {
@@ -169,7 +170,6 @@ void AMSinfo::parse_ext_info(MachineObject* obj, DevAmsTray tray) {
         info.filament_id = "";
         info.ctype = 0;
         info.material_colour = AMS_TRAY_DEFAULT_COL;
-        wxColour(255, 255, 255);
     }
     info.material_state = AMSCanType::AMS_CAN_TYPE_VIRTUAL;
     if (tray.is_tray_info_ready() && obj->cali_version >= 0) {
@@ -232,6 +232,19 @@ int AMSinfo::get_humidity_display_idx() const
 
     //assert(false && "Invalid AMS type for humidity display");
     return 1;
+}
+
+// Orca: inlet-aware panel routing. REF placed AMS by switch inlet (POS_IN_A/B) via a tray-level binding
+// that Orca's pull-mode fila model does not carry; the AMS-level DevAms::GetSwitcherPos() does, and it is
+// stashed in switch_pos. When a Filament Track Switch is installed the device pins nozzle_id to MAIN for
+// command consumers, so placement follows the inlet here instead (POS_IN_B -> main/right, POS_IN_A ->
+// deputy/left). switch_pos is empty on switch-less machines and for ext spools (no tray-level inlet in the
+// kept model), so this reduces to the original nozzle_id == MAIN_EXTRUDER_ID test — identical behavior.
+bool AMSinfo::routes_to_main_extruder() const
+{
+    if (switch_pos.has_value())
+        return switch_pos.value() == DevFilaSwitch::SwitchPos::POS_IN_B;
+    return nozzle_id == MAIN_EXTRUDER_ID;
 }
 
 /*************************************************
@@ -310,7 +323,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, wxString can_id, Ca
     m_can_id = can_id.ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
 AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo info, const wxPoint &pos, const wxSize &size) : AMSrefresh()
@@ -318,7 +331,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo
     m_can_id = wxString::Format("%d", can_id).ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
  AMSrefresh::~AMSrefresh()
@@ -467,7 +480,7 @@ void AMSrefresh::paintEvent(wxPaintEvent &evt)
     dc.DrawText(m_refresh_id, pot);
 }
 
-void AMSrefresh::Update(std::string ams_id, Caninfo info)
+void AMSrefresh::UpdateInfo(std::string ams_id, Caninfo info)
 {
     if (m_ams_id == ams_id && m_info == info)
     {
@@ -930,7 +943,7 @@ AMSLib::AMSLib(wxWindow *parent, std::string ams_idx, Caninfo info, AMSModelOrig
     Bind(wxEVT_LEAVE_WINDOW, &AMSLib::on_leave_window, this);
     Bind(wxEVT_LEFT_DOWN, &AMSLib::on_left_down, this);
 
-    Update(info, ams_idx, false);
+    UpdateInfo(info, ams_idx, false);
 }
 
 AMSLib::~AMSLib()
@@ -1360,6 +1373,11 @@ void AMSLib::render_lite_lib(wxDC& dc)
         }
     }
 
+    // View-only mode forces the read-only (eye) icon even for third-party spools.
+    if (m_view_only) {
+        temp_bitmap_third = temp_bitmap_brand;
+    }
+
     dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
     if (m_info.material_cols.size() > 1) {
         int left = FromDIP(10);
@@ -1368,7 +1386,7 @@ void AMSLib::render_lite_lib(wxDC& dc)
         if (m_info.ctype == 0) {
             for (int i = 0; i < m_info.material_cols.size() - 1; i++) {
                 auto rect = wxRect(left, FromDIP(10), libsize.x - FromDIP(18), libsize.y - FromDIP(18));
-                dc.GradientFillLinear(rect, m_info.material_cols[i], m_info.material_cols[i + 1], wxEAST);
+                fill_gradient_rect_east(dc, rect, m_info.material_cols[i], m_info.material_cols[i + 1]);
                 left += gwidth;
             }
         }
@@ -1449,6 +1467,11 @@ void AMSLib::render_generic_lib(wxDC &dc)
     if (tmp_lib_colour.Alpha() == 0) {
         temp_bitmap_third = m_bitmap_editable;
         temp_bitmap_brand = m_bitmap_readonly;
+    }
+
+    // View-only mode forces the read-only (eye) icon even for third-party spools.
+    if (m_view_only) {
+        temp_bitmap_third = temp_bitmap_brand;
     }
 
     dc.SetPen(wxPen(tmp_lib_colour, 1, wxPENSTYLE_SOLID));
@@ -1561,7 +1584,7 @@ void AMSLib::render_generic_lib(wxDC &dc)
                     }
 
                     auto rect = wxRect(left, height - curr_height, gwidth, curr_height);
-                    dc.GradientFillLinear(rect, m_info.material_cols[i], m_info.material_cols[i + 1], wxEAST);
+                    fill_gradient_rect_east(dc, rect, m_info.material_cols[i], m_info.material_cols[i + 1]);
                     left += gwidth;
                 }
             }
@@ -1705,7 +1728,7 @@ void AMSLib::on_pass_road(bool pass)
     }
 }
 
-void AMSLib::Update(Caninfo info, std::string ams_idx, bool refresh)
+void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
 {
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
@@ -1843,7 +1866,7 @@ AMSRoad::AMSRoad(wxWindow *parent, wxWindowID id, Caninfo info, int canindex, in
 
 void AMSRoad::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size) { wxWindow::Create(parent, id, pos, size); }
 
-void AMSRoad::Update(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
+void AMSRoad::UpdateInfo(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
 {
     m_amsinfo = amsinfo;
     m_info     = info;
@@ -2058,9 +2081,6 @@ void AMSRoad::OnPassRoad(std::vector<AMSPassRoadMode> prord_list)
     }
 }
 
-/*
-
-
 /*************************************************
 Description:AMSRoadUpPart
 **************************************************/
@@ -2099,7 +2119,7 @@ void AMSRoadUpPart::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     Refresh();
 }
 
-void AMSRoadUpPart::Update(AMSinfo amsinfo)
+void AMSRoadUpPart::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -2591,7 +2611,7 @@ void AMSPreview::Close()
     Hide();
 }
 
-void AMSPreview::Update(AMSinfo amsinfo)
+void AMSPreview::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo == amsinfo)
     {
@@ -2735,7 +2755,7 @@ void AMSPreview::doRender(wxDC &dc)
                         }
 
                         auto rect = wxRect(fleft, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, gwidth, AMS_ITEM_CUBE_SIZE.y);
-                        dc.GradientFillLinear(rect, iter->material_cols[i], iter->material_cols[i + 1], wxEAST);
+                        fill_gradient_rect_east(dc, rect, iter->material_cols[i], iter->material_cols[i + 1]);
                         fleft += gwidth;
                     }
                 }
@@ -2807,7 +2827,7 @@ void AMSPreview::doRender(wxDC &dc)
                     }
 
                     auto rect = wxRect(fleft, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, gwidth, AMS_ITEM_CUBE_SIZE.y);
-                    dc.GradientFillLinear(rect, iter.material_cols[i], iter.material_cols[i + 1], wxEAST);
+                    fill_gradient_rect_east(dc, rect, iter.material_cols[i], iter.material_cols[i + 1]);
                     fleft += gwidth;
                 }
             }
@@ -2929,7 +2949,7 @@ AMSHumidity::AMSHumidity(wxWindow* parent, wxWindowID id, AMSinfo info, const wx
         }
         });
 
-    Update(info);
+    UpdateInfo(info);
 }
 
 void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size) {
@@ -2938,7 +2958,7 @@ void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, co
 }
 
 
-void AMSHumidity::Update(AMSinfo amsinfo)
+void AMSHumidity::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -3355,7 +3375,7 @@ void AmsItem::AddLiteCan(Caninfo caninfo, int canindex, wxGridSizer* sizer)
     //m_can_road_list[caninfo.can_id] = m_panel_road;
 }
 
-void AmsItem::Update(AMSinfo info)
+void AmsItem::UpdateInfo(AMSinfo info)
 {
     if (m_info == info)
     {
@@ -3367,7 +3387,7 @@ void AmsItem::Update(AMSinfo info)
 
     if (m_humidity)
     {
-        m_humidity->Update(m_info);
+        m_humidity->UpdateInfo(m_info);
     }
 
     for (int i = 0; i < m_can_count; i++) {
@@ -3376,7 +3396,7 @@ void AmsItem::Update(AMSinfo info)
 
         auto refresh = it->second;
         if (refresh != nullptr){
-            refresh->Update(info.ams_id, info.cans[i]);
+            refresh->UpdateInfo(info.ams_id, info.cans[i]);
             refresh->Show();
         }
     }
@@ -3385,7 +3405,7 @@ void AmsItem::Update(AMSinfo info)
         AMSLib* lib = m_can_lib_list[std::to_string(i)];
         if (lib != nullptr){
             if (i < m_can_count){
-                lib->Update(info.cans[i], info.ams_id);
+                lib->UpdateInfo(info.cans[i], info.ams_id);
                 lib->Show();
             }
             else{
@@ -3394,12 +3414,7 @@ void AmsItem::Update(AMSinfo info)
         }
     }
     if (m_panel_road != nullptr){
-        m_panel_road->Update(m_info);
-    }
-
-    if (true || m_ams_model == AMSModel::GENERIC_AMS) {
-        /*m_panel_road->Update(m_info, info.cans[0]);
-        m_panel_road->Show();*/
+        m_panel_road->UpdateInfo(m_info);
     }
 
     Layout();

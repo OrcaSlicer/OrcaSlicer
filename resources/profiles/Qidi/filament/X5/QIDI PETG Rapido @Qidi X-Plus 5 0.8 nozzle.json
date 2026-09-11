@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "rsNDDt3IFUOMYV3O",
+	"name": "QIDI PETG Rapido @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PETG Rapido@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

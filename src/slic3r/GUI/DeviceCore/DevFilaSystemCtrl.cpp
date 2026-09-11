@@ -28,8 +28,8 @@ int DevFilaSystem::CtrlAmsStartDryingHour(int ams_id,
     jj_command["print"]["command"] = "ams_filament_drying";
     jj_command["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
     jj_command["print"]["ams_id"] = ams_id;
-    jj_command["print"]["mode"] = static_cast<int>(DevAms::DryCtrlMode::OnTime);
-    jj_command["print"]["filament"] = filament_type;
+    jj_command["print"]["mode"] = static_cast<int>(DevAms::DryCtrlMode::OnTime); // Orca: cast scoped enum for json
+    jj_command["print"]["filament"] = filament_type; // Orca: fix comma-operator typo
     jj_command["print"]["temp"] = tag_temp;
     jj_command["print"]["duration"] = tag_duration_hour;
     jj_command["print"]["humidity"] = 0;
@@ -45,8 +45,8 @@ int DevFilaSystem::CtrlAmsStopDrying(int ams_id) const
     jj_command["print"]["command"] = "ams_filament_drying";
     jj_command["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
     jj_command["print"]["ams_id"] = ams_id;
-    jj_command["print"]["mode"] = static_cast<int>(DevAms::DryCtrlMode::Off);
-    jj_command["print"]["filament"] = "";
+    jj_command["print"]["mode"] = static_cast<int>(DevAms::DryCtrlMode::Off); // Orca: cast scoped enum for json
+    jj_command["print"]["filament"] = ""; // Orca: fix comma-operator typo
     jj_command["print"]["temp"] = 0;
     jj_command["print"]["duration"] = 0;
     jj_command["print"]["humidity"] = 0;

@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Snapmaker PLA Lite @U1 base",
 	"from": "system",
-	"filament_id": "1417031127011",
+	"filament_id": "OFEOnBj6",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
@@ -45,6 +45,9 @@
 	],
 	"filament_type": [
 		"PLA"
+	],
+	"filament_vendor": [
+		"Snapmaker"
 	],
 	"filament_density": [
 		"1.24"

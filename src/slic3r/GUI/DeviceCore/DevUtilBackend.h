@@ -1,19 +1,32 @@
 /**
  * @file DevUtilBackend.h
  * @brief Provides common static utility methods for backend (preset/slicing).
+ *
+ * This class offers a collection of static helper functions such as string manipulation,
+ * file operations, and other frequently used utilities.
  */
 
 #pragma once
 #include "DevDefs.h"
+#include "DevNozzleSystem.h"
 #include "DevFilaSystem.h"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include <optional>
-#include <string>
+#include <unordered_map>
+
+ // Forward declarations
+namespace Slic3r
+{
+class MachineObject;
+
+namespace GUI
+{
+class Plater;
+}
+}; // namespace Slic3r::GUI
 
 namespace Slic3r
 {
-namespace GUI { class Plater; }
 
 class DevUtilBackend
 {
@@ -21,11 +34,11 @@ public:
     DevUtilBackend() = delete;
 
 public:
+    static MultiNozzleUtils::NozzleInfo GetNozzleInfo(const DevNozzle& dev_nozzle);
 
-    // for rack: the slicer's per-filament -> logical-nozzle grouping for the current plate, read off
-    // the post-slice GCodeProcessorResult (plater->background_process().get_current_gcode_result()).
-    // Returns nullptr when there is no plater / no current result.
-    static std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> GetNozzleGroupResult(Slic3r::GUI::Plater* plater);
+    // for rack
+    static std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> GetNozzleGroupResult(Slic3r::GUI::Plater *plater);
+    static std::unordered_map<NozzleDef, int> CollectNozzleInfo(MultiNozzleUtils::NozzleGroupResultBase *nozzle_group_res, int logic_ext_id);
 
     // for filament preset
     static std::optional<DevFilamentDryingPreset> GetFilamentDryingPreset(const std::string& fila_id);

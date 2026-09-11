@@ -12,7 +12,6 @@
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include "MainFrame.hpp"
-#include <slic3r/GUI/Widgets/WebView.hpp>
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
 #include <wx/event.h>
@@ -21,11 +20,9 @@ namespace Slic3r { namespace GUI {
 
 PresetBundleDialog::PresetBundleDialog(
     wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
-    : DPIDialog(parent, id, _L("PresetBundle"), pos, size, style)
+    : WebViewHostDialog(parent, id, _L("PresetBundle"), pos, size, style)
 {
     wxGetApp().preset_bundle->bundles.PauseRead(); // for the entirety of the preset bundle dialog, we want the update thread to yield.
-    SetBackgroundColour(*wxWHITE);
-    SetMinSize(DESIGN_WINDOW_SIZE);
     create();
     wxGetApp().UpdateDlgDarkUI(this);
 
@@ -186,55 +183,11 @@ void PresetBundleDialog::RefreshBundleMap()
     wxGetApp().preset_bundle->bundles.ReadUnlock();
 }
 
-void PresetBundleDialog::load_url(wxString& url)
-{
-    if (!m_browser)
-        return;
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " enter, url=" << url.ToStdString();
-    WebView::LoadUrl(m_browser, url);
-    m_browser->SetFocus();
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " exit";
-}
-
 void PresetBundleDialog::create()
 {
     app_config = get_app_config();
-
-    wxString TargetUrl = from_u8(
-        (boost::filesystem::path(resources_dir()) / "web/dialog/PresetBundleDialog/index.html").make_preferred().string());
-    wxString strlang = wxGetApp().current_language_code_safe();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", strlang=%1%") % into_u8(strlang);
-    if (strlang != "")
-        TargetUrl = wxString::Format("%s?lang=%s", std::string(TargetUrl.mb_str()), strlang);
-
-    TargetUrl = "file://" + TargetUrl;
-
-    wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
-    SetTitle(_L("Preset Bundle"));
-
-    m_browser = WebView::CreateWebView(this, TargetUrl);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-
-    SetSizer(topsizer);
-    topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-
-    // Set a more sensible size for web browsing
-    wxSize pSize = FromDIP(wxSize(820, 660));
-    SetSize(pSize);
-
-    int screenheight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y, NULL);
-    int screenwidth  = wxSystemSettings::GetMetric(wxSYS_SCREEN_X, NULL);
-    int MaxY         = (screenheight - pSize.y) > 0 ? (screenheight - pSize.y) / 2 : 0;
-    wxPoint tmpPT((screenwidth - pSize.x) / 2, MaxY);
-    Move(tmpPT);
-
-    Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PresetBundleDialog::OnScriptMessage, this, m_browser->GetId());
-
-    load_url(TargetUrl);
+    create_webview("web/dialog/PresetBundleDialog/index.html", _L("Preset Bundle"),
+                   wxSize(820, 660), wxSize(640, 640));
 }
 
 bool PresetBundleDialog::DeleteBundleById(const wxString& id)
@@ -292,68 +245,41 @@ bool PresetBundleDialog::DeleteBundleById(const wxString& id)
 
 bool PresetBundleDialog::UnsubscribeBundleById(const std::string& id) { return wxGetApp().unsubscribe_bundle(id); }
 
-void PresetBundleDialog::on_dpi_changed(const wxRect& suggested_rect) { this->Refresh(); }
-
-void PresetBundleDialog::RunScript(const wxString& s)
+void PresetBundleDialog::on_script_message(const nlohmann::json& j)
 {
-    if (!m_browser)
+    if (handle_common_script_command(j))
         return;
 
-    WebView::RunScript(m_browser, s);
-}
-
-void PresetBundleDialog::OnScriptMessage(wxWebViewEvent& e)
-{
-    try {
-        wxString strInput = e.GetString();
-        BOOST_LOG_TRIVIAL(trace) << "PresetBundleDialog::OnScriptMessage;OnRecv:" << strInput.c_str();
-        json j = json::parse(strInput.utf8_string());
-
-        wxString strCmd = j["command"];
-        BOOST_LOG_TRIVIAL(trace) << "PresetBundleDialog::OnScriptMessage;Command:" << strCmd;
-
-        if (strCmd == "request_bundles") {
-            ListBundles();
-        } else if (strCmd == "refresh_bundles") {
-            // use the thread to check for updates.
-            m_check_update_pending.store(true, std::memory_order_relaxed);
-        } else if (strCmd == "update_bundle") {
-            std::string id = j["bundle_id"];
-
-            auto* evt = new wxCommandEvent(EVT_UPDATE_PRESET_BUNDLE);
-            evt->SetString(wxString::FromUTF8(id));
-            wxQueueEvent(&wxGetApp(), evt); // dialog -> GUI_App
-        } else if (strCmd == "set_auto_update") {
-            bool enabled = j.value("enabled", false);
-
-            // Example persistence location. Adjust key name if you already have one.
-            app_config->set_bool("preset_bundle_auto_update", enabled ? true : false);
-            app_config->save();
-        } else if (strCmd == "close_page") {
-            this->EndModal(wxID_CANCEL);
-        } else if (strCmd == "export_page") {
-            wxGetApp().CallAfter([this]() {
-                ExportPresetBundleDialog dlg(this);
-                dlg.ShowModal();
-            });
-        } else if (strCmd == "top_row_menu_action") {
-            if (j["action"] == "open_folder") {
-                std::string id = j["bundle_id"];
-                OpenFolder(id);
-            } else if (j["action"] == "delete_bundle") {
-                std::string id = j["bundle_id"];
-                DeleteBundle(id);
-            } else if (j["action"] == "unsubscribe_bundle") {
-                std::string id = j["bundle_id"];
-                UnsubscribeBundle(id);
-            }
-        } else if (strCmd == "open_bundle_on_cloud") {
-            std::string bundle_id = j["bundle_id"];
-            OpenBundleOnCloud(bundle_id);
-        }
-
-    } catch (std::exception& e) {
-        BOOST_LOG_TRIVIAL(trace) << "PresetBundleDialog::OnScriptMessage;Error:" << e.what();
+    const std::string strCmd = j.value("command", "");
+    if (strCmd == "request_bundles") {
+        ListBundles();
+    } else if (strCmd == "refresh_bundles") {
+        m_check_update_pending.store(true, std::memory_order_relaxed);
+    } else if (strCmd == "update_bundle") {
+        std::string id = j.value("bundle_id", "");
+        auto* evt = new wxCommandEvent(EVT_UPDATE_PRESET_BUNDLE);
+        evt->SetString(wxString::FromUTF8(id));
+        wxQueueEvent(&wxGetApp(), evt);
+    } else if (strCmd == "set_auto_update") {
+        bool enabled = j.value("enabled", false);
+        app_config->set_bool("preset_bundle_auto_update", enabled ? true : false);
+        app_config->save();
+    } else if (strCmd == "export_page") {
+        wxGetApp().CallAfter([this]() {
+            ExportPresetBundleDialog dlg(this);
+            dlg.ShowModal();
+        });
+    } else if (strCmd == "top_row_menu_action") {
+        const std::string action = j.value("action", "");
+        const std::string id     = j.value("bundle_id", "");
+        if (action == "open_folder")
+            OpenFolder(id);
+        else if (action == "delete_bundle")
+            DeleteBundle(id);
+        else if (action == "unsubscribe_bundle")
+            UnsubscribeBundle(id);
+    } else if (strCmd == "open_bundle_on_cloud") {
+        OpenBundleOnCloud(j.value("bundle_id", ""));
     }
 }
 
@@ -396,8 +322,7 @@ void PresetBundleDialog::ListBundles()
         res["data"].push_back(std::move(temp));
     }
 
-    wxString strJS = wxString::Format("HandleStudio(%s)", wxString::FromUTF8(res.dump(-1, ' ', false, json::error_handler_t::ignore)));
-    wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+    call_web_handler(res);
 }
 
 void PresetBundleDialog::OpenFolder(const std::string& id)

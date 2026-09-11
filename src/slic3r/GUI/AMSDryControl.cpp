@@ -42,7 +42,7 @@ static std::string get_humidity_level_img_path(int humidity_percent)
     }
 
     if (wxGetApp().dark_mode()) {
-        return "hum_level" + std::to_string(hum_level) + "_no_num_dark";
+        return "hum_level" + std::to_string(hum_level) + "_no_num_dark"; // Orca: use the dark-mode humidity glyph in dark mode
     } else {
         return "hum_level" + std::to_string(hum_level) + "_no_num_light";
     }
@@ -86,7 +86,7 @@ FilamentItemPanel::FilamentItemPanel(wxWindow* parent, const wxString& text, con
     : wxPanel(parent, id)
     , m_icon_name(icon_name)
 {
-    SetBackgroundColour(wxColour("#F0F0F1")); // Light gray background
+    SetBackgroundColour(wxColour("#F0F0F1")); // Orca: light-gray panel scheme (#F0F0F1 replaces REF #F7F7F7)
     SetMinSize(wxSize(FromDIP(64), FromDIP(106))); // Width: 64, Height: 106
     SetSize(wxSize(FromDIP(64), FromDIP(106)));    // Fixed size
 
@@ -437,7 +437,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_temperature_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1));
     m_temperature_input->SetMaxLength(3); // Limit to 3 digits
 
-    m_temperature_input->Bind(wxEVT_CHAR, [this](wxKeyEvent& event) {
+    m_temperature_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
         if (keycode >= '0' && keycode <= '9') {
             event.Skip();
@@ -454,7 +454,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_temperature_input->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_temperature_input->SetForegroundColour(StateColor::darkModeColorFor(*wxBLACK));
 
-    Label* temp_unit_label = new Label(parent, wxString::FromUTF8("℃"));
+    Label* temp_unit_label = new Label(parent, wxString::FromUTF8(u8"\u2103" /* °C */));
     temp_unit_label->SetForegroundColour(*wxBLACK);
     temp_sizer->Add(m_temperature_input, 1, wxRIGHT, FromDIP(1));
     temp_sizer->Add(temp_unit_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -464,7 +464,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_time_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(100), -1));
     m_time_input->SetMaxLength(3); // Limit to 3 digits
 
-    m_time_input->Bind(wxEVT_CHAR, [this](wxKeyEvent& event) {
+    m_time_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
         if (keycode >= '0' && keycode <= '9') {
             event.Skip();
@@ -698,7 +698,7 @@ wxBoxSizer* AMSDryCtrWin::create_guide_info_section(wxPanel* parent)
     m_rotate_spool_toggle = new wxCheckBox(parent, wxID_ANY, "");
     m_rotate_spool_toggle->SetValue(false);
 
-    m_rotate_spool_toggle->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    m_rotate_spool_toggle->Bind(wxEVT_CHECKBOX, [](wxCommandEvent& event) {
         bool is_checked = event.IsChecked();
         // Add toggle behavior logic here
     });
@@ -736,7 +736,7 @@ wxBoxSizer* AMSDryCtrWin::create_guide_right_section(wxPanel* parent)
 
     m_back_button = create_button(
         parent,
-        wxString::FromUTF8(_CTX_utf8(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
+        wxString::FromUTF8(_u8L_CONTEXT(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
         wxColour("#F8F8F8"),       // Background color - light gray
         wxColour("#D0D0D0"),       // Border color - gray
         *wxBLACK                   // Text color - black
@@ -977,7 +977,7 @@ void AMSDryCtrWin::create()
     // set title icon
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     this->SetDoubleBuffered(true);
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str(); // Orca: app title icon
     SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     SetSize(wxSize(FromDIP(700), FromDIP(500)));
@@ -1444,9 +1444,9 @@ int AMSDryCtrWin::update_ams_change(DevAms* dev_ams)
 
     m_ams_info.m_ams_id = dev_ams->GetAmsId();
     if (dev_ams->GetAmsType() == DevAmsType::N3F) {
-        m_temperature_input->SetHint("45-65" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-65" + wxString::FromUTF8(u8"\u2103" /* °C */));
     } else if (dev_ams->GetAmsType() == DevAmsType::N3S) {
-        m_temperature_input->SetHint("45-85" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-85" + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     m_time_input->SetHint("1-24 h");
@@ -1467,7 +1467,7 @@ int AMSDryCtrWin::update_dryness_status(DevAms* dev_ams)
     if (m_ams_info.m_temperature != dev_ams->GetCurrentTemperature()) {
         updated += 1;
         m_ams_info.m_temperature = dev_ams->GetCurrentTemperature();
-        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8("°C"));
+        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     if (is_dry_ctr_idle(dev_ams)) {
@@ -1511,6 +1511,10 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
                       m_temperature_input->GetValue().ToLong(&input_temp);
     bool can_start = true;
 
+    // "GFA00" is Bambu's PLA id; GetFilamentDryingPreset is keyed by our OF ids.
+    auto* agent = wxGetApp().getAgent();
+    const std::string pla_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");
+
     int slot_count = 0, empty_count = 0;
     for (auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second) {
@@ -1526,13 +1530,15 @@ void AMSDryCtrWin::update_filament_guide_info(DevAms* dev_ams)
         wxString filament_type = tray_pair.second->get_display_filament_type();
         DevFilamentDryingPreset preset;
         if (filament_type.IsEmpty()) {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;                 // no PLA preset (e.g. the id map is missing): skip, don't throw
             preset = fallback_preset.value();
             filament_type = "?";
         } else if (preset_opt.has_value()) {
             preset = preset_opt.value();
         } else {
-            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+            auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(pla_filament_id);
+            if (!fallback_preset) continue;
             preset = fallback_preset.value();
         }
         std::string icon_path = "dev_ams_dry_ctr_enable";
@@ -1594,39 +1600,21 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
         }
         stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
         std::string nozzle_diameter_str = stream.str();
-        std::set<std::string> printer_names = preset_bundle->get_printer_names_by_printer_type_and_nozzle(
-            DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
 
-        for (auto filament_it = filaments.begin(); filament_it != filaments.end(); ++filament_it) {
-            Preset& preset = *filament_it;
-            // Filter by system preset: root preset and (system preset or user preset is supported)
-            if (filaments.get_preset_base(*filament_it) != &preset || (!filament_it->is_system && !obj->is_support_user_preset)) {
+        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
+                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+            if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
-            }
+            const std::string filament_alias = filaments.get_preset_alias(*filament_it, true);
+            if (filament_alias.empty())
+                continue;
+            auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
+            if (!opt_info.has_value())
+                continue;
 
-            ConfigOption *       printer_opt  = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings *printer_strs = dynamic_cast<ConfigOptionStrings *>(printer_opt);
-            if (!printer_strs) continue;
-
-            for (auto printer_str : printer_strs->values) {
-                if (printer_names.find(printer_str) != printer_names.end()) {
-                    if (filament_id_set.find(filament_it->filament_id) != filament_id_set.end()) {
-                        continue;
-                    }
-
-                    filament_id_set.insert(filament_it->filament_id);
-                    auto filament_alias = filaments.get_preset_alias(*filament_it, true);
-                    if (!filament_alias.empty()) {
-                        auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
-                        if (opt_info.has_value()) {
-                            auto real_info = opt_info.value();
-                            real_info.filament_name = filament_alias;
-                            m_tray_ids.push_back(std::move(real_info));
-                            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
-                        }
-                    }
-                }
-            }
+            opt_info->filament_name = filament_alias;
+            m_tray_ids.push_back(std::move(*opt_info));
+            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
         }
 
         if (m_tray_ids.empty()) {
@@ -1701,9 +1689,10 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
 
     // Select recommended drying temperature and default filament
     float min_dry_temp = std::numeric_limits<float>::max();
-    std::string default_filament_id = "GFA00";
+    auto* agent = wxGetApp().getAgent();
+    std::string default_filament_id = agent ? agent->to_orca_filament_id("GFA00") : std::string("GFA00");   // compared against m_tray_ids[i].filament_id (our OF ids) below
     bool has_ready = false;
-    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset("GFA00");
+    const auto fallback_preset = DevUtilBackend::GetFilamentDryingPreset(default_filament_id);
     for (const auto& tray_pair : dev_ams->GetTrays()) {
         if (!tray_pair.second || !tray_pair.second->is_tray_info_ready()) continue;
         has_ready = true;

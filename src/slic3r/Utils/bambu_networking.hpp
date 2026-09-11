@@ -128,6 +128,7 @@ typedef std::function<void(std::string topic)>      GetSubscribeFailureFn;
 typedef std::function<void(int status, int code, std::string msg)> OnUpdateStatusFn;
 typedef std::function<bool()>                       WasCancelledFn;
 typedef std::function<bool(int status, std::string job_info)> OnWaitFn;
+typedef std::function<void(int online_login, bool login)> OnUserLoginFn;
 // local callbacks
 typedef std::function<void(std::string dev_info_json_str)> OnMsgArrivedFn;
 // queue call to main thread
@@ -229,8 +230,11 @@ struct PrintParams_Legacy {
     std::string     extra_options;
 };
 
-/* print job*/
-struct PrintParams {
+/* print job, as the 02.03.00 series expects it. The 02.08.01 series inserted
+   task_timelapse_use_internal, extruder_cali_manual_mode, svc_context and slicer_uid into
+   PrintParams; two of them sit mid-struct, so an older plug-in misreads every field from
+   task_use_ams onwards if handed the current layout. Rebuild it with as_0203() instead. */
+struct PrintParams_0203 {
     /* basic info */
     std::string     dev_id;
     std::string     task_name;
@@ -279,12 +283,108 @@ struct PrintParams {
     bool            try_emmc_print;
 };
 
+/* print job*/
+struct PrintParams {
+    /* basic info */
+    std::string     dev_id;
+    std::string     task_name;
+    std::string     project_name;
+    std::string     preset_name;
+    std::string     filename;
+    std::string     config_filename;
+    int             plate_index;
+    std::string     ftp_folder;
+    std::string     ftp_file;
+    std::string     ftp_file_md5;
+    std::string     nozzle_mapping;
+    std::string     ams_mapping;
+    std::string     ams_mapping2;
+    std::string     ams_mapping_info;
+    std::string     nozzles_info;
+    std::string     connection_type;
+    std::string     comments;
+    int             origin_profile_id = 0;
+    int             stl_design_id = 0;
+    std::string     origin_model_id;
+    std::string     print_type;
+    std::string     dst_file;
+    std::string     dev_name;
+
+    /* access options */
+    std::string     dev_ip;
+    bool            use_ssl_for_ftp;
+    bool            use_ssl_for_mqtt;
+    std::string     username;
+    std::string     password;
+
+    /*user options */
+    bool            task_bed_leveling;      /* bed leveling of task */
+    bool            task_flow_cali;         /* flow calibration of task */
+    bool            task_vibration_cali;    /* vibration calibration of task */
+    bool            task_layer_inspect;     /* first layer inspection of task */
+    bool            task_record_timelapse;  /* record timelapse of task */
+    bool            task_timelapse_use_internal;
+    bool            task_use_ams;
+    std::string     task_bed_type;
+    std::string     extra_options;
+    int             auto_bed_leveling{ 0 };
+    int             auto_flow_cali{ 0 };
+    int             auto_offset_cali{ 0 };
+    int             extruder_cali_manual_mode{ -1 };
+    bool            task_ext_change_assist;
+    bool            try_emmc_print;
+    std::string     svc_context;
+    std::string     slicer_uid;
+};
+
 struct TaskQueryParams
 {
     std::string dev_id;
     int status = 0;
     int offset = 0;
     int limit = 20;
+};
+
+struct FilamentQueryParams
+{
+    std::string category;
+    std::string status;
+    std::string spool_id;
+    std::string rfid;
+    int offset = 0;
+    int limit = 20;
+};
+
+struct FilamentDeleteParams
+{
+    std::vector<std::string> ids;
+    std::vector<std::string> rfids;
+};
+
+struct AmsSyncItem {
+    std::string RFID;
+    std::string filamentVendor;
+    std::string filamentType;
+    std::string filamentName;
+    std::string filamentId;
+    bool        isSupport      = false;
+    std::string color;
+    int         colorType      = 0;
+    std::vector<std::string> colors;
+    int         netWeight      = 0;
+    int         totalNetWeight = 0;
+    std::string trayIdName;
+    std::string note;
+    std::string amsSn;
+    std::string slotId;
+    int         amsId          = 0;
+    int         amsType        = 0;
+    bool        createNew      = false;
+};
+
+struct AmsSyncParams {
+    std::string              devId;
+    std::vector<AmsSyncItem> items;
 };
 
 struct PublishParams {
@@ -304,19 +404,34 @@ struct CertificateInformation {
     std::string     serial_number;
 };
 
+// The plug-in ABI generation a library speaks. Generations differ in by-value struct layouts and
+// function signatures, so a call must go through the matching typedefs (see BBLPrinterAgent) -
+// the wrong one corrupts the stack rather than failing cleanly.
+enum class NetworkAbi {
+    Unsupported, // no generation in this build can call it - never dispatch through it
+    Legacy,      // 01.10.01: PrintParams_Legacy; send_message/send_message_to_printer take no flag
+    V0203,       // 02.03.00: PrintParams_0203; bind takes no dev_model
+    Current,     // 02.08.01: the layouts and signatures this build declares directly
+};
+
 struct NetworkLibraryVersion {
     const char* version;
     const char* display_name;
     const char* url_override;
     bool is_latest;
     const char* warning;
+    NetworkAbi abi;
 };
 
+// Every row names the generation that can call it, so a series can never be offered without a
+// host-side ABI for it. Series with no generation - 02.01.01, 02.00.02 and older - must stay out;
+// is_supported_network_version() is the gate that keeps them from loading.
 static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
-    {"02.03.00.62", "02.03.00.62", nullptr, true, nullptr},
-    {"02.01.01.52", "02.01.01.52", nullptr, false, nullptr},
-    {"02.00.02.50", "02.00.02.50", nullptr, false, "This version may crash on startup due to Bambu Lab's signature verification."},
-    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr},
+    {"02.08.01", "02.08.01", nullptr, true, nullptr, NetworkAbi::Current},
+    {"02.03.00", "02.03.00", nullptr, false,
+     "An older plug-in series. Features that need newer plug-in support, such as print-failure "
+     "snapshots in the device error dialog, are unavailable.", NetworkAbi::V0203},
+    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr, NetworkAbi::Legacy},
 };
 
 static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
@@ -329,6 +444,45 @@ inline const char* get_latest_network_version() {
     return AVAILABLE_NETWORK_VERSIONS[0].version;
 }
 
+// The AA.BB.CC series of a modern version string - the plug-in's stored identity. The 4th
+// component is only which build of the series happens to be installed and is read live from
+// the loaded plug-in for display. Legacy keeps its exact string (the shim matches exactly).
+inline std::string network_plugin_series(const std::string& version) {
+    if (version.empty() || version == BAMBU_NETWORK_AGENT_VERSION_LEGACY)
+        return version;
+    return version.size() >= 8 ? version.substr(0, 8) : version;
+}
+
+// Index of the whitelist entry that can load this version: an exact match, or a build of the same
+// AA.BB.CC series as a non-legacy entry (the ABI is stable within a series, and the OTA sync only
+// installs same-series updates). Legacy matches exactly only - a sibling build of that series
+// would come through the modern layout. AVAILABLE_NETWORK_VERSIONS_COUNT when nothing matches.
+inline size_t find_network_version_index(const std::string& version) {
+    const std::string series = network_plugin_series(version);
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
+        const std::string base = AVAILABLE_NETWORK_VERSIONS[i].version;
+        if (version == base)
+            return i;
+        if (base == BAMBU_NETWORK_AGENT_VERSION_LEGACY)
+            continue;
+        if (series == base)
+            return i;
+    }
+    return AVAILABLE_NETWORK_VERSIONS_COUNT;
+}
+
+// True when a whitelisted series can load the version through an ABI this build implements.
+inline bool is_supported_network_version(const std::string& version) {
+    return find_network_version_index(version) < AVAILABLE_NETWORK_VERSIONS_COUNT;
+}
+
+// The generation to call a loaded library through. Unsupported for anything the load gate rejects,
+// so a mislabelled library reaches no plug-in call instead of a layout it does not share.
+inline NetworkAbi network_plugin_abi(const std::string& version) {
+    const size_t i = find_network_version_index(version);
+    return i < AVAILABLE_NETWORK_VERSIONS_COUNT ? AVAILABLE_NETWORK_VERSIONS[i].abi : NetworkAbi::Unsupported;
+}
+
 struct NetworkLibraryVersionInfo {
     std::string version;
     std::string base_version;
@@ -338,6 +492,10 @@ struct NetworkLibraryVersionInfo {
     bool is_latest;
     std::string warning;
     bool is_discovered;
+    // Whether this is the build currently loaded in this session. Deliberately not
+    // "present on disk": switching versions leaves the previous library in place, so
+    // an on-disk test marks every version ever selected.
+    bool is_loaded = false;
 
     static NetworkLibraryVersionInfo from_static(const NetworkLibraryVersion& v) {
         return {
@@ -346,7 +504,7 @@ struct NetworkLibraryVersionInfo {
             "",
             v.display_name,
             v.url_override ? v.url_override : "",
-            v.is_latest,
+            false, // assigned by get_all_available_versions() once the list is sorted
             v.warning ? v.warning : "",
             false
         };
@@ -369,7 +527,22 @@ inline std::string extract_suffix(const std::string& full_version) {
     return (pos == std::string::npos) ? "" : full_version.substr(pos + 1);
 }
 
+// True when the version is a pure dotted-numeric build (AA.BB.CC or AA.BB.CC.DD) whose identity
+// collapses to its series - the managed/OTA build. Legacy and any custom-named build
+// (02.08.01_custom, 02.08.01.52-dev) are NOT managed: they are genuinely distinct files kept
+// under their own name and never folded into the series entry.
+inline bool is_series_managed_version(const std::string& version) {
+    if (version.empty() || version == BAMBU_NETWORK_AGENT_VERSION_LEGACY)
+        return false;
+    return version.find_first_not_of("0123456789.") == std::string::npos;
+}
+
+// Selectable versions, newest first. Marks the entry matching the plug-in currently
+// loaded in this session.
 std::vector<NetworkLibraryVersionInfo> get_all_available_versions();
+// Same list, resolving is_loaded against an explicitly supplied version rather than the
+// live plug-in. Pass an empty string for "nothing loaded".
+std::vector<NetworkLibraryVersionInfo> get_all_available_versions(const std::string& loaded_version);
 
 struct NetworkLibraryLoadError {
     bool has_error = false;

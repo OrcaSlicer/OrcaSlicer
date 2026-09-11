@@ -3,6 +3,7 @@
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
+#include "Widgets/WebViewHostDialog.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include <slic3r/GUI/GUI.hpp>
@@ -11,7 +12,6 @@
 #include <wx/language.h>
 #include <wx/string.h>
 #include <wx/fswatcher.h>
-#include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -37,7 +37,7 @@ enum ExportCase {
     CASE_COUNT,
 };
 
-class ExportPresetBundleDialog : public Slic3r::GUI::DPIDialog
+class ExportPresetBundleDialog : public Slic3r::GUI::WebViewHostDialog
 {
 public:
     ExportPresetBundleDialog(wxWindow* parent,
@@ -52,25 +52,18 @@ public:
     // Utilities
     bool seq_top_layer_only_changed() const { return m_seq_top_layer_only_changed; }
     bool recreate_GUI() const { return m_recreate_GUI; }
-    void on_dpi_changed(const wxRect& suggested_rect) override;
     void show_export_result(const ExportCase& e);
 
     void Init();
     void InitExportData();
 
-    // Webview
-    void LoadUrl(wxString& url);
-    void OnScriptMessage(wxWebViewEvent& e);
-    void RunScript(const wxString& s);
+    void on_script_message(const nlohmann::json& payload) override;
     void OnRequestPresets();
     void OnExportData(const wxString& path, const wxString& name, json data);
 
 protected:
     bool m_seq_top_layer_only_changed{false};
     bool m_recreate_GUI{false};
-
-    // Webview
-    wxWebView* m_browser{nullptr};
 
     // Export Preset
     std::unordered_map<std::string, Preset*> m_printer_presets; // first: printer name, second: printer presets have same printer name

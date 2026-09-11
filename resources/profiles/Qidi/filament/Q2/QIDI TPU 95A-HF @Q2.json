@@ -3,7 +3,7 @@
 	"name": "QIDI TPU 95A-HF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_50",
+	"filament_id": "OFR1XLMN",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"600"

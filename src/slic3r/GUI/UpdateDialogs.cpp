@@ -213,9 +213,8 @@ MsgUpdateConfig::MsgUpdateConfig(const std::vector<Update> &updates, bool force_
     m_scrollwindw_release_note->Layout();
 
 
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
-    m_sizer_main->Fit(this);
 
     Centre(wxBOTH);
 	wxGetApp().UpdateDlgDarkUI(this);

@@ -15,6 +15,9 @@ public:
 
 	void SetHalfChecked(bool value = true);
 
+	// Only meant to be used by inspector, not public API
+	bool IsHalfChecked() const { return m_half_checked; }
+
 	void Rescale();
 
 #ifdef __WXOSX__

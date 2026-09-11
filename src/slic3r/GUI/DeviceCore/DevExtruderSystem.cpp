@@ -271,7 +271,7 @@ namespace Slic3r
         system->m_current_loading_extder_id = INVALID_EXTRUDER_ID;
         if (!system->m_extders[MAIN_EXTRUDER_ID].m_star.ams_id.empty())
         {
-            system->m_current_busy_for_loading = (system->m_extders[MAIN_EXTRUDER_ID].m_snow == system->m_extders[MAIN_EXTRUDER_ID].m_star);
+            system->m_current_busy_for_loading = (system->m_extders[MAIN_EXTRUDER_ID].m_snow != system->m_extders[MAIN_EXTRUDER_ID].m_star);
             if (system->m_current_busy_for_loading)
             {
                 system->m_current_loading_extder_id = MAIN_EXTRUDER_ID;

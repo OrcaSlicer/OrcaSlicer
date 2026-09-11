@@ -3,7 +3,7 @@
 	"name": "BETA PLA High Speed @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB20",
+	"filament_id": "OF3PDEw3",
 	"instantiation": "false",
 	"filament_flow_ratio": [
 		"0.98"

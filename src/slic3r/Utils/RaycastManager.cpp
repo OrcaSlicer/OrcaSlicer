@@ -107,7 +107,7 @@ std::optional<RaycastManager::Hit> RaycastManager::first_hit(const Vec3d& point,
     const AABBMesh *hit_mesh = nullptr;
     double hit_squared_distance = 0.;
     int hit_face = -1;
-    Vec3d hit_world;
+    Vec3d hit_world { Vec3d::Zero() };
     const Transform3d *hit_tramsformation = nullptr;
     const TrKey *hit_key = nullptr;
 

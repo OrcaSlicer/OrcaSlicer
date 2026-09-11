@@ -3,6 +3,7 @@
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
+#include <cstddef>
 
 namespace Slic3r {
 
@@ -39,6 +40,18 @@ public:
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(id); }
+};
+
+struct ObjectInstanceID {
+    ObjectID object_id;
+    size_t   instance_id { size_t(-1) };
+
+    bool operator==(const ObjectInstanceID& rhs) const { return object_id == rhs.object_id && instance_id == rhs.instance_id; }
+    bool operator!=(const ObjectInstanceID& rhs) const { return !(*this == rhs); }
+    bool operator<(const ObjectInstanceID& rhs) const
+    {
+        return object_id < rhs.object_id || (object_id == rhs.object_id && instance_id < rhs.instance_id);
+    }
 };
 
 // Base for Model, ModelObject, ModelVolume, ModelInstance or ModelMaterial to provide a unique ID
@@ -157,6 +170,10 @@ public:
         this->m_check_sum      = rhs.check_sum();
         this->m_connectors_cnt = rhs.connectors_cnt();
     }
+    // A user-declared copy assignment or destructor deprecates the implicitly generated
+    // copy constructor, and this class has both, so declare it rather than rely on it.
+    CutObjectBase(const CutObjectBase &) = default;
+
     CutObjectBase &operator=(const CutObjectBase &other)
     {
         this->copy(other);

@@ -1162,7 +1162,7 @@ namespace Slic3r {
                                 switch(ack){
                                     case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_BUSY:
                                     {   
-                                        error_message =_L("The printer is busy, Please check the device page for the file and try to start printing again.");
+                                        error_message =_L("The printer is busy, please check the device page for the file and try to start printing again.");
                                         break;
                                     }
                                     case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_NOT_FOUND:

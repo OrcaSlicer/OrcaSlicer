@@ -3,7 +3,7 @@
 	"name": "Generic PCTG @base",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "GFG97",
+	"filament_id": "OFu1evlr",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

@@ -24,6 +24,13 @@ if (MSVC AND DEP_DEBUG)
     set(_options "FORWARD_CONFIG")
 endif ()
 
+# Boost.Container's bundled dlmalloc passes int* where the Win32 Interlocked API
+# takes volatile long*; cl compiles that with a warning, clang errors out.
+set(_boost_c_flags_line "")
+if (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    set(_boost_c_flags_line "-DCMAKE_C_FLAGS:STRING=-Wno-incompatible-pointer-types")
+endif ()
+
 orcaslicer_add_cmake_project(Boost
     ${_options}
     URL "https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz"
@@ -38,6 +45,7 @@ orcaslicer_add_cmake_project(Boost
         "${_context_abi_line}"
         "${_context_arch_line}"
         "${_context_impl_line}"
+        "${_boost_c_flags_line}"
 )
 
 set(DEP_Boost_DEPENDS ZLIB)

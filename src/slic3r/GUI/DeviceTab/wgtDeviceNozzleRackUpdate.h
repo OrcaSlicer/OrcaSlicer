@@ -1,17 +1,9 @@
 //**********************************************************/
 /* File: wgtDeviceNozzleRackUpdate.h
-*  Description: The dialog for reading/upgrading the H2C induction-hotend-rack firmware.
+*  Description: The panel for updating hotends
 *
-*  \n class wgtDeviceNozzleRackUpgradeDlg;   // modal "Hotends Info" dialog
-*  \n class wgtDeviceNozzleRackUprade;       // the dialog's content panel (per-nozzle rows)
-*  \n class wgtDeviceNozzleRackHotendUpdate;  // one hotend row (toolhead "R" + rack 1..6)
-*
-*  Opened from the Device-tab rack panel's "Hotends Info" button (wgtDeviceNozzleRack.cpp) and
-*  reused by the Device->Upgrade page "Hotends on Rack" section
-*  (UpgradePanel::createNozzleRackWidgets). All device data + MQTT commands live in
-*  DevNozzleRack / DevNozzleSystem, so this is additive GUI gated behind
-*  DevNozzleRack::IsSupported() — dormant for every non-rack printer.
-//**********************************************************/
+*  \n class wgtDeviceNozzleRackUpdate
+************************************************************/
 
 #pragma once
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
@@ -22,8 +14,6 @@
 
 #include <wx/panel.h>
 #include <memory>
-#include <unordered_map>
-#include <vector>
 
 // Previous definitions
 class Button;
@@ -49,7 +39,7 @@ public:
     wgtDeviceNozzleRackUpgradeDlg(wxWindow* parent, const std::shared_ptr<DevNozzleRack> rack);
 
 public:
-    void UpdateRackInfo(const std::shared_ptr<DevNozzleRack> rack);
+    void UpdateRackInfo(const std::shared_ptr<DevNozzleRack> rack);;
 
 public:
     void on_dpi_changed(const wxRect& suggested_rect) override;
@@ -132,7 +122,6 @@ private:
 private:
     int m_ext_nozzle_id = -1;
     int m_rack_nozzle_id = -1;
-    bool m_isRefreshFinish = false;
     bool findNozzleImage = false;
 
     NozzleStatus m_nozzle_status = NOZZLE_STATUS_DC;
@@ -146,6 +135,7 @@ private:
     ScalableBitmap* m_scaled_nozzle_image = nullptr;
     ScalableBitmap* m_scaled_nozzle_empty_image = nullptr;
     ScalableBitmap* m_refresh_icon = nullptr;
+    // ScalableBitmap* m_in_refreh_icon = nullptr;
     AnimaIcon* m_refreshing_icon = nullptr;
     ScalableBitmap* m_error_icon = nullptr;
 
@@ -159,11 +149,10 @@ private:
 
     Label* m_status_label{ nullptr };
     Label* m_used_time{ nullptr };
-
+    
     Label* m_diameter_label;
     Label* m_flowtype_label;
     Label* m_type_label;
-    ScalableButton* m_error_button{ nullptr };
 
     Label* m_sn_label;
     Label* m_version_label;

@@ -6,7 +6,7 @@
 	"machine_tech": "FGF",
 	"model_id": "re3D TBX2",
 	"printer_model": "re3D TerabotX 2",
-	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"bed_texture": "re3D TerabotX 2_buildplate_texture.svg",
 	"printable_area": [
 		"0x0",
 		"892x0",
@@ -25,7 +25,7 @@
 		"0.3"
 	],
 	"default_filament_profile": [
-		"re3D Greengate rPETG @0.8 nozzle"
+		"re3D rPETG @0.8 nozzle"
 	],
 	"default_print_profile": "0.6 Standard",
 	"printer_settings_id": "re3d_tbx2_08",

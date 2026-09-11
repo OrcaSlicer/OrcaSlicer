@@ -179,8 +179,10 @@ public:
                    std::vector<AMSinfo> ext_info,
                    DevExtderSystem           data,
                    std::string          dev_id,
+                   MachineObject*       obj      = nullptr,
                    bool                 is_reset = true,
                    bool                 test     = false);
+    // Orca: simulation-data generator for local AMS-layout testing (no device required)
     std::vector<AMSinfo> GenerateSimulateData();
 
     void AddAms(AMSinfo info, AMSPanelPos pos = AMSPanelPos::LEFT_PANEL);

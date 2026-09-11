@@ -3,7 +3,7 @@
 	"name": "QIDI PC-ABS-FR@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_34",
+	"filament_id": "OFFAWVf0",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"50"

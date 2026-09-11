@@ -5,7 +5,7 @@
 	"from": "system",
 	"instantiation": "false",
 	"initial_layer_print_height": "0.2",
-	"enable_arc_fitting": "1",
+	"enable_arc_fitting": "0",
 	"initial_layer_infill_speed": "75",
 	"outer_wall_speed": "120",
 	"inner_wall_speed": "250",

@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @C1",
+	"inherits": "fdm_filament_pet",
+	"renamed_from": "C1 Generic PETG",
+	"from": "system",
+	"setting_id": "v0b4nWyzRw5z5EfK",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"20"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"35"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"compatible_printers": [
+		"Construct 1 0.4 nozzle",
+		"Construct 1 XL 0.6 nozzle"
+	]
+}
