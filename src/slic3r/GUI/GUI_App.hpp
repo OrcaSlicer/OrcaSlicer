@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <functional>
 #include <memory>
 #include <string>
 #include "ActionRegistry.hpp"
@@ -10,7 +11,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/UserNotification.hpp"
-#include "slic3r/Utils/ICloudServiceAgent.hpp"
+#include "slic3r/Utils/CloudProvider.hpp"
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
@@ -61,6 +62,9 @@ class MachineObject;
 class NetworkAgent;
 class IPrinterAgent;
 class TaskManager;
+
+// Same typedef as in bambu_networking.hpp, so this header need not include it.
+typedef std::function<bool()> WasCancelledFn;
 
 namespace GUI{
 

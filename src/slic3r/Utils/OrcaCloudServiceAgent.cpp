@@ -1,6 +1,5 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "Http.hpp"
-#include "json_diff.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -17,6 +16,7 @@
 #include <iostream>
 #include <libslic3r/Platform.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>

@@ -7,6 +7,7 @@
 #include "MainFrame.hpp"
 
 #include <wx/filename.h>
+#include <wx/stdpaths.h>
 #include <wx/display.h>
 #include <wx/wfstream.h>
 #include "wx/clipbrd.h"

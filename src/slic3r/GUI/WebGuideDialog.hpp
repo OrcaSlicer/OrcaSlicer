@@ -29,7 +29,6 @@
 #include "GUI_App.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
-#include "slic3r/Utils/json_diff.hpp"
 
 #include <atomic>
 #include <memory>
@@ -44,6 +43,8 @@ namespace Slic3r { namespace GUI {
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 

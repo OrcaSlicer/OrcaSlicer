@@ -1,6 +1,5 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
-#include "json_diff.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -9,6 +8,8 @@
 #include <boost/log/trivial.hpp>
 #include <cctype>
 #include <sstream>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
