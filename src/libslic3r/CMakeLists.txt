@@ -272,6 +272,8 @@ set(lisbslic3r_sources
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
     GCode/WipeTower.hpp
+    GCode/WipeTowerEstimate.cpp
+    GCode/WipeTowerEstimate.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
     Geometry/ArcWelder.hpp
@@ -370,6 +372,8 @@ set(lisbslic3r_sources
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PublishSettings.cpp
+    PublishSettings.hpp
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
@@ -553,6 +557,12 @@ if (_opts)
     set_target_properties(${_cgal_tgt} PROPERTIES INTERFACE_COMPILE_OPTIONS "${_opts_good}")
     target_compile_options(libslic3r_cgal PRIVATE "${_opts_bad}")
 endif()
+
+if (IS_CLANG_CL)
+    # CGAL passes /fp:strict /fp:except-. clang-cl reports the second as overriding part of
+    # the first; the settings cc1 receives are the same ones MSVC produces from that pair.
+    target_compile_options(libslic3r_cgal PRIVATE -Wno-overriding-option)
+endif ()
 
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs)
 

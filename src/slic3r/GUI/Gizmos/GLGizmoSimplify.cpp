@@ -343,12 +343,12 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(10,20));
     if (is_worker_running) { // apply or preview
         // draw progress bar
-        std::string progress_text = GUI::format("%1%", std::to_string(progress)) + "%%";
+        std::string progress_text = GUI::format("%1%", std::to_string(progress)) + "%";
         ImVec2 progress_size(bottom_left_width - space_size, 0.0f);
         ImGui::BBLProgressBar2(progress / 100., progress_size);
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextColored(ImVec4(0.42f, 0.42f, 0.42f, 1.00f), progress_text.c_str());
+        ImGui::TextColored(ImVec4(0.42f, 0.42f, 0.42f, 1.00f), "%s", progress_text.c_str());
         ImGui::SameLine(bottom_left_width + slider_width +  m_imgui->scaled(1.0f));
     } else {
         ImGui::Dummy(ImVec2(bottom_left_width - space_size, -1));

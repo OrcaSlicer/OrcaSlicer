@@ -36,7 +36,7 @@ public:
     void ParseStatus(const nlohmann::json& print_jj);
 
 private:
-    MachineObject *m_owner = nullptr;
+    [[maybe_unused]] MachineObject *m_owner = nullptr;
     std::optional<DevJobState> m_job_state; // could be nullopt for some old firmware
 };
 

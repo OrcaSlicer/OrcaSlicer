@@ -7,6 +7,7 @@ BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 
 // catch paint events
 //EVT_ERASE_BACKGROUND(StaticBox::eraseEvent)
+EVT_SIZE(StaticBox::sizeEvent)
 EVT_PAINT(StaticBox::paintEvent)
 
 END_EVENT_TABLE()
@@ -138,6 +139,12 @@ void StaticBox::eraseEvent(wxEraseEvent& evt)
     wxClientDC dc2(GetParent());
     dc->Blit({0, 0}, size, &dc2, GetPosition());
 #endif
+}
+
+void StaticBox::sizeEvent(wxSizeEvent& evt)
+{
+    Refresh();
+    evt.Skip();
 }
 
 void StaticBox::paintEvent(wxPaintEvent& evt)

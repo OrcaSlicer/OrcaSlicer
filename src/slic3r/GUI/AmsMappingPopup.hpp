@@ -457,7 +457,6 @@ private:
     ScalableBitmap close_img;
 
     wxStaticBitmap* curr_humidity_img;
-    wxStaticBitmap* m_img;
 
     Label* m_staticText;;
     Label* m_staticText_note;

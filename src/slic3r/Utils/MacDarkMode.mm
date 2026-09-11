@@ -57,7 +57,7 @@ void set_miniaturizable(void * window)
     while(viewObject = (NSView *)[viewEnum nextObject]) {
         if([viewObject class] == [NSTextField self]) {
             //[(NSTextField*)viewObject setTextColor :  NSColor.whiteColor];
-            mainframe_text_field = viewObject;
+            mainframe_text_field = (NSTextField*)viewObject;
         }
     }
 }
@@ -74,7 +74,7 @@ void set_title_colour_after_set_title(void * window)
   while(viewObject = (NSView *)[viewEnum nextObject]) {
     if([viewObject class] == [NSTextField self]) {
       [(NSTextField*)viewObject setTextColor : NSColor.whiteColor];
-      mainframe_text_field = viewObject;
+      mainframe_text_field = (NSTextField*)viewObject;
     }
   }
 
