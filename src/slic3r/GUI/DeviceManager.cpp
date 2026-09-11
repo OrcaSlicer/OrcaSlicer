@@ -3,6 +3,7 @@
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
@@ -109,7 +110,9 @@ bool Slic3r::is_stringing_prone_filament(const std::string& filament_id, float n
     if (filament_id.empty()) return false;
     const auto* set = pick_stringing_set(nozzle_diameter);
     if (!set) return false;
-    return set->count(filament_id) > 0;
+    // filament_id is one of our content-addressed OF ids; the table above is keyed by the printer's own.
+    auto* agent = Slic3r::GUI::wxGetApp().getAgent();
+    return set->count(agent ? agent->from_orca_filament_id(filament_id) : filament_id) > 0;
 }
 
 wxString Slic3r::get_stage_string(int stage)
@@ -449,9 +452,7 @@ bool MachineObject::HasRecentLanMessage()
 
 std::string MachineObject::get_access_code() const
 {
-    if (get_user_access_code().empty())
-        return access_code;
-    return get_user_access_code();
+    return access_code;
 }
 
 void MachineObject::set_access_code(std::string code, bool only_refresh)
@@ -460,45 +461,44 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
     if (only_refresh) {
         AppConfig* config = GUI::wxGetApp().app_config;
         if (config) {
-            if (!code.empty()) {
-                GUI::wxGetApp().app_config->set_str("access_code", get_dev_id(), code);
-                DeviceManager::update_local_machine(*this);
+            if (is_lan_mode_printer()) {
+                // why: LAN codes are scoped via BBLocalMachine::access_code, keyed by dev_id and
+                // scoped by that record's own printer_agent_id field - see the matching comment
+                // on get_access_code_with_legacy_fallback() in DevManager.cpp - so binding this
+                // device under one printer agent doesn't silently read as already-bound under a
+                // different, independent one. Cloud devices (the else branch below) aren't
+                // scoped this way: they're never recalled from a stale local cache across a
+                // session boundary, since parse_user_print_info() always overwrites their code
+                // fresh from the cloud API's current response, so there's no cross-agent leakage
+                // risk to guard against there.
+                if (!code.empty()) {
+                    DeviceManager::update_local_machine(*this);
+                } else {
+                    // Only patch an existing record's code - don't persist a brand-new
+                    // never-bound entry just because set_access_code("") was called on it.
+                    const auto& machines = config->get_local_machines();
+                    auto        it       = machines.find(get_dev_id());
+                    if (it != machines.end()) {
+                        BBLocalMachine local_machine = it->second;
+                        local_machine.access_code    = "";
+                        config->update_local_machine(local_machine);
+                    }
+                    // Also clear the pre-scoping flat legacy key when unbinding under BBL, so an
+                    // old BBL-era code can't silently "re-bind" this device again via
+                    // get_access_code_with_legacy_fallback()'s legacy fallback.
+                    if (printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty()) {
+                        config->erase("access_code", get_dev_id());
+                        config->erase("user_access_code", get_dev_id());
+                    }
+                }
             } else {
-                GUI::wxGetApp().app_config->erase("access_code", get_dev_id());
+                if (!code.empty())
+                    config->set_str("access_code", get_dev_id(), code);
+                else
+                    config->erase("access_code", get_dev_id());
             }
         }
     }
-}
-
-void MachineObject::erase_user_access_code()
-{
-    this->user_access_code = "";
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        GUI::wxGetApp().app_config->erase("user_access_code", get_dev_id());
-        //GUI::wxGetApp().app_config->save();
-    }
-}
-
-void MachineObject::set_user_access_code(std::string code, bool only_refresh)
-{
-    this->user_access_code = code;
-    if (only_refresh && !code.empty()) {
-        AppConfig* config = GUI::wxGetApp().app_config;
-        if (config && !code.empty()) {
-            GUI::wxGetApp().app_config->set_str("user_access_code", get_dev_id(), code);
-            DeviceManager::update_local_machine(*this);
-        }
-    }
-}
-
-std::string MachineObject::get_user_access_code() const
-{
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        return GUI::wxGetApp().app_config->get("user_access_code", get_dev_id());
-    }
-    return "";
 }
 
 std::string MachineObject::get_show_printer_type() const
@@ -2907,7 +2907,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         std::string access_code = j_pre["system"]["access_code"].get<std::string>();
                         if (!access_code.empty()) {
                             set_access_code(access_code);
-                            set_user_access_code(access_code);
                         }
                     }
                 }
@@ -4647,6 +4646,40 @@ void MachineObject::set_ctt_dlg( wxString text){
     }
 }
 
+void MachineObject::show_unsupported_dlg(int code)
+{
+    // why: a dead control invites repeat clicks, and the frame is modeless - without the guard
+    // every click stacks another one. Same shape as set_ctt_dlg above, including the reset on
+    // both hide and close so a dismissed dialog can reappear on the next attempt.
+    if (m_unsupported_dlg_shown) {
+        return;
+    }
+    m_unsupported_dlg_shown = true;
+
+    // why: two codes so the user learns which kind of dead end this is - the slicer having no
+    // translation for the command, or the printer's own config lacking the hardware to run it.
+    const wxString text = (code == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) ?
+                              _L("This printer is not configured with the hardware this control needs.") :
+                              _L("This control is not supported on this printer.");
+
+    // note: constructed directly rather than through CallAfter because every publish_json caller
+    // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
+    // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+                                                         GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
+    unsupported_dlg->update_text(text);
+    unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
+        if (!e.IsShown()) {
+            m_unsupported_dlg_shown = false;
+        }
+        });
+    unsupported_dlg->Bind(wxEVT_CLOSE_WINDOW, [this](auto& e) {
+        e.Skip();
+        m_unsupported_dlg_shown = false;
+        });
+    unsupported_dlg->on_show();
+}
+
 int MachineObject::publish_gcode(std::string gcode_str)
 {
     json j;
@@ -5017,10 +5050,13 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             vt_tray.setting_id = vtray["tray_info_idx"].get<std::string>();
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
-            if (vt_tray.setting_id == "GFS00") {
+            // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
+            auto* agent = GUI::wxGetApp().getAgent();
+            const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
+            if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
             }
-            else if (vt_tray.setting_id == "GFS01") {
+            else if (printer_filament_id == "GFS01") {
                 vt_tray.m_fila_type = "PA-S";
             }
             else {
@@ -5561,7 +5597,10 @@ void MachineObject::update_filament_list()
 
         for (auto it = filament_list.begin(); it != filament_list.end(); it++) {
             if (m_filament_list.find(it->first) != m_filament_list.end()) {
-                assert(it->first.size() == 8 && it->first[0] == 'P');
+                // User roots may legitimately carry adopted system-shaped ids (GF*/OF*/P-hex
+                // system), so a non-'P' id here is expected, not an invariant violation.
+                if (it->first.size() != 8 || it->first[0] != 'P')
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": user-root filament_id is not user-shaped: " << it->first;
 
                 if (it->second.first != m_filament_list[it->first].first) {
                     BOOST_LOG_TRIVIAL(info) << "old min temp is not equal to new min temp and filament id: " << it->first;
@@ -5623,6 +5662,17 @@ void MachineObject::update_printer_preset_name()
 void MachineObject::check_ams_filament_valid()
 {
     PresetBundle * preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    // A tray id carried by ANY system filament preset is not a dangling user-preset id
+    // (ten shipped P-hex system ids pass the 'P' shape gates below), so the destructive
+    // tray-wipe / temp-rewrite handling must never fire for it.
+    auto is_system_filament_id = [preset_bundle](const std::string &id) {
+        if (!preset_bundle)
+            return false;
+        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++)
+            if (it->is_system && it->filament_id == id)
+                return true;
+        return false;
+    };
     auto printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
     std::map<std::string, std::set<std::string>> need_checked_filament_id;
     for (auto &ams_pair : m_fila_system->GetAmsList()) {
@@ -5644,6 +5694,8 @@ void MachineObject::check_ams_filament_valid()
         auto &checked_filament = data.checked_filament;
         for (const auto &[slot_id, curr_tray] : ams->GetTrays()) {
 
+            if (curr_tray->setting_id.size() == 8 && curr_tray->setting_id[0] == 'P' && is_system_filament_id(curr_tray->setting_id))
+                continue;
             if (curr_tray->setting_id.size() == 8 && curr_tray->setting_id[0] == 'P' && filament_list.find(curr_tray->setting_id) == filament_list.end()) {
                 if (checked_filament.find(curr_tray->setting_id) != checked_filament.end()) {
                     need_checked_filament_id[nozzle_diameter_str].insert(curr_tray->setting_id);
@@ -5704,6 +5756,8 @@ void MachineObject::check_ams_filament_valid()
         auto &data = m_nozzle_filament_data[nozzle_diameter_str];
         auto &checked_filament = data.checked_filament;
         auto &filament_list    = data.filament_list;
+        if (vt_tray.setting_id.size() == 8 && vt_tray.setting_id[0] == 'P' && is_system_filament_id(vt_tray.setting_id))
+            continue;
         if (vt_tray.setting_id.size() == 8 && vt_tray.setting_id[0] == 'P' && filament_list.find(vt_tray.setting_id) == filament_list.end()) {
             if (checked_filament.find(vt_tray.setting_id) != checked_filament.end()) {
                 need_checked_filament_id[nozzle_diameter_str].insert(vt_tray.setting_id);

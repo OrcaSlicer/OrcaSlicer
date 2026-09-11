@@ -18,6 +18,7 @@
 #include "../ShortestPath.hpp"
 #include "../VariableWidth.hpp"
 
+#include "FillCornerSmoothing.hpp"
 #include "FillRectilinear.hpp"
 
 // #define SLIC3R_DEBUG
@@ -2394,12 +2395,7 @@ static std::vector<MonotonicRegionLink> chain_monotonic_regions(
     }
 
     // Probability (unnormalized) of traversing a link between two monotonic regions.
-	auto path_probability = [
-#ifndef __APPLE__
-        // clang complains when capturing constexpr constants.
-        pheromone_alpha, pheromone_beta
-#endif // __APPLE__
-        ](AntPath &path) {
+	auto path_probability = [](AntPath &path) {
 		return pow(path.pheromone, pheromone_alpha) * pow(path.visibility, pheromone_beta);
 	};
 
@@ -3094,10 +3090,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 0: // Grid / Trapezoidal
     {
         // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
-        //         P2--P3
-        //        /      \
-        //  P0_P1/        \P4_
-        //
+        /*
+         *         P2--P3
+         *        /      \
+         *  P0_P1/        \P4_
+         */
         // P0xP1x=P4xP0x=d1/2
         // P2xP3x=d1
         // P1yP2y=P2yP3y=d2
@@ -3175,10 +3172,12 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 1: // Triangular
     {
         // Generate a non-crossing trapezoidal pattern with a base line below.
-        //      P1-P2
-        //     /     \
-        //  P0/       \P3_P4
-        //  ----------------
+        /*
+         *      P1-P2
+         *     /     \
+         *  P0/       \P3_P4
+         *  ----------------
+         */
         // P1xP2x=P3xP4x=d2
         // P0yP1y=P2yP3y=h-2d1
         //
@@ -3363,6 +3362,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
     if (Pattern_type != 0)
         for (Polyline &pl : polylines)
             pl.translate(rotate_vector.second);
+
+    // Orca: round the corners of the trapezoids. The straight base lines of the triangular family
+    // have no corner to round.
+    smooth_polylines_corners(polylines, params.smooth_factor, scaled<double>(params.resolution));
 
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);
@@ -3576,7 +3579,7 @@ Polylines FillLateralHoneycomb::fill_surface(const Surface *surface, const FillP
     //     |
     //     |
     // 0 --+--
-    //    / \
+    //    ⟋ ⟍
     // why inverted?
     // it makes determining some of the properties easier
     // and the two angled legs provide additional horizontal stiffness

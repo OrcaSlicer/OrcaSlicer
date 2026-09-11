@@ -13,6 +13,7 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/SpinInput.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
@@ -71,6 +72,7 @@ public:
     ::CheckBox * m_sync_user_preset_checkbox = {nullptr};
     ::CheckBox * m_bambu_cloud_checkbox      = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
+    ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
 

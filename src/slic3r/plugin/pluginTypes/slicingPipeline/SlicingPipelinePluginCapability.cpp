@@ -8,8 +8,7 @@ namespace Slic3r {
 
 bool SlicingPipelineContext::cancelled() const { return print && print->canceled(); }
 
-void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module, py::enum_<PluginCapabilityType>& pluginTypes) {
-    (void) pluginTypes; // unused: this capability defines its own Step enum (below) rather than extending the shared PluginCapabilityType enum.
+void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module) {
     auto slicing = module.def_submodule("slicing", "Slicing pipeline API (research/experimental).");
 
     py::enum_<SlicingPipelineStepPlugin>(slicing, "Step")

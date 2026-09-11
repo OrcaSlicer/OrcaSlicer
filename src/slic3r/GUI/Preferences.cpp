@@ -79,7 +79,7 @@ public:
         Bind(wxEVT_LEFT_DOWN,    &WikiLabel::OnLeftDown, this);
     }
 
-    void SetLabel(const wxString& label)
+    void SetLabel(const wxString& label) override
     {
         m_label = label;
         m_last_wrap_width = -1; // force re-wrap
@@ -347,7 +347,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
     wxLanguage supported_languages[]{
         wxLANGUAGE_ENGLISH,
         wxLANGUAGE_CHINESE_SIMPLIFIED,
-        wxLANGUAGE_CHINESE,
+        wxLANGUAGE_CHINESE_TRADITIONAL,
         wxLANGUAGE_GERMAN,
         wxLANGUAGE_CZECH,
         wxLANGUAGE_FRENCH,
@@ -407,7 +407,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CHINESE_SIMPLIFIED)) {
             language_name = wxString::FromUTF8("\xe4\xb8\xad\xe6\x96\x87\x28\xe7\xae\x80\xe4\xbd\x93\x29");
         }
-        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CHINESE)) {
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CHINESE_TRADITIONAL)) {
             language_name = wxString::FromUTF8("\xe4\xb8\xad\xe6\x96\x87\x28\xe7\xb9\x81\xe9\xab\x94\x29");
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_SPANISH)) {
@@ -507,25 +507,13 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                     }
                 }
 
-
-                // the dialog needs to be destroyed before the call to switch_language()
-                // or sometimes the application crashes into wxDialogBase() destructor
-                // so we put it into an inner scope
-                MessageDialog msg_wingow(nullptr, _L("Switching languages requires the application to restart.\n") + "\n" + _L("Do you want to continue?"),
-                                         L("Language selection"), wxICON_QUESTION | wxOK | wxCANCEL);
-                if (msg_wingow.ShowModal() == wxID_CANCEL) {
+                MessageDialog msg_window(nullptr, _L("Switching languages requires the application to restart.\n") + "\n" + _L("Do you want to continue?"),
+                                         _L("Language selection"), wxICON_QUESTION | wxOK | wxCANCEL);
+                if (msg_window.ShowModal() == wxID_CANCEL) {
                     combobox->SetSelection(m_current_language_selected);
                     return;
                 }
             }
-
-            auto check = [this](bool yes_or_no) {
-                // if (yes_or_no)
-                //    return true;
-                int act_btns = ActionButtons::SAVE;
-                return wxGetApp().check_and_keep_current_preset_changes(_L("Switching application language"),
-                                                                        _L("Switching application language while some presets are modified."), act_btns);
-            };
 
             m_current_language_selected = combobox->GetSelection();
             if (m_current_language_selected >= 0 && m_current_language_selected < vlist.size()) {
@@ -699,6 +687,12 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
 
     auto input = new SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS, min, max, stoi(app_config->get(param)));
     input->SetToolTip(tip);
+
+    // ORCA: this one is only meaningful while the dimming it controls is enabled
+    if (param == "preview_dim_previous_layers_brightness") {
+        m_dim_previous_layers_brightness_input = input;
+        input->Enable(app_config->get_bool("preview_dim_previous_layers"));
+    }
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -1025,11 +1019,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         app_config->set_bool(param, checkbox->GetValue());
         app_config->save();
 
-        // if (param == "staff_pick_switch") {
-        //     bool pbool = app_config->get("staff_pick_switch") == "true";
-        //     wxGetApp().switch_staff_pick(pbool);
-        // }
-
         if (param == "sync_user_preset") {
             bool sync = app_config->get("sync_user_preset") == "true" ? true : false;
             if (sync) {
@@ -1050,8 +1039,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
             }
         }
-        // ORCA: apply the preview dimming change immediately to the currently loaded preview (ported from preFlight)
+        // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
+            if (m_dim_previous_layers_brightness_input)
+                m_dim_previous_layers_brightness_input->Enable(app_config->get_bool(param));
             if (Plater* plater = wxGetApp().plater()) {
                 if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
                     canvas->get_gcode_viewer().set_dim_previous_layers(app_config->get_bool(param));
@@ -1127,6 +1118,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
+        if (param == "use_printer_agents")
+        {
+            // Rebuild the Device tab so the native/web-UI choice reflects the new flag
+            // immediately, instead of only on the next printer-preset change or restart.
+            if (wxGetApp().plater())
+                wxGetApp().plater()->sidebar().update_all_preset_comboboxes();
+        }
+
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
@@ -1184,7 +1183,7 @@ wxBoxSizer* PreferencesDialog::create_item_button(wxString title, wxString title
     m_button_download->SetStyle(title2 == _L("Clear") ? ButtonStyle::Alert : ButtonStyle::Regular, ButtonType::Parameter);
     m_button_download->SetToolTip(tooltip2.IsEmpty() ? tooltip : tooltip2); // use label tooltip if button tooltip empty
 
-    m_button_download->Bind(wxEVT_BUTTON, [this, onclick](auto &e) { onclick(); });
+    m_button_download->Bind(wxEVT_BUTTON, [onclick](auto &e) { onclick(); });
 
     m_sizer->Add(m_button_download, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -1474,7 +1473,7 @@ void PreferencesDialog::create()
     m_sizer_body = new wxBoxSizer(wxVERTICAL);
 
     m_pref_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
-    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
+    m_pref_tabs->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable right select
     m_pref_tabs->SetFont(Label::Body_14);
 
     create_items();
@@ -1732,11 +1731,26 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
+    //// GENERAL > Plugins
+    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
+
+    auto item_plugin_pages_visible_count = create_item_spinctrl(
+        _L("Visible plugin pages"),
+        "",
+        _L("pages"),
+        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
+        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
+        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
+        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
+        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
+    );
+    g_sizer->Add(item_plugin_pages_visible_count);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
-    //// CONTROL TAB 
+    //// CONTROL TAB
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
@@ -1914,6 +1928,28 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_dim_previous_layers);
 
+    auto item_dim_previous_layers_brightness = create_item_spinctrl(
+        _L("Dimmed layer brightness"),
+        "",
+        _L("%"),
+        _L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+           "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."),
+        "preview_dim_previous_layers_brightness",
+        0,
+        99,
+        // ORCA: apply the new brightness immediately to the currently loaded preview
+        [](int value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_dim_previous_layers_brightness(0.01f * value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_dim_previous_layers_brightness);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -2070,6 +2106,12 @@ void PreferencesDialog::create_items()
   
     auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
     g_sizer->Add(item_show_unsupported);
+
+    auto item_plugin_printer_agents = create_item_checkbox(
+        _L("(Experimental) Use printer agents instead of print hosts"), _L(
+            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior."),
+        "use_printer_agents");
+    g_sizer->Add(item_plugin_printer_agents);
 
     //// DEVELOPER > Experimental Features
     g_sizer->Add(create_item_title(_L("Experimental Features")), 1, wxEXPAND);

@@ -3,7 +3,6 @@
 	"name": "fdm_filament_abs",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFRH01",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"100"

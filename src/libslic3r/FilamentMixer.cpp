@@ -1,0 +1,829 @@
+#include "FilamentMixer.hpp"
+
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <limits>
+#include <set>
+#include <sstream>
+#include <numeric>
+
+#include <boost/log/trivial.hpp>
+
+#include "ColorDecomposeRecipe.hpp"
+#include "FilamentMixerModel.hpp"
+#include "LocalesUtils.hpp"
+
+namespace Slic3r {
+namespace {
+
+inline float clamp01(float x)
+{
+    return std::max(0.0f, std::min(1.0f, x));
+}
+
+inline float srgb_to_linear(float x)
+{
+    return (x >= 0.04045f) ? std::pow((x + 0.055f) / 1.055f, 2.4f) : x / 12.92f;
+}
+
+inline float linear_to_srgb(float x)
+{
+    return (x >= 0.0031308f) ? (1.055f * std::pow(x, 1.0f / 2.4f) - 0.055f) : (12.92f * x);
+}
+
+inline unsigned char to_u8(float x)
+{
+    const float clamped = clamp01(x);
+    return static_cast<unsigned char>(clamped * 255.0f + 0.5f);
+}
+
+inline float to_f01(unsigned char x)
+{
+    return static_cast<float>(x) / 255.0f;
+}
+
+} // namespace
+
+void filament_mixer_lerp(unsigned char r1, unsigned char g1, unsigned char b1,
+                         unsigned char r2, unsigned char g2, unsigned char b2,
+                         float t,
+                         unsigned char* out_r, unsigned char* out_g, unsigned char* out_b)
+{
+    ::filament_mixer::lerp(r1, g1, b1, r2, g2, b2, t, out_r, out_g, out_b);
+}
+
+void filament_mixer_lerp_float(float r1, float g1, float b1,
+                               float r2, float g2, float b2,
+                               float t,
+                               float* out_r, float* out_g, float* out_b)
+{
+    unsigned char ur = 0, ug = 0, ub = 0;
+    filament_mixer_lerp(to_u8(r1), to_u8(g1), to_u8(b1),
+                        to_u8(r2), to_u8(g2), to_u8(b2),
+                        t, &ur, &ug, &ub);
+    *out_r = to_f01(ur);
+    *out_g = to_f01(ug);
+    *out_b = to_f01(ub);
+}
+
+void filament_mixer_lerp_linear_float(float r1, float g1, float b1,
+                                      float r2, float g2, float b2,
+                                      float t,
+                                      float* out_r, float* out_g, float* out_b)
+{
+    const float sr1 = linear_to_srgb(clamp01(r1));
+    const float sg1 = linear_to_srgb(clamp01(g1));
+    const float sb1 = linear_to_srgb(clamp01(b1));
+    const float sr2 = linear_to_srgb(clamp01(r2));
+    const float sg2 = linear_to_srgb(clamp01(g2));
+    const float sb2 = linear_to_srgb(clamp01(b2));
+
+    float out_sr = 0.0f, out_sg = 0.0f, out_sb = 0.0f;
+    filament_mixer_lerp_float(sr1, sg1, sb1, sr2, sg2, sb2, t, &out_sr, &out_sg, &out_sb);
+
+    *out_r = srgb_to_linear(clamp01(out_sr));
+    *out_g = srgb_to_linear(clamp01(out_sg));
+    *out_b = srgb_to_linear(clamp01(out_sb));
+}
+
+static bool parse_hex(const std::string &hex, unsigned char &r, unsigned char &g, unsigned char &b)
+{
+    if (hex.size() < 7 || hex[0] != '#') return false;
+    unsigned rv = 0, gv = 0, bv = 0;
+    if (std::sscanf(hex.c_str(), "#%02x%02x%02x", &rv, &gv, &bv) != 3) return false;
+    r = (unsigned char)rv; g = (unsigned char)gv; b = (unsigned char)bv;
+    return true;
+}
+
+std::string blend_color(const std::string& hex_a, const std::string& hex_b, float ratio_b)
+{
+    unsigned char r1 = 128, g1 = 128, b1 = 128;
+    unsigned char r2 = 128, g2 = 128, b2 = 128;
+    parse_hex(hex_a, r1, g1, b1);
+    parse_hex(hex_b, r2, g2, b2);
+
+    unsigned char mr = 0, mg = 0, mb = 0;
+    filament_mixer_lerp(r1, g1, b1, r2, g2, b2, ratio_b, &mr, &mg, &mb);
+
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", mr, mg, mb);
+    return std::string(buf);
+}
+
+std::string blend_color_multi(const std::vector<std::string> &hex_colors,
+                              const std::vector<int> &weights)
+{
+    if (hex_colors.size() >= 2 && hex_colors.size() == weights.size()) {
+        std::string measured = lookup_measured_blend_color(hex_colors, weights);
+        if (!measured.empty())
+            return measured;
+    }
+
+    if (hex_colors.empty())
+        return "#000000";
+    if (hex_colors.size() == 1) {
+        unsigned char cr = 128, cg = 128, cb = 128;
+        parse_hex(hex_colors.front(), cr, cg, cb);
+        char buf[8];
+        std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", cr, cg, cb);
+        return std::string(buf);
+    }
+
+    assert(hex_colors.size() == weights.size());
+
+    unsigned char r = 128, g = 128, b = 128;
+    int accumulated = 0;
+
+    for (size_t i = 0; i < hex_colors.size() && i < weights.size(); ++i) {
+        if (weights[i] <= 0)
+            continue;
+        unsigned char cr = 128, cg = 128, cb = 128;
+        parse_hex(hex_colors[i], cr, cg, cb);
+        if (accumulated == 0) {
+            r = cr; g = cg; b = cb;
+            accumulated = weights[i];
+        } else {
+            const int new_total = accumulated + weights[i];
+            const float t = static_cast<float>(weights[i]) / static_cast<float>(new_total);
+            filament_mixer_lerp(r, g, b, cr, cg, cb, t, &r, &g, &b);
+            accumulated = new_total;
+        }
+    }
+
+    if (accumulated == 0)
+        return "#000000";
+
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
+    return std::string(buf);
+}
+
+std::vector<unsigned int> parse_mixed_components(const std::string &str)
+{
+    std::vector<unsigned int> components;
+    if (str.empty())
+        return components;
+    std::istringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        try {
+            int val = std::stoi(token);
+            if (val >= 0)
+                components.push_back(static_cast<unsigned int>(val));
+        } catch (...) {}
+    }
+    return components;
+}
+
+namespace {
+
+// Parse a token that may represent a finite double or "use default" (empty / "nan").
+// Returns NaN on either explicit sentinel or any parse error.
+inline double parse_tangent_token(const std::string& tok)
+{
+    if (tok.empty()) return std::numeric_limits<double>::quiet_NaN();
+    std::string lower(tok.size(), '\0');
+    std::transform(tok.begin(), tok.end(), lower.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (lower == "nan") return std::numeric_limits<double>::quiet_NaN();
+    try {
+        const double v = std::stod(tok);
+        if (!std::isfinite(v)) return std::numeric_limits<double>::quiet_NaN();
+        return v;
+    } catch (...) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+}
+
+// Split a "a,b,c,d" segment on commas, preserving empty tokens (so "0.5,0.4,," yields
+// {"0.5","0.4","",""}). Used by the gradient-curve parser to distinguish NaN tangents
+// from a malformed segment.
+inline std::vector<std::string> split_commas(const std::string& seg)
+{
+    std::vector<std::string> out;
+    size_t start = 0;
+    while (true) {
+        const size_t comma = seg.find(',', start);
+        if (comma == std::string::npos) {
+            out.emplace_back(seg.substr(start));
+            return out;
+        }
+        out.emplace_back(seg.substr(start, comma - start));
+        start = comma + 1;
+    }
+}
+
+} // namespace
+
+// Default Fritsch-Carlson PCHIP tangents for a sorted-by-x anchor list. m has size n
+// matching the anchor count; for n == 1 the tangent is 0; for n == 2 both endpoint
+// tangents equal the single secant (degenerates to linear).
+std::vector<double> compute_pchip_default_tangents(const std::vector<GradientAnchor>& pts)
+{
+    const size_t n = pts.size();
+    std::vector<double> m(n, 0.0);
+    if (n < 2) return m;
+
+    std::vector<double> d(n - 1);
+    for (size_t i = 0; i + 1 < n; ++i) {
+        const double h = std::max(1e-12, pts[i + 1].x - pts[i].x);
+        d[i] = (pts[i + 1].y - pts[i].y) / h;
+    }
+
+    m[0]     = d[0];
+    m[n - 1] = d[n - 2];
+    for (size_t i = 1; i + 1 < n; ++i)
+        m[i] = 0.5 * (d[i - 1] + d[i]);
+
+    // Fritsch-Carlson monotonic guard: kill flats then rescale steep tangents so the
+    // resulting cubic never overshoots [min, max] of the surrounding anchors.
+    for (size_t i = 0; i + 1 < n; ++i) {
+        if (d[i] == 0.0) {
+            m[i]     = 0.0;
+            m[i + 1] = 0.0;
+            continue;
+        }
+        const double a = m[i]     / d[i];
+        const double b = m[i + 1] / d[i];
+        const double s = a * a + b * b;
+        if (s > 9.0) {
+            const double tau = 3.0 / std::sqrt(s);
+            m[i]     = tau * a * d[i];
+            m[i + 1] = tau * b * d[i];
+        }
+    }
+    return m;
+}
+
+GradientCurve parse_gradient_curve(const std::string& s)
+{
+    GradientCurve curve;
+    if (s.empty())
+        return curve;
+
+    CNumericLocalesSetter c_locale_setter;
+    std::istringstream ss(s);
+    std::string segment;
+    while (std::getline(ss, segment, '|')) {
+        if (segment.empty())
+            continue;
+        const auto fields = split_commas(segment);
+        // 2-field legacy form -> (x, y), tangents stay NaN.
+        // 4-field form -> (x, y, m_in, m_out), empty / "nan" tokens preserved as NaN.
+        if (fields.size() != 2 && fields.size() != 4) {
+            BOOST_LOG_TRIVIAL(warning) << "parse_gradient_curve: ignoring malformed segment \""
+                                       << segment << "\" (expected 2 or 4 comma-separated fields, got "
+                                       << fields.size() << ")";
+            continue;
+        }
+        try {
+            double x = std::stod(fields[0]);
+            double y = std::stod(fields[1]);
+            x = std::max(0.0, std::min(1.0, x));
+            y = std::max(kGradientMinRatio, std::min(kGradientMaxRatio, y));
+            GradientAnchor a;
+            a.x = x;
+            a.y = y;
+            if (fields.size() == 4) {
+                a.m_in  = parse_tangent_token(fields[2]);
+                a.m_out = parse_tangent_token(fields[3]);
+            }
+            curve.points.push_back(a);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(warning) << "parse_gradient_curve: ignoring unparseable segment \""
+                                       << segment << "\": " << e.what();
+        }
+    }
+
+    if (curve.points.size() < 2) {
+        if (!curve.points.empty())
+            BOOST_LOG_TRIVIAL(warning) << "parse_gradient_curve: only "
+                << curve.points.size() << " valid point(s), need at least 2; discarding";
+        curve.points.clear();
+        return curve;
+    }
+
+    std::sort(curve.points.begin(), curve.points.end(),
+              [](const GradientAnchor& a, const GradientAnchor& b) {
+                  return a.x < b.x;
+              });
+    return curve;
+}
+
+std::string serialize_gradient_curve(const GradientCurve& c)
+{
+    if (c.points.empty())
+        return std::string{};
+
+    CNumericLocalesSetter c_locale_setter;
+    std::string out;
+    char buf[128];
+    for (size_t i = 0; i < c.points.size(); ++i) {
+        if (i > 0) out += '|';
+        const auto& a = c.points[i];
+        const bool has_in  = std::isfinite(a.m_in);
+        const bool has_out = std::isfinite(a.m_out);
+        if (has_in || has_out) {
+            // Emit empty tokens for NaN slots so the legacy parser would still split
+            // four fields; the new parser interprets empty tokens as "use PCHIP default".
+            char in_buf[32]  = {0};
+            char out_buf[32] = {0};
+            if (has_in)  std::snprintf(in_buf,  sizeof(in_buf),  "%.4f", a.m_in);
+            if (has_out) std::snprintf(out_buf, sizeof(out_buf), "%.4f", a.m_out);
+            std::snprintf(buf, sizeof(buf), "%.4f,%.4f,%s,%s",
+                          a.x, a.y, in_buf, out_buf);
+        } else {
+            // 4-field form is only emitted when at least one tangent is finite; the
+            // 2-field form is emitted otherwise so the JSON payload stays minimal
+            // and remains readable by older clients that only know (x, y) pairs.
+            std::snprintf(buf, sizeof(buf), "%.4f,%.4f", a.x, a.y);
+        }
+        out += buf;
+    }
+    return out;
+}
+
+double sample_gradient_curve(const GradientCurve& c, double t)
+{
+    const auto& pts = c.points;
+    if (pts.size() < 2)
+        return 0.5;
+    if (t <= pts.front().x)
+        return pts.front().y;
+    if (t >= pts.back().x)
+        return pts.back().y;
+
+    // PCHIP defaults are computed for every call; control point counts are typically
+    // tiny (< 16) so the allocation cost is negligible compared to any actual rendering
+    // or G-code work that drives the sampler.
+    const std::vector<double> m_def = compute_pchip_default_tangents(pts);
+    const size_t n = pts.size();
+
+    // Linear scan to locate the interval [pts[i].x, pts[i+1].x] containing t. Cheap
+    // and avoids the upper_bound boilerplate; n is small.
+    for (size_t i = 1; i < n; ++i) {
+        const double x0 = pts[i - 1].x;
+        const double x1 = pts[i].x;
+        if (t > x1) continue;
+
+        const double y0 = pts[i - 1].y;
+        const double y1 = pts[i].y;
+        const double h  = std::max(1e-12, x1 - x0);
+        const double m_left  = std::isfinite(pts[i - 1].m_out) ? pts[i - 1].m_out : m_def[i - 1];
+        const double m_right = std::isfinite(pts[i].m_in)      ? pts[i].m_in      : m_def[i];
+
+        const double u   = (t - x0) / h;
+        const double u2  = u * u;
+        const double u3  = u2 * u;
+        const double h00 =  2.0 * u3 - 3.0 * u2 + 1.0;
+        const double h10 =        u3 - 2.0 * u2 + u;
+        const double h01 = -2.0 * u3 + 3.0 * u2;
+        const double h11 =        u3 -       u2;
+        double y = h00 * y0 + h10 * h * m_left
+                 + h01 * y1 + h11 * h * m_right;
+        // Defensive clamp in case tangent overrides on legacy curves push the
+        // single-segment Hermite slightly outside the anchor band.
+        if (y < kGradientMinRatio) y = kGradientMinRatio;
+        if (y > kGradientMaxRatio) y = kGradientMaxRatio;
+        return y;
+    }
+    return pts.back().y;
+}
+
+std::vector<double> parse_mixed_ratios(const std::string &str, size_t n_components)
+{
+    CNumericLocalesSetter c_locale_setter;
+    std::vector<double> ratios;
+    if (!str.empty()) {
+        std::istringstream ss(str);
+        std::string token;
+        while (std::getline(ss, token, ',')) {
+            try {
+                double val = std::stod(token);
+                if (val > 0.0)
+                    ratios.push_back(val);
+            } catch (...) {}
+        }
+    }
+
+    if (ratios.size() != n_components || n_components == 0) {
+        ratios.assign(n_components, n_components > 0 ? 1.0 / n_components : 0.0);
+        return ratios;
+    }
+
+    double sum = std::accumulate(ratios.begin(), ratios.end(), 0.0);
+    if (sum > 0.0 && std::abs(sum - 1.0) > 1e-6) {
+        for (double &r : ratios)
+            r /= sum;
+    }
+    return ratios;
+}
+
+bool has_any_mixed_filament(const std::vector<unsigned char> &is_mixed)
+{
+    for (unsigned char v : is_mixed)
+        if (v) return true;
+    return false;
+}
+
+std::vector<size_t> check_mixed_filament_integrity(
+    const std::vector<unsigned char> &is_mixed,
+    const std::vector<std::string>   &comp_strs,
+    size_t num_physical)
+{
+    std::vector<size_t> broken;
+    for (size_t i = 0; i < is_mixed.size(); ++i) {
+        if (!is_mixed[i]) continue;
+        if (i >= comp_strs.size() || comp_strs[i].empty()) {
+            broken.push_back(i);
+            continue;
+        }
+        auto comps = parse_mixed_components(comp_strs[i]);
+        if (comps.size() < 2) {
+            broken.push_back(i);
+            continue;
+        }
+        for (unsigned int c : comps) {
+            if (c < 1 || c > num_physical) {
+                broken.push_back(i);
+                break;
+            }
+        }
+    }
+    return broken;
+}
+
+std::vector<unsigned int> expand_mixed_filaments(
+    const std::vector<unsigned int> &extruders_0based,
+    const std::vector<unsigned char> &is_mixed,
+    const std::vector<std::string>  &comp_strs)
+{
+    std::vector<unsigned int> result;
+    for (unsigned int ext : extruders_0based) {
+        if (ext < is_mixed.size() && is_mixed[ext] && ext < comp_strs.size()) {
+            auto comps = parse_mixed_components(comp_strs[ext]);
+            for (unsigned int c : comps)
+                if (c >= 1) result.push_back(c - 1);
+        } else {
+            result.push_back(ext);
+        }
+    }
+    std::sort(result.begin(), result.end());
+    result.erase(std::unique(result.begin(), result.end()), result.end());
+    return result;
+}
+
+void remap_mixed_components_on_delete(
+    const std::vector<unsigned char> &is_mixed,
+    std::vector<std::string>         &comp_strs,
+    unsigned int                      del_1based)
+{
+    for (size_t i = 0; i < is_mixed.size(); ++i) {
+        if (!is_mixed[i]) continue;
+        if (i >= comp_strs.size() || comp_strs[i].empty()) continue;
+
+        auto comps = parse_mixed_components(comp_strs[i]);
+        std::ostringstream ss;
+        for (size_t j = 0; j < comps.size(); ++j) {
+            if (j > 0) ss << ',';
+            if (comps[j] == del_1based)
+                ss << 0;
+            else if (comps[j] > del_1based)
+                ss << (comps[j] - 1);
+            else
+                ss << comps[j];
+        }
+        comp_strs[i] = ss.str();
+    }
+}
+
+std::vector<size_t> check_mixed_filament_type_consistency(
+    const std::vector<unsigned char> &is_mixed,
+    const std::vector<std::string>   &comp_strs,
+    const std::vector<std::string>   &filament_types)
+{
+    std::vector<size_t> result;
+    for (size_t i = 0; i < is_mixed.size(); ++i) {
+        if (!is_mixed[i]) continue;
+        if (i >= comp_strs.size() || comp_strs[i].empty()) continue;
+        auto comps = parse_mixed_components(comp_strs[i]);
+        if (comps.size() < 2) continue;
+
+        std::string ref_type;
+        bool mismatch = false;
+        for (unsigned int c : comps) {
+            if (c == 0) continue; // sentinel for deleted component
+            size_t idx = static_cast<size_t>(c) - 1; // 1-based -> 0-based
+            if (idx >= filament_types.size()) continue;
+            if (ref_type.empty())
+                ref_type = filament_types[idx];
+            else if (filament_types[idx] != ref_type) {
+                mismatch = true;
+                break;
+            }
+        }
+        if (mismatch)
+            result.push_back(i);
+    }
+    return result;
+}
+
+void expand_mixed_slots_in_unprintables(
+    std::vector<std::set<int>>        &unprintables,
+    const std::vector<unsigned char>  &is_mixed,
+    const std::vector<std::string>    &comp_strs)
+{
+    for (auto &unprintable_set : unprintables) {
+        std::set<int> expanded;
+        for (int fid : unprintable_set) {
+            if (fid >= 0 && (size_t)fid < is_mixed.size() && is_mixed[fid]
+                && (size_t)fid < comp_strs.size()) {
+                auto comps = parse_mixed_components(comp_strs[fid]);
+                for (unsigned int c : comps)
+                    if (c >= 1) expanded.insert((int)(c - 1));
+            } else {
+                expanded.insert(fid);
+            }
+        }
+        unprintable_set = std::move(expanded);
+    }
+}
+
+void sanitize_mixed_gradient_curve_array(std::vector<std::string>& vals)
+{
+    for (size_t i = 0; i < vals.size(); ++i) {
+        if (vals[i].empty())
+            continue;
+        // parse_gradient_curve returns empty for both "empty input" and "<2 valid points";
+        // we already skipped empty, so an empty result means a corrupted single-point slot.
+        if (parse_gradient_curve(vals[i]).empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "sanitize_mixed_gradient_curve_array: slot "
+                << i << " curve \"" << vals[i]
+                << "\" has fewer than 2 valid points; clearing to linear";
+            vals[i].clear();
+        }
+    }
+}
+
+bool try_parse_mixed_components_strict(const std::string &str,
+                                       std::vector<unsigned int> &components,
+                                       std::string &err)
+{
+    components.clear();
+    if (str.empty()) {
+        err = "empty component list";
+        return false;
+    }
+    std::istringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        if (token.empty()) {
+            err = "empty component index";
+            return false;
+        }
+        try {
+            const long val = std::stol(token);
+            if (val < 1) {
+                err = "component index must be >= 1 (got " + token + ")";
+                return false;
+            }
+            components.push_back(static_cast<unsigned int>(val));
+        } catch (...) {
+            err = "invalid component index \"" + token + "\"";
+            return false;
+        }
+    }
+    if (components.size() < 2) {
+        err = "at least 2 components required (got " + std::to_string(components.size()) + ")";
+        return false;
+    }
+    std::set<unsigned int> seen;
+    for (unsigned int c : components) {
+        if (!seen.insert(c).second) {
+            err = "duplicate component index " + std::to_string(c);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool try_parse_mixed_ratios_strict(const std::string &str,
+                                   size_t n_components,
+                                   std::string &err)
+{
+    if (str.empty())
+        return true;
+
+    CNumericLocalesSetter c_locale_setter;
+    std::vector<double> ratios;
+    std::istringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        if (token.empty()) {
+            err = "empty ratio value";
+            return false;
+        }
+        try {
+            const double val = std::stod(token);
+            if (!(val > 0.0)) {
+                err = "ratio must be positive (got " + token + ")";
+                return false;
+            }
+            ratios.push_back(val);
+        } catch (...) {
+            err = "invalid ratio \"" + token + "\"";
+            return false;
+        }
+    }
+    if (ratios.size() != n_components) {
+        err = "expected " + std::to_string(n_components) + " ratio(s), got "
+            + std::to_string(ratios.size());
+        return false;
+    }
+    return true;
+}
+
+bool validate_gradient_range_strict(const std::string &str, std::string &err)
+{
+    if (str.empty())
+        return true;
+
+    CNumericLocalesSetter c_locale_setter;
+    float v0 = 0.f, v1 = 0.f;
+    if (std::sscanf(str.c_str(), "%f,%f", &v0, &v1) != 2) {
+        err = "expected two comma-separated floats, e.g. \"0.10,0.90\"";
+        return false;
+    }
+    if (!(v0 > 0.f && v0 < 1.f && v1 > 0.f && v1 < 1.f)) {
+        err = "start and end ratios must be in (0, 1)";
+        return false;
+    }
+    return true;
+}
+
+static void append_error(std::map<std::string, std::string> &errors,
+                         const std::string &key,
+                         const std::string &msg)
+{
+    auto it = errors.find(key);
+    if (it == errors.end())
+        errors.emplace(key, msg);
+    else
+        it->second += "; " + msg;
+}
+
+static bool has_mixed_sub_params_specified(
+    const std::vector<std::string>   &comp_strs,
+    const std::vector<std::string>   &ratio_strs,
+    const std::vector<unsigned char> &gradient_flags)
+{
+    for (const std::string &s : comp_strs)
+        if (!s.empty()) return true;
+    for (const std::string &s : ratio_strs)
+        if (!s.empty()) return true;
+    for (unsigned char g : gradient_flags)
+        if (g) return true;
+    return false;
+}
+
+static bool mixed_string_array_was_specified(const std::vector<std::string> &vals)
+{
+    for (const std::string &s : vals)
+        if (!s.empty())
+            return true;
+    return false;
+}
+
+static bool mixed_bool_array_was_specified(const std::vector<unsigned char> &vals)
+{
+    for (unsigned char v : vals)
+        if (v)
+            return true;
+    return false;
+}
+
+static void check_mixed_array_size_required(std::map<std::string, std::string> &errors,
+                                            const std::string &opt_key,
+                                            size_t actual_size,
+                                            size_t expected_size)
+{
+    if (actual_size != expected_size) {
+        append_error(errors, opt_key,
+            "array size " + std::to_string(actual_size)
+            + " does not match filament slot count " + std::to_string(expected_size));
+    }
+}
+
+std::map<std::string, std::string> validate_mixed_filament_params(
+    const std::vector<unsigned char> &is_mixed,
+    const std::vector<std::string>   &comp_strs,
+    const std::vector<std::string>   &ratio_strs,
+    const std::vector<unsigned char> &gradient_flags,
+    const std::vector<std::string>   &gradient_range_strs,
+    const std::vector<std::string>   &gradient_curve_strs)
+{
+    std::map<std::string, std::string> errors;
+
+    if (has_mixed_sub_params_specified(comp_strs, ratio_strs, gradient_flags)
+        && !has_any_mixed_filament(is_mixed)) {
+        append_error(errors, "filament_is_mixed",
+            "must be set when mixed filament parameters are specified");
+        return errors;
+    }
+
+    if (!has_any_mixed_filament(is_mixed))
+        return errors;
+
+    const size_t slot_count = is_mixed.size();
+
+    // Rule 1: mixed filament model → components & ratios arrays must cover every slot.
+    check_mixed_array_size_required(errors, "filament_mixed_components", comp_strs.size(), slot_count);
+    check_mixed_array_size_required(errors, "filament_mixed_sublayer_ratios", ratio_strs.size(), slot_count);
+
+    // Rule 2: gradient passed (any slot true) → gradient & range arrays must cover every slot.
+    const bool gradient_specified = mixed_bool_array_was_specified(gradient_flags);
+    if (gradient_specified) {
+        check_mixed_array_size_required(errors, "filament_mixed_gradient", gradient_flags.size(), slot_count);
+        check_mixed_array_size_required(errors, "filament_mixed_gradient_range", gradient_range_strs.size(), slot_count);
+    }
+
+    // Rule 3: curve passed (any non-empty entry) → curve array must cover every slot.
+    const bool curve_specified = mixed_string_array_was_specified(gradient_curve_strs);
+    if (curve_specified)
+        check_mixed_array_size_required(errors, "filament_mixed_gradient_curve", gradient_curve_strs.size(), slot_count);
+
+    size_t num_physical = 0;
+    for (unsigned char v : is_mixed)
+        if (!v) ++num_physical;
+
+    for (size_t i = 0; i < is_mixed.size(); ++i) {
+        if (!is_mixed[i])
+            continue;
+
+        const std::string slot = "slot " + std::to_string(i + 1);
+        const std::string comp_str = i < comp_strs.size() ? comp_strs[i] : "";
+
+        std::vector<unsigned int> components;
+        std::string comp_err;
+        if (!try_parse_mixed_components_strict(comp_str, components, comp_err)) {
+            append_error(errors, "filament_mixed_components", slot + ": " + comp_err);
+            continue;
+        }
+
+        for (unsigned int c : components) {
+            if (c > num_physical) {
+                append_error(errors, "filament_mixed_components",
+                       slot + ": component " + std::to_string(c)
+                       + " out of range (max physical filament index is "
+                       + std::to_string(num_physical) + ")");
+                break;
+            }
+            if (c == i + 1) {
+                append_error(errors, "filament_mixed_components",
+                       slot + ": cannot reference itself as a component");
+                break;
+            }
+            const size_t idx0 = static_cast<size_t>(c - 1);
+            if (idx0 < is_mixed.size() && is_mixed[idx0]) {
+                append_error(errors, "filament_mixed_components",
+                       slot + ": component " + std::to_string(c)
+                       + " references a mixed filament slot");
+                break;
+            }
+        }
+
+        std::string ratio_err;
+        const std::string ratio_str = i < ratio_strs.size() ? ratio_strs[i] : "";
+        if (!try_parse_mixed_ratios_strict(ratio_str, components.size(), ratio_err))
+            append_error(errors, "filament_mixed_sublayer_ratios", slot + ": " + ratio_err);
+
+        const bool gradient_on = i < gradient_flags.size() && gradient_flags[i];
+        if (gradient_on) {
+            if (components.size() != 2) {
+                append_error(errors, "filament_mixed_gradient",
+                       slot + ": gradient requires exactly 2 components");
+            }
+
+            if (gradient_specified) {
+                std::string range_err;
+                const std::string range_str = i < gradient_range_strs.size() ? gradient_range_strs[i] : "";
+                if (!validate_gradient_range_strict(range_str, range_err))
+                    append_error(errors, "filament_mixed_gradient_range", slot + ": " + range_err);
+            }
+
+            if (curve_specified) {
+                const std::string curve_str = i < gradient_curve_strs.size() ? gradient_curve_strs[i] : "";
+                if (!curve_str.empty() && parse_gradient_curve(curve_str).empty())
+                    append_error(errors, "filament_mixed_gradient_curve",
+                           slot + ": invalid curve (need at least 2 valid control points)");
+            }
+        }
+    }
+
+    return errors;
+}
+
+} // namespace Slic3r

@@ -119,6 +119,10 @@ Download the **Windows Installer exe** for your preferred version from the [rele
     - This file may already be available on your computer if you've installed visual studio.  Check the following location: `%VCINSTALLDIR%Redist\MSVC\v142`
     </details>
 
+### Microsoft Store
+
+Install from the [Microsoft Store](https://apps.microsoft.com/detail/9mv6gl23xm59) when you prefer a Store-signed package (helps on Windows 11 Smart App Control).
+
 ### Windows Package Manager
 
 ```shell

@@ -5,6 +5,12 @@
 
 #include <wx/dcgraph.h>
 
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
+
+wxDEFINE_EVENT(EVT_SPINCTRL_TEXT, wxCommandEvent);
+
 BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
 EVT_KEY_DOWN(SpinInput::keyPressed)
@@ -58,6 +64,11 @@ void SpinInput::Create(wxWindow *parent,
     state_handler.attach({&label_color, &text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {20, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER, wxTextValidator(wxFILTER_DIGITS));
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveInputBorder(text_ctrl);
+#endif
+
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
@@ -65,8 +76,9 @@ void SpinInput::Create(wxWindow *parent,
     state_handler.attach_child(text_ctrl);
     text_ctrl->Bind(wxEVT_KILL_FOCUS, &SpinInput::onTextLostFocus, this);
     text_ctrl->Bind(wxEVT_TEXT_ENTER, &SpinInput::onTextEnter, this);
+    text_ctrl->Bind(wxEVT_TEXT, &SpinInput::onTextChanged, this);
     text_ctrl->Bind(wxEVT_KEY_DOWN, &SpinInput::keyPressed, this);
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     button_inc = createButton(true);
     button_dec = createButton(false);
     delta      = 0;
@@ -289,6 +301,19 @@ void SpinInput::onTextEnter(wxCommandEvent &event)
     }
     event.SetId(GetId());
     ProcessEventLocally(event);
+}
+
+void SpinInput::onTextChanged(wxCommandEvent &event)
+{
+    long value;
+    if (text_ctrl->GetValue().ToLong(&value)) {
+        wxCommandEvent e(EVT_SPINCTRL_TEXT, GetId());
+        e.SetEventObject(this);
+        e.SetInt((int) value);
+        e.SetString(text_ctrl->GetValue());
+        GetEventHandler()->ProcessEvent(e);
+    }
+    event.Skip();
 }
 
 void SpinInput::mouseWheelMoved(wxMouseEvent &event)

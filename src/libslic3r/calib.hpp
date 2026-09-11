@@ -42,9 +42,21 @@ struct Calib_Params
     std::string shaper_type;
     std::vector<double> accelerations;
     std::vector<double> speeds;
+    // Resolved layer height for the VFA tower (0 = auto: nozzle_diameter / 2). Each speed block is a
+    // fixed number of layers tall, so this also determines the physical block height / tower height.
+    double vfa_layer_height = 0.0;
+    // Scale the calibration model to the nozzle diameter and set the layer height accordingly (temp tower / VFA).
+    // When false the 0.4 mm / 0.2 mm reference model is printed as-is.
+    bool nozzle_based_resize = true;
 
     CalibMode mode;
 };
+
+// Number of printed layers per speed block in the VFA tower. The base model has 5 mm blocks designed
+// for a 0.2 mm layer height (0.4 mm nozzle), i.e. 25 layers per block.
+static constexpr int vfa_layers_per_block = 25;
+static constexpr double vfa_base_block_height = 5.0;
+static constexpr double vfa_base_nozzle_diameter = 0.4;
 
 enum FlowRatioCalibrationType {
     COMPLETE_CALIBRATION = 0,
@@ -79,29 +91,15 @@ class CaliPresetInfo
 {
 public:
     int         tray_id;
-    int         extruder_id;
-    NozzleVolumeType nozzle_volume_type;
-    BedType     bed_type;
+    int         extruder_id = 0;
+    NozzleVolumeType nozzle_volume_type{nvtStandard};
+    BedType     bed_type{btDefault};
     float       nozzle_diameter;
     int         nozzle_pos_id{-1};
     std::string nozzle_sn;
     std::string filament_id;
     std::string setting_id;
     std::string name;
-
-    CaliPresetInfo &operator=(const CaliPresetInfo &other)
-    {
-        this->tray_id         = other.tray_id;
-        this->extruder_id     = other.extruder_id;
-        this->nozzle_volume_type = other.nozzle_volume_type;
-        this->nozzle_diameter = other.nozzle_diameter;
-        this->nozzle_pos_id   = other.nozzle_pos_id;
-        this->nozzle_sn       = other.nozzle_sn;
-        this->filament_id     = other.filament_id;
-        this->setting_id      = other.setting_id;
-        this->name            = other.name;
-        return *this;
-    }
 };
 
 struct PrinterCaliInfo

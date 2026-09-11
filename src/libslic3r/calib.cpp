@@ -28,9 +28,9 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
 
     gcode << writer.retract(); // retract before z move or move
     if(z > EPSILON && layer_height >= 0){
-        gcode << writer.travel_to_z(z, "z-hop"); // Perform z hop
+        gcode << writer.travel_to_z(z, "Z-hop"); // Perform z hop
         gcode << writer.travel_to_xy(pt, comment); // Travel with z move
-        gcode << writer.travel_to_z(layer_height, "undo z-hop"); // Undo z hop
+        gcode << writer.travel_to_z(layer_height, "undo Z-hop"); // Undo z hop
     }else {
         gcode << writer.travel_to_xy(pt, comment);
     }

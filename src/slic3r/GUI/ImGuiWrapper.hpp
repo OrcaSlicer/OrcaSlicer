@@ -3,10 +3,12 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <cstdlib>
 
 #include <imgui/imgui.h>
 
+#include <wx/colour.h>
 #include <wx/string.h>
 
 #include "libslic3r/Point.hpp"
@@ -298,6 +300,20 @@ public:
                                 ImU32         color        = ImGui::GetColorU32(ImVec4(1.f, 1.f, 1.f, .75f)),
                                 int           num_segments = 0,
                                 float         thickness    = 4.f);
+
+    /// <summary>
+    /// Fill a rect with a filament gradient ramp, one band per pixel row, ramp.front() along
+    /// the bottom edge. Bands rather than one interpolated rect, because the ramp follows the
+    /// slot's gradient curve and ImGui's corner interpolation could only draw a straight fade.
+    /// </summary>
+    /// <param name="draw_list">Define where to draw it</param>
+    /// <param name="top_left">Upper left corner of the rect</param>
+    /// <param name="bottom_right">Lower right corner of the rect</param>
+    /// <param name="ramp">Colours printed, bottom of the model first</param>
+    static void draw_gradient_ramp(ImDrawList *          draw_list,
+                                   const ImVec2 &        top_left,
+                                   const ImVec2 &        bottom_right,
+                                   const std::vector<wxColour> &ramp);
 
     /// <summary>
     /// Check that font ranges contain all chars in string

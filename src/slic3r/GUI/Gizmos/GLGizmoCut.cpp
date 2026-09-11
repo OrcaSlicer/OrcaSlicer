@@ -3502,7 +3502,7 @@ static void check_objects_after_cut(const ModelObjectPtrs& objects)
         names += ", " + from_u8(err_objects_names[i]);
     WarningDialog(wxGetApp().plater(), format_wxstr(_L("Objects(%1%) have duplicated connectors. "
                                 "Some connectors may be missing in slicing result.\n"
-                                "Please report to PrusaSlicer team in which scenario this issue happened.\n"
+                                "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
                                 "Thank you."), names)).ShowModal();
 }
 
@@ -3596,7 +3596,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [this, plater, keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";

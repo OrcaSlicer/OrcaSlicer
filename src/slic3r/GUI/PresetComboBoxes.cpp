@@ -865,15 +865,23 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
         clr_picker = new wxBitmapButton(parent, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
         clr_picker->SetToolTip(_L("Click to select filament color"));
+#ifdef __WXGTK__
+        RemoveButtonBorder(clr_picker);
+#endif
         clr_picker->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             // Check if it's an official filament
             auto fila_type = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
             bool is_official = boost::algorithm::starts_with(fila_type, "Bambu");
             if (is_official) {
-                // Get filament_id from filament_presets
+                // Get filament_id from filament_presets. FilamentPickerDialog looks up
+                // filaments_color_codes.json, which is downloaded from Bambu and keyed by the
+                // printer's own ids, so translate our OF id (the "GFA00" fallback is already one).
                 const std::string& preset_name = m_preset_bundle->filament_presets[m_filament_idx];
                 const Preset* selected_preset = m_collection->find_preset(preset_name);
-                wxString fila_id = selected_preset ? wxString::FromUTF8(selected_preset->filament_id) : "GFA00";
+                auto* agent = wxGetApp().getAgent();
+                wxString fila_id = "GFA00";
+                if (selected_preset)
+                    fila_id = wxString::FromUTF8(agent ? agent->from_orca_filament_id(selected_preset->filament_id) : selected_preset->filament_id);
                 FilamentColor fila_color = get_cur_color_info();
 
                 // Show filament picker dialog
@@ -1039,7 +1047,7 @@ bool PlaterPresetComboBox::switch_to_tab()
 
     //BBS  Select NoteBook Tab params
     if (tab->GetParent() == wxGetApp().params_panel())
-        wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     else {
         wxGetApp().params_dialog()->Popup();
         tab->OnActivate();
@@ -1650,7 +1658,7 @@ void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
         default: break;
         }
         if (sp != ConfigWizard::SP_WELCOME) {
-            wxTheApp->CallAfter([this, sp]() {
+            wxTheApp->CallAfter([sp]() {
                 run_wizard(sp);
             });
         }
@@ -1946,7 +1954,7 @@ GUI::CalibrateFilamentComboBox::CalibrateFilamentComboBox(wxWindow *parent)
 {
     clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     clr_picker->SetToolTip("");
-    clr_picker->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {});
+    clr_picker->Bind(wxEVT_BUTTON, [](wxCommandEvent& e) {});
 }
 
 GUI::CalibrateFilamentComboBox::~CalibrateFilamentComboBox()

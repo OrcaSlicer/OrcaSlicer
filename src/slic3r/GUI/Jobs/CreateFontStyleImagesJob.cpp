@@ -45,24 +45,26 @@ void CreateFontStyleImagesJob::process(Ctl &ctl)
         for (const ExPolygon &shape : shapes)
             bounding_box.merge(BoundingBox(shape.contour.points));
         for (ExPolygon &shape : shapes) shape.translate(-bounding_box.min);
-        
-        // calculate conversion from FontPoint to screen pixels by size of font
-        double scale = get_text_shape_scale(item.prop, *item.font.font_file) * m_input.ppm;
-        scales[index] = scale;
 
-        //double scale = font_prop.size_in_mm * SCALING_FACTOR;
-        BoundingBoxf bb2(bounding_box.min.cast<double>(),
-                         bounding_box.max.cast<double>());
+        if (bounding_box.size().x() < 1 || bounding_box.size().y() < 1)
+            continue; // or however the font job's degenerate-box case is handled
+
+        // Normalize to fit max_size, exactly like CreateFontImageJob does against m_input.size.
+        // Fit by height (matches row height), then clamp width if needed.
+        constexpr float preview_padding_px = 2.f; // margin for AA sampling, tune to your AA kernel radius
+
+        double scale = m_input.max_size.y() / (double) bounding_box.size().y();
+        BoundingBoxf bb2(bounding_box.min.cast<double>(), bounding_box.max.cast<double>());
         bb2.scale(scale);
-        image.tex_size.x = std::ceil(bb2.max.x() - bb2.min.x());
-        image.tex_size.y = std::ceil(bb2.max.y() - bb2.min.y());
 
-        // crop image width
-        if (image.tex_size.x > m_input.max_size.x()) 
+        // crop width only if the (now height-normalized) text is too wide
+        image.tex_size.x = std::ceil(bb2.max.x() - bb2.min.x()) + 2 * preview_padding_px;
+        image.tex_size.y = std::ceil(bb2.max.y() - bb2.min.y()) + 2 * preview_padding_px;
+
+        if (image.tex_size.x > m_input.max_size.x())
             image.tex_size.x = m_input.max_size.x();
-        // crop image height
-        if (image.tex_size.y > m_input.max_size.y())
-            image.tex_size.y = m_input.max_size.y();
+
+        scales[index] = scale;
     }
 
     // arrange bounding boxes

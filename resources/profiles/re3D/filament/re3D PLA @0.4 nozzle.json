@@ -2,12 +2,16 @@
 	"type": "filament",
 	"name": "re3D PLA @0.4 nozzle",
 	"from": "system",
+	"renamed_from": "re3D PLA",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
-	"filament_id": "GFL99",
+	"filament_id": "OFRyOsZj",
 	"setting_id": "M8OOntNjjDBR4W32",
 	"filament_settings_id": [
 		"re3D PLA @0.4 nozzle"
+	],
+	"filament_type": [
+		"PLA"
 	],
 	"compatible_printers": [
 		"re3D Gigabot 4 0.4 nozzle",

@@ -66,6 +66,12 @@
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
 	"filament_retract_before_wipe": [
 		"nil"
 	],

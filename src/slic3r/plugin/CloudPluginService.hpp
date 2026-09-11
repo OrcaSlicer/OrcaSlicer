@@ -29,7 +29,6 @@ public:
                                       std::vector<std::string>& unauthorized) const;
     bool request_cloud_subscribe(const std::string& plugin_uuid, std::string& error) const;
     bool request_cloud_unsubscribe(const PluginDescriptor& plugin, std::string& error) const;
-    bool request_cloud_delete(const PluginDescriptor& plugin, std::string& error) const;
     bool download_cloud_plugin(PluginDescriptor& entry,
                                const std::string& requested_version,
                                CloudPluginDownload& download,

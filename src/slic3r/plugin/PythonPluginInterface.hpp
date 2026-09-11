@@ -12,7 +12,7 @@
 
 namespace Slic3r {
 
-enum class PluginCapabilityType { PrinterConnection = 0, Automation, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, Unknown };
+enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, Unknown };
 
 struct PluginCapabilityId
 {
@@ -39,7 +39,7 @@ inline std::string plugin_capability_type_to_string(PluginCapabilityType type)
 {
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return "printer-connection";
-    case PluginCapabilityType::Automation: return "automation";
+    case PluginCapabilityType::Pages: return "pages";
     case PluginCapabilityType::Analysis: return "analysis";
     case PluginCapabilityType::Importer: return "importer";
     case PluginCapabilityType::Exporter: return "exporter";
@@ -54,7 +54,7 @@ inline std::string plugin_capability_type_display_name(PluginCapabilityType type
 {
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return "Printer connection";
-    case PluginCapabilityType::Automation: return "Automation";
+    case PluginCapabilityType::Pages: return "Pages";
     case PluginCapabilityType::Analysis: return "Analysis";
     case PluginCapabilityType::Importer: return "Importer";
     case PluginCapabilityType::Exporter: return "Exporter";
@@ -76,8 +76,8 @@ inline PluginCapabilityType plugin_capability_type_from_string(std::string_view 
 
     if (lowered == "printer-connection")
         return PluginCapabilityType::PrinterConnection;
-    if (lowered == "automation")
-        return PluginCapabilityType::Automation;
+    if (lowered == "pages")
+        return PluginCapabilityType::Pages;
     if (lowered == "analysis")
         return PluginCapabilityType::Analysis;
     if (lowered == "importer")

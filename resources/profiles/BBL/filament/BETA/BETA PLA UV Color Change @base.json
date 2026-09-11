@@ -3,7 +3,7 @@
 	"name": "BETA PLA UV Color Change @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB15",
+	"filament_id": "OFpdjFI3",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

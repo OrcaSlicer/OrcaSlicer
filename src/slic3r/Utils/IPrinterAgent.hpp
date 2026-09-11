@@ -2,6 +2,13 @@
 #define __I_PRINTER_AGENT_HPP__
 
 #include "bambu_networking.hpp"
+// why: these extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
+// flows through the same int domain callers already compare against BAMBU_NETWORK_SUCCESS.
+// They live here and not in bambu_networking.hpp because that file is a vendor header replaced
+// wholesale by header-sync commits (see c09252ce11), which would silently clobber them.
+// -70xx is free: the vendor occupies -1..-25 and -10xx through -60xx.
+#define ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED -7010 // no translation exists for this command
+#define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
 
@@ -283,6 +290,16 @@ public:
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
     virtual bool fetch_filament_info(std::string dev_id) { return false; }
+
+    /**
+     * Translate one filament id across the printer boundary.
+     *
+     * Orca content-addresses every system filament; a printer, its AMS and its vendor cloud
+     * know only that vendor's own catalog ids. An agent whose printers already speak Orca's
+     * ids leaves them alone, and so does an id with no mapping.
+     */
+    virtual std::string to_orca_filament_id(const std::string& printer_filament_id) const { return printer_filament_id; }
+    virtual std::string from_orca_filament_id(const std::string& orca_filament_id) const { return orca_filament_id; }
 };
 
 } // namespace Slic3r

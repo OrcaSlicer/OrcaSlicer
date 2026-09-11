@@ -71,9 +71,11 @@ struct Bundle
 	Bundle() = default;
 	Bundle(Bundle&& other);
 
+	// Load the vendor `vendor_name` as it is installed in `dir`, from its preset
+	// cache or its profile JSONs, whichever is usable.
 	// Returns false if not loaded. Reason for that is logged as boost::log error.
 	//BBS: set BBL as default
-	bool load(fs::path source_path, bool is_in_resources, bool is_bbl_bundle = false);
+	bool load(fs::path dir, const std::string &vendor_name, bool is_in_resources, bool is_bbl_bundle = false);
 
 	const std::string& vendor_id() const { return vendor_profile->id; }
 };

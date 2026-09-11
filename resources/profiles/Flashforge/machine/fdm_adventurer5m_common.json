@@ -94,7 +94,7 @@
 	"machine_pause_gcode": "M25",
 	"support_multi_bed_types": "1",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Generic PLA @Flashforge"
 	],
 	"machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F6000\nG1 E-0.2 F800\nG1 X110 Y-110 F6000\nG1 E2 F800\nG1 Y-110 X55 Z0.25 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG1 Y-110 X55 Z0.45 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG92 E0",
 	"machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 ; turn off temperature",

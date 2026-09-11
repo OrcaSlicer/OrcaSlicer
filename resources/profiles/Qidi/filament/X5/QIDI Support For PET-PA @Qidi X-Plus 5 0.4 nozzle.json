@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "0xy82KbAJD5uBara",
+	"name": "QIDI Support For PET/PA @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI Support For PET/PA@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

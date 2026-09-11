@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @OrcaArena",
+	"inherits": "Generic PLA-CF @OrcaArena base",
+	"renamed_from": "OrcaArena Generic PLA-CF",
+	"from": "system",
+	"setting_id": "vexlQFuvVzpsYT0Z",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}
