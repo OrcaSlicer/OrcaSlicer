@@ -132,7 +132,7 @@ std::map<int, std::string> cli_errors = {
     {CLI_EXPORT_OBJ_ERROR, "Failed exporting OBJ files."},
     {CLI_EXPORT_3MF_ERROR, "Failed exporting 3mf files."},
     {CLI_OUT_OF_MEMORY, "Out of memory during slicing. Please upload a model with lower geometry resolution and try again."},
-    {CLI_3MF_NOT_SUPPORT_MACHINE_CHANGE, "The selected printer is not supported."},
+    {CLI_3MF_NOT_SUPPORT_MACHINE_CHANGE, "The process in the 3mf is not compatible with the selected printer; supply a process for it with --load-settings."},
     {CLI_3MF_NEW_MACHINE_NOT_SUPPORTED, "The selected printer is not compatible with the 3mf."},
     {CLI_PROCESS_NOT_COMPATIBLE, "The selected printer is not compatible with the process preset in the 3mf."},
     {CLI_INVALID_VALUES_IN_3MF, "Invalid parameter value(s) included in the 3mf file."},
