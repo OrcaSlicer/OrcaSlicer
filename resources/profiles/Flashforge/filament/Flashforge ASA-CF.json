@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA-CF",
-	"inherits": "FusRock Generic PAHT-CF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "CI5dvVrCNk2XTU82",
+	"filament_id": "OFq0TY7C",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_flow_ratio": [
 		"0.99"
 	],
@@ -15,7 +19,7 @@
 		"Flashforge ASA-CF"
 	],
 	"filament_type": [
-		"ASA"
+		"ASA-CF"
 	],
 	"hot_plate_temp": [
 		"100"

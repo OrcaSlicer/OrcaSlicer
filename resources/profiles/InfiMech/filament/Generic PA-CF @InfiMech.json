@@ -1,0 +1,37 @@
+{
+	"type": "filament",
+	"name": "Generic PA-CF @InfiMech",
+	"inherits": "fdm_filament_pa",
+	"renamed_from": "InfiMech Generic PA-CF",
+	"from": "system",
+	"setting_id": "IRYJpvGGjpF4ofY1",
+	"filament_id": "OFQLcbps",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"4"
+	],
+	"filament_retract_before_wipe": [
+		"0%"
+	],
+	"filament_retraction_length": [
+		"0.8"
+	],
+	"compatible_printers": [
+		"InfiMech TX 0.4 nozzle"
+	]
+}

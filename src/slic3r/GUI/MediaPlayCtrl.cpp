@@ -71,7 +71,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
                 auto ip = str.find(' ', ik);
                 if (ip == wxString::npos) ip = str.Length();
                 auto v = str.Mid(ik, ip - ik);
-                if (k == "T:" && v.Length() == 8) {
+                if (strcmp(k, "T:") == 0 && v.Length() == 8) {
                     long h = 0,m = 0,s = 0;
                     v.Left(2).ToLong(&h);
                     v.Mid(3, 2).ToLong(&m);
@@ -494,13 +494,13 @@ void MediaPlayCtrl::ToggleStream()
                     DownloadProgressDialog2(MediaPlayCtrl *ctrl) : DownloadProgressDialog(_L("Downloading Virtual Camera Tools")), ctrl(ctrl) {}
                     struct UpgradeNetworkJob2 : UpgradeNetworkJob
                     {
-                        UpgradeNetworkJob2(std::shared_ptr<ProgressIndicator> pri) : UpgradeNetworkJob() {
+                        UpgradeNetworkJob2() {
                             name         = "cameratools";
                             package_name = "camera_tools.zip";
                         }
                     };
-                    std::shared_ptr<UpgradeNetworkJob> make_job(std::shared_ptr<ProgressIndicator> pri)
-                    { return std::make_shared<UpgradeNetworkJob2>(pri); }
+                    std::unique_ptr<UpgradeNetworkJob> make_job() override
+                    { return std::make_unique<UpgradeNetworkJob2>(); }
                     void                               on_finish() override
                     {
                         ctrl->CallAfter([ctrl = this->ctrl] { ctrl->ToggleStream(); });

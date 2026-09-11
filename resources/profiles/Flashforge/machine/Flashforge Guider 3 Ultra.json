@@ -8,5 +8,5 @@
 	"bed_model": "flashforge_g3u_buildplate_model.stl",
 	"bed_texture": "flashforge_g3u_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Flashforge Generic PVA;Flashforge Generic HIPS;Flashforge Generic PETG-CF @G3U;Flashforge Generic PETG @G3U;Flashforge Generic PLA-CF @G3U;Flashforge Generic PLA @G3U;Flashforge Generic ASA @G3U;Flashforge Generic ABS @G3U;FusRock Generic PET-CF;FusRock Generic PAHT-CF;FusRock Generic NexPA-CF25;FusRock Generic S-Multi;FusRock Generic S-PAHT;Polymaker Generic CoPA;Polymaker Generic S1"
+	"default_materials": "FusRock NexPA-CF25;FusRock PAHT-CF;FusRock PAHT-CF @G3U 0.6 Nozzle;FusRock PET-CF;FusRock PET-CF @G3U 0.6 Nozzle;FusRock S-Multi;FusRock S-PAHT;Generic ABS @Flashforge G3U;Generic ABS @Flashforge G3U 0.6 Nozzle;Generic ASA @Flashforge G3U;Generic ASA @Flashforge G3U 0.6 Nozzle;Generic HIPS @Flashforge;Generic HIPS @Flashforge G3U 0.6 Nozzle;Generic PETG @Flashforge G3U;Generic PETG @Flashforge G3U 0.6 Nozzle;Generic PETG @Flashforge G3U 0.8 Nozzle;Generic PETG-CF @Flashforge G3U;Generic PETG-CF @Flashforge G3U 0.6 Nozzle;Generic PETG-CF @Flashforge G3U 0.8 Nozzle;Generic PLA @Flashforge G3U;Generic PLA-CF @Flashforge G3U;Generic PLA-CF @Flashforge G3U 0.6 Nozzle;Generic PLA-CF @Flashforge G3U 0.8 Nozzle;Generic PVA @Flashforge;Polymaker CoPA;Polymaker S1"
 }

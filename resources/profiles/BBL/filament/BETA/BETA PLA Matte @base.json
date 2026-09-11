@@ -3,7 +3,7 @@
 	"name": "BETA PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB09",
+	"filament_id": "OFwc74ck",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

@@ -2,17 +2,9 @@
 	"type": "filament",
 	"name": "Cubicon PETG @base",
 	"inherits": "fdm_filament_pet",
-	"setting_id": "bGfz4phwIdqSz0Hx",
-	"filament_id": "P510cfc0",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Cubicon xCeler-I 0.4 nozzle",
-		"Cubicon xCeler-Plus 0.4 nozzle"
-	],
+	"filament_id": "OFoBTKmn",
+	"instantiation": "false",
 	"default_filament_colour": "",
-	"filament_settings_id": [
-		"Cubicon PETG @base"
-	],
 	"filament_type": [
 		"PETG"
 	],

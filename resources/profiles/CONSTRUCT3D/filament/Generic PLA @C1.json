@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @C1",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "C1 Generic PLA",
+	"from": "system",
+	"setting_id": "mCKOBqN6Y92a9nHV",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"30"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"hot_plate_temp": [
+		"62"
+	],
+	"hot_plate_temp_initial_layer": [
+		"68"
+	],
+	"compatible_printers": [
+		"Construct 1 0.4 nozzle",
+		"Construct 1 XL 0.6 nozzle"
+	]
+}

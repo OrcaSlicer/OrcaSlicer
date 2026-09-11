@@ -3,7 +3,7 @@
 	"name": "Snapmaker ABS @U1 base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "1682237920",
+	"filament_id": "OF72YYTd",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""

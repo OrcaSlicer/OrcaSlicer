@@ -95,33 +95,6 @@ else ()
     add_compile_definitions("$<$<CONFIG:Release>:WXINSPECTOR_DISABLE>")
 endif ()
 
-find_package(Git)
-if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
-    message(STATUS "Specified git commit hash: $ENV{git_commit_hash}")
-    if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-        # Convert the given hash to short hash
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-parse --short "$ENV{git_commit_hash}"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-    else()
-        # No .git directory (e.g., Flatpak sandbox) — truncate directly
-        string(SUBSTRING "$ENV{git_commit_hash}" 0 7 GIT_COMMIT_HASH)
-    endif()
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-elseif(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-    # Check current Git commit hash
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-endif()
-
 if(DEFINED ENV{SLIC3R_STATIC})
     set(SLIC3R_STATIC_INITIAL $ENV{SLIC3R_STATIC})
 else()
@@ -137,6 +110,7 @@ option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 
 option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 
 # Python stubgen module
@@ -362,12 +336,31 @@ if (MSVC)
     if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
+
+    # Parse lambdas the way the standard says, as clang and GCC already do. Without it
+    # MSVC keeps its legacy lambda processor under /std:c++17 and rejects reading a
+    # constexpr constant inside a lambda that does not capture it (C3493), which no
+    # other compiler requires. Implied by /std:c++20 and /permissive-, so it is only
+    # needed while we are on C++17. clang-cl is conforming already and does not take
+    # the flag. Requires VS2019 16.8 or newer.
+    if (NOT IS_CLANG_CL)
+        # cl.exe only warns (D9002) about an unknown /Zc: option, so without this the
+        # flag would be dropped and the first lambda reading a constexpr constant would
+        # fail with C3493 far from the cause.
+        if (MSVC_VERSION LESS 1928)
+            message(FATAL_ERROR "Visual Studio 2019 16.8 (MSVC 19.28) or newer is required; detected MSVC ${MSVC_VERSION}.")
+        endif ()
+        add_compile_options(/Zc:lambda)
+    endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
+    add_compile_options(-bigobj)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
 	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
 	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    add_compile_options(-bigobj /Zi /FS)
+    if (SLIC3R_MSVC_PDB)
+        add_compile_options(/Zi /FS)
+    endif ()
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -383,6 +376,16 @@ if (MSVC)
 	# helps incremental builds by preventing the double-link restart from TBB
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+endif ()
+
+# Without this every object names its build directory and two worktrees never
+# share cache entries. The linker still writes absolute paths into the PDB.
+if (SLIC3R_RELATIVE_DEBUG_PATHS)
+    if (IS_CLANG_CL)
+        add_compile_options(-ffile-compilation-dir=.)
+    else ()
+        message(WARNING "SLIC3R_RELATIVE_DEBUG_PATHS is only implemented for clang-cl")
+    endif ()
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
@@ -476,8 +479,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # WIN10SDK_PATH is used to point CMake to the WIN10 SDK installation directory.
 # We pick it from environment if it is not defined in another way
 # ORCA: Removed Netfabb STL fixing service support in favor of CGAL.
-if(WIN32)
-    find_package(PkgConfig REQUIRED)
+# if(WIN32)
 #     if(NOT DEFINED WIN10SDK_PATH)
 #         if(DEFINED ENV{WIN10SDK_PATH})
 #                 set(WIN10SDK_PATH "$ENV{WIN10SDK_PATH}")
@@ -513,7 +515,7 @@ if(WIN32)
 #     else()
 #         message("Building without Win10 Netfabb STL fixing service support")
 #     endif()
-endif()
+# endif()
 
 if (APPLE)
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")
