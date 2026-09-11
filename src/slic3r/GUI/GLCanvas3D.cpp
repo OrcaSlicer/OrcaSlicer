@@ -5671,6 +5671,9 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;
     m_dirty = true;
+    // ORCA: the frame that follows a release is the one that puts the preview's full detail back,
+    // and on some platforms no idle event follows a button release until the next input
+    wxWakeUpIdle();
 
     if (m_canvas->HasCapture())
         m_canvas->ReleaseMouse();
