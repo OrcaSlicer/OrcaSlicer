@@ -9,6 +9,7 @@
 #include <slic3r/GUI/MsgDialog.hpp>
 #include <slic3r/GUI/PluginProgressDialog.hpp>
 #include <slic3r/GUI/PluginWebDialog.hpp>
+#include <slic3r/GUI/NotificationManager.hpp>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>
@@ -19,6 +20,7 @@
 #include <wx/defs.h>
 #include <wx/window.h>
 
+#include <atomic>
 #include <cstdint>
 #include <future>
 #include <memory>
@@ -44,16 +46,20 @@ namespace {
 struct GilSafeCallable
 {
     py::object fn;
+    std::atomic_bool active{true};
     explicit GilSafeCallable(py::object f) : fn(std::move(f)) {}
+    void disable()
+    {
+        active.store(false, std::memory_order_release);
+        PythonGILState gil;
+        if (gil)
+            fn = py::object();
+        else
+            (void) fn.release();
+    }
     ~GilSafeCallable()
     {
-        if (fn) {
-            PythonGILState gil;
-            if (gil)
-                fn = py::object();
-            else
-                (void) fn.release();
-        }
+        disable();
     }
 };
 using CallablePtr = std::shared_ptr<GilSafeCallable>;
@@ -166,11 +172,34 @@ public:
         }
         return out;
     }
+    void bind_callback(const CallablePtr& callback, const std::string& plugin_key)
+    {
+        if (!callback)
+            return;
+        std::lock_guard<std::mutex> lk(m_mtx);
+        m_callbacks[plugin_key].push_back(callback);
+    }
+    std::vector<CallablePtr> take_callbacks_for_plugin(const std::string& plugin_key)
+    {
+        std::lock_guard<std::mutex> lk(m_mtx);
+        auto                        it = m_callbacks.find(plugin_key);
+        if (it == m_callbacks.end())
+            return {};
+        std::vector<CallablePtr> callbacks;
+        callbacks.reserve(it->second.size());
+        for (const std::weak_ptr<GilSafeCallable>& weak_callback : it->second) {
+            if (auto callback = weak_callback.lock())
+                callbacks.push_back(std::move(callback));
+        }
+        m_callbacks.erase(it);
+        return callbacks;
+    }
 
 private:
     std::mutex                           m_mtx;
     std::unordered_map<int, wxWindow*>   m_resources;
     std::unordered_map<int, std::string> m_owners;
+    std::unordered_map<std::string, std::vector<std::weak_ptr<GilSafeCallable>>> m_callbacks;
     int                                  m_next_id{1};
 };
 
@@ -448,6 +477,46 @@ void progress_close(int id)
     });
 }
 
+void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
+                         const std::string& hypertext, py::object on_click)
+{
+    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+    CallablePtr        holder    = make_holder(std::move(on_click));
+    if (holder)
+        UiRegistry::instance().bind_callback(holder, plugin_key);
+
+    std::function<bool(wxEvtHandler*)> callback;
+    if (holder) {
+        callback = [holder](wxEvtHandler*) -> bool {
+            if (!holder->active.load(std::memory_order_acquire))
+                return false;
+
+            PythonGILState gil;
+            if (!gil)
+                return false;
+            try {
+                py::object result = holder->fn();
+                return result.is_none() || result.cast<bool>();
+            } catch (py::error_already_set& e) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised: " << e.what();
+                PyErr_Clear();
+                return false;
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised: " << e.what();
+                return false;
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised an unknown exception";
+                return false;
+            }
+        };
+    }
+
+    run_on_ui_blocking([notification_level, text, hypertext, callback = std::move(callback)]() mutable {
+        wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification, notification_level, text,
+                                                                           hypertext, std::move(callback));
+    });
+}
+
 } // namespace
 
 void PluginHostUi::RegisterBindings(pybind11::module_& host)
@@ -530,6 +599,23 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
     ui.def("create_progress_dialog", &ui_create_progress_dialog, py::arg("title"), py::arg("message"),
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
            "Create a native progress dialog and return a ProgressDialog handle.");
+
+    py::enum_<NotificationManager::NotificationLevel>(ui, "NotificationLevel")
+        .value("ProgressBarNotificationLevel", NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
+        .value("HintNotificationLevel", NotificationManager::NotificationLevel::HintNotificationLevel)
+        .value("RegularNotificationLevel", NotificationManager::NotificationLevel::RegularNotificationLevel)
+        .value("PrintInfoNotificationLevel", NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
+        .value("PrintInfoShortNotificationLevel", NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
+        .value("ImportantNotificationLevel", NotificationManager::NotificationLevel::ImportantNotificationLevel)
+        .value("WarningNotificationLevel", NotificationManager::NotificationLevel::WarningNotificationLevel)
+        .value("SeriousWarningNotificationLevel", NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
+        .value("ErrorNotificationLevel", NotificationManager::NotificationLevel::ErrorNotificationLevel)
+        .export_values();
+
+    ui.def("push_notification", &plater_notification, py::arg("notification_level"), py::arg("text"),
+           py::arg("hyper_text") = "", py::arg("on_click") = py::none(),
+           "Push a plater notification. hyper_text is an underlined label; on_click() is called when it is clicked "
+           "and may return True to close the notification.");
 }
 
 void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
@@ -538,6 +624,9 @@ void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
         return;
 
     auto teardown = [plugin_key]() {
+        for (auto& callback : UiRegistry::instance().take_callbacks_for_plugin(plugin_key))
+            callback->disable();
+
         // Destroy() bypasses wxEVT_CLOSE, so the plugin's on_close is not fired on
         // forced teardown (intended); the resource destructor still cleans the registry.
         for (auto* window : UiRegistry::instance().take_for_plugin(plugin_key)) {
