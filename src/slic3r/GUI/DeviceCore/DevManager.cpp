@@ -30,15 +30,31 @@ namespace {
     {
         const auto& machines = config->get_local_machines();
         auto        it       = machines.find(dev_id);
-        if (it != machines.end() && it->second.printer_agent_id == agent_id && !it->second.access_code.empty())
-            return it->second.access_code;
+        const bool  is_bbl   = agent_id == Slic3r::BBL_PRINTER_AGENT_ID || agent_id.empty();
+        const bool  has_scoped_code = it != machines.end() && it->second.printer_agent_id == agent_id
+                                   && !it->second.access_code.empty();
 
-        if (agent_id == Slic3r::BBL_PRINTER_AGENT_ID || agent_id.empty()) {
-            std::string code = config->get("access_code", dev_id);
-            if (code.empty())
-                code = config->get("user_access_code", dev_id);
-            return code;
+        if (is_bbl) {
+            const std::string legacy_code      = config->get("access_code", dev_id);
+            const std::string legacy_user_code = config->get("user_access_code", dev_id);
+
+            // Before the access-code fields were merged, MachineObject::get_access_code()
+            // preferred user_access_code. The initial migration reversed that precedence and
+            // could persist the lower-priority access_code into the new scoped machine record.
+            // Detect that copied value and preserve the old effective credential.
+            if (has_scoped_code && !legacy_user_code.empty() && it->second.access_code == legacy_code
+                && legacy_user_code != legacy_code)
+                return legacy_user_code;
+
+            if (has_scoped_code)
+                return it->second.access_code;
+            if (!legacy_user_code.empty())
+                return legacy_user_code;
+            return legacy_code;
         }
+
+        if (has_scoped_code)
+            return it->second.access_code;
         return "";
     }
 }
