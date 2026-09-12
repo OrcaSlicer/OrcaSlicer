@@ -551,6 +551,7 @@ private:
     void process_external_surfaces();
     void discover_vertical_shells();
     void bridge_over_infill();
+    void tag_extra_bridge_perimeters();
     void clip_fill_surfaces();
     void discover_horizontal_shells();
     void combine_infill();

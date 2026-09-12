@@ -315,7 +315,7 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 if (!m_is_custom_gcode) {
                     // if slow down => put in the queue. if not =>
                     if (m_back_buffer_fan_speed < fan_speed) {
-                        if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter)) {
+                        if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter || current_role == ExtrusionRole::erBridgePerimeter)) {
                             //don't put this command in the queue
                             time = -1;
                             // this M106 need to go in the past

@@ -7958,7 +7958,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             _mm3_per_mm *= m_config.outer_wall_flow_ratio;
         } else if (path.role() == erPerimeter) {
             _mm3_per_mm *= m_config.inner_wall_flow_ratio;
-        } else if (path.role() == erOverhangPerimeter) {
+        } else if (path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter) {
             _mm3_per_mm *= m_config.overhang_flow_ratio;
         } else if (path.role() == erInternalInfill) {
             _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
@@ -8006,7 +8006,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
         } else if(path.role() == erInternalBridgeInfill) {
             speed = m_config.get_abs_value_at("internal_bridge_speed", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
+        } else if (path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
             speed = NOZZLE_CONFIG(sparse_infill_speed);
@@ -8304,14 +8304,14 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // 6) whether this segment is triggered because of a role change (to aid in calculation of average speed for the role)
     // This tag simplifies the creation of the gcode post processor while also keeping the feature decoupled from other tags.
     if (evaluate_adaptive_pa) {
-        bool isOverhangPerimeter = (path.role() == erOverhangPerimeter);
+        bool isOverhangPerimeter = (path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter);
         if (m_multi_flow_segment_path_average_mm3_per_mm > 0) {
             sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                     GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                     m_writer.filament()->id(),
                     m_multi_flow_segment_path_average_mm3_per_mm,
                     acceleration_i,
-                    ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                    ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                     role_change,
                     isOverhangPerimeter);
             gcode += buf;
@@ -8324,7 +8324,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     m_writer.filament()->id(),
                     _mm3_per_mm,
                     acceleration_i,
-                    ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                    ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                     role_change,
                     isOverhangPerimeter);
             gcode += buf;
@@ -8342,7 +8342,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     //    { "75%", Overhang_threshold_4_4 },
     //    { "95%", Overhang_threshold_bridge }
     auto check_overhang_fan = [&overhang_fan_threshold](float overlap, ExtrusionRole role) {
-      if (role == erBridgeInfill || role == erOverhangPerimeter) { // ORCA: Split out bridge infill to internal and external to apply separate fan settings
+      if (role == erBridgeInfill || role == erOverhangPerimeter || role == erBridgePerimeter) { // ORCA: Split out bridge infill to internal and external to apply separate fan settings
         return true;
       }
       switch (overhang_fan_threshold) {
@@ -8462,7 +8462,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             m_writer.filament()->id(),
                             _mm3_per_mm,
                             acceleration_i,
-                            ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                            ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                             1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
                             // the properties of the extrusion in the overhang are different so it behaves similarly to a role
                             // change for the Adaptive PA post processor.
@@ -8477,7 +8477,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             m_writer.filament()->id(),
                             _mm3_per_mm,
                             acceleration_i,
-                            ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                            ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                             1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
                             // the properties of the extrusion in the overhang are different so it is technically similar to a role
                             // change for the Adaptive PA post processor.
@@ -8497,7 +8497,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     // perimeter
                     append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv,
                                                  (overhang_fan_threshold == Overhang_threshold_none && is_external_perimeter(path.role())) ||
-                                                 (path.role() == erBridgeInfill || path.role() == erOverhangPerimeter)); // ORCA: Add support for separate internal bridge fan speed control
+                                                 (path.role() == erBridgeInfill || path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter)); // ORCA: Add support for separate internal bridge fan speed control
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
@@ -8694,7 +8694,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 m_writer.filament()->id(),
                                 _mm3_per_mm,
                                 acceleration_i,
-                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                                 1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
                                 // the properties of the extrusion in the overhang are different so it is technically similar to a role
                                 // change for the Adaptive PA post processor.
@@ -8709,7 +8709,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 m_writer.filament()->id(),
                                 _mm3_per_mm,
                                 acceleration_i,
-                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
+                                ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter) ||(path.role() == erBridgePerimeter)),
                                 1, // Force a dummy "role change" & "overhang perimeter" for the post processor, as, while technically it is not a role change,
                                 // the properties of the extrusion in the overhang are different so it is technically similar to a role
                                 // change for the Adaptive PA post processor.
@@ -8792,6 +8792,7 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
         case erPerimeter: return "Perimeter";
         case erExternalPerimeter: return "ExternalPerimeter";
         case erOverhangPerimeter: return "OverhangPerimeter";
+        case erBridgePerimeter: return "BridgePerimeter";
         case erInternalInfill: return "InternalInfill";
         case erSolidInfill: return "SolidInfill";
         case erTopSolidInfill: return "TopSolidInfill";
