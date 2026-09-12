@@ -1,12 +1,15 @@
 #include "Moonraker.hpp"
 
 #include <sstream>
+#include <fstream>
+#include <algorithm>
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <nlohmann/json.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -210,6 +213,40 @@ bool Moonraker::start_print(wxString &error_msg, const std::string &filename) co
     return res;
 }
 
+static void parse_filament_stats(const boost::filesystem::path& path, std::map<std::string, std::string>& extended_info)
+{
+    std::ifstream file(path.string(), std::ios::binary | std::ios::ate);
+    if (!file.is_open()) return;
+
+    std::streamsize size = file.tellg();
+    std::streamsize read_size = std::min(size, (std::streamsize)65536);
+    file.seekg(size - read_size);
+
+    std::string buffer(read_size, '\0');
+    if (!file.read(&buffer[0], read_size)) return;
+
+    auto extract_list = [](const std::string& buf, const std::string& prefix) -> std::string {
+        size_t pos = buf.rfind(prefix);
+        if (pos == std::string::npos) return "";
+        size_t start = pos + prefix.length();
+        size_t end = buf.find('\n', start);
+        if (end == std::string::npos) end = buf.length();
+        std::string line = buf.substr(start, end - start);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        return "[" + line + "]";
+    };
+
+    std::string used_mm = extract_list(buffer, "; filament used [mm] = ");
+    std::string used_g = extract_list(buffer, "; filament used [g] = ");
+
+    if (!used_mm.empty()) {
+        extended_info["filament_used_mm"] = used_mm;
+    }
+    if (!used_g.empty()) {
+        extended_info["filament_used_g"] = used_g;
+    }
+}
+
 bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
     //ORCA: POST /server/files/upload as multipart/form-data with:
@@ -308,12 +345,107 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
 
     if (upload_data.post_action == PrintHostPostUploadAction::StartPrint && !uploaded_path.empty()) {
         wxString start_msg;
-        if (!start_print(start_msg, uploaded_path)) {
+        parse_filament_stats(upload_data.source_path, upload_data.extended_info);
+        if (!start_print(start_msg, uploaded_path, upload_data.extended_info)) {
             error_fn(std::move(start_msg));
             return false;
         }
     }
     return true;
+}
+
+bool Moonraker::start_print(wxString &error_msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
+{
+    auto it_is_sm = extended_info.find("is_snapmaker");
+    bool is_snapmaker = (it_is_sm != extended_info.end() && it_is_sm->second == "1");
+
+    if (!is_snapmaker) {
+        return start_print(error_msg, filename);
+    }
+
+    const char *name = get_name();
+    bool res = true;
+    auto url = make_url("printer/gcode/script");
+
+    std::string safe_filename = filename;
+    if (!safe_filename.empty() && safe_filename[0] == '/') {
+        safe_filename = safe_filename.substr(1);
+    }
+
+    std::string escaped_filename;
+    for (char c : safe_filename) {
+        if (c == '"') escaped_filename += "\\\"";
+        else escaped_filename += c;
+    }
+
+    std::string script = "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"" + escaped_filename + "\"";
+
+    std::string map_table_str = "[";
+    bool first = true;
+    for (int i = 0; ; i++) {
+        auto it_map = extended_info.find("colorMatch_" + std::to_string(i));
+        if (it_map == extended_info.end())
+            break;
+        try {
+            int physical_slot = std::stoi(it_map->second);
+            if (physical_slot != -1) {
+                if (!first) map_table_str += ",";
+                map_table_str += "[" + std::to_string(i) + "," + std::to_string(physical_slot) + "]";
+                first = false;
+            }
+        } catch (...) {}
+    }
+    map_table_str += "]";
+    if (map_table_str != "[]") {
+        script += " MAP_TABLE=\"" + map_table_str + "\"";
+    }
+
+    auto it_abl = extended_info.find("auto_bed_leveling");
+    int bed_level = (it_abl != extended_info.end() && it_abl->second == "1") ? 1 : 0;
+    script += " BED_LEVEL=" + std::to_string(bed_level);
+
+    auto it_flow = extended_info.find("flow_calibrate");
+    int flow_calibrate = (it_flow != extended_info.end() && it_flow->second == "1") ? 1 : 0;
+    script += " FLOW_CALIBRATE=" + std::to_string(flow_calibrate);
+
+    script += " SHAPER_CALIBRATE=0";
+
+    auto it_used_g = extended_info.find("filament_used_g");
+    if (it_used_g != extended_info.end()) {
+        script += " FILAMENT_USED_G=\"" + it_used_g->second + "\"";
+    }
+
+    auto it_used_mm = extended_info.find("filament_used_mm");
+    if (it_used_mm != extended_info.end()) {
+        script += " FILAMENT_USED_MM=\"" + it_used_mm->second + "\"";
+    }
+
+    nlohmann::json json_payload;
+    json_payload["script"] = script;
+    std::string body = json_payload.dump();
+
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Starting Snapmaker print of %2% via gcode script at %3%") % name % filename % url;
+    BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Snapmaker print payload: %2%") % name % body;
+
+    auto http = Http::post(std::move(url));
+    set_auth(http);
+    http.header("Content-Type", "application/json")
+        .set_post_body(body)
+        .on_complete([&](std::string body, unsigned status) {
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: start_local_print HTTP %2%: %3%") % name % status % body;
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error starting Snapmaker print at %2%: %3%, HTTP %4%, body: `%5%`")
+                % name % url % error % status % body;
+            res = false;
+            error_msg = format_error(body, error, status);
+        })
+#ifdef WIN32
+        .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif
+        .perform_sync();
+
+    return res;
 }
 
 }
