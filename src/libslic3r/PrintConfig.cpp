@@ -2140,7 +2140,7 @@ void PrintConfigDef::init_fff_params()
                      "This can be used to improve build plate adhesion.");
     def->sidetext = L("layers");
     def->min = 0;
-    def->max = 1000;
+    def->max = 10000;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 1 });
 
@@ -2760,6 +2760,11 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Keep fan always on");
     def->tooltip = L("Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping.");
     def->set_default_value(new ConfigOptionBools { false });
+
+    def          = this->add("fan_always_off", coBools);
+    def->label   = L("Keep fan always off");
+    def->tooltip = L("Force the cooling fan to stay at 0% for the entire print, ignoring all other cooling settings (including bridges and overhangs).");
+    def->set_default_value(new ConfigOptionBools{false});
 
     def = this->add("dont_slow_down_outer_wall", coBools);
     def->label = L("Don't slow down outer walls");
@@ -8271,6 +8276,7 @@ void PrintConfigDef::init_filament_option_keys()
         "filament_colour",
         "filament_diameter",
         "filament_retract_length_nc",
+        "fan_always_off",
         // "filament_seam_gap",
         "long_retractions_when_cut",
         "max_layer_height",
@@ -9352,7 +9358,8 @@ std::set<std::string> filament_options_with_variant = {
     "filament_long_retractions_when_cut",
     "filament_retraction_distances_when_cut",
     "long_retractions_when_ec",
-    "retraction_distances_when_ec",
+    "retraction_distances_when_ec", 
+    "fan_always_off",
     "nozzle_temperature_initial_layer",
     "nozzle_temperature",
     "filament_flush_volumetric_speed",
