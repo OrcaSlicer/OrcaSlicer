@@ -18,7 +18,7 @@ class wxComboBox;
 class wxStaticBitmap;
 
 #define SAVE_PRESET_DIALOG_DEF_COLOUR wxColour(255, 255, 255)
-#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(24))
+#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(28))
 #define SAVE_PRESET_DIALOG_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 
 namespace Slic3r {
@@ -75,6 +75,8 @@ class SavePresetDialog : public DPIDialog
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
         bool                m_detach{false};
+
+        Button*             m_ok_btn        {nullptr};
 
         void update();
     };

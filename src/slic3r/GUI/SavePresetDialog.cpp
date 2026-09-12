@@ -97,8 +97,10 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_valid_label = new wxStaticText(m_parent, wxID_ANY, "");
     m_valid_label->SetForegroundColour(wxColor(255, 111, 0));
 
-    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
+    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(input_sizer_h, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT, BORDER_W);
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->add_info_for_edit_ph_printer(sizer);
@@ -254,6 +256,15 @@ void SavePresetDialog::Item::update()
     m_valid_label->SetLabel(info_line);
     m_valid_label->Show(!info_line.IsEmpty());
 
+    if (!m_ok_btn)
+        m_ok_btn = static_cast<Button*>(wxWindow::FindWindowById(wxID_OK, m_parent));
+    if (m_ok_btn){
+        if(m_valid_type == NoValid && m_ok_btn->IsEnabled())
+            m_ok_btn->Disable();
+        else if(m_valid_type != NoValid && !m_ok_btn->IsEnabled())
+            m_ok_btn->Enable();
+    }
+
     // update_valid_bmp();
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->update_info_for_edit_ph_printer(m_preset_name);
@@ -320,14 +331,13 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
 
     m_presets_sizer = new wxBoxSizer(wxVERTICAL);
 
+    // create dialog buttons before item to make it available for changing enable/disable
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
+
     // Add first item
     for (Preset::Type type : types) AddItem(type, suffix);
-
-    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
-
-    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
-
-    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
 
     m_Sizer_main->Add(m_presets_sizer, 0, wxEXPAND | wxALL, BORDER_W);
     m_Sizer_main->Add(dlg_btns, 0, wxEXPAND);
