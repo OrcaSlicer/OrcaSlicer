@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/light.css">
+    <link rel="stylesheet" href="./css/dark.css">
+
+    <script src="../../include/jquery-3.6.0.min.js"></script>
+    <script src="../../thirdparty/vue/vue.global.prod.min.js"></script>
+    <script src="../../thirdparty/vue/vue-i18n.global.prod.js"></script>
+    <script src="../../thirdparty/element-plus/index.full.min.js"></script>
+    <script src="../../include/json2.js"></script>
+    <script src="../../include/globalapi.js"></script>
+    <script src="../../data/text.js"></script>
+    <script src="../../locales/index.js"></script>
+    <script type="text/javascript" src="../../utils/util.js"></script>
+    <script src="../../utils/ipc.js"></script>
+    <script src="../printer-status-utils.js"></script>
+    <script src="./img/filament.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="print-task-dialog" style="display: none;" v-show="!isIniting">
+            <main v-if="printerList && printerList.length > 0" class="print-task-content">
+                <section class="model-section">
+                    <img v-if="modelImageSrc" :src="modelImageSrc" class="model-preview" alt="3D Model" />
+                    <div v-else class="model-preview"></div>
+                    <div class="model-info">
+                        <div class="model-name-edit">
+                            <el-input v-model="printInfo.modelName" type="text" @blur="stopEditing"
+                                @keydown.enter="stopEditing" @input="onModelNameInput" ref="modelNameInput"
+                                id="model-name" class="model-name-input" maxlength="50"></el-input>
+                            <button class="edit-name-btn" @click="startEditing">
+                                <img src="img/edit.svg" alt="" />
+                            </button>
+                        </div>
+
+                        <div class="print-stats">
+                            <div class="stat-item">
+                                <img class="stat-icon" src="img/clock.svg" alt="" />
+                                <span>{{ printInfo.printTime || '00:00:00' }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <img class="stat-icon" src="img/est-weight.svg" alt="" />
+                                <span>{{ formatWeight(printInfo.totalWeight) }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <img class="stat-icon" src="img/layer-num.svg" alt="" />
+                                <span>{{ printInfo.layerCount || 0 }}</span>
+                            </div>
+                        </div>
+
+                        <div class="device-selection">
+                            <div class="section-header" style="margin: 12px 0px;">
+                                <label class="section-title">{{ $t('printSend.printer') }}</label>
+                                <div class="section-separator"></div>
+                            </div>
+                            <div class="dropdowns-container">
+                                <el-select v-model="curPrinter" class="printer-select" :show-arrow="false"
+                                    popper-class="printsend-printer-dropdown"
+                                    :placeholder="$t('printSend.pleaseConnectPrinter')" @change="onPrinterChanged"
+                                    value-key="printerId">
+                                    <template #label="{ value }">
+                                        <div class="model-container">
+                                            <span class="icon-button" @click="refreshPrinterList($event, value)">
+                                                <img width="18px" src="img/refresh.svg" alt="Refresh" />
+                                            </span>
+                                            <img :src="value.printerImg" class="model-image" alt="printer" />
+                                            <div class="model-details">
+                                                <span class="model-title" :title="value.printerName">{{ value.printerName }}</span>
+                                                <div class="model-description-row">
+                                                    <span class="model-description">{{ value.networkType===0 ?
+                                                        value.host : "SN: " + value.serialNumber }}</span>
+                                                    <el-text class="printer-status-current"
+                                                        :style="getPrinterStatusStyle(value.printerStatus, value.connectStatus)"
+                                                        truncated>
+                                                        {{ getPrinterStatus(value.printerStatus, value.connectStatus) }}
+                                                    </el-text>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <el-option-group v-if="networkPrinters.length > 0"
+                                        :label="$t('printerManager.networkPrinters')">
+                                        <el-option v-for="item in networkPrinters" :key="item.printerId"
+                                            class="printer-option" :value="item">
+                                            <div class="model-container">
+                                                <img :src="item.printerImg" class="model-image" alt="printer" />
+                                                <div class="model-details">
+                                                    <span class="model-title">{{ item.printerName }}</span>
+                                                    <div class="model-description-row">
+                                                        <span class="model-description">{{ item.networkType===0 ? item.host
+                                                            : "SN: " + item.serialNumber }}</span>
+                                                        <el-text class="printer-status-dropdown"
+                                                            :style="getPrinterStatusStyle(item.printerStatus, item.connectStatus)"
+                                                            truncated>
+                                                            {{ getPrinterStatus(item.printerStatus, item.connectStatus) }}
+                                                        </el-text>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </el-option>
+                                    </el-option-group>
+
+                                    <el-option-group v-if="localPrinters.length > 0"
+                                        :label="$t('printerManager.localPrinters')">
+                                        <el-option v-for="item in localPrinters" :key="item.printerId"
+                                            class="printer-option" :value="item">
+                                            <div class="model-container">
+                                                <img :src="item.printerImg" class="model-image" alt="printer" />
+                                                <div class="model-details">
+                                                    <span class="model-title">{{ item.printerName }}</span>
+                                                    <div class="model-description-row">
+                                                        <span class="model-description">{{ item.networkType===0 ? item.host
+                                                            : "SN: " + item.serialNumber }}</span>
+                                                        <el-text class="printer-status-dropdown"
+                                                            :style="getPrinterStatusStyle(item.printerStatus, item.connectStatus)"
+                                                            truncated>
+                                                            {{ getPrinterStatus(item.printerStatus, item.connectStatus) }}
+                                                        </el-text>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </el-option>
+                                    </el-option-group>
+                                </el-select>
+
+                                <el-select v-model="selectedBedType" class="bed-select" :show-arrow="false"
+                                    :suffix-icon="null"
+                                    v-if="curPrinter && curPrinter.printCapabilities.supportsHeatedBedSwitching"
+                                    :class="{ hidden: !showBedDropdown }" @change="onBedTypeChanged">
+                                    <template #label="{ value }">
+                                        <div class="bed-container">
+                                            <el-tooltip :content="value.name" placement="top">
+                                                <img :src="value.icon" class="bed-image"
+                                                    style="width: 80px; height: 80px;" alt="bed" />
+                                            </el-tooltip>
+                                        </div>
+                                    </template>
+                                    <el-option v-for="bedType in bedTypes" class="bed-option" :key="bedType.value"
+                                        :value="bedType">
+                                        <div class="bed-container">
+                                            <img :src="bedType.icon" class="bed-image" alt="bed" />
+                                            <div class="bed-info">
+                                                <span class="bed-title">{{ bedType.name }}</span>
+                                            </div>
+                                        </div>
+                                    </el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="error-tips" v-for="(error, index) in errorList" :key="index">
+                    <span v-if="errorList.length > 1">{{ index + 1 }}. {{ error }}</span>
+                    <span v-else>{{ error }}</span>
+                </div>
+                <section class="options-section">
+                    <div class="options-separator"></div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-item">
+                            <div class="toggle-label trans" tid="switch_to_device_tab">{{
+                                $t('printSend.switchToDeviceTab') }}</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="printInfo.switchToDeviceTab" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-item">
+                            <div class="toggle-label trans" tid="upload_and_print">{{ $t('printSend.uploadAndPrint') }}
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="printInfo.uploadAndPrint" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+                <section class="filament-section" v-if="showFilamentSection">
+                    <div class="section-header">
+                        <h3 class="section-title">{{ $t('printSend.filamentMapping') }}</h3>
+                        <div class="section-separator"></div>
+                    </div>
+                    <div class="filament-container">
+                        <div class="filament-header">
+                            <div class="filament-controls">
+                                <div class="toggle-item" v-if="curPrinter && curPrinter.printCapabilities.supportsAutoRefill">
+                                    <div class="toggle-label trans" tid="auto_refill">{{ $t('printSend.autoRefill') }}
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" v-model="printInfo.autoRefill" />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="filament-pagination">
+                                <button class="pagination-btn" @click="prevPage" :disabled="currentPage <= 1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                                        fill="currentColor" version="1.1" width="6" height="10" viewBox="0 0 6 10">
+                                        <g transform="matrix(-1,0,0,-1,12,20)">
+                                            <path
+                                                d="M12,15.18525L7.8947400000000005,10L6,10L10.105260000000001,15.18525L6,20L7.8947400000000005,20L12,15.18525Z"
+                                                fill-opacity="1" style="mix-blend-mode:passthrough" />
+                                        </g>
+                                    </svg>
+                                </button>
+                                <span>{{ currentPage }}/{{ totalPages }}</span>
+                                <button class="pagination-btn" @click="nextPage" :disabled="currentPage >= totalPages">
+                                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                                        fill="currentColor" version="1.1" width="6" height="10" viewBox="0 0 6 10">
+                                        <g>
+                                            <path
+                                                d="M6,5.18525L1.89474,0L0,0L4.10526,5.18525L0,10L1.89474,10L6,5.18525Z"
+                                                fill-opacity="1" style="mix-blend-mode:passthrough" />
+                                        </g>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filament-list">
+                            <div v-for="filament in currentPageFilaments" :key="filament.index"
+                                class="mapping-container">
+                                <div class="filament-rect" :style="getFilamentStyle(filament)"
+                                    :title="filament.filamentName">
+                                    <div class="filament-type">{{ filament.filamentType }}</div>
+                                    <div class="filament-weight">{{ formatWeight(filament.filamentWeight) }}</div>
+                                </div>
+
+
+                                <el-popover ref="mmsPopover" placement="top" title="" :width="420" trigger="click"
+                                    :show-arrow="false">
+                                    <template #default>
+                                        <div>
+                                            <div class="mms-header">
+                                                <span class="mms-title">{{ $t(mmsInfo.mmsSystemName) }}</span>
+                                                <div style="border-bottom: 1px solid #DEDEDE; height: 1px; flex: 1;">
+                                                </div>
+                                            </div>
+                                            <div class="mms-popover-content">
+                                                <div v-for="mms in mmsInfo.mmsList" :key="mms.mmsId" class="mms-row">
+                                                    <div class="tray-popover-content">
+                                                        <div v-for="tray in mms.trayList" :key="tray.trayName"
+                                                            class="tray-popover-card"
+                                                            :class="{ 'disabled': tray.status === 0 || tray.status === 2 }"
+                                                            :style="getMmsCardStyle(tray)"
+                                                            @click="tray.status === 1 || tray.status === 3 ? updateFilamentMapping(filament.index, tray) : null">
+                                                            <div class="tray-name">{{ tray.trayName }}</div>
+                                                            <div class="tray-dash"></div>
+                                                            <div class="tray-filament-type">{{(tray.status === 1 ||
+                                                                tray.status === 3) ? tray.filamentType : (tray.status
+                                                                === 0 ? '/' : "?")}}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template #reference>
+                                        <div class="tray-rect"
+                                            :title="(filament.mappedMmsFilament && filament.mappedMmsFilament.filamentName) || ''">
+                                            <span v-html="getFilamentSvg(filament.mappedMmsFilament)">
+                                            </span>
+                                            <div class="tray-filament-type">{{ (filament.mappedMmsFilament &&
+                                                filament.mappedMmsFilament.filamentType)
+                                                ||
+                                                '?' }}
+                                            </div>
+                                            <span><img src="./img/down-arrow.svg" alt="" /></span>
+                                        </div>
+                                    </template>
+                                </el-popover>
+
+                                <!-- <div class="tray-filament-type">{{ filament.amsFilamentType || 'N/A' }}</div> -->
+
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="print-options-section" :class="{ hidden: !showPrintOptions }"
+                    v-if="curPrinter && (curPrinter.printCapabilities.supportsAutoBedLeveling || curPrinter.printCapabilities.supportsTimeLapse)">
+                    <div class="section-header">
+                        <h3 class="section-title">{{ $t('printSend.printOptions') }}</h3>
+                        <div class="section-separator"></div>
+                    </div>
+
+                    <div class="print-options-grid">
+                        <div class="toggle-item"
+                            v-show="curPrinter && curPrinter.printCapabilities.supportsAutoBedLeveling">
+                            <div class="toggle-label trans" tid="heated_bed_leveling">{{ $t('printSend.autoBedLeveling')
+                                }}</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="printInfo.heatedBedLeveling" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-item"
+                            v-show="curPrinter && curPrinter.printCapabilities.supportsTimeLapse && curPrinter.networkType===0">
+                            <div class="toggle-label trans" tid="time_lapse">{{
+                                $t('printSend.timelapse') }}</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="printInfo.timeLapse" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+            <div v-else class="print-task-content no-printer">
+                <img src="../img/printer-empty.png" width="224" />
+                <div>{{ $t("noPrinterConnected") }}</div>
+
+            </div>
+            <footer class="action-buttons">
+                <button class="btn btn-secondary trans" @click="cancel" tid="cancel">{{ $t('printSend.cancel')
+                    }}</button>
+                <button class="btn btn-primary trans" :disabled="!curPrinter" @click="upload" tid="upload">{{
+                    printInfo.uploadAndPrint ? $t('printSend.print') : $t('printSend.upload') }}</button>
+            </footer>
+        </div>
+    </div>
+    <script src="./printsend.js"></script>
+</body>
+
+</html>
