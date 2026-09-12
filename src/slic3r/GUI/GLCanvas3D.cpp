@@ -325,6 +325,11 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Keep min"));
+    ImGui::SameLine();
+    imgui.bbl_checkbox("##limit_max_layer_height", m_limit_max_layer_height);
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    imgui.text(_L("Limit to layer height"));
 
     ImGui::Separator();
 
@@ -649,7 +654,12 @@ void GLCanvas3D::LayersEditing::adjust_layer_height_profile()
 {
     this->update_slicing_parameters();
     PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile);
-    Slic3r::adjust_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile, this->last_z, this->strength, this->band_width, this->last_action);
+    //ORCA: Limit max layer height if requested
+    SlicingParameters params = *m_slicing_parameters;
+    if (m_limit_max_layer_height) {
+        params.max_layer_height = std::max(params.min_layer_height, params.layer_height);
+    }
+    Slic3r::adjust_layer_height_profile(*m_model_object, params, m_layer_height_profile, this->last_z, this->strength, this->band_width, this->last_action);
     m_layers_texture.valid = false;
 }
 
@@ -665,7 +675,12 @@ void GLCanvas3D::LayersEditing::reset_layer_height_profile(GLCanvas3D & canvas)
 void GLCanvas3D::LayersEditing::adaptive_layer_height_profile(GLCanvas3D & canvas, float quality_factor)
 {
     this->update_slicing_parameters();
-    m_layer_height_profile = layer_height_profile_adaptive(*m_slicing_parameters, *m_model_object, quality_factor);
+    //ORCA: Limit max layer height if requested
+    SlicingParameters params = *m_slicing_parameters;
+    if (m_limit_max_layer_height) {
+        params.max_layer_height = std::max(params.min_layer_height, params.layer_height);
+    }
+    m_layer_height_profile = layer_height_profile_adaptive(params, *m_model_object, quality_factor);
     const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
     m_layers_texture.valid = false;
     canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
@@ -675,7 +690,12 @@ void GLCanvas3D::LayersEditing::adaptive_layer_height_profile(GLCanvas3D & canva
 void GLCanvas3D::LayersEditing::smooth_layer_height_profile(GLCanvas3D & canvas, const HeightProfileSmoothingParams & smoothing_params)
 {
     this->update_slicing_parameters();
-    m_layer_height_profile = smooth_height_profile(m_layer_height_profile, *m_slicing_parameters, smoothing_params);
+    //ORCA: Limit max layer height if requested
+    SlicingParameters params = *m_slicing_parameters;
+    if (m_limit_max_layer_height) {
+        params.max_layer_height = std::max(params.min_layer_height, params.layer_height);
+    }
+    m_layer_height_profile = smooth_height_profile(m_layer_height_profile, params, smoothing_params);
     const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
     m_layers_texture.valid = false;
     canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
