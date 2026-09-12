@@ -96,6 +96,17 @@ public:
     // record a lift request, do realy lift in next travel
     std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
+    bool        has_pending_lift() const { return m_to_lift > 0.; }
+    // Orca: queue G-code to be emitted as soon as the queued lazy lift has been performed, i.e.
+    // right after the lift move and before the travel that follows it. Used by layer_change_gcode
+    // so that injected custom G-code runs with the nozzle raised above the layer just printed.
+    // Deferring the G-code rather than lifting early leaves the lift itself untouched: its type
+    // (normal/slope/spiral) and the "no lift when the travel does not move" optimization are
+    // unchanged. needs_clearance tells whether the G-code moves the toolhead: only then is the
+    // nozzle raised by take_gcode_after_lift() when that optimization skipped the lift.
+    void        queue_gcode_after_lift(std::string gcode, bool needs_clearance)
+                    { m_gcode_after_lift = std::move(gcode); m_gcode_after_lift_needs_clearance = needs_clearance; }
+    std::string take_gcode_after_lift(double skipped_lift = 0.);
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }
     void        set_position(const Vec3d& in) { m_pos = in; }
@@ -172,6 +183,9 @@ public:
     // BBS
     double          m_to_lift;
     LiftType        m_to_lift_type;
+    // Orca: G-code waiting for the queued lift to be performed, see queue_gcode_after_lift().
+    std::string     m_gcode_after_lift;
+    bool            m_gcode_after_lift_needs_clearance = false;
     Vec3d           m_pos = Vec3d::Zero();
     //BBS: this flag is used to indicate whether the m_pos is real.
     //A example that of the first move, the m_pos is zero, but the real position of extruder doesn't

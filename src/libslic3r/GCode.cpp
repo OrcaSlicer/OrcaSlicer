@@ -36,6 +36,7 @@
 #include <string>
 #include <utility>
 #include <string_view>
+#include <sstream>
 
 #include <regex>
 #include <boost/algorithm/string.hpp>
@@ -5440,6 +5441,41 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
 // In non-sequential mode, process_layer is called per each print_z height with all object and support layers accumulated.
 // For multi-material prints, this routine minimizes extruder switches by gathering extruder specific extrusion paths
 // and performing the extruder specific extrusions together.
+// Orca: does this custom G-code move the toolhead? Used to decide whether the layer change G-code
+// needs the nozzle raised in the corner cases where the queued Z lift ends up being skipped.
+// Anything not recognized as stationary counts as moving: a macro call (TIMELAPSE_TAKE_FRAME, ...)
+// is opaque here, and assuming it moves only costs a lift that a moving one would have needed
+// anyway, while assuming it does not would drag the nozzle across the layer just printed.
+static bool custom_gcode_moves_toolhead(const std::string &custom_gcode)
+{
+    std::istringstream lines(custom_gcode);
+    for (std::string line; std::getline(lines, line);) {
+        line.erase(0, line.find_first_not_of(" \t"));
+        line = line.substr(0, line.find(';'));
+        std::istringstream words(line);
+        std::string cmd;
+        if (!(words >> cmd))
+            continue; // blank or comment only
+        boost::to_upper(cmd);
+        std::string args;
+        std::getline(words, args);
+        boost::to_upper(args);
+        // Klipper setters and the G-codes that only change state, coordinates or timing
+        if (boost::starts_with(cmd, "SET_") || cmd == "G4" || cmd == "G21" || cmd == "G90" ||
+            cmd == "G91" || cmd == "G92")
+            continue;
+        // a linear move without a coordinate only changes the feedrate
+        if ((cmd == "G0" || cmd == "G1") && args.find_first_of("XYZ") == std::string::npos)
+            continue;
+        // M commands do not move, apart from the ones parking the toolhead or changing filament
+        if (cmd.size() > 1 && cmd.front() == 'M' && cmd.find_first_not_of("0123456789", 1) == std::string::npos &&
+            cmd != "M125" && cmd != "M401" && cmd != "M402" && cmd != "M600" && cmd != "M601")
+            continue;
+        return true;
+    }
+    return false;
+}
+
 LayerResult GCode::process_layer(
     const Print                    			&print,
     // Set of object & print layers of the same PrintObject and with the same print_z.
@@ -5629,9 +5665,21 @@ LayerResult GCode::process_layer(
         config.set_key_value("curr_accumulated_mass", new ConfigOptionFloat(curr_accumulated_mass));
         config.set_key_value("curr_layer_mass", new ConfigOptionFloat(curr_layer_mass));
 
-        gcode += this->placeholder_parser_process("layer_change_gcode",
+        std::string layer_change_gcode = this->placeholder_parser_process("layer_change_gcode",
             print.config().layer_change_gcode.value, m_writer.filament()->id(), &config)
             + "\n";
+        // Orca: change_layer() only queues the Z lift, it is performed by the first travel of the
+        // layer, i.e. after this G-code. Hand the G-code to the writer so it is emitted right after
+        // that lift instead, letting custom G-code that moves the toolhead (timelapse, nozzle
+        // cleaning, ...) run with the nozzle raised above the layer just printed. The lift itself
+        // stays lazy, so its type and the "no lift when the travel does not move" optimization are
+        // untouched. With no lift queued there is nothing to wait for and the G-code is emitted
+        // here, exactly as before.
+        if (m_writer.has_pending_lift()) {
+            const bool needs_clearance = custom_gcode_moves_toolhead(layer_change_gcode);
+            m_writer.queue_gcode_after_lift(std::move(layer_change_gcode), needs_clearance);
+        } else
+            gcode += layer_change_gcode;
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
     }
     //BBS: set layer time fan speed after layer change gcode
@@ -6967,6 +7015,10 @@ LayerResult GCode::process_layer(
 
         gcode += insert_timelapse_gcode();
     }
+
+    // Orca: nothing performed the queued lift during this layer (a layer without any travel), emit
+    // the deferred layer change G-code rather than carrying it over to the next layer.
+    gcode += m_writer.take_gcode_after_lift();
 
     result.gcode = std::move(gcode);
     result.cooling_buffer_flush = object_layer || raft_layer || last_layer;

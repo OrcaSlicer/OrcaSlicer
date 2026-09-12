@@ -796,6 +796,23 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
     return "";
 }
 
+std::string GCodeWriter::take_gcode_after_lift(double skipped_lift)
+{
+    if (m_gcode_after_lift.empty())
+        return "";
+    std::string gcode;
+    // Orca: the lift this G-code was waiting for was skipped, so the nozzle is still down at print
+    // height. Raise it here when the G-code moves the toolhead, it must not drag across the layer
+    // just printed. Setting m_lifted lets the usual restore bring the nozzle back down afterwards.
+    if (skipped_lift > 0. && m_gcode_after_lift_needs_clearance) {
+        m_lifted = skipped_lift;
+        gcode = this->_travel_to_z(m_pos(2) + skipped_lift, "normal lift Z");
+    }
+    gcode += m_gcode_after_lift;
+    m_gcode_after_lift.clear();
+    return gcode;
+}
+
 // BBS: immediately execute an undelayed lift move with a spiral lift pattern
 // designed specifically for subsequent gcode injection (e.g. timelapse) 
 std::string GCodeWriter::eager_lift(const LiftType type) {
@@ -832,8 +849,9 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
     }
     m_lifted = target_lift;
+    const double skipped_lift = target_lift > 0. ? 0. : m_to_lift;
     m_to_lift = 0;
-    return lift_move;
+    return lift_move + this->take_gcode_after_lift(skipped_lift);
 }
 
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &comment, bool force_z)
@@ -862,6 +880,9 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
             m_lifted = m_to_lift + m_pos(2) - point(2);
             dest_point(2) = m_to_lift + m_pos(2);
         }
+        // Orca: this travel does not move, so the lift above was skipped and the nozzle stays down
+        // at print height. Remember the skipped lift for G-code queued to run after it.
+        const double skipped_lift = (std::abs(m_lifted) < EPSILON && m_pos == dest_point) ? m_to_lift : 0.;
         m_to_lift = 0.;
 
         std::string slop_move;
@@ -928,7 +949,11 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         }
         m_pos = dest_point;
         this->set_current_position_clear(true);
-        return slop_move + xy_z_move;
+        // Orca: the queued lift has just been performed, so hand back the G-code waiting for it,
+        // right after the lift move and before the travel that follows it. When the lift could not
+        // be split off into a move of its own it is part of xy_z_move, so emit it after that.
+        const std::string gcode_after_lift = this->take_gcode_after_lift(skipped_lift);
+        return slop_move.empty() ? xy_z_move + gcode_after_lift : slop_move + gcode_after_lift + xy_z_move;
     }
     else if (!force_z && !this->will_move_z(point(2))) {
         double nominal_z = m_pos(2) - m_lifted;
@@ -1250,7 +1275,10 @@ std::string GCodeWriter::unretract(float extra_retract)
 
 std::string GCodeWriter::unlift()
 {
-    std::string gcode;
+    // Orca: the queued lift is dropped here, so hand back the G-code waiting for it rather than
+    // carrying it over to a later lift. It goes before the z-hop is restored, and raises the nozzle
+    // by the dropped lift itself if it needs the clearance, since that lift never happened.
+    std::string gcode = this->take_gcode_after_lift(m_lifted > 0 ? 0. : m_to_lift);
     if (m_lifted > 0) {
         gcode += this->_travel_to_z(m_pos(2) - m_lifted, "restore layer Z");
         m_lifted = 0;
