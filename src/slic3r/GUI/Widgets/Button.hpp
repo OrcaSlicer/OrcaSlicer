@@ -56,6 +56,8 @@ public:
 
     Button(wxWindow* parent, wxString text, wxString icon = "", long style = 0, int iconSize = 0, wxWindowID btn_id = wxID_ANY);
 
+    ~Button();
+
     bool Create(wxWindow* parent, wxString text, wxString icon = "", long style = 0, int iconSize = 0, wxWindowID btn_id = wxID_ANY);
 
     void SetLabel(const wxString& label) override;
@@ -92,6 +94,13 @@ public:
 
     void SetCanFocus(bool canFocus) override;
 
+    // Give this button the keyboard focus when the dialog that contains it becomes visible.
+    // A SetFocus() call made from a dialog constructor does not survive, because the dialog is
+    // still hidden and every platform assigns the initial focus on its own when the dialog
+    // appears. The request is therefore replayed on wxEVT_SHOW. It is dropped when a text field
+    // of the same dialog holds the focus at that moment, so input dialogs keep their caret.
+    void SetFocusOnShow();
+
     void SetValue(bool state);
 
     bool GetValue() const;
@@ -110,6 +119,14 @@ protected:
     bool AcceptsFocus() const override;
 
 private:
+    void onTopWindowShow(wxShowEvent& event);
+    void applyFocusOnShow();
+    // Drop the pending focus request of every button below parent, except keep.
+    static void cancelPendingFocus(wxWindow* parent, const Button* keep);
+
+    // Top level window this button waits for, or nullptr when it waits for none.
+    wxWindow* m_focus_on_show_parent = nullptr;
+
     bool m_has_style = false;
     ButtonStyle m_style;
     ButtonType m_type;

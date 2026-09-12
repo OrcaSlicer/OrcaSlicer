@@ -1,7 +1,10 @@
 #include "Button.hpp"
 #include "Label.hpp"
+#include "SpinInput.hpp"
+#include "TextInput.hpp"
 
 #include <wx/dcgraph.h>
+#include <wx/textentry.h>
 #include <wx/tipwin.h>
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
@@ -43,6 +46,12 @@ Button::Button(wxWindow* parent, wxString text, wxString icon, long style, int i
     : Button()
 {
     Create(parent, text, icon, style, iconSize, btn_id);
+}
+
+Button::~Button()
+{
+    if (m_focus_on_show_parent != nullptr)
+        m_focus_on_show_parent->Unbind(wxEVT_SHOW, &Button::onTopWindowShow, this);
 }
 
 bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, int iconSize, wxWindowID btn_id)
@@ -484,6 +493,72 @@ void Button::keyDownUp(wxKeyEvent &event)
         HandleAsNavigationKey(event);
     else
         event.Skip();
+}
+
+void Button::SetFocusOnShow()
+{
+    wxWindow* top_window = wxGetTopLevelParent(this);
+    if (top_window == nullptr)
+        return;
+
+    // A dialog may ask several of its buttons for the initial focus. The last request wins
+    cancelPendingFocus(top_window, this);
+
+    if (top_window->IsShown()) {
+        applyFocusOnShow();
+        return;
+    }
+
+    if (m_focus_on_show_parent == nullptr) {
+        m_focus_on_show_parent = top_window;
+        top_window->Bind(wxEVT_SHOW, &Button::onTopWindowShow, this);
+    }
+}
+
+void Button::cancelPendingFocus(wxWindow* parent, const Button* keep)
+{
+    for (wxWindow* child : parent->GetChildren()) {
+        if (Button* button = dynamic_cast<Button*>(child);
+            button != nullptr && button != keep && button->m_focus_on_show_parent != nullptr) {
+            button->m_focus_on_show_parent->Unbind(wxEVT_SHOW, &Button::onTopWindowShow, button);
+            button->m_focus_on_show_parent = nullptr;
+        }
+        cancelPendingFocus(child, keep);
+    }
+}
+
+void Button::onTopWindowShow(wxShowEvent& event)
+{
+    event.Skip();
+    if (!event.IsShown())
+        return;
+
+    // The binding is kept, because a dialog can be built once and shown many times.
+    // The platform gives the dialog its own initial focus while the dialog appears, so this
+    // request must run after that, when the event loop is idle again.
+    CallAfter(&Button::applyFocusOnShow);
+}
+
+void Button::applyFocusOnShow()
+{
+    if (!AcceptsFocus() || !IsShownOnScreen())
+        return;
+
+    const wxWindow* top_window = wxGetTopLevelParent(this);
+    wxWindow*       focused    = wxWindow::FindFocus();
+    // FindFocus() is global, so a window of another dialog or of the main frame does not count.
+    if (focused != nullptr && wxGetTopLevelParent(focused) == top_window) {
+        // Walk up from the focused window to the dialog. Leave the focus alone when it already
+        // belongs to this button, or to a control that the user types into. ComboBox derives
+        // from TextInput, so both are covered by the TextInput test.
+        for (; focused != nullptr && focused != top_window; focused = focused->GetParent()) {
+            if (focused == this || dynamic_cast<wxTextEntry*>(focused) != nullptr ||
+                dynamic_cast<TextInput*>(focused) != nullptr || dynamic_cast<SpinInput*>(focused) != nullptr)
+                return;
+        }
+    }
+
+    SetFocus();
 }
 
 void Button::sendButtonEvent()
