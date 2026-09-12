@@ -7,6 +7,10 @@
 		{
 			"name": "E3NG v1.2S",
 			"sub_path": "machine/E3NG v1.2S.json"
+		},
+		{
+			"name": "VIRTU E3",
+			"sub_path": "machine/VIRTU E3.json"
 		}
 	],
 	"machine_list": [
@@ -17,6 +21,10 @@
 		{
 			"name": "fdm_common_E3NG v1.2S",
 			"sub_path": "machine/fdm_common_E3NG v1.2S.json"
+		},
+		{
+			"name": "fdm_common_VIRTU E3",
+			"sub_path": "machine/fdm_common_VIRTU E3.json"
 		},
 		{
 			"name": "E3NG v1.2S - 0.2 nozzle",
@@ -37,6 +45,26 @@
 		{
 			"name": "E3NG v1.2S - 0.6 nozzle",
 			"sub_path": "machine/E3NG v1.2S - 0.6 nozzle.json"
+		},
+		{
+			"name": "VIRTU E3 - 0.2 nozzle",
+			"sub_path": "machine/VIRTU E3 - 0.2 nozzle.json"
+		},
+		{
+			"name": "VIRTU E3 - 0.3 nozzle",
+			"sub_path": "machine/VIRTU E3 - 0.3 nozzle.json"
+		},
+		{
+			"name": "VIRTU E3 - 0.4 nozzle",
+			"sub_path": "machine/VIRTU E3 - 0.4 nozzle.json"
+		},
+		{
+			"name": "VIRTU E3 - 0.5 nozzle",
+			"sub_path": "machine/VIRTU E3 - 0.5 nozzle.json"
+		},
+		{
+			"name": "VIRTU E3 - 0.6 nozzle",
+			"sub_path": "machine/VIRTU E3 - 0.6 nozzle.json"
 		}
 	],
 	"process_list": [
@@ -45,36 +73,124 @@
 			"sub_path": "process/fdm_process_common.json"
 		},
 		{
-			"name": "process_common_E3NG v1.2S",
-			"sub_path": "process/process_common_E3NG v1.2S.json"
+			"name": "process_Slow_E3NG v1.2S",
+			"sub_path": "process/process_Slow_E3NG v1.2S.json"
+		},
+		{
+			"name": "process_Standard_E3NG v1.2S",
+			"sub_path": "process/process_Standard_E3NG v1.2S.json"
+		},
+		{
+			"name": "process_Fast_E3NG v1.2S",
+			"sub_path": "process/process_Fast_E3NG v1.2S.json"
+		},
+		{
+			"name": "process_Slow_VIRTU E3",
+			"sub_path": "process/process_Slow_VIRTU E3.json"
+		},
+		{
+			"name": "process_Standard_VIRTU E3",
+			"sub_path": "process/process_Standard_VIRTU E3.json"
+		},
+		{
+			"name": "process_Fast_VIRTU E3",
+			"sub_path": "process/process_Fast_VIRTU E3.json"
+		},
+		{
+			"name": "0.10mm Fast @E3NG v1.2S",
+			"sub_path": "process/0.10mm Fast @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.10mm Fast @VIRTU E3",
+			"sub_path": "process/0.10mm Fast @VIRTU E3.json"
+		},
+		{
+			"name": "0.10mm Slow @E3NG v1.2S",
+			"sub_path": "process/0.10mm Slow @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.10mm Slow @VIRTU E3",
+			"sub_path": "process/0.10mm Slow @VIRTU E3.json"
 		},
 		{
 			"name": "0.10mm Standard @E3NG v1.2S",
 			"sub_path": "process/0.10mm Standard @E3NG v1.2S.json"
 		},
 		{
+			"name": "0.10mm Standard @VIRTU E3",
+			"sub_path": "process/0.10mm Standard @VIRTU E3.json"
+		},
+		{
+			"name": "0.15mm Fast @E3NG v1.2S",
+			"sub_path": "process/0.15mm Fast @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.15mm Fast @VIRTU E3",
+			"sub_path": "process/0.15mm Fast @VIRTU E3.json"
+		},
+		{
+			"name": "0.15mm Slow @E3NG v1.2S",
+			"sub_path": "process/0.15mm Slow @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.15mm Slow @VIRTU E3",
+			"sub_path": "process/0.15mm Slow @VIRTU E3.json"
+		},
+		{
 			"name": "0.15mm Standard @E3NG v1.2S",
 			"sub_path": "process/0.15mm Standard @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.15mm Standard @VIRTU E3",
+			"sub_path": "process/0.15mm Standard @VIRTU E3.json"
 		},
 		{
 			"name": "0.20mm Fast @E3NG v1.2S",
 			"sub_path": "process/0.20mm Fast @E3NG v1.2S.json"
 		},
 		{
+			"name": "0.20mm Fast @VIRTU E3",
+			"sub_path": "process/0.20mm Fast @VIRTU E3.json"
+		},
+		{
 			"name": "0.20mm Slow @E3NG v1.2S",
 			"sub_path": "process/0.20mm Slow @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.20mm Slow @VIRTU E3",
+			"sub_path": "process/0.20mm Slow @VIRTU E3.json"
 		},
 		{
 			"name": "0.20mm Standard @E3NG v1.2S",
 			"sub_path": "process/0.20mm Standard @E3NG v1.2S.json"
 		},
 		{
+			"name": "0.20mm Standard @VIRTU E3",
+			"sub_path": "process/0.20mm Standard @VIRTU E3.json"
+		},
+		{
 			"name": "0.25mm Fast @E3NG v1.2S",
 			"sub_path": "process/0.25mm Fast @E3NG v1.2S.json"
 		},
 		{
+			"name": "0.25mm Fast @VIRTU E3",
+			"sub_path": "process/0.25mm Fast @VIRTU E3.json"
+		},
+		{
+			"name": "0.25mm Slow @E3NG v1.2S",
+			"sub_path": "process/0.25mm Slow @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.25mm Slow @VIRTU E3",
+			"sub_path": "process/0.25mm Slow @VIRTU E3.json"
+		},
+		{
 			"name": "0.25mm Standard @E3NG v1.2S",
 			"sub_path": "process/0.25mm Standard @E3NG v1.2S.json"
+		},
+		{
+			"name": "0.25mm Standard @VIRTU E3",
+			"sub_path": "process/0.25mm Standard @VIRTU E3.json"
 		}
 	],
 	"filament_list": [
@@ -129,6 +245,30 @@
 		{
 			"name": "Generic TPU @E3NG v1.2S",
 			"sub_path": "filament/Generic TPU @E3NG v1.2S.json"
+		},
+		{
+			"name": "Generic ABS @VIRTU E3",
+			"sub_path": "filament/Generic ABS @VIRTU E3.json"
+		},
+		{
+			"name": "Generic ASA @VIRTU E3",
+			"sub_path": "filament/Generic ASA @VIRTU E3.json"
+		},
+		{
+			"name": "Generic PCCF @VIRTU E3",
+			"sub_path": "filament/Generic PCCF @VIRTU E3.json"
+		},
+		{
+			"name": "Generic PETG @VIRTU E3",
+			"sub_path": "filament/Generic PETG @VIRTU E3.json"
+		},
+		{
+			"name": "Generic PLA @VIRTU E3",
+			"sub_path": "filament/Generic PLA @VIRTU E3.json"
+		},
+		{
+			"name": "Generic TPU @VIRTU E3",
+			"sub_path": "filament/Generic TPU @VIRTU E3.json"
 		}
 	]
 }
