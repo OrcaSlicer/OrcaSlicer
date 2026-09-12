@@ -15,16 +15,16 @@
 		"1"
 	],
 	"cool_plate_temp": [
-		"105"
+		"100"
 	],
 	"cool_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"fan_cooling_layer_time": [
 		"12"
@@ -51,10 +51,10 @@
 		"Polymaker"
 	],
 	"hot_plate_temp": [
-		"105"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"nozzle_temperature": [
 		"300"
@@ -81,10 +81,10 @@
 		"110"
 	],
 	"textured_plate_temp": [
-		"105"
+		"100"
 	],
 	"textured_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"filament_type": [
 		"ABS"

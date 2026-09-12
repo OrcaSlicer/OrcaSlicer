@@ -15,13 +15,13 @@
 		"1"
 	],
 	"cool_plate_temp": [
-		"105"
+		"100"
 	],
 	"cool_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp_initial_layer": [
 		"100"
@@ -48,7 +48,7 @@
 		"Polymaker"
 	],
 	"hot_plate_temp": [
-		"105"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
 		"100"
@@ -72,7 +72,7 @@
 		"110.8"
 	],
 	"textured_plate_temp": [
-		"105"
+		"100"
 	],
 	"textured_plate_temp_initial_layer": [
 		"100"
