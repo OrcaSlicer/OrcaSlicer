@@ -6,6 +6,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "WebViewDialog.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "libslic3r/Color.hpp"

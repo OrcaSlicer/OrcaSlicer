@@ -1,4 +1,5 @@
 #include "ExportPresetBundleDialog.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_App.hpp"
 #include "ConfigWizard.hpp"
 #include "I18N.hpp"
@@ -12,7 +13,11 @@
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include <miniz.h>
+#include <nlohmann/json.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+
+using json = nlohmann::json;
+
 namespace Slic3r { namespace GUI {
 
 ExportPresetBundleDialog::ExportPresetBundleDialog(

@@ -30,25 +30,47 @@ if (APPLE)
     target_link_libraries(test_common INTERFACE "-liconv -framework IOKit" "-framework CoreFoundation" -lc++)
 endif()
 
-# Copies runtime DLLs next to each test executable. Handles both single-config
-# generators (CMAKE_BUILD_TYPE set) and multi-config generators (Ninja
-# Multi-Config, Visual Studio) where CMAKE_BUILD_TYPE is empty and DLLs must
-# land in every per-config output directory.
+# Copies runtime shared libraries next to each test executable. Handles both
+# single-config generators (CMAKE_BUILD_TYPE set) and multi-config generators
+# (Ninja Multi-Config, Visual Studio) where CMAKE_BUILD_TYPE is empty and DLLs
+# must land in every per-config output directory. On Windows the loader finds
+# DLLs in the executable's directory; the Linux branch below does the same for
+# the deps-built FFmpeg libraries and adds an $ORIGIN rpath, since the ELF
+# loader does not search the executable's directory and the CI unit-test runner
+# only receives the tests artifact (no deps install).
 function(orcaslicer_copy_test_dlls)
-    if (NOT WIN32)
-        return()
-    endif()
-    set(_configs ${CMAKE_CONFIGURATION_TYPES})
-    if (NOT _configs)
-        set(_configs "${CMAKE_BUILD_TYPE}")
-    endif()
-    foreach(_cfg IN LISTS _configs)
-        if (_cfg STREQUAL "Debug")
-            orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" _unused_dlls)
-        else()
-            orcaslicer_copy_dlls(COPY_DLLS "${_cfg}" "" _unused_dlls)
+    if (WIN32)
+        set(_configs ${CMAKE_CONFIGURATION_TYPES})
+        if (NOT _configs)
+            set(_configs "${CMAKE_BUILD_TYPE}")
         endif()
-    endforeach()
+        foreach(_cfg IN LISTS _configs)
+            if (_cfg STREQUAL "Debug")
+                orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" _unused_dlls)
+            else()
+                orcaslicer_copy_dlls(COPY_DLLS "${_cfg}" "" _unused_dlls)
+            endif()
+        endforeach()
+    elseif (UNIX AND NOT APPLE)
+        # Only test executables that link libslic3r_gui pull in the FFmpeg
+        # shared libraries (src/slic3r/CMakeLists.txt links PkgConfig::LIBAV
+        # into it). Copy them next to the executable and give it an $ORIGIN
+        # rpath so the loader finds them when the tests run on the CI unit-test
+        # runner, which only receives this build/tests tree.
+        get_target_property(_linked_libs ${_TEST_NAME}_tests LINK_LIBRARIES)
+        if (NOT "libslic3r_gui" IN_LIST _linked_libs)
+            return()
+        endif()
+
+        set_property(TARGET ${_TEST_NAME}_tests PROPERTY BUILD_RPATH "$ORIGIN")
+        set(_configs ${CMAKE_CONFIGURATION_TYPES})
+        if (NOT _configs)
+            set(_configs "${CMAKE_BUILD_TYPE}")
+        endif()
+        foreach(_cfg IN LISTS _configs)
+            orcaslicer_copy_sos(${_TEST_NAME}_tests "${_cfg}" "" _unused_sos)
+        endforeach()
+    endif()
 endfunction()
 
 # Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag.

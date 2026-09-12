@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @OrcaArena",
+	"inherits": "Generic PVA @OrcaArena base",
+	"renamed_from": "OrcaArena Generic PVA",
+	"from": "system",
+	"setting_id": "S9TMm0n7t54fKHoM",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

@@ -125,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Blocks Generic PLA"
+		"Generic PLA @Blocks"
 	],
 	"bed_exclude_area": [
 		"0x0"

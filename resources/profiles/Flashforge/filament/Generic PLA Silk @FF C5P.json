@@ -56,7 +56,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"nozzle_temperature": [
 		"230"

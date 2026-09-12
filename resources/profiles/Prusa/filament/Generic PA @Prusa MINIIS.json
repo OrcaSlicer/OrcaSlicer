@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "Generic PA @Prusa MINIIS",
+	"inherits": "Generic PA @Prusa base",
+	"renamed_from": "Prusa Generic PA @MINIIS;Prusa Generic PA MINIIS",
+	"from": "system",
+	"setting_id": "06VxUw37OfEzaSka",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.19"
+	],
+	"compatible_printers": [
+		"Prusa MINIIS 0.4 nozzle"
+	]
+}

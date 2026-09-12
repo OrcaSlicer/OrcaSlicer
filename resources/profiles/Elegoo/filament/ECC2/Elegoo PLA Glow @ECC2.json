@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Glow @ECC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Glow @base",
 	"from": "system",
 	"setting_id": "S6c2IXcIWDpViP2T",
 	"instantiation": "true",

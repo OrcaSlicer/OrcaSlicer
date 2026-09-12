@@ -239,7 +239,7 @@ void GizmoObjectManipulation::update_if_dirty()
     };
 
     for (int i = 0; i < 3; ++ i) {
-        auto update = [this, i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
+        auto update = [i](Vec3d &cached, Vec3d &cached_rounded,  const Vec3d &new_value) {
 			//wxString new_text = double_to_string(new_value(i), 2);
 			double new_rounded = round(new_value(i)*100)/100.0;
 			//new_text.ToDouble(&new_rounded);
@@ -702,7 +702,7 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bo
 
      for (int i = 0; i < number; i++)
      {
-         char buf[3][64] = {0};
+         char buf[3][64] = {};
          float buf_size[3] = {0};
          for (int j = 0; j < 3; j++) {
              ImGui::DataTypeFormatString(buf[j], IM_ARRAYSIZE(buf[j]), ImGuiDataType_Double, (void *) &vec[i][j], "%.2f");

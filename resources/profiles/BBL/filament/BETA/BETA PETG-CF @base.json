@@ -3,7 +3,7 @@
 	"name": "BETA PETG-CF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "BPGB12",
+	"filament_id": "OFtndTHe",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

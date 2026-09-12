@@ -108,7 +108,7 @@
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "M601",
 	"default_filament_profile": [
-		"Anycubic Generic PLA"
+		"Generic PLA @Anycubic"
 	],
 	"machine_start_gcode": "G21 ;metric values\nG90 ;absolute positioning\nM82 ;set extruder to absolute mode\nM107 ;start with the fan off\nG28 X0 Y0 ;move X/Y to min endstops\nG28 Z0 ;move Z to min endstops\nG0 Z0.2 F1800 ; move nozzle to print position\nG92 E0 ; specify current extruder position as zero\nG1 Y10 X180 E50 F1200 ; extrude a line in front of the printer\nG92 E0 ; specify current extruder position as zero\nG0 Z20 F6000 ; move head up\nG1 E-7 F2400 ; retract\nG04 S2 ; wait 2s\nG0 X0 F6000 ; wipe from oozed filament\nG1 E-1 F2400 ; undo some of the retraction to avoid oozing\nG1 F6000 ; set travel speed to move to start printing point\nM117",
 	"machine_end_gcode": "G4 ; wait\nG92 E0\nG1{if max_layer_z < printable_height} Z{z_offset+min(max_layer_z+30, printable_height)}{endif} ; move print head up\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y200 F3000 ; home X axis\nM84 ; disable motors",

@@ -3,7 +3,7 @@
 	"name": "Fiberon PA612-CF15 @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFL59",
+	"filament_id": "OFcBl0nJ",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

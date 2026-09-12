@@ -532,7 +532,7 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
                     const float mm3_per_mm = curr_move.mm3_per_mm;
-                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float fan_speed = curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
                         block.move_id,
@@ -563,7 +563,7 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
                     const float mm3_per_mm = curr_move.mm3_per_mm;
-                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float fan_speed = curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
                         block.move_id,
@@ -1273,7 +1273,7 @@ void GCodeProcessor::run_post_process()
     // add lines M73 to exported gcode
     auto process_line_move = [
         // Lambdas, mostly for string formatting, all with an empty capture block.
-        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,format_line_exhaust_fan_control,
+        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,
         &self = std::as_const(m_time_processor),
         // Caches, to be modified
         &g1_times_cache_it, &last_exported_main, &last_exported_stop,
@@ -1468,9 +1468,11 @@ void GCodeProcessor::run_post_process()
 
     // Append a per-filament usage block at a filament change.
     auto handle_filament_change = [&](int filament_id, int cur_line_id, int nozzle_id) {
-        // skip filament changes emitted inside the machine start / end gcode
-        if (m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id ||
-            m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id)
+        // Skip filament changes emitted inside the machine start / end gcode. One forward pass assigns
+        // the tag ids and tests them in the same loop, so inside the start gcode the end tag is unseen
+        // and the id still holds the sentinel. That is why the first clause tests == and the second !=.
+        if ((m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id) ||
+            (m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id))
             return;
         if (!m_filament_blocks.empty())
             m_filament_blocks.back().upper_gcode_id = cur_line_id;
@@ -2777,7 +2779,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     std::map<int, std::map<int, GCodePosInfo>> gcode_path_pos; // object_id, filament_id, pos
     for (const GCodeProcessorResult::MoveVertex &move : m_result.moves) {
         // sometimes, the start line extrude was outside the edge of plate a little, this is allowed, so do not include into the gcode_path_pos
-        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/)
+        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/) {
             if (move.extrusion_role == ExtrusionRole::erCustom) {
                 /*if (move.is_arc_move_with_interpolation_points()) {
                     for (int i = 0; i < move.interpolation_points.size(); i++) {
@@ -2799,6 +2801,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z = std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z,
                                                                                                    move.print_z);
             }
+        }
     }
 
     bool valid = true;
@@ -5304,7 +5307,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
     float filament_radius = 0.5f * filament_diameter;
     float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
 
-    auto absolute_position = [this, area_filament_cross_section](Axis axis, const GCodeReader::GCodeLine& lineG1) {
+    auto absolute_position = [this](Axis axis, const GCodeReader::GCodeLine& lineG1) {
         bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
         if (axis == E)
             is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
@@ -5755,7 +5758,7 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
     if (travel_length < 0.001)
         return;
 
-    auto adjust_target = [this, area_filament_cross_section](const AxisCoords& target, const AxisCoords& prev_position) {
+    auto adjust_target = [this](const AxisCoords& target, const AxisCoords& prev_position) {
         AxisCoords ret = target;
         if (m_global_positioning_type == EPositioningType::Relative) {
             for (unsigned char a = X; a <= E; ++a) {
@@ -7006,7 +7009,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
                                                                     get_acceleration(normal_mode));
     const float junction_deviation = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, normal_mode_id);
     const bool use_jd_jerk = (m_flavor == gcfMarlinFirmware && junction_deviation > 0.0f);
-    const auto axis_jerk_for_preview = [this, normal_mode, use_jd_jerk, move_acceleration](Axis axis) {
+    const auto axis_jerk_for_preview = [this, use_jd_jerk, move_acceleration](Axis axis) {
         return use_jd_jerk ? get_axis_max_jerk_with_jd(normal_mode, axis, move_acceleration) : get_axis_max_jerk(normal_mode, axis);
     };
     const float jerk_x = axis_jerk_for_preview(X);

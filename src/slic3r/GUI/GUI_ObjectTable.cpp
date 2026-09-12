@@ -2578,7 +2578,7 @@ void ObjectGridTable::OnSelectCell(int row, int col)
         return;
     m_panel->m_side_window->Freeze();
     if (row == 0 || col == col_filaments) {
-        m_panel->m_object_settings->UpdateAndShow(row, false, false, false, nullptr, nullptr, std::string());
+        m_panel->m_object_settings->UpdateAndShowRow(row, false, false, false, nullptr, nullptr, std::string());
     }
     else {
         ObjectGridRow* grid_row = m_grid_data[row - 1];
@@ -2588,7 +2588,7 @@ void ObjectGridTable::OnSelectCell(int row, int col)
 
         //m_panel->m_object_settings->get_og()->set_name(GUI::from_u8(grid_row->name.value));
         //m_panel->m_page_text->SetLabel(GUI::from_u8(grid_row->name.value));
-        m_panel->m_object_settings->UpdateAndShow(row, true, is_object, false, object, grid_row->config, grid_col->category);
+        m_panel->m_object_settings->UpdateAndShowRow(row, true, is_object, false, object, grid_row->config, grid_col->category);
 
         std::vector<ObjectVolumeID> object_volume_ids;
         ObjectVolumeID object_volume_id;
@@ -3520,13 +3520,13 @@ void GridCellTextEditor::BeginEdit(int row, int col, wxGrid *grid)
     Text()->GetTextCtrl()->SetInsertionPointEnd();
     
 
-    m_control->Bind(wxEVT_TEXT_ENTER, [this, row, col, grid](wxCommandEvent &e) {
+    m_control->Bind(wxEVT_TEXT_ENTER, [grid](wxCommandEvent &e) {
         grid->HideCellEditControl();
         grid->SaveEditControlValue();
         e.Skip();
     });
 
-    m_control->Bind(wxEVT_CHAR_HOOK, [this, row, col, grid](wxKeyEvent &e) {
+    m_control->Bind(wxEVT_CHAR_HOOK, [grid](wxKeyEvent &e) {
 		if (e.GetKeyCode() == WXK_ESCAPE) {
             grid->HideCellEditControl();
             grid->SaveEditControlValue();

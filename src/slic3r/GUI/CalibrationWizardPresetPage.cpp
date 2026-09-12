@@ -1,5 +1,7 @@
 #include <regex>
 #include "CalibrationWizardPresetPage.hpp"
+#include "GUI.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
@@ -360,7 +362,7 @@ void CaliPresetCustomRangePanel::create_panel(wxWindow* parent)
                 int max_decimal_length;
                 if (i <= 1)
                     max_decimal_length = 3;
-                else if (i >= 2)
+                else
                     max_decimal_length = 4;
                 if (decimal_number > max_decimal_length) {
                     int allowed_length = number.length() - decimal_number + max_decimal_length;
