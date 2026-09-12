@@ -35,7 +35,7 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
     const PrintObject       &print_object   = *this->layer()->object();
     Flow bridge_flow;
     // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will fall back to zero'th element, so everything is all right.
-    auto nozzle_diameter = float(print_object.print()->config().nozzle_diameter.get_at(region.extruder(role) - 1));
+    auto nozzle_diameter = float(nozzle_diameter_for_filament(print_object.print()->config(), region.extruder(role), print_object.print()->is_BBL_printer()));
     const ConfigOptionFloatOrPercent& bridge_width_opt = region_config.bridge_line_width;
     const double                      bridge_width      = bridge_width_opt.get_abs_value(nozzle_diameter);
     const bool                        has_bridge_width  = bridge_width > 0.;

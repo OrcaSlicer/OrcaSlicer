@@ -2480,6 +2480,8 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
+double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
 } // namespace Slic3r
 
 // Serialization through the Cereal library
