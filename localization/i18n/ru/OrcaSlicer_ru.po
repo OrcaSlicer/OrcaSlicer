@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -2431,13 +2431,6 @@ msgstr "Доступно обновление. Проверьте меню па�
 msgid "%s has been removed."
 msgstr "%s был удалён."
 
-
-msgid "Select the language"
-msgstr "Выбор языка"
-
-msgid "Language"
-msgstr "Язык"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "Не удалось переключить язык на %s."
@@ -2468,6 +2461,19 @@ msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Не удалось открыть меню плагинов (неизвестная ошибка)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 msgid "Plugin Terminal"
 msgstr "Консоль плагина"
@@ -4578,6 +4584,12 @@ msgstr ""
 "Сообщение об ошибке: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Не удалось скопировать временный G-код в целевое расположение. Возможно, проблема с устройством хранения, попробуйте выполнить экспорт снова или использовать другое устройство. Повреждённый выходной файл G-кода находится в %1%.tmp."
 
@@ -5362,17 +5374,14 @@ msgstr "Недопустимый формат. Ожидаемый векторн
 msgid "System agents"
 msgstr "Системные агенты"
 
-msgid "No plugin selected"
-msgstr "Плагины не выбраны"
-
 msgid "Add plugin"
 msgstr "Добавить плагин"
 
-msgid "Select plugin"
-msgstr "Выбрать плагин"
-
 msgid "Remove plugin"
 msgstr "Удалить плагин"
+
+msgid "No plugin selected"
+msgstr "Плагины не выбраны"
 
 msgid "Configure"
 msgstr "Настроить"
@@ -6554,6 +6563,9 @@ msgstr "Отображение контура вокруг выбранных м
 msgid "Preferences"
 msgstr "Настройки"
 
+msgid "Open speed dial..."
+msgstr ""
+
 msgctxt "Menu"
 msgid "Edit"
 msgstr "Правка"
@@ -7661,6 +7673,12 @@ msgstr "Сверху"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Снизу"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 msgid "Plugin Selection"
 msgstr "Выбор плагинов"
@@ -8846,7 +8864,6 @@ msgstr "Хотите продолжить?"
 msgid "Language selection"
 msgstr "Выбор языка"
 
-
 msgid "Asia-Pacific"
 msgstr "Азиатско-Тихоокеанский"
 
@@ -8951,6 +8968,9 @@ msgstr "Расположение: "
 
 msgid "General"
 msgstr "Общие"
+
+msgid "Language"
+msgstr "Язык"
 
 msgid "Metric"
 msgstr "Метрическая СИ"
@@ -9154,6 +9174,21 @@ msgstr "Управление несколькими устройствами Bam
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Если включено, вы сможете управлять несколькими устройствами и отправлять задания на печать на несколько устройств одновременно."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 # Запрашивать выбор режима группировки?
 msgid "Pop up to select filament grouping mode"
@@ -9874,6 +9909,9 @@ msgstr "Копирует в этот профиль все значения, у�
 
 msgid "Detach from parent"
 msgstr "Сделать независимым"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11776,6 +11814,16 @@ msgstr "Показать/скрыть диалоговое окно настро
 msgid "Switch table page"
 msgstr "Переключение между вкладками"
 
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Пробел"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Показать список сочетаний клавиш"
 
@@ -11931,13 +11979,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Переключение между подготовкой и просмотром нарезки"
-
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Пробел"
-
-msgid "Open actions speed dial"
-msgstr "Открыть строку быстрых действий"
 
 # Plater – это название библиотеки. Используется в меню горячих клавиш в качестве заголовка сочетаний клавиш, которые работают внутри пространства Plater. Как минимум на Windows не отображается. 
 msgid "Plater"
@@ -12203,14 +12244,20 @@ msgstr "Восстановление отменено"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Не удалось скопировать файл %1% в %2%: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Перед обновлением профилей необходимо проверить несохранённые изменения."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Пакет профилей: "
 
 msgid " updated to "
 msgstr " обновлён до "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Перед обновлением профилей необходимо проверить несохранённые изменения."
 
 msgid "Open G-code file:"
 msgstr "Выберите G-код файл:"
@@ -13846,6 +13893,9 @@ msgstr "Ровный зигзаг"
 msgid "Concentric"
 msgstr "Эквидистанты"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Кривая Гильберта"
 
@@ -13940,27 +13990,19 @@ msgid "Top surface fill order"
 msgstr "Направление печати"
 
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление печати спирали/эквидистант на верхних поверхностях. Позволяет управляемо распределять избыток материала.\n"
-"• По умолчанию: использовать кратчайший путь.\n"
-"• Наружу: от центра шаблона к краю модели.\n"
-"• Внутрь: от края модели к центру шаблона."
 
 msgid "Bottom surface fill order"
 msgstr "Направление печати"
 
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление печати спирали/эквидистант на нижних поверхностях. Позволяет управляемо распределять избыток материала.\n"
-"• По умолчанию: использовать кратчайший путь.\n"
-"• Наружу: от центра шаблона к краю модели.\n"
-"• Внутрь: от края модели к центру шаблона."
 
 msgid "Internal solid infill pattern"
 msgstr "Шаблон сплошного заполнения"
@@ -22296,6 +22338,35 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "Select plugin"
+#~ msgstr "Выбрать плагин"
+
+#~ msgid "Select the language"
+#~ msgstr "Выбор языка"
+
+#~ msgid "Open actions speed dial"
+#~ msgstr "Открыть строку быстрых действий"
+
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Направление печати спирали/эквидистант на верхних поверхностях. Позволяет управляемо распределять избыток материала.\n"
+#~ "• По умолчанию: использовать кратчайший путь.\n"
+#~ "• Наружу: от центра шаблона к краю модели.\n"
+#~ "• Внутрь: от края модели к центру шаблона."
+
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Направление печати спирали/эквидистант на нижних поверхностях. Позволяет управляемо распределять избыток материала.\n"
+#~ "• По умолчанию: использовать кратчайший путь.\n"
+#~ "• Наружу: от центра шаблона к краю модели.\n"
+#~ "• Внутрь: от края модели к центру шаблона."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Для нативного отображения трансляции в Wayland требуется gtksink (плагин для GStreamer). Установите необходимый пакет плагинов и перезапустите OrcaSlicer."

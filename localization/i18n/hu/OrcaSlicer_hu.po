@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2460,13 +2460,6 @@ msgstr "Frissítés érhető el. Nyisd meg a beállításcsomag párbeszédablak
 msgid "%s has been removed."
 msgstr "%s eltávolítva."
 
-
-msgid "Select the language"
-msgstr "Válaszd ki a nyelvet"
-
-msgid "Language"
-msgstr "Nyelv"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2503,6 +2496,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nem sikerült megnyitni a Bővítmények párbeszédablakot (ismeretlen hiba)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4602,6 +4608,12 @@ msgstr ""
 "Hibaüzenet: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni. Probléma lehet a céleszközzel. Kérlek, exportáld újra, vagy használj másik eszközt. A sérült kimeneti G-kód helye: %1%.tmp."
 
@@ -5367,20 +5379,16 @@ msgid "System agents"
 msgstr "Rendszerügynökök"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nincs kiválasztott bővítmény"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Bővítmény hozzáadása"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Bővítmény kiválasztása"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Bővítmény eltávolítása"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nincs kiválasztott bővítmény"
 
 # AI Translated
 msgid "Configure"
@@ -6499,6 +6507,9 @@ msgstr "Körvonal megjelenítése a kijelölt objektum körül a 3D nézetben."
 msgid "Preferences"
 msgstr "Beállítások"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7597,6 +7608,12 @@ msgstr "Felső"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Alsó"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8800,7 +8817,6 @@ msgstr "Szeretnéd folytatni?"
 msgid "Language selection"
 msgstr "Nyelv kiválasztása"
 
-
 msgid "Asia-Pacific"
 msgstr "Ázsia-Csendes-óceáni térség"
 
@@ -8904,6 +8920,9 @@ msgstr "Jelenlegi példány útvonala: "
 
 msgid "General"
 msgstr "Általános"
+
+msgid "Language"
+msgstr "Nyelv"
 
 msgid "Metric"
 msgstr "Metrikus"
@@ -9108,6 +9127,21 @@ msgstr "Többeszközös kezelés"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Ezzel az opcióval egyszerre több eszközre küldhetsz feladatot és több eszközt kezelhetsz."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Felugró ablak a filamentcsoportosítási mód kiválasztásához"
@@ -9840,6 +9874,9 @@ msgstr "Az összes örökölt értéket átmásolja a szülő előbeállításb�
 
 msgid "Detach from parent"
 msgstr "Leválasztás a szülőről"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11743,6 +11780,17 @@ msgstr "3Dconnexion-eszközbeállítások párbeszédablak megjelenítése/elrej
 msgid "Switch table page"
 msgstr "Váltás táblázatra"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Szóköz"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Gyorsgombok listájának megjelenítése"
 
@@ -11902,15 +11950,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Váltás előkészítés/előnézet között"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Szóköz"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Műveletek gyorsmenüjének megnyitása"
 
 msgid "Plater"
 msgstr "Tálca"
@@ -12183,14 +12222,20 @@ msgstr "Javítás megszakítva"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fájl másolása sikertelen a következő helyre: %2% Hiba: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Konfigurációs csomag: "
 
 msgid " updated to "
 msgstr " frissítve erre: "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
 
 msgid "Open G-code file:"
 msgstr "G-kód fájl megnyitása:"
@@ -13790,6 +13835,9 @@ msgstr "Igazított vonal"
 msgid "Concentric"
 msgstr "Koncentrikus"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert-görbe"
 
@@ -13879,29 +13927,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Felső felület kitöltési sorrendje"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Alsó felület kitöltési sorrendje"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Internal solid infill pattern"
@@ -21921,6 +21961,37 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Bővítmény kiválasztása"
+
+#~ msgid "Select the language"
+#~ msgstr "Válaszd ki a nyelvet"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Műveletek gyorsmenüjének megnyitása"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."

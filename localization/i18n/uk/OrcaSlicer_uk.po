@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -2424,13 +2424,6 @@ msgstr "Доступне оновлення. Відкрийте вікно на�
 msgid "%s has been removed."
 msgstr "%s вилучено."
 
-
-msgid "Select the language"
-msgstr "Вибрати мову"
-
-msgid "Language"
-msgstr "Мова"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "Не вдалося перемкнути Orca Slicer на мову %s."
@@ -2464,6 +2457,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Не вдалося відкрити діалогове вікно плагінів (невідома помилка)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4578,6 +4584,12 @@ msgstr ""
 "Повідомлення про помилку: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Не вдалося скопіювати тимчасовий G-код у вихідний G-код. Можливо, проблема з цільовим пристроєм, спробуйте експортувати ще раз або використати інший пристрій. Пошкоджений вихідний G-код - %1% .tmp."
 
@@ -5360,20 +5372,16 @@ msgid "System agents"
 msgstr "Системні агенти"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Плагін не вибрано"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Додати плагін"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Вибрати плагін"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Вилучити плагін"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Плагін не вибрано"
 
 # AI Translated
 msgid "Configure"
@@ -6515,6 +6523,9 @@ msgstr "Показувати контур навколо виділеного о
 msgid "Preferences"
 msgstr "Налаштування"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7630,6 +7641,12 @@ msgstr "Верх"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Низ"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8868,7 +8885,6 @@ msgstr "Ви хочете продовжувати?"
 msgid "Language selection"
 msgstr "Вибір мови"
 
-
 msgid "Asia-Pacific"
 msgstr "Азіатсько-Тихоокеанський регіон"
 
@@ -8975,6 +8991,9 @@ msgstr "Шлях Поточної Інсталяції: "
 
 msgid "General"
 msgstr "Загальні"
+
+msgid "Language"
+msgstr "Мова"
 
 msgid "Metric"
 msgstr "Метрика"
@@ -9183,6 +9202,21 @@ msgstr "Керування кількома пристроями"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "З цією опцією ввімкненою, ви можете відправляти завдання на кілька пристроїв одночасно та керувати декількома пристроями."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 # AI Translated
 msgid "Pop up to select filament grouping mode"
@@ -9919,6 +9953,9 @@ msgstr "Копіює в цей пресет усі значення, успад�
 # AI Translated
 msgid "Detach from parent"
 msgstr "Відʼєднати від батьківського"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11908,6 +11945,17 @@ msgstr "Показати/приховати діалог налаштувань 
 msgid "Switch table page"
 msgstr "Перемкнути сторінку таблиці"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Пробіл"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Показати список клавіш"
 
@@ -12069,15 +12117,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Переключення між Підготовка/Попередній перегляд"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Пробіл"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Відкрити панель швидких дій"
 
 msgid "Plater"
 msgstr "Тарілка"
@@ -12349,15 +12388,21 @@ msgstr "Ремонт скасовано"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Копіювання %1% у %2% не вдалося: %3%"
 
-# AI Translated
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Будь ласка, перевірте незбережені зміни перед оновленням конфігурації."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Пакет конфігурації: "
 
 msgid " updated to "
 msgstr " оновлено до "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+# AI Translated
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Будь ласка, перевірте незбережені зміни перед оновленням конфігурації."
 
 msgid "Open G-code file:"
 msgstr "Відкрити файл G-коду:"
@@ -14014,6 +14059,9 @@ msgstr "Вирівняний прямолінійний"
 msgid "Concentric"
 msgstr "Концентричний"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Крива Гільберта"
 
@@ -14102,29 +14150,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Порядок заповнення верхньої поверхні"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Напрямок, у якому заповнюються верхні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
-"Назовні починає з центру поверхні, тож надлишок матеріалу виштовхується до краю, де він найменш помітний. Усередину починає з краю та завершується щільними кривими в центрі.\n"
-"Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Порядок заповнення нижньої поверхні"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Напрямок, у якому заповнюються нижні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
-"Усередину починає кожну поверхню з ширших зовнішніх кривих, що покращує зчеплення першого шару на столах, де щільні криві в центрі можуть не прилипати. Назовні починає з центру, виштовхуючи надлишок матеріалу до краю.\n"
-"Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
 
 msgid "Internal solid infill pattern"
 msgstr "Шаблон внутрішнього суцільного заповнення"
@@ -22291,6 +22331,37 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Вибрати плагін"
+
+#~ msgid "Select the language"
+#~ msgstr "Вибрати мову"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Відкрити панель швидких дій"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Напрямок, у якому заповнюються верхні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
+#~ "Назовні починає з центру поверхні, тож надлишок матеріалу виштовхується до краю, де він найменш помітний. Усередину починає з краю та завершується щільними кривими в центрі.\n"
+#~ "Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Напрямок, у якому заповнюються нижні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
+#~ "Усередину починає кожну поверхню з ширших зовнішніх кривих, що покращує зчеплення першого шару на столах, де щільні криві в центрі можуть не прилипати. Назовні починає з центру, виштовхуючи надлишок матеріалу до краю.\n"
+#~ "Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

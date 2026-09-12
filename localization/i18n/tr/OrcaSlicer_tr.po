@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -2480,13 +2480,6 @@ msgstr "Kullanılabilir bir güncelleme var. Güncellemek için ön ayar paketi 
 msgid "%s has been removed."
 msgstr "%s kaldırıldı."
 
-
-msgid "Select the language"
-msgstr "Dili seçin"
-
-msgid "Language"
-msgstr "Dil"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2523,6 +2516,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Eklentiler iletişim kutusu açılamadı (bilinmeyen hata)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4642,6 +4648,12 @@ msgstr ""
 "Hata mesajı: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Geçici G-code'un çıkış G-code'a kopyalanması başarısız oldu. Hedef cihazda sorun olabilir, lütfen tekrar dışa aktarmayı veya farklı bir cihaz kullanmayı deneyin. Bozuk çıktı G-code %1%.tmp konumunda."
 
@@ -5411,20 +5423,16 @@ msgid "System agents"
 msgstr "Sistem aracıları"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Eklenti seçilmedi"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Eklenti ekle"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Eklenti seç"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Eklentiyi kaldır"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Eklenti seçilmedi"
 
 # AI Translated
 msgid "Configure"
@@ -6546,6 +6554,9 @@ msgstr "3D sahnede seçilen nesnenin etrafındaki ana hatları göster."
 msgid "Preferences"
 msgstr "Tercihler"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7646,6 +7657,12 @@ msgstr "Üst"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Alt"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8854,7 +8871,6 @@ msgstr "Devam etmek istiyor musun?"
 msgid "Language selection"
 msgstr "Dil seçimi"
 
-
 msgid "Asia-Pacific"
 msgstr "Asya Pasifik"
 
@@ -8958,6 +8974,9 @@ msgstr "Mevcut Örnek Yolu: "
 
 msgid "General"
 msgstr "Genel"
+
+msgid "Language"
+msgstr "Dil"
 
 msgid "Metric"
 msgstr "Metrik"
@@ -9165,6 +9184,21 @@ msgstr "Çoklu cihaz yönetimi"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Bu seçenek etkinleştirildiğinde, aynı anda birden fazla cihaza bir görev gönderebilir ve birden fazla cihazı yönetebilirsiniz."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Filament gruplama modunu seçmek için açılır pencere"
@@ -9915,6 +9949,9 @@ msgstr "Üst ön ayardan devralınan tüm değerleri bu ön ayara kopyalar ve ü
 
 msgid "Detach from parent"
 msgstr "Ebeveynden ayrıl"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11846,6 +11883,17 @@ msgstr "3Dconnexion cihazları ayarları iletişim kutusunu Göster/Gizle"
 msgid "Switch table page"
 msgstr "Tablo sayfasını değiştir"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Boşluk"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Klavye kısayolları listesini göster"
 
@@ -12007,15 +12055,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Hazırlama/Önizleme arasında geçiş yap"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Boşluk"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Eylem hızlı erişim menüsünü aç"
 
 msgid "Plater"
 msgstr "Plakacı"
@@ -12291,14 +12330,20 @@ msgstr "Onarım iptal edildi"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% dosyasının %2% dosyasına kopyalanması başarısız oldu: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Yapılandırma güncellemelerinden önce kaydedilmemiş değişiklikleri kontrol etmeniz gerekir."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Yapılandırma paketi: "
 
 msgid " updated to "
 msgstr " güncellendi "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Yapılandırma güncellemelerinden önce kaydedilmemiş değişiklikleri kontrol etmeniz gerekir."
 
 msgid "Open G-code file:"
 msgstr "G-code dosyasını açın:"
@@ -13918,6 +13963,9 @@ msgstr "Hizalanmış doğrusal"
 msgid "Concentric"
 msgstr "Konsantrik"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert eğrisi"
 
@@ -14007,29 +14055,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Üst yüzey doldurma sırası"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken üst yüzeylerin doldurulma yönü.\n"
-"Dışarı, yüzeyin merkezinden başlar; böylece fazla malzeme en az göründüğü kenara doğru itilir. İçeri kenardan başlar ve merkezdeki dar kavislerle biter.\n"
-"Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Alt yüzey doldurma sırası"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken alt yüzeylerin doldurulma yönü.\n"
-"İçeri, her yüzeye daha geniş dış kavislerle başlar; bu da merkezdeki dar kavislerin yapışmayabileceği yapı plakalarında ilk katman yapışmasını iyileştirir. Dışarı merkezden başlar ve fazla malzemeyi kenara doğru iter.\n"
-"Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 msgid "Internal solid infill pattern"
 msgstr "İç katı dolgu deseni"
@@ -22130,6 +22170,37 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Eklenti seç"
+
+#~ msgid "Select the language"
+#~ msgstr "Dili seçin"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Eylem hızlı erişim menüsünü aç"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken üst yüzeylerin doldurulma yönü.\n"
+#~ "Dışarı, yüzeyin merkezinden başlar; böylece fazla malzeme en az göründüğü kenara doğru itilir. İçeri kenardan başlar ve merkezdeki dar kavislerle biter.\n"
+#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken alt yüzeylerin doldurulma yönü.\n"
+#~ "İçeri, her yüzeye daha geniş dış kavislerle başlar; bu da merkezdeki dar kavislerin yapışmayabileceği yapı plakalarında ilk katman yapışmasını iyileştirir. Dışarı merkezden başlar ve fazla malzemeyi kenara doğru iter.\n"
+#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

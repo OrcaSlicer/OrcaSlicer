@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -2390,13 +2390,6 @@ msgstr "Eguneratze bat dago erabilgarri. Ireki aurrezarpen-paketeen elkarrizketa
 msgid "%s has been removed."
 msgstr "%s kendu da."
 
-
-msgid "Select the language"
-msgstr "Hautatu hizkuntza"
-
-msgid "Language"
-msgstr "Hizkuntza"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "Ezin izan da OrcaSlicer %s hizkuntzara aldatu."
@@ -2427,6 +2420,19 @@ msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Ezin izan da pluginen elkarrizketa-koadroa ireki (errore ezezaguna)"
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 msgid "Plugin Terminal"
 msgstr "Plugin-terminala"
@@ -4471,6 +4477,12 @@ msgstr ""
 "Errore- mezua: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Aldi baterako G-code-a irteerako G-code-an kopiatzeak huts egin du. Arazoak egon daitezke helburuko gailuarekin, saiatu berriro esportatzen edo beste gailu bat erabiltzen. Hondatutako irteerako G-code-a hemen da: %1%.tmp."
 
@@ -5231,17 +5243,14 @@ msgstr "Formatuak ez du balio. Espero den formatu bektoriala: \"%1%\""
 msgid "System agents"
 msgstr "Sistema-agenteak"
 
-msgid "No plugin selected"
-msgstr "Ez da pluginik hautatu"
-
 msgid "Add plugin"
 msgstr "Gehitu plugina"
 
-msgid "Select plugin"
-msgstr "Hautatu plugina"
-
 msgid "Remove plugin"
 msgstr "Kendu plugina"
+
+msgid "No plugin selected"
+msgstr "Ez da pluginik hautatu"
 
 msgid "Configure"
 msgstr "Konfiguratu"
@@ -6349,6 +6358,9 @@ msgstr "Erakutsi hautatutako objektuaren inguruko ingerada 3D eszenan."
 msgid "Preferences"
 msgstr "Hobespenak"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7432,6 +7444,12 @@ msgstr "Goia"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Behea"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 msgid "Plugin Selection"
 msgstr "Plugin-hautaketa"
@@ -8604,7 +8622,6 @@ msgstr "Jarraitu nahi duzu?"
 msgid "Language selection"
 msgstr "Hizkuntza-hautaketa"
 
-
 msgid "Asia-Pacific"
 msgstr "Asia-Pazifikoa"
 
@@ -8708,6 +8725,9 @@ msgstr "Uneko instantziaren bide-izena: "
 
 msgid "General"
 msgstr "Orokorra"
+
+msgid "Language"
+msgstr "Hizkuntza"
 
 msgid "Metric"
 msgstr "Metrikoa"
@@ -8904,6 +8924,21 @@ msgstr "Gailu anitzen kudeaketa"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Aukera hau gaituta, zeregin bat hainbat gailutara bidali eta hainbat gailu kudea ditzakezu aldi berean."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Erakutsi filamentuak taldekatzeko modua hautatzeko leihoa"
@@ -9609,6 +9644,9 @@ msgstr "Aurrezarpen honetara gurasoaren balio heredatu guztiak kopiatzen ditu et
 
 msgid "Detach from parent"
 msgstr "Bereizi gurasotik"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11463,6 +11501,17 @@ msgstr "Erakutsi/Ezkutatu 3Dconnexion gailuen ezarpenen elkarrizketa-koadroa"
 msgid "Switch table page"
 msgstr "Aldatu taula-orria"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Zuriunea"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Erakutsi teklatu-lasterbideen zerrenda"
 
@@ -11622,14 +11671,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Aldatu Prestatu/Aurrebista artean"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Zuriunea"
-
-msgid "Open actions speed dial"
-msgstr "Ekintzen markatze azkarra ireki"
 
 msgid "Plater"
 msgstr "Plaka-antolatzailea"
@@ -11895,14 +11936,20 @@ msgstr "Konponketa bertan behera utzi da"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fitxategia %2% helmugara kopiatzeak huts egin du: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Egiaztatu gorde gabeko aldaketarik dagoen konfigurazioa eguneratu aurretik."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Konfigurazio-paketea: "
 
 msgid " updated to "
 msgstr " hona eguneratu da: "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Egiaztatu gorde gabeko aldaketarik dagoen konfigurazioa eguneratu aurretik."
 
 msgid "Open G-code file:"
 msgstr "Ireki G-code fitxategia:"
@@ -13473,6 +13520,9 @@ msgstr "Lerrozuzen lerrokatua"
 msgid "Concentric"
 msgstr "Kontzentrikoa"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert kurba"
 
@@ -13556,28 +13606,20 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Goiko gainazala betetzeko ordena"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Goiko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
-"Kanporanzkoa erdialdean hasten da, beraz, gehiegizko materiala gutxien ikusten den ertzera bultzatzen da. Barruranzkoa ertzean hasten da eta erdian kurba estuekin amaitzen da.\n"
-"Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
 msgid "Bottom surface fill order"
 msgstr "Beheko gainazala betetzeko ordena"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
-"Barruranzkoa hasten da gainazal bakoitza kanpoko kurba zabalagoekin, eta horrek lehen geruzaren atxikimendua hobetzen du erdiko kurba estuak itsatsi ez daitezkeen inprimatze-plaketan. Kanporanzkoa erdialdean hasten da, gehiegizko materiala ertzera bultzatuz.\n"
-"Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
 # AI Translated
 msgid "Internal solid infill pattern"
@@ -21332,6 +21374,35 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Select plugin"
+#~ msgstr "Hautatu plugina"
+
+#~ msgid "Select the language"
+#~ msgstr "Hautatu hizkuntza"
+
+#~ msgid "Open actions speed dial"
+#~ msgstr "Ekintzen markatze azkarra ireki"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Goiko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
+#~ "Kanporanzkoa erdialdean hasten da, beraz, gehiegizko materiala gutxien ikusten den ertzera bultzatzen da. Barruranzkoa ertzean hasten da eta erdian kurba estuekin amaitzen da.\n"
+#~ "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
+#~ "Barruranzkoa hasten da gainazal bakoitza kanpoko kurba zabalagoekin, eta horrek lehen geruzaren atxikimendua hobetzen du erdiko kurba estuak itsatsi ez daitezkeen inprimatze-plaketan. Kanporanzkoa erdialdean hasten da, gehiegizko materiala ertzera bultzatuz.\n"
+#~ "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Waylanden jatorrizko zuzeneko ikuspegiak GStreamer GTK bideo-hustubidea behar du. Instalatu GStreamerrerako gtksink plugina eta berrabiarazi OrcaSlicer."

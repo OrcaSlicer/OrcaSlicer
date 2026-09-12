@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -2289,13 +2289,6 @@ msgstr ""
 msgid "%s has been removed."
 msgstr ""
 
-
-msgid "Select the language"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr ""
@@ -2321,6 +2314,19 @@ msgid ""
 msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
+msgstr ""
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
 msgstr ""
 
 msgid "Plugin Terminal"
@@ -4319,6 +4325,12 @@ msgid ""
 msgstr ""
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr ""
 
@@ -5017,16 +5029,13 @@ msgstr ""
 msgid "System agents"
 msgstr ""
 
-msgid "No plugin selected"
-msgstr ""
-
 msgid "Add plugin"
 msgstr ""
 
-msgid "Select plugin"
+msgid "Remove plugin"
 msgstr ""
 
-msgid "Remove plugin"
+msgid "No plugin selected"
 msgstr ""
 
 msgid "Configure"
@@ -6123,6 +6132,9 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
+msgid "Open speed dial..."
+msgstr ""
+
 msgctxt "Menu"
 msgid "Edit"
 msgstr ""
@@ -7174,6 +7186,12 @@ msgstr ""
 
 msgctxt "Layers"
 msgid "Bottom"
+msgstr ""
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
 msgstr ""
 
 msgid "Plugin Selection"
@@ -8286,7 +8304,6 @@ msgstr ""
 msgid "Language selection"
 msgstr ""
 
-
 msgid "Asia-Pacific"
 msgstr ""
 
@@ -8378,6 +8395,9 @@ msgid "Current Instance Path: "
 msgstr ""
 
 msgid "General"
+msgstr ""
+
+msgid "Language"
 msgstr ""
 
 msgid "Metric"
@@ -8560,6 +8580,21 @@ msgid "Multi device management"
 msgstr ""
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr ""
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -9224,6 +9259,9 @@ msgid "Copies all inherited values from the parent into this preset and removes 
 msgstr ""
 
 msgid "Detach from parent"
+msgstr ""
+
+msgid "Save without parent"
 msgstr ""
 
 msgid "Unique preset"
@@ -10977,6 +11015,16 @@ msgstr ""
 msgid "Switch table page"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr ""
 
@@ -11130,13 +11178,6 @@ msgid "Tab"
 msgstr ""
 
 msgid "Switch between Prepare/Preview"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr ""
-
-msgid "Open actions speed dial"
 msgstr ""
 
 msgid "Plater"
@@ -11397,13 +11438,19 @@ msgstr ""
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr ""
 
-msgid "Please check any unsaved changes before updating the configuration."
+msgid "Downloading new vendor profile(s): "
 msgstr ""
 
 msgid "Configuration package: "
 msgstr ""
 
 msgid " updated to "
+msgstr ""
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
 msgstr ""
 
 msgid "Open G-code file:"
@@ -12748,6 +12795,9 @@ msgstr ""
 msgid "Concentric"
 msgstr ""
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr ""
 
@@ -12817,7 +12867,7 @@ msgid "Top surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
@@ -12826,7 +12876,7 @@ msgid "Bottom surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""

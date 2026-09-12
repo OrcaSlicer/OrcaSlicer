@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2449,13 +2449,6 @@ msgstr "Yra prieinamas atnaujinimas. Atidarykite profilių paketo dialogo langą
 msgid "%s has been removed."
 msgstr "%s buvo pašalintas."
 
-
-msgid "Select the language"
-msgstr "Pasirinkite kalbą"
-
-msgid "Language"
-msgstr "Kalba"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2492,6 +2485,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nepavyko atidaryti papildinių dialogo lango (nežinoma klaida)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4588,6 +4594,12 @@ msgstr ""
 "Klaidos pranešimas: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Nepavyko nukopijuoti laikinojo G-kodo į išvesties G-kodą. Gali kilti problemų dėl tikslinio įrenginio. Bandykite eksportuoti dar kartą arba naudokite kitą įrenginį. Sugadintas išvesties G-kodas yra %1%.tmp."
 
@@ -5354,20 +5366,16 @@ msgid "System agents"
 msgstr "Sisteminiai agentai"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nepasirinktas joks papildinys"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Pridėti papildinį"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Pasirinkti papildinį"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Pašalinti papildinį"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nepasirinktas joks papildinys"
 
 # AI Translated
 msgid "Configure"
@@ -6486,6 +6494,9 @@ msgstr "Rodyti kontūrą aplink pasirinktą objektą 3D scenoje."
 msgid "Preferences"
 msgstr "Parinktys"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7584,6 +7595,12 @@ msgstr "Viršutinis"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Apatinis"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8791,7 +8808,6 @@ msgstr "Ar norite tęsti?"
 msgid "Language selection"
 msgstr "Kalbos pasirinkimas"
 
-
 msgid "Asia-Pacific"
 msgstr "Azija-Ramusis vandenynas"
 
@@ -8895,6 +8911,9 @@ msgstr "Dabartinės versijos kelias: "
 
 msgid "General"
 msgstr "Bendras"
+
+msgid "Language"
+msgstr "Kalba"
 
 msgid "Metric"
 msgstr "Metrinė"
@@ -9091,6 +9110,21 @@ msgstr "Kelių įrenginių valdymas"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrenginiams vienu metu, taip apt kontroliuoti keletą įrenginių."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Iššokantis langas gijų grupavimo režimui pasirinkti"
@@ -9797,6 +9831,9 @@ msgstr "Nukopijuoja į šį profilį visas iš pirminio profilio paveldėtas rei
 
 msgid "Detach from parent"
 msgstr "Atskirti nuo tėvinio profilio"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11688,6 +11725,17 @@ msgstr "Rodyti/slėpti 3DConnexion įrenginių nustatymų dialogo langą"
 msgid "Switch table page"
 msgstr "Perjungti lentelės puslapį"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Tarpas"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Rodyti sparčiųjų klavišų sąrašą"
 
@@ -11847,15 +11895,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Tarpas"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Atidaryti veiksmų greitosios prieigos meniu"
 
 msgid "Plater"
 msgstr "Plokštė"
@@ -12124,14 +12163,20 @@ msgstr "Taisymas atšauktas"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Failo %1% kopijavimas į %2% nepavyko: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Konfigūracijos paketas: "
 
 msgid " updated to "
 msgstr " atnaujintas į "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
 
 msgid "Open G-code file:"
 msgstr "Atidaryti G-kodo failą:"
@@ -13699,6 +13744,9 @@ msgstr "Sulygiuotas tiesiaeigis"
 msgid "Concentric"
 msgstr "Koncentrinis"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilberto kreivė"
 
@@ -13788,29 +13836,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Viršutinio paviršiaus užpildymo tvarka"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Apatinio paviršiaus užpildymo tvarka"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
 
 msgid "Internal solid infill pattern"
 msgstr "Vidinio tvirto užpildo raštas"
@@ -21647,6 +21687,37 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Pasirinkti papildinį"
+
+#~ msgid "Select the language"
+#~ msgstr "Pasirinkite kalbą"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Atidaryti veiksmų greitosios prieigos meniu"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Tiesioginei „Native Wayland“ peržiūrai reikalingas „GStreamer GTK“ vaizdo sinchronizatorius (video sink). Įdiekite „GStreamer“ skirtą „gtksink“ papildinį, tada iš naujo paleiskite „OrcaSlicer“."

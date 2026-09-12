@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -2356,13 +2356,6 @@ msgstr "Hay una actualización disponible. Abra el cuadro de diálogo del paquet
 msgid "%s has been removed."
 msgstr "Se ha eliminado %s."
 
-
-msgid "Select the language"
-msgstr "Seleccionar el idioma"
-
-msgid "Language"
-msgstr "Idioma"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "No se pudo cambiar Orca Slicer al idioma %s."
@@ -2393,6 +2386,19 @@ msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "No se pudo abrir el cuadro de diálogo de plugins (error desconocido)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 msgid "Plugin Terminal"
 msgstr "Terminal de plugins"
@@ -4425,6 +4431,12 @@ msgstr ""
 "Mensaje de error: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "La copia del G-Code temporal al G-Code de salida ha fallado. Puede haber un problema con el dispositivo de destino, intenta exportar nuevamente o usa un dispositivo diferente. El G-Code de salida dañado está en %1%.tmp."
 
@@ -5182,17 +5194,14 @@ msgstr "Formato inválido. Formato de vector esperado: \"%1%\""
 msgid "System agents"
 msgstr "Agentes del sistema"
 
-msgid "No plugin selected"
-msgstr "Ningún plugin seleccionado"
-
 msgid "Add plugin"
 msgstr "Añadir plugin"
 
-msgid "Select plugin"
-msgstr "Seleccionar plugin"
-
 msgid "Remove plugin"
 msgstr "Eliminar plugin"
+
+msgid "No plugin selected"
+msgstr "Ningún plugin seleccionado"
 
 msgid "Configure"
 msgstr "Configurar"
@@ -6303,6 +6312,9 @@ msgstr "Mostrar el contorno alrededor del objeto seleccionado en la escena 3D."
 msgid "Preferences"
 msgstr "Preferencias"
 
+msgid "Open speed dial..."
+msgstr ""
+
 msgctxt "Menu"
 msgid "Edit"
 msgstr "Edición"
@@ -7385,6 +7397,12 @@ msgstr "Superior"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Inferior"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 msgid "Plugin Selection"
 msgstr "Selección de plugins"
@@ -8523,7 +8541,6 @@ msgstr "¿Quieres continuar?"
 msgid "Language selection"
 msgstr "Selección de idiomas"
 
-
 msgid "Asia-Pacific"
 msgstr "Asia-Pacífico"
 
@@ -8627,6 +8644,9 @@ msgstr "Ruta de Instancia Actual: "
 
 msgid "General"
 msgstr "General"
+
+msgid "Language"
+msgstr "Idioma"
 
 msgid "Metric"
 msgstr "Métrico"
@@ -8823,6 +8843,21 @@ msgstr "Gestión multidispositivo"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Con esta opción activada, puede enviar una tarea a varios dispositivos al mismo tiempo y gestionar varios dispositivos."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Ventana emergente para seleccionar el modo de agrupación de filamentos"
@@ -9523,6 +9558,9 @@ msgstr "Copia en este perfil todos los valores heredados del perfil padre y elim
 
 msgid "Detach from parent"
 msgstr "Separar del elemento padre"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11353,6 +11391,16 @@ msgstr "Mostrar/Ocultar el diálogo de ajustes de los dispositivos 3Dconnexion"
 msgid "Switch table page"
 msgstr "Cambiar de página de tabla"
 
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Espacio"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Muestra lista de atajos de teclado"
 
@@ -11507,13 +11555,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Cambiar entre Preparar/Previsualizar"
-
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Espacio"
-
-msgid "Open actions speed dial"
-msgstr "Abrir el menú rápido de acciones"
 
 msgid "Plater"
 msgstr "Cama"
@@ -11775,14 +11816,20 @@ msgstr "Reparación cancelada"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "La copia del archivo %1% a %2% falló: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Es necesario comprobar los cambios no guardados antes de actualizar la configuración."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Paquete de configuración: "
 
 msgid " updated to "
 msgstr " Actualizado a "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Es necesario comprobar los cambios no guardados antes de actualizar la configuración."
 
 msgid "Open G-code file:"
 msgstr "Abrir archivo G-Code:"
@@ -13340,6 +13387,9 @@ msgstr "Rectilíneo Alineado"
 msgid "Concentric"
 msgstr "Concéntrico"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Curva de Hilbert"
 
@@ -13420,25 +13470,19 @@ msgid "Top surface fill order"
 msgstr "Orden de relleno de la superficie superior"
 
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Dirección en la que se rellenan las superficies superiores al usar un patrón basado en el centro (Concéntrico, Cuerdas de Arquímedes, Espiral de octograma).\n"
-"Hacia afuera comienza en el centro de la superficie, de modo que cualquier exceso de material se empuja hacia el borde, donde es menos visible. Hacia adentro comienza en el borde y termina con las curvas cerradas del centro.\n"
-"Por defecto usa el orden de ruta más corta, que puede ir en cualquier dirección."
 
 msgid "Bottom surface fill order"
 msgstr "Orden de relleno de la superficie inferior"
 
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Dirección en la que se rellenan las superficies inferiores al usar un patrón basado en el centro (Concéntrico, Cuerdas de Arquímedes, Espiral de octograma).\n"
-"Hacia adentro comienza cada superficie con las curvas exteriores más amplias, lo que mejora la adherencia de la primera capa en las camas donde las curvas cerradas del centro pueden no adherirse. Hacia afuera comienza en el centro, empujando cualquier exceso de material hacia el borde.\n"
-"Por defecto usa el orden de ruta más corta, que puede ir en cualquier dirección."
 
 msgid "Internal solid infill pattern"
 msgstr "Patrón de relleno sólido interno"
@@ -21143,6 +21187,33 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Select plugin"
+#~ msgstr "Seleccionar plugin"
+
+#~ msgid "Select the language"
+#~ msgstr "Seleccionar el idioma"
+
+#~ msgid "Open actions speed dial"
+#~ msgstr "Abrir el menú rápido de acciones"
+
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Dirección en la que se rellenan las superficies superiores al usar un patrón basado en el centro (Concéntrico, Cuerdas de Arquímedes, Espiral de octograma).\n"
+#~ "Hacia afuera comienza en el centro de la superficie, de modo que cualquier exceso de material se empuja hacia el borde, donde es menos visible. Hacia adentro comienza en el borde y termina con las curvas cerradas del centro.\n"
+#~ "Por defecto usa el orden de ruta más corta, que puede ir en cualquier dirección."
+
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Dirección en la que se rellenan las superficies inferiores al usar un patrón basado en el centro (Concéntrico, Cuerdas de Arquímedes, Espiral de octograma).\n"
+#~ "Hacia adentro comienza cada superficie con las curvas exteriores más amplias, lo que mejora la adherencia de la primera capa en las camas donde las curvas cerradas del centro pueden no adherirse. Hacia afuera comienza en el centro, empujando cualquier exceso de material hacia el borde.\n"
+#~ "Por defecto usa el orden de ruta más corta, que puede ir en cualquier dirección."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "La función de visualización en directo nativa de Wayland requiere el receptor de vídeo GTK de GStreamer. Instale el plugin gtksink para GStreamer y, a continuación, reinicie OrcaSlicer."

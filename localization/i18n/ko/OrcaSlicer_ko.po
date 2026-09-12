@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2481,13 +2481,6 @@ msgstr "사용 가능한 업데이트가 있습니다. 사전 설정 번들 대�
 msgid "%s has been removed."
 msgstr "%s이(가) 제거되었습니다."
 
-
-msgid "Select the language"
-msgstr "언어 선택"
-
-msgid "Language"
-msgstr "언어"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2524,6 +2517,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "플러그인 대화 상자를 열지 못했습니다(알 수 없는 오류)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4626,6 +4632,12 @@ msgstr ""
 "오류 메시지입니다: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "임시 Gcode를 출력 Gcode로 복사하지 못했습니다. 대상 장치에 문제가 있을 수 있으니 다시 내보내거나 다른 장치를 사용해 보세요. 손상된 출력 Gcode는 %1%.tmp에 있습니다."
 
@@ -5393,20 +5405,16 @@ msgid "System agents"
 msgstr "시스템 에이전트"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "선택된 플러그인 없음"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "플러그인 추가"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "플러그인 선택"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "플러그인 제거"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "선택된 플러그인 없음"
 
 # AI Translated
 msgid "Configure"
@@ -6524,6 +6532,9 @@ msgstr "3D 장면에서 선택한 객체 주변에 윤곽선 표시"
 msgid "Preferences"
 msgstr "기본 설정"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7620,6 +7631,12 @@ msgstr "상부"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "하부"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8854,7 +8871,6 @@ msgstr "계속하시겠습니까?"
 msgid "Language selection"
 msgstr "언어 선택"
 
-
 msgid "Asia-Pacific"
 msgstr "아시아 태평양"
 
@@ -8967,6 +8983,9 @@ msgstr "현재 인스턴스 경로: "
 
 msgid "General"
 msgstr "일반"
+
+msgid "Language"
+msgstr "언어"
 
 msgid "Metric"
 msgstr "미터법"
@@ -9192,6 +9211,21 @@ msgstr "다중 장치 관리"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "필라멘트 그룹화 모드를 선택하기 위한 팝업"
@@ -9971,6 +10005,9 @@ msgstr "상위 사전 설정에서 상속한 모든 값을 이 사전 설정으�
 # AI Translated
 msgid "Detach from parent"
 msgstr "상위 항목에서 분리"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11918,6 +11955,17 @@ msgstr "3D 연결 장치 설정 표시/숨기기 대화상자"
 msgid "Switch table page"
 msgstr "테이블 페이지 전환"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "키보드 단축키 목록 보기"
 
@@ -12081,15 +12129,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "준비 하기/미리 보기 전환"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "작업 스피드 다이얼 열기"
 
 msgid "Plater"
 msgstr "출력판"
@@ -12364,14 +12403,20 @@ msgstr "수리 취소됨"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "파일 %1%를 %2%으로 복사 실패: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "구성 패키지: "
 
 msgid " updated to "
 msgstr " 로 업데이트되었습니다 "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
 
 msgid "Open G-code file:"
 msgstr "Gcode 파일 열기:"
@@ -14029,6 +14074,9 @@ msgstr "정렬된 직선"
 msgid "Concentric"
 msgstr "동심"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "힐베르트 곡선"
 
@@ -14120,29 +14168,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "상단 표면 채우기 순서"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
-"바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "하단 표면 채우기 순서"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
-"안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 msgid "Internal solid infill pattern"
 msgstr "꽉찬 내부 채우기 패턴"
@@ -22367,6 +22407,37 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "플러그인 선택"
+
+#~ msgid "Select the language"
+#~ msgstr "언어 선택"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "작업 스피드 다이얼 열기"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
+#~ "바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
+#~ "안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

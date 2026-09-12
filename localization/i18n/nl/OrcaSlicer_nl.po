@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2679,13 +2679,6 @@ msgstr "Er is een update beschikbaar. Open het dialoogvenster voor de voorinstel
 msgid "%s has been removed."
 msgstr "%s is verwijderd."
 
-
-msgid "Select the language"
-msgstr "Kies de taal"
-
-msgid "Language"
-msgstr "Taal"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2722,6 +2715,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Openen van het dialoogvenster Plug-ins is mislukt (onbekende fout)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -5009,6 +5015,12 @@ msgstr ""
 "Foutbericht: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Fout bij het exporteren naar output-G-code. Het probleem ligt mogelijk bij het doelapparaat. Probeer het opnieuw te exporteren of gebruik een ander apparat. De beschadigde G-code is opgeslagen als %1%.tmp."
 
@@ -5863,20 +5875,16 @@ msgid "System agents"
 msgstr "Systeemagenten"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Geen plug-in geselecteerd"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Plug-in toevoegen"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Plug-in selecteren"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Plug-in verwijderen"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Geen plug-in geselecteerd"
 
 # AI Translated
 msgid "Configure"
@@ -7082,6 +7090,9 @@ msgstr "Toon een omtrek rond het geselecteerde object in de 3D-scène."
 msgid "Preferences"
 msgstr "Voorkeuren"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -8272,6 +8283,12 @@ msgstr "Bovenste"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Onderste"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -9596,7 +9613,6 @@ msgstr "Wilt u doorgaan?"
 msgid "Language selection"
 msgstr "Taal selectie"
 
-
 msgid "Asia-Pacific"
 msgstr "Azië-Pacific"
 
@@ -9710,6 +9726,9 @@ msgstr "Huidig instancepad: "
 
 msgid "General"
 msgstr "Algemeen"
+
+msgid "Language"
+msgstr "Taal"
 
 msgid "Metric"
 msgstr "Metrisch"
@@ -9941,6 +9960,21 @@ msgstr "Beheer van meerdere apparaten"
 # AI Translated
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Met deze optie ingeschakeld kunt u een taak tegelijkertijd naar meerdere apparaten sturen en meerdere apparaten beheren."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 # AI Translated
 msgid "Pop up to select filament grouping mode"
@@ -10732,6 +10766,9 @@ msgstr "Kopieert alle overgeërfde waarden van de bovenliggende voorinstelling n
 # AI Translated
 msgid "Detach from parent"
 msgstr "Losmaken van bovenliggend element"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -12814,6 +12851,17 @@ msgstr "Dialoogvenster met instellingen voor 3Dconnexion-apparaten weergeven/ver
 msgid "Switch table page"
 msgstr "Schakeltabel pagina"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Spatie"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Toon lijst met sneltoetsen"
 
@@ -12980,15 +13028,6 @@ msgstr "Tab"
 # AI Translated
 msgid "Switch between Prepare/Preview"
 msgstr "Wisselen tussen Voorbereiden/Voorvertoning"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Spatie"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Snelmenu met acties openen"
 
 msgid "Plater"
 msgstr "Plaat"
@@ -13288,8 +13327,8 @@ msgstr "Repareren geannuleerd"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Het kopieeren van bestand %1% naar %2% is mislukt: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Controleer niet-opgeslagen wijzigingen voordat u de configuratie bijwerkt."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 # AI Translated
 msgid "Configuration package: "
@@ -13298,6 +13337,12 @@ msgstr "Configuratiepakket: "
 # AI Translated
 msgid " updated to "
 msgstr " bijgewerkt naar "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Controleer niet-opgeslagen wijzigingen voordat u de configuratie bijwerkt."
 
 msgid "Open G-code file:"
 msgstr "Open G-code bestand:"
@@ -15045,6 +15090,9 @@ msgstr "Uitgelijnd Rechtlijnig"
 msgid "Concentric"
 msgstr "Concentrisch"
 
+msgid "Spiral Inset"
+msgstr ""
+
 # AI Translated
 msgid "Hilbert Curve"
 msgstr "Hilbertkromme"
@@ -15140,29 +15188,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Vulvolgorde bovenoppervlak"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Richting waarin bovenoppervlakken worden gevuld bij gebruik van een patroon dat vanuit het midden werkt (Concentrisch, Archimedische koorden, Octagramspiraal).\n"
-"Naar buiten begint in het midden van het oppervlak, zodat overtollig materiaal naar de rand wordt geduwd, waar het het minst zichtbaar is. Naar binnen begint aan de rand en eindigt met de krappe bochten in het midden.\n"
-"Standaard gebruikt de volgorde van het kortste pad, die beide kanten op kan lopen."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Vulvolgorde onderoppervlak"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Richting waarin onderoppervlakken worden gevuld bij gebruik van een patroon dat vanuit het midden werkt (Concentrisch, Archimedische koorden, Octagramspiraal).\n"
-"Naar binnen begint elk oppervlak met de bredere buitenbochten, wat de hechting van de eerste laag verbetert op printbedden waar de krappe bochten in het midden mogelijk niet hechten. Naar buiten begint in het midden en duwt overtollig materiaal naar de rand.\n"
-"Standaard gebruikt de volgorde van het kortste pad, die beide kanten op kan lopen."
 
 msgid "Internal solid infill pattern"
 msgstr "Intern massief invulpatroon"
@@ -24087,6 +24127,37 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Plug-in selecteren"
+
+#~ msgid "Select the language"
+#~ msgstr "Kies de taal"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Snelmenu met acties openen"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Richting waarin bovenoppervlakken worden gevuld bij gebruik van een patroon dat vanuit het midden werkt (Concentrisch, Archimedische koorden, Octagramspiraal).\n"
+#~ "Naar buiten begint in het midden van het oppervlak, zodat overtollig materiaal naar de rand wordt geduwd, waar het het minst zichtbaar is. Naar binnen begint aan de rand en eindigt met de krappe bochten in het midden.\n"
+#~ "Standaard gebruikt de volgorde van het kortste pad, die beide kanten op kan lopen."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Richting waarin onderoppervlakken worden gevuld bij gebruik van een patroon dat vanuit het midden werkt (Concentrisch, Archimedische koorden, Octagramspiraal).\n"
+#~ "Naar binnen begint elk oppervlak met de bredere buitenbochten, wat de hechting van de eerste laag verbetert op printbedden waar de krappe bochten in het midden mogelijk niet hechten. Naar buiten begint in het midden en duwt overtollig materiaal naar de rand.\n"
+#~ "Standaard gebruikt de volgorde van het kortste pad, die beide kanten op kan lopen."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

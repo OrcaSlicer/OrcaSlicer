@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2522,13 +2522,6 @@ msgstr "Hi ha una actualització disponible. Obriu el quadre de diàleg del paqu
 msgid "%s has been removed."
 msgstr "%s s'ha eliminat."
 
-
-msgid "Select the language"
-msgstr "Seleccioneu l'idioma"
-
-msgid "Language"
-msgstr "Idioma"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2565,6 +2558,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "No s'ha pogut obrir el quadre de diàleg de Connectors (error desconegut)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4688,6 +4694,12 @@ msgstr ""
 "Missatge d'error: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Error en copiar el codi-G temporal al codi-G de sortida. Hi pot haver un problema amb el dispositiu de destinació, intenteu exportar novament o utilitzeu un dispositiu diferent. El codi-G de sortida malmès és a %1%.tmp."
 
@@ -5458,20 +5470,16 @@ msgid "System agents"
 msgstr "Agents del sistema"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Cap connector seleccionat"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Afegir connector"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Seleccionar connector"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Eliminar connector"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Cap connector seleccionat"
 
 # AI Translated
 msgid "Configure"
@@ -6595,6 +6603,9 @@ msgstr "Mostrar el contorn al voltant de l'objecte seleccionat a l'escena 3D"
 msgid "Preferences"
 msgstr "Preferències"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7703,6 +7714,12 @@ msgstr "Superior"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Inferior"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8918,7 +8935,6 @@ msgstr "Voleu continuar?"
 msgid "Language selection"
 msgstr "Selecció d'idiomes"
 
-
 msgid "Asia-Pacific"
 msgstr "Àsia-Pacífic"
 
@@ -9023,6 +9039,9 @@ msgstr "Ruta de la Instància Actual: "
 # AI Translated
 msgid "General"
 msgstr "General"
+
+msgid "Language"
+msgstr "Idioma"
 
 msgid "Metric"
 msgstr "Mètric"
@@ -9231,6 +9250,21 @@ msgstr "Gestió multidispositiu"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius alhora i gestionar múltiples dispositius."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
@@ -9984,6 +10018,9 @@ msgstr "Copia en aquest perfil tots els valors heretats del perfil pare i elimin
 
 msgid "Detach from parent"
 msgstr "Desvincula del pare"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11908,6 +11945,17 @@ msgstr "Mostrar/Amagar quadre de diàleg Configuració de Dispositius 3Dconnexio
 msgid "Switch table page"
 msgstr "Canviar de pàgina de taula"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Espai"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Mostrar la llista de dreceres de teclat"
 
@@ -12072,15 +12120,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Canviar entre Preparar/Previsualitzar"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Espai"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Obrir el marcatge ràpid d'accions"
 
 msgid "Plater"
 msgstr "Plataforma"
@@ -12355,14 +12394,20 @@ msgstr "Reparació cancel·lada"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "La còpia del fitxer %1% a %2% ha fallat: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Paquet de configuració: "
 
 msgid " updated to "
 msgstr " actualitzat a "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
 
 msgid "Open G-code file:"
 msgstr "Obre el fitxer de Codi-G:"
@@ -13987,6 +14032,9 @@ msgstr "Alineat Rectilini"
 msgid "Concentric"
 msgstr "Concèntric"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Corba de Hilbert"
 
@@ -14076,29 +14124,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Ordre d'emplenament de la superfície superior"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Ordre d'emplenament de la superfície inferior"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 msgid "Internal solid infill pattern"
 msgstr "Patró de farciment sòlid intern"
@@ -22199,6 +22239,37 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Seleccionar connector"
+
+#~ msgid "Select the language"
+#~ msgstr "Seleccioneu l'idioma"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Obrir el marcatge ràpid d'accions"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

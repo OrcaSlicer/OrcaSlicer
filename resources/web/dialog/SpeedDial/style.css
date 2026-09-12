@@ -1,225 +1,483 @@
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body {
-  font-family: var(--orca-font, "Segoe UI", sans-serif);
-  font-size: 13px;
-  color: var(--text, var(--orca-fg, #1b1c1e));
-  background: var(--bg, var(--orca-bg, #fff));
-  overflow: hidden;
-  user-select: none;
+* {
+    box-sizing: border-box;
 }
+
+html,
+body {
+    margin: 0;
+}
+
+body {
+    font-family: var(--orca-font, "Segoe UI", sans-serif);
+    font-size: 13px;
+    color: var(--text, var(--orca-fg, #1b1c1e));
+    background: var(--bg, var(--orca-bg, #fff));
+    overflow: hidden;
+    user-select: none;
+}
+
 .launcher {
-  display: flex;
-  flex-direction: column;
-  background: var(--panel, var(--orca-bg, #fff));
-  border: 1px solid var(--border, var(--orca-border, #ddd));
-  overflow: hidden;
-  /* why: no height cap here - the launcher reports its true natural height to C++, which
+    display: flex;
+    flex-direction: column;
+    background: var(--panel, var(--orca-bg, #fff));
+    border: 1px solid var(--border, var(--orca-border, #ddd));
+    overflow: hidden;
+    /* why: no height cap here - the launcher reports its true natural height to C++, which
      sizes the popup to match (HTML is source of truth). The list's own max-height is what
      bounds growth; capping the launcher would make the measurement circular. */
 }
+
 .fav-bar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--border, var(--orca-border, #ddd));
-  overflow-x: auto;        /* scroll horizontally once favourites overflow the row */
-  scrollbar-width: thin;
-  /* why: keep scrollIntoView (arrow-nav) from scrolling the first/last tile flush to the edge,
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border, var(--orca-border, #ddd));
+    overflow-x: auto;
+    /* scroll horizontally once favourites overflow the row */
+    scrollbar-width: thin;
+    /* why: keep scrollIntoView (arrow-nav) from scrolling the first/last tile flush to the edge,
      which would clip its selected outline. Matches the 10px horizontal padding. */
-  scroll-padding-inline: 10px;
+    scroll-padding-inline: 10px;
 }
-.fav-bar[hidden] { display: none; }
+
+.fav-bar[hidden] {
+    display: none;
+}
+
 /* Name of the selected favourite, above the bar; left-aligned to the tiles' 10px inset. */
-.fav-eyebrow { flex: 0 0 auto; padding: 8px 10px 0; }
+.fav-eyebrow {
+    flex: 0 0 auto;
+    padding: 8px 10px 0;
+}
+
 .fav-tile {
-  flex: 0 0 auto;          /* keep tiles full-size; don't shrink to fit - scroll instead */
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-  color: hsl(var(--h) var(--speed-tile-text-s, 72%) var(--speed-tile-text-l, 38%));
-  font-weight: 700;
-  /* why: mirror .tile centering - tileCode can be 2-3 chars (e.g. "EA1") on collision, and a
-     bare <button> inherits 13px + UA padding, clipping the code (e.g. "AE1"). inline-flex + 12px + pad:0 fits it. */
-  font-size: 12px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--speed-tile-bg, #f0f0f0);
-  border: 1px solid var(--speed-tile-border, #d8d8d8);
+    flex: 0 0 auto;
+    /* keep tiles full-size; don't shrink to fit - scroll instead */
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    /* why: mirror .tile centering - icons/placeholder are 16px, and a bare <button> inherits
+     13px + UA padding, which would clip them. inline-flex + pad:0 + overflow:hidden fits them. */
+    font-size: 12px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--speed-tile-bg, #f0f0f0);
+    border: 1px solid var(--speed-tile-border, #d8d8d8);
 }
-.fav-tile.sel { outline: 2px solid var(--main-color, var(--orca-accent, #009688)); outline-offset: 2px; }
+
+.fav-tile.sel {
+    outline: 2px solid var(--main-color, var(--orca-accent, #009688));
+    outline-offset: 2px;
+}
+
+/* Hover-revealed remove button in the tile's corner; sits inside the tile bounds so overflow:hidden clips it. */
+.fav-tile {
+    position: relative;
+}
+
+.fav-unpin {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 13px;
+    height: 13px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    background: rgba(127, 127, 127, .35);
+    cursor: pointer;
+    opacity: 0;
+}
+
+.fav-tile:hover .fav-unpin,
+.fav-tile.sel .fav-unpin {
+    opacity: 1;
+}
+
+.fav-unpin:hover {
+    background: rgba(127, 127, 127, .6);
+}
+
+/* Numbered quick-launch slot (Alt/Option+digit), top-left corner of the fav tile. */
+.fav-slot {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    min-width: 11px;
+    height: 11px;
+    padding: 0 2px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-weight: 600;
+    line-height: 11px;
+    text-align: center;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    background: rgba(127, 127, 127, .22);
+}
+
+/* Transient flash banner pinned to the top of the launcher (e.g. "favourites are full"). */
+.dial-flash {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--plugin-status-warn, #b45309);
+    background: var(--plugin-status-warn-bg, rgba(255, 193, 7, .22));
+    animation: dial-flash-fade 2.5s ease forwards;
+}
+
+@keyframes dial-flash-fade {
+    0% {
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 .ctx-menu {
-  position: fixed;
-  z-index: 10;
-  min-width: 120px;
-  padding: 4px;
-  background: var(--panel, var(--orca-bg, #fff));
-  border: 1px solid var(--border, var(--orca-border, #ddd));
-  border-radius: 7px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    position: fixed;
+    z-index: 10;
+    min-width: 120px;
+    padding: 4px;
+    background: var(--panel, var(--orca-bg, #fff));
+    border: 1px solid var(--border, var(--orca-border, #ddd));
+    border-radius: 7px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .18);
 }
-.ctx-menu[hidden] { display: none; }
+
+.ctx-menu[hidden] {
+    display: none;
+}
+
 .ctx-item {
-  display: block;
-  width: 100%;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text, var(--orca-fg, #1b1c1e));
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text, var(--orca-fg, #1b1c1e));
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 }
-.ctx-item:hover { background: var(--row-hover, rgba(127,127,127,.16)); }
-.ctx-item:disabled { opacity: .4; cursor: default; }
-.ctx-item:disabled:hover { background: transparent; }
-.dial-head { flex: 0 0 auto; padding: 8px; }
+
+.ctx-item:hover {
+    background: var(--row-hover, rgba(127, 127, 127, .16));
+}
+
+.ctx-item:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.ctx-item:disabled:hover {
+    background: transparent;
+}
+
+.dial-head {
+    flex: 0 0 auto;
+    padding: 8px;
+}
+
 .plugin-search {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 30px;
-  padding: 0 8px;
-  background: var(--panel, var(--orca-bg, #fff));
-  border: 1px solid var(--border, var(--orca-border, #ddd));
-  border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 8px;
+    background: var(--panel, var(--orca-bg, #fff));
+    border: 1px solid var(--border, var(--orca-border, #ddd));
+    border-radius: 7px;
 }
+
 .plugin-search:focus-within {
-  border-color: var(--main-color, var(--orca-accent, #009688));
-  box-shadow: 0 0 0 2px rgba(0,150,136,.25);
+    border-color: var(--main-color, var(--orca-accent, #009688));
+    box-shadow: 0 0 0 2px rgba(0, 150, 136, .25);
 }
-.plugin-search-icon { display: inline-flex; color: var(--muted, var(--orca-muted, #6b7280)); }
+
+.plugin-search-icon {
+    display: inline-flex;
+    color: var(--muted, var(--orca-muted, #6b7280));
+}
+
 .plugin-search-input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  color: var(--text, var(--orca-fg, #1b1c1e));
-  font: inherit;
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--text, var(--orca-fg, #1b1c1e));
+    font: inherit;
 }
+
 .plugin-search-clear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  color: var(--muted, var(--orca-muted, #6b7280));
-  cursor: pointer;
-  background: rgba(127,127,127,.20);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    cursor: pointer;
+    background: rgba(127, 127, 127, .20);
 }
-.plugin-search-clear[hidden] { display: none; }
+
+.plugin-search-clear[hidden] {
+    display: none;
+}
+
 .dial-count {
-  padding: 4px 4px 0;
-  text-align: left;
-  font-size: 11px;
-  color: var(--muted, var(--orca-muted, #6b7280));
+    padding: 4px 4px 0;
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted, var(--orca-muted, #6b7280));
 }
-.dial-count[hidden] { display: none; }
+
+.dial-count[hidden] {
+    display: none;
+}
+
 .dial-list {
-  flex: 0 1 auto;
-  min-height: 0;
-  /* ADJUST HEIGHT HERE. The popup auto-resizes to the content (HTML is the source of truth), so
+    flex: 0 1 auto;
+    min-height: 0;
+    /* ADJUST HEIGHT HERE. The popup auto-resizes to the content (HTML is the source of truth), so
      this list cap drives the whole window height: --rows full rows + a ~30% peek of the next row
      as a "scroll for more" affordance. Bump --rows to show more rows; change 0.3 for a bigger/
      smaller peek. --row-h MUST match .row min-height (44px). */
-  --row-h: 44px;
-  --rows: 5;
-  max-height: calc(var(--rows) * var(--row-h) + 0.3 * var(--row-h) + 4px);
-  overflow-y: auto;
-  padding: 4px 4px 6px;
-  scrollbar-width: thin;
+    --row-h: 44px;
+    --rows: 5;
+    max-height: calc(var(--rows) * var(--row-h) + 0.3 * var(--row-h) + 4px);
+    overflow-y: auto;
+    padding: 4px 4px 6px;
+    scrollbar-width: thin;
 }
-.dial-list.empty { overflow-y: hidden; }
+
+.dial-list.empty {
+    overflow-y: hidden;
+}
+
+/* Section header in the empty-query list ("Recent" then one per category). Its 30px height MUST match
+   SECTION_H in speeddial.js, which reserves header space in the windowed-list bottom spacer. */
+.dial-section {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    opacity: .85;
+}
+
+/* Bottom spacer for the windowed command list: fills the un-rendered tail so the scrollbar reflects
+   the full match count, while only a near-viewport window of rows exists in the DOM. */
+.dial-spacer-bottom {
+    flex: 0 0 auto;
+}
+
 .row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 6px 8px;
-  border-radius: 7px;
-  cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    cursor: pointer;
 }
-.row:hover { background: var(--row-hover, rgba(127,127,127,.16)); }
-.row.sel { background: var(--row-selected, rgba(0,150,136,.18)); }
+
+.row:hover {
+    background: var(--row-hover, rgba(127, 127, 127, .16));
+}
+
+.row.sel {
+    background: var(--row-selected, rgba(0, 150, 136, .18));
+}
+
 .tile {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  color: hsl(var(--h) var(--speed-tile-text-s, 72%) var(--speed-tile-text-l, 38%));
-  font-weight: 700;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--speed-tile-bg, #f0f0f0);
-  border: 1px solid var(--speed-tile-border, #d8d8d8);
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--speed-tile-bg, #f0f0f0);
+    border: 1px solid var(--speed-tile-border, #d8d8d8);
 }
-.row-left { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+
+/* Native SVG pictogram in a tile; blank tiles (no icon) have no child. */
+.tile-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    pointer-events: none;
+}
+
+/* Tab-strip glyphs are drawn white for the dark tab bar; recolor to the shared #949494 gray so
+   they read on both the light and dark tile backgrounds. */
+.tile-icon.tab-mono {
+    filter: brightness(0) invert(.58);
+}
+
+.row-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .row-eyebrow {
-  font-size: 10px;
-  line-height: 1.3;
-  color: var(--muted, var(--orca-muted, #6b7280));
-  opacity: .85;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    opacity: .85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.row-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-name mark, .row-eyebrow mark { background: var(--plugin-status-warn-bg); color: var(--plugin-status-warn); border-radius: 2px; }
-.row-sc { flex: 0 0 auto; display: inline-flex; gap: 3px; }
-kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  font-size: 11px;
-  color: var(--muted, var(--orca-muted, #6b7280));
-  background: rgba(127,127,127,.12);
-  border: 1px solid var(--border, var(--orca-border, #ddd));
-  border-radius: 4px;
+
+.row-line {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
 }
-.star {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--muted, var(--orca-muted, #6b7280));
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
+
+.row-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.star svg { display: block; }
-.row:hover .star:not(.on),
-.row.sel .star:not(.on) { opacity: .5; }
-.star.on { opacity: 1; color: var(--main-color, var(--orca-accent, #009688)); }
-.star:hover { background: rgba(127,127,127,.18); }
+
+.row-name mark,
+.row-eyebrow mark {
+    background: var(--plugin-status-warn-bg);
+    color: var(--plugin-status-warn);
+    border-radius: 2px;
+}
+
+/* Mode tag on settings above the user's current mode (Advanced/Expert/Developer). */
+.row-mode {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.4;
+    border-radius: 8px;
+    color: var(--plugin-status-warn);
+    background: var(--plugin-status-warn-bg);
+    white-space: nowrap;
+}
+
+.pin {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+}
+
+.pin svg {
+    display: block;
+}
+
+.row:hover .pin:not(.on),
+.row.sel .pin:not(.on) {
+    opacity: .5;
+}
+
+.pin.on {
+    opacity: 1;
+    color: var(--main-color, var(--orca-accent, #009688));
+}
+
+.pin:hover {
+    background: rgba(127, 127, 127, .18);
+}
+
 .dial-empty {
-  min-height: 64px;
-  padding: 18px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted, var(--orca-muted, #6b7280));
-  text-align: center;
+    min-height: 64px;
+    padding: 18px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    text-align: center;
+}
+
+/* Footer detail strip: the selected action's description plus its wiki link. Auto-sizes to the
+   content; the description is clamped below. */
+.dial-detail {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border, var(--orca-border, #ddd));
+    overflow: hidden;
+}
+
+.dial-detail[hidden] {
+    display: none;
+}
+
+.detail-desc {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted, var(--orca-muted, #6b7280));
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.detail-wiki {
+    flex: 0 0 auto;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 11px;
+    color: var(--main-color, var(--orca-accent, #009688));
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.detail-wiki:hover {
+    text-decoration: underline;
 }

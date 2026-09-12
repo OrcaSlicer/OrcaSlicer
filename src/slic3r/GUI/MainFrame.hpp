@@ -106,6 +106,20 @@ protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
 };
 
+// Calibration wizard identity, shared by MainFrame::run_calibration and the Speed Dial command runners.
+enum class CalibKind : int
+{ 
+    Temperature, 
+    MaxVolumetric, 
+    PressureAdvance, 
+    FlowRatio, 
+    Retraction,
+    Cornering, 
+    InputShapingFreq, 
+    InputShapingDamp,
+    VFA
+};
+
 class MainFrame : public DPIFrame
 {
 #ifdef __APPLE__
@@ -353,6 +367,11 @@ public:
 
     void        technology_changed();
 
+    // Opens the calibration wizard for `kind`. Single source of truth for the wizard lifecycle:
+    // the Calibration menu handlers and the Speed Dial native commands both call this. Most wizards
+    // are cached members; cornering/input-shaping are transient. Call while the Prepare (3D) panel
+    // is shown (menu items are gated on is_view3D_shown; the speed dial ensures it first).
+    void        run_calibration(CalibKind calib_kind);
 
     //BBS
     void        load_url(wxString url);

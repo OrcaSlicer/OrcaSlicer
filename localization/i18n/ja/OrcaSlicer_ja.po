@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2473,13 +2473,6 @@ msgstr "アップデートが利用可能です。プリセットバンドルの
 msgid "%s has been removed."
 msgstr "%sを削除しました。"
 
-
-msgid "Select the language"
-msgstr "言語を選択"
-
-msgid "Language"
-msgstr "言語"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2516,6 +2509,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "プラグインダイアログを開けませんでした (不明なエラー)。"
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4611,6 +4617,12 @@ msgstr ""
 "エラーメッセージ：%1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "一時Gコードの出力Gコードへのコピーに失敗しました。 ターゲットデバイスに問題がある可能性があります。もう一度エクスポートするか、別のデバイスを使用してみてください。 破損した出力Gコードは%1%.tmpにあります。"
 
@@ -5382,20 +5394,16 @@ msgid "System agents"
 msgstr "システムエージェント"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "プラグインが選択されていません"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "プラグインを追加"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "プラグインを選択"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "プラグインを削除"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "プラグインが選択されていません"
 
 # AI Translated
 msgid "Configure"
@@ -6511,6 +6519,9 @@ msgstr "3Dシーンで選択したオブジェクトの周りにアウトライ�
 msgid "Preferences"
 msgstr "設定"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7608,6 +7619,12 @@ msgstr "トップ"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "底面"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8820,7 +8837,6 @@ msgstr "続行しますか？"
 msgid "Language selection"
 msgstr "言語選択"
 
-
 msgid "Asia-Pacific"
 msgstr "アジア太平洋地域"
 
@@ -8924,6 +8940,9 @@ msgstr "現在のインスタンスのパス: "
 
 msgid "General"
 msgstr "一般"
+
+msgid "Language"
+msgstr "言語"
 
 msgid "Metric"
 msgstr "メートル"
@@ -9131,6 +9150,21 @@ msgstr "マルチデバイス管理"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "このオプションを有効にすると、複数のデバイスに同時にタスクを送信し、複数のデバイスを管理できます。"
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "フィラメントグルーピングモード選択のポップアップ"
@@ -9881,6 +9915,9 @@ msgstr "親プリセットから継承したすべての値をこのプリセッ
 
 msgid "Detach from parent"
 msgstr "親から分離"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11785,6 +11822,17 @@ msgstr "3Dconnexion設定を表示/非表示"
 msgid "Switch table page"
 msgstr "テーブルページを切り替え"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "ショートカット一覧を表示"
 
@@ -11946,15 +11994,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "準備/プレビュー間の切り替え"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "アクションスピードダイヤルを開く"
 
 msgid "Plater"
 msgstr "準備"
@@ -12231,14 +12270,20 @@ msgstr "修復を取消しました"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "ファイル %1% を %2% へのコピーが失敗しました (%3%)"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "構成を更新する前に、未保存の変更をご確認ください"
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "設定パッケージ: "
 
 msgid " updated to "
 msgstr " を更新しました "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "構成を更新する前に、未保存の変更をご確認ください"
 
 msgid "Open G-code file:"
 msgstr "G-codeファイルを開く"
@@ -13902,6 +13947,9 @@ msgstr "整列直線"
 msgid "Concentric"
 msgstr "同心"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "ヒルベルト曲線"
 
@@ -13993,29 +14041,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "上面の充填順序"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、上面を充填する方向です。\n"
-"外向きは面の中心から始まるため、余分な材料が最も目立たない縁へ押し出されます。内向きは縁から始まり、中心の細かいカーブで終わります。\n"
-"デフォルトは最短経路順で、どちらの方向にもなり得ます。"
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "底面の充填順序"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、底面を充填する方向です。\n"
-"内向きは各面を幅の広い外側のカーブから始めるため、中心の細かいカーブが定着しにくいベッドでも1層目の密着性が向上します。外向きは中心から始まり、余分な材料を縁へ押し出します。\n"
-"デフォルトは最短経路順で、どちらの方向にもなり得ます。"
 
 msgid "Internal solid infill pattern"
 msgstr "内部ソリッドインフィルパターン"
@@ -22501,6 +22541,37 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "プラグインを選択"
+
+#~ msgid "Select the language"
+#~ msgstr "言語を選択"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "アクションスピードダイヤルを開く"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、上面を充填する方向です。\n"
+#~ "外向きは面の中心から始まるため、余分な材料が最も目立たない縁へ押し出されます。内向きは縁から始まり、中心の細かいカーブで終わります。\n"
+#~ "デフォルトは最短経路順で、どちらの方向にもなり得ます。"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、底面を充填する方向です。\n"
+#~ "内向きは各面を幅の広い外側のカーブから始めるため、中心の細かいカーブが定着しにくいベッドでも1層目の密着性が向上します。外向きは中心から始まり、余分な材料を縁へ押し出します。\n"
+#~ "デフォルトは最短経路順で、どちらの方向にもなり得ます。"
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

@@ -36,6 +36,7 @@ class Button : public StaticBox
     wxRect textSize;
     wxSize minSize; // set by outer
     wxSize paddingSize;
+    int m_icon_spacing = 5;
     ScalableBitmap active_icon;
 
     StateColor text_color;
@@ -69,6 +70,8 @@ public:
     void SetMaxSize(const wxSize& size) override;
 
     void SetPaddingSize(const wxSize& size);
+
+    void SetIconSpacing(int spacing);
 
     void SetStyle(const ButtonStyle style /*= ButtonStyle::Regular*/, const ButtonType type /*= ButtonType::None*/);
 

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -2361,13 +2361,6 @@ msgstr "有更新可用。打开预设包对话框进行更新。"
 msgid "%s has been removed."
 msgstr "%s 已被移除。"
 
-
-msgid "Select the language"
-msgstr "选择语言"
-
-msgid "Language"
-msgstr "语言"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "切换 Orca Slicer 语言到 %s 失败。"
@@ -2399,6 +2392,19 @@ msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "无法打开插件对话框（未知错误）。"
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 msgid "Plugin Terminal"
 msgstr "插件终端"
@@ -4438,6 +4444,12 @@ msgstr ""
 "错误消息：%1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "将临时 G-Code 复制到输出 G-Code 失败。目标设备可能有问题，请再次尝试导出或使用其他设备。损坏的输出 G-Code 在 %1%.tmp。"
 
@@ -5204,20 +5216,16 @@ msgid "System agents"
 msgstr "系统代理"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "未选择插件"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "添加插件"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "选择插件"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "移除插件"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "未选择插件"
 
 # AI Translated
 msgid "Configure"
@@ -6333,6 +6341,9 @@ msgstr "在3D场景中显示选中对象的轮廓"
 msgid "Preferences"
 msgstr "偏好设置"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7410,6 +7421,12 @@ msgstr "顶部"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "底部"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 msgid "Plugin Selection"
 msgstr "插件选择"
@@ -8581,7 +8598,6 @@ msgstr "是否继续？"
 msgid "Language selection"
 msgstr "语言选择"
 
-
 msgid "Asia-Pacific"
 msgstr "亚太"
 
@@ -8678,6 +8694,9 @@ msgstr "当前实例路径"
 
 msgid "General"
 msgstr "常规"
+
+msgid "Language"
+msgstr "语言"
 
 msgid "Metric"
 msgstr "公制（Metric）"
@@ -8882,6 +8901,21 @@ msgstr "多设备管理"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "启用此选项后，您可以同时向多个设备发送任务并管理多个设备。"
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "弹出选择耗材丝分组模式"
@@ -9593,6 +9627,9 @@ msgstr "将父预设继承的所有数值复制到当前预设，并解除继承
 
 msgid "Detach from parent"
 msgstr "与父级分离"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11449,6 +11486,17 @@ msgstr "显示/隐藏 3Dconnexion设备的设置对话框"
 msgid "Switch table page"
 msgstr "切换标签页"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "显示键盘快捷键列表"
 
@@ -11615,15 +11663,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "准备/预览之间的切换"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "打开快捷操作盘"
 
 msgid "Plater"
 msgstr "准备"
@@ -11892,14 +11931,20 @@ msgstr "修复被取消"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "从%1%拷贝文件到%2%失败：%3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "需要在配置更新之前检查没有保存的参数修改。"
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "配置包："
 
 msgid " updated to "
 msgstr "更新到"
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "需要在配置更新之前检查没有保存的参数修改。"
 
 msgid "Open G-code file:"
 msgstr "打开G-code文件："
@@ -13427,6 +13472,9 @@ msgstr "直线排列"
 msgid "Concentric"
 msgstr "同心"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "希尔伯特曲线"
 
@@ -13520,29 +13568,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "顶面填充顺序"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充顶面的方向。\n"
-"向外从表面中心开始，因此多余的材料会被推向边缘等最不显眼的位置。向内从边缘开始，并以中心处的紧密曲线结束。\n"
-"默认使用最短路径排序，可能沿任一方向进行。"
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "底面填充顺序"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充底面的方向。\n"
-"向内以较宽的外侧曲线开始每个表面，这可以改善在热床上的首层附着，因为中心处的紧密曲线可能无法粘牢。向外从中心开始，将多余的材料推向边缘。\n"
-"默认使用最短路径排序，可能沿任一方向进行。"
 
 msgid "Internal solid infill pattern"
 msgstr "内部实心填充图案"
@@ -21423,6 +21463,37 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "选择插件"
+
+#~ msgid "Select the language"
+#~ msgstr "选择语言"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "打开快捷操作盘"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充顶面的方向。\n"
+#~ "向外从表面中心开始，因此多余的材料会被推向边缘等最不显眼的位置。向内从边缘开始，并以中心处的紧密曲线结束。\n"
+#~ "默认使用最短路径排序，可能沿任一方向进行。"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充底面的方向。\n"
+#~ "向内以较宽的外侧曲线开始每个表面，这可以改善在热床上的首层附着，因为中心处的紧密曲线可能无法粘牢。向外从中心开始，将多余的材料推向边缘。\n"
+#~ "默认使用最短路径排序，可能沿任一方向进行。"
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "原生 Wayland 实时画面需要 GStreamer GTK 视频接收器。请安装 GStreamer 的 gtksink 插件，然后重启 OrcaSlicer。"

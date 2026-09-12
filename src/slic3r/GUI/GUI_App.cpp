@@ -2616,6 +2616,10 @@ void GUI_App::init_app_config()
         }
 #endif // _WIN32
     }
+    // Speed Dial opens on a bare Space from any page by default. Seed the flag so Preferences and the
+    // MainFrame shortcut read the same value; an existing config (true or false) is left untouched.
+    if (app_config->get("enable_speed_dial").empty())
+        app_config->set_bool("enable_speed_dial", true);
     set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
 
 }
@@ -8163,6 +8167,22 @@ void GUI_App::save_mode(const /*ConfigOptionMode*/int mode)
     update_mode();
 }
 
+void GUI_App::set_mode(ConfigOptionMode mode)
+{
+    const bool was_developer = app_config->get_bool("developer_mode");
+    if (was_developer)
+        app_config->set_bool("developer_mode", false);
+    save_mode(mode);
+    if (was_developer)
+        app_config->save();
+}
+
+void GUI_App::enable_developer_mode()
+{
+    app_config->set_bool("developer_mode", true);
+    update_mode();
+}
+
 // Update view mode according to selected menu
 void GUI_App::update_mode()
 {
@@ -8309,6 +8329,65 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
         }
         wxMessageBox(_L("Failed to open the Plugins dialog (unknown error)."), _L("Plugins"), wxOK | wxICON_ERROR, mainframe);
     }
+}
+
+void GUI_App::refresh_plugins()
+{
+    // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
+    // and report completion through the notification manager -- the speed dial needs no dialog.
+    std::thread([]() {
+        wxString error;
+        try {
+            refresh_plugin_metadata_blocking(/*fetch_cloud=*/true);
+        } catch (const std::exception& ex) {
+            error = from_u8(ex.what());
+        } catch (...) {
+            error = "Unknown error"; // plain literal: wx translation isn't safe off the UI thread
+        }
+        if (!wxTheApp)
+            return;
+        wxTheApp->CallAfter([error]() {
+            if (wxGetApp().is_closing())
+                return;
+            Plater* plater = wxGetApp().plater();
+            if (plater == nullptr)
+                return;
+            if (error.IsEmpty())
+                plater->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::RegularNotificationLevel,
+                    into_u8(_L("Plugins refreshed.")));
+            else
+                plater->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                    into_u8(wxString::Format(_L("Failed to refresh plugins: %s"), error)));
+        });
+    }).detach();
+}
+
+void GUI_App::install_local_plugin()
+{
+    if (mainframe == nullptr)
+        return;
+
+    wxFileDialog dialog(mainframe, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
+                        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+        return;
+
+    wxString message;
+    const bool ok = install_local_plugin_package(boost::filesystem::path(dialog.GetPath().ToUTF8().data()), mainframe, message);
+    if (message.IsEmpty())
+        return; // user cancelled the overwrite prompt
+
+    Plater* plater = this->plater();
+    if (plater == nullptr)
+        return;
+    plater->get_notification_manager()->push_notification(
+        NotificationType::CustomNotification,
+        ok ? NotificationManager::NotificationLevel::RegularNotificationLevel : NotificationManager::NotificationLevel::ErrorNotificationLevel,
+        into_u8(message));
 }
 
 void GUI_App::open_terminal_dialog()

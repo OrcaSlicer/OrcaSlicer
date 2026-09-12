@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-11 17:15+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -2482,13 +2482,6 @@ msgstr "Je k dispozici aktualizace. Otevřete dialog balíčku předvoleb a prov
 msgid "%s has been removed."
 msgstr "%s bylo odstraněno."
 
-
-msgid "Select the language"
-msgstr "Zvolte jazyk"
-
-msgid "Language"
-msgstr "Jazyk"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2525,6 +2518,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nepodařilo se otevřít dialog Pluginy (neznámá chyba)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4648,6 +4654,12 @@ msgstr ""
 "Chybová zpráva: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Kopírování dočasného G-kódu do výstupního G-kódu selhalo. Může být problém s cílovým zařízením, zkuste prosím exportovat znovu nebo použijte jiné zařízení. Poškozený výstupní G-kód je na %1%.tmp."
 
@@ -5415,20 +5427,16 @@ msgid "System agents"
 msgstr "Systémoví agenti"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Není vybrán žádný plugin"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Přidat plugin"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Vybrat plugin"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Odebrat plugin"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Není vybrán žádný plugin"
 
 # AI Translated
 msgid "Configure"
@@ -6560,6 +6568,9 @@ msgstr "Zobrazit obrys kolem vybraného objektu ve 3D scéně."
 msgid "Preferences"
 msgstr "Předvolby"
 
+msgid "Open speed dial..."
+msgstr ""
+
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7670,6 +7681,12 @@ msgstr "Horní"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Spodní"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8876,7 +8893,6 @@ msgstr "Chcete pokračovat?"
 msgid "Language selection"
 msgstr "Výběr jazyka"
 
-
 msgid "Asia-Pacific"
 msgstr "Asie-Pacifik"
 
@@ -8981,6 +8997,9 @@ msgstr "Cesta k aktuální instanci: "
 
 msgid "General"
 msgstr "Obecné"
+
+msgid "Language"
+msgstr "Jazyk"
 
 msgid "Metric"
 msgstr "Metrika"
@@ -9185,6 +9204,21 @@ msgstr "Správa více zařízení"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Pokud je tato volba povolena, můžete odeslat úlohu na více zařízení současně a spravovat více zařízení."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Zobrazit dialog pro výběr režimu seskupení filamentů"
@@ -9933,6 +9967,9 @@ msgstr "Zkopíruje do této předvolby všechny hodnoty zděděné z nadřazené
 # AI Translated
 msgid "Detach from parent"
 msgstr "Oddělit od nadřazeného"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -11895,6 +11932,17 @@ msgstr "Zobrazit/Skrýt dialog nastavení zařízení 3Dconnexion"
 msgid "Switch table page"
 msgstr "Přepnout stránku tabulky"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Mezerník"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Zobrazit seznam klávesových zkratek"
 
@@ -12056,15 +12104,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Přepnout mezi Přípravou/Náhledem"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Mezerník"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Otevřít rychlou nabídku akcí"
 
 msgid "Plater"
 msgstr "Deska"
@@ -12339,14 +12378,20 @@ msgstr "Oprava zrušena"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopírování souboru %1% do %2% selhalo: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Balíček konfigurace: "
 
 msgid " updated to "
 msgstr " aktualizováno na "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
 
 msgid "Open G-code file:"
 msgstr "Otevřít G-code soubor:"
@@ -13952,6 +13997,9 @@ msgstr "Zarovnaná pravoúhlá"
 msgid "Concentric"
 msgstr "Koncentrický"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbertova křivka"
 
@@ -14041,29 +14089,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Pořadí vyplňování horního povrchu"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Směr, ve kterém jsou horní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
-"Ven začíná ve středu povrchu, takže je přebytečný materiál vytlačen k okraji, kde je nejméně viditelný. Dovnitř začíná u okraje a končí těsnými oblouky ve středu.\n"
-"Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Pořadí vyplňování spodního povrchu"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Směr, ve kterém jsou spodní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
-"Dovnitř začíná každý povrch širšími vnějšími oblouky, což zlepšuje přilnavost první vrstvy na podložkách, kde se těsné oblouky ve středu nemusí přichytit. Ven začíná ve středu a přebytečný materiál vytlačuje k okraji.\n"
-"Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 msgid "Internal solid infill pattern"
 msgstr "Vzor vnitřní plné výplně"
@@ -22180,6 +22220,37 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Vybrat plugin"
+
+#~ msgid "Select the language"
+#~ msgstr "Zvolte jazyk"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Otevřít rychlou nabídku akcí"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Směr, ve kterém jsou horní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
+#~ "Ven začíná ve středu povrchu, takže je přebytečný materiál vytlačen k okraji, kde je nejméně viditelný. Dovnitř začíná u okraje a končí těsnými oblouky ve středu.\n"
+#~ "Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Směr, ve kterém jsou spodní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
+#~ "Dovnitř začíná každý povrch širšími vnějšími oblouky, což zlepšuje přilnavost první vrstvy na podložkách, kde se těsné oblouky ve středu nemusí přichytit. Ven začíná ve středu a přebytečný materiál vytlačuje k okraji.\n"
+#~ "Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

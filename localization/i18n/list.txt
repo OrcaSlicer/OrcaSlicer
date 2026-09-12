@@ -179,6 +179,7 @@ src/slic3r/GUI/PublishDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
 src/slic3r/GUI/Search.cpp
+src/slic3r/GUI/SettingsIndex.cpp
 src/slic3r/GUI/Selection.cpp
 src/slic3r/GUI/SelectMachine.cpp
 src/slic3r/GUI/PrePrintChecker.cpp
