@@ -1166,7 +1166,8 @@ TEST_CASE("Static print configs compare, order and hash by their option values",
 {
     // PrintObjectConfig comes from PRINT_CONFIG_CLASS_DEFINE; PrintConfig combines MachineEnvelopeConfig
     // and GCodeConfig through PRINT_CONFIG_CLASS_DERIVED_DEFINE. Both generate hash(), operator==,
-    // operator< and the option registration from the same option list.
+    // operator< and the option registration from the same option list. The hash inequalities use fixed
+    // inputs, so they are deterministic; they check that hash() covers the changed option.
     SECTION("default-constructed configs are equal and find their options by key")
     {
         PrintObjectConfig a, b;
