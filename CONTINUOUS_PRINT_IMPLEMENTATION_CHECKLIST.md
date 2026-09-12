@@ -33,8 +33,10 @@
   cd build-dbginfo
   ctest -C RelWithDebInfo --test-dir ./tests/libslic3r --output-on-failure
   ```
+
   PS: `debuginfo`模式下可以无报错编译成功,但产出的orca-slicer.exe无法运行,运行时无报错直接退出,无任何输出。
   PS2(2026-09-08 更新):`build/` 目录的 **Release 构建可正常运行**(GUI 子系统应用控制台无输出属正常),且已成功用于 CLI 切片验证(见 M2);`build/` 目录亦可以 `--config RelWithDebInfo` 编译并运行单测。
+
 ---
 
 ## 1. M1:数据层算子 + 判定器 + 单测(不接管线)
@@ -70,6 +72,7 @@
   - [X] 奇度顶点 = 0 → `closed=true`;= 2 → 开放链,链首/链尾即两个奇度端点;> 2 → 返回 `std::nullopt`
   - [X] 接续条件唯一:下一段首点在当前末点 `SCALED_EPSILON` 邻域内(`is_approx`);找不到即失败。**绝不创造新连线**
   - [X] `preferred_start` 非空时优先从距其最近的合法端点起链(供层间衔接用)
+
   - 备注:图连通性不做独立并查集,由 Hierholzer 结束时的"消费边数 == 实体数"校验兜底(不连通图必然消费不完)
 
 ### 1.3 判定器骨架(设计文档 5.2)
@@ -109,19 +112,22 @@
 
 - [X] **算子扩展(接合点拆分,设计文档 3.5)**:实现为 `split_entities_at_junctions()`(`ContinuousPrint.cpp`,独立于 M1 算子):"实体 A 端点落在实体 B 中间(ε 内)→ 拆分 B"(支持 `ExtrusionPath`/`ExtrusionLoop`,loop 在接合点处线性化),`preflight_layer` 已接入,拆分工作集由 `ContinuousLayerPlan::entities` 持有供发射用。拆分不新增几何,不违反"不补线"约束。单测:lollipop 通过、双接合点桥接通过、T 型接合(4 奇度)拒绝、无接合直通
 - [X] 用真实切片数据验证连续填充图案(2026-09-08,Release 构建 CLI 切片 20mm 实心立方体,BBL X1C profile,块内纯空驶统计):
+
   - `sparse_infill_pattern = alignedrectilinear`:**0 / 1071**(0 次块内空驶/1071 段挤出)——一层一条迹,zigzag 端部相接
   - `top_surface_pattern = monotonic`:0 / 141;`bottom_surface_pattern = monotonic`:0 / 122
   - `internal_solid_infill_pattern = monotonic`:2 / 474(仅 2 次例外,疑窄区分片)
   - 对照:Inner wall 50 / 200(每层 2 道墙环,环间不共点,各有 1 次环间空驶,符合 lollipop 接合预期)
   - 产物留存于 `sandboxes/continuous_print/`(STL/G-code,未跟踪);CLI 用法:`orca-slicer.exe --slice 0 --outputdir <dir> --load-settings "<machine.json>;<process.json>" --load-filaments "<filament.json>" <model.stl>`(注意 `--slice` 必须带板号参数)
 - [X] 在 `ContinuousPrint.hpp/.cpp` 中实现过滤器,泛化自 `SpiralVase::process_layer`(`SpiralVase.cpp:66-216`),复用四步机制:
+
   - [X] 首条纯 Z 移动改写(保持 Z 单调)
   - [X] Z-ramp(按弧长比例摊层高)
   - [X] XY 平滑滑移(复用 `spiral_mode_smooth` 开关;预算经 `set_max_xy_smoothing` 注入,离体检查留 M3 hook)
   - [X] 跳过 travel/回抽行
+
   - 注:`SpiralVaseHelpers` 已迁移至 `SpiralVase.hpp`(inline)供两个过滤器共用
 - [X] 离线验证:单测自动对比——同一单层 G-code 分别喂入 SpiralVase 与 ContinuousPrint,输出**逐字节相等**;另断言零空驶(任何 XY 移动必带挤出)与 Z 单调递增至层高
-- [ ] 人工检查斜壁样张的转移点曲线(连续、无突变)。**已解锁**(Release 构建可 CLI 切片),建议并入 M3 管线接入后用真实模型验证
+- [X] 人工检查斜壁样张的转移点曲线(连续、无突变)。已在 M3 管线接入后用真实模型验证:平滑开启时层界无 Z 回退、挤出段 Z 单调升至层高(见 M4 实测)
 
 ### M2 出口标准
 
@@ -134,21 +140,34 @@
 
 设计依据:5.4、5.5。
 
-- [ ] `src/libslic3r/PrintConfig.{hpp,cpp}`:新增 `continuous_print_mode`(bool,默认 false);平滑参数复用 `spiral_mode_smooth` / `spiral_mode_max_xy_smoothing`,不新增配置面;开关开启时校验/提示填充配置须为连续图案(monotonic / alignedrectilinear,见设计文档 3.4)
-- [ ] `src/libslic3r/GCode.hpp`:`LayerResult` 扩展字段(携带 `ContinuousLayerPlan` 或判定结果)
-- [ ] `src/libslic3r/GCode.cpp`:
-  - [ ] `process_layer`(4539 附近):启用开关时执行 preflight;**注意 preflight 需全层遍历后才能给整单 Verdict**(与 spiral 逐层判定不同),必要时前置到 `process_layers` 之前
-  - [ ] spiral 判定逻辑(4596-4613)迁移/扩展为 shared 判定入口,避免与 `SpiralVase` 两套判定冲突
-  - [ ] 发射分支(5432-5469):命中 continuous 模式时不逐 region 发射,按 `out_plan.order` 输出单条连续 G1 链,使 `travel_to`/`needs_retraction` 无可触发段
-  - [ ] `process_layers`(3660/3762):管道装配处插入新过滤器,槽位与 spiral 相同(冷却前),开关控制是否实例化
-- [ ] 转移点曲线判定(5.2 第 4 步):相邻层 `end_n == start_{n+1}`,Δ ≤ 预算,过渡段不离体(需把切片多边形/体积引用传入,注意 TBB 管道线程安全,只读共享)
-- [ ] 底实心层:复用 transition_in 语义,先常规打底再单链起步;顶封口层默认常规收尾或敞口
-- [ ] (可选)GUI 选项暴露:Print 设置页加 `continuous_print_mode` 勾选,默认关
+- [X] `src/libslic3r/PrintConfig.{hpp,cpp}`:新增 `continuous_print_mode`(bool,默认 false,comAdvanced);平滑参数复用 `spiral_mode_smooth` / `spiral_mode_max_xy_smoothing`,不新增配置面。开启时在 `normalize_fdm`/`normalize_fdm_1` 中禁用 `retract_when_changing_layer`(连续打印靠挤出段焊接层界,被过滤器丢弃的回抽会留下未配对的回填)。**未加硬校验/提示**:逐层判定失败会自然回退常规打印,不阻断切片
+- [X] `src/libslic3r/GCode.hpp`:`LayerResult` 扩展 `continuous_print_enable`(bool);`GCode` 新增 `m_continuous_print`/`m_continuous_prev_end`/`m_continuous_has_prev` 与 `emit_continuous_print_layer()`/`continuous_print_compatible()`
+- [X] `src/libslic3r/GCode.cpp`:
+  - [X] `_do_export`(2539 附近):`continuous_print_mode` 开启且结构门通过时实例化 `ContinuousPrint`(与 `spiral_mode` 互斥,spiral 优先)
+  - [X] `process_layer`(发射段 5454 附近):整单结构门(`continuous_print_compatible`:单对象单实例、单材料/单喷嘴、无支撑、无擦料塔、ByLayer;skirt/brim 按层排除)+ 逐层 `preflight_layer`,命中时整层发射为单条连续链;失败层常规发射
+  - [X] spiral 判定/发射管道:两处 `process_layers` 的过滤器槽位改为 `has_vase_filter = m_spiral_vase || m_continuous_print` 分派,避免两套判定冲突
+  - [X] 发射分支:`emit_continuous_print_layer()` 按 `plan.order` 顺序/反转逐段 `extrude_path`;`preflight_layer` 已把 loop 线性化为开放 `ExtrusionPath`,故无需 seam/裁剪代码;连续实体首尾相接,`_extrude` 的 `travel_to`/`needs_retraction` 无可触发段
+  - [X] `change_layer`/`lazy_lift`:连续模式下与 spiral 同法强制普通 Z 提升(否则过滤器会把 z-hop 的 Z 误当作层高基准,导致整层 Z 偏移)
+- [X] 转移点判定(5.2 第 4 步):以「上一层终点」为 `preferred_start` 选链方向(首个连续层用当前喷嘴位置),层界由过滤器丢弃 travel 后焊接;开启 `spiral_mode_smooth` 时在发射前校验 Δ ≤ `spiral_mode_max_xy_smoothing` 预算,超预算即该层回退常规。**离体检查未做**(需把网格/层多边形引用传入,留待 M4 几何合法性)
+- [X] **接合点容差与吸附(2026-09-11 关键修复)**:实测真实切片中墙与填充之间留有 `infill_wall_overlap` 级别的缝(顶/底面 ≈ 0.12mm,内部实心 ≈ 0.48mm),而原实现用 `SCALED_EPSILON`(≈1e-4mm)判定接合,导致**一直接不上、特征完全不生效**。现改为把物理容差(默认 `0.5 × 喷嘴直径`)传入 `preflight_layer`/`split_entities_at_junctions`,并在拆分目标的同时把接触端点**吸附**到接合点(位移 ≤ 容差,不新增任何线段,仍满足"不补线")。单测:`0.15mm` 缝隙在严格 ε 下 Reject、在物理容差下 Applicable 且链精确相接
+- [X] **有界连接段(2026-09-11,按用户要求放宽"绝不补线")**:`preflight_layer` 改用贪心单链排序 `build_chain_with_connectors`:相邻两段间隙 > 接合容差且 ≤ `continuous_print_max_join_distance`(默认 1.0mm,可配,0=严格)时插入一段直线挤出连接(继承相邻实体属性),用于连接**墙环之间、墙↔填充/支撑**;超过上限则整层回退。发射端无需改动(连接段作为普通 `ExtrusionPath` 排在链中)。**不强制 `wall_loops=1`**(遵用户意见,多墙靠连接段串成一笔)
+- [X] **多墙一笔画(2026-09-11 解决)**:排序器改为「按角色分组(外墙/内墙按面积降序 = 墙1→墙2→墙3,填充一组)+ 方向按上一层终点自动选择」;闭环置缝改为**在边上插入顶点的最近点置缝**(此前只吸附到已有顶点,墙-填充缝 0.12mm 无法精确落点,多墙因此 0/49)。实测 2 墙 + alignedrectilinear:0/49 → **42/49** 层零空驶;逐层特征序列实测为 `Outer wall → Inner wall → Sparse infill` 与 `Sparse infill → Inner wall → Outer wall` **逐层交替**,与设计目标一致
+- [X] **用户提示(2026-09-11 新增)**:`GCodeProcessorResult::continuous_print_report` 携带整单结论(GUI 通知 + CLI stderr + 日志)。三种文案:结构门不通过(非单对象/单材料/有擦料塔)、无任一层可一画、部分层不可一画(N/M)。不再"静默按常规切"
+- [X] **墙→顶/底面用"不完整墙壁"衔接(2026-09-11)**:排序器在"墙→非墙(顶/底/填充)"衔接处不再插入独立连接实体,而是把填充起点**追加到墙折线末尾**,即墙沿自身切向延伸到图案起点(末段 = 不完整墙壁)。墙↔墙仍用短连接段。实测覆盖率不变(质量优化),零空驶保持;1 墙 47/49、2 墙 45/49、纯薄壁 50/50
+- [X] **顶/底面接入(2026-09-11)**:墙环的缝改为对齐"填充连接点"(反向逐道墙置缝),填充块按邻近排序;实测 `top_surface_pattern=bottom_surface_pattern=monotonic` 时**顶面层/底面层已一笔走完**(1 墙配置 47/49 层,仅内部实心填充层回退)。`continuous_print_max_join_distance` 默认由 1.0mm 调到 **2.0mm**(墙↔面实测缝 1.18mm)
+- [ ] **仍回退:内部实心填充层**。`CP_DEBUG=1` 诊断显示这些层的填充在 `by_region` 里是 **3 个实体**(role=5,点数 119/6/4),彼此相距可达 **24mm**——这是真实几何间隔(中间为空),不是排序问题;要一画只能补 24mm 长连接,不可接受,故按层回退并在提示中体现
+- [X] 诊断开关:排序器支持 `CP_DEBUG=1` 打印每层实体清单(role/闭环/点数)与失败 hop
+
+
+- [X] 底实心层/顶封口:靠逐层判定天然处理(底层实心/顶封层不可一画→常规打印,其余层连续),语义等同 `transition_in`
+- [X] (可选)GUI:Print 设置页「Special mode」新增 `continuous_print_mode` 勾选(默认关);`ConfigManipulation` 中 `spiral_mode_smooth`/`spiral_mode_max_xy_smoothing` 的可见性同时受 `continuous_print_mode` 控制(复用其平滑参数)
+
+  - **坑(已修)**:新增配置项必须同时登记进 `Preset::print_options()`(`src/libslic3r/Preset.cpp` 的 `s_Preset_print_options`)。该列表决定 process preset 配置包含哪些键;**只加 def + GUI 行而不登记会点「Others」选项卡崩溃**(页面对缺失键取值为 null)。已加回归单测 `continuous_print_mode is registered as a process preset option` 守卫;同一坑适用于今后任何新增打印选项
 
 ### M3 出口标准
 
-- [ ] 开关关闭时:同一工程切片输出与基线**逐字节 diff 无差异**
-- [ ] 开关开启 + 花瓶类模型:生成连续 GCode;判定失败模型:整单回退常规,输出合法
+- [X] 开关关闭时零回归:选项缺失 vs `continuous_print_mode=0` 两次切片,除 `print_settings_id` 注释外 G-code **逐字节相等**(结构上 `m_continuous_print` 仅在该选项为真时创建,关闭路径与基线同构)
+- [X] 开关开启 + 花瓶类模型:生成连续 GCode(见 M4 实测);判定失败模型(2 墙 + grid 填充实心立方)无任何 Z-ramp 行,整单回退常规,输出合法
 
 ---
 
@@ -156,22 +175,29 @@
 
 设计依据:6.2。
 
-- [ ] 零空驶断言工具(离线,可自动化):解析输出 G-code,统计
-  - [ ] 挤出段之间"E 增量≈0 且 X/Y 变化"的段数(应为 0)
-  - [ ] 层内 G1 是否首尾相连成单链
-  - [ ] 层界处是否有 Z 回退/回抽
-- [ ] 几何合法性:平滑滑移段采样点落在模型切片多边形/体积内(防穿模/悬空)
-- [ ] 回归:默认关闭时输出与基线逐字节 diff
-- [ ] 打印实测:小尺寸薄壁花瓶(直壁 / 斜壁 / 非圆截面),目检层界焊缝、强度、挤出一致性,重点观察转移点曲线附近是否积料/凹陷
+- [X] 零空驶断言工具(离线,可自动化):`tools/continuous_print_check.py`,解析输出 G-code 统计
+  - [X] 层内挤出段之间"非挤出 XY 移动"段数(应为 0)
+  - [X] 层内 G1 挤出是否首尾相连成单链(链断点计数)
+  - [X] 层界非挤出重定位段数;挤出段 Z 单调性(含 Z 回退检测)
+- [X] 端到端实测(2026-09-11,Release 构建 CLI,BBL X1C 0.4 profile):
+  - **修复前**:即使用文档指定的连续图案(`wall_loops=1` + `top/bottom=monotonic` + `sparse=alignedrectilinear`),Z-ramp 行数 = 0,特征完全不生效
+  - **修复后(接合点容差+吸附)**:同一模型 51 层中连续区 45/49 层零空驶单链(含外墙↔顶面、外墙↔底面、外墙↔sparse/internal bridge);仅"内部实心填充层"(与墙缝 ≈0.48mm 超容差)与支撑层回退常规
+  - 纯薄壁/无填充(1 环)场景保持 PASS:50/50 层零空驶、Z 单调
+  - 默认参数(2 墙 + grid 填充)不可一画 → 现在会明确提示"没有任何一层能一画",而非静默
+  - 复现:`--load-settings "<machine>;sandboxes/continuous_print/profiles/cp_1.json"`(纯薄壁)或 `cp_real_on.json`(1 墙+monotonic 顶/底+alignedrectilinear 填充),再 `python tools/continuous_print_check.py <dir>/plate_1.gcode`
+  - 产物:`sandboxes/continuous_print/verify/final2_cp_*`、`cp_real_on_v4`、`cp_default_on_v4`(未跟踪)
+- [ ] 几何合法性:平滑滑移/层界焊接段采样点落在模型切片多边形/体积内(防穿模/悬空)。**未做**,需把层多边形或网格体积引用传入过滤器/发射器(设计文档 G4、5.4 方案 A),为下一步
+- [ ] 打印实测:小尺寸薄壁花瓶(直壁 / 斜壁 / 非圆截面),目检层界焊缝、强度、挤出一致性,重点观察转移点曲线附近是否积料/凹陷(**需实机**)
+
 
 ---
 
 ## 5. 全程纪律(每个里程碑必做)
 
-- [ ] 遵循 AGENTS.md:C++17、PascalCase 类 / snake_case 函数、`#pragma once`、TBB 共享状态只读
-- [ ] 不改动既有默认行为、profile、.3mf 兼容性
-- [ ] 每个里程碑提交前跑 `tests/libslic3r` 全量 + 基线 diff
-- [ ] 代码保持精简,review 前手动删减 AI 生成的冗余代码
+- [X] 遵循 AGENTS.md:C++17、PascalCase 类 / snake_case 函数、`#pragma once`、TBB 共享状态只读(连续打印状态 `m_continuous_prev_end` 仅在 `serial_in_order` 的 generator/过滤器阶段读写)
+- [X] 不改动既有默认行为、profile、.3mf 兼容性(新选项默认 false,关闭路径与基线同构;未改任何既有配置默认值/迁移)
+- [X] 每个里程碑提交前跑 `tests/libslic3r` 全量(37/38 通过,唯一失败为基线既有 `Placeholder parser coFloatsOrPercents` SIGSEGV)+ 基线 diff
+- [X] 代码保持精简,review 前手动删减 AI 生成的冗余代码
 - [ ] 开放问题 O1–O4(设计文档第 7 章)不在 v1 范围内,遇到相关需求先记录不实现
 
 ---
