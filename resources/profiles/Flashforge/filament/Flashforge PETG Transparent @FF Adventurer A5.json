@@ -1,0 +1,89 @@
+{
+    "additional_cooling_fan_speed": [
+        "60"
+    ],
+    "close_fan_the_first_x_layers": [
+        "2"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "75"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "75"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_settings_id": [
+        "Flashforge PETG Transparent @FF Adventurer A5"
+    ],
+    "from": "system",
+    "setting_id": "axOWrjnN5lofH9qM",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.4 nozzle",
+      "Flashforge Adventurer A5 0.6 nozzle",
+      "Flashforge Adventurer A5 0.8 nozzle"
+    ],
+    "hot_plate_temp": [
+        "75"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "75"
+    ],
+    "inherits": "Flashforge Generic PETG",
+    "is_custom_defined": "0",
+    "name": "Flashforge PETG Transparent @FF Adventurer A5",
+    "nozzle_temperature": [
+        "265"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "supertack_plate_temp": [
+        "75"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "75"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "textured_cool_plate_temp": [
+        "75"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "75"
+    ],
+    "textured_plate_temp": [
+        "75"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "75"
+    ],
+    "version": "2.1.1.0"
+}

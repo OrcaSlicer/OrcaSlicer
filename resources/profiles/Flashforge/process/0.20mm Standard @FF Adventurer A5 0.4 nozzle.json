@@ -1,0 +1,22 @@
+{
+    "enable_arc_fitting": "1",
+    "from": "system",
+    "setting_id": "ZrWC7sW8I5eH0nI0",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer A5 0.4 nozzle"
+    ],
+    "infill_wall_overlap": "15%",
+    "inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+    "is_custom_defined": "0",
+    "name": "0.20mm Standard @FF Adventurer A5 0.4 nozzle",
+    "only_one_wall_top": "1",
+    "print_settings_id": "0.20mm Standard @FF Adventurer A5 0.4 nozzle",
+    "seam_slope_conditional": "1",
+    "seam_slope_inner_walls": "1",
+    "slowdown_for_curled_perimeters": "0",
+    "small_perimeter_speed": "25",
+    "support_bottom_z_distance": "0.2",
+    "support_top_z_distance": "0.2",
+    "version": "2.1.1.0"
+}

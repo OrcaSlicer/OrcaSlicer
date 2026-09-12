@@ -1,0 +1,35 @@
+{
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "45"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "45"
+    ],
+    "filament_settings_id": [
+        "Kexcelled TPU 64D @FF Adventurer A5"
+    ],
+    "from": "system",
+    "setting_id": "OB4I8nwZn8sCcCcF",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.4 nozzle",
+      "Flashforge Adventurer A5 0.6 nozzle",
+      "Flashforge Adventurer A5 0.8 nozzle"
+    ],
+    "inherits": "Flashforge Generic TPU",
+    "is_custom_defined": "0",
+    "name": "Kexcelled TPU 64D @FF Adventurer A5",
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ],
+    "version": "2.1.1.0"
+}
