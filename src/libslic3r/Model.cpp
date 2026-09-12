@@ -2267,7 +2267,7 @@ void ModelObject::merge()
 ModelObjectPtrs ModelObject::merge_volumes(std::vector<int>& vol_indeces)
 {
     ModelObjectPtrs res;
-    if (this->volumes.size() == 1) {
+    if (this->volumes.size() == 1 || vol_indeces.empty()) {
         // We can't merge meshes if there's just one volume
         return res;
     }
@@ -2281,11 +2281,22 @@ ModelObjectPtrs ModelObject::merge_volumes(std::vector<int>& vol_indeces)
     upper->clear_volumes();
     upper->input_file.clear();
 
-#if 1
     TriangleMesh mesh;
+    // BBS: preserve painting across the merge. its_merge() appends faces in
+    // order (only vertex indices are offset), so face f of the merged mesh maps
+    // exactly to the captured per-part triangles below. Capture before
+    // reset_mesh() empties the source volumes.
+    std::vector<std::string> merged_supported, merged_seam, merged_mmu, merged_fuzzy;
     for (int i : vol_indeces) {
         auto volume = volumes[i];
         if (!volume->mesh().empty()) {
+            const size_t nf = volume->mesh().its.indices.size();
+            for (size_t f = 0; f < nf; ++f) {
+                merged_supported.emplace_back(volume->supported_facets.get_triangle_as_string((int)f));
+                merged_seam.emplace_back(volume->seam_facets.get_triangle_as_string((int)f));
+                merged_mmu.emplace_back(volume->mmu_segmentation_facets.get_triangle_as_string((int)f));
+                merged_fuzzy.emplace_back(volume->fuzzy_skin_facets.get_triangle_as_string((int)f));
+            }
             const auto volume_matrix = volume->get_matrix();
             TriangleMesh mesh_(volume->mesh());
             mesh_.transform(volume_matrix, true);
@@ -2294,20 +2305,24 @@ ModelObjectPtrs ModelObject::merge_volumes(std::vector<int>& vol_indeces)
             mesh.merge(mesh_);
         }
     }
-#else
-    std::vector<TriangleMesh> meshes;
-    for (int i : vol_indeces) {
-        auto volume = volumes[i];
-        if (!volume->mesh().empty())
-            meshes.emplace_back(volume->mesh());
-    }
-    TriangleMesh mesh = MeshBoolean::cgal::merge(meshes);
-#endif
 
-    ModelVolume* vol = upper->add_volume(mesh);
+    // Keep the part type: the default add_volume() overload would make the result
+    // a normal part, which would turn a merged negative part or modifier into
+    // printed geometry.
+    const ModelVolumeType merged_type = volumes[vol_indeces.front()]->type();
+    const size_t merged_face_count = mesh.its.indices.size();
+
+    ModelVolume* vol = upper->add_volume(std::move(mesh), merged_type);
+    // BBS: re-apply the painting captured above onto the merged volume.
+    for (size_t f = 0; f < merged_mmu.size() && f < merged_face_count; ++f) {
+        if (!merged_supported[f].empty()) vol->supported_facets.set_triangle_from_string((int)f, merged_supported[f]);
+        if (!merged_seam[f].empty())      vol->seam_facets.set_triangle_from_string((int)f, merged_seam[f]);
+        if (!merged_mmu[f].empty())       vol->mmu_segmentation_facets.set_triangle_from_string((int)f, merged_mmu[f]);
+        if (!merged_fuzzy[f].empty())     vol->fuzzy_skin_facets.set_triangle_from_string((int)f, merged_fuzzy[f]);
+    }
     for (int i = 0; i < volumes.size();i++) {
         if (std::find(vol_indeces.begin(), vol_indeces.end(), i) != vol_indeces.end()) {
-            vol->name = volumes[i]->name + "_merged";
+            vol->name = "Merged Parts";
             vol->config.assign_config(volumes[i]->config);
         }
         else
