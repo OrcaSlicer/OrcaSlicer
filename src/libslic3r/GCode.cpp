@@ -3127,7 +3127,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     file.write_format("; EXECUTABLE_BLOCK_START\n");
 
     // SoftFever
-    if( m_enable_exclude_object)
+    // For Klipper, always emit EXCLUDE_OBJECT_DEFINE so ADAPTIVE=1 sees all print regions.
+    if (m_enable_exclude_object || print.config().gcode_flavor == gcfKlipper)
         file.write(set_object_info(&print));
 
     // adds tags for time estimators
@@ -9817,10 +9818,26 @@ std::string GCode::set_object_info(Print *print) {
                 }
             }
         }
+
+        // Define wipe tower as a virtual exclude-object region for Klipper so ADAPTIVE=1 bed mesh can include it.
+        if (gflavor == gcfKlipper) {
+            Points wt_corners = print->first_layer_wipe_tower_corners();
+            if (wt_corners.size() >= 3) {
+                Polygon wt_polygon = Geometry::convex_hull(wt_corners);
+                if (wt_polygon.points.size() >= 3) {
+                    const auto wt_bbox   = get_extents(wt_polygon);
+                    const auto wt_center = print->translate_to_print_space(wt_bbox.center());
+                    gcode << "EXCLUDE_OBJECT_DEFINE NAME=WipeTower CENTER=" << wt_center.x() << "," << wt_center.y()
+                          << " POLYGON=" << polygon_to_string(wt_polygon, print) << "\n";
+                }
+            }
+        }
     }
 
     return gcode.str();
 }
+
+
 
 // convert a model-space scaled point into G-code coordinates
 Vec2d GCode::point_to_gcode(const Point &point) const
