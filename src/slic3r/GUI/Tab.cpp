@@ -5032,7 +5032,7 @@ void TabPrinter::build_fff()
                 ConfigOptionDef def;
                 def.type = coString;
                 def.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
-                def.width = 3 * Field::def_width_wider() / 2;
+                def.width = Field::def_width_wider();
                 def.label = L("Printer Agent");
                 def.tooltip = L("Select the network agent implementation for printer communication. "
                     "Available agents are registered at startup.");

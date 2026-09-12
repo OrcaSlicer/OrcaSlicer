@@ -32,7 +32,7 @@ wxDEFINE_EVENT(EVT_CAM_SOURCE_CHANGE, wxCommandEvent);
 
 #define CAMERAPOPUP_CLICK_INTERVAL 20
 
-const wxColour TEXT_COL = wxColour(43, 52, 54);
+const wxColour TEXT_COL = wxColour(54, 54, 54); // #363636 label color
 
 CameraPopup::CameraPopup(wxWindow *parent)
    : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS)
@@ -45,6 +45,16 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_panel->SetMinSize(wxSize(FromDIP(180),-1));
     m_panel->Bind(wxEVT_MOTION, &CameraPopup::OnMouse, this);
 
+    // ORCA add border for popups. it required to add this controls because it covers all background
+    m_panel->Bind(wxEVT_PAINT, [this](wxPaintEvent& evt) {
+        if(!m_panel)
+            return;
+        wxPaintDC dc(m_panel);
+        dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")), m_panel->FromDIP(3)));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRoundedRectangle(0, 0, m_panel->GetSize().x, m_panel->GetSize().y, 0);
+    });
+
     main_sizer = new wxBoxSizer(wxVERTICAL);
     wxFlexGridSizer* top_sizer = new wxFlexGridSizer(0, 2, 0, FromDIP(50));
     top_sizer->AddGrowableCol(0);
@@ -54,14 +64,14 @@ CameraPopup::CameraPopup(wxWindow *parent)
     //recording
     m_text_recording = new wxStaticText(m_panel, wxID_ANY, _L("Auto-record Monitoring"));
     m_text_recording->Wrap(-1);
-    m_text_recording->SetFont(Label::Head_14);
+    m_text_recording->SetFont(Label::Body_14);
     m_text_recording->SetForegroundColour(TEXT_COL);
     m_switch_recording = new SwitchButton(m_panel);
 
     //vcamera
     m_text_vcamera = new wxStaticText(m_panel, wxID_ANY, _L("Go Live"));
     m_text_vcamera->Wrap(-1);
-    m_text_vcamera->SetFont(Label::Head_14);
+    m_text_vcamera->SetFont(Label::Body_14);
     m_text_vcamera->SetForegroundColour(TEXT_COL);
     m_switch_vcamera = new SwitchButton(m_panel);
 
@@ -73,7 +83,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
 #if !BBL_RELEASE_TO_PUBLIC
     m_text_liveview_retry = new wxStaticText(m_panel, wxID_ANY, _L("Liveview Retry"));
     m_text_liveview_retry->Wrap(-1);
-    m_text_liveview_retry->SetFont(Label::Head_14);
+    m_text_liveview_retry->SetFont(Label::Body_14);
     m_text_liveview_retry->SetForegroundColour(TEXT_COL);
     m_switch_liveview_retry = new SwitchButton(m_panel);
     bool auto_retry         = wxGetApp().app_config->get("liveview", "auto_retry") != "false";
@@ -91,7 +101,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     //resolution
     m_text_resolution = new wxStaticText(m_panel, wxID_ANY, _L("Resolution"));
     m_text_resolution->Wrap(-1);
-    m_text_resolution->SetFont(Label::Head_14);
+    m_text_resolution->SetFont(Label::Body_14);
     m_text_resolution->SetForegroundColour(TEXT_COL);
     top_sizer->Add(m_text_resolution, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(0, 0, wxALL, 0);
@@ -104,19 +114,14 @@ CameraPopup::CameraPopup(wxWindow *parent)
 
     // Orca: custom IP camera source — lets the user point Live Video at any camera URL (Orca feature; not in the reference)
     m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
-    m_custom_camera_input_confirm->SetBackgroundColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetBorderColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
-    m_custom_camera_input_confirm->SetFont(Label::Body_14);
-    m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
-    m_custom_camera_input_confirm->SetPosition(wxDefaultPosition);
-    m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
+    m_custom_camera_input_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Parameter);
+
     m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
     m_custom_camera_input->GetTextCtrl()->SetHint(_L("Hostname or IP"));
     m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
     m_custom_camera_hint = new wxStaticText(m_panel, wxID_ANY, _L("Custom camera source"));
     m_custom_camera_hint->Wrap(-1);
-    m_custom_camera_hint->SetFont(Label::Head_14);
+    m_custom_camera_hint->SetFont(Label::Body_14);
     m_custom_camera_hint->SetForegroundColour(TEXT_COL);
 
     m_custom_camera_input_confirm->Bind(wxEVT_BUTTON, &CameraPopup::on_camera_source_changed, this);
@@ -132,27 +137,10 @@ CameraPopup::CameraPopup(wxWindow *parent)
     top_sizer->Add(m_custom_camera_input_confirm, 1, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
     main_sizer->Add(top_sizer, 0, wxALL, FromDIP(10));
 
-    auto url = wxString(L"https://www.orcaslicer.com/wiki/"); // Orca: neutral wiki link (vendor URL removed)
-    auto text = _L("Show \"Live Video\" guide page.");
-
-    wxBoxSizer* link_sizer = new wxBoxSizer(wxVERTICAL);
-    vcamera_guide_link = new Label(m_panel, text);
-    vcamera_guide_link->Wrap(-1);
-    vcamera_guide_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
-    auto text_size = vcamera_guide_link->GetTextExtent(text);
-    vcamera_guide_link->Bind(wxEVT_LEFT_DOWN, [url](wxMouseEvent& e) {wxLaunchDefaultBrowser(url); });
-
-    link_underline = new wxPanel(m_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    link_underline->SetBackgroundColour(wxColour(0x1F, 0x8E, 0xEA));
-    link_underline->SetSize(wxSize(text_size.x, 1));
-    link_underline->SetMinSize(wxSize(text_size.x, 1));
-
+    vcamera_guide_link = new HyperLink(m_panel, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/"); // Orca: neutral wiki link (vendor URL removed)
     vcamera_guide_link->Hide();
-    link_underline->Hide();
-    link_sizer->Add(vcamera_guide_link, 0, wxALL, 0);
-    link_sizer->Add(link_underline, 0, wxALL, 0);
 
-    main_sizer->Add(link_sizer, 0, wxALL, FromDIP(15));
+    main_sizer->Add(vcamera_guide_link, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(15));
 
     m_panel->SetSizer(main_sizer);
     m_panel->Layout();
@@ -210,6 +198,7 @@ void CameraPopup::set_custom_cam_button_state(bool state)
     m_custom_camera_enabled = state;
     auto stateColour = state ? wxColour(170, 0, 0) : wxColour(38, 166, 154);
     auto stateText = state ? "Disable" : "Enable";
+    m_custom_camera_input_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Parameter);
     m_custom_camera_input_confirm->SetBackgroundColor(stateColour);
     m_custom_camera_input_confirm->SetBorderColor(stateColour);
     m_custom_camera_input_confirm->SetLabel(_L(stateText));
@@ -326,12 +315,10 @@ void CameraPopup::sync_vcamera_state(bool show_vcamera)
     if (is_vcamera_show) {
         m_switch_vcamera->SetValue(true);
         vcamera_guide_link->Show();
-        link_underline->Show();
     }
     else {
         m_switch_vcamera->SetValue(false);
         vcamera_guide_link->Hide();
-        link_underline->Hide();
     }
 
     rescale();
@@ -356,13 +343,11 @@ void CameraPopup::check_func_supported(MachineObject *obj2)
         m_switch_vcamera->Show();
         if (is_vcamera_show) {
             vcamera_guide_link->Show();
-            link_underline->Show();
         }
     } else {
         m_text_vcamera->Hide();
         m_switch_vcamera->Hide();
         vcamera_guide_link->Hide();
-        link_underline->Hide();
     }
 
     allow_alter_resolution = ( (m_obj->camera_resolution_supported.size() > 1?true:false) && m_obj->has_ipcam);

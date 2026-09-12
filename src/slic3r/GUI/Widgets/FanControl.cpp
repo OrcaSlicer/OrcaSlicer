@@ -178,8 +178,8 @@ void FanOperate::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, con
     wxWindow::Create(parent, id, pos, size, wxBORDER_NONE);
     SetBackgroundColour(*wxWHITE);
 
-    m_bitmap_add        = ScalableBitmap(this, "fan_control_add", 24);
-    m_bitmap_decrease   = ScalableBitmap(this, "fan_control_decrease", 24);
+    m_bitmap_add        = ScalableBitmap(this, "fan_control_add", 23);
+    m_bitmap_decrease   = ScalableBitmap(this, "fan_control_decrease", 23);
 
     SetMinSize(wxSize(FromDIP(SIZE_OF_FAN_OPERATE.x), FromDIP(SIZE_OF_FAN_OPERATE.y)));
     Bind(wxEVT_PAINT, &FanOperate::paintEvent, this);
@@ -298,7 +298,7 @@ void FanOperate::render(wxDC& dc)
 void FanOperate::doRender(wxDC& dc)
 {
     wxSize size = GetSize();
-    dc.SetPen(wxPen(DRAW_OPERATE_LINE_COLOUR));
+    dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#DBDBDB"))));
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRoundedRectangle(0,0,size.x,size.y,5);
 
@@ -314,7 +314,7 @@ void FanOperate::doRender(wxDC& dc)
 
     //txt
     dc.SetFont(::Label::Body_12);
-    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#898989")));
+    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#363636")));
     wxString text = wxString::Format("%d%%", m_current_speeds * 10);
     wxSize text_size = dc.GetTextExtent(text);
     auto text_width = size.x - m_bitmap_decrease.GetBmpWidth() * 2;
@@ -356,6 +356,7 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     m_static_bitmap_fan = new wxStaticBitmap(this, wxID_ANY, m_bitmap_fan->bmp(), wxDefaultPosition, wxDefaultSize);
 
     m_static_name = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END | wxALIGN_CENTER_HORIZONTAL);
+    m_static_name->SetForegroundColour(wxColour(54, 54, 54));
     m_static_name->SetBackgroundColour(wxColour(248, 248, 248));
     m_static_name->SetFont(Label::Head_16);
     m_static_name->SetMinSize(wxSize(FromDIP(100), -1));
@@ -367,12 +368,12 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     m_switch_button->Bind(wxEVT_LEFT_DOWN, &FanControlNew::on_swith_fan, this);
 
 
-    sizer_control_top->Add(m_static_bitmap_fan, 0, wxLEFT | wxTOP, FromDIP(8));
-    sizer_control_top->Add(m_static_name, 0, wxLEFT | wxTOP, FromDIP(5));
-    sizer_control_top->Add(0, 0, 1, wxEXPAND, 0);
-    sizer_control_top->Add(m_switch_button, 0, wxALIGN_RIGHT | wxRIGHT | wxTOP, FromDIP(5));
+    sizer_control_top->Add(m_static_bitmap_fan, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+    sizer_control_top->Add(m_static_name, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer_control_top->AddStretchSpacer();
+    sizer_control_top->Add(m_switch_button, 0, wxALIGN_RIGHT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
 
-    sizer_control->Add(sizer_control_top, 0, wxEXPAND, 0);
+    sizer_control->Add(sizer_control_top, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
 
     m_static_status_name = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END | wxALIGN_CENTER_HORIZONTAL);
     m_static_status_name->SetForegroundColour(wxColour("#009688"));
@@ -403,11 +404,12 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
         command_control_fan();
     });
 
-    m_sizer_control_bottom->Add(m_static_status_name, 0, wxLEFT | wxALIGN_CENTER, FromDIP(30));
-    m_sizer_control_bottom->Add(m_fan_operate, 0, wxALL, FromDIP(5));
+    m_sizer_control_bottom->Add(m_static_status_name, 0, wxALIGN_CENTER);
+    m_sizer_control_bottom->Add(m_fan_operate, 0, wxALL | wxEXPAND, FromDIP(5));
 
-    sizer_control->Add(m_sizer_control_bottom, 0, wxALL | wxEXPAND, 0);
-    m_sizer_main->Add(sizer_control, 0, wxALIGN_CENTER, 0);
+    sizer_control->Add(m_sizer_control_bottom, 1, wxALL | wxALIGN_CENTER, 0);
+    sizer_control->AddStretchSpacer();
+    m_sizer_main->Add(sizer_control, 1, wxALIGN_CENTER, 0);
     update_mode();
 
 #if __APPLE__
@@ -638,12 +640,13 @@ FanControlPopupNew::FanControlPopupNew(wxWindow* parent, MachineObject* obj, con
     int grid_column = part_size > 1 ? 2 : 1;
 
     m_radio_btn_sizer  = new wxGridSizer(0, 2, FromDIP(3), FromDIP(3));
-    m_sizer_fanControl = new wxGridSizer(0, grid_column, FromDIP(3), FromDIP(10));
+    m_sizer_fanControl = new wxGridSizer(0, grid_column, FromDIP(10), FromDIP(10));
 
     m_mode_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_mode_sizer->Add(m_radio_btn_sizer, 0, wxALIGN_CENTRE_VERTICAL, 0);
 
     m_mode_text = new Label(this);
+    m_mode_text->SetForegroundColour(wxColour("#363636"));
     m_mode_text->SetBackgroundColour(*wxWHITE);
 
     m_sub_mode_panel = new wxPanel(this, wxID_ANY);
@@ -651,14 +654,15 @@ FanControlPopupNew::FanControlPopupNew(wxWindow* parent, MachineObject* obj, con
     m_sub_mode_sizer = new wxBoxSizer(wxVERTICAL);
     m_sub_mode_panel->SetSizer(m_sub_mode_sizer);
 
-    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(23));
-    m_sizer_main->Add(m_mode_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
+    m_sizer_main->Add(m_mode_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT, FromDIP(20));
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_main->Add(m_mode_text, 0, wxLEFT, FromDIP(35));
+    m_sizer_main->Add(m_mode_text, 0, wxLEFT | wxRIGHT, FromDIP(20));
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_main->Add(m_sub_mode_panel, 0, wxLEFT | wxRIGHT, FromDIP(30));
-    m_sizer_main->Add(m_sizer_fanControl, 0, wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxRIGHT, 0);
-    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(16));
+    m_sizer_main->Add(m_sub_mode_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(20));
+    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
+    m_sizer_main->Add(m_sizer_fanControl, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(20));
+    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
     CreateDuct();
 
@@ -667,7 +671,7 @@ FanControlPopupNew::FanControlPopupNew(wxWindow* parent, MachineObject* obj, con
     Fit();
 
     this->Centre(wxBOTH);
-    Bind(wxEVT_PAINT, &FanControlPopupNew::paintEvent, this);
+    //Bind(wxEVT_PAINT, &FanControlPopupNew::paintEvent, this); // no need to draw border since its a regular window
 
 #if __APPLE__
     Bind(wxEVT_LEFT_DOWN, &FanControlPopupNew::on_left_down, this);
@@ -739,7 +743,7 @@ void FanControlPopupNew::UpdateParts()
     if (m_mode_text->GetLabelText() != text)
     {
         m_mode_text->SetLabelText(text);
-        m_mode_text->Wrap(FromDIP(400));
+        m_mode_text->Wrap(FromDIP(370)); // should match with 2 x 180 (FanControlNew witdh)
     }
 
     UpdatePartSubMode();
@@ -753,7 +757,7 @@ void FanControlPopupNew::UpdateParts()
         {
             fan_control = new FanControlNew(this, m_data, m_data.curren_mode, part_id, wxID_ANY, wxDefaultPosition, wxDefaultSize);
             m_fan_control_list[part_id] = fan_control;
-            m_sizer_fanControl->Add(fan_control, 0, wxALL, FromDIP(5));
+            m_sizer_fanControl->Add(fan_control, 0, wxALIGN_CENTER);
         }
 
         fan_control->set_machine_obj(m_obj);
@@ -793,7 +797,7 @@ void FanControlPopupNew::UpdatePartSubMode()
                   command_control_air_duct(m_data.curren_mode, submode);
                 });
 
-            m_sub_mode_sizer->Add(m_cooling_filter_switch_panel, 0, wxALL, FromDIP(5));
+            m_sub_mode_sizer->Add(m_cooling_filter_switch_panel, 0, wxALL | wxEXPAND, FromDIP(5));
         }
 
         m_cooling_filter_switch_panel->SetSwitchOn(m_data.IsCoolingFilerOn());
@@ -1063,11 +1067,13 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
     : wxWindow(parent, wxID_ANY), switch_state_on(on)
 {
     Label* label = new Label(this);
+    label->SetForegroundColour(wxColour(54, 54, 54));
     label->SetBackgroundColour(wxColour(248, 248, 248));
     label->SetLabelText(title);
+    label->SetFont(Label::Head_14);
 
-    m_bitmap_toggle_off = new ScalableBitmap(this, "toggle_off", 19);
-    m_bitmap_toggle_on = new ScalableBitmap(this, "toggle_on", 19);
+    m_bitmap_toggle_off = new ScalableBitmap(this, "toggle_off", 16);
+    m_bitmap_toggle_on = new ScalableBitmap(this, "toggle_on", 16);
     if (switch_state_on) {
         m_switch_btn = new wxStaticBitmap(this, wxID_ANY, m_bitmap_toggle_on->bmp());
     } else {
@@ -1082,9 +1088,10 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
     m_label_sizer->Add(m_switch_btn, 0, wxALIGN_RIGHT, 0);
 
     Label* tips_label = new Label(this);
+    tips_label->SetForegroundColour(wxColour(54, 54, 54));
     tips_label->SetBackgroundColour(wxColour(248, 248, 248));
     tips_label->SetLabelText(tips);
-    tips_label->Wrap(FromDIP(400));
+    tips_label->Wrap(FromDIP(370)); // should match with 2 x 180 (FanControlNew witdh) + 10 Spacing
 
     wxSizer* m_sizer_main = new wxBoxSizer(wxVERTICAL);
     m_sizer_main->Add(m_label_sizer, 0, wxALL | wxALIGN_LEFT, FromDIP(5));

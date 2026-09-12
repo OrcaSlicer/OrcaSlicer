@@ -181,7 +181,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     if (wxGetApp().app_config->get("language") == "pt_BR") m_button_extruder_feed->SetLabel("Load");
 
     m_button_extruder_back = new Button(m_panel_option_right, _L("Unload"));
-    m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    m_button_extruder_back->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_extruder_back->EnableTooltipEvenDisabled();
 
     if (wxGetApp().app_config->get("language") == "de_DE") m_button_extruder_back->SetFont(Label::Body_9);
@@ -198,7 +198,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
     //m_sizer_option_right->Add(0, 0, 1, wxEXPAND, 0);
     m_sizer_option_right->Add(m_button_extruder_back, 0, wxLEFT, FromDIP(0));
-    m_sizer_option_right->Add(m_button_extruder_feed, 0, wxLEFT, FromDIP(20));
+    m_sizer_option_right->Add(m_button_extruder_feed, 0, wxLEFT, FromDIP(10));
 
     m_panel_option_left->Layout();
     m_panel_option_right->Layout();
@@ -1174,7 +1174,7 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
             else{
                 auto ext_image = new AMSExtImage(book_panel, pos, m_total_ext_count, false);
                 book_sizer->Add(ams1, 0, wxLEFT, FromDIP(30));
-                book_sizer->Add(ext_image, 0, wxEXPAND | wxLEFT, FromDIP(30));
+                book_sizer->Add(ext_image, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(30));
                 ext_image->setTotalExtNum(series_name, printer_type, total_ext_num);
                 m_ext_image_list[infos[0].ams_id] = ext_image;
             }

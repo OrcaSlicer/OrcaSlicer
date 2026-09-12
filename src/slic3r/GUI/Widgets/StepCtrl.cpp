@@ -24,8 +24,8 @@ StepCtrlBase::StepCtrlBase(wxWindow *      parent,
     , clr_bar(0xACACAC)
     , clr_step(0xACACAC)
     , clr_text(std::make_pair(0x009688, (int) StateColor::Checked),
-            std::make_pair(0x6B6B6B, (int) StateColor::Normal))
-    , clr_tip(0x828280)
+            std::make_pair(0x363636, (int) StateColor::Normal))
+    , clr_tip(0x363636)
 {
     SetFont(Label::Body_14);
     border_color     = StateColor(*wxLIGHT_GREY);
@@ -220,8 +220,6 @@ void StepCtrl::doRender(wxDC &dc)
     dc.DrawRectangle(rcBar);
     int circleX = itemWidth / 2;
     int circleY = size.y / 2;
-    dc.SetPen(wxPen(clr_step.colorForStates(states)));
-    dc.SetBrush(wxBrush(clr_step.colorForStates(states)));
     if (!hint.empty()) {
         dc.SetFont(font_tip);
         dc.SetTextForeground(clr_tip.colorForStates(states));
@@ -230,6 +228,8 @@ void StepCtrl::doRender(wxDC &dc)
     }
     for (int i = 0; i < steps.size(); ++i) {
         bool check = (pos_thumb == wxPoint{0, 0} ? step : pos_thumb.y) == i;
+        dc.SetPen(wxPen(clr_step.colorForStates(states)));
+        dc.SetBrush(wxBrush(clr_step.colorForStates(states)));
         dc.DrawEllipse(circleX - radius, circleY - radius, radius * 2, radius * 2);
         dc.SetFont(GetFont());
         dc.SetTextForeground(clr_text.colorForStates(states | (check ? StateColor::Checked : 0)));
@@ -240,8 +240,18 @@ void StepCtrl::doRender(wxDC &dc)
             dc.SetTextForeground(clr_tip.colorForStates(states));
             wxSize sz = dc.GetTextExtent(tips[i]);
             dc.DrawText(tips[i], circleX - sz.x / 2, circleY - 20 - sz.y);
-            sz = bmp_thumb.GetBmpSize();
-            dc.DrawBitmap(bmp_thumb.bmp(), circleX - sz.x / 2, circleY - sz.y / 2);
+
+            // ORCA draw thumb directly to support dark mode colors
+            dc.SetPen(wxPen(background_color.colorForStates(0), FromDIP(2)));
+            dc.SetBrush(wxBrush(clr_text.colorForStates(StateColor::Checked)));
+            dc.DrawCircle(wxPoint(circleX, circleY), FromDIP(12));
+
+            dc.SetPen(wxPen(background_color.colorForStates(0)));
+            for (int dx = -1; dx <= 1; ++dx) {
+                int x = circleX + dx * FromDIP(4);
+                dc.DrawLine(wxPoint(x, circleY - FromDIP(4)), wxPoint(x, circleY + FromDIP(4)));
+            }
+
         }
         circleX += itemWidth;
     }
@@ -262,7 +272,7 @@ StepIndicator::StepIndicator(wxWindow *parent, wxWindowID id, const wxPoint &pos
     clr_text = StateColor(
             std::make_pair(0xACACAC, (int) StateColor::Disabled),
             std::make_pair(0x323A3D, (int) StateColor::Checked),
-            std::make_pair(0x6B6B6B, 0));
+            std::make_pair(0x363636, 0));
     clr_tip = *wxWHITE;
     StaticBox::border_width = 0;
     radius    = bmp_ok.GetBmpHeight() / 2;

@@ -60,8 +60,6 @@ void AMSMaterialsSetting::create()
 
     wxBoxSizer *m_sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
-    m_sizer_button->Add(0, 0, 1, wxEXPAND, 0);
-
     m_button_confirm = new Button(this, _L("Confirm"));
     m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_ok, this);
@@ -74,17 +72,16 @@ void AMSMaterialsSetting::create()
     m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_close->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_close, this);
 
-    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
-    m_sizer_button->Add(m_button_reset, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
-    m_sizer_button->Add(m_button_close, 0, wxALIGN_CENTER, 0);
+    m_sizer_button->Add(m_button_reset  , 0, wxALIGN_CENTER);
+    m_sizer_button->AddStretchSpacer();
+    m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
+    m_sizer_button->Add(m_button_close  , 0, wxALIGN_CENTER, 0);
 
     m_sizer_main->Add(m_panel_normal, 0, wxALL, FromDIP(2));
 
     m_sizer_main->Add(m_panel_kn, 0, wxALL, FromDIP(2));
 
-    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(24));
-    m_sizer_main->Add(m_sizer_button, 0,  wxEXPAND | wxLEFT | wxRIGHT, FromDIP(20));
-    m_sizer_main->Add(0, 0, 0,  wxTOP, FromDIP(16));
+    m_sizer_main->Add(m_sizer_button, 0, wxEXPAND | wxALL, FromDIP(20));
 
     SetSizer(m_sizer_main);
     Layout();
@@ -120,7 +117,7 @@ void AMSMaterialsSetting::create()
         e.Skip();
         });
 
-    Bind(wxEVT_PAINT, &AMSMaterialsSetting::paintEvent, this);
+    //Bind(wxEVT_PAINT, &AMSMaterialsSetting::paintEvent, this); // no need to draw border since its a regular window
     Bind(EVT_SELECTED_COLOR, &AMSMaterialsSetting::on_picker_color, this);
      m_comboBox_filament->Connect(wxEVT_COMMAND_COMBOBOX_SELECTED, wxCommandEventHandler(AMSMaterialsSetting::on_select_filament), NULL, this);
 
@@ -134,7 +131,7 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     wxBoxSizer* m_sizer_filament = new wxBoxSizer(wxHORIZONTAL);
 
     m_title_filament = new wxStaticText(parent, wxID_ANY, _L("Filament"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
-    m_title_filament->SetFont(::Label::Body_13);
+    m_title_filament->SetFont(::Label::Body_14);
     m_title_filament->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_filament->Wrap(-1);
     m_sizer_filament->Add(m_title_filament, 0, wxALIGN_CENTER, 0);
@@ -164,7 +161,7 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     wxBoxSizer* m_sizer_colour = new wxBoxSizer(wxHORIZONTAL);
 
     m_title_colour = new wxStaticText(parent, wxID_ANY, _L("Color"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
-    m_title_colour->SetFont(::Label::Body_13);
+    m_title_colour->SetFont(::Label::Body_14);
     m_title_colour->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_colour->Wrap(-1);
     m_sizer_colour->Add(m_title_colour, 0, wxALIGN_CENTER, 0);
@@ -181,23 +178,22 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     m_clr_name = new Label(parent, wxEmptyString);
     m_clr_name->SetForegroundColour(*wxBLACK);
     m_clr_name->SetBackgroundColour(*wxWHITE);
-    m_clr_name->SetFont(Label::Body_13);
+    m_clr_name->SetFont(Label::Body_14);
     m_sizer_colour->Add(m_clr_name, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
     wxBoxSizer* m_sizer_temperature = new wxBoxSizer(wxHORIZONTAL);
     m_title_temperature = new wxStaticText(parent, wxID_ANY, _L("Nozzle\nTemperature"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
-    m_title_temperature->SetFont(::Label::Body_13);
+    m_title_temperature->SetFont(::Label::Body_14);
     m_title_temperature->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_temperature->Wrap(-1);
     m_sizer_temperature->Add(m_title_temperature, 0, wxALIGN_CENTER, 0);
 
-    m_sizer_temperature->Add(0, 0, 0, wxEXPAND, 0);
-
     wxBoxSizer* sizer_other = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* sizer_tempinput = new wxBoxSizer(wxHORIZONTAL);
 
-    m_input_nozzle_max = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE, wxTE_CENTRE | wxTE_PROCESS_ENTER);
-    m_input_nozzle_min = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE, wxTE_CENTRE | wxTE_PROCESS_ENTER);
+    auto celcius_side_label = _L(u8"\u2103" /* °C  */); //degrees Celsius, CIS languages need translation
+    m_input_nozzle_max = new ::TextInput(parent, wxEmptyString, celcius_side_label, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    m_input_nozzle_min = new ::TextInput(parent, wxEmptyString, celcius_side_label, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE, wxTE_PROCESS_ENTER);
     m_input_nozzle_max->Enable(false);
     m_input_nozzle_min->Enable(false);
 
@@ -206,26 +202,26 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     m_input_nozzle_min->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     m_input_nozzle_min->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
 
-    degree            = new ScalableBitmap(parent, "degree", 16);
-    bitmap_max_degree = new wxStaticBitmap(parent, -1, degree->bmp(), wxDefaultPosition, wxDefaultSize);
-    bitmap_min_degree = new wxStaticBitmap(parent, -1, degree->bmp(), wxDefaultPosition, wxDefaultSize);
+    //degree            = new ScalableBitmap(parent, "degree", 16);
+    //bitmap_max_degree = new wxStaticBitmap(parent, -1, degree->bmp(), wxDefaultPosition, wxDefaultSize);
+    //bitmap_min_degree = new wxStaticBitmap(parent, -1, degree->bmp(), wxDefaultPosition, wxDefaultSize);
 
-    sizer_tempinput->Add(m_input_nozzle_max, 1, wxALIGN_CENTER, 0);
-    sizer_tempinput->Add(bitmap_min_degree, 0, wxALIGN_CENTER, 0);
+    sizer_tempinput->Add(m_input_nozzle_max, 1, wxEXPAND);
+    //sizer_tempinput->Add(bitmap_min_degree, 0, wxALIGN_CENTER, 0);
     sizer_tempinput->Add(FromDIP(10), 0, 0, 0);
-    sizer_tempinput->Add(m_input_nozzle_min, 1, wxALIGN_CENTER, 0);
-    sizer_tempinput->Add(bitmap_max_degree, 0, wxALIGN_CENTER, 0);
+    sizer_tempinput->Add(m_input_nozzle_min, 1, wxEXPAND);
+    //sizer_tempinput->Add(bitmap_max_degree, 0, wxALIGN_CENTER, 0);
 
     wxBoxSizer* sizer_temp_txt = new wxBoxSizer(wxHORIZONTAL);
-    auto m_title_max = new wxStaticText(parent, wxID_ANY, _L("max"), wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE);
+    auto m_title_max = new wxStaticText(parent, wxID_ANY, _L("max"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_INPUT_SIZE.x, -1));
     m_title_max->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_max->SetFont(::Label::Body_13);
-    auto m_title_min = new wxStaticText(parent, wxID_ANY, _L("min"), wxDefaultPosition, AMS_MATERIALS_SETTING_INPUT_SIZE);
+    auto m_title_min = new wxStaticText(parent, wxID_ANY, _L("min"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_INPUT_SIZE.x, -1));
     m_title_min->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_min->SetFont(::Label::Body_13);
-    sizer_temp_txt->Add(m_title_max, 1, wxALIGN_CENTER, 0);
+    sizer_temp_txt->Add(m_title_max, 1, wxEXPAND);
     sizer_temp_txt->Add(FromDIP(10), 0, 0, 0);
-    sizer_temp_txt->Add(m_title_min, 1, wxALIGN_CENTER | wxRIGHT, FromDIP(16));
+    sizer_temp_txt->Add(m_title_min, 1, wxEXPAND);
 
 
     sizer_other->Add(sizer_temp_txt, 0, wxALIGN_CENTER, 0);
@@ -251,7 +247,7 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     wxBoxSizer* m_sizer_SN_inside = new wxBoxSizer(wxHORIZONTAL);
 
     auto m_title_SN = new wxStaticText(m_panel_SN, wxID_ANY, _L("SN"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
-    m_title_SN->SetFont(::Label::Body_13);
+    m_title_SN->SetFont(::Label::Body_14);
     m_title_SN->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_SN->Wrap(-1);
     m_sizer_SN_inside->Add(m_title_SN, 0, wxALIGN_CENTER, 0);
@@ -293,10 +289,10 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
 void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
 {
     auto sizer = new wxBoxSizer(wxVERTICAL);
-    auto cali_title_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto cali_title_sizer = new wxBoxSizer(wxVERTICAL);
     // title
     m_ratio_text   = new wxStaticText(parent, wxID_ANY, _L("Factors of Flow Dynamics Calibration"));
-    m_ratio_text->SetForegroundColour(wxColour(50, 58, 61));
+    m_ratio_text->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_ratio_text->SetFont(Label::Head_14);
 
     // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
@@ -308,9 +304,9 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     wxBoxSizer *m_sizer_cali_resutl = new wxBoxSizer(wxHORIZONTAL);
     // pa profile
     m_title_pa_profile = new wxStaticText(parent, wxID_ANY, _L("PA Profile"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
-    m_title_pa_profile->SetMinSize(wxSize(FromDIP(80), -1));
-    m_title_pa_profile->SetMaxSize(wxSize(FromDIP(80), -1));
-    m_title_pa_profile->SetFont(::Label::Body_13);
+    //m_title_pa_profile->SetMinSize(wxSize(FromDIP(80), -1));
+    //m_title_pa_profile->SetMaxSize(wxSize(FromDIP(80), -1));
+    m_title_pa_profile->SetFont(::Label::Body_14);
     m_title_pa_profile->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_pa_profile->Wrap(-1);
     m_sizer_cali_resutl->Add(m_title_pa_profile, 0, wxALIGN_CENTER, 0);
@@ -325,25 +321,25 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     kn_val_sizer->AddGrowableCol(1);
 
     // k params input
-    m_k_param = new wxStaticText(parent, wxID_ANY, _L("Factor K"), wxDefaultPosition, wxDefaultSize, 0);
-    m_k_param->SetMinSize(wxSize(FromDIP(80), -1));
-    m_k_param->SetMaxSize(wxSize(FromDIP(80), -1));
-    m_k_param->SetFont(::Label::Body_13);
-    m_k_param->SetForegroundColour(wxColour(50, 58, 61));
+    m_k_param = new wxStaticText(parent, wxID_ANY, _L("Factor K"), wxDefaultPosition, wxSize(AMS_MATERIALS_SETTING_LABEL_WIDTH, -1), 0);
+    //m_k_param->SetMinSize(wxSize(FromDIP(80), -1));
+    //m_k_param->SetMaxSize(wxSize(FromDIP(80), -1));
+    m_k_param->SetFont(::Label::Body_14);
+    m_k_param->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_k_param->Wrap(-1);
     kn_val_sizer->Add(m_k_param, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(0));
 
     m_input_k_val = new TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_CENTRE | wxTE_PROCESS_ENTER);
-    m_input_k_val->SetMinSize(wxSize(FromDIP(245), -1));
-    m_input_k_val->SetMaxSize(wxSize(FromDIP(245), -1));
+    m_input_k_val->SetMinSize(AMS_MATERIALS_SETTING_COMBOX_WIDTH);
+    m_input_k_val->SetMaxSize(AMS_MATERIALS_SETTING_COMBOX_WIDTH);
     m_input_k_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     kn_val_sizer->Add(m_input_k_val, 0, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
 
     // n params input
     wxBoxSizer* n_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_n_param = new wxStaticText(parent, wxID_ANY, _L("Factor N"), wxDefaultPosition, wxDefaultSize, 0);
-    m_n_param->SetFont(::Label::Body_13);
-    m_n_param->SetForegroundColour(wxColour(50, 58, 61));
+    m_n_param->SetFont(::Label::Body_14);
+    m_n_param->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_n_param->Wrap(-1);
     kn_val_sizer->Add(m_n_param, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     m_input_n_val = new TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_CENTRE | wxTE_PROCESS_ENTER);
@@ -1454,9 +1450,9 @@ void AMSMaterialsSetting::on_dpi_changed(const wxRect &suggested_rect)
     m_input_nozzle_min->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
     m_input_k_val->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
     m_clr_picker->msw_rescale();
-    degree->msw_rescale();
-    bitmap_max_degree->SetBitmap(degree->bmp());
-    bitmap_min_degree->SetBitmap(degree->bmp());
+    //degree->msw_rescale();
+    //bitmap_max_degree->SetBitmap(degree->bmp());
+    //bitmap_min_degree->SetBitmap(degree->bmp());
     m_button_reset->Rescale(); // ORCA
     m_button_confirm->Rescale(); // ORCA
     m_button_close->Rescale(); // ORCA

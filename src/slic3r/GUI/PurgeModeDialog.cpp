@@ -10,15 +10,16 @@
 #include "GUI_App.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
 
 static const wxColour BgNormalColor = wxColour("#FFFFFF");
-static const wxColour BgSelectColor = wxColour("#EBF9F0");
+static const wxColour BgSelectColor = wxColour("#E5F0EE");
 
 static const wxColour BorderNormalColor   = wxColour("#CECECE");
-static const wxColour BorderSelectedColor = wxColour("#00AE42");
+static const wxColour BorderSelectedColor = wxColour("#009688");
 
 static const wxColour TextNormalBlackColor = wxColour("#262E30");
 static const wxColour TextNormalGreyColor  = wxColour("#6B6B6B");
@@ -29,8 +30,6 @@ PurgeModeDialog::PurgeModeDialog(wxWindow *parent, PurgeModeDialogType dialog_ty
     SetBackgroundColour(*wxWHITE);
     SetMinSize(wxSize(FromDIP(520), FromDIP(320)));
     SetMaxSize(wxSize(FromDIP(520), FromDIP(320)));
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -75,18 +74,10 @@ PurgeModeDialog::PurgeModeDialog(wxWindow *parent, PurgeModeDialogType dialog_ty
     auto btn_sizer = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->AddStretchSpacer();
 
-    auto ok_btn = new Button(this, _L("Confirm"));
-    ok_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
-    ok_btn->SetId(wxID_OK);
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    dlg_btns->GetOK()->SetLabel(_L("Confirm"));
 
-    auto cancel_btn = new Button(this, _L("Cancel"));
-    cancel_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
-    cancel_btn->SetId(wxID_CANCEL);
-
-    btn_sizer->Add(ok_btn, 0, wxRIGHT, FromDIP(12));
-    btn_sizer->Add(cancel_btn, 0);
-
-    main_sizer->Add(btn_sizer, 0, wxEXPAND | wxALL, FromDIP(20));
+    main_sizer->Add(dlg_btns, 0, wxEXPAND);
 
     SetSizer(main_sizer);
     Fit();
@@ -116,7 +107,7 @@ void PurgeModeDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
     const int &em = em_unit();
 
-    msw_buttons_rescale(this, em, {wxID_OK, wxID_CANCEL});
+    //msw_buttons_rescale(this, em, {wxID_OK, wxID_CANCEL});
 
     const wxSize &size = wxSize(70 * em, 32 * em);
     SetMinSize(size);

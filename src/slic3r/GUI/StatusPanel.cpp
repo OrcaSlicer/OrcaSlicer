@@ -4810,11 +4810,14 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
 #endif
     popUp->SetBackgroundColour(StateColor::darkModeColorFor(0xeeeeee));
     StepCtrl *step = new StepCtrl(popUp, wxID_ANY);
+    step->SetBackgroundColor(StateColor::darkModeColorFor(0xFFFFFF));
+    step->SetBorderWidth(2);
+    step->SetBorderColor(StateColor::darkModeColorFor(wxColour("#009688")));
     wxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(step, 1, wxEXPAND, 0);
     popUp->SetSizer(sizer);
     auto em = em_unit(this);
-    popUp->SetSize(em * 36, em * 8);
+    popUp->SetSize(em * 36, em * 10);
     step->SetHint(_L("This only takes effect during printing"));
     step->AppendItem(_L("Silent"), "");
     step->AppendItem(_L("Standard"), "");

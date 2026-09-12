@@ -118,22 +118,13 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     SetDoubleBuffered(true);
 #endif //__WINDOWS__
 
+    // ORCA support translations on all languages
+    ops_auto.push_back(POItem{"auto", _L("Auto")});
+    ops_auto.push_back(POItem{"on"  , _L("On")});
+    ops_auto.push_back(POItem{"off" , _L("Off")});
 
-    if (wxGetApp().app_config->get("language") == "zh_CN") {
-        ops_auto.push_back(POItem{"auto", _L("Auto")});
-        ops_auto.push_back(POItem{"on", _L("On")});
-        ops_auto.push_back(POItem{"off", _L("Off")});
-
-        ops_no_auto.push_back(POItem{"on", _L("On")});
-        ops_no_auto.push_back(POItem{"off", _L("Off")});
-    } else {
-        ops_auto.push_back(POItem{"auto", "Auto"});
-        ops_auto.push_back(POItem{"on", "On"});
-        ops_auto.push_back(POItem{"off", "Off"});
-
-        ops_no_auto.push_back(POItem{"on", "On"});
-        ops_no_auto.push_back(POItem{"off", "Off"});
-    }
+    ops_no_auto.push_back(POItem{"on" , _L("On")});
+    ops_no_auto.push_back(POItem{"off", _L("Off")});
 
     // bind
     Bind(wxEVT_CLOSE_WINDOW, &SelectMachineDialog::on_cancel, this);
@@ -364,14 +355,9 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     /*filaments info*/
     wxBoxSizer* sizer_split_filament = new wxBoxSizer(wxHORIZONTAL);
 
-    auto m_stext_filament_title = new Label(m_scroll_area, _L("Filament"));
-    m_stext_filament_title->SetFont(::Label::Head_13);
-    m_stext_filament_title->SetForegroundColour(0x909090);
-
-    auto m_split_line_filament = new wxPanel(m_scroll_area, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_split_line_filament->SetBackgroundColour(0xeeeeee);
-    m_split_line_filament->SetMinSize(wxSize(-1, 1));
-    m_split_line_filament->SetMaxSize(wxSize(-1, 1));
+    auto m_stext_filament_title = new StaticLine(m_scroll_area, false, _L("Filament"));
+    m_stext_filament_title->SetFont(::Label::Head_14);
+    m_stext_filament_title->SetForegroundColour(0x363636);
 
     m_sizer_autorefill = new wxBoxSizer(wxHORIZONTAL);
     m_ams_backup_tip = new Label(m_scroll_area, _L("Auto Refill"));
@@ -398,16 +384,15 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     img_ams_backup->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {if (!m_is_in_sending_mode) popup_filament_backup(); on_rename_enter(); });
 
     sizer_split_filament->Add(0, 0, 0, wxEXPAND, 0);
-    sizer_split_filament->Add(m_stext_filament_title, 0, wxALIGN_CENTER, 0);
-    sizer_split_filament->Add(m_split_line_filament, 1, wxALIGN_CENTER_VERTICAL, 0);
+    sizer_split_filament->Add(m_stext_filament_title, 1, wxALIGN_CENTER, 0);
     sizer_split_filament->Add(m_sizer_autorefill, 0, wxALIGN_CENTER, 0);
     /*filament area*/
     /*1 extruder*/
     m_filament_panel = new StaticBox(m_scroll_area);
     m_filament_panel->SetBackgroundColour(wxColour("#F8F8F8"));
     m_filament_panel->SetBorderWidth(0);
-    m_filament_panel->SetMinSize(wxSize(FromDIP(637), -1));
-    m_filament_panel->SetMaxSize(wxSize(FromDIP(637), -1));
+    m_filament_panel->SetMinSize(wxSize(FromDIP(670), -1)); // dialog size (700) - 15x2 side margin
+    m_filament_panel->SetMaxSize(wxSize(FromDIP(670), -1));
     m_filament_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_sizer_ams_mapping = new wxGridSizer(0, 10, FromDIP(7), FromDIP(7));
@@ -551,13 +536,11 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     /*Advanced Options*/
     wxBoxSizer* sizer_split_options = new wxBoxSizer(wxHORIZONTAL);
-    auto m_split_options_line = new wxPanel(m_scroll_area, wxID_ANY);
-    m_split_options_line->SetBackgroundColour(0xEEEEEE);
-    m_split_options_line->SetSize(wxSize(-1, FromDIP(1)));
-    m_split_options_line->SetMinSize(wxSize(-1, FromDIP(1)));
-    m_split_options_line->SetMaxSize(wxSize(-1, FromDIP(1)));
+    auto m_settings_title = new StaticLine(m_scroll_area, false, _L("Settings"));
+    m_settings_title->SetFont(::Label::Head_14);
+    m_settings_title->SetForegroundColour(0x363636);
     sizer_split_options->Add(0, 0, 0, wxEXPAND, 0);
-    sizer_split_options->Add(m_split_options_line, 1, wxALIGN_CENTER, 0);
+    sizer_split_options->Add(m_settings_title, 1, wxALIGN_CENTER, 0);
 
     m_options_other = new wxPanel(m_scroll_area);
     m_options_other->SetBackgroundColour(*wxWHITE);
@@ -613,7 +596,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         ops_no_auto, "pa_value"
     );
 
-    m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
+    m_sizer_options = new wxGridSizer(0, 1, FromDIP(5), FromDIP(10)); // ORCA use all options on single row to improve readability. prevents overflowing and supports longer translations
     m_sizer_options->Add(option_timelapse, 0, wxEXPAND);
     m_sizer_options->Add(option_auto_bed_level, 0, wxEXPAND);
     m_sizer_options->Add(option_flow_dynamics_cali, 0, wxEXPAND);
@@ -802,7 +785,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_warn_when_drying_sizer, 0, wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(sizer_split_options, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
-    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+    //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_options_other, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(30));
 
@@ -3131,7 +3114,7 @@ void SelectMachineDialog::load_option_vals(MachineObject *obj)
     wxString error_messgae;
     if (obj->canEnableTimelapse(error_messgae) && !has_timelapse_warning(error_messgae)) {
         m_checkbox_list["timelapse"]->enable(true);
-        m_checkbox_list["timelapse"]->update_tooltip(wxEmptyString);
+        m_checkbox_list["timelapse"]->update_tooltip(_L("If timelapse is enabled, the camera will take a snapshot after each layer is printed, and once the print job is complete, all snapshots will be compiled into a timelapse video."));
     } else {
         m_checkbox_list["timelapse"]->enable(false);
         m_checkbox_list["timelapse"]->setValue("off");
@@ -6424,19 +6407,18 @@ void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* 
      wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
 
      m_printoption_title = new Label(this, title);
-     m_printoption_title->SetFont(Label::Body_13);
+     m_printoption_title->SetFont(Label::Body_14);
+     m_printoption_title->SetForegroundColour(StateColor::darkModeColorFor("#363636"));
 
      update_title_display();
 
-     m_printoption_tips = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-     m_printoption_tips->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
-     m_printoption_tips->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
+     m_printoption_tips = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 18);
 
      m_printoption_item = new PrintOptionItem(this, m_ops, param);
      m_printoption_item->SetFont(Label::Body_13);
 
+     sizer->Add(m_printoption_tips, 0, wxALIGN_LEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
      sizer->Add(m_printoption_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
-     sizer->Add(m_printoption_tips, 0, wxLEFT | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, FromDIP(2));
      sizer->AddStretchSpacer();
      sizer->Add(m_printoption_item, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, 0);
 
@@ -6488,11 +6470,7 @@ void PrintOption::enable(bool en)
     {
         m_printoption_item->enable(en);
 
-        if (en) {
-            m_printoption_title->SetForegroundColour(StateColor::darkModeColorFor("#262E30"));
-        } else {
-            m_printoption_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour(144, 144, 144)));
-        }
+        m_printoption_title->SetForegroundColour(StateColor::darkModeColorFor(en ? "#363636" : "#6B6B6B"));
     }
 }
 
@@ -6558,7 +6536,7 @@ void PrintOption::update_title_display()
 
     wxGCDC dc;
     wxSize titleSize = dc.GetTextExtent(m_full_title);
-    int maxTitleWidth = FromDIP(150);
+    int maxTitleWidth = FromDIP(250);
 
     wxString displayTitle = m_full_title;
     if (titleSize.x > maxTitleWidth) {
@@ -6598,7 +6576,8 @@ PrintOptionItem::PrintOptionItem(wxWindow* parent, std::vector<POItem> ops, std:
 #endif //__WINDOWS__
 
     m_param = param;
-    SetBackgroundColour(PRINT_OPT_ITEM_BG_GRAY);
+    if(parent)
+        SetBackgroundColour(parent->GetBackgroundColour());
 
     Bind(wxEVT_PAINT, &PrintOptionItem::OnPaint, this);
     Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
@@ -6677,8 +6656,8 @@ void PrintOptionItem::doRender(wxDC& dc)
 {
     auto size = GetSize();
     dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
-    dc.SetBrush(GetBackgroundColour());
-    dc.DrawRoundedRectangle(0, 0, size.x, size.y, FromDIP(5));
+    dc.SetBrush(StateColor::darkModeColorFor(PRINT_OPT_ITEM_BG_GRAY));
+    dc.DrawRoundedRectangle(0, 0, size.x, size.y, size.y / 2);
 
     auto left = FromDIP(4);
 
@@ -6695,18 +6674,11 @@ void PrintOptionItem::doRender(wxDC& dc)
     /*selected*/
     auto selected_left = selected * PRINT_OPT_WIDTH + FromDIP(4);
     if (m_enable) {
-        if (!wxGetApp().dark_mode()) {
-            dc.DrawBitmap(m_selected_bk.bmp(), selected_left, (size.y - m_selected_bk.GetBmpHeight()) / 2);
-        } else {
-            dc.DrawBitmap(m_selected_bk_dark.bmp(), selected_left, (size.y - m_selected_bk_dark.GetBmpHeight()) / 2);
-        }
-
+        ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_bk_dark : m_selected_bk;
+        dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     } else {
-        if (!wxGetApp().dark_mode()) {
-            dc.DrawBitmap(m_selected_disabled_bk.bmp(), selected_left, (size.y - m_selected_disabled_bk.GetBmpHeight()) / 2);
-        } else {
-            dc.DrawBitmap(m_selected_bk_dark.bmp(), selected_left, (size.y - m_selected_bk_dark.GetBmpHeight()) / 2);
-        }
+        ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_disabled_bk_dark : m_selected_disabled_bk;
+        dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     }
 
     for (auto it = m_ops.begin(); it != m_ops.end(); ++it)
@@ -6716,7 +6688,7 @@ void PrintOptionItem::doRender(wxDC& dc)
 
         if (text_key == selected_key)
         {
-            const wxColour& clr = m_enable ? StateColor::darkModeColorFor("#009688") : StateColor::darkModeColorFor(wxColour(144, 144, 144));
+            const wxColour& clr = StateColor::darkModeColorFor(m_enable ? "#FEFEFE" : "#6B6A6A");
             dc.SetPen(wxPen(clr));
             dc.SetTextForeground(clr);
 
@@ -6728,7 +6700,7 @@ void PrintOptionItem::doRender(wxDC& dc)
         }
         else
         {
-            const wxColour& clr = m_enable ? StateColor::darkModeColorFor("#262E30") : StateColor::darkModeColorFor(wxColour(144, 144, 144));
+            const wxColour& clr = StateColor::darkModeColorFor(m_enable ? "#6B6B6B" : "#6B6A6A");
             dc.SetPen(wxPen(clr));
             dc.SetTextForeground(clr);
 
@@ -6995,14 +6967,12 @@ void PrinterInfoBox::Create()
     /*printer combobox*/
     wxBoxSizer* sizer_split_printer = new wxBoxSizer(wxHORIZONTAL);
     m_stext_printer_title = new Label(this, _L("Printer"), wxALIGN_TOP);
-    m_stext_printer_title->SetFont(::Label::Head_13);
-    m_stext_printer_title->SetForegroundColour(0x909090);
+    m_stext_printer_title->SetFont(::Label::Head_14);
+    m_stext_printer_title->SetForegroundColour(0x363636);
 
-    m_button_question = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
+    m_button_question = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 18);
     m_button_question->Bind(wxEVT_BUTTON, &PrinterInfoBox::OnBtnQuestionClicked, this);
     m_button_question->SetToolTip(_L("Click here if you can't connect to the printer"));
-    m_button_question->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
-    m_button_question->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
 
     auto m_split_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
     m_split_line->SetBackgroundColour(0xeeeeee);
@@ -7012,6 +6982,7 @@ void PrinterInfoBox::Create()
     sizer_split_printer->Add(m_stext_printer_title, 0, wxALIGN_CENTER_VERTICAL, 0);
     sizer_split_printer->AddSpacer(FromDIP(5));
     sizer_split_printer->Add(m_button_question, 0, wxALIGN_CENTER_VERTICAL, 0);
+    sizer_split_printer->AddSpacer(FromDIP(5));
     sizer_split_printer->Add(m_split_line, 1, wxALIGN_CENTER_VERTICAL, 0);
 
     wxBoxSizer* sizer_printer_area = new wxBoxSizer(wxHORIZONTAL);
@@ -7020,14 +6991,14 @@ void PrinterInfoBox::Create()
 
     /*printer area*/
     auto printer_staticbox = new StaticBox(this);
-    printer_staticbox->SetMinSize(wxSize(FromDIP(338), FromDIP(68)));
-    printer_staticbox->SetMaxSize(wxSize(FromDIP(338), FromDIP(68)));
+    printer_staticbox->SetMinSize(wxSize(FromDIP(388), FromDIP(68)));
+    printer_staticbox->SetMaxSize(wxSize(FromDIP(388), FromDIP(68)));
     printer_staticbox->SetBorderColor(wxColour("#CECECE"));
 
     m_comboBox_printer = new ComboBox(printer_staticbox, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     m_comboBox_printer->SetBorderWidth(0);
-    m_comboBox_printer->SetMinSize(wxSize(FromDIP(300), FromDIP(60)));
-    m_comboBox_printer->SetMaxSize(wxSize(FromDIP(300), FromDIP(60)));
+    m_comboBox_printer->SetMinSize(wxSize(FromDIP(350), FromDIP(60)));
+    m_comboBox_printer->SetMaxSize(wxSize(FromDIP(350), FromDIP(60)));
     m_comboBox_printer->SetBackgroundColor(*wxWHITE);
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SelectMachineDialog::on_selection_changed, m_select_dialog);
 
