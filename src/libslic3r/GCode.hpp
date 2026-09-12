@@ -9,6 +9,7 @@
 #include "PlaceholderParser.hpp"
 #include "PrintConfig.hpp"
 #include "GCode/AvoidCrossingPerimeters.hpp"
+#include "GCode/ContinuousPrint.hpp"
 #include "GCode/CoolingBuffer.hpp"
 #include "GCode/FanMover.hpp"
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
@@ -172,11 +173,13 @@ struct LayerResult {
     bool        spiral_vase_enable { false };
     // Should the cooling buffer content be flushed at the end of this layer?
     bool        cooling_buffer_flush { false };
-	// Is indicating if this LayerResult should be processed, or it is just inserted artificial LayerResult.
+    // Is indicating if this LayerResult should be processed, or it is just inserted artificial LayerResult.
     // It is used for the pressure equalizer because it needs to buffer one layer back.
     bool        nop_layer_result { false };
+    // Is zero-travel continuous print post processing enabled for this layer?
+    bool        continuous_print_enable { false };
 
-    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true}; }
+    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true, false}; }
 };
 
 class GCode {
@@ -394,6 +397,16 @@ private:
     void check_placeholder_parser_failed();
     size_t get_extruder_id(unsigned int filament_id) const;
 
+    // Emit a single continuous extrusion chain (preflight plan) with no intra-layer travel.
+    // The plan's entities are linearized clones; `order` gives emission order and reversals.
+    std::string emit_continuous_print_layer(ContinuousLayerPlan &plan);
+
+    // Whole-print structural gate for the zero-travel continuous print mode (M3): a single object
+    // instance with a single material and no support / prime tower. Skirt/brim layers are handled
+    // per layer. Per-layer chainability is checked separately; layers that cannot be chained are
+    // printed normally.
+    bool continuous_print_compatible(const Print &print) const;
+
     void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
     void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
     bool            last_pos_defined() const { return m_last_pos_defined; }
@@ -609,6 +622,18 @@ private:
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
+    // Zero-travel continuous print post processor (M3). Instantiated only when the corresponding
+    // option is enabled; mutually exclusive with the spiral vase filter.
+    std::unique_ptr<ContinuousPrint>    m_continuous_print;
+    // End point (XY) of the previously emitted continuous layer, used as the preferred chain start
+    // of the next layer (transition-point continuity, design doc 3.3).
+    Point                               m_continuous_prev_end;
+    bool                                m_continuous_has_prev = false;
+    // Diagnostics of the zero-travel continuous print mode, surfaced to the user after slicing.
+    size_t                              m_continuous_layer_total = 0;
+    size_t                              m_continuous_layer_applied = 0;
+    bool                                m_continuous_gate_failed = false;
+    std::string                         m_continuous_print_report;
 
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     

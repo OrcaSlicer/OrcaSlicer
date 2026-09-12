@@ -1,11 +1,13 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCode/ContinuousPrint.hpp"
 #include "libslic3r/GCode/SpiralVase.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/ShortestPath.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -278,6 +280,66 @@ static std::string make_chain_layer_gcode(double z)
     return s;
 }
 
+SCENARIO("preflight_layer: preferred start and loop linearization (M3)", "[ContinuousPrint]") {
+    PrintConfig cfg;
+
+    GIVEN("A single closed loop and a preferred start lying on it") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        std::vector<ExtrusionEntity*> entities{&loop};
+        ContinuousLayerPlan plan;
+        const Point preferred = to_point({10, 5}); // middle of the right edge
+        THEN("The plan is closed, starts at the preferred point and contains only paths") {
+            CHECK(preflight_layer(entities, nullptr, cfg, &plan, &preferred) == ContinuousPrintVerdict::Applicable);
+            CHECK(plan.is_closed);
+            CHECK(plan.start_point == preferred);
+            CHECK(plan.end_point == preferred);
+            REQUIRE(plan.entities.size() == 1);
+            // Loops are linearized so the chain emitter only ever deals with ExtrusionPath.
+            CHECK(dynamic_cast<const ExtrusionLoop*>(plan.entities.front().get()) == nullptr);
+            CHECK(dynamic_cast<const ExtrusionPath*>(plan.entities.front().get()) != nullptr);
+        }
+    }
+
+    GIVEN("A single closed loop and a preferred start off the loop") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        std::vector<ExtrusionEntity*> entities{&loop};
+        ContinuousLayerPlan plan;
+        const Point preferred = to_point({100, 100});
+        THEN("The seam moves to the vertex nearest the preferred point") {
+            CHECK(preflight_layer(entities, nullptr, cfg, &plan, &preferred) == ContinuousPrintVerdict::Applicable);
+            CHECK(plan.start_point == to_point({10, 10}));
+        }
+    }
+}
+
+SCENARIO("flatten_extrusion_entities resolves nested collections", "[ContinuousPrint]") {
+    GIVEN("A collection with a nested collection of two paths") {
+        ExtrusionPath a = make_path({{0, 0}, {10, 0}});
+        ExtrusionPath b = make_path({{10, 0}, {10, 10}});
+        auto inner = std::make_unique<ExtrusionEntityCollection>();
+        inner->append(a);
+        inner->append(b);
+        auto outer = std::make_unique<ExtrusionEntityCollection>();
+        outer->append(*inner);
+        std::vector<ExtrusionEntity*> in;
+        std::vector<ExtrusionEntity*> out;
+        in.push_back(outer.get());
+        flatten_extrusion_entities(in, out);
+        THEN("Both leaf paths are exposed in order") {
+            REQUIRE(out.size() == 2);
+            CHECK(out[0]->first_point() == to_point({0, 0}));
+            CHECK(out[1]->last_point() == to_point({10, 10}));
+        }
+        AND_THEN("preflight_layer accepts a raw collection input directly") {
+            ContinuousLayerPlan plan;
+            PrintConfig cfg;
+            CHECK(preflight_layer(in, nullptr, cfg, &plan) == ContinuousPrintVerdict::Applicable);
+            CHECK(! plan.is_closed);
+            CHECK(plan.order.size() == 2);
+        }
+    }
+}
+
 SCENARIO("ContinuousPrint filter: parity with SpiralVase and zero-travel output", "[ContinuousPrint]") {
     PrintConfig cfg;
     cfg.option<ConfigOptionBool>("use_relative_e_distances", true)->value = true;
@@ -327,5 +389,41 @@ SCENARIO("ContinuousPrint filter: parity with SpiralVase and zero-travel output"
         });
         CHECK(extrusion_moves == 4);
         CHECK(last_z == Catch::Approx(0.4).margin(1e-3));
+    }
+}
+
+// Guards the GUI/preset registration: an option that is appended to a settings tab but missing from
+// the process preset option list makes the tab read a key absent from its config and crash.
+SCENARIO("continuous_print_mode is registered as a process preset option", "[ContinuousPrint]") {
+    THEN("The key is exposed by Preset::print_options() and present in the full print config") {
+        const std::vector<std::string> &keys = Preset::print_options();
+        CHECK(std::find(keys.begin(), keys.end(), "continuous_print_mode") != keys.end());
+        FullPrintConfig config;
+        CHECK(config.has("continuous_print_mode"));
+    }
+}
+
+// Real slicer output leaves a sub-line-width gap between wall and fill (measured ~0.12 mm on
+// top/bottom surfaces). The junction tolerance must be physical and the contacting endpoint must be
+// snapped, otherwise every real layer is rejected (this was the case with SCALED_EPSILON).
+SCENARIO("preflight_layer: physical junction tolerance snaps a nearby fill endpoint", "[ContinuousPrint]") {
+    PrintConfig cfg;
+    GIVEN("A wall loop and an infill trace ending 0.15 mm away from its edge") {
+        ExtrusionLoop loop = make_loop({{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+        ExtrusionPath tail = make_path({{5, -3}, {5, -0.15}});
+        std::vector<ExtrusionEntity*> entities{&loop, &tail};
+        ContinuousLayerPlan plan;
+        THEN("The strict geometric tolerance rejects it") {
+            CHECK(preflight_layer(entities, nullptr, cfg, &plan) == ContinuousPrintVerdict::Reject);
+        }
+        AND_THEN("A physical tolerance accepts it and the resulting chain is exactly connected") {
+            CHECK(preflight_layer(entities, nullptr, cfg, &plan, nullptr, scale_(0.3)) == ContinuousPrintVerdict::Applicable);
+            REQUIRE(plan.entities.size() == 2);
+            std::vector<ExtrusionEntity*> view = view_of(plan.entities);
+            auto chain = chain_extrusion_entities_exact(view);
+            REQUIRE(chain);
+            check_chain_continuity(view, *chain);
+            CHECK(! chain->closed);
+        }
     }
 }

@@ -5876,6 +5876,26 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
     def->mode = comAdvanced;
 
+    def = this->add("continuous_print_mode", coBool);
+    def->label = L("Continuous print (zero travel)");
+    def->tooltip = L("Prints each layer as a single continuous extrusion trace with no travel (no non-extruding XY moves). "
+                     "Wall loops, top/bottom surfaces and continuous infill (monotonic / alignedrectilinear) are joined into "
+                     "one trace, adding only short connectors bounded by 'Max continuous print join distance'. Layers that "
+                     "cannot be joined fall back to normal printing. Smoothing reuses the Smooth Spiral settings.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("continuous_print_max_join_distance", coFloat);
+    def->label = L("Max continuous print join distance");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Longest straight extruded connector the continuous print mode may add to join two traces within a "
+                     "layer (e.g. outer wall to inner wall, or wall to support/fill). Set to 0 to never add connectors.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
     def = this->add("timelapse_type", coEnum);
     def->label = L("Timelapse");
     def->tooltip = L("If smooth or traditional mode is selected, a timelapse video will be generated for each print. "
@@ -8581,6 +8601,15 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
     }
 
+    if (this->has("continuous_print_mode") && this->opt<ConfigOptionBool>("continuous_print_mode", true)->value) {
+        // Continuous print welds layers with an extruded move and never travels, so a retraction on
+        // layer change would be dropped by the filter and leave its unretract unmatched.
+        auto* opt = this->opt<ConfigOptionBools>("retract_when_changing_layer", true);
+        opt->values.assign(opt->values.size(), false);
+        auto* opt_n = this->opt<ConfigOptionBoolsNullable>("filament_retract_when_changing_layer", true);
+        opt_n->values.assign(opt_n->values.size(), false);
+    }
+
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
@@ -8676,6 +8705,15 @@ void DynamicPrintConfig::normalize_fdm_1()
             this->opt<ConfigOptionInt>("top_shell_layers", true)->value = 0;
             this->opt<ConfigOptionPercent>("sparse_infill_density", true)->value = 0;
         }
+    }
+
+    if (this->has("continuous_print_mode") && this->opt<ConfigOptionBool>("continuous_print_mode", true)->value) {
+        // Continuous print welds layers with an extruded move and never travels, so a retraction on
+        // layer change would be dropped by the filter and leave its unretract unmatched.
+        auto* opt = this->opt<ConfigOptionBools>("retract_when_changing_layer", true);
+        opt->values.assign(opt->values.size(), false);
+        auto* opt_n = this->opt<ConfigOptionBoolsNullable>("filament_retract_when_changing_layer", true);
+        opt_n->values.assign(opt_n->values.size(), false);
     }
 
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)

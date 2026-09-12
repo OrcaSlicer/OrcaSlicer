@@ -9967,6 +9967,14 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         is_finished = true;
     }
 
+    // Surface the zero-travel continuous print report when the mode was requested but not fully applied.
+    if (!has_error && !evt.cancelled()) {
+        PartPlate *cur_plate = this->partplate_list.get_curr_plate();
+        const GCodeProcessorResult *slice_result = cur_plate != nullptr ? cur_plate->get_slice_result() : nullptr;
+        if (slice_result != nullptr && !slice_result->continuous_print_report.empty())
+            this->notification_manager->push_notification(slice_result->continuous_print_report);
+    }
+
     //BBS: set the current plater's slice result to valid
     if (!this->background_process.empty())
         this->background_process.get_current_plate()->update_slice_result_valid_state(evt.success());

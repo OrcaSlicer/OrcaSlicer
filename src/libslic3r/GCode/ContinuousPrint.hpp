@@ -48,16 +48,33 @@ std::vector<std::unique_ptr<ExtrusionEntity>> split_entities_at_junctions(
     const std::vector<ExtrusionEntity*> &entities,
     double junction_epsilon = SCALED_EPSILON);
 
+// Recursively resolve ExtrusionEntityCollection nodes into their leaf entities (paths, loops,
+// multipaths), preserving order. Leaf entities are appended to `out` (not owned).
+void flatten_extrusion_entities(const ExtrusionEntity *entity, std::vector<ExtrusionEntity*> &out);
+void flatten_extrusion_entities(const ExtrusionEntitiesPtr &entities, std::vector<ExtrusionEntity*> &out);
+
 // M1 scope: in-layer single-chain check only. The layer must be organizable into one continuous
 // extrusion trace (an Eulerian trail, open or closed) without any travel or supplementary segments.
 // Shape-level checks (single object / single material / no support / single island) and the
 // transition-curve / off-body checks are deferred to M3 and will use `layer` and `cfg`.
+// `preferred_start` (optional) biases the chain start (and the linearization seam of closed loops)
+// towards a given XY point, e.g. the end point of the previous layer.
+// `junction_epsilon` (scaled units) is the tolerance within which an endpoint is considered to touch
+// another trace. Real slicer output leaves a sub-line-width gap between wall and fill, so this must
+// be a physical tolerance (e.g. half a nozzle diameter), not SCALED_EPSILON. Endpoints inside the
+// tolerance are snapped onto the junction point, so no connecting line is added for them.
+// `max_join_distance` (scaled units) is the longest straight connector the chainer may add between
+// two traces (e.g. between two wall loops, or wall to support/fill). Longer hops make the layer
+// unchainable. Set to 0 for strict "no connector" behaviour.
 // Returns Applicable and fills out_plan on success; Reject otherwise (out_plan untouched).
 ContinuousPrintVerdict preflight_layer(
     const std::vector<ExtrusionEntity*> &entities,
     const Layer                         *layer,
     const PrintConfig                   &cfg,
-    ContinuousLayerPlan                 *out_plan);
+    ContinuousLayerPlan                 *out_plan,
+    const Point                         *preferred_start = nullptr,
+    double                               junction_epsilon = SCALED_EPSILON,
+    double                               max_join_distance = 0.);
 
 // Zero-travel continuous print filter (M2 prototype), generalized from SpiralVase:
 // works on any layer emitted as a single continuous extrusion chain (open or closed),

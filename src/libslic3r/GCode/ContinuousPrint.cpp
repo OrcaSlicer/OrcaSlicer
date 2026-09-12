@@ -1,7 +1,10 @@
 #include "ContinuousPrint.hpp"
+#include "../ExtrusionEntityCollection.hpp"
 #include "../PrintConfig.hpp"
 
 #include <algorithm>
+#include <cstdlib>
+#include <iostream>
 #include <optional>
 
 namespace Slic3r {
@@ -27,6 +30,22 @@ static void append_entity_polyline(const ExtrusionEntity &entity, bool reversed,
 // -----------------------------------------------------------------------------------------------
 // Junction splitting (design doc 3.5, "lollipop" extension)
 // -----------------------------------------------------------------------------------------------
+
+void flatten_extrusion_entities(const ExtrusionEntity *entity, std::vector<ExtrusionEntity*> &out)
+{
+    if (entity == nullptr)
+        return;
+    if (const auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(entity))
+        flatten_extrusion_entities(eec->entities, out);
+    else
+        out.push_back(const_cast<ExtrusionEntity*>(entity));
+}
+
+void flatten_extrusion_entities(const ExtrusionEntitiesPtr &entities, std::vector<ExtrusionEntity*> &out)
+{
+    for (const ExtrusionEntity *entity : entities)
+        flatten_extrusion_entities(entity, out);
+}
 
 namespace {
 
@@ -215,43 +234,106 @@ void emit_piece(const PolylinePiece &piece, const ExtrusionPaths &src_paths, std
     }
 }
 
+// Linearize a closed ExtrusionLoop into open ExtrusionPath(s) starting at `start` (projected onto
+// the loop, only honored if it actually lies on it) and ending at the same point. This keeps the
+// trace closed while giving the emitter a single direction and a deterministic seam, so loops need
+// no special handling in the chain emitter.
+void linearize_loop_into(const ExtrusionLoop &loop, const Point *start,
+                         std::vector<std::unique_ptr<ExtrusionEntity>> &out)
+{
+    std::optional<FlattenedEntity> flat_opt = flatten_entity(loop);
+    if (! flat_opt)
+        return;
+    FlattenedEntity flat = std::move(*flat_opt);
+    if (start != nullptr) {
+        const std::vector<coordf_t> prefix = arc_prefix(flat.polyline);
+        coordf_t dist = 0;
+        const coordf_t s = closest_s_on_polyline(flat.polyline, prefix, *start, dist);
+        // Only rotate when the requested start is really on the loop; otherwise keep the stored seam.
+        if (dist <= SCALED_EPSILON && s > SCALED_EPSILON && prefix.back() - s > SCALED_EPSILON)
+            rotate_ring(flat, s);
+    }
+    PolylinePiece piece;
+    piece.polyline = flat.polyline;
+    piece.src_seg  = flat.src_seg;
+    emit_piece(piece, flat.paths, out);
+}
+
 } // namespace
+
+// An endpoint of entity `entity` (end==0 first, end==1 last) that must be moved onto a junction
+// point so the two traces close exactly. The move is bounded by the junction tolerance.
+struct EndpointSnap {
+    size_t entity;
+    int    end;
+    Point  target;
+};
 
 std::vector<std::unique_ptr<ExtrusionEntity>> split_entities_at_junctions(
     const std::vector<ExtrusionEntity*> &entities,
     double junction_epsilon)
 {
+    const size_t n = entities.size();
+    std::vector<std::unique_ptr<ExtrusionEntity>> out;
+    out.reserve(n);
+    for (size_t i = 0; i < n; ++ i)
+        out.emplace_back(entities[i]->clone());
+
     // Flatten the splittable entities (ExtrusionPath / ExtrusionLoop); others are passed through.
-    std::vector<std::optional<FlattenedEntity>> flats(entities.size());
-    for (size_t i = 0; i < entities.size(); ++ i)
+    std::vector<std::optional<FlattenedEntity>> flats(n);
+    for (size_t i = 0; i < n; ++ i)
         if (entities[i] != nullptr)
             flats[i] = flatten_entity(*entities[i]);
 
     // Collect interior junction positions per entity: endpoints of other entities lying on it.
-    std::vector<std::vector<coordf_t>> junctions(entities.size());
-    for (size_t i = 0; i < entities.size(); ++ i) {
+    // Also record the snap that closes each contact exactly (the physical gap is <= junction_epsilon,
+    // so nothing is drawn: the endpoint is moved onto the junction point within tolerance).
+    std::vector<std::vector<coordf_t>> junctions(n);
+    std::vector<EndpointSnap>          snaps;
+    for (size_t i = 0; i < n; ++ i) {
         if (! flats[i])
             continue;
         const std::vector<coordf_t> prefix = arc_prefix(flats[i]->polyline);
         const coordf_t total = prefix.back();
-        for (size_t j = 0; j < entities.size(); ++ j) {
+        for (size_t j = 0; j < n; ++ j) {
             if (j == i || entities[j] == nullptr)
                 continue;
-            for (const Point p : {entities[j]->first_point(), entities[j]->last_point()}) {
+            const Point ends[2] = { entities[j]->first_point(), entities[j]->last_point() };
+            for (int k = 0; k < 2; ++ k) {
                 coordf_t dist = 0;
-                const coordf_t s = closest_s_on_polyline(flats[i]->polyline, prefix, p, dist);
-                if (dist <= junction_epsilon && s > junction_epsilon && total - s > junction_epsilon)
+                const coordf_t s = closest_s_on_polyline(flats[i]->polyline, prefix, ends[k], dist);
+                if (dist <= junction_epsilon && s > junction_epsilon && total - s > junction_epsilon) {
+                    size_t src = 0;
+                    const Point3 p = point_at_s(*flats[i], prefix, s, src);
                     junctions[i].push_back(s);
+                    snaps.push_back({j, k, p.to_point()});
+                }
             }
         }
     }
 
-    std::vector<std::unique_ptr<ExtrusionEntity>> out;
-    out.reserve(entities.size());
-    for (size_t i = 0; i < entities.size(); ++ i) {
+    // Apply the endpoint snaps (paths/multipaths only; loops keep their closed ring).
+    for (const EndpointSnap &snap : snaps) {
+        if (auto *path = dynamic_cast<ExtrusionPath*>(out[snap.entity].get())) {
+            if (path->polyline.points.empty())
+                continue;
+            Point3 &p = snap.end == 0 ? path->polyline.points.front() : path->polyline.points.back();
+            p = Point3(snap.target.x(), snap.target.y(), p.z());
+        } else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(out[snap.entity].get())) {
+            if (mp->paths.empty())
+                continue;
+            Point3 &p = snap.end == 0 ? mp->paths.front().polyline.points.front()
+                                      : mp->paths.back().polyline.points.back();
+            p = Point3(snap.target.x(), snap.target.y(), p.z());
+        }
+    }
+
+    std::vector<std::unique_ptr<ExtrusionEntity>> result;
+    result.reserve(n);
+    for (size_t i = 0; i < n; ++ i) {
         auto &positions = junctions[i];
         if (! flats[i] || positions.empty()) {
-            out.emplace_back(entities[i]->clone());
+            result.emplace_back(std::move(out[i]));
             continue;
         }
         // Sort and deduplicate junction positions.
@@ -273,52 +355,340 @@ std::vector<std::unique_ptr<ExtrusionEntity>> split_entities_at_junctions(
                 rest.push_back(shifted > 0 ? shifted : shifted + total);
             }
             for (const PolylinePiece &piece : split_open(flat, rest))
-                emit_piece(piece, flat.paths, out);
+                emit_piece(piece, flat.paths, result);
         } else {
             for (const PolylinePiece &piece : split_open(flat, positions))
-                emit_piece(piece, flat.paths, out);
+                emit_piece(piece, flat.paths, result);
         }
     }
-    return out;
+    return result;
 }
 
 // -----------------------------------------------------------------------------------------------
 // Preflight
 // -----------------------------------------------------------------------------------------------
 
+namespace {
+
+// Straight connector between two chain neighbors, inheriting the extrusion attributes of `ref`.
+std::unique_ptr<ExtrusionPath> make_connector_path(const Point &from, const Point &to, const ExtrusionEntity &ref)
+{
+    const ExtrusionPath *tmpl = nullptr;
+    if (const auto *path = dynamic_cast<const ExtrusionPath*>(&ref))
+        tmpl = path;
+    else if (const auto *mp = dynamic_cast<const ExtrusionMultiPath*>(&ref); mp != nullptr && ! mp->paths.empty())
+        tmpl = &mp->paths.front();
+    else if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(&ref); loop != nullptr && ! loop->paths.empty())
+        tmpl = &loop->paths.front();
+    if (tmpl == nullptr)
+        return nullptr;
+    Polyline3 polyline;
+    polyline.append(Point3(from.x(), from.y(), tmpl->polyline.points.front().z()));
+    polyline.append(Point3(to.x(),   to.y(),   tmpl->polyline.points.back().z()));
+    return std::make_unique<ExtrusionPath>(std::move(polyline), *tmpl);
+}
+
+// Greedy single-trace ordering. The chain starts near `preferred_start` (or at the first entity) and
+// repeatedly consumes the unused entity reachable with the shortest hop, inserting a straight
+// connector when the hop exceeds `junction_epsilon` (bounded by `max_join`). This is what joins wall
+// loops to each other and to fill/support: a short extruded link, never a long bridge.
+// Returns false when the shortest remaining hop exceeds `max_join` (layer not printable as one trace).
+bool build_chain_with_connectors(std::vector<std::unique_ptr<ExtrusionEntity>> &&input,
+                                 const Point *preferred_start,
+                                 double junction_epsilon, double max_join,
+                                 std::vector<std::unique_ptr<ExtrusionEntity>> &out)
+{
+    std::vector<std::unique_ptr<ExtrusionEntity>> pool = std::move(input);
+    const size_t n = pool.size();
+    if (n == 0)
+        return false;
+
+    auto dist = [](const Point &a, const Point &b) {
+        return (a.cast<double>() - b.cast<double>()).norm();
+    };
+    auto is_wall_role = [](ExtrusionRole role) {
+        return role == erExternalPerimeter || role == erPerimeter || role == erOverhangPerimeter;
+    };
+
+    // Nearest vertex of an entity to `p`, with its distance.
+    auto nearest_point = [&](const ExtrusionEntity &entity, const Point &p, double &out_dist) {
+        const Polyline polyline = entity.as_polyline();
+        Point  best   = p;
+        double best_d = std::numeric_limits<double>::max();
+        for (const Point &pt : polyline.points) {
+            const double d = dist(pt, p);
+            if (d < best_d) { best_d = d; best = pt; }
+        }
+        out_dist = best_d;
+        return best;
+    };
+
+    // Rotate a closed path so it starts and ends at the point nearest to `target` (a vertex is
+    // inserted there, so the seam is exact even mid-edge).
+    auto reseam_closed = [&](ExtrusionPath &path, const Point &target) -> double {
+        auto &points = path.polyline.points;
+        const size_t m = points.size() >= 2 ? points.size() - 1 : 0; // points[m] == points[0]
+        if (m < 3)
+            return 0.;
+        const Vec2d tp = Vec2d(double(target.x()), double(target.y()));
+        double best_d = std::numeric_limits<double>::max();
+        size_t best_seg = 0;
+        double best_t   = 0.;
+        auto v2 = [](const Point3 &p) { return Vec2d(double(p.x()), double(p.y())); };
+        for (size_t i = 0; i < m; ++ i) {
+            const Vec2d a = v2(points[i]);
+            const Vec2d b = v2(points[(i + 1) % m]);
+            const Vec2d ab = b - a;
+            const double len2 = ab.squaredNorm();
+            const double t = len2 > 0. ? std::clamp((tp - a).dot(ab) / len2, 0., 1.) : 0.;
+            const double d = (tp - (a + ab * t)).norm();
+            if (d < best_d) { best_d = d; best_seg = i; best_t = t; }
+        }
+        const Vec2d a = v2(points[best_seg]);
+        const Vec2d b = v2(points[(best_seg + 1) % m]);
+        const Vec2d s = a + (b - a) * best_t;
+        const Point3 seam(s.x(), s.y(), double(points[best_seg].z()));
+        Polyline3 rotated;
+        rotated.append(seam);
+        for (size_t k = 1; k <= m; ++ k)
+            rotated.append(points[(best_seg + k) % m]);
+        rotated.append(seam);
+        path.polyline = std::move(rotated);
+        return best_d;
+    };
+
+    // Group entities by role; walls are ordered outer-to-inner (by contour area).
+    std::vector<size_t> walls, fills;
+    for (size_t i = 0; i < n; ++ i)
+        (is_wall_role(pool[i]->role()) ? walls : fills).push_back(i);
+    const bool cp_debug = std::getenv("CP_DEBUG") != nullptr;
+    if (cp_debug) {
+        std::cerr << "[CP] entities=" << n << " walls=" << walls.size() << " fills=" << fills.size() << "\n";
+        for (size_t i = 0; i < n; ++ i)
+            std::cerr << "  e" << i << " role=" << int(pool[i]->role())
+                      << " closed=" << (pool[i]->first_point() == pool[i]->last_point())
+                      << " pts=" << pool[i]->as_polyline().points.size() << "\n";
+    }
+    auto abs_area = [&](size_t i) { return std::abs(Slic3r::area(pool[i]->as_polyline().points)); };
+    std::sort(walls.begin(), walls.end(), [&](size_t a, size_t b) { return abs_area(a) > abs_area(b); });
+
+    // Start at whichever group is closest to the previous layer's end. This alternates
+    // wall-first / fill-first between layers (outer->inner->fill, then fill->inner->outer) and keeps
+    // the inter-layer weld short.
+    // Force every wall loop's seam onto the fill connection point, propagated outwards. The innermost
+    // wall then ends exactly where the fill starts, so top/bottom surfaces and internal solid infill
+    // (single traces at a fixed angular position) join the walls instead of being rejected just
+    // because the chain happened to arrive on the opposite side of the layer.
+    std::vector<Point> forced_seam(pool.size(), Point(0, 0));
+    std::vector<char>  has_forced(pool.size(), 0);
+    const bool has_fill = ! fills.empty();
+    Point      fill_entry;
+    bool       fill_entry_valid = false;
+    if (has_fill && ! walls.empty()) {
+        double best = std::numeric_limits<double>::max();
+        for (size_t fi : fills) {
+            if (pool[fi]->first_point() == pool[fi]->last_point())
+                continue; // a closed fill trace has no entry/exit to align to
+            const Point a = pool[fi]->first_point(), b = pool[fi]->last_point();
+            double da = 0, db = 0;
+            nearest_point(*pool[walls.back()], a, da);
+            nearest_point(*pool[walls.back()], b, db);
+            if (std::min(da, db) < best) {
+                best = std::min(da, db);
+                fill_entry = (da <= db) ? a : b;
+                fill_entry_valid = true;
+            }
+        }
+        if (fill_entry_valid) {
+            Point target = fill_entry;
+            for (size_t k = walls.size(); k -- > 0; ) {
+                ExtrusionEntity &wall = *pool[walls[k]];
+                if (wall.first_point() == wall.last_point()) {
+                    if (auto *path = dynamic_cast<ExtrusionPath*>(&wall)) {
+                        reseam_closed(*path, target);
+                        forced_seam[walls[k]] = wall.first_point();
+                        has_forced[walls[k]]  = 1;
+                        target = wall.first_point();
+                        continue;
+                    }
+                }
+                double d;
+                target = nearest_point(wall, target, d);
+            }
+        }
+    }
+
+    // Order fill traces by proximity: internal solid infill is split into 2-3 pieces which must be
+    // traversed in one sweep with short connectors.
+    auto order_fills = [&](const Point &from) {
+        std::vector<size_t> remaining = fills, ordered;
+        Point cursor = from;
+        while (! remaining.empty()) {
+            size_t best_k = 0;
+            double best_d = std::numeric_limits<double>::max();
+            for (size_t k = 0; k < remaining.size(); ++ k) {
+                const double d = std::min(dist(pool[remaining[k]]->first_point(), cursor),
+                                          dist(pool[remaining[k]]->last_point(),  cursor));
+                if (d < best_d) { best_d = d; best_k = k; }
+            }
+            const size_t idx = remaining[best_k];
+            ordered.push_back(idx);
+            cursor = dist(pool[idx]->first_point(), cursor) <= dist(pool[idx]->last_point(), cursor)
+                ? pool[idx]->last_point() : pool[idx]->first_point();
+            remaining.erase(remaining.begin() + best_k);
+        }
+        return ordered;
+    };
+
+    // Start the layer where the previous one ended; with the seams aligned to the fill this alternates
+    // wall-first / fill-first between layers.
+    bool walls_first = true;
+    if (preferred_start != nullptr && has_fill && ! walls.empty()) {
+        const Point wall_start = has_forced[walls.front()] ? forced_seam[walls.front()] : pool[walls.front()]->first_point();
+        const double d_wall = dist(wall_start, *preferred_start);
+        double d_fill = std::numeric_limits<double>::max();
+        for (size_t fi : fills)
+            d_fill = std::min(d_fill, std::min(dist(pool[fi]->first_point(), *preferred_start),
+                                               dist(pool[fi]->last_point(),  *preferred_start)));
+        walls_first = d_wall <= d_fill;
+    }
+
+    std::vector<size_t> sequence;
+    if (walls_first) {
+        sequence = walls;                                                       // outer -> inner
+        if (has_fill)
+            for (size_t idx : order_fills(fill_entry_valid ? fill_entry : pool[walls.back()]->last_point()))
+                sequence.push_back(idx);
+    } else {
+        if (has_fill)
+            for (size_t idx : order_fills(preferred_start != nullptr ? *preferred_start : fill_entry))
+                sequence.push_back(idx);
+        sequence.insert(sequence.end(), walls.rbegin(), walls.rend());          // inner -> outer
+    }
+
+    Point cur;
+    bool  have_cur = false;
+    // The previously placed entity is a wall that may be extended into the next part (see below).
+    bool  prev_wall_extendable = false;
+    for (size_t idx : sequence) {
+        ExtrusionEntity &entity = *pool[idx];
+        const bool closed = entity.first_point() == entity.last_point();
+        double hop = 0.;
+        if (have_cur) {
+            if (closed) {
+                if (auto *path = dynamic_cast<ExtrusionPath*>(&entity)) {
+                    if (has_forced[idx]) {
+                        reseam_closed(*path, forced_seam[idx]);
+                        hop = dist(entity.first_point(), cur);
+                    } else
+                        hop = reseam_closed(*path, cur);
+                } else {
+                    double d;
+                    nearest_point(entity, cur, d);
+                    hop = d;
+                }
+            } else {
+                if (entity.can_reverse() && dist(entity.last_point(), cur) < dist(entity.first_point(), cur))
+                    entity.reverse();
+                hop = dist(entity.first_point(), cur);
+            }
+        } else if (preferred_start != nullptr) {
+            if (closed) {
+                if (auto *path = dynamic_cast<ExtrusionPath*>(&entity))
+                    reseam_closed(*path, has_forced[idx] ? forced_seam[idx] : *preferred_start);
+            } else if (entity.can_reverse() && dist(entity.last_point(), *preferred_start) < dist(entity.first_point(), *preferred_start)) {
+                entity.reverse();
+            }
+        }
+        if (have_cur && hop > max_join) {
+            if (cp_debug)
+                std::cerr << "[CP] FAIL hop " << unscale_(hop) << "mm at entity " << idx
+                          << " (max " << unscale_(max_join) << ")\n";
+            return false;
+        }
+        // Wall -> surface/fill: instead of a separate straight connector, extend the wall itself up to
+        // the pattern start ("an incomplete wall segment"), so the junction reads as the wall
+        // continuing into the top/bottom surface.
+        bool extended_wall = false;
+        if (have_cur && hop > junction_epsilon && prev_wall_extendable && ! is_wall_role(entity.role())) {
+            if (auto *prev_path = dynamic_cast<ExtrusionPath*>(out.back().get()); prev_path != nullptr && ! prev_path->polyline.points.empty()) {
+                const Point  p     = entity.first_point();
+                const Point3 &last = prev_path->polyline.points.back();
+                const Point3  ext(p.x(), p.y(), last.z());
+                if (last != ext)
+                    prev_path->polyline.append(ext);
+                extended_wall = true;
+            }
+        }
+        if (have_cur && hop > junction_epsilon && ! extended_wall) {
+            auto connector = make_connector_path(cur, entity.first_point(), entity);
+            if (connector == nullptr)
+                return false;
+            out.emplace_back(std::move(connector));
+        }
+        cur = entity.last_point();
+        have_cur = true;
+        prev_wall_extendable = is_wall_role(entity.role()) && ! extended_wall;
+        out.emplace_back(std::move(pool[idx]));
+    }
+    return true;
+}
+
+} // namespace
+
 ContinuousPrintVerdict preflight_layer(
     const std::vector<ExtrusionEntity*> &entities,
     [[maybe_unused]] const Layer        *layer,
     [[maybe_unused]] const PrintConfig  &cfg,
-    ContinuousLayerPlan                 *out_plan)
+    ContinuousLayerPlan                 *out_plan,
+    const Point                         *preferred_start,
+    double                               junction_epsilon,
+    double                               max_join_distance)
 {
     assert(out_plan != nullptr);
 
-    // Working set: entities cloned and split at junction points (design doc 3.5).
-    std::vector<std::unique_ptr<ExtrusionEntity>> working = split_entities_at_junctions(entities);
-    std::vector<ExtrusionEntity*> view;
-    view.reserve(working.size());
-    for (const auto &entity : working)
-        view.push_back(entity.get());
+    // Flatten collections into leaf entities first, so callers may pass raw region entity lists.
+    std::vector<ExtrusionEntity*> leaves;
+    flatten_extrusion_entities(entities, leaves);
+    if (leaves.empty())
+        return ContinuousPrintVerdict::Reject;
 
-    // In-layer single-chain check: the entities must form one continuous trace with zero travel.
-    std::optional<ExactChainResult> chain = chain_extrusion_entities_exact(view, nullptr);
-    if (! chain)
+    // Working set: entities cloned and split at junction points (design doc 3.5).
+    std::vector<std::unique_ptr<ExtrusionEntity>> working = split_entities_at_junctions(leaves, junction_epsilon);
+
+    // Linearize remaining closed loops into open paths, so the chain (and the emitter) only deals
+    // with ExtrusionPath. A loop that was split at a junction is already a path at this point.
+    std::vector<std::unique_ptr<ExtrusionEntity>> linearized;
+    linearized.reserve(working.size());
+    for (auto &entity : working) {
+        if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity.get()))
+            linearize_loop_into(*loop, preferred_start, linearized);
+        else
+            linearized.emplace_back(std::move(entity));
+    }
+    working = std::move(linearized);
+
+    // Single-trace ordering. Exact contacts are used as-is; short gaps (wall-wall, wall-fill,
+    // wall-support) get a straight connector bounded by max_join_distance. Longer hops fail the layer.
+    std::vector<std::unique_ptr<ExtrusionEntity>> ordered;
+    if (! build_chain_with_connectors(std::move(working), preferred_start, junction_epsilon, max_join_distance, ordered))
         return ContinuousPrintVerdict::Reject;
 
     ContinuousLayerPlan plan;
-    plan.entities    = std::move(working);
-    plan.order       = chain->order;
-    plan.start_point = chain->start;
-    plan.end_point   = chain->end;
-    plan.is_closed   = chain->closed;
-    for (const ExtrusionEntity *entity : view)
+    plan.start_point = ordered.front()->first_point();
+    plan.end_point   = ordered.back()->last_point();
+    plan.is_closed   = is_approx(plan.start_point, plan.end_point);
+    plan.entities    = std::move(ordered);
+    plan.order.reserve(plan.entities.size());
+    for (size_t i = 0; i < plan.entities.size(); ++ i)
+        plan.order.emplace_back(i, false);
+    for (const auto &entity : plan.entities)
         plan.total_length += unscale_(entity->length()); // ExtrusionEntity::length() is in scaled units
 
     // XY samples along the chain, interpolated at a fixed arc-length step (plus the exact start/end points).
     Points polyline;
-    for (const auto &[idx, reversed] : plan.order)
-        append_entity_polyline(*view[idx], reversed, polyline);
+    for (const auto &entity : plan.entities)
+        append_entity_polyline(*entity, false, polyline);
     if (! polyline.empty()) {
         const coordf_t step = scale_(CONTINUOUS_PRINT_SAMPLING_STEP);
         plan.sampling.push_back(polyline.front());

@@ -2141,6 +2141,31 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.result().timelapse_warning_code = m_timelapse_warning_code;
     m_processor.result().support_traditional_timelapse = m_support_traditional_timelapse;
 
+    // User-facing report of the zero-travel continuous print mode.
+    {
+        std::string report;
+        if (print->config().continuous_print_mode.value && ! print->config().spiral_mode.value) {
+            if (m_continuous_gate_failed)
+                report = "Continuous print (zero travel) was requested but not applied: it requires a single object "
+                         "instance, a single material, and no prime tower. Sliced with normal travels.";
+            else if (m_continuous_layer_total == 0 || m_continuous_layer_applied == 0)
+                report = "Continuous print (zero travel) was requested but no layer could be printed as a single "
+                         "trace; all layers use normal travels. Enable Smooth Spiral smoothing to relax the transition, "
+                         "or use a thin-wall shell with continuous infill (monotonic / alignedrectilinear).";
+            else if (m_continuous_layer_applied < m_continuous_layer_total)
+                report = "Continuous print (zero travel) was applied to " + std::to_string(m_continuous_layer_applied)
+                         + " of " + std::to_string(m_continuous_layer_total)
+                         + " layers; the remaining layers cannot be printed as a single trace and use normal travels.";
+        }
+        m_continuous_print_report = report;
+        m_processor.result().continuous_print_report = report;
+        if (! report.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Continuous print: " << report;
+            // Also visible to CLI users (the GUI shows it as a notification).
+            std::cerr << "Continuous print: " << report << std::endl;
+        }
+    }
+
     bool activate_long_retraction_when_cut = false;
     for (const auto& filament : m_writer.extruders())
         activate_long_retraction_when_cut |= (
@@ -2536,8 +2561,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
 
+    m_continuous_print.reset();
     if (print.config().spiral_mode.value)
         m_spiral_vase = make_unique<SpiralVase>(print.config());
+    else if (print.config().continuous_print_mode.value && this->continuous_print_compatible(print))
+        m_continuous_print = make_unique<ContinuousPrint>(print.config());
+    m_continuous_has_prev = false;
+    m_continuous_layer_total = 0;
+    m_continuous_layer_applied = 0;
+    // Requested but rejected up-front by the structural gate (single object/material, no support, ...).
+    m_continuous_gate_failed = print.config().continuous_print_mode.value
+        && ! print.config().spiral_mode.value && m_continuous_print == nullptr;
+    m_continuous_print_report.clear();
 
     if (print.config().max_volumetric_extrusion_rate_slope.value > 0){
     		m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
@@ -3690,19 +3725,28 @@ void GCode::process_layers(
                 return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
             }
         });
-    if (m_spiral_vase) {
+    const bool has_vase_filter = (m_spiral_vase != nullptr) || (m_continuous_print != nullptr);
+    if (has_vase_filter) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
         float max_xy_smoothing = m_config.get_abs_value("spiral_mode_max_xy_smoothing", nozzle_diameter);
-        this->m_spiral_vase->set_max_xy_smoothing(max_xy_smoothing);
+        if (m_spiral_vase)
+            this->m_spiral_vase->set_max_xy_smoothing(max_xy_smoothing);
+        else
+            this->m_continuous_print->set_max_xy_smoothing(max_xy_smoothing);
     }
     const auto spiral_mode = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [&spiral_mode = *this->m_spiral_vase.get(), &layers_to_print](LayerResult in) -> LayerResult {
+        [this, &layers_to_print](LayerResult in) -> LayerResult {
         	if (in.nop_layer_result)
                 return in;
-                
-            spiral_mode.enable(in.spiral_vase_enable);
             bool last_layer = in.layer_id == layers_to_print.size() - 1;
-            return { spiral_mode.process_layer(std::move(in.gcode), last_layer), in.layer_id, in.spiral_vase_enable, in.cooling_buffer_flush};
+            if (m_continuous_print) {
+                m_continuous_print->enable(in.continuous_print_enable);
+                in.gcode = m_continuous_print->process_layer(std::move(in.gcode), last_layer);
+            } else {
+                m_spiral_vase->enable(in.spiral_vase_enable);
+                in.gcode = m_spiral_vase->process_layer(std::move(in.gcode), last_layer);
+            }
+            return in;
         });
     const auto pressure_equalizer = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [pressure_equalizer = this->m_pressure_equalizer.get()](LayerResult in) -> LayerResult {
@@ -3745,9 +3789,9 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
-    if (m_spiral_vase && m_pressure_equalizer)
+    if (has_vase_filter && m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
-    else if (m_spiral_vase)
+    else if (has_vase_filter)
     	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
@@ -3791,18 +3835,28 @@ void GCode::process_layers(
                 return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
             }
         });
-    if (m_spiral_vase) {
+    const bool has_vase_filter = (m_spiral_vase != nullptr) || (m_continuous_print != nullptr);
+    if (has_vase_filter) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
         float max_xy_smoothing = m_config.get_abs_value("spiral_mode_max_xy_smoothing", nozzle_diameter);
-        this->m_spiral_vase->set_max_xy_smoothing(max_xy_smoothing);
+        if (m_spiral_vase)
+            this->m_spiral_vase->set_max_xy_smoothing(max_xy_smoothing);
+        else
+            this->m_continuous_print->set_max_xy_smoothing(max_xy_smoothing);
     }
     const auto spiral_mode = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [&spiral_mode = *this->m_spiral_vase.get(), &layers_to_print](LayerResult in)->LayerResult {
+        [this, &layers_to_print](LayerResult in)->LayerResult {
             if (in.nop_layer_result)
                 return in;
-            spiral_mode.enable(in.spiral_vase_enable);
             bool last_layer = in.layer_id == layers_to_print.size() - 1;
-            return { spiral_mode.process_layer(std::move(in.gcode), last_layer), in.layer_id, in.spiral_vase_enable, in.cooling_buffer_flush };
+            if (m_continuous_print) {
+                m_continuous_print->enable(in.continuous_print_enable);
+                in.gcode = m_continuous_print->process_layer(std::move(in.gcode), last_layer);
+            } else {
+                m_spiral_vase->enable(in.spiral_vase_enable);
+                in.gcode = m_spiral_vase->process_layer(std::move(in.gcode), last_layer);
+            }
+            return in;
         });
     const auto pressure_equalizer = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [pressure_equalizer = this->m_pressure_equalizer.get()](LayerResult in) -> LayerResult {
@@ -3843,9 +3897,9 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
-    if (m_spiral_vase && m_pressure_equalizer)
+    if (has_vase_filter && m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
-    else if (m_spiral_vase)
+    else if (has_vase_filter)
     	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
@@ -4647,7 +4701,7 @@ LayerResult GCode::process_layer(
 
     bool need_insert_timelapse_gcode_for_traditional = false;
     if ((!m_wipe_tower || !m_wipe_tower->enable_timelapse_print()) && (is_BBL_Printer() || !m_config.time_lapse_gcode.value.empty())) {
-        need_insert_timelapse_gcode_for_traditional = ((is_i3_printer && !m_spiral_vase) || is_multi_extruder);
+        need_insert_timelapse_gcode_for_traditional = ((is_i3_printer && !m_spiral_vase && !m_continuous_print) || is_multi_extruder);
     }
 
     bool has_insert_timelapse_gcode = false;
@@ -5430,7 +5484,71 @@ LayerResult GCode::process_layer(
                     m_object_layer_over_raft = object_layer_over_raft;
                 }
                 //FIXME order islands?
+                // Zero-travel continuous print: when this layer can be organized into a single
+                // continuous trace, emit it as one chain instead of per-region (no travel at all).
+                // The previous chain end is handed over as the preferred start (transition point).
+                bool continuous_layer_emitted = false;
+                // Skirt (below skirt_height) and the brim of the first layer are emitted as separate
+                // setup geometry with their own travels, so those layers are printed normally.
+                const bool layer_has_setup_geometry =
+                    layer.id() < size_t(print.config().skirt_height.value) || print.has_infinite_skirt() ||
+                    (layer.id() == 0 && print.has_brim());
+                if (m_continuous_print != nullptr && ! is_anything_overridden && gcode_toolchange.empty() &&
+                    (instance_to_print.object_by_extruder.support == nullptr || instance_to_print.object_by_extruder.support->empty()) &&
+                    ! layer_has_setup_geometry &&
+                    ! instance_to_print.object_by_extruder.islands.empty()) {
+                    ++ m_continuous_layer_total;
+                    std::vector<ExtrusionEntity*> layer_entities;
+                    for (const ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands)
+                        for (const ObjectByExtruder::Island::Region &region : island.by_region) {
+                            flatten_extrusion_entities(region.perimeters, layer_entities);
+                            flatten_extrusion_entities(region.infills, layer_entities);
+                        }
+                    // Slicer output leaves a sub-line-width gap between wall and fill, so a physical
+                    // tolerance is required to detect the junction. Endpoints inside it are snapped.
+                    const double junction_epsilon = scale_(0.5 * EXTRUDER_CONFIG(nozzle_diameter));
+                    const double max_join_distance = scale_(m_config.continuous_print_max_join_distance.value);
+                    ContinuousLayerPlan plan;
+                    // Start the chain as close as possible to where the nozzle already is: the end of the
+                    // previous continuous layer, or the current position when the previous layer was
+                    // printed normally (minimizes the transition weld, design doc 3.3).
+                    Point preferred_point;
+                    const Point *preferred_start = nullptr;
+                    if (m_continuous_has_prev) {
+                        preferred_point = m_continuous_prev_end;
+                        preferred_start = &preferred_point;
+                    } else if (m_last_pos_defined) {
+                        preferred_point = m_last_pos.to_point();
+                        preferred_start = &preferred_point;
+                    }
+                    bool preflight_ok = ! layer_entities.empty() &&
+                        preflight_layer(layer_entities, m_layer, m_config, &plan, preferred_start, junction_epsilon, max_join_distance) == ContinuousPrintVerdict::Applicable;
+                    // Transition-point budget (design doc 3.3.2): with smoothing enabled the XY drift
+                    // between the previous chain end and this chain start must stay within the budget.
+                    if (preflight_ok && m_continuous_has_prev && m_config.spiral_mode_smooth.value) {
+                        const double budget = m_config.get_abs_value("spiral_mode_max_xy_smoothing", EXTRUDER_CONFIG(nozzle_diameter));
+                        preflight_ok = (plan.start_point - m_continuous_prev_end).cast<double>().norm() <= scale_(budget);
+                    }
+                    if (preflight_ok) {
+                        ++ m_continuous_layer_applied;
+                        // Applicable layers have a single print region; apply its config for role-based flow/speed.
+                        const std::vector<ObjectByExtruder::Island::Region> &first_regions =
+                            instance_to_print.object_by_extruder.islands.front().by_region;
+                        for (size_t region_id = 0; region_id < first_regions.size(); ++ region_id)
+                            if (! first_regions[region_id].perimeters.empty() || ! first_regions[region_id].infills.empty()) {
+                                m_config.apply(print.get_print_region(region_id).config());
+                                break;
+                            }
+                        this->set_origin(unscale(instance_to_print.print_object.instances()[instance_to_print.instance_id].shift));
+                        gcode += this->emit_continuous_print_layer(plan);
+                        m_continuous_prev_end  = plan.end_point;
+                        m_continuous_has_prev  = true;
+                        result.continuous_print_enable = true;
+                        continuous_layer_emitted = true;
+                    }
+                }
                 // Sequential tool path ordering of multiple parts within the same object, aka. perimeter tracking (#5511)
+                if (! continuous_layer_emitted)
                 for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
                     const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
                     // When starting a new object, use the external motion planner for the first travel move.
@@ -5549,6 +5667,48 @@ LayerResult GCode::process_layer(
     result.gcode = std::move(gcode);
     result.cooling_buffer_flush = object_layer || raft_layer || last_layer;
     return result;
+}
+
+// Whole-print structural gate for continuous print (M3): only a single object instance with a
+// single material and no prime tower is considered. Skirt and brim are handled per layer, and layers
+// with support are printed normally (object<->support needs a cross-air link, out of scope here).
+bool GCode::continuous_print_compatible(const Print &print) const
+{
+    const PrintConfig &config = print.config();
+    if (print.objects().size() != 1 || print.num_object_instances() != 1)
+        return false;
+    if (config.print_sequence.value != PrintSequence::ByLayer)
+        return false;
+    if (config.enable_prime_tower.value)
+        return false;
+    if (config.nozzle_diameter.size() != 1)
+        return false;
+    return true;
+}
+
+// Emit the layer as one continuous chain: ordered entities (each optionally reversed) are printed
+// back to back. Consecutive entities share their endpoint (guaranteed by preflight_layer), so
+// _extrude() finds the nozzle already at the start of the next entity and no travel is emitted.
+std::string GCode::emit_continuous_print_layer(ContinuousLayerPlan &plan)
+{
+    std::string gcode;
+    for (const std::pair<size_t, bool> &entry : plan.order) {
+        ExtrusionEntity *entity = plan.entities[entry.first].get();
+        if (entity == nullptr)
+            continue;
+        if (entry.second)
+            entity->reverse();
+        if (const auto *path = dynamic_cast<const ExtrusionPath*>(entity))
+            gcode += this->extrude_path(*path, "continuous", -1.);
+        else if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath*>(entity))
+            gcode += this->extrude_multi_path(*multipath, "continuous", -1.);
+        else if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity))
+            // Unreachable in practice: preflight linearizes loops into paths. Kept as a safety net.
+            gcode += this->extrude_loop(*loop, "continuous", -1.);
+        else
+            throw Slic3r::InvalidArgument("Unsupported extrusion entity in continuous print layer");
+    }
+    return gcode;
 }
 
 void GCode::apply_print_config(const PrintConfig &print_config)
@@ -5698,8 +5858,11 @@ std::string GCode::change_layer(coordf_t print_z)
 
     m_writer.add_object_change_labels(gcode);
 
-    if (m_spiral_vase) {
+    if (m_spiral_vase || m_continuous_print) {
         //BBS: force to normal lift immediately in spiral vase mode
+        // Continuous print relies on the same explicit layer Z move: the filter rewrites it to the
+        // previous layer's Z and ramps the height along the trace. Without it, the filter would latch
+        // onto the z-hop Z instead and mismeasure the layer height.
         std::ostringstream comment;
         comment << "move to next layer (" << m_layer_index << ")";
         gcode += m_writer.travel_to_z(z, comment.str());
@@ -7701,7 +7864,7 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
         if (apply_instantly)
             gcode += m_writer.eager_lift(lift_type);
         else
-            gcode += m_writer.lazy_lift(lift_type, m_spiral_vase != nullptr);
+            gcode += m_writer.lazy_lift(lift_type, m_spiral_vase != nullptr || m_continuous_print != nullptr);
     }
 
     return gcode;

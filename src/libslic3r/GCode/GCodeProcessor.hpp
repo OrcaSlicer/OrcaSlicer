@@ -261,6 +261,9 @@ class Print;
         bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;
+        // User-facing report of the zero-travel continuous print mode (empty when the mode is off or
+        // was applied to every layer). Set by GCode::do_export and surfaced as a notification.
+        std::string continuous_print_report;
         int nozzle_hrc;
         std::vector<NozzleType> nozzle_type;
         // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
@@ -300,6 +303,7 @@ class Print;
             custom_gcode_per_print_z = other.custom_gcode_per_print_z;
             spiral_vase_mode = other.spiral_vase_mode;
             warnings = other.warnings;
+            continuous_print_report = other.continuous_print_report;
             bed_type = other.bed_type;
             gcode_check_result = other.gcode_check_result;
             limit_filament_maps = other.limit_filament_maps;
