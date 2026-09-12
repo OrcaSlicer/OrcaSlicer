@@ -2,6 +2,7 @@
 #define slic3r_Preset_hpp_
 
 #include <deque>
+#include <map>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -749,6 +750,9 @@ public:
     {
         return const_cast<PresetCollection*>(this)->find_preset2(name, auto_match);
     }
+    // Name of the parent that kept the preset file from loading, or empty if the file loaded
+    // (or was never seen). Lets a caller that fails to find a preset explain why it is missing.
+    std::string unresolved_parent(const boost::filesystem::path &file) const;
     
     size_t first_visible_idx() const;
     // Return the index of the first visible, compatible, system base preset
@@ -986,6 +990,8 @@ private:
 
     // Orca: used for validation only
     int m_errors = 0;
+    // Preset files dropped by load_presets() because their parent does not exist, keyed by file path.
+    std::map<std::string, std::string> m_unresolved_parents;
 };
 
 // Printer supports the FFF and SLA technologies, with different set of configuration values,
