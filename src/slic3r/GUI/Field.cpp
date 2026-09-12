@@ -487,6 +487,18 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, _(L("Invalid numeric.")));
                 set_value(double_to_string(val), true);
             }
+            if (m_opt_id == "minimum_cruise_ratio" && !(val >= 0.0 && val < 1.0)) {
+                if (!check_value) {
+                    m_value.clear();
+                    break;
+                }
+                show_error(m_parent, _L("Minimum cruise ratio must be at least 0 and less than 1."));
+                val = m_value.empty() ? m_opt.get_default_value<ConfigOptionFloat>()->value :
+                                       boost::any_cast<double>(m_value);
+                if (!(val >= 0.0 && val < 1.0))
+                    val = m_opt.get_default_value<ConfigOptionFloat>()->value;
+                set_value(double_to_string(val), true);
+            }
             if (!m_opt.is_value_valid(val))
             {
                 if (!check_value) {

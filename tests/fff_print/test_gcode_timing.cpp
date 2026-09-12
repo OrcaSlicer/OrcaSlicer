@@ -515,6 +515,33 @@ double planned_corner_speed(GCodeFlavor flavor, double corner_velocity, double j
 
 } // namespace
 
+TEST_CASE("Klipper extrusion ratio changes use its own corner velocity, not E jerk", "[GCodeTiming][JunctionDeviation]")
+{
+    const double jerk_e = GENERATE(0.0, 100.0);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_jerk_e.values = {jerk_e, jerk_e};
+    GCodeProcessor processor;
+    run_processor(processor, config,
+        "G90\nM83\nSET_VELOCITY_LIMIT ACCEL=1000 MINIMUM_CRUISE_RATIO=0\n"
+        "G1 X20 Y60 F6000\nM400\n"
+        "G1 X60 Y60 E0.8 F6000\nG1 X100 Y60 E1.6 F6000\nM400\n");
+    // A 0.02 -> 0.04 extrusion ratio change is capped at 1 / 0.02 = 50 mm/s.
+    REQUIRE_THAT(corner_speed(processor.get_result()), Catch::Matchers::WithinAbs(50.0, 0.01));
+}
+
+TEST_CASE("Klipper legacy smoothing stays absolute across acceleration changes", "[GCodeTiming][Klipper]")
+{
+    const bool modern = GENERATE(false, true);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    const std::string gcode = std::string("G90\nSET_VELOCITY_LIMIT ACCEL=1000 ") +
+        (modern ? "MINIMUM_CRUISE_RATIO=0.75\n" : "ACCEL_TO_DECEL=250\n") +
+        "G1 X40 F30000\nM400\nM204 S2000\nG1 X0\nM400\n";
+    GCodeProcessor processor;
+    run_processor(processor, config, gcode.c_str());
+    const double expected = modern ? 0.5 + 0.25 * std::sqrt(2.0) : 0.95;
+    REQUIRE_THAT(processor.get_time(PrintEstimatedStatistics::ETimeMode::Normal), WithinAbs(expected, 1e-5));
+}
+
 TEST_CASE("Klipper corners are planned with junction deviation derived from the square corner velocity",
           "[GCodeTiming][JunctionDeviation]")
 {
