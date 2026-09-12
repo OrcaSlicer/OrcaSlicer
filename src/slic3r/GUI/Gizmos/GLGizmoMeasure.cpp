@@ -1266,25 +1266,37 @@ void GLGizmoMeasure::render_dimensioning()
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 1.0f, 1.0f });
             m_imgui->begin(std::string("distance"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration);
             ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
-            ImGui::AlignTextToFramePadding();
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            const ImVec2 pos = ImGui::GetCursorScreenPos();
+            //const ImVec2 pos = ImGui::GetCursorScreenPos();
             const std::string txt = curr_value_str + " " + units;
             ImVec2 txt_size = ImGui::CalcTextSize(txt.c_str());
             const ImGuiStyle& style = ImGui::GetStyle();
-            draw_list->AddRectFilled({pos.x - style.FramePadding.x, pos.y + style.FramePadding.y},
-                                     {pos.x + txt_size.x + 2.0f * style.FramePadding.x, pos.y + txt_size.y + 2.0f * style.FramePadding.y},
-                                     ImGuiWrapper::to_ImU32({1.0f, 1.0f, 1.0f, 0.5f}));
-            ImGui::SetCursorScreenPos({ pos.x + style.FramePadding.x, pos.y });
-            m_imgui->text(txt);
-            if (m_hit_different_volumes.size() < 2 && wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D) {
-                ImGui::SameLine();
-                if (m_imgui->image_button(ImGui::SliderFloatEditBtnIcon, _L("Edit to scale"))) {
+            //ImGui::SetCursorScreenPos({ pos.x + style.FramePadding.x, pos.y });
+            // ORCA corrected style and layout
+            bool is_editable = (m_hit_different_volumes.size() < 2 && wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D);
+            ImGui::PushStyleColor(ImGuiCol_Button       , {1.f, 1.f, 1.f, .75f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {1.f, 1.f, 1.f, is_editable ? .9f : .75f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive , {1.f, 1.f, 1.f, .75f});
+            ImGui::PushStyleColor(ImGuiCol_Border       , {0.f, 0.f, 0.f, .0f});
+            ImGui::PushStyleColor(ImGuiCol_Text         , {0.f, 0.f, 0.f, .9f});
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+            if (ImGui::Button(txt.c_str(), ImVec2(0.f, style.FramePadding.y * 2.f + txt_size.y))) {
+                 if(is_editable)
                     m_editing_distance = true;
-                    edit_value         = curr_value;
-                    m_imgui->requires_extra_frame();
-                }
             }
+            if(is_editable){
+                ImGui::SameLine(0,0);
+                if (m_imgui->glyph_button(ImGui::SliderFloatEditBtnIcon, ImVec2(txt_size.y, txt_size.y))) //_L("Edit to scale")
+                    m_editing_distance = true;
+                else if (ImGui::IsItemHovered())
+                    m_imgui->tooltip(_L("Edit to scale"), 999.f);
+            }
+            if(m_editing_distance){
+                edit_value = curr_value;
+                m_imgui->requires_extra_frame();
+            }
+
+            ImGui::PopStyleColor(5);
+            ImGui::PopStyleVar(1); // FrameBorderSize
             m_imgui->end();
             ImGui::PopStyleVar(3);
         }
@@ -1340,9 +1352,16 @@ void GLGizmoMeasure::render_dimensioning()
 
             m_imgui->disable_background_fadeout_animation();
             ImGui::PushItemWidth(value_str_width);
+            // ORCA corrected style and layout
+            ImGui::PushStyleColor(ImGuiCol_FrameBg       , {1.f, 1.f, 1.f, .75f});
+            ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, {1.f, 1.f, 1.f, 1.f});
+            ImGui::PushStyleColor(ImGuiCol_FrameBgActive , {1.f, 1.f, 1.f, 1.f});
+            ImGui::PushStyleColor(ImGuiCol_Border        , {0.f, 0.f, 0.f, .5f});
+            ImGui::PushStyleColor(ImGuiCol_Text          , {0.f, 0.f, 0.f, .9f});
+            ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImGuiWrapper::COL_GREEN_LIGHT); // focus color
             if (ImGui::InputDouble("##distance", &edit_value, 0.0f, 0.0f, "%.3f")) {
             }
-
+            ImGui::PopStyleColor(6);
             // trick to auto-select text in the input widgets on 1st frame
             if (m_is_editing_distance_first_frame) {
                 ImGui::SetKeyboardFocusHere(0);
@@ -1556,19 +1575,21 @@ void GLGizmoMeasure::render_dimensioning()
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         m_imgui->begin(wxString("##angle"), ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
-        ImGui::AlignTextToFramePadding();
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        const ImVec2 pos = ImGui::GetCursorScreenPos();
         const std::string txt = format_double(Geometry::rad2deg(angle)) + "°";
         ImVec2 txt_size = ImGui::CalcTextSize(txt.c_str());
         const ImGuiStyle& style = ImGui::GetStyle();
-        ColorRGBA         color{1.0f, 1.0f, 1.0f, 0.5f};
-        draw_list->AddRectFilled({ pos.x - style.FramePadding.x, pos.y + style.FramePadding.y }, { pos.x + txt_size.x + 2.0f * style.FramePadding.x,
-            pos.y + txt_size.y + 2.0f * style.FramePadding.y}, ImGuiWrapper::to_ImU32(color));
-        ImGui::SetCursorScreenPos({ pos.x + style.FramePadding.x, pos.y });
-        m_imgui->text(txt);
+        // ORCA corrected style and layout
+        ImGui::PushStyleColor(ImGuiCol_Button       , {1.f, 1.f, 1.f, .75f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {1.f, 1.f, 1.f, .75f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive , {1.f, 1.f, 1.f, .75f});
+        ImGui::PushStyleColor(ImGuiCol_Border       , {0.f, 0.f, 0.f, .0f});
+        ImGui::PushStyleColor(ImGuiCol_Text         , {0.f, 0.f, 0.f, .9f});
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+        if (ImGui::Button(txt.c_str(), ImVec2(0.f, style.FramePadding.y * 2.f + txt_size.y))) {
+        }
         m_imgui->end();
-        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(5);
+        ImGui::PopStyleVar(2);
         ImGuiWrapper::pop_common_window_style();
     };
 
@@ -1841,10 +1862,11 @@ void GLGizmoMeasure::show_selection_ui()
 
         float selection_cap_length = 0;
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
+            const float sec_str =  std::max(ImGui::CalcTextSize(_u8L(" (Moving)").c_str()).x, ImGui::CalcTextSize(_u8L(" (Fixed)").c_str()).x);
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = ImGui::CalcTextSize((_u8L("Face")  + " 1").c_str()).x + sec_str + space_size;
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = ImGui::CalcTextSize((_u8L("Point") + " 1").c_str()).x + sec_str + space_size;
             }
         }
         else {
@@ -1852,6 +1874,7 @@ void GLGizmoMeasure::show_selection_ui()
         }
         auto        feature_first_text        = format_item_text(m_selected_features.first);
         const float feature_first_text_length = ImGui::CalcTextSize((_u8L(feature_first_text)).c_str()).x;
+        /* Moved to tooltip
         ImGui::AlignTextToFramePadding();
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             m_only_select_plane = m_assembly_mode == AssemblyMode::FACE_FACE ? true : false;
@@ -1861,54 +1884,53 @@ void GLGizmoMeasure::show_selection_ui()
                 m_imgui->text(_u8L("Select 2 points or circles on objects and \n specify distance between them.")); // tip
             }
         }
+        */
+        ImGui::AlignTextToFramePadding();
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
+        m_imgui->push_compact_spacing(m_parent.get_scale()); // ORCA use less vertical spacing between releated controls
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->bold_text(_u8L("Face") + " 1" + _u8L(" (Fixed)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->bold_text(_u8L("Point") + " 1" + _u8L(" (Fixed)"));
             }
         }
         else {
-            m_imgui->text(_u8L("Selection") + " 1");
-        }
-        ImGui::SameLine(selection_cap_length + space_size);
-        ImGui::PushItemWidth(feature_first_text_length);
-        m_imgui->text(feature_first_text);
-        if (m_selected_features.first.feature.has_value()) {
-            ImGui::SameLine(selection_cap_length + feature_first_text_length + space_size * 2);
-            ImGui::PushItemWidth(space_size * 2);
-            ImGui::PushID("Reset1"); // for image_button
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature1(); }
-            ImGui::PopID();
+            m_imgui->bold_text(_u8L("Selection") + " 1");
         }
         ImGui::PopStyleColor();
+        ImGui::SameLine(selection_cap_length + space_size); // + feature_first_text_length
+        if(m_imgui->revert_button("Reset1", _u8L("Reset"), m_selected_features.first.feature.has_value()))
+            reset_feature1();
+        m_imgui->pop_compact_spacing();
 
+        m_imgui->text(feature_first_text);
+        
         auto        feature_second_text        = format_item_text(m_selected_features.second);
         const float feature_second_text_length = ImGui::CalcTextSize((_u8L(feature_second_text)).c_str()).x;
         ImGui::AlignTextToFramePadding();
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
+        m_imgui->push_compact_spacing(m_parent.get_scale()); // ORCA use less vertical spacing between releated controls
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->bold_text(_u8L("Face") + " 2"+ _u8L(" (Moving)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->bold_text(_u8L("Point") + " 2"+ _u8L(" (Moving)"));
             }
         } else {
-            m_imgui->text(_u8L("Selection") + " 2");
-        }
-        ImGui::SameLine(selection_cap_length + space_size);
-        ImGui::PushItemWidth(feature_second_text_length);
-        m_imgui->text(feature_second_text);
-        if (m_selected_features.first.feature.has_value() && m_selected_features.second.feature.has_value()) {
-            m_show_reset_first_tip = false;
-            ImGui::SameLine(selection_cap_length + feature_second_text_length + space_size * 2);
-            ImGui::PushItemWidth(space_size * 2);
-            ImGui::PushID("Reset2");
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature2(); }
-            ImGui::PopID();
+            m_imgui->bold_text(_u8L("Selection") + " 2");
         }
         ImGui::PopStyleColor();
+
+        if (m_selected_features.first.feature.has_value() && m_selected_features.second.feature.has_value()) {
+            m_show_reset_first_tip = false;
+        }
+        ImGui::SameLine(selection_cap_length + space_size); // + feature_first_text_length
+        if(m_imgui->revert_button("Reset2", _u8L("Reset"), m_selected_features.second.feature.has_value()))
+            reset_feature2();
+        m_imgui->pop_compact_spacing();
+
+        m_imgui->text(feature_second_text);
     }
 
     /*m_imgui->disabled_begin(!m_selected_features.first.feature.has_value());
@@ -1925,21 +1947,25 @@ void GLGizmoMeasure::show_selection_ui()
 
 void GLGizmoMeasure::show_distance_xyz_ui()
 {
-    if (m_measure_mode == EMeasureMode::ONLY_MEASURE) {
-        m_imgui->text(_u8L("Measure"));
-    }
-    auto add_measure_row_to_table = [this](const std::string &col_1, const ImVec4 &col_1_color, const std::string &col_2, const ImVec4 &col_2_color) {
+    //if (m_measure_mode == EMeasureMode::ONLY_MEASURE) {
+    //    m_imgui->text(_u8L("Measure"));
+    //}
+
+    auto add_measure_row_to_table = [&](const std::string &col_1, const std::string &col_2, const std::string &id) {
+        ImGui::PushID(id.c_str());
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        m_imgui->text_colored(col_1_color, col_1);
+        ImGui::AlignTextToFramePadding(); // ORCA fix vertical alignment text and icon
+        m_imgui->text_colored(ImGuiWrapper::COL_ORCA, col_1);
         ImGui::TableSetColumnIndex(1);
-        m_imgui->text_colored(col_2_color, col_2);
+        m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_Text), col_2);
         ImGui::TableSetColumnIndex(2);
         if (m_imgui->image_button(m_is_dark_mode ? ImGui::ClipboardBtnDarkIcon : ImGui::ClipboardBtnIcon, _L("Copy to clipboard"))) {
             wxTheClipboard->Open();
             wxTheClipboard->SetData(new wxTextDataObject(wxString((col_1 + ": " + col_2).c_str(), wxConvUTF8)));
             wxTheClipboard->Close();
         }
+        ImGui::PopID();
     };
     auto add_edit_distance_xyz_box = [this](Vec3d &distance) {
         //m_imgui->disabled_begin(m_hit_different_volumes.size() == 1);
@@ -1948,30 +1974,26 @@ void GLGizmoMeasure::show_distance_xyz_ui()
                 m_can_set_xyz_distance = false;
             }
             bool volume = m_hit_different_volumes.size() == 1;
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X:"); // ORCA match axis color
-            ImGui::TableSetColumnIndex(1);
-            ImGui::PushItemWidth(m_input_size_max);
-            m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
-            ImGui::BBLInputDouble("##measure_distance_x", &m_buffered_distance[0], 0.0f, 0.0f, "%.2f");
-            m_imgui->disabled_end();
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y:"); // ORCA match axis color
-            ImGui::TableSetColumnIndex(1);
-            m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
-            ImGui::BBLInputDouble("##measure_distance_y", &m_buffered_distance[1], 0.0f, 0.0f, "%.2f");
-            m_imgui->disabled_end();
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z:"); // ORCA match axis color
-            ImGui::TableSetColumnIndex(1);
-            m_imgui->disabled_begin(volume || !(m_same_model_object && m_can_set_xyz_distance)); // ORCA disable only input box othervise axis colors rendered dimmed
-            ImGui::BBLInputDouble("##measure_distance_z", &m_buffered_distance[2], 0.0f, 0.0f, "%.2f");
-            m_imgui->disabled_end();
+            auto add_axis_input = [&](const char* id, const int index, ColorRGBA color, bool disabled) {
+                ImGui::AlignTextToFramePadding();
+                m_imgui->text_colored(ImGuiWrapper::to_ImVec4(color), std::string{(char)std::toupper(id[0])}.c_str()); // ORCA match axis color
+                ImGui::SameLine(0, int(m_space_size *.5f));
+                if(disabled){ // show as regular text if its disabled for readability
+                    char buf[1024];
+                    sprintf(buf, "%.2f", m_buffered_distance[index]);
+                    m_imgui->text(buf);
+                } else {
+                    ImGui::PushItemWidth(m_input_size_max);
+                    ImGui::BBLInputDouble((std::string("##measure_distance_") + id).c_str(), &m_buffered_distance[index], 0.0f, 0.0f, "%.2f");
+                }
+            };
+            // ORCA render items in single line to make it compact
+            add_axis_input("x", 0, ColorRGBA::X(), volume || !m_can_set_xyz_distance);
+            ImGui::SameLine(0, int(m_space_size *.5f));
+            add_axis_input("y", 1, ColorRGBA::Y(), volume || !m_can_set_xyz_distance);
+            ImGui::SameLine(0, int(m_space_size *.5f));
+            add_axis_input("z", 2, ColorRGBA::Z(), volume || !(m_same_model_object && m_can_set_xyz_distance));
         //}
         //m_imgui->disabled_end();
         if (m_last_active_item_imgui != m_current_active_imgui_id && m_hit_different_volumes.size() == 2) {
@@ -1989,66 +2011,85 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             if (displacement.norm() > 0.0f) { set_distance(m_same_model_object, displacement); }
         }
     };
-    const unsigned int max_measure_row_count = 2;
-    unsigned int       measure_row_count     = 0;
-    if (ImGui::BeginTable("Measure", 4)) {
-        if (m_selected_features.second.feature.has_value()) {
-            const Measure::MeasurementResult &measure = m_measurement_result;
-            if (measure.angle.has_value() && m_measure_mode == EMeasureMode::ONLY_MEASURE)
-                {
-                ImGui::PushID("ClipboardAngle");
-                add_measure_row_to_table(_u8L("Angle"), ImGuiWrapper::COL_ORCA, format_double(Geometry::rad2deg(measure.angle->angle)) + "°",
-                                            ImGui::GetStyleColorVec4(ImGuiCol_Text));
-                ++measure_row_count;
-                ImGui::PopID();
-            }
 
-            const bool show_strict = measure.distance_strict.has_value() &&
-                                        (!measure.distance_infinite.has_value() || std::abs(measure.distance_strict->dist - measure.distance_infinite->dist) > EPSILON);
+    bool isMeasure      = m_measure_mode  == EMeasureMode::ONLY_MEASURE;
+    bool isAssembly     = m_measure_mode  == EMeasureMode::ONLY_ASSEMBLY;
+    bool isAssemblyPt   = m_assembly_mode == AssemblyMode::POINT_POINT;
+    bool isAssemblyFc   = m_assembly_mode == AssemblyMode::FACE_FACE;
+    bool hasFirstValue  = m_selected_features.first.feature.has_value();
+    bool hasSecondValue = m_selected_features.second.feature.has_value();
 
-            if (measure.distance_infinite.has_value() && m_measure_mode == EMeasureMode::ONLY_MEASURE) {
+    if (hasSecondValue) {
+        const Measure::MeasurementResult &measure = m_measurement_result;
+        const bool show_strict = measure.distance_strict.has_value() &&
+                               (!measure.distance_infinite.has_value() || std::abs(measure.distance_strict->dist - measure.distance_infinite->dist) > EPSILON);
+        bool hasAngle          = measure.angle.has_value();
+        bool hasDistance       = measure.distance_infinite.has_value() && isMeasure;
+        bool hasDirectDistance = show_strict && (isMeasure || (isAssembly && isAssemblyPt));
+        bool hasDistanceXYZ    = measure.distance_xyz.has_value() && isMeasure;
+        
+        // ORCA existing of values should check before creating table otherwise it will draw blank table
+        bool hasAnyValue       = hasAngle || hasDistance || hasDirectDistance || hasDistanceXYZ; 
+
+        if(hasAnyValue) // add seperator only when it needed
+            ImGui::Separator();
+
+        if(hasAnyValue && ImGui::BeginTable("Measure", 3)){
+
+            if (hasAngle)
+                add_measure_row_to_table(_u8L("Angle"), format_double(Geometry::rad2deg(measure.angle->angle)) + "°", "ClipboardAngle");
+
+            if (hasDistance) {
                 double distance = measure.distance_infinite->dist;
                 if (m_use_inches) distance = GizmoObjectManipulation::mm_to_in * distance;
-                ImGui::PushID("ClipboardDistanceInfinite");
-                add_measure_row_to_table(show_strict ? _u8L("Perpendicular distance") : _u8L("Distance"), ImGuiWrapper::COL_ORCA, format_double(distance) + m_units,
-                                            ImGui::GetStyleColorVec4(ImGuiCol_Text));
-                ++measure_row_count;
-                ImGui::PopID();
+                add_measure_row_to_table(show_strict ? _u8L("Perpendicular distance") : _u8L("Distance"), format_double(distance) + m_units, "ClipboardDistanceInfinite");
             }
-            if (show_strict &&
-                (m_measure_mode == EMeasureMode::ONLY_MEASURE ||
-                    (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_assembly_mode == AssemblyMode::POINT_POINT)))
-                {
+            if (hasDirectDistance) {
                 double distance = measure.distance_strict->dist;
                 if (m_use_inches)
                     distance = GizmoObjectManipulation::mm_to_in * distance;
-                ImGui::PushID("ClipboardDistanceStrict");
-                add_measure_row_to_table(_u8L("Direct distance"), ImGuiWrapper::COL_ORCA, format_double(distance) + m_units, ImGui::GetStyleColorVec4(ImGuiCol_Text));
-                ++measure_row_count;
-                ImGui::PopID();
+                add_measure_row_to_table(_u8L("Direct distance"), format_double(distance) + m_units, "ClipboardDistanceStrict");
             }
-            if (measure.distance_xyz.has_value() && m_measure_mode == EMeasureMode::ONLY_MEASURE) {
+            if (hasDistanceXYZ) {
                 Vec3d distance = *measure.distance_xyz;
                 if (m_use_inches) distance = GizmoObjectManipulation::mm_to_in * distance;
                 if (measure.distance_xyz->norm() > EPSILON) {
-                    ImGui::PushID("ClipboardDistanceXYZ");
-                    add_measure_row_to_table(_u8L("Distance XYZ"), ImGuiWrapper::COL_ORCA, format_vec3(distance), ImGui::GetStyleColorVec4(ImGuiCol_Text));
-                    ++measure_row_count;
-                    ImGui::PopID();
+                    //add_measure_row_to_table(_u8L("Distance XYZ"), format_vec3(distance), "ClipboardDistanceXYZ");
+                    // ORCA use XYZ distances on new lines. window cannot shrink back its width
+                    add_measure_row_to_table(_u8L("Distance") + " X", format_double(double(distance[0])), "ClipboardDistanceX");
+                    add_measure_row_to_table(_u8L("Distance") + " Y", format_double(double(distance[1])), "ClipboardDistanceY");
+                    add_measure_row_to_table(_u8L("Distance") + " Z", format_double(double(distance[2])), "ClipboardDistanceZ");
                 }
             }
-
-            if (m_distance.norm() > 0.01) {
-                if (!(m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_assembly_mode == AssemblyMode::FACE_FACE)) {
-                    add_edit_distance_xyz_box(m_distance);
-                }
-            }
+            ImGui::EndTable();
         }
-        // add dummy rows to keep dialog size fixed
-        /*for (unsigned int i = measure_row_count; i < max_measure_row_count; ++i) {
-            add_strings_row_to_table(*m_imgui, " ", ImGuiWrapper::COL_ORCA, " ", ImGui::GetStyleColorVec4(ImGuiCol_Text));
-        }*/
-        ImGui::EndTable();
+
+        // ORCA render XYZ cords outside of table to render in single line
+        if (!hasDistanceXYZ && m_distance.norm() > 0.01 && !(isAssembly && isAssemblyFc))
+            add_edit_distance_xyz_box(m_distance);
+    }
+
+    // ORCA show build volume when there is no selection
+    if (isMeasure && !(hasFirstValue || hasSecondValue)) {
+        ImGui::Separator();  // add seperator only when it needed
+
+        Selection& selection = m_parent.get_selection();
+        const Selection::IndicesList& idxs = selection.get_volume_idxs();
+
+        BoundingBoxf3 bbox;
+        for (unsigned int idx : idxs) 
+            bbox.merge(selection.get_volume(idx)->transformed_bounding_box());
+
+        double koef   = m_use_inches ? GizmoObjectManipulation::mm_to_in : 1.0;
+        Vec3d  tbb_sz = Vec3d(bbox.size().x(), bbox.size().y(), bbox.size().z()) * koef; // ORCA 
+
+        char bb_buf[1024];
+        sprintf(bb_buf, "%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), m_units.c_str());
+
+        m_imgui->push_compact_spacing(m_parent.get_scale());
+        m_imgui->bold_text(_u8L("Build Volume"));
+        m_imgui->pop_compact_spacing();
+        m_imgui->text(bb_buf);
     }
 }
 
@@ -2061,21 +2102,14 @@ void GLGizmoMeasure::show_face_face_assembly_common() {
         m_selected_features.first.feature->get_type() == Measure::SurfaceFeatureType::Plane &&
         m_selected_features.second.feature->get_type() == Measure::SurfaceFeatureType::Plane) {
         auto &action                         = m_assembly_action;
-        auto  set_to_parallel_size           = m_imgui->calc_button_size(_L("Parallel")).x;
-        auto  set_to_center_coincidence_size = m_imgui->calc_button_size(_L("Center coincidence")).x;
 
+        ImGui::Separator(); // Show separator only when its needed
         m_imgui->disabled_begin(!(action.can_set_to_center_coincidence));
         {
-            ImGui::PushItemWidth(set_to_center_coincidence_size);
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0 / 255.0, 150 / 255.0, 136 / 255.0, 1.0));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(38 / 255.0f, 166 / 255.0f, 154 / 255.0f, 1.00f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0 / 255.0f, 137 / 255.0f, 123 / 255.0f, 1.00f));
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(254 / 255.0f, 254 / 255.0f, 254 / 255.0f, 1.00f));
             if (m_imgui->button(_L("Center coincidence"))) {
                 set_to_center_coincidence(m_same_model_object);
             }
-            ImGui::PopStyleColor(4);
-            ImGui::SameLine(set_to_center_coincidence_size + m_space_size * 2);
+            ImGui::SameLine();
         }
         m_imgui->disabled_end();
 
@@ -2092,19 +2126,24 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
     if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_hit_different_volumes.size() == 2 &&
         m_selected_features.first.feature->get_type() == Measure::SurfaceFeatureType::Plane &&
         m_selected_features.second.feature->get_type() == Measure::SurfaceFeatureType::Plane) {
-        auto &action                         = m_assembly_action;
-        auto  feature_text_size              = m_imgui->calc_button_size(_L("Feature 1")).x + m_imgui->calc_button_size(":").x;
-        auto  set_to_reverse_rotation_size   = m_imgui->calc_button_size(_L("Reverse rotation")).x;
-        auto  rotate_around_center_size      = m_imgui->calc_button_size(_L("Rotate around center:")).x;
-        auto  parallel_distance_size         = m_imgui->calc_button_size(_L("Parallel distance:")).x;
+        auto &action          = m_assembly_action;
+        int   max_label_width = m_space_size * 2.f + std::max({
+            m_imgui->calc_button_size(_L("Reverse rotation")).x,
+            m_imgui->calc_button_size(_L("Rotate around center:")).x,
+            m_imgui->calc_button_size(_L("Parallel distance:")).x
+        });
 
-        if (m_imgui->bbl_checkbox(_L("Flip by Face 2"), m_flip_volume_2)) {
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(_u8L("Flip by Face 2"));
+        ImGui::SameLine(max_label_width);
+        if (m_imgui->bbl_checkbox("", m_flip_volume_2)) {
             set_to_reverse_rotation(m_same_model_object, 1);
         }
 
         if (action.has_parallel_distance) {
+            ImGui::AlignTextToFramePadding();
             m_imgui->text(_u8L("Parallel distance:"));
-            ImGui::SameLine(parallel_distance_size + m_space_size);
+            ImGui::SameLine(max_label_width);
             ImGui::PushItemWidth(m_input_size_max);
             ImGui::BBLInputDouble("##parallel_distance_z", &m_buffered_parallel_distance, 0.0f, 0.0f, "%.2f");
             if (m_last_active_item_imgui != m_current_active_imgui_id && std::abs(m_buffered_parallel_distance - action.parallel_distance) > EPSILON) {
@@ -2112,15 +2151,16 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
             }
         }
         if (action.can_around_center_of_faces) {
+            ImGui::AlignTextToFramePadding();
             m_imgui->text(_u8L("Rotate around center:"));
-            ImGui::SameLine(rotate_around_center_size + m_space_size);
+            ImGui::SameLine(max_label_width);
             ImGui::PushItemWidth(m_input_size_max);
             ImGui::BBLInputDouble("##rotate_around_center", &m_buffered_around_center, 0.0f, 0.0f, "%.2f");
             if (m_last_active_item_imgui != m_current_active_imgui_id && std::abs(m_buffered_around_center) > EPSILON) {
                 set_to_around_center_of_faces(m_same_model_object, m_buffered_around_center);
                 m_buffered_around_center = 0;
             }
-            ImGui::SameLine(rotate_around_center_size + m_space_size + m_input_size_max + m_space_size / 2.0f);
+            ImGui::SameLine(0, m_space_size * .5f);
             m_imgui->text("°");
         }
     }
@@ -2165,7 +2205,7 @@ void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit
     init_render_input_window();
     show_selection_ui();
 
-    ImGui::Separator();
+    //ImGui::Separator();
     show_distance_xyz_ui();
 
     ImGui::Separator();
@@ -2195,7 +2235,7 @@ void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit
     ImGuiWrapper::pop_toolbar_style();
 }
 
-void GLGizmoMeasure::render_input_window_warning(bool same_model_object)
+void GLGizmoMeasure::render_input_window_warning(bool same_model_object) const // ORCA use const otherwise measure / assembly gizmos not properly resize
 {
 }
 

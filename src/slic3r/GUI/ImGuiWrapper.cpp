@@ -960,6 +960,34 @@ bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size)
     return clicked;
 }
 
+// ORCA reset button that invisible when not enabled
+// it always rendered so line height stays same unlike other solutions
+bool ImGuiWrapper::revert_button(const std::string& label_id, const std::string& tooltip_str, const bool enabled) {
+    disabled_begin(!enabled);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
+    ImGui::PushStyleColor(ImGuiCol_Button, {0.25f, 0.25f, 0.25f, 0.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  {0, 0, 0, 0});
+    ImGui::PushStyleColor(ImGuiCol_Text, {1, 1, 1, enabled ? 1.f : 0.f});
+
+    const bool revert = button(wxString(ImGui::RevertBtn) + "##" + wxString::FromUTF8(label_id));
+
+    if (ImGui::IsItemHovered()){
+        if(tooltip_str.empty())
+            tooltip(_u8L("Reset"), ImGui::GetFontSize() * 20.0f);
+        else
+            tooltip(tooltip_str.c_str(), ImGui::GetFontSize() * 20.0f);
+    }
+
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(1);
+
+    disabled_end();
+
+    return revert;
+};
+
 bool ImGuiWrapper::radio_button(const wxString &label, bool active)
 {
     auto label_utf8 = into_u8(label);
@@ -2704,21 +2732,22 @@ void ImGuiWrapper::pop_confirm_button_style() {
 }
 
 void ImGuiWrapper::push_cancel_button_style() {
+    // ORCA use values that matches with toolbar style
     if (m_is_dark_mode) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 1.f, 1.f, 0.64f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(62 / 255.0f, 62 / 255.0f, 69 / 255.0f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(86 / 255.0f, 86 / 255.0f, 99 / 255.0f, 1.00f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(73 / 255.f, 73 / 255.f, 78 / 255.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(129 / 255.f, 129 / 255.f, 131 / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(73 / 255.f, 73 / 255.f, 78 / 255.f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.f, 1.f, 1.f, 0.64f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 0.64f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.88f));
     }
     else {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 1.f, 1.f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(38 / 255.f, 46 / 255.f, 48 / 255.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(238.f / 255.f, 238.f / 255.f, 238.f / 255.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(206.f / 255.f, 206.f / 255.f, 206.f / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiWrapper::COL_HOVER);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(172 / 255.0f, 172 / 255.0f, 172 / 255.0f, 1.00f));
         ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.f, 0.f, 0.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(38.f / 255.0f, 46.f / 255.0f, 48.f / 255.0f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(50 / 255.0f, 58 / 255.0f, 61 / 255.0f, 1.00f));
     }
 }
 
@@ -2789,6 +2818,18 @@ void ImGuiWrapper::push_radio_style(const float scale)
 void ImGuiWrapper::pop_radio_style()
 {
     ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(1);
+}
+
+// ORCA Reduces vertical / horizontal spacing for next item (or items between used lines)
+// helpful when imcreasing releation between controls like title & input. also saves screen space
+void ImGuiWrapper::push_compact_spacing(const float scale)
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.f * scale, 2.f * scale));
+}
+
+void ImGuiWrapper::pop_compact_spacing()
+{
     ImGui::PopStyleVar(1);
 }
 
