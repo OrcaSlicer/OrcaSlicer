@@ -4,9 +4,14 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <string>
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -254,4 +259,239 @@ TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]
     CHECK(one_wall < plain);
     // No bottom shell: the option is inert, down to the same walls an unchecked box gives.
     CHECK_THAT(one_wall_no_shell, Catch::Matchers::WithinAbs(plain_no_shell, 1.0));
+}
+
+namespace {
+
+// The layer that closes the cavity of box_over_cavity(), the first one printed over air.
+const double cavity_ceiling_z = 6.2;
+
+// A cone standing on its tip, flaring by 5mm of radius per mm of height: at a layer height of 0.2 every
+// wall of a layer lands a full millimetre outside the one below, entirely off the layer below but right
+// alongside the walls printed with it.
+TriangleMesh flared_cone()
+{
+    TriangleMesh cone = make_cone(20., 4.);
+    cone.mirror(Z);
+    cone.translate(0., 0., 4.);
+    return cone;
+}
+
+// A 30mm box holding a 20mm cavity from z=2 to z=6, with a 4mm hole punched down through the ceiling
+// of that cavity. The layer at cavity_ceiling_z bridges the cavity, and the walls of the hole sit in
+// the middle of that bridge, 15mm clear of anything the layer below supports.
+Print &box_over_cavity(Print &print, Model &model, const DynamicPrintConfig &config)
+{
+    ModelObject *object = model.add_object();
+    object->name = "box_over_cavity.stl";
+    object->add_volume(make_cube(30., 30., 8.), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh cavity = make_cube(20., 20., 4.);
+    cavity.translate(5.f, 5.f, 2.f);
+    object->add_volume(std::move(cavity), ModelVolumeType::NEGATIVE_VOLUME, false);
+    TriangleMesh hole = make_cube(4., 4., 6.);
+    hole.translate(13.f, 13.f, 5.f);
+    object->add_volume(std::move(hole), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    return print;
+}
+
+// Every setting the assertions below depend on, so none of them rests on a default.
+DynamicPrintConfig unsupported_walls_config(const char *wall_generator, bool unsupported_wall_last)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 3 },
+        { "detect_overhang_wall",       true },
+        // Outer wall first, so an unsupported loop only ends up last if the feature puts it there.
+        { "wall_sequence",              "outer wall/inner wall" },
+        { "is_infill_first",            false },
+        { "sparse_infill_density",      "15%" },
+        { "unsupported_wall_last",      unsupported_wall_last },
+        { "gcode_comments",             true },
+    });
+    return config;
+}
+
+// A loop extruded entirely in mid air: every one of its paths is an overhang.
+bool unsupported_loop(const ExtrusionEntity *entity)
+{
+    if (! entity->is_loop())
+        return false;
+    const ExtrusionPaths &paths = static_cast<const ExtrusionLoop *>(entity)->paths;
+    return ! paths.empty() && std::all_of(paths.begin(), paths.end(),
+                                          [](const ExtrusionPath &path) { return path.role() == erOverhangPerimeter; });
+}
+
+// The loops of every wall island of the print, island by island, in extrusion order.
+std::vector<std::vector<const ExtrusionLoop*>> wall_islands(const Print &print)
+{
+    std::vector<std::vector<const ExtrusionLoop*>> islands;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *island : region->perimeters.entities) {
+                std::vector<const ExtrusionLoop*> loops;
+                for (const ExtrusionEntity *entity : static_cast<const ExtrusionEntityCollection*>(island)->entities)
+                    if (entity->is_loop())
+                        loops.push_back(static_cast<const ExtrusionLoop*>(entity));
+                islands.push_back(std::move(loops));
+            }
+    return islands;
+}
+
+// Islands where a loop that is anchored is extruded after one that is not.
+int islands_with_a_supported_loop_last(const Print &print)
+{
+    int count = 0;
+    for (const std::vector<const ExtrusionLoop*> &loops : wall_islands(print)) {
+        bool seen_unsupported = false;
+        for (const ExtrusionLoop *loop : loops) {
+            if (unsupported_loop(loop))
+                seen_unsupported = true;
+            else if (seen_unsupported) {
+                ++ count;
+                break;
+            }
+        }
+    }
+    return count;
+}
+
+// The unsupported loops of the print, and those of them held back for the infill.
+std::vector<const ExtrusionLoop*> unsupported_loops(const Print &print, double print_z = -1.)
+{
+    std::vector<const ExtrusionLoop*> loops;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (print_z >= 0. && std::abs(layer->print_z - print_z) > EPSILON)
+            continue;
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *island : region->perimeters.entities)
+                for (const ExtrusionEntity *entity : static_cast<const ExtrusionEntityCollection*>(island)->entities)
+                    if (unsupported_loop(entity))
+                        loops.push_back(static_cast<const ExtrusionLoop*>(entity));
+    }
+    return loops;
+}
+
+int loops_held_back_for_infill(const std::vector<const ExtrusionLoop*> &loops)
+{
+    return int(std::count_if(loops.begin(), loops.end(), [](const ExtrusionLoop *loop) { return loop->print_after_infill; }));
+}
+
+// The G-code emitted at `print_z`, so the order of one layer can be read on its own.
+std::string layer_gcode(const std::string &gcode, double print_z)
+{
+    std::string out;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&out, print_z](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (std::abs(self.z() - print_z) < EPSILON)
+            out += line.raw() + "\n";
+    });
+    return out;
+}
+
+} // namespace
+
+// Whatever the wall order asks for, a loop with nothing under it cannot be extruded before the loops it
+// leans on. The flared cone gives every layer an outer wall that lands completely off the one below, and
+// the outer wall first sequence would otherwise put it down before any of them.
+TEST_CASE("Unsupported wall loops are extruded after the walls that anchor them", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    auto slice_cone = [wall_generator](bool unsupported_wall_last, Print &print) {
+        init_and_process_print({ flared_cone() }, print, unsupported_walls_config(wall_generator, unsupported_wall_last));
+        REQUIRE_FALSE(print.objects().empty());
+    };
+
+    Print on;
+    slice_cone(true, on);
+    // Without unsupported loops to reorder the rest of the test would pass on an empty print.
+    REQUIRE(unsupported_loops(on).size() > 0);
+    CHECK(islands_with_a_supported_loop_last(on) == 0);
+
+    SECTION("the held back loops run innermost first") {
+        for (const std::vector<const ExtrusionLoop*> &loops : wall_islands(on)) {
+            int previous_inset = std::numeric_limits<int>::max();
+            for (const ExtrusionLoop *loop : loops)
+                if (unsupported_loop(loop)) {
+                    CHECK(loop->inset_idx <= previous_inset);
+                    previous_inset = loop->inset_idx;
+                }
+        }
+    }
+
+    SECTION("switched off, the configured wall order is left alone") {
+        Print off;
+        slice_cone(false, off);
+        REQUIRE(unsupported_loops(off).size() == unsupported_loops(on).size());
+        // Outer wall first puts the unsupported outer wall ahead of the walls behind it.
+        CHECK(islands_with_a_supported_loop_last(off) > 0);
+    }
+}
+
+// A loop the walls cannot reach is a different case: only the bridges of its own layer will ever hold it,
+// so it has to wait for them - while a loop that runs alongside a wall keeps its place, because the
+// bridges anchor on it instead.
+TEST_CASE("A wall loop out of reach of the layer below waits for the infill", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    Print print;
+    Model model;
+    box_over_cavity(print, model, unsupported_walls_config(wall_generator, true));
+    print.process();
+
+    const std::vector<const ExtrusionLoop*> hole_loops = unsupported_loops(print, cavity_ceiling_z);
+    REQUIRE(hole_loops.size() > 0);
+    CHECK(loops_held_back_for_infill(hole_loops) == int(hole_loops.size()));
+
+    SECTION("a loop alongside a supported wall is not held back") {
+        Print cone;
+        init_and_process_print({ flared_cone() }, cone, unsupported_walls_config(wall_generator, true));
+        const std::vector<const ExtrusionLoop*> loops = unsupported_loops(cone);
+        REQUIRE(loops.size() > 0);
+        CHECK(loops_held_back_for_infill(loops) == 0);
+    }
+
+    SECTION("switched off, no loop is held back") {
+        Print off;
+        Model off_model;
+        box_over_cavity(off, off_model, unsupported_walls_config(wall_generator, false));
+        off.process();
+        const std::vector<const ExtrusionLoop*> loops = unsupported_loops(off, cavity_ceiling_z);
+        REQUIRE(loops.size() == hole_loops.size());
+        CHECK(loops_held_back_for_infill(loops) == 0);
+    }
+}
+
+// The held back loops reach the G-code in a second pass, after the infill of their layer: on the layer
+// that closes the cavity the walls of the hole are extruded once the bridge is down, so the layer emits
+// perimeters, then infill, then the perimeters that were waiting for it.
+TEST_CASE("Loops waiting for the infill are extruded after it", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    auto ceiling_roles = [wall_generator](bool unsupported_wall_last) {
+        Print print;
+        Model model;
+        box_over_cavity(print, model, unsupported_walls_config(wall_generator, unsupported_wall_last));
+        const std::string layer = layer_gcode(gcode(print), cavity_ceiling_z);
+        REQUIRE_FALSE(layer.empty());
+        return role_sequence(layer, { "perimeter", "infill" });
+    };
+
+    CHECK(ceiling_roles(true)  == std::vector<std::string>{ "perimeter", "infill", "perimeter" });
+    CHECK(ceiling_roles(false) == std::vector<std::string>{ "perimeter", "infill" });
 }
