@@ -1,0 +1,35 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PA6-CF @base",
+	"from": "system",
+	"filament_id": "TBM010",
+	"filament_type": [
+		"PA-CF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PA-CF @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"fan_max_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"filament_retraction_length": [
+		"0"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"slow_down_min_speed": [
+		"20"
+	]
+}

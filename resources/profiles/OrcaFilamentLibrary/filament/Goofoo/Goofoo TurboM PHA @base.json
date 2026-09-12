@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PHA @base",
+	"from": "system",
+	"filament_id": "TBM019",
+	"filament_type": [
+		"PHA"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PHA @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PE@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PE @System",
+  "filament_id": "GFG_V007",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PE"
+  ]
+}

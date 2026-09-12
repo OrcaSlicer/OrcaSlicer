@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 WAX@base",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "Generic PLA @System",
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"hot_plate_temp": [
+		"50"
+	],
+	"hot_plate_temp_initial_layer": [
+		"50"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"nozzle_temperature_initial_layer": [
+		"210"
+	],
+	"filament_id": "GFG_V028",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

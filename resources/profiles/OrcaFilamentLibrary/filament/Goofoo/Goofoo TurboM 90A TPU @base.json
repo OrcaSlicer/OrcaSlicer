@@ -1,0 +1,41 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM 90A TPU @base",
+	"from": "system",
+	"filament_id": "TBM001",
+	"filament_type": [
+		"TPU"
+	],
+	"instantiation": "false",
+	"inherits": "Generic TPU @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"fan_cooling_layer_time": [
+		"60"
+	],
+	"fan_min_speed": [
+		"35"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"hot_plate_temp": [
+		"40"
+	],
+	"hot_plate_temp_initial_layer": [
+		"40"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"5"
+	]
+}

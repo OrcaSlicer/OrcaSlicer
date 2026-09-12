@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM ABS 240_80 @System",
+	"from": "system",
+	"setting_id": "bwTW4rmclfw9ezS6",
+	"instantiation": "true",
+	"inherits": "Goofoo TurboM ABS 240_80 @base",
+	"compatible_printers": []
+}

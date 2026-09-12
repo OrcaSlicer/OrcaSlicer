@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PLA Silk@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PLA Silk @System",
+  "filament_id": "GFG_V012",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PLA Silk"
+  ]
+}

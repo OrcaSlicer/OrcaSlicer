@@ -1,0 +1,17 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PA-CF@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PA-CF @System",
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "filament_id": "GFG_V003",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PA-CF"
+  ]
+}
