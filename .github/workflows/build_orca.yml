@@ -104,6 +104,7 @@ jobs:
           save: false
 
       - name: Restore compiler cache
+        id: ccache_restore
         if: ${{ steps.ccache.outcome == 'success' }}
         uses: actions/cache/restore@v6
         with:
@@ -729,17 +730,19 @@ jobs:
 
       # Entries are immutable, so the new one is saved first and the older
       # ones for this leg on this ref are dropped afterwards: a failed save
-      # leaves the previous entry in place.
+      # leaves the previous entry in place. A cancelled or failed build saves
+      # too, since what it compiled is still valid; a restore that did not
+      # finish does not, since the directory may be a truncated copy.
       - name: Save compiler cache
         id: ccache_save
-        if: ${{ steps.ccache.outcome == 'success' && github.event_name != 'pull_request' }}
+        if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
         uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: ${{ env.CCACHE_ENTRY }}
 
       - name: Drop older compiler cache entries
-        if: ${{ steps.ccache_save.outcome == 'success' }}
+        if: ${{ always() && steps.ccache_save.outcome == 'success' }}
         # A read-only token (fork PRs) cannot delete; that only costs storage.
         continue-on-error: true
         shell: bash
