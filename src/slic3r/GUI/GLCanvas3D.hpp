@@ -1192,6 +1192,8 @@ public:
 
     bool can_sequential_clearance_show_in_gizmo();
     void update_sequential_clearance();
+    // Orca: by-layer counterpart, for a prime tower compacted by "No sparse layers".
+    void update_compacted_wipe_tower_clearance();
 
     const Print* fff_print() const;
     const SLAPrint* sla_print() const;

@@ -1021,11 +1021,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double current_z = gcodegen.writer().get_position().z();
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
-        if (!is_approx(z, current_z)) {
+        // Orca: wipe_tower_no_sparse_layers crash guard. With sparse layers skipped the tower is
+        // compacted far below the object, so descending to it is only safe once the nozzle is parked
+        // over the tower - which is what the is_finish_first travel above does. Otherwise the nozzle
+        // is still over the model and this descent would drive it into the print, so defer it to the
+        // re-descents below, which run after the travel to the tower.
+        const bool defer_compacted_descend = m_sparse_layers_skipped
+            && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
+        if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
         }
+        // Tower compacted below the object, so any extrusion emitted without an explicit z has to be
+        // pulled back down to it first.
+        const bool compacted_below_object = m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON;
 
         // Process the end filament gcode.
         bool        add_change_filament_624 = false;
@@ -1078,11 +1088,23 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string nozzle_change_gcode_trans;
         if (is_nozzle_change) {
             // move to start_pos before nozzle change
+            // Orca: travel_to() lifts to the object layer height to clear the print. That lift is
+            // needed when arriving from the model, but is a wasted full-height Z bounce when the
+            // nozzle already sits on the compacted tower, so travel at the compacted z instead.
+            const bool compact_intower_nc_travel = compacted_below_object
+                && (tcr.print_z - gcodegen.writer().get_position().z()) > EPSILON;
             std::string start_pos_str;
             start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.start_pos) + plate_origin_2d), erMixed,
-                "Move to nozzle change start pos");
+                "Move to nozzle change start pos", compact_intower_nc_travel ? z : DBL_MAX);
             check_add_eol(start_pos_str);
             nozzle_change_gcode_trans += start_pos_str;
+            // The nozzle-change wipe below carries no explicit z, so it would extrude at the object
+            // layer height and float above the compacted tower. Descend unless the travel stayed down.
+            if (!compact_intower_nc_travel && compacted_below_object) {
+                std::string nc_z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+                check_add_eol(nc_z_descend);
+                nozzle_change_gcode_trans += nc_z_descend;
+            }
             nozzle_change_gcode_trans += gcodegen.unretract();
             nozzle_change_gcode_trans += transform_gcode(tcr.nozzle_change_result.gcode, tcr.nozzle_change_result.start_pos, wipe_tower_offset, wipe_tower_rotation);
             gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.end_pos) + plate_origin_2d));
@@ -1420,6 +1442,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         start_filament_gcode_str = start_filament_gcode_str + wipe_next_start_point_str + toolchange_unretract_str;
+
+        // Orca: the custom change_filament_gcode lifts to the object layer height and the unretract
+        // de-hops back to it, so every tower extrusion emitted after it (purge moves, and the wall
+        // when it prints after the toolchange) would float above the compacted tower. Descend first.
+        if (compacted_below_object) {
+            std::string z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+            check_add_eol(z_descend);
+            start_filament_gcode_str += z_descend;
+        }
 
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
@@ -1908,11 +1939,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     // resulting in a wipe tower with sparse layers.
                     double wipe_tower_z  = -1;
                     bool   ignore_sparse = false;
-                    if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
+                    if (m_sparse_layers_skipped) {
                         wipe_tower_z  = m_last_wipe_tower_print_z;
-                        ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                         m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
-                                         m_layer_idx != 0);
+                        ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]) && m_layer_idx != 0;
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
                     }
@@ -1928,12 +1957,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // resulting in a wipe tower with sparse layers.
             double wipe_tower_z  = -1;
             bool   ignore_sparse = false;
-            if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-                wipe_tower_z  = m_last_wipe_tower_print_z;
-                ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                 m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-                if (m_tool_change_idx == 0 && !ignore_sparse)
-                    wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
+            if (m_sparse_layers_skipped) {
+                ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
+                wipe_tower_z  = m_compacted_tower_z[m_layer_idx];
             }
 
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
@@ -1946,10 +1972,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                     throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
-                if (!ignore_sparse) {
+                if (!ignore_sparse)
                     gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
-                    m_last_wipe_tower_print_z = wipe_tower_z;
-                }
             }
         }
 
@@ -1963,9 +1987,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             return true;
 
         bool   ignore_sparse = false;
-        if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-            ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 && m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-        }
+        if (m_sparse_layers_skipped)
+            ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
 
         if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
             return false;
