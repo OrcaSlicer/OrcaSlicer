@@ -2098,12 +2098,6 @@ void GLCanvas3D::render(bool only_init)
     _render_selection_center();
 #endif // ENABLE_RENDER_SELECTION_CENTER
 
-    // we need to set the mouse's scene position here because the depth buffer
-    // could be invalidated by the following gizmo render methods
-    // this position is used later into on_mouse() to drag the objects
-    if (m_picking_enabled)
-        m_mouse.scene_position = _mouse_to_3d(m_mouse.position.cast<coord_t>());
-
     // sidebar hints need to be rendered before the gizmos because the depth buffer
     // could be invalidated by the following gizmo render methods
     _render_selection_sidebar_hints();
@@ -4491,12 +4485,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         BoundingBoxf3 volume_bbox = m_volumes.volumes[volume_idx]->transformed_bounding_box();
                         volume_bbox.offset(1.0);
                         const bool is_cut_connector_selected = m_selection.is_any_connector();
-                        if ((!any_gizmo_active || !evt.CmdDown()) && volume_bbox.contains(m_mouse.scene_position) && !is_cut_connector_selected) {
+                        const Vec3d scene_position = _mouse_to_3d(m_mouse.position.cast<coord_t>());
+                        if ((!any_gizmo_active || !evt.CmdDown()) && volume_bbox.contains(scene_position) && !is_cut_connector_selected) {
                             m_volumes.volumes[volume_idx]->hover = GLVolume::HS_None;
                             // The dragging operation is initiated.
                             m_mouse.drag.move_volume_idx = volume_idx;
                             m_selection.setup_cache();
-                            m_mouse.drag.start_position_3D = m_mouse.scene_position;
+                            m_mouse.drag.start_position_3D = scene_position;
                             m_sequential_print_clearance_first_displacement = true;
                             m_moving = true;
 
