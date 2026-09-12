@@ -1,0 +1,30 @@
+{
+	"type": "machine",
+	"name": "Meltingplot MBL 133 0.8 nozzle",
+	"inherits": "fdm_machine_meltingplot_mbl",
+	"from": "system",
+	"setting_id": "VXumP32DSNKwddyS",
+	"instantiation": "true",
+	"printer_model": "Meltingplot MBL 133",
+	"printer_variant": "0.8",
+	"nozzle_diameter": [
+		"0.8"
+	],
+	"min_layer_height": [
+		"0.32"
+	],
+	"max_layer_height": [
+		"0.48"
+	],
+	"printable_area": [
+		"0x0",
+		"835x0",
+		"835x405",
+		"0x405"
+	],
+	"printable_height": "394",
+	"default_print_profile": "0.38mm Standard 0.8 nozzle @Meltingplot MBL",
+	"default_filament_profile": [
+		"Meltingplot PLA @0.8 nozzle"
+	]
+}

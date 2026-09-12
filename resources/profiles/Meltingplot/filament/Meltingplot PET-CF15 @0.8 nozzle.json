@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PET-CF15 @0.8 nozzle",
+	"inherits": "Meltingplot PET-CF15",
+	"from": "system",
+	"setting_id": "70EwKatuncZBKgoD",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"slow_down_layer_time": [
+		"5"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.8 nozzle",
+		"Meltingplot MBL 136 0.8 nozzle",
+		"Meltingplot MBL 308 0.8 nozzle",
+		"Meltingplot MBL 480 0.8 nozzle",
+		"Meltingplot CHX 350 0.8 nozzle"
+	]
+}

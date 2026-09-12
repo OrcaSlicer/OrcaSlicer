@@ -1,0 +1,30 @@
+{
+	"type": "machine",
+	"name": "Meltingplot MBL 480 1.2 nozzle",
+	"inherits": "fdm_machine_meltingplot_mbl",
+	"from": "system",
+	"setting_id": "FhIoFCxemK2Miw2J",
+	"instantiation": "true",
+	"printer_model": "Meltingplot MBL 480",
+	"printer_variant": "1.2",
+	"nozzle_diameter": [
+		"1.2"
+	],
+	"min_layer_height": [
+		"0.48"
+	],
+	"max_layer_height": [
+		"0.72"
+	],
+	"printable_area": [
+		"0x0",
+		"850x0",
+		"850x405",
+		"0x405"
+	],
+	"printable_height": "1396",
+	"default_print_profile": "0.56mm Optimal 1.2 nozzle @Meltingplot MBL",
+	"default_filament_profile": [
+		"Meltingplot PLA"
+	]
+}
