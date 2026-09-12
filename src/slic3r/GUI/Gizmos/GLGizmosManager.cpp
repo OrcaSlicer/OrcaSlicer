@@ -120,6 +120,38 @@ GLGizmosManager::EType GLGizmosManager::get_gizmo_from_mouse(const Vec2d &mouse_
     return Undefined;
 }
 
+// ORCA clicks on dividers / toolbar background / margins around icons fall straight through to the 3D scene
+// that causes deselecting the current selection / closing the active widget
+bool GLGizmosManager::is_mouse_over_overlay_background(const Vec2d &mouse_pos) const
+{
+    if (!m_enabled)
+        return false;
+
+    if (get_selectable_idxs().empty())
+        return false;
+
+    const float border = m_layout.scaled_border();
+
+    // same top_x/top_y derivation as get_gizmo_from_mouse(), so this stays in sync with it.
+    float top_x;
+    if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
+        const float cnv_w = (float)m_parent.get_canvas_size().get_width();
+        top_x = 0.5f * cnv_w + 0.5f * (m_parent.get_assembly_paint_toolbar_width());
+    } else {
+        const float separator_width = m_parent.get_separator_toolbar_width();
+        top_x = m_parent.get_main_toolbar_offset();
+        top_x += m_parent.get_main_toolbar_width() + separator_width / 2 + border;
+    }
+    // top_x above is the left edge of the first icon, i.e. background_left + border.
+    const float bg_left   = top_x - border;
+    const float bg_top    = 0.f;
+    const float bg_right  = bg_left + get_scaled_total_width();
+    const float bg_bottom = bg_top + get_scaled_total_height();
+
+    return bg_left <= (float)mouse_pos(0) && (float)mouse_pos(0) <= bg_right &&
+           bg_top  <= (float)mouse_pos(1) && (float)mouse_pos(1) <= bg_bottom;
+}
+
 void GLGizmosManager::switch_gizmos_icon_filename()
 {
     m_background_texture.metadata.filename = m_is_dark ? "toolbar_background_dark.png" : "toolbar_background.png";
@@ -695,16 +727,23 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         return false;
     }
 
-    if (selected_gizmo) {
+    // ORCA a click that lands on the toolbar's background/padding (not on an icon) should be swallowed here too,
+    // so it can't fall through to the 3D scene that leads to deselecting the current selection / closing the active widget
+    const bool over_background = !selected_gizmo && is_mouse_over_overlay_background(mouse_pos);
+
+    if (selected_gizmo || over_background) {
         // mouse is above toolbar
         if (mouse_event.LeftDown() || mouse_event.LeftDClick()) {
             mc.left = true;
-            if (gizmo == Emboss) {
-                GLGizmoBase *gizmo_emboss = m_gizmos[Emboss].get();
-                dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
-            } else {
-                open_gizmo(gizmo);
-            }
+            if (selected_gizmo) {
+               if (gizmo == Emboss) {
+                   GLGizmoBase *gizmo_emboss = m_gizmos[Emboss].get();
+                   dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
+               } else {
+                   open_gizmo(gizmo);
+               }
+           }
+            // else: click landed on toolbar background/padding - swallow it, do nothing.
             return true;
         }
         else if (mouse_event.RightDown()) {

@@ -1130,6 +1130,22 @@ int GLToolbar::contains_mouse_horizontal(const Vec2d& mouse_pos, const GLCanvas3
         }
     }
 
+    // ORCA the loop above only tests the icon/separator/gap rectangles and does not cover the outer border/padding of the toolbar
+    // the strip before the first icon, after the last icon, or above/below the icon row). 
+    // A click landing there used to be reported as "outside the toolbar" (-1), which let it fall through to the 3D scene
+    // and could deselect the current selection or close an active gizmo/popup.
+    // Treat the whole background rectangle as toolbar territory instead, so such clicks are swallowed as a no-op, same as clicks in a gap (-2)
+    {
+        const float bg_left   = m_layout.left;
+        const float bg_right  = m_layout.left + m_layout.width;
+        const float bg_top    = m_layout.top;
+        const float bg_bottom = m_layout.top - m_layout.height;
+
+        if (bg_left <= (float)scaled_mouse_pos.x() && (float)scaled_mouse_pos.x() <= bg_right &&
+            bg_bottom <= (float)scaled_mouse_pos.y() && (float)scaled_mouse_pos.y() <= bg_top)
+            return -2;
+    }
+
     return -1;
 }
 
