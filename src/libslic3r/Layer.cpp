@@ -190,6 +190,30 @@ void Layer::make_perimeters()
     // keep track of regions whose perimeters we have already generated
     std::vector<unsigned char> done(m_regions.size(), false);
 
+    // ORCA: Fix for issue #11207 - pre-pass to detect cross-region bridge areas.
+    // When a region (e.g. painted face) sits entirely on a different region below,
+    // it will be treated as a bridge. We must subtract those areas from other
+    // regions at the same layer so those regions don't generate perimeters in
+    // the space claimed by the bridge.
+    ExPolygons cross_region_bridge_areas;
+    if (this->object()->num_printing_regions() > 1 && this->lower_layer != nullptr) {
+        for (size_t ri = 0; ri < m_regions.size(); ++ri) {
+            LayerRegion *lm = m_regions[ri];
+            if (lm->slices.empty()) continue;
+            ExPolygons region_expolys = to_expolygons(lm->slices.surfaces);
+            if (region_expolys.empty()) continue;
+
+            // If the supported area is negligible (< 0.01 mm²), the region hangs in air - it's a bridge.
+            ExPolygons supported = intersection_ex(region_expolys, this->lower_layer->lslices);
+            if (area(supported) < sqr(scale_(0.1))) {
+                cross_region_bridge_areas.insert(cross_region_bridge_areas.end(),
+                    region_expolys.begin(), region_expolys.end());
+            }
+        }
+        if (!cross_region_bridge_areas.empty())
+            cross_region_bridge_areas = union_ex(cross_region_bridge_areas);
+    }
+
     for (LayerRegionPtrs::iterator layerm = m_regions.begin(); layerm != m_regions.end(); ++ layerm)
     	if ((*layerm)->slices.empty()) {
  			(*layerm)->perimeters.clear();
@@ -228,8 +252,65 @@ void Layer::make_perimeters()
 
 	        if (layerms.size() == 1) {  // optimization
 	            (*layerm)->fill_surfaces.surfaces.clear();
-                (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
+
+	            // ORCA: Fix for issue #11207 - detect MMU cross-region bridges
+	            // Mark surfaces as stBottomBridge BEFORE make_perimeters so PerimeterGenerator can skip them
+	            if (this->object()->num_printing_regions() > 1 && this->lower_layer != nullptr) {
+	                ExPolygons current_expolys = to_expolygons((*layerm)->slices.surfaces);
+	                ExPolygons supported = intersection_ex(current_expolys, this->lower_layer->lslices);
+	                if (area(supported) < sqr(scale_(0.1))) {
+	                    for (Surface &s : (*layerm)->slices.surfaces)
+	                        s.surface_type = stBottomBridge;
+	                }
+	            }
+
+	            // ORCA: Fix for issue #11207 - for non-bridge regions, union bridge areas into
+	            // slices before perimeter generation so that holes don't get inner perimeter walls.
+	            // After perimeters are generated, subtract bridge areas from fill so the parent
+	            // region doesn't print infill inside the bridge zone.
+	            SurfaceCollection slices_for_perimeters;
+	            bool is_cross_region_bridge = std::any_of((*layerm)->slices.surfaces.begin(), (*layerm)->slices.surfaces.end(),
+	                [](const Surface &s) { return s.surface_type == stBottomBridge; });
+	            if (!is_cross_region_bridge && !cross_region_bridge_areas.empty()) {
+	                // Fill bridge holes in this region's slices so make_perimeters
+	                // won't generate inner perimeter walls around them.
+	                ExPolygons bridge_outer_only;
+	                for (const ExPolygon &b : cross_region_bridge_areas)
+	                    bridge_outer_only.emplace_back(b.contour);
+	                ExPolygons filled = union_ex(to_expolygons((*layerm)->slices.surfaces), bridge_outer_only);
+	                for (ExPolygon &ex : filled)
+	                    slices_for_perimeters.surfaces.emplace_back(stInternal, std::move(ex));
+	            } else {
+	                slices_for_perimeters = (*layerm)->slices;
+	            }
+
+                (*layerm)->make_perimeters(slices_for_perimeters, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
+
+	            // After make_perimeters, remove bridge areas from fill_surfaces
+	            if (!is_cross_region_bridge && !cross_region_bridge_areas.empty()) {
+	                Polygons bridge_polys = to_polygons(cross_region_bridge_areas);
+	                SurfaceCollection new_fill;
+	                for (const Surface &s : (*layerm)->fill_surfaces.surfaces) {
+	                    ExPolygons clipped = diff_ex(s.expolygon, bridge_polys);
+	                    for (ExPolygon &ex : clipped) {
+	                        Surface ns = s;
+	                        ns.expolygon = std::move(ex);
+	                        new_fill.surfaces.push_back(ns);
+	                    }
+	                }
+	                (*layerm)->fill_surfaces = std::move(new_fill);
+	            }
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
+
+	            // ORCA: Fix for issue #11207 - expand fill_expolygons for cross-region bridges
+	            // fill_expolygons determines fill_boundaries which limits bridge expansion
+	            if (std::any_of((*layerm)->fill_surfaces.surfaces.begin(), (*layerm)->fill_surfaces.surfaces.end(),
+	                    [](const Surface &s) { return s.surface_type == stBottomBridge; })) {
+	                auto nozzle_diameter = (*layerm)->region().nozzle_dmr_avg(this->object()->print()->config());
+	                float anchor_expansion = std::min(float(scale_(BRIDGE_INFILL_MARGIN)),
+	                    float(scale_(nozzle_diameter * BRIDGE_INFILL_MARGIN / 0.4)));
+	                (*layerm)->fill_expolygons = offset_ex((*layerm)->fill_expolygons, anchor_expansion);
+	            }
 	        } else {
 	            SurfaceCollection new_slices;
 	            // Use the region with highest infill rate, as the make_perimeters() function below decides on the gap fill based on the infill existence.

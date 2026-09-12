@@ -1388,6 +1388,8 @@ void PerimeterGenerator::process_classic()
     // extra perimeters for each one
     Surfaces all_surfaces = this->slices->surfaces;
 
+    bypass_cross_region_bridges(all_surfaces);
+
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
     double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
@@ -1975,6 +1977,25 @@ void PerimeterGenerator::add_infill_contour_for_arachne( ExPolygons        infil
     append(*this->fill_no_overlap, offset2_ex(union_ex(inner_pp), float(-min_perimeter_infill_spacing / 2.), float(+min_perimeter_infill_spacing / 2.)));
 }
 
+// ORCA: Fix for issue #11207 - handle cross-region bridges
+// Skip perimeter generation for stBottomBridge surfaces, output directly to fill_surfaces
+// with expansion for anchor space (~1 external perimeter width).
+void PerimeterGenerator::bypass_cross_region_bridges(Surfaces &all_surfaces)
+{
+    Surfaces surfaces_to_process;
+    for (const Surface &surface : all_surfaces) {
+        if (surface.surface_type == stBottomBridge) {
+            float anchor_expansion = this->ext_perimeter_flow.scaled_width();
+            ExPolygons expanded = offset_ex(surface.expolygon, anchor_expansion);
+            for (ExPolygon &ex : expanded)
+                this->fill_surfaces->surfaces.emplace_back(surface, std::move(ex));
+        } else {
+            surfaces_to_process.push_back(surface);
+        }
+    }
+    all_surfaces = std::move(surfaces_to_process);
+}
+
 // Orca: sacrificial bridge layer algorithm ported from SuperSlicer
 void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perimeter_spacing, coord_t ext_perimeter_width)
 {
@@ -2375,6 +2396,8 @@ void PerimeterGenerator::process_arachne()
     }
 
     Surfaces all_surfaces = this->slices->surfaces;
+
+    bypass_cross_region_bridges(all_surfaces);
 
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
