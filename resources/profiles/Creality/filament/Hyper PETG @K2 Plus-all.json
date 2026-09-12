@@ -39,7 +39,7 @@
         "40"
     ],
     "filament_cost": [
-        "24.99"
+        "25"
     ],
     "filament_density": [
         "1.28"
@@ -51,13 +51,13 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "18"
+        "23"
     ],
     "filament_retract_before_wipe": [
         "100"
     ],
     "filament_retraction_length": [
-        "0.8"
+        "1.2"
     ],
     "filament_type": [
         "PETG"
@@ -96,7 +96,7 @@
         "20"
     ],
     "temperature_vitrification": [
-        "74.3"
+        "75"
     ],
     "textured_plate_temp": [
         "70"
@@ -137,7 +137,7 @@
     "filament_unloading_speed": "90",
     "filament_unloading_speed_start": "100",
     "material_flow_dependent_temperature": "0",
-    "pressure_advance": "0.07",
+    "pressure_advance": "0.05",
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality K2 Plus 0.2 nozzle",

@@ -39,7 +39,7 @@
         "14"
     ],
     "filament_density": [
-        "1.23"
+        "1.24"
     ],
     "filament_flow_ratio": [
         "0.95"
@@ -48,10 +48,10 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "12"
+        "18"
     ],
     "filament_retraction_length": [
-        "0.8"
+        "1.2"
     ],
     "filament_type": [
         "PETG"
@@ -66,10 +66,10 @@
         "70"
     ],
     "nozzle_temperature": [
-        "250"
+        "240"
     ],
     "nozzle_temperature_initial_layer": [
-        "250"
+        "240"
     ],
     "nozzle_temperature_range_high": [
         "270"
@@ -78,7 +78,7 @@
         "220"
     ],
     "overhang_fan_speed": [
-        "90"
+        "100"
     ],
     "overhang_fan_threshold": [
         "25%"
@@ -93,7 +93,7 @@
         "20"
     ],
     "temperature_vitrification": [
-        "80"
+        "60"
     ],
     "textured_plate_temp": [
         "70"
