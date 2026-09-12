@@ -661,6 +661,15 @@ private:
     bool m_enable_exclude_object;
     std::vector<size_t> m_label_objects_ids;
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
+public:
+    // Static helper extracted from _encode_label_ids_to_base64 so libslic3r unit
+    // tests can exercise it without constructing a full GCode instance. See
+    // tests/libslic3r/test_label_ids_encoding.cpp. `known_ids` must be sorted.
+    // Returns an empty string when `ids` is empty (regression guard for the
+    // "Label object id error!" crash hit by the surface-filament routing).
+    static std::string encode_label_ids_to_base64(const std::vector<size_t> &ids,
+                                                  const std::vector<size_t> &known_ids);
+private:
     // ORCA: Add support for role based fan speed control
     std::array<bool, ExtrusionRole::erCount> m_is_role_based_fan_on;
     std::array<int, ExtrusionRole::erCount>  m_role_based_fan_marker_layer;

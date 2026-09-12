@@ -705,10 +705,38 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                     continue;
                 const Slic3r::PrintRegionConfig& cfg = layerm->region().config();
                 if (has_perimeters) {
-                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.outer_wall_filament_id.value - 1, 0));
-                    convert_to_vertices(layerm->perimeters, layer_z, layer_id, extruder_id,
-                        object_helper.color_id(layer_z, extruder_id), EGCodeExtrusionRole::ExternalPerimeter,
-                        copy, data.vertices);
+                    // Orca: if outer-wall-filament feature is active, route entities by per-entity extruder_override.
+                    const auto target = cfg.surface_wall_override_filament_target.value;
+                    const bool target_includes_walls = target == Slic3r::SurfaceWallOverrideFilamentTarget::Walls || target == Slic3r::SurfaceWallOverrideFilamentTarget::Both;
+                    const bool has_outer_split = cfg.surface_wall_override_filament.value > 0
+                                              && cfg.surface_wall_override_filament.value != cfg.outer_wall_filament_id.value
+                                              && target_includes_walls;
+                    const size_t wall_extruder_id = static_cast<size_t>(std::max(cfg.outer_wall_filament_id.value - 1, 0));
+                    if (!has_outer_split) {
+                        convert_to_vertices(layerm->perimeters, layer_z, layer_id, wall_extruder_id,
+                            object_helper.color_id(layer_z, wall_extruder_id), EGCodeExtrusionRole::ExternalPerimeter,
+                            copy, data.vertices);
+                    } else {
+                        for (const Slic3r::ExtrusionEntity* ee : layerm->perimeters.entities) {
+                            if (const auto* island = dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee)) {
+                                for (const Slic3r::ExtrusionEntity* loop : island->entities) {
+                                    const size_t eid = (loop->extruder_override > 0)
+                                        ? static_cast<size_t>(loop->extruder_override - 1)
+                                        : wall_extruder_id;
+                                    convert_to_vertices(*loop, layer_z, layer_id, eid,
+                                        object_helper.color_id(layer_z, eid), EGCodeExtrusionRole::ExternalPerimeter,
+                                        copy, data.vertices);
+                                }
+                            } else {
+                                const size_t eid = (ee->extruder_override > 0)
+                                    ? static_cast<size_t>(ee->extruder_override - 1)
+                                    : wall_extruder_id;
+                                convert_to_vertices(*ee, layer_z, layer_id, eid,
+                                    object_helper.color_id(layer_z, eid), EGCodeExtrusionRole::ExternalPerimeter,
+                                    copy, data.vertices);
+                            }
+                        }
+                    }
                 }
                 if (has_infill) {
                     for (const Slic3r::ExtrusionEntity* ee : layerm->fills) {
