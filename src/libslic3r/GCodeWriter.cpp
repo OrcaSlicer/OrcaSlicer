@@ -31,6 +31,7 @@ bool GCodeWriter::supports_separate_travel_acceleration(GCodeFlavor flavor)
 void GCodeWriter::apply_print_config(const PrintConfig &print_config)
 {
     this->config.apply(print_config, true);
+    m_max_z = print_config.printable_height.value;
 
     // Some machine limits are stride-2 (normal, silent) pairs, here we extract the value that will be used,
     // which is always normal mode at the moment
@@ -782,6 +783,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
+    target_lift = std::min(target_lift, std::max(0., m_max_z - m_pos.z()));
     // BBS
     if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
         if (spiral_vase) {
@@ -810,6 +812,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
+    target_lift = std::min(target_lift, std::max(0., m_max_z - m_pos.z()));
 
     // BBS: spiral lift only safe with known position
     if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
@@ -854,6 +857,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     //BBS: a z_hop need to be handle when travel
     if (std::abs(m_to_lift) > EPSILON) {
         assert(std::abs(m_lifted) < EPSILON);
+        // The nominal layer Z may have advanced since lazy_lift() recorded the request.
+        m_to_lift = std::min(m_to_lift, std::max(0., m_max_z - m_pos.z()));
         //BBS: don't need to do real lift if the current position is absolutely same with target.
         //This ususally happens when the last extrusion line is short and the end of wipe position
         //is same with the traget point by chance.
