@@ -126,6 +126,7 @@ private:
     int             m_selected_layers_range_idx {-1};
 
     Clipboard       m_clipboard;
+    std::vector<coordf_t> m_variable_layer_height_profile_clipboard;
 
     struct dragged_item_data
     {
@@ -447,6 +448,10 @@ public:
     void copy_settings_to_clipboard();
     void paste_settings_into_list();
     bool can_paste_settings_into_list();
+    bool can_copy_variable_layer_height_profile() const;
+    bool can_paste_variable_layer_height_profile() const;
+    void copy_variable_layer_height_profile_to_clipboard();
+    void paste_variable_layer_height_profile_to_selection();
     bool clipboard_is_empty() const { return m_clipboard.empty(); }
     void paste_volumes_into_list(int obj_idx, const ModelVolumePtrs& volumes);
     void paste_objects_into_list(const std::vector<size_t>& object_idxs);
@@ -487,6 +492,7 @@ private:
 #endif /* __WXOSX__ */
     void OnContextMenu(wxDataViewEvent &event);
     void list_manipulation(const wxPoint& mouse_pos, bool evt_context_menu = false);
+    void get_selected_object_idxs(std::vector<int>& obj_idxs) const;
 
     // BBS
     void update_name_column_width() const;

@@ -1348,6 +1348,86 @@ void ObjectList::copy_settings_to_clipboard()
     m_clipboard.set_type(ItemType(m_objects_model->GetItemType(item) | itSettings));
 }
 
+void ObjectList::get_selected_object_idxs(std::vector<int>& obj_idxs) const
+{
+    wxDataViewItemArray sels;
+    GetSelections(sels);
+    if (sels.IsEmpty() || m_objects_model == nullptr || m_objects == nullptr)
+        return;
+
+    std::set<int> unique_obj_idxs;
+    for (const wxDataViewItem& item : sels) {
+        const int obj_idx = m_objects_model->GetObjectIdByItem(item);
+        if (obj_idx >= 0 && obj_idx < int(m_objects->size()) && (*m_objects)[obj_idx] != nullptr)
+            unique_obj_idxs.insert(obj_idx);
+    }
+
+    obj_idxs.assign(unique_obj_idxs.begin(), unique_obj_idxs.end());
+}
+
+bool ObjectList::can_copy_variable_layer_height_profile() const
+{
+    if (printer_technology() != ptFFF || GetSelectedItemsCount() != 1 || m_objects_model == nullptr || m_objects == nullptr)
+        return false;
+
+    const wxDataViewItem item = GetSelection();
+    const int obj_idx = item ? m_objects_model->GetObjectIdByItem(item) : -1;
+    if (obj_idx < 0 || obj_idx >= int(m_objects->size()) || (*m_objects)[obj_idx] == nullptr)
+        return false;
+
+    return (*m_objects)[obj_idx]->layer_height_profile.get().size() > 4;
+}
+
+bool ObjectList::can_paste_variable_layer_height_profile() const
+{
+    if (printer_technology() != ptFFF || m_variable_layer_height_profile_clipboard.size() <= 4)
+        return false;
+
+    std::vector<int> obj_idxs;
+    get_selected_object_idxs(obj_idxs);
+    return !obj_idxs.empty();
+}
+
+void ObjectList::copy_variable_layer_height_profile_to_clipboard()
+{
+    if (!can_copy_variable_layer_height_profile())
+        return;
+
+    const int obj_idx = m_objects_model->GetObjectIdByItem(GetSelection());
+    m_variable_layer_height_profile_clipboard = (*m_objects)[obj_idx]->layer_height_profile.get();
+}
+
+void ObjectList::paste_variable_layer_height_profile_to_selection()
+{
+    if (!can_paste_variable_layer_height_profile())
+        return;
+
+    std::vector<int> obj_idxs;
+    get_selected_object_idxs(obj_idxs);
+    if (obj_idxs.empty())
+        return;
+
+    std::vector<size_t> changed_obj_idxs;
+    for (int obj_idx : obj_idxs) {
+        ModelObject* model_object = object(obj_idx);
+        if (model_object != nullptr && model_object->layer_height_profile.get() != m_variable_layer_height_profile_clipboard)
+            changed_obj_idxs.emplace_back(size_t(obj_idx));
+    }
+
+    if (changed_obj_idxs.empty())
+        return;
+
+    take_snapshot("Paste variable layer height profile");
+
+    for (size_t obj_idx : changed_obj_idxs) {
+        ModelObject* model_object = object(int(obj_idx));
+        model_object->layer_height_profile.set(m_variable_layer_height_profile_clipboard);
+        update_info_items(obj_idx);
+    }
+
+    wxGetApp().plater()->changed_objects(changed_obj_idxs);
+}
+
 bool GUI::ObjectList::can_paste_settings_into_list()
 {
     wxDataViewItemArray sels;

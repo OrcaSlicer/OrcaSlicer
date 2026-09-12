@@ -146,6 +146,7 @@ private:
     void        append_menu_item_reload_from_disk(wxMenu* menu);
     void        append_menu_item_replace_with_stl(wxMenu* menu);
     void        append_menu_item_replace_all_with_stl(wxMenu* menu);
+    void        append_menu_items_variable_layer_height(wxMenu* menu);
     void        append_menu_item_change_extruder(wxMenu* menu);
     void        append_menu_item_set_visible(wxMenu* menu);
     void        append_menu_item_delete(wxMenu* menu);
