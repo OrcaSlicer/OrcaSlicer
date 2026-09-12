@@ -1659,6 +1659,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsOrPercentsNullable, initial_layer_travel_jerk))
     ((ConfigOptionBool,                bbl_calib_mark_logo))
     ((ConfigOptionBool,                disable_m73))
+    // Orca: omit informational/structural comment blocks from the exported G-code
+    ((ConfigOptionBool,                omit_gcode_header_blocks))
 
     // Orca: mmu
     ((ConfigOptionFloat,               cooling_tube_retraction))

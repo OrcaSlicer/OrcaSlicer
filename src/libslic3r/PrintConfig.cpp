@@ -6107,6 +6107,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("omit_gcode_header_blocks", coBool);
+    def->label = L("Omit G-code header comments");
+    def->tooltip = L("Omit the informational comment blocks from the exported G-code: the header block "
+                     "(from HEADER_BLOCK_START to HEADER_BLOCK_END), the extrusion width summary lines, the "
+                     "EXECUTABLE_BLOCK_START marker and the leading TYPE:Custom line. Enable this for firmware "
+                     "or post-processors that do not tolerate these comments.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("seam_position", coEnum);
     def->label = L("Seam position");
     def->category = L("Quality");
