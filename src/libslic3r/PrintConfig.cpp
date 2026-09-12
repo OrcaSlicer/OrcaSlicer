@@ -645,6 +645,12 @@ static const t_config_enum_values s_keys_map_PrimeVolumeMode = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrimeVolumeMode)
 
+//Orca
+static t_config_enum_values s_keys_map_WaveOverhangPattern {
+    { "monotonic", int(WaveOverhangPattern::Monotonic) },
+    { "zigzag", int(WaveOverhangPattern::ZigZag) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPattern)
 
 //BBS
 std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type)
@@ -1842,6 +1848,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(150, true)});
+
+    def = this->add("wo_bridge_speed", coFloats);
+    def->label = L("Wave speed");
+    def->category = L("Speed");
+    def->tooltip = L("Speed of wave overhangs/bridges. Default value is 2 mm/s.");
+    def->sidetext = L("mm/s");
+    def->min = 0.1;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{2.});
 
     def = this->add("brim_width", coFloat);
     def->label = L("Brim width");
@@ -5536,6 +5552,36 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("wo_enabled", coBool);
+    def->label = L("Wave overhangs enabled");
+    def->category = L("Quality");
+    def->tooltip = L("Enable wave overhangs");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wo_density", coPercent);
+    def->label = L("Wave density");
+    def->category = L("Quality");
+    def->tooltip = L("A higher value will decrease the distance between waves. Calculated as a function of nozzle diameter");
+    def->sidetext = L("%");
+    def->min = 100;
+    def->max = 200;
+    def->max_literal = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionPercent(120));
+
+    def = this->add("wo_pattern", coEnum);
+    def->label = L("Wave pattern");
+    def->category = L("Quality");
+    def->tooltip = L("The pattern to use when printing wave overhangs. Monotonic will start each wave from the end that has spent the most time cooling.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPattern>::get_enum_values();
+    def->enum_values.push_back("monotonic");
+    def->enum_values.push_back("zigzag");
+    def->enum_labels.push_back(L("Monotonic"));
+    def->enum_labels.push_back(L("Zigzag"));
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::ZigZag));
 
     def = this->add("outer_wall_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -9286,6 +9332,7 @@ std::set<std::string> print_options_with_variant = {
     "slowdown_for_curled_perimeters",
     "bridge_speed",
     "internal_bridge_speed",
+    "wo_bridge_speed",
     "gap_infill_speed",
     "support_speed",
     "support_interface_speed",

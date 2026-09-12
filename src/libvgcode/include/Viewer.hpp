@@ -394,7 +394,7 @@ public:
         EGCodeExtrusionRole::Skirt, EGCodeExtrusionRole::SupportMaterial, EGCodeExtrusionRole::SupportMaterialInterface,
         EGCodeExtrusionRole::WipeTower, EGCodeExtrusionRole::Custom,
         // ORCA
-        EGCodeExtrusionRole::BottomSurface, EGCodeExtrusionRole::InternalBridgeInfill, EGCodeExtrusionRole::Brim,
+        EGCodeExtrusionRole::BottomSurface, EGCodeExtrusionRole::InternalBridgeInfill, EGCodeExtrusionRole::WaveBridgeInfill, EGCodeExtrusionRole::Brim,
         EGCodeExtrusionRole::SupportTransition, EGCodeExtrusionRole::Mixed
     }) const;
     //
