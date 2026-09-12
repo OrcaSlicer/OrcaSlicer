@@ -49,6 +49,7 @@ bool GLGizmoFuzzySkin::on_init()
     m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
     m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
     m_desc["smart_fill_angle"]  = _L("Smart fill angle");
+    m_desc["smooth_edges"]      = _L("Smooth edges");
 
     std::pair<wxString, wxString> add_fuzzy_skin_shortcut    = {_L("Left mouse button"),         m_desc["add_fuzzy_skin"]};
     std::pair<wxString, wxString> remove_fuzzy_skin_shortcut = {shift + _L("Left mouse button"), m_desc["remove_fuzzy_skin"]};
@@ -57,7 +58,7 @@ bool GLGizmoFuzzySkin::on_init()
     m_shortcuts_brush = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["cursor_size"]},
         clipping_shortcut
     };
 
@@ -70,7 +71,7 @@ bool GLGizmoFuzzySkin::on_init()
     m_shortcuts_smart_fill = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["smart_fill_angle"]},
         clipping_shortcut
     };
 
@@ -271,6 +272,12 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        if (m_imgui->bbl_checkbox(m_desc["smooth_edges"], m_smart_fill_smooth_edges))
+            for (auto& triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
     }
 
     ImGui::Separator();

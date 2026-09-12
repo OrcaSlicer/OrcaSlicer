@@ -846,6 +846,17 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
                 processed = true;
             break;
         }
+        // Orca: '[' / ']' shrink/grow the active painting tool's brush size (radius, height range,
+        // smart-fill angle or gap-fill area), mirroring Ctrl+MouseWheel without requiring precise scrolling.
+        case '[':
+        case ']':
+        {
+            if (m_current == FdmSupports || m_current == Seam || m_current == MmSegmentation || m_current == FuzzySkin) {
+                if (auto* painter_gizmo = dynamic_cast<GLGizmoPainterBase*>(get_current()); painter_gizmo != nullptr)
+                    processed = painter_gizmo->change_tool_size(keyCode == ']');
+            }
+            break;
+        }
         //case 'A':
         //case 'a':
         //{

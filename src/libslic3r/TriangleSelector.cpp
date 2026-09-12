@@ -367,7 +367,7 @@ bool TriangleSelector::is_facet_clipped(int facet_idx, const ClippingPlane &clp)
 
 void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_start, const Transform3d& trafo_no_translate,
                                                   const ClippingPlane &clp, float seed_fill_angle, float highlight_by_angle_deg,
-                                                  bool force_reselection)
+                                                  bool force_reselection, bool smooth_boundary)
 {
     assert(facet_start < m_orig_size_indices);
 
@@ -383,6 +383,11 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
 
     const double facet_angle_limit     = cos(Geometry::deg2rad(seed_fill_angle)) - EPSILON;
     const float  highlight_angle_limit = -cos(Geometry::deg2rad(highlight_by_angle_deg));
+    // Orca: normal of the triangle actually clicked on. A neighbor is only ever propagated into if it
+    // stays within seed_fill_angle of BOTH its immediate parent and this seed normal, so a chain of many
+    // small steps can no longer drift arbitrarily far across a continuously curved surface (each step used
+    // to only ever be checked against its direct predecessor).
+    const Vec3f &seed_normal = m_face_normals[m_triangles[facet_start].source_triangle];
 
     // Depth-first traversal of neighbors of the face hit by the ray thrown from the mouse cursor.
     while (!facet_queue.empty()) {
@@ -412,13 +417,75 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
                         // Check if neighbour_facet_idx is satisfies angle in seed_fill_angle and append it to facet_queue if it do.
                         const Vec3f &n1 = m_face_normals[m_triangles[neighbor_idx].source_triangle];
                         const Vec3f &n2 = m_face_normals[m_triangles[current_facet].source_triangle];
-                        if (std::clamp(n1.dot(n2), 0.f, 1.f) >= facet_angle_limit)
+                        if (std::clamp(n1.dot(n2), 0.f, 1.f) >= facet_angle_limit && std::clamp(n1.dot(seed_normal), 0.f, 1.f) >= facet_angle_limit)
                             facet_queue.push(neighbor_idx);
                     }
                 }
         }
         visited[current_facet] = true;
     }
+
+    // Orca: the overhang-only restriction (highlight_by_angle_deg) intentionally carves the selection down
+    // to just the triangles that satisfy the overhang angle test. Smoothing doesn't know about that test, so
+    // skip it in that case rather than risk pulling in non-overhang neighbors.
+    if (smooth_boundary && highlight_by_angle_deg == 0.f)
+        this->smooth_seed_fill_boundary();
+}
+
+bool TriangleSelector::is_seed_fill_selected_recursive(int facet_idx) const
+{
+    const Triangle &tr = m_triangles[facet_idx];
+    return tr.is_split() ? this->is_seed_fill_selected_recursive(tr.children[0]) : tr.is_selected_by_seed_fill();
+}
+
+void TriangleSelector::set_seed_fill_selected_recursive(int facet_idx, bool select)
+{
+    Triangle &tr = m_triangles[facet_idx];
+    if (tr.is_split()) {
+        for (int child_idx = 0; child_idx <= tr.number_of_split_sides(); ++child_idx)
+            this->set_seed_fill_selected_recursive(tr.children[child_idx], select);
+    } else if (select)
+        tr.select_by_seed_fill();
+    else
+        tr.unselect_by_seed_fill();
+}
+
+// Orca: majority-vote smoothing of the current seed-fill selection boundary. Runs over the original
+// (unsplit) triangle adjacency graph -- the same graph seed_fill_select_triangles() propagates over --
+// since a split triangle's children are always selected/unselected together by seed fill. Each pass, an
+// original triangle flips to whatever state (selected/unselected) most of itself + its up-to-3 neighbors
+// are in; ties keep the current state. This removes single-triangle jagged spikes and pinholes left along
+// a Smart Fill boundary. It only ever edits the temporary seed-fill selection mask, never mesh topology, so
+// it cannot produce a boundary smoother than the mesh's own triangle size.
+void TriangleSelector::smooth_seed_fill_boundary(int iterations)
+{
+    if (iterations <= 0 || m_orig_size_indices == 0)
+        return;
+
+    std::vector<bool> selected(m_orig_size_indices);
+    for (int facet_idx = 0; facet_idx < m_orig_size_indices; ++facet_idx)
+        selected[facet_idx] = this->is_seed_fill_selected_recursive(facet_idx);
+
+    std::vector<bool> smoothed = selected;
+    for (int iter = 0; iter < iterations; ++iter) {
+        for (int facet_idx = 0; facet_idx < m_orig_size_indices; ++facet_idx) {
+            int votes_selected = selected[facet_idx] ? 1 : 0;
+            int votes_total     = 1;
+            for (int neighbor_idx : m_neighbors[facet_idx]) {
+                if (neighbor_idx < 0)
+                    continue;
+                ++votes_total;
+                if (selected[neighbor_idx])
+                    ++votes_selected;
+            }
+            // An exact tie (only possible with an even votes_total) keeps this iteration's input state.
+            smoothed[facet_idx] = 2 * votes_selected != votes_total ? (2 * votes_selected > votes_total) : selected[facet_idx];
+        }
+        selected.swap(smoothed);
+    }
+
+    for (int facet_idx = 0; facet_idx < m_orig_size_indices; ++facet_idx)
+        this->set_seed_fill_selected_recursive(facet_idx, selected[facet_idx]);
 }
 
 void TriangleSelector::precompute_all_neighbors_recursive(const int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated, std::vector<Vec3i32> &neighbors_out, std::vector<Vec3i32> &neighbors_propagated_out) const
@@ -525,8 +592,75 @@ void TriangleSelector::append_touching_edges(int itriangle, int vertexi, int ver
         process_subtriangle(touching.second, Partition::Second);
 }
 
+std::vector<int> TriangleSelector::get_all_touching_triangles(int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated) const
+{
+    assert(facet_idx != -1 && facet_idx < int(m_triangles.size()));
+    assert(this->verify_triangle_neighbors(m_triangles[facet_idx], neighbors));
+    std::vector<int> touching_triangles;
+    Vec3i32            vertices = {m_triangles[facet_idx].verts_idxs[0], m_triangles[facet_idx].verts_idxs[1], m_triangles[facet_idx].verts_idxs[2]};
+    append_touching_subtriangles(neighbors(0), vertices(1), vertices(0), touching_triangles);
+    append_touching_subtriangles(neighbors(1), vertices(2), vertices(1), touching_triangles);
+    append_touching_subtriangles(neighbors(2), vertices(0), vertices(2), touching_triangles);
+
+    for (int neighbor_idx : neighbors_propagated)
+        if (neighbor_idx != -1 && !m_triangles[neighbor_idx].is_split())
+            touching_triangles.emplace_back(neighbor_idx);
+
+    return touching_triangles;
+}
+
+void TriangleSelector::smooth_bucket_fill_boundary(EnforcerBlockerType required_state, int iterations)
+{
+    if (iterations <= 0)
+        return;
+
+    auto [neighbors, neighbors_propagated] = this->precompute_all_neighbors();
+
+    std::vector<int> leaves;
+    for (int facet_idx = 0; facet_idx < int(m_triangles.size()); ++facet_idx)
+        if (m_triangles[facet_idx].valid() && !m_triangles[facet_idx].is_split())
+            leaves.push_back(facet_idx);
+
+    // Cache each leaf's touching leaves once -- recomputing this every iteration would be expensive.
+    std::vector<std::vector<int>> touching_leaves(m_triangles.size());
+    for (int facet_idx : leaves)
+        touching_leaves[facet_idx] = this->get_all_touching_triangles(facet_idx, neighbors[facet_idx], neighbors_propagated[facet_idx]);
+
+    std::vector<bool> selected(m_triangles.size(), false);
+    for (int facet_idx : leaves)
+        selected[facet_idx] = m_triangles[facet_idx].is_selected_by_seed_fill();
+
+    std::vector<bool> smoothed = selected;
+    for (int iter = 0; iter < iterations; ++iter) {
+        for (int facet_idx : leaves) {
+            int votes_selected = selected[facet_idx] ? 1 : 0;
+            int votes_total     = 1;
+            for (int neighbor_idx : touching_leaves[facet_idx]) {
+                ++votes_total;
+                if (selected[neighbor_idx])
+                    ++votes_selected;
+            }
+            // An exact tie (only possible with an even votes_total) keeps this iteration's input state.
+            bool wants_selected = 2 * votes_selected != votes_total ? (2 * votes_selected > votes_total) : selected[facet_idx];
+            // Never pull a triangle into the fill unless it's still painted with the color being replaced --
+            // this is what keeps smoothing from bleeding across into an adjacent, differently-colored region.
+            if (wants_selected && m_triangles[facet_idx].get_state() != required_state)
+                wants_selected = false;
+            smoothed[facet_idx] = wants_selected;
+        }
+        selected.swap(smoothed);
+    }
+
+    for (int facet_idx : leaves) {
+        if (selected[facet_idx])
+            m_triangles[facet_idx].select_by_seed_fill();
+        else
+            m_triangles[facet_idx].unselect_by_seed_fill();
+    }
+}
+
 // BBS: add seed_fill_angle parameter
-void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_start, const ClippingPlane &clp, float seed_fill_angle, bool propagate, bool force_reselection)
+void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_start, const ClippingPlane &clp, float seed_fill_angle, bool propagate, bool force_reselection, bool smooth_boundary)
 {
     int start_facet_idx = select_unsplit_triangle(hit, facet_start);
     assert(start_facet_idx != -1);
@@ -546,22 +680,6 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
     // seed_fill_angle < 0.f to disable edge detection
     const double facet_angle_limit = (seed_fill_angle < 0.f ? -1.f : cos(Geometry::deg2rad(seed_fill_angle))) - EPSILON;
 
-    auto get_all_touching_triangles = [this](int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated) -> std::vector<int> {
-        assert(facet_idx != -1 && facet_idx < int(m_triangles.size()));
-        assert(this->verify_triangle_neighbors(m_triangles[facet_idx], neighbors));
-        std::vector<int> touching_triangles;
-        Vec3i32            vertices = {m_triangles[facet_idx].verts_idxs[0], m_triangles[facet_idx].verts_idxs[1], m_triangles[facet_idx].verts_idxs[2]};
-        append_touching_subtriangles(neighbors(0), vertices(1), vertices(0), touching_triangles);
-        append_touching_subtriangles(neighbors(1), vertices(2), vertices(1), touching_triangles);
-        append_touching_subtriangles(neighbors(2), vertices(0), vertices(2), touching_triangles);
-
-        for (int neighbor_idx : neighbors_propagated)
-            if (neighbor_idx != -1 && !m_triangles[neighbor_idx].is_split())
-                touching_triangles.emplace_back(neighbor_idx);
-
-        return touching_triangles;
-    };
-
     auto [neighbors, neighbors_propagated] = this->precompute_all_neighbors();
     std::vector<bool>  visited(m_triangles.size(), false);
     std::queue<int>    facet_queue;
@@ -575,7 +693,7 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
         if (!visited[current_facet]) {
             m_triangles[current_facet].select_by_seed_fill();
 
-            std::vector<int> touching_triangles = get_all_touching_triangles(current_facet, neighbors[current_facet], neighbors_propagated[current_facet]);
+            std::vector<int> touching_triangles = this->get_all_touching_triangles(current_facet, neighbors[current_facet], neighbors_propagated[current_facet]);
             for(const int tr_idx : touching_triangles) {
                 if (tr_idx < 0 || visited[tr_idx] || m_triangles[tr_idx].get_state() != start_facet_state || is_facet_clipped(tr_idx, clp))
                     continue;
@@ -592,6 +710,9 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
 
         visited[current_facet] = true;
     }
+
+    if (smooth_boundary)
+        this->smooth_bucket_fill_boundary(start_facet_state);
 }
 
 // Selects either the whole triangle (discarding any children it had), or divides
