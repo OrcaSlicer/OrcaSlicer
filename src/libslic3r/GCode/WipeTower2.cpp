@@ -2688,7 +2688,10 @@ WipeTower::ToolChangeResult WipeTower2::mm_region_layer(int units)
 {
     const size_t old_tool    = m_current_tool;
     const bool   shell       = m_current_tool == m_mm_shell_tool;
-    const bool   first_layer = is_first_layer();
+    // Same first-layer test as finish_layer(): with no_sparse_layers the plan's first
+    // entry is often sparse and G-code later drops it, so the brim belongs on the first
+    // toolchange instead.
+    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
 
     WipeTowerWriter2 writer(m_layer_height, m_perimeter_width, m_gcode_flavor, m_filpar, m_enable_arc_fitting);
@@ -2711,7 +2714,7 @@ WipeTower::ToolChangeResult WipeTower2::mm_tool_change(size_t new_tool, int unit
 {
     const size_t old_tool    = m_current_tool;
     const bool   shell       = new_tool == m_mm_shell_tool;
-    const bool   first_layer = is_first_layer();
+    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
     // The old filament is not rammed here (mm_activate() requires it), so this box only tells the
     // unload and load sequences where the nozzle is; the purge itself goes into the new
