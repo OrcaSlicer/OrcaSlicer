@@ -149,6 +149,15 @@ class Sidebar : public wxPanel
     void update_sync_ams_btn_enable(wxUpdateUIEvent &e);
 
 public:
+    struct DirtyFilamentEdit {
+        size_t             filament_idx;
+        std::string        preset_name;
+        DynamicPrintConfig old_config;
+        DynamicPrintConfig new_config;
+        bool               can_overwrite { false };
+        bool               is_project_embedded { false };
+    };
+
     enum DockingState
     {
         None, Left, Right
@@ -241,6 +250,13 @@ public:
 	bool                    show_export_removable(bool show) const;
 	bool                    get_eject_shown() const;
     bool                    is_multifilament();
+    bool                    is_filament_dirty(size_t filament_idx) const;
+    bool                    has_dirty_filament_edits() const;
+    std::vector<DirtyFilamentEdit> dirty_filament_edits() const;
+    void                    stash_current_filament_edit();
+    void                    save_dirty_filament_edit(size_t filament_idx, const std::string& new_name, bool save_to_project);
+    void                    clear_dirty_filament_edit(size_t filament_idx);
+    void                    clear_dirty_filament_edits();
     void                    deal_btn_sync();
     void                    pop_sync_nozzle_and_ams_dialog();
     void                    pop_finsish_sync_ams_dialog();
