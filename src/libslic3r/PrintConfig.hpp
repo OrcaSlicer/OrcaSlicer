@@ -292,7 +292,7 @@ inline bool is_auto(SupportType stype)
 };
 
 enum SeamPosition {
-    spNearest, spAligned, spAlignedBack, spRear, spRandom
+    spNearest, spAligned, spAlignedBack, spRear, spRandom, spRandomInternal, spRandomExternal
 };
 
 // Orca
@@ -1127,6 +1127,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               raft_first_layer_expansion))
     ((ConfigOptionInt,                 raft_layers))
     ((ConfigOptionEnum<SeamPosition>,  seam_position))
+    ((ConfigOptionFloat,               random_seam_corner_clearance))
+    ((ConfigOptionFloat,               random_seam_corner_angle))
+    ((ConfigOptionFloat,               random_seam_min_wall_depth))
+    ((ConfigOptionFloat,               random_seam_min_distance))
     ((ConfigOptionBool,                staggered_inner_seams))
     ((ConfigOptionFloat,               slice_closing_radius))
     ((ConfigOptionEnum<SlicingMode>,   slicing_mode))
