@@ -187,6 +187,12 @@ void Layer::make_perimeters()
 {
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
 
+    const auto clear_generated_extrusions = [](LayerRegion *layer_region) {
+        layer_region->perimeters.clear();
+        layer_region->fills.clear();
+        layer_region->thin_fills.clear();
+    };
+
     // keep track of regions whose perimeters we have already generated
     std::vector<unsigned char> done(m_regions.size(), false);
 
@@ -217,13 +223,11 @@ void Layer::make_perimeters()
                     if (this_region.gradient_volume_id() != other_region.gradient_volume_id())
                         continue;
                     if (is_perimeter_compatible(*m_object->print(), this_region, other_region))
-		            {
-			 			other_layerm->perimeters.clear();
-			 			other_layerm->fills.clear();
-			 			other_layerm->thin_fills.clear();
-		                layerms.push_back(other_layerm);
-		                done[it - m_regions.begin()] = true;
-		            }
+                    {
+                        clear_generated_extrusions(other_layerm);
+                        layerms.push_back(other_layerm);
+                        done[it - m_regions.begin()] = true;
+                    }
 		        }
 
 	        if (layerms.size() == 1) {  // optimization
@@ -231,6 +235,10 @@ void Layer::make_perimeters()
                 (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
 	        } else {
+	            // Orca: Unlike the compatible regions above, the initiating region has not
+	            // been cleared yet and may contain paths from a previous incompatible run.
+	            clear_generated_extrusions(*layerm);
+
 	            SurfaceCollection new_slices;
 	            // Use the region with highest infill rate, as the make_perimeters() function below decides on the gap fill based on the infill existence.
 	            LayerRegion *layerm_config = layerms.front();
