@@ -26,6 +26,13 @@
 #include <CGAL/property_map.h>
 #include <CGAL/boost/graph/copy_face_graph.h>
 #include <CGAL/boost/graph/Face_filtered_graph.h>
+// For parameterize_lscm()
+#include <CGAL/Polygon_mesh_processing/border.h>
+#include <CGAL/Polygon_mesh_processing/connected_components.h>
+#include <CGAL/Polygon_mesh_processing/detect_features.h>
+#include <CGAL/Surface_mesh_parameterization/Error_code.h>
+#include <CGAL/Surface_mesh_parameterization/LSCM_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/parameterize.h>
 // BBS: for boolean using mcut
 #include "mcut/include/mcut/mcut.h"
 
@@ -247,6 +254,149 @@ TriangleMesh cgal_to_triangle_mesh(const CGALMesh &cgalmesh)
 indexed_triangle_set cgal_to_indexed_triangle_set(const CGALMesh &cgalmesh)
 {
     return cgal_to_indexed_triangle_set(cgalmesh.m);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// Isotropic remeshing
+// /////////////////////////////////////////////////////////////////////////////
+
+indexed_triangle_set remesh_isotropic(const indexed_triangle_set &mesh, double target_edge_length,
+                                      unsigned n_iterations, double sharp_angle_deg)
+{
+    if (mesh.indices.empty() || target_edge_length <= 0.0)
+        return mesh;
+
+    _EpicMesh cgal_mesh;
+    triangle_mesh_to_cgal(mesh.vertices, mesh.indices, cgal_mesh);
+    if (cgal_mesh.is_empty() || cgal_mesh.number_of_faces() == 0)
+        return mesh;
+
+    // Surface_mesh::add_face() refuses any face that would make the mesh non-manifold and returns a
+    // null descriptor instead. Remeshing a mesh that silently lost faces that way produces holes in
+    // the output, so bail out and let the caller report it rather than hand back a punctured model.
+    if (cgal_mesh.number_of_faces() != mesh.indices.size())
+        return mesh;
+
+    using edge_descriptor = boost::graph_traits<_EpicMesh>::edge_descriptor;
+    try {
+        // Sharp edges and open borders are pinned before remeshing. Without that, the tangential
+        // relaxation pass slides vertices along the surface and rounds every hard feature off - a
+        // cube comes back with wobbly, eroded edges, which is the most visible way "remeshing does
+        // not work properly". protect_constraints() forbids splitting or collapsing them, but it
+        // requires each constrained edge to already be shorter than 4/3 * target, hence the split
+        // first (passing the map so the halves inherit the constraint). This mirrors CGAL's own
+        // isotropic_remeshing example.
+        auto ecm = cgal_mesh.add_property_map<edge_descriptor, bool>("e:is_constrained", false).first;
+        if (sharp_angle_deg > 0.0)
+            CGALProc::detect_sharp_edges(cgal_mesh, sharp_angle_deg, ecm);
+        for (edge_descriptor e : edges(cgal_mesh)) {
+            const auto h = halfedge(e, cgal_mesh);
+            if (is_border(h, cgal_mesh) || is_border(opposite(h, cgal_mesh), cgal_mesh))
+                put(ecm, e, true);
+        }
+
+        std::vector<edge_descriptor> constrained;
+        for (edge_descriptor e : edges(cgal_mesh))
+            if (get(ecm, e))
+                constrained.push_back(e);
+        if (!constrained.empty())
+            CGALProc::split_long_edges(constrained, target_edge_length, cgal_mesh,
+                                       CGALParams::edge_is_constrained_map(ecm));
+
+        CGALProc::isotropic_remeshing(faces(cgal_mesh), target_edge_length, cgal_mesh,
+                                      CGALParams::number_of_iterations(n_iterations)
+                                          .edge_is_constrained_map(ecm)
+                                          .protect_constraints(true));
+    } catch (const std::exception &) {
+        return mesh; // CGAL throws on some non-manifold / degenerate inputs; leave the mesh untouched
+    }
+    if (cgal_mesh.number_of_faces() == 0)
+        return mesh;
+
+    // isotropic_remeshing edits in place, and its edge collapses only *mark* vertices and faces as
+    // removed - the underlying arrays keep the holes until the garbage is collected. That matters
+    // because cgal_to_indexed_triangle_set() numbers its output vertices by iteration order (which
+    // skips removed slots) while reading each face's corner as the raw integer value of the vertex
+    // descriptor (which does not). Past the first collapse the two disagree, so every triangle
+    // points at the wrong vertices, and any descriptor beyond the live vertex count is dropped
+    // together with its triangle. Compacting first makes descriptor == iteration order again.
+    cgal_mesh.collect_garbage();
+    return cgal_to_indexed_triangle_set(cgal_mesh);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// UV parameterization
+// /////////////////////////////////////////////////////////////////////////////
+
+std::optional<std::vector<Vec2f>> parameterize_lscm(const indexed_triangle_set &mesh)
+{
+    namespace SMP = CGAL::Surface_mesh_parameterization;
+
+    if (mesh.indices.empty())
+        return std::nullopt;
+
+    _EpicMesh cgal_mesh;
+    triangle_mesh_to_cgal(mesh.vertices, mesh.indices, cgal_mesh);
+
+    using vertex_descriptor   = boost::graph_traits<_EpicMesh>::vertex_descriptor;
+    using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
+
+    // LSCM assumes a single topological disk: one connected component, one boundary loop. A patch
+    // with several disconnected painted islands, or with a hole in it, doesn't qualify -- bail out
+    // rather than silently parameterizing just one arbitrary piece of it.
+    {
+        std::vector<std::size_t> component_id(num_faces(cgal_mesh));
+        const std::size_t        num_components = CGAL::Polygon_mesh_processing::connected_components(
+            cgal_mesh, CGAL::make_property_map(component_id));
+        if (num_components != 1)
+            return std::nullopt;
+    }
+
+    const halfedge_descriptor border = CGAL::Polygon_mesh_processing::longest_border(cgal_mesh).first;
+    if (border == halfedge_descriptor())
+        return std::nullopt; // no boundary at all -- a closed patch, which isn't a disk either
+
+    // ...and exactly one boundary loop. One connected component is not enough on its own: a patch with
+    // a hole in it (paint a ring, or erase the middle of a stroke) is a single component with two
+    // loops, and LSCM will happily "parameterize" it into an overlapping, folded-over chart rather
+    // than fail. Walk the border halfedges and check every one of them belongs to the longest loop.
+    {
+        std::size_t border_halfedges = 0;
+        for (halfedge_descriptor h : halfedges(cgal_mesh))
+            if (is_border(h, cgal_mesh))
+                ++border_halfedges;
+        std::size_t loop_length = 0;
+        halfedge_descriptor h = border;
+        do {
+            ++loop_length;
+            h = next(h, cgal_mesh);
+        } while (h != border && loop_length <= border_halfedges);
+        if (loop_length != border_halfedges)
+            return std::nullopt; // more than one boundary loop -- not a topological disk
+    }
+
+    using Point_2 = EpicKernel::Point_2;
+    using UV_pmap = _EpicMesh::Property_map<vertex_descriptor, Point_2>;
+    UV_pmap uv_map = cgal_mesh.add_property_map<vertex_descriptor, Point_2>("h:uv", Point_2(0, 0)).first;
+
+    using Parameterizer = SMP::LSCM_parameterizer_3<_EpicMesh>;
+    const SMP::Error_code err = SMP::parameterize(cgal_mesh, Parameterizer(), border, uv_map);
+    if (err != SMP::OK)
+        return std::nullopt;
+
+    // triangle_mesh_to_cgal() adds vertices in the exact same order as mesh.vertices (see above),
+    // and Surface_mesh assigns indices sequentially on insertion into a fresh mesh, so a
+    // vertex_descriptor's index here is guaranteed to match the original input vertex index --
+    // the same assumption cgal_to_indexed_triangle_set() above already relies on.
+    std::vector<Vec2f> result(mesh.vertices.size(), Vec2f::Zero());
+    for (vertex_descriptor vd : vertices(cgal_mesh)) {
+        const std::size_t idx = std::size_t(vd);
+        if (idx < result.size()) {
+            const Point_2 &uv = uv_map[vd];
+            result[idx]        = Vec2f(float(uv.x()), float(uv.y()));
+        }
+    }
+    return result;
 }
 
 // /////////////////////////////////////////////////////////////////////////////

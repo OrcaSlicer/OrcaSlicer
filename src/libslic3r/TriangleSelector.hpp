@@ -350,7 +350,14 @@ public:
     // Get facets at a given state. Don't triangulate T-joints.
     indexed_triangle_set get_facets(EnforcerBlockerType state) const;
     // Get facets at a given state. Triangulate T-joints.
-    indexed_triangle_set get_facets_strict(EnforcerBlockerType state) const;
+    // Sub-triangles in `state`, with the *whole* mesh's referenced vertex array (only .indices is
+    // filtered by state, so two calls with different states share one indexing).
+    //
+    // `out_source`, when given, is filled parallel to the returned .indices with the index of the
+    // original mesh triangle each sub-triangle came from. That is what lets a caller carry partial
+    // paint - the pieces of a triangle a brush stroke only partly covered - across a refinement of
+    // the same surface, instead of having to round each source triangle to wholly painted or not.
+    indexed_triangle_set get_facets_strict(EnforcerBlockerType state, std::vector<int> *out_source = nullptr) const;
     // Get edges around the selected area by seed fill.
     std::vector<Vec2i32> get_seed_fill_contour() const;
 

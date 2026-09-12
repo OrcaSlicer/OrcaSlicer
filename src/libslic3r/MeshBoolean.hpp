@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <exception>
+#include <optional>
+#include <vector>
 
 #include <libslic3r/TriangleMesh.hpp>
 #include <Eigen/Geometry>
@@ -73,6 +75,22 @@ bool empty(const CGALMesh &mesh);
 
 // Repair a mesh using CGAL. Returns true on success. Optionally returns a summary of repairs and an error string.
 bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors = nullptr, std::string *error = nullptr);
+
+// Real UV unwrap of an open mesh patch via CGAL's LSCM (Least Squares Conformal Maps) surface
+// parameterization. Returns one UV coordinate per input vertex (same indexing as `mesh.vertices`),
+// or nullopt if `mesh` isn't a single topological disk -- LSCM needs exactly one connected
+// component with exactly one boundary loop, true for a typical single brush stroke/patch but not
+// guaranteed for multiple disconnected painted islands merged into one mesh.
+std::optional<std::vector<Vec2f>> parameterize_lscm(const indexed_triangle_set &mesh);
+
+// Isotropic remeshing (CGAL): rebuilds the mesh so its triangles are close to a uniform target edge
+// length, splitting oversized triangles and collapsing undersized ones. Used to even out a model with
+// wildly varying triangle sizes so texture displacement has a consistent vertex density to work with.
+// Edges whose dihedral angle exceeds `sharp_angle_deg`, and any open border, are held fixed so hard
+// features survive instead of being eroded by the relaxation pass; pass 0 to remesh everything.
+// Returns the input unchanged if remeshing fails (e.g. a non-manifold or self-intersecting input).
+indexed_triangle_set remesh_isotropic(const indexed_triangle_set &mesh, double target_edge_length,
+                                      unsigned n_iterations = 3, double sharp_angle_deg = 40.0);
 }
 
 namespace mcut {
