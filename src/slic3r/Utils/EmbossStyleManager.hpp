@@ -156,7 +156,8 @@ public:
     // Extend font atlas when not in glyph range
     ImFont *get_imgui_font();
     // initialize font range by unique symbols in text
-    ImFont *create_imgui_font(const std::string& text, double scale);
+    // support_backup_fonts: Enable backup fonts for fallback when primary font doesn't support certain characters
+    ImFont *create_imgui_font(const std::string& text, double scale, bool support_backup_fonts = true);
     
     // init truncated names of styles
     void init_trunc_names(float max_width);

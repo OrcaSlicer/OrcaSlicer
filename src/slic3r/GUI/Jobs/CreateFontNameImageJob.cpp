@@ -62,11 +62,25 @@ void CreateFontImageJob::process(Ctl &ctl)
     };
 
     FontProp fp; // create default font parameters
-    ExPolygons shapes = Emboss::text2shapes(font_file_with_cache, text.c_str(), fp, was_canceled);
-
-    // select some character from font e.g. default text
-    if (shapes.empty())
-        shapes = Emboss::text2shapes(font_file_with_cache, default_text.c_str(), fp, was_canceled);
+    ExPolygons shapes;
+    
+    // Try with backup fonts support
+    if (!BackupFonts::backup_fonts.empty()) {
+        auto backup_fn = []() -> std::vector<Emboss::FontFileWithCache> {
+            return BackupFonts::backup_fonts;
+        };
+        shapes = Emboss::text2shapes_with_backup(font_file_with_cache, text.c_str(), fp, 
+                                                   was_canceled, backup_fn);
+        // select some character from font e.g. default text
+        if (shapes.empty())
+            shapes = Emboss::text2shapes_with_backup(font_file_with_cache, default_text.c_str(), fp, 
+                                                      was_canceled, backup_fn);
+    } else {
+        shapes = Emboss::text2shapes(font_file_with_cache, text.c_str(), fp, was_canceled);
+        // select some character from font e.g. default text
+        if (shapes.empty())
+            shapes = Emboss::text2shapes(font_file_with_cache, default_text.c_str(), fp, was_canceled);
+    }
     if (shapes.empty()) {
         m_input.cancel->store(true);
         return;
@@ -164,4 +178,62 @@ void CreateFontImageJob::finalize(bool canceled, std::exception_ptr &)
         << "Generate Preview font('" << m_input.font_name << "' id:" << m_input.index << ") "
         << "with text: '" << m_input.text << "' "
         << "texture_size " << m_input.size.x() << " x " << m_input.size.y();
+}
+
+// BackupFonts implementation
+std::vector<Slic3r::Emboss::FontFileWithCache> BackupFonts::backup_fonts;
+
+void BackupFonts::generate_backup_fonts() {
+    if (backup_fonts.empty()) {
+        std::vector<wxString> font_names;
+#ifdef _WIN32
+        font_names.emplace_back(wxString(L"微软雅黑"));  // Microsoft YaHei for Chinese
+        font_names.emplace_back(wxString(L"宋体"));     // SimSun for Chinese
+        font_names.emplace_back(wxString::FromUTF8("MS Gothic")); // Japanese
+        font_names.emplace_back(wxString::FromUTF8("Malgun Gothic")); // Korean
+        font_names.emplace_back(wxString::FromUTF8("Arial")); // Latin/Arabic
+#endif
+#ifdef __APPLE__
+        font_names.emplace_back(wxString::FromUTF8("PingFang SC")); // Chinese
+        font_names.emplace_back(wxString::FromUTF8("Songti SC"));   // Chinese
+        font_names.emplace_back(wxString::FromUTF8("Hiragino Sans")); // Japanese
+        font_names.emplace_back(wxString::FromUTF8("Apple SD Gothic Neo")); // Korean
+        font_names.emplace_back(wxString::FromUTF8("Arial")); // Latin/Arabic
+#endif
+#ifdef __linux__
+        font_names.emplace_back(wxString(L"宋体"));        // SimSun for Chinese
+        font_names.emplace_back(wxString("Noto Sans CJK SC")); // Chinese
+        font_names.emplace_back(wxString("Noto Sans CJK JP")); // Japanese
+        font_names.emplace_back(wxString("Noto Sans CJK KR")); // Korean
+        font_names.emplace_back(wxString::FromUTF8("DejaVu Sans")); // Latin
+#endif
+        
+        for (const wxString& font_name : font_names) {
+            auto font_with_cache = gener_font_with_cache(font_name, wxFontEncoding::wxFONTENCODING_SYSTEM);
+            if (font_with_cache.has_value()) {
+                backup_fonts.emplace_back(std::move(font_with_cache));
+                BOOST_LOG_TRIVIAL(info) << "Backup font loaded: " << font_name.ToStdString();
+            }
+        }
+    }
+}
+
+Slic3r::Emboss::FontFileWithCache BackupFonts::gener_font_with_cache(
+    const wxString &font_name, const wxFontEncoding &encoding)
+{
+    Emboss::FontFileWithCache font_file_with_cache;
+    if (!wxFontEnumerator::IsValidFacename(font_name))
+        return font_file_with_cache;
+    
+    // Select font
+    wxFont wx_font(wxFontInfo().FaceName(font_name).Encoding(encoding));
+    if (!wx_font.IsOk()) 
+        return font_file_with_cache;
+    
+    std::unique_ptr<Emboss::FontFile> font_file = WxFontUtils::create_font_file(wx_font);
+    if (font_file == nullptr)
+        return font_file_with_cache;
+
+    font_file_with_cache = Emboss::FontFileWithCache(std::move(font_file));
+    return font_file_with_cache;
 }

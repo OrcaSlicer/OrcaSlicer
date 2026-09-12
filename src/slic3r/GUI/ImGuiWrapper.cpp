@@ -2280,13 +2280,14 @@ std::string ImGuiWrapper::trunc(const std::string &text,
 
     std::string_view text_ = text;
     std::string_view result_text = text_.substr(0, count_letter);
-    text_width = calc_text_size(result_text).x;
+    // Use ImGui::CalcTextSize with explicit string length for proper UTF-8 handling
+    text_width = ImGui::CalcTextSize(result_text.data(), result_text.data() + result_text.length()).x;
     if (text_width < allowed_width) {
         // increase letter count
         while (count_letter < text.length()) {
             ++count_letter;
             std::string_view act_text = text_.substr(0, count_letter);
-            text_width = calc_text_size(act_text).x;
+            text_width = ImGui::CalcTextSize(act_text.data(), act_text.data() + act_text.length()).x;
             if (text_width > allowed_width) break;
             result_text = act_text;
         }
@@ -2295,7 +2296,7 @@ std::string ImGuiWrapper::trunc(const std::string &text,
         while (count_letter > 1) {
             --count_letter;
             result_text = text_.substr(0, count_letter);
-            text_width  = calc_text_size(result_text).x;
+            text_width  = ImGui::CalcTextSize(result_text.data(), result_text.data() + result_text.length()).x;
             if (text_width < allowed_width) break;            
         } 
     }

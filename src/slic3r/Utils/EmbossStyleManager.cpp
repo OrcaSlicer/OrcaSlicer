@@ -8,6 +8,7 @@
 #include "WxFontUtils.hpp"
 #include "slic3r/GUI/3DScene.hpp" // ::glsafe
 #include "slic3r/GUI/Jobs/CreateFontStyleImagesJob.hpp"
+#include "slic3r/GUI/Jobs/CreateFontNameImageJob.hpp" // BackupFonts
 #include "slic3r/GUI/ImGuiWrapper.hpp" // check of font ranges
 
 #include <boost/assign.hpp>
@@ -436,7 +437,7 @@ float StyleManager::get_imgui_font_size(const FontProp &prop, const FontFile &fi
     return c1 * std::abs(prop.size_in_mm) / 0.3528f * scale;
 }
 
-ImFont *StyleManager::create_imgui_font(const std::string &text, double scale)
+ImFont *StyleManager::create_imgui_font(const std::string &text, double scale, bool support_backup_fonts)
 {
     // inspiration inside of ImGuiWrapper::init_font
     auto& ff = m_style_cache.font_file;
@@ -474,9 +475,23 @@ ImFont *StyleManager::create_imgui_font(const std::string &text, double scale)
 
     font_config.FontDataOwnedByAtlas = false;
 
+    ImFont *font = nullptr;
     const std::vector<unsigned char> &buffer = *font_file.data;
-    ImFont * font = m_style_cache.atlas.AddFontFromMemoryTTF(
+    font = m_style_cache.atlas.AddFontFromMemoryTTF(
         (void *) buffer.data(), buffer.size(), font_size, &font_config, m_style_cache.ranges.Data);
+
+    // Add backup fonts for unsupported characters
+    if (support_backup_fonts) {
+        font_config.MergeMode = true;
+        for (auto& backup_font : GUI::BackupFonts::backup_fonts) {
+            if (backup_font.has_value()) {
+                const FontFile &backup_font_file = *backup_font.font_file;
+                const std::vector<unsigned char> &backup_buffer = *backup_font_file.data;
+                font = m_style_cache.atlas.AddFontFromMemoryTTF(
+                    (void *) backup_buffer.data(), backup_buffer.size(), font_size, &font_config, m_style_cache.ranges.Data);
+            }
+        }
+    }
 
     unsigned char *pixels;
     int            width, height;

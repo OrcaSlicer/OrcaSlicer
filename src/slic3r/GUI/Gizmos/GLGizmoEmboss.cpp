@@ -13,6 +13,7 @@
 #include "slic3r/GUI/Jobs/EmbossJob.hpp"
 #include "slic3r/GUI/Jobs/CreateFontNameImageJob.hpp"
 #include "slic3r/GUI/Jobs/NotificationProgressIndicator.hpp"
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
@@ -39,6 +40,11 @@
 #include <wx/fontenum.h>
 #include <wx/display.h> // detection of change DPI
 #include <wx/hashmap.h>
+#include <wx/dialog.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/button.h>
+#include <wx/stattext.h>
 
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp> // serialize deserialize facenames
@@ -78,6 +84,90 @@ using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Emboss;
 
 namespace {
+
+// TextEditDialog for IME support
+class TextEditDialog : public DPIDialog
+{
+public:
+    TextEditDialog(wxWindow* parent, const wxString& title, const std::string& current_text)
+        : DPIDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize,
+                   wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+        , m_text(current_text)
+    {
+        SetBackgroundColour(*wxWHITE);
+        SetFont(wxGetApp().normal_font());
+        
+        // Set minimum size for the dialog
+        SetMinSize(wxSize(500, 400));
+
+        wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
+
+        // Add instruction text
+        wxStaticText* info_text = new wxStaticText(this, wxID_ANY, 
+            _(L("Edit your text below.")));
+        info_text->SetFont(Label::Body_14);
+        info_text->SetForegroundColour(wxColour(38, 46, 48));
+        main_sizer->Add(info_text, 0, wxALL | wxEXPAND, 10);
+
+        // Create multiline text control with TextInput-style appearance
+        m_text_ctrl = new wxTextCtrl(this, wxID_ANY, 
+                                     wxString::FromUTF8(m_text.c_str()),
+                                     wxDefaultPosition, wxDefaultSize,
+                                     wxTE_MULTILINE);
+        
+        // Apply TextInput style: font
+        m_text_ctrl->SetFont(Label::Body_14);
+        
+        main_sizer->Add(m_text_ctrl, 1, wxALL | wxEXPAND, 10);
+
+        // Use DialogButtons for consistent button styling
+        auto dlg_btns = new DialogButtons(this, {"Apply", "Cancel"});
+        dlg_btns->GetAPPLY()->Bind(wxEVT_BUTTON, &TextEditDialog::on_ok, this);
+        dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
+        
+        main_sizer->Add(dlg_btns, 0, wxEXPAND | wxALL, 10);
+
+        SetSizer(main_sizer);
+        Layout();
+        
+        // Set initial size
+        SetSize(wxSize(500, 400));
+        
+        // Center the dialog on parent window or screen
+        Centre(wxBOTH);
+        
+        // Focus the text control and select all
+        m_text_ctrl->SetFocus();
+        // m_text_ctrl->SetSelection(-1, -1); // Select all
+        
+        // Apply dark mode styling
+        wxGetApp().UpdateDlgDarkUI(this);
+    }
+
+    std::string get_text() const { return m_text; }
+
+protected:
+    void on_dpi_changed(const wxRect &suggested_rect) override
+    {
+        // Update font for DPI change
+        m_text_ctrl->SetFont(Label::Body_14);
+        
+        // Refresh and fit the dialog
+        Fit();
+        Refresh();
+    }
+
+private:
+    void on_ok(wxCommandEvent& event)
+    {
+        m_text = m_text_ctrl->GetValue().ToUTF8().data();
+        EndModal(wxID_OK);
+    }
+
+    wxTextCtrl* m_text_ctrl;
+    std::string m_text;
+};
+
 // TRN - Title in Undo/Redo stack after rotate with text around emboss axe
 const std::string rotation_snapshot_name = L("Text rotate");
 // NOTE: Translation is made in "m_parent.do_rotate()"
@@ -97,7 +187,7 @@ static const struct Limits
 {
     MinMax<double> emboss{0.01, 1e4}; // in mm
     MinMax<float> size_in_mm{0.1f, 1000.f}; // in mm
-    Limit<float> boldness{{-.5f, .5f}, {-5e5f, 5e5f}}; // in font points
+    Limit<float> boldness{{-.1f, .5f}, {-5e5f, 5e5f}}; // in font points
     Limit<float> skew{{-1.f, 1.f}, {-100.f, 100.f}}; // ration without unit
     MinMax<int>  char_gap{-20000, 20000}; // in font points
     MinMax<int>  line_gap{-20000, 20000}; // in font points
@@ -735,6 +825,9 @@ bool GLGizmoEmboss::on_init()
 
     // initialize text styles
     m_style_manager.init(wxGetApp().app_config);
+
+    // Initialize backup fonts for fallback when primary font doesn't support certain characters
+    BackupFonts::generate_backup_fonts();
 
     // Set rotation gizmo upwardrotate
     m_rotate_gizmo.set_angle(PI / 2);
@@ -1545,6 +1638,10 @@ void GLGizmoEmboss::draw_text_input()
         unsigned int font_index = (cn.has_value()) ? *cn : 0;
         return create_range_text(text, *ff.font_file, font_index, &exist_unknown);
     };
+    auto create_font_check_text = [&]() {
+        std::string primary_font_text = create_range_text_prep();
+        return BackupFonts::backup_fonts.empty() ? primary_font_text : m_text;
+    };
     
     double scale = m_scale_height.has_value() ? *m_scale_height : 1.;
     ImFont *imgui_font = m_style_manager.get_imgui_font();
@@ -1552,7 +1649,7 @@ void GLGizmoEmboss::draw_text_input()
         // try create new imgui font
         double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
         double imgui_scale = scale * screen_scale;
-        m_style_manager.create_imgui_font(create_range_text_prep(), imgui_scale);
+        m_style_manager.create_imgui_font(create_font_check_text(), imgui_scale, true);
         imgui_font = m_style_manager.get_imgui_font();
     }
     bool exist_font = 
@@ -1576,8 +1673,13 @@ void GLGizmoEmboss::draw_text_input()
         };
         if (is_text_empty(m_text)) 
             append_warning(_u8L("Embossed text cannot contain only white spaces."));
-        if (m_text_contain_unknown_glyph)
-            append_warning(_u8L("Text contains character glyph (represented by '?') unknown by font."));
+        if (m_text_contain_unknown_glyph) {
+            if (!BackupFonts::backup_fonts.empty()) {
+                append_warning(_u8L("Some characters are displayed using backup fonts because they are not supported by the selected font."));
+            } else {
+                append_warning(_u8L("Text contains character glyph (represented by '?') unknown by font."));
+            }
+        }
 
         const FontProp &prop = m_style_manager.get_font_prop();
         if (prop.skew.has_value())     append_warning(_u8L("Text input doesn't show font skew."));
@@ -1597,8 +1699,12 @@ void GLGizmoEmboss::draw_text_input()
     // flag for extend font ranges if neccessary
     // ranges can't be extend during font is activ(pushed)
     std::string range_text;
-    ImVec2 input_size(m_gui_cfg->text_size.x, m_gui_cfg->text_size.y);
+    
+    // Reserve space for edit button on the right side
+    float button_space = m_gui_cfg->icon_width + ImGui::GetStyle().ItemSpacing.x;
+    ImVec2 input_size(m_gui_cfg->text_size.x - button_space, m_gui_cfg->text_size.y);
     const ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_AutoSelectAll;
+    
     if (ImGui::InputTextMultiline("##Text", &m_text, input_size, flags)) {
         if (m_style_manager.get_font_prop().per_glyph) {
             unsigned count_lines = get_count_lines(m_text);
@@ -1607,32 +1713,42 @@ void GLGizmoEmboss::draw_text_input()
                 reinit_text_lines(count_lines);         
         }
         process();
-        range_text = create_range_text_prep();
+        range_text = create_font_check_text();
     }
 
     if (exist_font) ImGui::PopFont();
 
-    // warning tooltip has to be with default font
-    if (!warning_tool_tip.empty()) {
-        // Multiline input has hidden window for scrolling
-        const ImGuiWindow *input = ImGui::GetCurrentWindow()->DC.ChildWindows.front();
-        const ImGuiStyle &style = ImGui::GetStyle();
-        float scrollbar_width = (input->ScrollbarY) ? style.ScrollbarSize : 0.f;
-        float scrollbar_height = (input->ScrollbarX) ? style.ScrollbarSize : 0.f;
-
-        if (ImGui::IsItemHovered())
-            m_imgui->tooltip(warning_tool_tip, m_gui_cfg->max_tooltip_width);
-
-        ImVec2 cursor = ImGui::GetCursorPos();
-        float width = ImGui::GetContentRegionAvailWidth();
-        const ImVec2& padding = style.FramePadding;
-        ImVec2 icon_pos(width - m_gui_cfg->icon_width - scrollbar_width + padding.x, 
-                        cursor.y - 2 * m_gui_cfg->icon_width - scrollbar_height - 2*padding.y);  // ORCA fix vertical position
-        
-        ImGui::SetCursorPos(icon_pos);
-        draw(get_icon(m_icons, IconType::exclamation, IconState::hovered));
-        ImGui::SetCursorPos(cursor);
+    // Add Edit button to the right of text input, aligned to center
+    ImGui::SameLine();
+    float button_offset_y = (input_size.y - m_gui_cfg->icon_width) * 0.5f - ImGui::GetStyle().FramePadding.y;
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + button_offset_y);
+    if (draw_button(m_icons, IconType::rename)) {
+        open_text_editor();
     }
+    if (ImGui::IsItemHovered()) {
+        m_imgui->tooltip(_u8L("Open text editor"), m_gui_cfg->max_tooltip_width);
+    }
+
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - button_offset_y);
+
+    // Display warning message below text input with icon and text
+    if (!warning_tool_tip.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange warning color
+        
+        // Draw warning icon
+        const auto& icon = get_icon(m_icons, IconType::exclamation, IconState::hovered);
+        draw(icon);
+        
+        // Draw warning text on the same line
+        ImGui::SameLine();
+        float wrap_pos_x = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+        ImGui::PushTextWrapPos(wrap_pos_x);
+        ImGui::TextWrapped("%s", warning_tool_tip.c_str());
+        ImGui::PopTextWrapPos();
+        
+        ImGui::PopStyleColor();
+    }
+
 
     // NOTE: must be after ImGui::font_pop() 
     //          -> imgui_font has to be unused
@@ -1641,6 +1757,54 @@ void GLGizmoEmboss::draw_text_input()
     if (!range_text.empty() &&
         !ImGuiWrapper::contain_all_glyphs(imgui_font, range_text) )
         m_style_manager.clear_imgui_font();    
+}
+
+void GLGizmoEmboss::open_text_editor()
+{
+    // Get current text
+    std::string current_text = m_text;
+    
+    // Create and show dialog
+    wxString title = _(L("Edit Text"));
+    TextEditDialog dialog(wxGetApp().mainframe, title, current_text);
+    
+    if (dialog.ShowModal() == wxID_OK) {
+        // User clicked Apply - get the new text
+        std::string new_text = dialog.get_text();
+        
+        if (new_text != m_text) {
+            m_text = new_text;
+            
+            // Update text lines if needed
+            if (m_style_manager.get_font_prop().per_glyph) {
+                unsigned count_lines = get_count_lines(m_text);
+                if (count_lines != m_text_lines.get_lines().size()) {
+                    reinit_text_lines(count_lines);
+                }
+            }
+            
+            // Process the text change
+            process();
+            
+            // Prepare range text for font extension
+            auto& ff = m_style_manager.get_font_file_with_cache();
+            if (ff.has_value()) {
+                std::string range_text;
+                {
+                    const auto &cn = m_style_manager.get_font_prop().collection_number;
+                    unsigned int font_index = (cn.has_value()) ? *cn : 0;
+                    std::string primary_font_text = create_range_text(m_text, *ff.font_file, font_index, &m_text_contain_unknown_glyph);
+                    range_text = BackupFonts::backup_fonts.empty() ? primary_font_text : m_text;
+                }
+                if (!range_text.empty()) {
+                    ImFont* imgui_font = m_style_manager.get_imgui_font();
+                    if (imgui_font && !ImGuiWrapper::contain_all_glyphs(imgui_font, range_text)) {
+                        m_style_manager.clear_imgui_font();
+                    }
+                }
+            }
+        }
+    }
 }
 
 // create texture for visualization font face
@@ -2390,18 +2554,13 @@ bool GLGizmoEmboss::draw_italic_button()
     }
 
     std::optional<float> &skew = m_style_manager.get_font_prop().skew;
-    bool is_font_italic = skew.has_value() || WxFontUtils::is_italic(wx_font);
+    bool is_font_italic = skew.has_value();
     if (is_font_italic) {
         // unset italic
         if (clickable(get_icon(m_icons, IconType::italic, IconState::hovered),
                       get_icon(m_icons, IconType::unitalic, IconState::hovered))) {
             skew.reset();
-            if (wx_font.GetStyle() != wxFontStyle::wxFONTSTYLE_NORMAL) {
-                wxFont new_wx_font = wx_font; // copy
-                new_wx_font.SetStyle(wxFontStyle::wxFONTSTYLE_NORMAL);
-                if(!m_style_manager.set_wx_font(new_wx_font))
-                    return false;
-            }
+            m_style_manager.clear_imgui_font();
             return true;
         }
         if (ImGui::IsItemHovered())
@@ -2409,16 +2568,8 @@ bool GLGizmoEmboss::draw_italic_button()
     } else {
         // set italic
         if (draw_button(m_icons, IconType::italic)) {
-            wxFont new_wx_font = wx_font; // copy
-            auto new_ff = WxFontUtils::set_italic(new_wx_font, *ff.font_file);
-            if (new_ff != nullptr) {
-                if(!m_style_manager.set_wx_font(new_wx_font, std::move(new_ff)))
-                    return false;
-            } else {
-                // italic font doesn't exist 
-                // add skew when wxFont can't set it
-                skew = 0.2f;
-            }            
+            skew = 0.2f;
+            m_style_manager.clear_imgui_font();
             return true;
         }
         if (ImGui::IsItemHovered())
@@ -2436,18 +2587,13 @@ bool GLGizmoEmboss::draw_bold_button() {
     }
     
     std::optional<float> &boldness = m_style_manager.get_font_prop().boldness;
-    bool is_font_bold = boldness.has_value() || WxFontUtils::is_bold(wx_font);
+    bool is_font_bold = boldness.has_value();
     if (is_font_bold) {
         // unset bold
         if (clickable(get_icon(m_icons, IconType::bold, IconState::hovered),
                       get_icon(m_icons, IconType::unbold, IconState::hovered))) {
             boldness.reset();
-            if (wx_font.GetWeight() != wxFontWeight::wxFONTWEIGHT_NORMAL) {
-                wxFont new_wx_font = wx_font; // copy
-                new_wx_font.SetWeight(wxFontWeight::wxFONTWEIGHT_NORMAL);
-                if(!m_style_manager.set_wx_font(new_wx_font))
-                    return false;
-            }
+            m_style_manager.clear_imgui_font();
             return true;
         }
         if (ImGui::IsItemHovered())
@@ -2455,17 +2601,16 @@ bool GLGizmoEmboss::draw_bold_button() {
     } else {
         // set bold
         if (draw_button(m_icons, IconType::bold)) {
-            wxFont new_wx_font = wx_font; // copy
-            auto new_ff = WxFontUtils::set_bold(new_wx_font, *ff.font_file);
-            if (new_ff != nullptr) {
-                if(!m_style_manager.set_wx_font(new_wx_font, std::move(new_ff)))
-                    return false;
+            // Calculate default boldness based on font ascent
+            const auto& font_file = m_style_manager.get_font_file_with_cache();
+            if (font_file.has_value()) {
+                const FontProp& fp = m_style_manager.get_font_prop();
+                const FontFile::Info& font_info = get_font_info(*font_file.font_file, fp);
+                boldness = font_info.ascent / 4.f;
             } else {
-                // bold font can't be loaded
-                // set up boldness
                 boldness = 20.f;
-                //font_file->cache.empty();
             }
+            m_style_manager.clear_imgui_font();
             return true;
         }
         if (ImGui::IsItemHovered())
@@ -3305,9 +3450,9 @@ struct FacenamesSerializer
 };
 
 template<class Archive> void save(Archive &archive, wxString const &d)
-{ std::string s(d.ToUTF8().data()); archive(s);}
+{ std::string s = d.utf8_string(); archive(s);}
 template<class Archive> void load(Archive &archive, wxString &d)
-{ std::string s; archive(s); d = s;}
+{ std::string s; archive(s); d = wxString::FromUTF8(s.c_str());}
 template<class Archive> void serialize(Archive &ar, FacenamesSerializer &t, const std::uint32_t version)
 {
     // When performing a load, the version associated with the class
@@ -3358,7 +3503,12 @@ EmbossShape &TextDataBase::create_shape()
     const FontProp &fp = m_text_configuration.style.prop;
     auto was_canceled = [&c = cancel](){ return c->load(); };
 
-    shape.shapes_with_ids = text2vshapes(m_font_file, text_w, fp, was_canceled);
+    // Use backup fonts for fallback when primary font doesn't support certain characters
+    auto backup_font_fn = []() -> std::vector<FontFileWithCache> {
+        return BackupFonts::backup_fonts;
+    };
+
+    shape.shapes_with_ids = text2vshapes_with_backup(m_font_file, text_w, fp, was_canceled, backup_font_fn);
     return shape;
 }
 
@@ -3517,7 +3667,7 @@ bool load(Facenames &facenames) {
 void init_truncated_names(Facenames &face_names, float max_width)
 {
     for (FaceName &face : face_names.faces) {
-        std::string name_str(face.wx_name.ToUTF8().data());
+        std::string name_str = face.wx_name.utf8_string();
         face.name_truncated = ImGuiWrapper::trunc(name_str, max_width);
     }
     face_names.has_truncated_names = true;
@@ -3811,4 +3961,5 @@ GuiCfg create_gui_configuration()
 
     return cfg;
 }
+
 } // namespace
