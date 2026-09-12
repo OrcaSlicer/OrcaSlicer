@@ -55,6 +55,8 @@ public:
 private:
     std::function<void()> m_prepare_navigation;
     void show_input_hint(const wxString& message, wxWindow* focus = nullptr);
+    void initialize_page();
+    void on_first_visible_idle(wxIdleEvent& event);
     void build_page();
     wxWindow* build_workflow_panel(wxWindow* parent);
     wxWindow* build_preview_panel(wxWindow* parent);
@@ -109,6 +111,9 @@ private:
     wxString current_style_label() const;
     std::string current_generation_profile() const;
     wxString current_generation_profile_label() const;
+    AIModelGenerationClient::GenerationOptions current_generation_options() const;
+    bool generation_options_valid() const;
+    wxString generation_options_summary(bool image_mode) const;
     int current_face_limit() const;
     AIModelGenerationClient::ImagePrintSettings current_print_settings() const;
     bool has_image_input() const;
@@ -268,6 +273,10 @@ private:
     wxPanel*        m_custom_style_panel { nullptr };
     wxTextCtrl*     m_custom_style { nullptr };
     wxChoice*       m_quality { nullptr };
+    wxChoice*       m_geometry_quality { nullptr };
+    wxChoice*       m_texture_quality { nullptr };
+    wxChoice*       m_output_format { nullptr };
+    wxStaticText*   m_generation_cost { nullptr };
     wxButton*       m_choose_image { nullptr };
     wxButton*       m_clear_image { nullptr };
     wxStaticText*   m_selected_image { nullptr };
@@ -413,6 +422,7 @@ private:
     size_t m_job_palette_color_count { Slic3r::AI::kLegacyDefaultTargetPaletteColors };
     int m_job_face_limit { 1000000 };
     std::string m_job_generation_profile { "quality" };
+    AIModelGenerationClient::GenerationOptions m_job_generation_options;
     std::string m_job_id;
     std::string m_job_phase;
     std::string m_job_provider_name;
@@ -436,6 +446,9 @@ private:
     bool m_model_preview_ready { false };
     bool m_library_model_loaded { false };
     bool m_service_available { false };
+    bool m_service_availability_known { false };
+    bool m_page_initialized { false };
+    bool m_library_refresh_pending { true };
     bool m_restore_checked { false };
     bool m_restoring_input { false };
     bool m_shutdown { false };

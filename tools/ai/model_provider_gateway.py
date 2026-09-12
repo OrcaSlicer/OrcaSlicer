@@ -15,6 +15,7 @@ try:
         create_text_task,
         download_task_artifact,
         upload_image,
+        validate_generation_options,
         wait_for_task,
     )
 except ImportError:
@@ -27,6 +28,7 @@ except ImportError:
         create_text_task,
         download_task_artifact,
         upload_image,
+        validate_generation_options,
         wait_for_task,
     )
 
@@ -55,6 +57,8 @@ class ModelTaskRequest:
     image_paths: Mapping[str, Path] | None = None
     face_limit: int = 1000000
     generation_profile: str = "quality"
+    geometry_quality: str | None = None
+    texture_quality: str = "standard"
 
 
 @dataclass(frozen=True)
@@ -251,7 +255,7 @@ class ModelProviderGateway:
             )
         if request.face_limit != _GENERATION_PROFILE_FACE_LIMITS[request.generation_profile] and not (
             request.generation_profile == "quality" and request.face_limit == 2000000
-        ):  # Retain frozen requests; the adapter caps their standard-geometry payload.
+        ):  # Legacy callers retain their capped standard-geometry payload.
             raise ProviderGatewayError(
                 "The model face target does not match the selected generation profile.",
                 code="invalid_model_request",
@@ -259,6 +263,11 @@ class ModelProviderGateway:
                 provider="tripo",
                 operation="model_generation",
             )
+        try:
+            validate_generation_options(request.face_limit, request.geometry_quality, request.texture_quality)
+        except TripoError as error:
+            raise ProviderGatewayError(str(error), code="invalid_model_request", category="validation",
+                                       provider="tripo", operation="model_generation") from None
         prompt = request.prompt.strip() if isinstance(request.prompt, str) else ""
         image_path = Path(request.image_path) if request.image_path is not None else None
         image_paths = dict(request.image_paths) if isinstance(request.image_paths, Mapping) else {}
@@ -306,20 +315,23 @@ class ModelProviderGateway:
                 operation="model_generation",
             )
         authorization.consume("tripo", "model_generation")
+        options = {}
+        if request.geometry_quality is not None or request.texture_quality != "standard":
+            options = {"geometry_quality": request.geometry_quality, "texture_quality": request.texture_quality}
         try:
             if source == "text":
-                task_id = self._create_text_task(prompt, request.face_limit, request.generation_profile)
+                task_id = self._create_text_task(prompt, request.face_limit, request.generation_profile, **options)
             elif source == "image":
                 assert image_path is not None
                 token = self._upload_image(image_path)
-                task_id = self._create_image_task(token, request.face_limit, request.generation_profile)
+                task_id = self._create_image_task(token, request.face_limit, request.generation_profile, **options)
             else:
                 tokens = {
                     view: self._upload_image(image_paths[view])
                     for view in ("front", "left", "back", "right")
                 }
                 task_id = self._create_multiview_task(
-                    tokens, request.face_limit, request.generation_profile
+                    tokens, request.face_limit, request.generation_profile, **options
                 )
         except TripoError as error:
             raise _classify_tripo_error(error, "model_generation", creation_ambiguous=True) from None

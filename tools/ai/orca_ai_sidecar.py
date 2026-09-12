@@ -128,7 +128,7 @@ from printable_palette import (
     assign_palette_roles,
     normalize_palette_color_count,
 )
-from tripo_client import TripoError
+from tripo_client import TripoError, validate_generation_options
 
 _MODEL_PROVIDER_GATEWAY = ModelProviderGateway()
 
@@ -458,6 +458,9 @@ class Job:
     custom_style: str = ""
     face_limit: int = DEFAULT_MODEL_FACE_LIMIT
     generation_profile: str = DEFAULT_GENERATION_PROFILE
+    geometry_quality: str | None = None
+    texture_quality: str = "standard"
+    output_format: str = "glb"
     user_prompt: str = ""
     prepared_prompt: str = ""
     input_path: Path | None = None
@@ -896,6 +899,19 @@ def _normalize_generation_profile(value: Any) -> str:
     return value
 
 
+def _generation_options(payload: dict[str, Any], face_limit: int) -> tuple[str | None, str, str]:
+    geometry = payload.get("geometry_quality")
+    texture = payload.get("texture_quality", "standard")
+    output = payload.get("output_format", "glb")
+    try:
+        validate_generation_options(face_limit, geometry, texture)
+    except TripoError as exc:
+        raise RequestError("invalid_generation_options", str(exc), 400) from None
+    if output not in ("glb", "obj"):
+        raise RequestError("invalid_generation_options", "Output format must be glb or obj.", 400)
+    return geometry, texture, output
+
+
 def _validate_face_target(face_count: int, face_limit: int) -> str:
     maximum = min(MAX_MODEL_FACES, math.ceil(face_limit * MAX_MODEL_FACE_RATIO))
     if face_count > maximum:
@@ -1071,7 +1087,7 @@ def _copy_job_file(source: Path | None, job: Job, name: str) -> Path | None:
         ) from None
 
 
-def _persist_job(job: Job, *, touch: bool = True) -> None:
+def _persist_job(job: Job, *, touch: bool = True, required: bool = False) -> None:
     if touch:
         job.updated_at = time.time()
     payload = {
@@ -1090,6 +1106,9 @@ def _persist_job(job: Job, *, touch: bool = True) -> None:
         "custom_style": job.custom_style,
         "face_limit": job.face_limit,
         "generation_profile": job.generation_profile,
+        "geometry_quality": job.geometry_quality,
+        "texture_quality": job.texture_quality,
+        "output_format": job.output_format,
         "user_prompt": "" if job.source == "image" and job.user_prompt == DEFAULT_IMAGE_INSTRUCTION else job.user_prompt,
         "prepared_prompt": job.prepared_prompt,
         "input_path": _job_path_value(job, job.input_path),
@@ -1130,6 +1149,8 @@ def _persist_job(job: Job, *, touch: bool = True) -> None:
             temporary.unlink(missing_ok=True)
         except OSError:
             pass
+        if required:
+            raise TripoError("The paid conversion intent could not be saved; no conversion was submitted.") from None
 
 
 def _load_job(directory: Path) -> Job | None:
@@ -1153,6 +1174,7 @@ def _load_job(directory: Path) -> Job | None:
         style = _normalize_style(payload.get("style"))
         custom_style = _normalize_custom_style(payload.get("custom_style"), style)
         face_limit = _normalize_face_limit(payload.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
+        geometry_quality, texture_quality, output_format = _generation_options(payload, face_limit)
         raw_generation_profile = payload.get("generation_profile")
         generation_profile = _normalize_generation_profile(raw_generation_profile) if raw_generation_profile is not None else \
             ("quality" if face_limit >= 500000 else "performance")
@@ -1176,6 +1198,9 @@ def _load_job(directory: Path) -> Job | None:
         custom_style=custom_style,
         face_limit=face_limit,
         generation_profile=generation_profile,
+        geometry_quality=geometry_quality,
+        texture_quality=texture_quality,
+        output_format=output_format,
         print_settings=print_settings,
     )
     job.state = str(payload.get("state", "failed"))
@@ -1554,6 +1579,9 @@ def _public_job(job: Job) -> dict[str, Any]:
         "custom_style": job.custom_style,
         "face_limit": job.face_limit,
         "generation_profile": job.generation_profile,
+        "geometry_quality": job.geometry_quality,
+        "texture_quality": job.texture_quality,
+        "output_format": job.output_format,
         "state": job.state,
         "phase": job.phase,
         "message": job.message,
@@ -6184,10 +6212,10 @@ def _analysis_artifact(artifact: Path) -> Path:
 
 def _download_generation_artifact(job: Job, generation_id: str, attempt_number: int = 1, resume: bool = False) -> Path:
     existing = job.attempts[attempt_number - 1] if len(job.attempts) >= attempt_number else {}
-    # Resume a conversion that was already submitted by an older client. New
-    # tasks always consume the generation result and never create a conversion.
-    if existing.get("conversion_task_id"):
-        return _download_conversion(job, generation_id, "obj", attempt_number, True)
+    # GLB consumes the original generation result. OBJ explicitly includes one
+    # basic provider conversion; frozen conversions keep their existing task ID.
+    if existing.get("conversion_task_id") or job.output_format == "obj":
+        return _download_conversion(job, generation_id, "obj", attempt_number, resume)
     directory = job.directory / f"attempt-{attempt_number:02d}"
     directory.mkdir(exist_ok=True)
     candidate = directory / "model.glb"
@@ -6245,13 +6273,21 @@ def _download_conversion(
         job.message = f"Converting generated geometry to {format_name.upper()}."
         job.progress = 75
         _persist_job(job)
-    existing = job.attempts[attempt_number - 1] if resume and len(job.attempts) >= attempt_number else {}
+    existing = job.attempts[attempt_number - 1] if len(job.attempts) >= attempt_number else {}
     conversion_id = existing.get("conversion_task_id", "")
+    if not conversion_id:
+        if job.output_format != "obj" or existing.get("conversion_submission_started"):
+            raise TripoError("Conversion submission has no confirmed task ID; it will not be submitted again.")
+        _stop_boundary(job)
+        # Persist before the paid POST. An interrupted response must never create
+        # another conversion during recovery, even if the server accepted it.
+        _record_attempt(job, attempt_number, conversion_submission_started=True)
+        _persist_job(job, required=True)
     conversion_ref = _MODEL_PROVIDER_GATEWAY.start_or_reuse_conversion(
         generation_id,
         format_name,
         existing_task_id=conversion_id if isinstance(conversion_id, str) else "",
-        allow_create=True,
+        allow_create=job.output_format == "obj" and not conversion_id,
     )
     conversion_id = conversion_ref.task_id
     if not conversion_ref.reused:
@@ -7664,6 +7700,8 @@ def _generate_job(
                     image_paths=multiview_paths,
                     face_limit=job.face_limit,
                     generation_profile=job.generation_profile,
+                    geometry_quality=job.geometry_quality,
+                    texture_quality=job.texture_quality,
                 ),
                 existing_task_id=generation_id,
                 authorization=authorization,
@@ -8248,7 +8286,10 @@ class Handler(BaseHTTPRequestHandler):
                             "sources": ["text", "image"],
                             "styles": list(STYLE_IDS),
                             "artifact_formats": ["glb", "obj"],
-                            "face_limits": sorted(set(GENERATION_PROFILE_FACE_LIMITS.values())),
+                            "face_limits": [300000, 1000000, 2000000],
+                            "geometry_qualities": ["standard", "detailed"],
+                            "texture_qualities": ["standard", "detailed", "extreme"],
+                            "output_formats": ["glb", "obj"],
                             "default_face_limit": GENERATION_PROFILE_FACE_LIMITS[DEFAULT_GENERATION_PROFILE],
                             "generation_profiles": list(GENERATION_PROFILES),
                             "default_generation_profile": DEFAULT_GENERATION_PROFILE,
@@ -8596,12 +8637,13 @@ class Handler(BaseHTTPRequestHandler):
         job = self._get_job(job_id)
         if job is None:
             raise RequestError("job_not_found", "Model job not found.", 404)
-        if "generation_profile" in request:
+        if "generation_profile" in request and "face_limit" not in request:
             generation_profile = _normalize_generation_profile(request.get("generation_profile"))
             face_limit = GENERATION_PROFILE_FACE_LIMITS[generation_profile]
         else:
             face_limit = _normalize_face_limit(request.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
             generation_profile = "quality" if face_limit >= 500000 else "performance"
+        geometry_quality, texture_quality, output_format = _generation_options(request, face_limit)
         with _JOBS_LOCK:
             if job.state != "awaiting_confirmation":
                 raise RequestError("invalid_job_state", "Job is not awaiting confirmation.", 409)
@@ -8630,6 +8672,9 @@ class Handler(BaseHTTPRequestHandler):
             job.prepared_prompt = prepared_prompt if job.source == "text" else ""
             job.face_limit = face_limit
             job.generation_profile = generation_profile
+            job.geometry_quality = geometry_quality
+            job.texture_quality = texture_quality
+            job.output_format = output_format
             job.state = "queued"
             job.phase = "generating"
             job.message = "Generation queued."
@@ -8730,6 +8775,9 @@ class Handler(BaseHTTPRequestHandler):
             child.prepared_prompt = reference_job.prepared_prompt
             child.face_limit = geometry_job.face_limit
             child.generation_profile = geometry_job.generation_profile
+            child.geometry_quality = geometry_job.geometry_quality
+            child.texture_quality = geometry_job.texture_quality
+            child.output_format = geometry_job.output_format
             child.palette_recommendation = json.loads(json.dumps(reference_job.palette_recommendation))
             child.palette_recommendation_confirmed = reference_job.palette_recommendation_confirmed
             child.image_metrics = json.loads(json.dumps(reference_job.image_metrics))

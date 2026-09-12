@@ -39,6 +39,8 @@ std::string normalize_endpoint(std::string endpoint)
 
 std::string error_message(const std::string& body, const std::string& error, unsigned status)
 {
+    if (status == 401)
+        return "A valid OrcaSlicer AI session is required.";
     if (!error.empty()) {
         if (error.find("connect") != std::string::npos || error.find("Connection") != std::string::npos)
             return "AI sidecar is not reachable.";
@@ -469,12 +471,15 @@ void AIModelGenerationClient::confirm_palette(const std::string& job_id, const s
 }
 
 void AIModelGenerationClient::generate(const std::string& job_id, const std::string& prepared_prompt,
-                                       const std::vector<std::string>& palette, const std::string& generation_profile,
+                                       const std::vector<std::string>& palette, const GenerationOptions& options,
                                        StatusFn on_complete, ErrorFn on_error)
 {
     post_json("/v1/orcaslicer/model-jobs/" + job_id + "/generate",
               json::object({ { "prepared_prompt", prepared_prompt }, { "palette", palette },
-                             { "generation_profile", generation_profile } }),
+                             { "face_limit", options.face_limit },
+                             { "geometry_quality", options.geometry_quality },
+                             { "texture_quality", options.texture_quality },
+                             { "output_format", options.output_format } }),
               std::move(on_complete), std::move(on_error));
 }
 
@@ -739,6 +744,11 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
     status.progress = std::clamp(job.value("progress", 0), 0, 100);
     status.face_limit = job.value("face_limit", 1000000);
     status.generation_profile = job.value("generation_profile", std::string("quality"));
+    status.generation_options.face_limit = status.face_limit;
+    if (job.contains("geometry_quality") && job["geometry_quality"].is_string())
+        status.generation_options.geometry_quality = job["geometry_quality"].get<std::string>();
+    status.generation_options.texture_quality = job.value("texture_quality", std::string("standard"));
+    status.generation_options.output_format = job.value("output_format", std::string("glb"));
     status.style = job.value("style", std::string());
     status.custom_style = job.value("custom_style", std::string());
     status.updated_at = job.value("updated_at", 0.0);

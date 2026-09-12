@@ -144,6 +144,14 @@ public:
         std::string              confidence;
     };
 
+    struct GenerationOptions
+    {
+        int face_limit { 1000000 };
+        std::string geometry_quality { "standard" };
+        std::string texture_quality { "standard" };
+        std::string output_format { "glb" };
+    };
+
     struct JobStatus
     {
         std::string id;
@@ -156,6 +164,7 @@ public:
         int         progress { 0 };
         int         face_limit { 1000000 };
         std::string generation_profile { "quality" };
+        GenerationOptions generation_options;
         std::string style;
         std::string custom_style;
         size_t      palette_color_count { Slic3r::AI::kLegacyDefaultTargetPaletteColors };
@@ -248,7 +257,7 @@ public:
     void confirm_palette(const std::string& job_id, const std::vector<std::string>& palette,
                          const PaletteRoles& palette_roles, StatusFn on_complete, ErrorFn on_error);
     void generate(const std::string& job_id, const std::string& prepared_prompt,
-                  const std::vector<std::string>& palette, const std::string& generation_profile,
+                  const std::vector<std::string>& palette, const GenerationOptions& options,
                   StatusFn on_complete, ErrorFn on_error);
     void retexture(const std::string& reference_job_id, const std::string& geometry_job_id,
                    StatusFn on_complete, ErrorFn on_error);

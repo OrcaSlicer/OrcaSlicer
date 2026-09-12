@@ -91,7 +91,9 @@ bool is_transient_sidecar_poll_error(const std::string& error)
 {
     return error.find("AI sidecar is not reachable") != std::string::npos ||
            error.find("AI sidecar request timed out") != std::string::npos ||
-           error.find("AI sidecar request failed") != std::string::npos;
+           error.find("AI sidecar request failed") != std::string::npos ||
+           error == "A valid OrcaSlicer AI session is required." ||
+           error == "Model generation request failed with HTTP 401.";
 }
 
 std::string new_request_id()

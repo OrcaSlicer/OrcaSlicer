@@ -249,6 +249,9 @@ def new_job(source, prepared_prompt, palette, palette_color_count=None):
         "custom_style": "",
         "face_limit": DEFAULT_MODEL_FACE_LIMIT,
         "generation_profile": DEFAULT_GENERATION_PROFILE,
+        "geometry_quality": None,
+        "texture_quality": "standard",
+        "output_format": "glb",
         "palette": list(palette),
         "palette_roles": {},
         "palette_color_count": normalize_palette_color_count(
@@ -326,6 +329,9 @@ def public_job(job):
         "custom_style": job["custom_style"],
         "face_limit": job["face_limit"],
         "generation_profile": job["generation_profile"],
+        "geometry_quality": job.get("geometry_quality"),
+        "texture_quality": job.get("texture_quality", "standard"),
+        "output_format": job.get("output_format", "glb"),
         "palette": list(job["palette"]),
         "palette_roles": dict(job["palette_roles"]),
         "palette_color_count": job["palette_color_count"],
@@ -414,7 +420,10 @@ class Handler(BaseHTTPRequestHandler):
                         ],
                         "style_recommendation": {"available": True, "local_only": True},
                         "artifact_formats": ["glb", "obj"],
-                        "face_limits": sorted(set(GENERATION_PROFILE_FACE_LIMITS.values())),
+                        "face_limits": [300000, 1000000, 2000000],
+                        "geometry_qualities": ["standard", "detailed"],
+                        "texture_qualities": ["standard", "detailed", "extreme"],
+                        "output_formats": ["glb", "obj"],
                         "default_face_limit": GENERATION_PROFILE_FACE_LIMITS[DEFAULT_GENERATION_PROFILE],
                         "generation_profiles": list(GENERATION_PROFILES),
                         "default_generation_profile": DEFAULT_GENERATION_PROFILE,
@@ -673,12 +682,19 @@ class Handler(BaseHTTPRequestHandler):
             request = self.read_json()
             prepared_prompt = text_field(request.get("prepared_prompt", ""), "prepared_prompt", allow_empty=True)
             palette = normalize_palette(request.get("palette"))
-            if "generation_profile" in request:
+            if "generation_profile" in request and "face_limit" not in request:
                 generation_profile = normalize_generation_profile(request.get("generation_profile"))
                 face_limit = GENERATION_PROFILE_FACE_LIMITS[generation_profile]
             else:
                 face_limit = normalize_face_limit(request.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
                 generation_profile = "quality" if face_limit >= 500000 else "performance"
+            geometry = request.get("geometry_quality")
+            texture = request.get("texture_quality", "standard")
+            output = request.get("output_format", "glb")
+            if geometry not in (None, "standard", "detailed") or texture not in ("standard", "detailed", "extreme") or output not in ("obj", "glb"):
+                raise ValueError("Invalid generation options")
+            if geometry == "standard" and face_limit == 2000000:
+                raise ValueError("The 2-million-face target requires detailed geometry")
         except Exception as exc:
             self.model_error("invalid_request", str(exc), 400)
             return
@@ -703,6 +719,9 @@ class Handler(BaseHTTPRequestHandler):
                 prepared_prompt=prepared_prompt,
                 face_limit=face_limit,
                 generation_profile=generation_profile,
+                geometry_quality=geometry,
+                texture_quality=texture,
+                output_format=output,
                 artifact=empty_artifact(),
                 _stage_started=time.monotonic(),
                 _status_calls=0,

@@ -19,6 +19,18 @@
 using Slic3r::GUI::AIModelGenerationClient;
 using namespace Slic3r::GUI::ModelGenerationPresentation;
 
+TEST_CASE("sidecar restart authentication is recoverable without retrying provider failures",
+          "[ModelGenerationPresentation][SidecarRecovery]")
+{
+    CHECK(is_transient_sidecar_poll_error("AI sidecar is not reachable."));
+    CHECK(is_transient_sidecar_poll_error("AI sidecar request timed out."));
+    CHECK(is_transient_sidecar_poll_error("A valid OrcaSlicer AI session is required."));
+    CHECK(is_transient_sidecar_poll_error("Model generation request failed with HTTP 401."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Model job not found."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Tripo authentication failed."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Model generation request failed with HTTP 400."));
+}
+
 namespace {
 
 class ScopedEnvironmentValue

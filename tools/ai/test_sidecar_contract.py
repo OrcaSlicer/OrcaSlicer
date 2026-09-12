@@ -571,7 +571,7 @@ class SidecarHealthContractTests(unittest.TestCase):
             {"available": True, "local_only": True},
         )
         self.assertEqual(generation["artifact_formats"], ["glb", "obj"])
-        self.assertEqual(generation["face_limits"], [300000, 1000000])
+        self.assertEqual(generation["face_limits"], [300000, 1000000, 2000000])
         self.assertEqual(generation["default_face_limit"], 1000000)
         self.assertEqual(generation["generation_profiles"], ["quality", "performance"])
         self.assertEqual(generation["default_generation_profile"], "quality")

@@ -103,32 +103,54 @@ ModelGenerationPanel::ModelGenerationPanel(wxWindow* parent, AI::IModelArtifactC
     , m_client(AISidecarClient::default_endpoint())
     , m_poll_timer(this, POLL_TIMER_ID)
 {
-    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: build page";
     SetBackgroundColour(*wxWHITE);
-    build_page();
-    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: refresh palette";
-    refresh_palette();
-    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: load library entries";
-    load_library_entries();
-    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: bind events";
     Bind(wxEVT_TIMER, &ModelGenerationPanel::on_poll, this, POLL_TIMER_ID);
+    // A tab may be selected before the frame is shown. Idle covers that first
+    // visibility transition without constructing the hidden page at startup.
+    Bind(wxEVT_IDLE, &ModelGenerationPanel::on_first_visible_idle, this);
     Bind(wxEVT_SHOW, [this](wxShowEvent& event) {
         if (event.IsShown()) {
-            refresh_controls();
-            if (m_model_preview_ready && m_model_preview != nullptr) {
-                wxGetApp().CallAfter([this]() {
-                    if (!m_shutdown && m_model_preview != nullptr)
-                        m_model_preview->refresh();
-                });
-            }
+            wxWeakRef<ModelGenerationPanel> weak(this);
+            wxGetApp().CallAfter([weak] {
+                if (!weak || weak->m_shutdown || !weak->IsShownOnScreen()) return;
+                if (!weak->m_page_initialized) {
+                    weak->initialize_page();
+                    return;
+                }
+                weak->refresh_controls();
+                weak->restore_latest_job();
+                if (weak->m_library_refresh_pending) weak->load_library_entries();
+                if (weak->m_model_preview_ready && weak->m_model_preview != nullptr)
+                    weak->m_model_preview->refresh();
+            });
         }
         event.Skip();
     });
+    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: initialization deferred until visible";
+}
+
+void ModelGenerationPanel::on_first_visible_idle(wxIdleEvent& event)
+{
+    initialize_page();
+    event.Skip();
+}
+
+void ModelGenerationPanel::initialize_page()
+{
+    if (m_shutdown || m_page_initialized || !IsShownOnScreen()) return;
+    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: build visible page";
+    build_page();
+    m_page_initialized = true;
+    Unbind(wxEVT_IDLE, &ModelGenerationPanel::on_first_visible_idle, this);
     m_status->SetLabel(_L("正在检查本地 3D 生成服务..."));
     m_result_summary->SetLabel(_L("本地服务就绪后即可使用 3D 生成功能。"));
-    refresh_controls();
-    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: constructor complete";
+    if (m_service_availability_known)
+        set_service_availability(m_service_available);
+    else
+        refresh_controls();
     refresh_ai_appearance(this);
+    Layout();
+    BOOST_LOG_TRIVIAL(info) << "AI model generation panel: visible page initialized";
 }
 
 ModelGenerationPanel::~ModelGenerationPanel()
@@ -141,17 +163,16 @@ void ModelGenerationPanel::set_service_availability(bool available, const std::s
     if (m_shutdown)
         return;
     m_service_available = available;
+    m_service_availability_known = true;
+    if (!available && !message.empty())
+        BOOST_LOG_TRIVIAL(warning) << "AI model generation service unavailable: " << message;
+    if (!m_page_initialized) return;
     if (available && !m_busy) {
         m_status->SetLabel(_L("本地 3D 生成服务已就绪。"));
         m_result_summary->SetLabel(_L("输入描述、选择参考图，或同时提供两者即可开始。"));
         update_workflow();
-        if (!m_restore_checked && m_job_id.empty()) {
-            m_restore_checked = true;
-            restore_latest_job();
-        }
+        restore_latest_job();
     } else if (!m_busy) {
-        if (!message.empty())
-            BOOST_LOG_TRIVIAL(warning) << "AI model generation service unavailable: " << message;
         m_status->SetLabel(_L("本地生成服务未启动。点击“重新检测服务”即可恢复。"));
         m_result_summary->SetLabel(_L("服务恢复后会自动载入最近任务，当前本地模型不会丢失。"));
     }
@@ -174,8 +195,10 @@ void ModelGenerationPanel::show_input_hint(const wxString& message, wxWindow* fo
 
 void ModelGenerationPanel::restore_latest_job()
 {
-    if (m_shutdown || !m_service_available || !m_job_id.empty())
+    if (m_shutdown || !m_page_initialized || !IsShownOnScreen() ||
+        !m_service_available || m_restore_checked || !m_job_id.empty())
         return;
+    m_restore_checked = true;
     const uint64_t sequence = ++m_sequence;
     wxWeakRef<ModelGenerationPanel> weak(this);
     m_client.get_latest(
@@ -185,9 +208,17 @@ void ModelGenerationPanel::restore_latest_job()
                 if (weak) weak->restore_job(std::move(status), sequence);
             });
         },
-        [weak](std::string error) {
+        [weak, sequence](std::string error) {
             if (!weak) return;
             BOOST_LOG_TRIVIAL(warning) << "Unable to restore the latest generated-model job: " << error;
+            wxGetApp().CallAfter([weak, sequence, error = std::move(error)] {
+                if (!weak || weak->m_shutdown || sequence != weak->m_sequence || !weak->m_job_id.empty()) return;
+                if (is_transient_sidecar_poll_error(error)) {
+                    weak->m_restore_checked = false;
+                    weak->set_service_availability(false, error);
+                    if (weak->m_service_retry_handler) weak->m_service_retry_handler();
+                }
+            });
         });
 }
 
@@ -225,6 +256,7 @@ void ModelGenerationPanel::restore_job(AIModelGenerationClient::JobStatus status
     m_meaningful_subject_color_count = status.meaningful_subject_color_count;
     m_job_print_settings = status.print_settings;
     m_job_face_limit = status.face_limit;
+    m_job_generation_options = status.generation_options;
     m_job_generation_profile = status.generation_profile == "performance" ? "performance" : "quality";
     m_job_prompt = wxString::FromUTF8(status.user_prompt);
     if (m_prompt != nullptr)
@@ -244,8 +276,12 @@ void ModelGenerationPanel::restore_job(AIModelGenerationClient::JobStatus status
         m_palette_recommendation_confirmed = !status.palette.empty();
     }
     if (m_quality != nullptr) {
-        m_quality->SetSelection(m_job_generation_profile == "performance" ? 1 : 0);
+        m_quality->SetSelection(status.face_limit == 2000000 ? 2 : status.face_limit <= 300000 ? 0 : 1);
     }
+    if (m_geometry_quality) m_geometry_quality->SetSelection(status.generation_options.geometry_quality == "detailed" ? 1 : 0);
+    if (m_texture_quality) m_texture_quality->SetSelection(status.generation_options.texture_quality == "extreme" ? 2 :
+                                                         status.generation_options.texture_quality == "detailed" ? 1 : 0);
+    if (m_output_format) m_output_format->SetSelection(status.generation_options.output_format == "obj" ? 1 : 0);
     if (m_print_width != nullptr) m_print_width->SetValue(status.print_settings.width_mm);
     if (m_nozzle_size != nullptr) m_nozzle_size->SetValue(status.print_settings.nozzle_mm);
     if (m_line_width != nullptr) m_line_width->SetValue(status.print_settings.line_width_mm);
@@ -710,17 +746,38 @@ wxWindow* ModelGenerationPanel::build_workflow_panel(wxWindow* parent)
     auto* model_settings_sizer = new wxBoxSizer(wxVERTICAL);
     model_settings_sizer->Add(section_label(m_model_settings_panel, _L("3D 生成设置")), 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     auto* quality_row = new wxBoxSizer(wxHORIZONTAL);
-    auto* quality_label = new wxStaticText(m_model_settings_panel, wxID_ANY, _L("生成策略"));
+    auto* quality_label = new wxStaticText(m_model_settings_panel, wxID_ANY, _L("目标面数"));
     wxArrayString quality_levels;
-    quality_levels.Add(_L("高质量（推荐）"));
-    quality_levels.Add(_L("高性能"));
+    quality_levels.Add(_L("30 万面"));
+    quality_levels.Add(_L("100 万面（推荐）"));
+    quality_levels.Add(_L("200 万面（需精细几何）"));
     m_quality = new wxChoice(m_model_settings_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, quality_levels);
-    m_quality->SetSelection(0);
+    // The workflow sidebar has a bounded width. Let the sizer shrink choices
+    // instead of growing the scrolled content beyond its visible right edge.
+    m_quality->SetMinSize(wxSize(1, -1));
+    m_quality->SetSelection(1);
     m_quality->SetToolTip(
-        _L("高质量：100 万面目标、标准几何和标准纹理。高性能：30 万面目标，缩短处理时间。两种模式均使用已确认的 AI 设计图，不自动裁切。"));
+        _L("面数是生成目标，实际结果可能不同。200 万面需 Tripo v3.1 精细几何；更多面数会增加下载、预览和导入耗时。"));
     quality_row->Add(quality_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
     quality_row->Add(m_quality, 1, wxALIGN_CENTER_VERTICAL);
     model_settings_sizer->Add(quality_row, 0, wxEXPAND);
+    auto add_option = [&](const wxString& label, const wxArrayString& choices) {
+        auto* row = new wxBoxSizer(wxHORIZONTAL);
+        row->Add(new wxStaticText(m_model_settings_panel, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+        auto* choice = new wxChoice(m_model_settings_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
+        choice->SetMinSize(wxSize(1, -1));
+        choice->SetSelection(0);
+        row->Add(choice, 1, wxALIGN_CENTER_VERTICAL);
+        model_settings_sizer->Add(row, 0, wxEXPAND | wxTOP, FromDIP(6));
+        return choice;
+    };
+    m_geometry_quality = add_option(_L("几何"), {_L("标准（+0 积分）"), _L("精细（+20 积分）")});
+    m_texture_quality = add_option(_L("纹理"), {_L("标准（+0 积分）"), _L("高清（+10 积分）"), _L("8K（+20 积分）")});
+    m_output_format = add_option(_L("格式"), {_L("GLB（+0 积分）"), _L("OBJ（转换 +5 积分）")});
+    m_generation_cost = new wxStaticText(m_model_settings_panel, wxID_ANY, wxEmptyString,
+                                         wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
+    m_generation_cost->SetMinSize(wxSize(1, -1));
+    model_settings_sizer->Add(m_generation_cost, 0, wxEXPAND | wxTOP, FromDIP(8));
     m_model_settings_panel->SetSizer(model_settings_sizer);
     sizer->Insert(0, m_model_settings_panel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
@@ -814,6 +871,8 @@ wxWindow* ModelGenerationPanel::build_workflow_panel(wxWindow* parent)
     }
     m_custom_style->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { refresh_controls(); });
     m_quality->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_controls(); });
+    for (auto* choice : {m_geometry_quality, m_texture_quality, m_output_format})
+        choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_controls(); });
     m_choose_image->Bind(wxEVT_BUTTON, &ModelGenerationPanel::on_choose_image, this);
     m_clear_image->Bind(wxEVT_BUTTON, &ModelGenerationPanel::on_clear_image, this);
     m_use_printable_colors->Bind(wxEVT_CHECKBOX, &ModelGenerationPanel::on_printable_colors_toggled, this);
@@ -1385,7 +1444,12 @@ wxWindow* ModelGenerationPanel::build_preview_panel(wxWindow* parent)
         if (result_page) show_model_comparison();
         m_preview_details_pane->Show(result_page && m_model_views_available);
         m_preview_kind->SetLabel(result_page ? (m_finishing_workbench ? _L("美颜工作台") : _L("结果对照")) : _L("历史资产"));
-        if (!result_page) load_library_entries();
+        if (!result_page) {
+            wxWeakRef<ModelGenerationPanel> weak(this);
+            wxGetApp().CallAfter([weak] {
+                if (weak && !weak->m_shutdown) weak->load_library_entries();
+            });
+        }
         panel->Layout();
         if (selection == 0 && m_model_preview != nullptr)
             m_model_preview->refresh();
@@ -1422,7 +1486,6 @@ wxWindow* ModelGenerationPanel::build_model_library(wxWindow* parent)
     m_library_scroller->SetSizer(m_library_sizer);
     sizer->Add(m_library_scroller, 1, wxEXPAND | wxALL, FromDIP(12));
     panel->SetSizer(sizer);
-    refresh_library();
     return panel;
 }
 
@@ -1793,6 +1856,10 @@ void ModelGenerationPanel::on_preprocess(wxCommandEvent& event)
 
 void ModelGenerationPanel::on_generate(wxCommandEvent&)
 {
+    if (!generation_options_valid()) {
+        show_input_hint(_L("200 万面需要选择精细几何（+20 积分）。"));
+        return;
+    }
     const bool image_mode = m_job_preview_expected;
     if (!m_awaiting_confirmation || m_job_id.empty() || !job_inputs_match() || (image_mode && !m_style_preview_ready))
         return;
@@ -1805,17 +1872,11 @@ void ModelGenerationPanel::on_generate(wxCommandEvent&)
     wxString message = image_mode
         ? _L("要根据当前 AI 设计图创建 1 个付费 Tripo 3D 生成任务吗？")
         : _L("要根据已确认的提示词创建 1 个付费 3D 生成任务吗？");
-    message += _L("\n\n生成策略：") + current_generation_profile_label();
-    if (m_job_generation_profile == "quality") {
-        message += _L("\n质量：100 万面目标、标准几何、标准纹理和 PBR。");
-        if (image_mode && (m_job_style == "realistic" || m_job_style == "portrait_sketch"))
-            message += _L("\n保留 AI 设计图中的脸型、五官、姿态和完整构图，不自动裁切或替换底座；本次只创建 1 个 Tripo 模型任务。");
-    } else {
-        message += _L("\n性能：30 万面目标、标准几何与纹理，保留 PBR。");
-    }
-    message += _L("\n预计：通常 3–10 分钟；高质量写实人像通常 15–35 分钟。"
-                  "\n费用：由模型服务商账户按套餐或额度结算。"
-                  "\n停止：只停止本地等待；已提交的远端任务可能继续运行并计费。");
+    m_job_generation_options = current_generation_options();
+    message += "\n\n" + generation_options_summary(image_mode);
+    if (m_job_generation_options.output_format == "obj")
+        message += _L("\n本次还将创建 1 个 OBJ 基础转换任务（已计入估算）。");
+    message += _L("\n停止：只停止本地等待；已提交的远端任务可能继续运行并计费。");
     MessageDialog confirm(this, message, _L("确认生成 3D 模型"), wxYES_NO | wxICON_QUESTION);
     if (confirm.ShowModal() != wxID_YES)
         return;
@@ -1842,7 +1903,7 @@ void ModelGenerationPanel::on_generate(wxCommandEvent&)
     refresh_controls();
     const std::string prepared = image_mode ? std::string() : m_prepared_prompt->GetValue().ToUTF8().data();
     wxWeakRef<ModelGenerationPanel> weak(this);
-    m_client.generate(m_job_id, prepared, m_job_palette, m_job_generation_profile,
+    m_client.generate(m_job_id, prepared, m_job_palette, m_job_generation_options,
         [weak, sequence](AIModelGenerationClient::JobStatus status) mutable {
             if (!weak) return;
             wxGetApp().CallAfter([weak, sequence, status = std::move(status)]() mutable {
@@ -2081,6 +2142,10 @@ void ModelGenerationPanel::handle_poll_error(const std::string& error, uint64_t 
     }
 
     ++m_poll_connection_failures;
+    // A new sidecar nonce needs a new authenticated challenge. Keep ordinary
+    // disconnected-task polling/cancellation behavior while the service is down.
+    if (error == "A valid OrcaSlicer AI session is required." && m_service_retry_handler)
+        m_service_retry_handler();
     const int delay_ms = std::min(10000, 1000 << std::min(m_poll_connection_failures - 1, 3));
     m_status->SetLabel(wxString::Format(
         _L("本地 AI 服务暂时断开，%d 秒后自动重连..."),
@@ -2700,7 +2765,7 @@ void ModelGenerationPanel::update_adaptive_text_height(wxTextCtrl* control, int 
 
 void ModelGenerationPanel::refresh_controls()
 {
-    if (m_shutdown)
+    if (m_shutdown || !m_page_initialized)
         return;
     if (m_preview_loading || m_finishing_running || m_design_history_loading) m_busy = true;
     update_adaptive_text_height(m_prompt, 2, 6);
@@ -2781,6 +2846,10 @@ void ModelGenerationPanel::refresh_controls()
     m_custom_style->Enable(!m_busy && custom_style_selected);
     refresh_style_recommendation();
     m_quality->Enable(!m_busy);
+    for (auto* choice : {m_geometry_quality, m_texture_quality, m_output_format})
+        choice->Enable(!m_busy);
+    m_generation_cost->SetLabel(generation_options_summary(m_job_id.empty() || m_job_preview_expected));
+    m_generation_cost->Wrap(FromDIP(280));
     m_choose_image->Enable(!m_busy);
     m_clear_image->Enable(!m_busy);
     m_use_printable_colors->Enable(!m_busy);
@@ -2796,7 +2865,7 @@ void ModelGenerationPanel::refresh_controls()
     m_preprocess->Enable(m_service_available && !m_busy && valid_input &&
                          (ai_palette_source || !printable_colors || !m_palette.empty()));
     m_prepared_prompt->Enable(m_service_available && !m_busy && show_review);
-    m_generate->Enable(m_service_available && !m_busy && m_awaiting_confirmation && !stale_job &&
+    m_generate->Enable(generation_options_valid() && m_service_available && !m_busy && m_awaiting_confirmation && !stale_job &&
                        (!image_job || m_style_preview_ready));
     m_stop->Enable(m_design_history_loading || (m_busy && !m_job_id.empty() && (local_model_loading || m_service_available)));
     m_retry_service->Enable(!m_service_available && !m_busy && static_cast<bool>(m_service_retry_handler));
@@ -2820,8 +2889,8 @@ void ModelGenerationPanel::refresh_controls()
     const bool show_preprocess = !m_busy && (!m_ready || stale_job) &&
         (m_job_id.empty() || stale_job || (!m_awaiting_confirmation && !m_ready) ||
          (m_awaiting_confirmation && image_job));
-    m_preprocess->Show(show_preprocess);
-    m_generate->Show(!m_busy && m_awaiting_confirmation);
+    m_preprocess->Show(m_service_available && show_preprocess);
+    m_generate->Show(m_service_available && !m_busy && m_awaiting_confirmation);
     m_stop->Show(m_busy);
     m_retry_service->Show(!m_service_available && !m_busy);
     m_import->Show(!m_busy && m_ready && !stale_job);
@@ -3616,17 +3685,54 @@ wxString ModelGenerationPanel::current_style_label() const
 
 int ModelGenerationPanel::current_face_limit() const
 {
-    return current_generation_profile() == "performance" ? 300000 : 1000000;
+    const int selection = m_quality ? m_quality->GetSelection() : 1;
+    return selection == 0 ? 300000 : selection == 2 ? 2000000 : 1000000;
 }
 
 std::string ModelGenerationPanel::current_generation_profile() const
 {
-    return m_quality != nullptr && m_quality->GetSelection() == 1 ? "performance" : "quality";
+    return current_face_limit() <= 300000 ? "performance" : "quality";
 }
 
 wxString ModelGenerationPanel::current_generation_profile_label() const
 {
     return current_generation_profile() == "performance" ? _L("高性能") : _L("高质量（推荐）");
+}
+
+AIModelGenerationClient::GenerationOptions ModelGenerationPanel::current_generation_options() const
+{
+    AIModelGenerationClient::GenerationOptions options;
+    options.face_limit = current_face_limit();
+    options.geometry_quality = m_geometry_quality && m_geometry_quality->GetSelection() == 1 ? "detailed" : "standard";
+    const int texture = m_texture_quality ? m_texture_quality->GetSelection() : 0;
+    options.texture_quality = texture == 2 ? "extreme" : texture == 1 ? "detailed" : "standard";
+    options.output_format = m_output_format && m_output_format->GetSelection() == 1 ? "obj" : "glb";
+    return options;
+}
+
+bool ModelGenerationPanel::generation_options_valid() const
+{
+    const auto options = current_generation_options();
+    return options.face_limit != 2000000 || options.geometry_quality == "detailed";
+}
+
+wxString ModelGenerationPanel::generation_options_summary(bool image_mode) const
+{
+    const auto options = current_generation_options();
+    const int base = image_mode ? 30 : 20;
+    const int geometry = options.geometry_quality == "detailed" ? 20 : 0;
+    const int texture = options.texture_quality == "extreme" ? 20 : options.texture_quality == "detailed" ? 10 : 0;
+    const int format = options.output_format == "obj" ? 5 : 0;
+    wxString summary = wxString::Format(_L("%d 万面 · %s几何 · %s纹理 · %s\n"), options.face_limit / 10000,
+        geometry ? _L("精细") : _L("标准"), texture == 20 ? _L("8K") : texture == 10 ? _L("高清") : _L("标准"),
+        options.output_format == "obj" ? "OBJ" : "GLB");
+    summary += wxString::Format(_L("预估 %d 积分\n基础 %d + 几何 %d + 纹理 %d + 格式 %d。"),
+                               base + geometry + texture + format, base, geometry, texture, format);
+    summary += generation_options_valid()
+        ? _L("\nTripo v3.1 官方价（2026-09-12）")
+        : _L("\n200 万面需精细几何（+20 积分）。");
+    summary += _L("\n不含设计图，实际以账单为准。");
+    return summary;
 }
 
 AIModelGenerationClient::ImagePrintSettings ModelGenerationPanel::current_print_settings() const
@@ -3894,6 +4000,7 @@ void ModelGenerationPanel::reset(bool remove_remote)
     m_job_custom_style.clear();
     m_job_face_limit = 1000000;
     m_job_generation_profile = "quality";
+    m_job_generation_options = {};
     m_job_image_path.clear();
     m_job_preview_expected = false;
     m_artifact_format.clear();
@@ -3959,6 +4066,12 @@ void ModelGenerationPanel::cleanup_files()
 
 void ModelGenerationPanel::load_library_entries()
 {
+    if (m_shutdown) return;
+    if (!m_page_initialized || m_library_scroller == nullptr || !m_library_scroller->IsShownOnScreen()) {
+        m_library_refresh_pending = true;
+        return;
+    }
+    m_library_refresh_pending = false;
     const boost::filesystem::path root = generated_models_root();
     const boost::filesystem::path downloads = root / "downloads";
     boost::system::error_code ec;
@@ -4248,6 +4361,9 @@ void ModelGenerationPanel::save_library_entry(size_t artifact_size, size_t trian
         {"custom_style", m_job_custom_style},
         {"generation_profile", m_job_generation_profile},
         {"face_limit", m_job_face_limit},
+        {"geometry_quality", m_job_generation_options.geometry_quality},
+        {"texture_quality", m_job_generation_options.texture_quality},
+        {"output_format", m_job_generation_options.output_format},
         {"prompt", std::string(m_job_prompt.ToUTF8().data())},
         {"palette", m_job_palette},
         {"palette_roles", m_job_palette_roles},

@@ -2224,6 +2224,7 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertIsNone(SIDECAR._portrait_material_role_indices(palette, roles, False))
 
     def test_portrait_material_mapping_is_forwarded_for_detected_realistic_job(self):
+        self.job.output_format = "obj"
         destination = self.job.directory / "artifact-raw.download"
         destination.write_text(
             "v 0 0 0 1 1 1\nv 1 0 0 1 1 1\nv 0 1 0 1 1 1\nf 1 2 3\n",

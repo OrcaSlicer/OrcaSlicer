@@ -51,6 +51,14 @@ void ModelGenerationPanel::load_design_library_entry(const std::string& job_id)
                     weak->m_status->SetLabel(_L("设计记录不完整或状态已变化，当前内容已保留。"));
                     return;
                 }
+                // Reopening the current pending design after reconnect is a
+                // read refresh: keep local input and unsubmitted quality choices.
+                if (status.id == weak->m_job_id && weak->m_awaiting_confirmation &&
+                    status.state == "awaiting_confirmation" && !weak->m_model_preview_ready && weak->m_style_preview_ready) {
+                    weak->handle_status(std::move(status), sequence);
+                    if (weak->m_preview_book) weak->m_preview_book->SetSelection(0);
+                    return;
+                }
                 // Commit navigation only after the persisted job was read successfully.
                 // GET and restore keep stopped/failed states and never submit generation.
                 if (!weak->m_finishing_candidate.empty()) {
@@ -76,13 +84,21 @@ void ModelGenerationPanel::load_design_library_entry(const std::string& job_id)
                 weak->refresh_controls();
             });
         },
-        [weak, sequence, history_sequence](std::string) {
+        [weak, sequence, history_sequence](std::string error) {
             if (!weak) return;
-            wxGetApp().CallAfter([weak, sequence, history_sequence] {
+            wxGetApp().CallAfter([weak, sequence, history_sequence, error = std::move(error)] {
                 if (!weak || weak->m_shutdown || sequence != weak->m_sequence ||
                     history_sequence != weak->m_design_history_sequence) return;
                 weak->m_design_history_loading = false;
                 weak->m_busy = false;
+                if (ModelGenerationPresentation::is_transient_sidecar_poll_error(error)) {
+                    // A restarted sidecar has a new nonce. Discovery performs a
+                    // fresh authenticated challenge; never replay a paid POST.
+                    weak->set_service_availability(false, error);
+                    weak->m_status->SetLabel(_L("服务连接已失效，当前内容已保留。\n正在重新检测，就绪后请重新打开设计。"));
+                    if (weak->m_service_retry_handler) weak->m_service_retry_handler();
+                    return;
+                }
                 weak->refresh_controls();
                 weak->m_status->SetLabel(_L("历史设计加载失败，当前模型与输入已保留。"));
             });
@@ -91,8 +107,11 @@ void ModelGenerationPanel::load_design_library_entry(const std::string& job_id)
 
 void ModelGenerationPanel::refresh_library()
 {
-    if (m_library_sizer == nullptr || m_library_scroller == nullptr)
+    if (m_shutdown) return;
+    if (m_library_sizer == nullptr || m_library_scroller == nullptr || !m_library_scroller->IsShownOnScreen()) {
+        m_library_refresh_pending = true;
         return;
+    }
     m_library_sizer->Clear(true);
     m_library_empty->Show(m_library_entries.empty());
     for (const GeneratedModelEntry& entry : m_library_entries) {
