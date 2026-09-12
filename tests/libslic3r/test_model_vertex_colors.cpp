@@ -62,6 +62,134 @@ TEST_CASE("Fixed import palettes reject invalid colors and mismatched source cen
     CHECK_FALSE(face_colors_to_painting(mesh, painted, settings));
 }
 
+TEST_CASE("Explicit face colors survive old trial mapping centers without changing other regions", "[ModelVertexColors][FaceColorOverride]")
+{
+    const bool vertex_route = GENERATE(false, true);
+    using Color = std::array<size_t, 3>;
+    const Color red {255, 0, 0}, green {0, 255, 0}, blue {0, 0, 255};
+    TexturedMesh mesh;
+    mesh.vertices = {{0,0,0}, {10,0,0}, {0,10,0}, {0,0,10}};
+    mesh.indices = {{0,2,1}, {0,1,3}, {0,3,2}, {1,2,3}};
+    mesh.precomputed_face_colors.assign(4, blue);
+    if (vertex_route)
+        mesh.precomputed_vertex_colors.assign(4, {0,0,1,1});
+    TexturePaintingSettings settings;
+    settings.fixed_mapping_palette = {blue, red};
+    settings.fixed_palette = {red, green};
+    settings.smooth_weight = 1.;
+    settings.face_color_overrides = {{0, blue}};
+    PaintedMesh painted;
+    REQUIRE(face_colors_to_painting(mesh, painted, settings));
+    REQUIRE(painted.face_colors.size() == mesh.indices.size());
+    CHECK(painted.face_colors[0] == blue);
+    for (size_t face = 1; face < mesh.indices.size(); ++face)
+        CHECK(painted.face_colors[face] == red);
+    CHECK(painted.indices == mesh.indices);
+    CHECK(painted.vertices == mesh.vertices);
+    CHECK(std::set<Color>(painted.cluster_colors.begin(), painted.cluster_colors.end()) == std::set<Color>{red, blue});
+    // Targets never join the source mapping centers or capture other regions.
+    CHECK(settings.fixed_mapping_palette == std::vector<Color>{blue, red});
+}
+
+TEST_CASE("Explicit low-poly face colors retain conforming subdivision and untouched region colors", "[ModelVertexColors][FaceColorOverride]")
+{
+    using Color = std::array<size_t, 3>;
+    TexturedMesh mesh;
+    mesh.vertices = {{0,0,0}, {10,0,0}, {0,10,0}, {0,0,10}};
+    mesh.indices = {{0,2,1}, {0,1,3}, {0,3,2}, {1,2,3}};
+    mesh.precomputed_face_colors.assign(4, {128,128,128});
+    mesh.precomputed_vertex_colors = {{1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {1,1,1,1}};
+    TexturePaintingSettings settings;
+    settings.fixed_palette = {{255,0,0}, {0,255,0}, {0,0,255}, {255,255,255}};
+    PaintedMesh baseline, edited;
+    REQUIRE(face_colors_to_painting(mesh, baseline, settings));
+    const Color target {102,140,182};
+    settings.face_color_overrides = {{0, target}};
+    REQUIRE(face_colors_to_painting(mesh, edited, settings));
+    REQUIRE(edited.indices == baseline.indices);
+    REQUIRE(edited.vertices == baseline.vertices);
+    REQUIRE(edited.face_colors.size() == baseline.face_colors.size());
+    size_t selected_children = 0;
+    for (size_t face = 0; face < edited.indices.size(); ++face) {
+        const auto& indices = edited.indices[face];
+        const bool on_selected_plane = edited.vertices[indices[0]][2] == 0.f &&
+            edited.vertices[indices[1]][2] == 0.f && edited.vertices[indices[2]][2] == 0.f;
+        if (on_selected_plane) {
+            ++selected_children;
+            CHECK(edited.face_colors[face] == target);
+        } else {
+            CHECK(edited.face_colors[face] == baseline.face_colors[face]);
+        }
+    }
+    CHECK(selected_children > 1);
+    indexed_triangle_set output;
+    for (const auto& vertex : edited.vertices) output.vertices.emplace_back(vertex[0], vertex[1], vertex[2]);
+    for (const auto& face : edited.indices) output.indices.emplace_back(face[0], face[1], face[2]);
+    CHECK(its_num_open_edges(output) == 0);
+}
+
+TEST_CASE("Face overrides preserve an open source surface without invoking repair or smoothing", "[ModelVertexColors][FaceColorOverride]")
+{
+    const bool fixed_palette = GENERATE(false, true);
+    TexturedMesh mesh;
+    mesh.vertices = {{0,0,0}, {10,0,0}, {0,10,0}};
+    mesh.indices = {{0,1,2}};
+    mesh.precomputed_face_colors = {{255,0,0}};
+    TexturePaintingSettings settings;
+    settings.target_colors_num = 1;
+    settings.smooth_weight = 1.;
+    if (fixed_palette) settings.fixed_palette = {{255,0,0}};
+    settings.mesh_repair_decision = TexturePaintingSettings::MeshRepairDecision::RepairAndImport;
+    bool repair_called = false;
+    settings.mesh_repair_callback = [&](const indexed_triangle_set&, indexed_triangle_set&,
+        std::function<void(const char*, unsigned)>, std::function<bool()>, std::string*) {
+        repair_called = true;
+        return false;
+    };
+    settings.face_color_overrides = {{0, {102,140,182}}};
+    PaintedMesh painted;
+    REQUIRE(face_colors_to_painting(mesh, painted, settings));
+    CHECK_FALSE(repair_called);
+    CHECK(painted.vertices == mesh.vertices);
+    CHECK(painted.indices == mesh.indices);
+    CHECK(painted.face_colors == std::vector<std::array<size_t,3>>{{102,140,182}});
+}
+
+TEST_CASE("Invalid explicit face colors fail before replacing a previous painted result", "[ModelVertexColors][FaceColorOverride]")
+{
+    const bool vertex_route = GENERATE(false, true);
+    const bool invalid_index = GENERATE(false, true);
+    TexturedMesh mesh;
+    mesh.vertices = {{0,0,0}, {10,0,0}, {0,10,0}};
+    mesh.indices = {{0,1,2}};
+    mesh.precomputed_face_colors = {{255,0,0}};
+    if (vertex_route) mesh.precomputed_vertex_colors.assign(3, {1,0,0,1});
+    TexturePaintingSettings settings;
+    settings.fixed_palette = {{255,0,0}};
+    settings.face_color_overrides = invalid_index
+        ? std::vector<std::pair<size_t,std::array<size_t,3>>>{{1,{0,0,255}}}
+        : std::vector<std::pair<size_t,std::array<size_t,3>>>{{0,{0,0,256}}};
+    PaintedMesh previous;
+    previous.face_colors = {{1,2,3}};
+    CHECK_FALSE(face_colors_to_painting(mesh, previous, settings));
+    CHECK(previous.face_colors == std::vector<std::array<size_t,3>>{{1,2,3}});
+}
+
+TEST_CASE("Explicit face target colors resolve against current physical slot order", "[ModelVertexColors][FaceColorOverride]")
+{
+    const std::array<size_t, 3> blue {102,140,182};
+    std::vector<RGBA> physical {{1,0,0,1}, {0,0,0,1}, {1,1,1,1}, {0,1,0,1},
+        {102.f/255.f,140.f/255.f,182.f/255.f,1}, {0.5f,0.5f,0.5f,1}};
+    const auto original = match_clusters_to_filaments({blue}, physical, {});
+    REQUIRE(original.size() == 1);
+    CHECK(original[0].filament_index == 4);
+    std::swap(physical[1], physical[4]);
+    const auto reordered = match_clusters_to_filaments({blue}, physical, {});
+    REQUIRE(reordered.size() == 1);
+    CHECK(reordered[0].filament_index == 1);
+    CHECK(physical.size() == 6);
+}
+
 TEST_CASE("Vertex color boundary splits preserve closed surfaces and color regions", "[ModelVertexColors][ColorBoundary]")
 {
     const int color_count = GENERATE(1, 2, 3, 4);

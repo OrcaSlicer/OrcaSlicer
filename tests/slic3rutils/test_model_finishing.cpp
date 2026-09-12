@@ -1,13 +1,16 @@
 #include "slic3r/GUI/AI/Model/ModelFinishing.hpp"
+#include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include "libslic3r/Point.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <algorithm>
 #include <sstream>
 #include <set>
 #include <vector>
+#include <limits>
 
 using namespace Slic3r;
 using namespace Slic3r::AI;
@@ -48,6 +51,154 @@ const char* tetrahedron =
     "v 0 0 0 0.12 0.54 0.91\nv 10 0 0 0.22 0.64 0.81\nv 0 10 0 0.32 0.74 0.71\nv 0 0 10 0.42 0.84 0.61\n"
     "vt 0 0\nvt 1 0\nvt 0 1\nvn 0 0 -1\n"
     "f 1/1/1 3/3/1 2/2/1\nf 1 2 4\nf 2 3 4\nf 3 1 4\n";
+
+const char* colored_square =
+    "v 0 0 0 1 0 0\nv 10 0 0 1 0 0\nv 0 10 0 1 0 0\nv 10 10 0 0.2 0.3 0.4\n"
+    "f 1 2 3\nf 2 4 3\n";
+
+ModelFinishingOptions recolor_options() {
+    ModelFinishingOptions options;
+    options.smooth_surface = false;
+    options.repair_mesh = false;
+    options.recolor_selected = true;
+    options.selected_faces = {0};
+    options.target_color = {0, 0, 1, 1};
+    return options;
+}
+
+bool has_recolor_stage(const boost::filesystem::path& directory) {
+    for (const auto& entry : boost::filesystem::directory_iterator(directory))
+        if (entry.path().filename().string().find(".recolor-") == 0) return true;
+    return false;
+}
+}
+
+TEST_CASE("Local recoloring creates a comparable model version with exact isolated face colors", "[ModelFinishing][LocalRecolor]")
+{
+    const auto source_format = GENERATE(std::string("obj"), std::string("glb"));
+    const auto destination_format = GENERATE(std::string("obj"), std::string("glb"));
+    Fixture f;
+    f.write(colored_square);
+    std::string error;
+    TriangleMesh original;
+    ObjInfo colors;
+    REQUIRE(load_model_artifact(f.source, original, colors, error));
+    if (source_format == "glb") {
+        const auto glb = f.directory / "source.glb";
+        REQUIRE(write_model_artifact(glb, original.its, colors.vertex_colors, error));
+        f.source = glb;
+        REQUIRE(load_model_artifact(f.source, original, colors, error));
+    }
+    f.output = f.directory / ("edited." + destination_format);
+    const auto before = read(f.source);
+    auto options = recolor_options();
+    options.selected_faces = {0, 0}; // Duplicate selection IDs are a single edited face.
+    const auto result = finish_model_artifact(f.source, f.output, options);
+    INFO(result.error);
+    REQUIRE(result.success);
+    CHECK(result.changed());
+    CHECK(result.recolored_faces == 1);
+    CHECK(result.faces_before == 2);
+    CHECK(result.faces_after == 2);
+    CHECK(result.moved_vertices == 0);
+    CHECK(result.source_sha256 == model_artifact_sha256(f.source));
+    CHECK(result.output_sha256 == model_artifact_sha256(f.output));
+    CHECK(read(f.source) == before);
+    CHECK_FALSE(has_recolor_stage(f.directory));
+    CHECK_THAT(result.dimensions[0], WithinAbs(10, 1e-5));
+    CHECK_THAT(result.dimensions[1], WithinAbs(10, 1e-5));
+    CHECK_THAT(result.dimensions[2], WithinAbs(0, 1e-5));
+    TriangleMesh edited;
+    ObjInfo edited_colors;
+    REQUIRE(load_model_artifact(f.output, edited, edited_colors, error));
+    REQUIRE(edited.its.indices.size() == original.its.indices.size());
+    CHECK(result.vertices == edited.its.vertices.size());
+    for (size_t face = 0; face < 2; ++face) for (size_t corner = 0; corner < 3; ++corner) {
+        const int original_vertex = original.its.indices[face][corner];
+        const int edited_vertex = edited.its.indices[face][corner];
+        const auto expected = face == 0 ? options.target_color : colors.vertex_colors[original_vertex];
+        for (size_t axis = 0; axis < 3; ++axis)
+            CHECK_THAT(edited.its.vertices[edited_vertex][axis], WithinAbs(original.its.vertices[original_vertex][axis], 1e-5));
+        for (size_t channel = 0; channel < 4; ++channel)
+            CHECK_THAT(edited_colors.vertex_colors[edited_vertex][channel], WithinAbs(expected[channel], 1e-6));
+    }
+}
+
+TEST_CASE("Local recoloring reports an unchanged selected face without changing geometry", "[ModelFinishing][LocalRecolor]")
+{
+    Fixture f; f.write(colored_square);
+    auto options = recolor_options();
+    options.target_color = {1, 0, 0, 1};
+    const auto result = finish_model_obj(f.source, f.output, options);
+    INFO(result.error);
+    REQUIRE(result.success);
+    CHECK_FALSE(result.changed());
+    CHECK(result.recolored_faces == 0);
+    CHECK(result.vertices == 4);
+}
+
+TEST_CASE("Local recoloring rejects incomplete or conflicting requests before creating output", "[ModelFinishing][LocalRecolor]")
+{
+    const auto invalid = GENERATE(0, 1, 2, 3, 4, 5, 6, 7);
+    Fixture f; f.write(colored_square);
+    const auto original = read(f.source);
+    auto options = recolor_options();
+    switch (invalid) {
+    case 0: options.selected_faces.clear(); break;
+    case 1: options.selected_faces = {0, 2}; break;
+    case 2: options.smooth_surface = true; break;
+    case 3: options.repair_mesh = true; break;
+    case 4: options.clean_color_spots = true; break;
+    case 5: options.target_color[0] = std::numeric_limits<float>::quiet_NaN(); break;
+    case 6: options.target_color[1] = -0.1f; break;
+    case 7: options.target_color[3] = 1.1f; break;
+    }
+    const auto result = finish_model_artifact(f.source, f.output, options);
+    CHECK_FALSE(result.success);
+    CHECK_FALSE(result.error.empty());
+    CHECK_FALSE(boost::filesystem::exists(f.output));
+    CHECK_FALSE(has_recolor_stage(f.directory));
+    CHECK(read(f.source) == original);
+}
+
+TEST_CASE("Canceling a staged local recolor leaves the source and earlier versions intact", "[ModelFinishing][LocalRecolor]")
+{
+    const auto format = GENERATE(std::string("obj"), std::string("glb"));
+    const bool after_write = GENERATE(false, true);
+    Fixture f; f.write(colored_square);
+    f.output = f.directory / ("edited." + format);
+    const auto original = read(f.source);
+    const auto earlier = f.directory / "earlier.obj";
+    { boost::filesystem::ofstream stream(earlier); stream << "earlier version"; }
+    const auto result = finish_model_artifact(f.source, f.output, recolor_options(), [&] {
+        return !after_write || has_recolor_stage(f.directory);
+    });
+    CHECK(result.canceled);
+    CHECK_FALSE(result.success);
+    CHECK_FALSE(boost::filesystem::exists(f.output));
+    CHECK_FALSE(has_recolor_stage(f.directory));
+    CHECK(read(f.source) == original);
+    CHECK(read(earlier) == "earlier version");
+}
+
+TEST_CASE("Local recoloring rejects a source changed during processing without publishing its candidate", "[ModelFinishing][LocalRecolor]")
+{
+    Fixture f; f.write(colored_square);
+    bool changed_source = false;
+    const auto result = finish_model_artifact(f.source, f.output, recolor_options(), [&] {
+        if (!changed_source && has_recolor_stage(f.directory)) {
+            boost::filesystem::ofstream stream(f.source, std::ios::app);
+            stream << "# another edit\n";
+            changed_source = true;
+        }
+        return false;
+    });
+    CHECK(changed_source);
+    CHECK_FALSE(result.success);
+    CHECK(result.error.find("source model changed") != std::string::npos);
+    CHECK_FALSE(boost::filesystem::exists(f.output));
+    CHECK_FALSE(has_recolor_stage(f.directory));
+    CHECK(read(f.source).find("# another edit") != std::string::npos);
 }
 
 TEST_CASE("Surface finishing reduces noise while preserving open boundaries and vertex colors", "[ModelFinishing]")

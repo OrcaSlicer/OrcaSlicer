@@ -44,6 +44,8 @@ jobs:
         run: python scripts/verify_ai_integration.py --json
       - name: Test candidate version and failure gates
         run: python -m unittest discover -s scripts -p 'test_team_ci_candidate.py' -v
+      - name: Check internal source snapshot identity
+        run: python -m unittest discover -s scripts -p 'test_package_source_identity.py' -v
       - name: Test repository preparation
         run: python -m unittest discover -s scripts/team_collaboration -p 'test_*.py' -v
       - name: Test fixed history fetching with a fake Git transport

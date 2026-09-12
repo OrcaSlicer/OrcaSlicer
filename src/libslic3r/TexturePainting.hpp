@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 struct indexed_triangle_set;
 
@@ -82,6 +83,9 @@ struct TexturePaintingSettings {
     // Explicit target colors bypass clustering. Empty preserves legacy behavior.
     std::vector<std::array<std::size_t, 3>> fixed_palette;
     std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
+    // Exact source-face targets; empty preserves ordinary color matching.
+    // Nonempty selections preserve input geometry and skip color smoothing.
+    std::vector<std::pair<size_t, std::array<std::size_t, 3>>> face_color_overrides;
 };
 
 struct FilamentMatch {

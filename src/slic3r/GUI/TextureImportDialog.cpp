@@ -1779,6 +1779,8 @@ TextureImportDialog::TextureImportDialog(
         m_param_color_count = (int)std::min(m_options.fixed_palette.size(), max_filament_count());
         m_param_smooth = 0;
     }
+    if (!m_options.face_color_overrides.empty())
+        m_param_smooth = 0;
 
     m_filament_colors_rgba.reserve(m_filament_entries.size());
     m_filament_color_strs.reserve(m_filament_entries.size());
@@ -2378,8 +2380,8 @@ void TextureImportDialog::update_ui_for_state()
 
     m_color_slider->Enable(editable_palette);
     m_color_spin->Enable(editable_palette);
-    m_smooth_slider->Enable(editable_palette);
-    m_smooth_spin->Enable(editable_palette);
+    m_smooth_slider->Enable(editable_palette && m_options.face_color_overrides.empty());
+    m_smooth_spin->Enable(editable_palette && m_options.face_color_overrides.empty());
     m_btn_apply->Enable(!computing && (m_options.fixed_palette.empty() || !valid));
     m_btn_color_4->Enable(editable_palette);
     m_btn_color_6->Enable(editable_palette);
@@ -2438,6 +2440,7 @@ void TextureImportDialog::start_computation(bool auto_color, bool initial)
     settings.target_colors_num = auto_color ? 0 : (size_t)m_param_color_count;
     settings.fixed_palette = m_options.fixed_palette;
     settings.fixed_mapping_palette = m_options.fixed_mapping_palette;
+    settings.face_color_overrides = m_options.face_color_overrides;
     settings.smooth_weight     = m_param_smooth / 10.0;
     settings.mesh_repair_decision = m_mesh_repair_decision;
     // BBS repairs the mesh through the Windows 3D SDK, which is only available on Windows
@@ -2795,6 +2798,29 @@ void TextureImportDialog::update_mapping_summary()
         "\n换耗材会修改整个颜色组；只改领口等局部请回美颜选区");
     if (!m_options.fixed_palette.empty())
         note += texture_import_label("\nUsing the workbench palette; edit target colors in the workbench", "\n沿用美颜工作台色板；目标颜色请回工作台修改");
+    if (!m_options.face_color_overrides.empty()) {
+        note += texture_import_label("\nLocal color edits are preserved; filament assignments remain editable",
+            "\n已保留局部改色；可继续调整对应耗材");
+        std::set<std::array<size_t, 3>> unmatched_targets;
+        std::set<std::array<size_t, 3>> local_targets;
+        for (const auto& override : m_options.face_color_overrides)
+            local_targets.insert(override.second);
+        for (const auto& target : local_targets) {
+            bool found = false;
+            for (size_t index = 0; index < m_filament_entries.size() && index < m_filament_colors_rgba.size(); ++index) {
+                if (!texture_entry_is_physical(m_filament_entries[index].kind)) continue;
+                const auto& color = m_filament_colors_rgba[index];
+                const std::array<size_t, 3> rgb {{size_t(std::lround(color[0] * 255.f)),
+                    size_t(std::lround(color[1] * 255.f)), size_t(std::lround(color[2] * 255.f))}};
+                if (rgb == target) { found = true; break; }
+            }
+            if (!found) unmatched_targets.insert(target);
+        }
+        if (!unmatched_targets.empty())
+            note += wxString::Format(texture_import_label(
+                "\n%d local target colors have no exact physical filament; review the approximate assignments",
+                "\n局部改色的 %d 个目标色没有同色实体耗材；请核对当前近似匹配"), int(unmatched_targets.size()));
+    }
     if (m_options.preserve_existing_filaments) {
         note += texture_import_label("\nExisting filaments only; CMYW recipes are not CMYK calibration", "\n仅使用已有耗材；CMYW 配方不等于 CMYK 标定");
         const size_t configured_physical = (size_t)std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {

@@ -40,7 +40,7 @@ class SimplifiedDesignFlowTests(unittest.TestCase):
 
                 with (
                     mock.patch.object(sidecar, "recommend_printable_palette") as recommend,
-                    mock.patch.object(sidecar, "preprocess_text", return_value="a portrait") as prepare,
+                    mock.patch.object(preprocessor, "complete_text") as prepare,
                     mock.patch.object(sidecar, "generate_geometry_reference_image",
                                       side_effect=lambda _prompt, destination, *_args, **_kwargs: reference(destination)) as text,
                     mock.patch.object(sidecar, "preprocess_image",
@@ -57,7 +57,7 @@ class SimplifiedDesignFlowTests(unittest.TestCase):
                     sidecar._resume_restored_jobs([restored])
                 recommend.assert_not_called()
                 submit.assert_not_called()
-                self.assertEqual(prepare.call_count, int(source == "text"))
+                prepare.assert_not_called()
                 self.assertEqual(text.call_count, int(source == "text"))
                 self.assertEqual(image.call_count, int(source == "image"))
                 self.assertFalse(job.palette_recommendation_confirmed)

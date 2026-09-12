@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace Slic3r::AI {
 
@@ -41,6 +42,11 @@ struct ModelImportRequest
     GeneratedModelArtifact artifact;
     ImportColorMode         color_mode { ImportColorMode::NativeMatch };
     std::optional<ModelColorTrial> color_trial;
+    // Source triangle ordinals and explicit normalized sRGB targets. The desktop
+    // adapter validates the geometry identity before forwarding native matching.
+    // Later entries replace earlier entries for the same face.
+    std::vector<std::pair<size_t, std::array<float, 3>>> face_color_overrides;
+    std::string face_color_geometry_id;
 };
 
 enum class ModelImportOutcome

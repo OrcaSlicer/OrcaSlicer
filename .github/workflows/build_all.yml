@@ -20,6 +20,9 @@ on:
      - 'tests/**'
      - 'tools/ai/**'
      - 'scripts/package_internal_fast.ps1'
+     - 'scripts/package_source_identity.py'
+     - 'scripts/test_package_source_identity.py'
+     - 'release/build_internal.ps1'
      - 'docs/architecture/ai-integration-lock.json'
 
   pull_request:
@@ -45,6 +48,9 @@ on:
      - 'tests/**'
      - 'tools/ai/**'
      - 'scripts/package_internal_fast.ps1'
+     - 'scripts/package_source_identity.py'
+     - 'scripts/test_package_source_identity.py'
+     - 'release/build_internal.ps1'
      - 'docs/architecture/ai-integration-lock.json'
 
 
@@ -65,8 +71,7 @@ concurrency:
 
 jobs:
   # Pull-request code always uses ephemeral GitHub-hosted runners. This general
-  # build chain intentionally forwards no repository secrets; signing belongs
-  # to an exact-SHA job behind the protected release environment.
+  # build chain intentionally forwards no repository secrets.
   # build_win.bat ships a test suite. Run it before the Windows builds.
   check_build_script:
     name: Windows build script tests
@@ -82,6 +87,14 @@ jobs:
       - name: Run the build script test suite
         shell: powershell
         run: .\scripts\test_build_win.ps1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Check internal snapshot packaging preflights
+        shell: powershell
+        run: python -m unittest discover -s scripts -p test_package_source_identity.py -v
 
   build_linux:
     strategy:
@@ -262,9 +275,6 @@ jobs:
       date:
       ver:
       ver_pure:
-      # Belt-printer nightlies share the main nightly release but carry a `_belt`
-      # suffix so they never overwrite the main assets.
-      nightly_suffix: ${{ github.ref == 'refs/heads/belt-printer' && '_belt' || '' }}
     steps:
     - name: "Remove unneeded stuff to free disk space"
       run:
@@ -322,13 +332,3 @@ jobs:
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
-    - name: Deploy Flatpak to nightly release
-      if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer')
-      uses: WebFreak001/deploy-nightly@v3.2.0
-      with:
-        upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
-        release_id: 137995723
-        asset_path: /__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
-        asset_content_type: application/octet-stream
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted

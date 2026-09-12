@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <unordered_map>
 
 #include <boost/next_prior.hpp>
 #include "CgalUtils.hpp"
@@ -497,7 +498,8 @@ static bool adaptive_split_by_vertex_clusters(
     TriMesh& mesh,
     const std::vector<std::size_t>& vertex_cluster_ids,
     const std::vector<RGB>& cluster_centers,
-    std::vector<RGB>& out_face_colors)
+    std::vector<RGB>& out_face_colors,
+    const std::unordered_map<size_t, RGB>& face_color_overrides)
 {
     const TriVertices original_vertices = mesh.vertices;
     const TriFaces    original_faces    = mesh.indices;
@@ -548,12 +550,21 @@ static bool adaptive_split_by_vertex_clusters(
         out_vertices.push_back(mid);
         return idx;
     };
+    const RGB* current_override = nullptr;
     auto emit = [&](std::size_t a, std::size_t b, std::size_t c, std::size_t cluster_id) {
         out_faces.push_back(Vec3i32(static_cast<int>(a), static_cast<int>(b), static_cast<int>(c)));
-        out_face_colors.push_back(cluster_centers[cluster_id]);
+        out_face_colors.push_back(current_override ? *current_override : cluster_centers[cluster_id]);
     };
 
-    for (const auto& f : original_faces) {
+    for (size_t face_index = 0; face_index < original_faces.size(); ++face_index) {
+        const auto& f = original_faces[face_index];
+        const auto locked = face_color_overrides.find(face_index);
+        current_override = locked == face_color_overrides.end() ? nullptr : &locked->second;
+        // Keep ordinary shared-edge splitting so arbitrary masks cannot create
+        // T-junctions. A baked uniform face emits once; every split child of an
+        // overridden source face inherits the same exact color.
+        // Do not early-continue for a locked face: its neighbors may still need
+        // the shared edge midpoints, regardless of this face's output color.
         const std::size_t v[3] = {static_cast<std::size_t>(f[0]), static_cast<std::size_t>(f[1]), static_cast<std::size_t>(f[2])};
         const std::size_t c[3] = {vertex_cluster_ids[v[0]], vertex_cluster_ids[v[1]], vertex_cluster_ids[v[2]]};
 
@@ -697,7 +708,7 @@ static bool repair_cluster_smooth(
         return resample_face_colors(std::move(*repaired_mesh));
     };
 
-    {
+    if (settings.face_color_overrides.empty()) {
         TriangleMesh stats_mesh(static_cast<const indexed_triangle_set&>(mesh));
         const auto& stats = stats_mesh.stats();
         // Orca's TriangleMeshStats only counts open edges: manifold() is open_edges == 0, and
@@ -735,7 +746,10 @@ static bool repair_cluster_smooth(
 
     // A fixed palette with no boundary cleanup only relabels existing faces;
     // it does not need a CGAL halfedge conversion or topology repair.
-    const bool needs_halfedges = settings.fixed_palette.empty() || settings.smooth_weight > 0.0;
+    // Explicit face colors are bound to the source surface. Neither implicit
+    // halfedge repair nor color smoothing may invalidate their face identities.
+    const bool needs_halfedges = settings.face_color_overrides.empty() &&
+        (settings.fixed_palette.empty() || settings.smooth_weight > 0.0);
     if (needs_halfedges && !cgalutils::is_mesh_halfedge_compatible(mesh)) {
         BOOST_LOG_TRIVIAL(info) << log_prefix << ": mesh not halfedge-compatible, attempting RepairMesh.";
         if (!repair_and_resample())
@@ -846,6 +860,8 @@ static bool repair_cluster_smooth(
 
     for (std::size_t i = 0; i < out_clustered_face_colors.size(); ++i)
         out_clustered_face_colors[i] = cluster_centers[clustered_face_labels[i]];
+    for (const auto& face_color : settings.face_color_overrides)
+        out_clustered_face_colors[face_color.first] = face_color.second;
 
 #ifdef OUTPUT_TEST_RESULT
     SaveToOFF(std::string(log_prefix) + "_4_smooth.off", mesh, out_clustered_face_colors);
@@ -858,6 +874,12 @@ static bool repair_cluster_smooth(
 bool TextureToColor(const TriMesh& texture_mesh, const std::vector<std::vector<Vec2f>>& texture_mesh_uv_coords, const cv::Mat& texture, TriMesh& color_mesh,
                     std::vector<std::array<std::size_t, 3>>& face_colors, const TextureToColorSettings& settings, AlgoProgressCallback progress_callback,
                     AlgoCancelCallback cancel_callback) {
+    // Texture sampling can subdivide geometry before clustering, so source face
+    // overrides must use the already sampled ClusterAndSmooth entry point.
+    if (!settings.face_color_overrides.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "TextureToColor: explicit face colors require a precomputed color mesh.";
+        return false;
+    }
     auto report = [&](int pct, const char* msg) {
         if (progress_callback) {
             progress_callback({pct, msg});
@@ -1052,6 +1074,16 @@ bool ClusterAndSmooth(const TriMesh& mesh,
         BOOST_LOG_TRIVIAL(debug) << "ClusterAndSmooth: empty mesh or face colors.";
         return false;
     }
+
+    std::unordered_map<size_t, RGB> face_color_overrides;
+    for (const auto& face_color : settings.face_color_overrides) {
+        if (face_color.first >= mesh.indices.size() ||
+            std::any_of(face_color.second.begin(), face_color.second.end(), [](size_t value) { return value > 255; })) {
+            BOOST_LOG_TRIVIAL(warning) << "ClusterAndSmooth: invalid explicit face color or source face index.";
+            return false;
+        }
+        face_color_overrides[face_color.first] = face_color.second;
+    }
     if (input_face_colors.size() != mesh.indices.size()) {
         BOOST_LOG_TRIVIAL(warning) << "ClusterAndSmooth: face_colors size ("
                                    << input_face_colors.size() << ") != indices size ("
@@ -1089,7 +1121,7 @@ bool ClusterAndSmooth(const TriMesh& mesh,
         if (cancelled()) return false;
 
         report(50, "Splitting color boundaries");
-        if (!adaptive_split_by_vertex_clusters(out_mesh, vertex_cluster_ids, cluster_centers, face_colors)) {
+        if (!adaptive_split_by_vertex_clusters(out_mesh, vertex_cluster_ids, cluster_centers, face_colors, face_color_overrides)) {
             BOOST_LOG_TRIVIAL(debug) << "ClusterAndSmooth: adaptive vertex-color split failed.";
             return false;
         }

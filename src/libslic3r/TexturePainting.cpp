@@ -1,11 +1,16 @@
 #include "TexturePainting.hpp"
 
 #include <algorithm>
+#include <csetjmp>
 #include <cmath>
+#include <cstdio>
+#include <limits>
 #include <map>
+#include <memory>
 #include <set>
 #include <utility>
 
+#include <jpeglib.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -21,12 +26,79 @@
 
 namespace Slic3r {
 
+namespace {
+struct JpegTextureError {
+    jpeg_error_mgr manager;
+    std::jmp_buf jump;
+};
+
+struct JpegTextureDecoder {
+    jpeg_decompress_struct info{};
+    JpegTextureError error{};
+    cv::Mat pixels;
+
+    ~JpegTextureDecoder() {
+        if (info.mem)
+            jpeg_destroy_decompress(&info);
+    }
+};
+
+void jpeg_texture_error(j_common_ptr info) {
+    std::longjmp(reinterpret_cast<JpegTextureError*>(info->err)->jump, 1);
+}
+
+void jpeg_texture_message(j_common_ptr info, int level) {
+    // libjpeg otherwise recovers truncated input by synthesizing missing data.
+    if (level < 0)
+        jpeg_texture_error(info);
+}
+
+cv::Mat decode_jpeg_texture(const std::vector<unsigned char>& data) {
+    if (data.size() > std::numeric_limits<unsigned long>::max())
+        return {};
+
+    // Keep mutable state on the heap and ownership before setjmp: a libjpeg
+    // error must not bypass a C++ destructor or leave modified automatic state.
+    auto decoder = std::make_unique<JpegTextureDecoder>();
+    decoder->info.err = jpeg_std_error(&decoder->error.manager);
+    decoder->error.manager.error_exit = jpeg_texture_error;
+    decoder->error.manager.emit_message = jpeg_texture_message;
+    if (setjmp(decoder->error.jump) != 0)
+        return {};
+
+    jpeg_create_decompress(&decoder->info);
+    jpeg_mem_src(&decoder->info, data.data(), static_cast<unsigned long>(data.size()));
+    if (jpeg_read_header(&decoder->info, TRUE) != JPEG_HEADER_OK ||
+        decoder->info.image_width == 0 || decoder->info.image_height == 0 ||
+        uint64_t(decoder->info.image_width) * decoder->info.image_height > 64ULL * 1024 * 1024)
+        return {};
+
+    decoder->info.out_color_space = JCS_RGB;
+    if (!jpeg_start_decompress(&decoder->info) || decoder->info.output_components != 3)
+        return {};
+    decoder->pixels.create(int(decoder->info.output_height), int(decoder->info.output_width), CV_8UC3);
+    while (decoder->info.output_scanline < decoder->info.output_height) {
+        JSAMPROW row = decoder->pixels.ptr<unsigned char>(int(decoder->info.output_scanline));
+        if (jpeg_read_scanlines(&decoder->info, &row, 1) != 1)
+            return {};
+    }
+    if (!jpeg_finish_decompress(&decoder->info))
+        return {};
+    jpeg_destroy_decompress(&decoder->info);
+    cv::cvtColor(decoder->pixels, decoder->pixels, cv::COLOR_RGB2BGR);
+    return decoder->pixels;
+}
+}
+
 static cv::Mat decode_texture_image(const TextureImage& img) {
     if (img.data.empty())
         return {};
 
     // Raw encoded image data (PNG/JPEG) from glTF loader: width == -1
     if (img.width <= 0 || img.height <= 0) {
+        // OpenCV is built without JPEG support; use the existing JPEG library.
+        if (img.data.size() >= 2 && img.data[0] == 0xff && img.data[1] == 0xd8)
+            return decode_jpeg_texture(img.data);
         std::vector<unsigned char> buf(img.data.begin(), img.data.end());
         cv::Mat raw(1, static_cast<int>(buf.size()), CV_8UC1, buf.data());
         cv::Mat decoded = cv::imdecode(raw, cv::IMREAD_COLOR);
@@ -311,6 +383,7 @@ bool texture_to_painting(
     algo_settings.target_colors_num  = settings.target_colors_num;
     algo_settings.fixed_palette      = settings.fixed_palette;
     algo_settings.fixed_mapping_palette = settings.fixed_mapping_palette;
+    algo_settings.face_color_overrides = settings.face_color_overrides;
     algo_settings.smooth_weight      = settings.smooth_weight;
     algo_settings.oversampling_iters = settings.oversampling_iters;
     switch (settings.mesh_repair_decision) {
@@ -379,6 +452,7 @@ bool face_colors_to_painting(
     algo_settings.target_colors_num = settings.target_colors_num;
     algo_settings.fixed_palette     = settings.fixed_palette;
     algo_settings.fixed_mapping_palette = settings.fixed_mapping_palette;
+    algo_settings.face_color_overrides = settings.face_color_overrides;
     algo_settings.smooth_weight     = settings.smooth_weight;
     switch (settings.mesh_repair_decision) {
     case TexturePaintingSettings::MeshRepairDecision::Ask:
@@ -502,24 +576,19 @@ bool apply_painted_mesh_to_volume(
     // bbox no longer match the original textured mesh and a bbox-
     // center alignment would silently displace the geometry.
     //
-    // If the model has been scaled by Model::convert_from_meters /
-    // convert_from_imperial_units after load, the painted mesh fed
-    // here is already in millimetres (Model::convert_* also scales
-    // texture_mesh in place) while source.mesh_offset was recorded
-    // before the conversion and therefore still lives in the original
-    // pre-scaled frame. Bring it into the same frame as the painted
-    // vertices so the alignment shift below stays correct on the
-    // textured-import path. This compensation is scoped to this
-    // function so that other (non-textured) import paths are not
-    // affected.
+    // Model::convert_* scales the printable volumes but leaves texture_mesh
+    // in the source units. Convert both its painted geometry and recorded
+    // offset to millimetres before replacing a converted volume.
     Vec3d mesh_offset = volume.source.mesh_offset;
     double unit_scale = 1.0;
     if (volume.source.is_converted_from_meters)
         unit_scale = 1000.0;
     else if (volume.source.is_converted_from_inches)
         unit_scale = 25.4;
-    if (unit_scale != 1.0)
+    if (unit_scale != 1.0) {
+        new_mesh.scale(unit_scale);
         mesh_offset *= unit_scale;
+    }
 
     if (!mesh_offset.isApprox(Vec3d::Zero()))
         new_mesh.translate(-mesh_offset.cast<float>());

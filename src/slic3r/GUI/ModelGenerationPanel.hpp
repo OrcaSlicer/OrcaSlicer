@@ -4,6 +4,7 @@
 #include "slic3r/AI/Contracts/IModelArtifactConsumer.hpp"
 #include "slic3r/AI/Contracts/IPrintablePaletteProvider.hpp"
 #include "slic3r/GUI/AI/Model/ModelFinishing.hpp"
+#include "slic3r/GUI/AI/Model/SurfaceSelectionState.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <wx/image.h>
@@ -121,7 +122,7 @@ private:
     void finish_model_preview_download(const boost::filesystem::path& path, uint64_t sequence);
     void load_model_preview_async(const boost::filesystem::path& path, const std::vector<std::string>& palette,
         std::function<void(size_t, Vec3d, size_t, double)> loaded,
-        std::function<void(std::string)> failed);
+        std::function<void(std::string)> failed, const boost::filesystem::path& metadata_path = {});
     void download_and_import();
     void import_local_artifact(const boost::filesystem::path& path, uint64_t sequence);
     void cleanup_files();
@@ -156,6 +157,7 @@ private:
     std::vector<std::string> local_recolor_palette() const;
     struct GeneratedModelEntry;
     void load_library_entries();
+    void load_design_library_entry(const std::string& job_id);
     void save_library_entry(size_t artifact_size, size_t triangle_count, double width, double depth,
                             double height, size_t color_count, double load_seconds);
     void load_library_entry(const boost::filesystem::path& model_path,
@@ -198,6 +200,7 @@ private:
         double load_seconds { 0.0 };
         std::string print_feedback;
         bool use_printable_colors { false };
+        bool design_only { false };
     };
 
     AI::IModelArtifactConsumer&    m_artifact_consumer;
@@ -247,6 +250,10 @@ private:
     bool m_finishing_before {false};
     std::function<void()> m_finishing_restore_context;
     std::function<void()> m_finishing_source_context;
+    std::function<void()> m_finishing_restore_selection;
+    AI::SurfaceSelectionPersistence::SelectionState m_finishing_selection_state;
+    std::vector<std::pair<size_t, std::array<float, 3>>> m_finishing_candidate_face_overrides;
+    std::vector<std::string> m_finishing_color_palette;
     std::function<void()> m_finishing_redo_preview;
 
     wxStaticText*   m_prompt_label { nullptr };
@@ -323,15 +330,8 @@ private:
     wxPanel*        m_local_recolor_panel { nullptr };
     wxToggleButton* m_local_recolor_toggle { nullptr };
     wxPanel*        m_local_recolor_controls { nullptr };
-    std::array<wxToggleButton*, 3> m_region_operation_buttons { nullptr, nullptr, nullptr };
-    wxChoice*       m_region_range { nullptr };
-    std::array<wxButton*, Slic3r::AI::kMaxTargetPaletteColors> m_region_material_buttons {};
     std::array<wxToggleButton*, Slic3r::AI::kMaxPhysicalColorChannels> m_region_color_buttons {};
-    wxStaticText*   m_region_selection_summary { nullptr };
-    wxButton*       m_undo_region_selection { nullptr };
-    wxButton*       m_clear_region_selection { nullptr };
     wxButton*       m_apply_region_color { nullptr };
-    int             m_region_operation_index { 0 };
     int             m_region_color_index { 0 };
     std::vector<std::string> m_region_palette;
     wxPanel*        m_model_decision_panel { nullptr };
@@ -371,6 +371,7 @@ private:
     boost::filesystem::path m_selected_image_path;
     boost::filesystem::path m_job_image_path;
     boost::filesystem::path m_preview_path;
+    std::string m_preview_output { "preview" };
     boost::filesystem::path m_reference_image_path;
     boost::filesystem::path m_raw_preview_path;
     boost::filesystem::path m_artifact_path;
@@ -423,6 +424,8 @@ private:
     std::string m_color_intent_schema;
     std::string m_color_intent_sha256;
     uint64_t m_sequence { 0 };
+    uint64_t m_design_history_sequence { 0 };
+    bool m_design_history_loading { false };
     uint64_t m_style_recommendation_sequence { 0 };
     bool m_busy { false };
     bool m_awaiting_confirmation { false };

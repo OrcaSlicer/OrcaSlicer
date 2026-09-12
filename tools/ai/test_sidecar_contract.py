@@ -1772,7 +1772,7 @@ class SidecarHealthContractTests(unittest.TestCase):
         self.assertTrue(health["capabilities"]["model_generation"]["available"])
         self.assertFalse(health["capabilities"]["model_generation"]["palette_recommendation"]["available"])
 
-    def test_production_health_uses_pro_for_image2_without_migrating_text_or_vision(self):
+    def test_production_health_enables_text_image_creation_without_legacy_analysis(self):
         with temporary_environment(
             OPENAI_PRO_API="test-pro",
             OPENAI_PRO_URL="https://v.3dprint.beer/managed-ai/v1",
@@ -1786,7 +1786,7 @@ class SidecarHealthContractTests(unittest.TestCase):
         generation = health["capabilities"]["model_generation"]
         self.assertFalse(health["capabilities"]["config_proposal"]["available"])
         self.assertFalse(generation["palette_recommendation"]["available"])
-        self.assertEqual(generation["source_availability"], {"text": False, "image": True})
+        self.assertEqual(generation["source_availability"], {"text": True, "image": True})
         self.assertTrue(generation["available"])
         self.assertEqual(generation["image_provider"], {
             "available": True,

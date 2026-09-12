@@ -15,7 +15,7 @@ from sampled_local_thickness import sample_local_thickness
 
 
 REPORT_SCHEMA_VERSION = 1
-GATE_VERSION = "structural-v11"
+GATE_VERSION = "structural-v12"
 
 
 @dataclass(frozen=True)
@@ -435,12 +435,12 @@ def analyze_printable_obj(
             short_edges += length < limits.short_edge_mm
             edge_samples += 1
 
-    boundary_edges = sum(len(uses) == 1 for uses in edge_uses.values())
+    indexed_boundary_edges = sum(len(uses) == 1 for uses in edge_uses.values())
+    boundary_edges = indexed_boundary_edges
     non_manifold_edges = sum(len(uses) > 2 for uses in edge_uses.values())
     inconsistent_winding_edges = sum(
         len(uses) == 2 and uses[0][1:] == uses[1][1:] for uses in edge_uses.values()
     )
-    invalid_edge_count = boundary_edges + non_manifold_edges + inconsistent_winding_edges
 
     face_neighbors: list[set[int]] = [set() for _ in faces]
     for uses in edge_uses.values():
@@ -450,20 +450,52 @@ def analyze_printable_obj(
         face_neighbors[left_face].add(right_face)
         face_neighbors[right_face].add(left_face)
 
-    geometric_boundary_faces: dict[
-        tuple[tuple[float, float, float], tuple[float, float, float]], list[int]
+    geometric_boundary_uses: dict[
+        tuple[tuple[float, float, float], tuple[float, float, float]], list[tuple[int, int, int]]
     ] = {}
     for edge, uses in edge_uses.items():
         if len(uses) != 1:
             continue
         endpoints = (vertices[edge[0]], vertices[edge[1]])
         geometric_edge = endpoints if endpoints[0] < endpoints[1] else (endpoints[1], endpoints[0])
-        geometric_boundary_faces.setdefault(geometric_edge, []).append(uses[0][0])
-    for joined_faces in geometric_boundary_faces.values():
-        if len(joined_faces) != 2 or joined_faces[0] == joined_faces[1]:
+        geometric_boundary_uses.setdefault(geometric_edge, []).extend(uses)
+
+    # Only boundary candidates need geometric incidence checks. A third face on
+    # an already indexed edge must not be hidden by pairing two detached faces.
+    existing_non_manifold_seams = set()
+    if geometric_boundary_uses:
+        for edge, uses in edge_uses.items():
+            if len(uses) == 1:
+                continue
+            endpoints = (vertices[edge[0]], vertices[edge[1]])
+            geometric_edge = endpoints if endpoints[0] < endpoints[1] else (endpoints[1], endpoints[0])
+            joined_uses = geometric_boundary_uses.get(geometric_edge)
+            if joined_uses is not None:
+                joined_uses.extend(uses)
+                if len(uses) > 2:
+                    existing_non_manifold_seams.add(geometric_edge)
+
+    exact_seam_edge_pairs = 0
+    for geometric_edge, uses in geometric_boundary_uses.items():
+        if len(uses) > 2:
+            non_manifold_edges += geometric_edge not in existing_non_manifold_seams
             continue
-        face_neighbors[joined_faces[0]].add(joined_faces[1])
-        face_neighbors[joined_faces[1]].add(joined_faces[0])
+        if len(uses) != 2 or geometric_edge[0] == geometric_edge[1]:
+            continue
+        (left_face, left_start, left_end), (right_face, right_start, _) = uses
+        if left_face == right_face or face_areas[left_face] == 0.0 or face_areas[right_face] == 0.0:
+            continue
+        if vertices[left_start] == vertices[right_start]:
+            inconsistent_winding_edges += 1
+            continue
+        # Stitch topology only along exact, oppositely directed boundary edges;
+        # preserve original corner indices/colors and independent touching shells.
+        unite(left_end, right_start)
+        face_neighbors[left_face].add(right_face)
+        face_neighbors[right_face].add(left_face)
+        boundary_edges -= 2
+        exact_seam_edge_pairs += 1
+    invalid_edge_count = boundary_edges + non_manifold_edges + inconsistent_winding_edges
 
     roots = {index: find(index) for index in referenced}
     component_faces = Counter(roots[face[0]] for face in faces)
@@ -505,7 +537,7 @@ def analyze_printable_obj(
             component_diagonal = _vector_length(*component_size)
             if component_diagonal < limits.min_thin_component_diagonal_mm:
                 continue
-            points = [vertices[index] for index in indices]
+            points = list(dict.fromkeys(vertices[index] for index in indices))
             axis = _smallest_principal_axis(points)
             if axis is None:
                 component_thickness_available = False
@@ -898,6 +930,8 @@ def analyze_printable_obj(
         "thin_local_region_count": thin_local_region_count,
         "reported_thin_local_region_count": len(thin_local_regions),
         "boundary_edges": boundary_edges,
+        "indexed_boundary_edges": indexed_boundary_edges,
+        "exact_seam_edge_pairs": exact_seam_edge_pairs,
         "non_manifold_edges": non_manifold_edges,
         "inconsistent_winding_edges": inconsistent_winding_edges,
         "degenerate_faces": degenerate_faces,

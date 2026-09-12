@@ -51,7 +51,6 @@ from openai_preprocessor import (
     image_provider_status,
     PORTRAIT_FACE_LOCK_FILENAME,
     preprocess_image,
-    preprocess_text,
     recommend_printable_palette,
 )
 from printable_image_pipeline import (
@@ -3772,7 +3771,7 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
     try:
         _stop_boundary(job)
         prepared = _generation_prompt(
-            preprocess_text(prompt, (), job.style, job.custom_style),
+            prompt,
             job.palette,
             max_prompt_bytes=MAX_PROMPT_BYTES,
             constrain_palette=False,
@@ -8214,8 +8213,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             config = os.environ.get("OPENAI_API_KEY", "")
             image_provider = image_provider_status()
-            text_preprocessing = bool(config) or _preprocess_fallback_enabled()
-            generation_preprocessing = text_preprocessing or image_provider["available"]
+            text_preprocessing = image_provider["available"] or _preprocess_fallback_enabled()
+            generation_preprocessing = text_preprocessing
             policy = provider_policy()
             self.send_json(
                 200,
@@ -8440,8 +8439,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _create_text_job(self) -> None:
-        if not os.environ.get("OPENAI_API_KEY", "") and not _preprocess_fallback_enabled():
-            raise RequestError("feature_unavailable", "Text preprocessing is not configured.", 503)
+        if not image_provider_status()["available"] and not _preprocess_fallback_enabled():
+            raise RequestError("feature_unavailable", "AI style preview generation is not configured.", 503)
         request = self._read_model_json()
         _text_field(request.get("request_id"), "request_id")
         prompt = _text_field(request.get("prompt"), "prompt")

@@ -62,7 +62,7 @@ Codex 项目名、任务记录的 cwd、registry 提示与实际 Git worktree �
 | C++ AI DTO/面板/智能切片 | `slic3rutils_tests`；按 [tests/AGENTS.md](../tests/AGENTS.md) 配置、构建和运行，Windows 需 `-C Release` |
 | 网格/格式/颜色数据 | `libslic3r_tests` 中对应测试；产生切片/G-code 的行为用 `fff_print_tests` |
 | GUI/导入/组合流程 | 使用确定的可执行文件、datadir、端口和模型 SHA；核实导入无隐式切片/配置改变，以及 AI 关闭/离线时普通 Orca 流程 |
-| 产品发布验收 | 另按 release 和集成 ADR 执行构建、包、旧 3MF/profile、GUI、平台资格检查；单测通过不足以发布 |
+| 团队内部包与实际验收 | `release/build_internal.ps1 -SourceManifest <handoff/manifest.json>`；完整主程序、EXE/ZIP、3MF/profile 和真实主窗口证据。无需先推送或提交；当前不做正式发布验收。 |
 
 ## 维护导航
 

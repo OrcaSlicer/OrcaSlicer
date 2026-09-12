@@ -10,6 +10,8 @@
 
 #include <array>
 #include <cstddef>
+#include <ctime>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -63,6 +65,15 @@ bool valid_provider_task_id(const std::string& value);
 nlohmann::json read_json(const boost::filesystem::path& path);
 bool write_json(const boost::filesystem::path& path, const nlohmann::json& value);
 bool path_is_inside(const boost::filesystem::path& root, const boost::filesystem::path& candidate);
+struct DesignHistoryEntry
+{
+    std::string job_id, state, source, prompt;
+    boost::filesystem::path input_path, preview_path, raw_preview_path;
+    std::time_t generated_at { 0 };
+};
+std::optional<DesignHistoryEntry> read_design_history_entry(
+    const boost::filesystem::path& root, const std::string& job_id);
+bool has_persisted_generation_assets(const boost::filesystem::path& root, const std::string& job_id);
 boost::filesystem::path archive_library_image(const boost::filesystem::path& source,
                                               const std::string& job_id,
                                               const std::string& role);

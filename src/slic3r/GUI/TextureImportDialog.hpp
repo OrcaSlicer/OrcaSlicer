@@ -94,6 +94,9 @@ struct TextureImportOptions {
     bool z_up = false;
     std::vector<std::array<std::size_t, 3>> fixed_palette;
     std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
+    // Exact source-face targets; empty preserves ordinary color matching.
+    // Nonempty selections preserve input geometry and skip color smoothing.
+    std::vector<std::pair<size_t, std::array<std::size_t, 3>>> face_color_overrides;
 };
 // Lightweight 3D preview panel using wxGLCanvas.
 // Renders: original textured, multi-color, or filament-mapped.

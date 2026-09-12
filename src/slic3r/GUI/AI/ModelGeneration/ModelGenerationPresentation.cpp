@@ -1,5 +1,6 @@
 #include "ModelGenerationPresentation.hpp"
 #include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
+#include "slic3r/GUI/AIModelOutputDirectory.hpp"
 
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -12,6 +13,7 @@
 #include <nlohmann/json.hpp>
 #include <wx/font.h>
 #include <wx/image.h>
+#include <wx/log.h>
 #include <wx/stattext.h>
 
 #include <algorithm>
@@ -134,10 +136,7 @@ bool is_nonempty_obj(const boost::filesystem::path& path)
 
 boost::filesystem::path generated_models_root()
 {
-    const char* configured = std::getenv("ORCASLICER_AI_OUTPUT_DIR");
-    return configured != nullptr && configured[0] != '\0'
-        ? boost::filesystem::path(configured)
-        : boost::filesystem::current_path() / "generated_models";
+    return ai_model_output_directory().root();
 }
 
 boost::filesystem::path temp_path(const std::string& job_id, const std::string& extension)
@@ -205,6 +204,76 @@ bool path_is_inside(const boost::filesystem::path& root, const boost::filesystem
             return false;
     }
     return root_part == canonical_root.end() && candidate_part != canonical_candidate.end();
+}
+
+std::optional<DesignHistoryEntry> read_design_history_entry(
+    const boost::filesystem::path& root, const std::string& job_id)
+{
+    // Match the sidecar status route, and never follow a record into another job.
+    if (job_id.size() != 36) return std::nullopt;
+    for (size_t index = 0; index < job_id.size(); ++index) {
+        const char value = job_id[index];
+        if (index == 8 || index == 13 || index == 18 || index == 23) {
+            if (value != '-') return std::nullopt;
+        } else if (!((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f')))
+            return std::nullopt;
+    }
+    const auto directory = root / job_id;
+    const auto state_path = directory / "job.json";
+    try {
+        if (!path_is_inside(root, directory) || !path_is_inside(directory, state_path) ||
+            !boost::filesystem::is_regular_file(state_path) || boost::filesystem::file_size(state_path) > 64 * 1024)
+            return std::nullopt;
+        for (const char* name : {"model.glb", "model-vertex-color.obj"}) {
+            const auto model = directory / name;
+            if (boost::filesystem::is_regular_file(model) && boost::filesystem::file_size(model) > 0)
+                return std::nullopt; // Existing model history takes precedence.
+        }
+        const auto data = read_json(state_path);
+        if (!data.is_object() || data.value("version", 0) != 1 || data.value("id", std::string()) != job_id)
+            return std::nullopt;
+        DesignHistoryEntry entry;
+        entry.job_id = job_id;
+        entry.source = data.value("source", std::string());
+        entry.state = data.value("state", std::string());
+        entry.prompt = data.value("user_prompt", std::string());
+        if ((entry.source != "image" && entry.source != "text") ||
+            (entry.state != "awaiting_confirmation" && entry.state != "stopped" && entry.state != "failed"))
+            return std::nullopt;
+        wxLogNull suppress_invalid_images;
+        const auto image_path = [&](const char* key) -> boost::filesystem::path {
+            const auto value = data.find(key);
+            if (value == data.end() || !value->is_string() || value->get_ref<const std::string&>().empty()) return {};
+            const auto path = directory / value->get<std::string>();
+            return path_is_inside(directory, path) && is_supported_image(path) ? path : boost::filesystem::path();
+        };
+        entry.input_path = image_path("input_path");
+        entry.raw_preview_path = image_path("raw_preview_path");
+        entry.preview_path = image_path("model_reference_path");
+        if (entry.preview_path.empty()) entry.preview_path = image_path("preview_path");
+        if (entry.preview_path.empty()) entry.preview_path = entry.raw_preview_path;
+        if (entry.preview_path.empty()) return std::nullopt;
+        if (entry.raw_preview_path.empty()) entry.raw_preview_path = entry.preview_path;
+        // Image creation time remains stable when a task is restored or stopped.
+        entry.generated_at = boost::filesystem::last_write_time(entry.raw_preview_path);
+        return entry;
+    } catch (const boost::filesystem::filesystem_error&) {
+        return std::nullopt;
+    } catch (const nlohmann::json::exception&) {
+        return std::nullopt;
+    }
+}
+
+bool has_persisted_generation_assets(const boost::filesystem::path& root, const std::string& job_id)
+{
+    if (read_design_history_entry(root, job_id)) return true;
+    for (const char* name : {"model.glb", "model-vertex-color.obj"}) {
+        const auto path = root / job_id / name;
+        boost::system::error_code ec;
+        if (path_is_inside(root, path) && boost::filesystem::is_regular_file(path, ec) &&
+            boost::filesystem::file_size(path, ec) > 0 && !ec) return true;
+    }
+    return false;
 }
 
 boost::filesystem::path archive_library_image(const boost::filesystem::path& source,

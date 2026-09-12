@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ModelPreviewPalette.hpp"
+#include "../Model/ColorTrialState.hpp"
 #include "PortraitColorPackMapping.hpp"
 #include "slic3r/GUI/AI/Orca/FilamentColorPack.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -135,11 +136,7 @@ public:
     const std::vector<Color>& mapping_colors() const { return m_mapping_colors; }
     bool enabled() const { return m_enabled; }
     bool lighting() const { return m_lighting->GetValue(); }
-    struct State {
-        std::vector<Color> colors, mapping_colors;
-        std::array<bool, 6> locks {};
-        int source {0}, count {6};
-        bool enabled {false}, fidelity {true}, lighting {false};
+    struct State : AI::ColorTrialPersistence::State {
         wxString project_signature, notice;
     };
     State state() const {

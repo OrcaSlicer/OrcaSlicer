@@ -21,6 +21,10 @@ struct ModelFinishingOptions {
     // palette centers. Centers classify colors; they never replace source RGB.
     bool clean_color_spots {false};
     std::vector<std::array<float, 3>> cleanup_palette;
+    // Explicit face-only recoloring is exclusive with smoothing, repair and spot
+    // cleanup. It assigns exact corner colors without moving source geometry.
+    bool recolor_selected {false};
+    std::array<float, 4> target_color {};
 };
 
 struct ModelFinishingResult {
@@ -46,14 +50,17 @@ struct ModelFinishingResult {
     size_t nonmanifold_edges {0};
     double max_displacement {0.0};
     double displacement_limit {0.0};
+    size_t recolored_faces {0};
     bool changed() const {
-        return moved_vertices || removed_degenerate_faces || removed_duplicate_faces || reversed_faces || recolored_vertices;
+        return moved_vertices || removed_degenerate_faces || removed_duplicate_faces || reversed_faces || recolored_vertices || recolored_faces;
     }
 };
 
 // Edits a new triangle OBJ beside its source so relative MTL/texture references
 // remain valid. Vertex order, UVs, materials and components stay intact. Colors
-// change only for explicit color cleanup; geometry is unchanged in that mode.
+// change only for explicit color cleanup/recoloring. Exact face recoloring may
+// split shared vertex indices at color boundaries while preserving positions,
+// triangle order and UV/normal references.
 // No provider, printer, preset, or Orca project mutation takes place.
 ModelFinishingResult finish_model_obj(
     const boost::filesystem::path& source,

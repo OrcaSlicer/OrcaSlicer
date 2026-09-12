@@ -10,15 +10,15 @@
 #include "slic3r/GUI/ObjColorDialog.hpp"
 #include "slic3r/GUI/ModelColorImportResult.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 #include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
+#include "slic3r/GUI/AI/Model/SurfaceSelectionState.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
-#include "slic3r/Utils/FixModelByCgal.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -43,13 +43,6 @@ bool has_open_mesh_edges(const ModelObject& object)
 {
     return std::any_of(object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
         return volume != nullptr && its_num_open_edges(volume->mesh().its) != 0;
-    });
-}
-
-bool has_mmu_painting(const ModelObject& object)
-{
-    return std::any_of(object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
-        return volume != nullptr && volume->is_mm_painted();
     });
 }
 
@@ -243,6 +236,30 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
     }
 
     boost::filesystem::path path = request.artifact.local_path;
+    if (request.color_mode == AI::ImportColorMode::NativeMatch && !request.face_color_overrides.empty()) {
+        TriangleMesh source_mesh;
+        ObjInfo source_colors;
+        if (!AI::load_model_artifact(path, source_mesh, source_colors, result.error)) {
+            result.outcome = AI::ModelImportOutcome::InvalidArtifact;
+            return result;
+        }
+        const auto identity = AI::SurfaceSelectionPersistence::geometry_fingerprint(source_mesh.its);
+        if (identity.empty() || identity != request.face_color_geometry_id) {
+            result.outcome = AI::ModelImportOutcome::InvalidArtifact;
+            result.error = "The locally edited surface belongs to another model version. Reload the model before importing.";
+            return result;
+        }
+        for (const auto& override : request.face_color_overrides) {
+            if (override.first >= source_mesh.its.indices.size() ||
+                std::any_of(override.second.begin(), override.second.end(), [](float channel) {
+                    return !std::isfinite(channel) || channel < 0.f || channel > 1.f;
+                })) {
+                result.outcome = AI::ModelImportOutcome::InvalidArtifact;
+                result.error = "The locally edited surface contains an invalid face or color. Reload the model before importing.";
+                return result;
+            }
+        }
+    }
     if (AI::model_artifact_format(path) == "glb") {
         // Feed the same Z-up millimetres and sampled sRGB colors as the AI
         // preview into Orca's existing color matching and undo transaction.
@@ -254,8 +271,18 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
             return result;
         }
         const auto original = path;
-        path = original.parent_path() / ".orca-import" / hash / (original.stem().string() + ".obj");
+        const boost::filesystem::path cache_root = Slic3r::temporary_dir();
+        if (cache_root.empty()) {
+            result.outcome = AI::ModelImportOutcome::InvalidArtifact;
+            result.error = "The Orca temporary directory is unavailable for model import.";
+            return result;
+        }
+        // Saved-version names and history nesting must not lengthen the import
+        // copy beyond Windows path limits. The complete content hash owns it.
+        path = cache_root / "ai-import" / hash / "model.obj";
         if (!AI::is_model_artifact(path) && !AI::write_model_artifact(path, mesh.its, colors.vertex_colors, result.error)) {
+            BOOST_LOG_TRIVIAL(error) << "AI model import preparation failed: source=" << original
+                << ", output=" << path << ", error=" << result.error;
             result.outcome = AI::ModelImportOutcome::InvalidArtifact;
             return result;
         }
@@ -279,6 +306,11 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
             options.physical_filament_limit = 6;
             options.preserve_existing_filaments = true;
             options.z_up = true;
+            for (const auto& override : request.face_color_overrides)
+                options.face_color_overrides.push_back({override.first, {
+                    size_t(std::lround(override.second[0] * 255.f)),
+                    size_t(std::lround(override.second[1] * 255.f)),
+                    size_t(std::lround(override.second[2] * 255.f))}});
             if (request.color_trial && request.color_trial->valid()) {
                 const auto to_rgb = [](const auto& source) {
                     std::vector<std::array<size_t, 3>> colors;
@@ -423,81 +455,15 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
         }
     }
     if (requires_repair) {
-        workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Running,
-                                         _L("发现开放边，正在自动修复"));
-        ProgressDialog progress_dlg(_L("修复 AI 生成模型"), "", 100, find_toplevel_parent(m_plater),
-                                    wxPD_AUTO_HIDE | wxPD_APP_MODAL, true);
-        std::string repair_error;
-        for (size_t object_index : loaded) {
-            if (object_index >= m_plater->model().objects.size())
-                continue;
-            ModelObject* object = m_plater->model().objects[object_index];
-            if (object == nullptr || !has_open_mesh_edges(*object))
-                continue;
-            const bool had_painting = has_mmu_painting(*object);
-            std::string object_error;
-            const bool completed = fix_model_with_cgal_gui(
-                *object, -1, progress_dlg, _L("正在修复模型对象") + ":\n", object_error, true);
-            object->ensure_on_bed();
-            m_plater->changed_mesh(static_cast<int>(object_index));
-            if (!completed || !object_error.empty() || has_open_mesh_edges(*object) ||
-                (had_painting && !has_mmu_painting(*object))) {
-                repair_error = object_error.empty() ? "网格仍存在非流体问题，或无法保留耗材颜色。" : object_error;
-                break;
-            }
-        }
-
-        if (!repair_error.empty()) {
-            m_plater->undo();
-            RichMessageDialog fallback(
-                m_plater,
-                _L("自动网格修复失败。\n\n"
-                   "可以将原始 OBJ 手动导入准备页，再使用准备页中的修复工具处理。"),
-                _L("自动修复失败"), wxYES_NO | wxICON_WARNING);
-            fallback.SetButtonLabel(wxID_YES, _L("手动导入"));
-            fallback.SetButtonLabel(wxID_NO, _L("取消"));
-            if (fallback.ShowModal() != wxID_YES) {
-                result.outcome = AI::ModelImportOutcome::RepairFailed;
-                result.error = std::move(repair_error);
-                workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Failed,
-                                                 _L("自动修复失败"));
-                workflow.finish_ai_workflow(false, _L("网格修复失败"));
-                return result;
-            }
-
-            const size_t manual_before = m_plater->model().objects.size();
-            bool manual_colors_applied = false;
-            size_t manual_source_color_count = 0;
-            size_t manual_mapped_color_count = 0;
-            const std::vector<size_t> manual_loaded =
-                load_model("Manually import AI generated model", request.color_mode, manual_colors_applied,
-                           manual_source_color_count, manual_mapped_color_count);
-            if (manual_loaded.empty() || m_plater->model().objects.size() <= manual_before) {
-                if (!manual_loaded.empty() && m_plater->model().objects.size() > manual_before)
-                    m_plater->undo();
-                result.outcome = import_cancelled ? AI::ModelImportOutcome::Cancelled : AI::ModelImportOutcome::ImportFailed;
-                result.error = import_cancelled ? "OBJ import cancelled." : "Manual OBJ import failed after automatic repair.";
-                workflow.update_ai_workflow_step(Sidebar::AIImportModel,
-                    import_cancelled ? Sidebar::AIWorkflowStatus::Warning : Sidebar::AIWorkflowStatus::Failed,
-                    import_cancelled ? _L("已取消导入。") : _L("手动导入失败"));
-                workflow.finish_ai_workflow(false, import_cancelled ? _L("已取消，本次未导入；已有模型保留。") : _L("模型导入失败"), import_cancelled);
-                return result;
-            }
-            result.colors_applied = manual_colors_applied;
-            result.source_color_count = manual_source_color_count;
-            result.mapped_color_count = manual_mapped_color_count;
-            update_color_status();
-            result.manual_repair_required = true;
-            workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Warning,
-                                             _L("需要手动修复"));
-        }
-    }
-
-    if (!requires_repair)
+        // CGAL repair has no interruptible per-mesh operation. Do not make it
+        // an unavoidable modal import step or rebuild confirmed color surfaces.
+        // Keep the import transaction intact; repair is an explicit next action.
+        result.manual_repair_required = true;
+        workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Warning,
+            _L("模型存在开放边；已保留几何与颜色，请在准备页检查并按需修复"));
+    } else {
         workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Success, _L("封闭网格"));
-    else if (!result.manual_repair_required)
-        workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Success,
-                                         _L("自动修复完成"));
+    }
 
     if (update_existing != size_t(-1) && (loaded.size() != 1 || result.manual_repair_required)) {
         wxMessageBox(_L("本次结果需要分部件或修复处理，无法只更新原模型配色。已保留原模型，并将新结果作为副本摆放。"),

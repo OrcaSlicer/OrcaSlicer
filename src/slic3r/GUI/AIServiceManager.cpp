@@ -1,6 +1,7 @@
 #include "AIServiceManager.hpp"
 
 #include "AISidecarClient.hpp"
+#include "AIModelOutputDirectory.hpp"
 #include "GUI_App.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/Http.hpp"
@@ -16,6 +17,7 @@
 #include <wx/stdpaths.h>
 
 #include <array>
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <system_error>
@@ -58,7 +60,9 @@ std::string health_url(const std::string& endpoint)
     return endpoint + "/health";
 }
 
-AIServiceAvailability parse_health_response(const std::string& body, bool require_session_protection)
+} // namespace
+
+AIServiceAvailability AIServiceAvailability::from_health_response(const std::string& body, bool require_session_protection)
 {
     AIServiceAvailability result;
     const auto parsed = nlohmann::json::parse(body, nullptr, false);
@@ -97,13 +101,20 @@ AIServiceAvailability parse_health_response(const std::string& body, bool requir
     const auto config_proposal = capabilities.find("config_proposal");
     const auto model_generation = capabilities.find("model_generation");
     const auto expected_sources = nlohmann::json::array({ "text", "image" });
-    const auto expected_artifact_formats = nlohmann::json::array({ "obj" });
     if (config_proposal == capabilities.end() || !config_proposal->is_object() || !config_proposal->contains("available") ||
         !(*config_proposal)["available"].is_boolean() || model_generation == capabilities.end() || !model_generation->is_object() ||
         !model_generation->contains("available") || !(*model_generation)["available"].is_boolean() ||
         !model_generation->contains("sources") || (*model_generation)["sources"] != expected_sources ||
-        !model_generation->contains("artifact_formats") || (*model_generation)["artifact_formats"] != expected_artifact_formats) {
+        !model_generation->contains("artifact_formats")) {
         result.error = "AI sidecar returned incomplete capability data.";
+        return result;
+    }
+    const auto& artifact_formats = (*model_generation)["artifact_formats"];
+    if (!artifact_formats.is_array() || artifact_formats.empty() ||
+        !std::all_of(artifact_formats.begin(), artifact_formats.end(), [](const auto& format) {
+            return format.is_string() && (format == "glb" || format == "obj");
+        })) {
+        result.error = "AI sidecar returned unsupported model artifact formats.";
         return result;
     }
 
@@ -113,6 +124,8 @@ AIServiceAvailability parse_health_response(const std::string& body, bool requir
     result.model_generation_available = (*model_generation)["available"].get<bool>();
     return result;
 }
+
+namespace {
 
 std::string shutdown_url(const std::string& endpoint)
 {
@@ -147,6 +160,7 @@ AIServiceManager::AIServiceManager(std::string endpoint)
     : m_endpoint(std::move(endpoint))
     , m_lifetime(std::make_shared<int>(0))
 {
+    (void)ai_model_output_directory();
     if (m_endpoint == DEFAULT_LOCAL_ENDPOINT && !has_explicit_sidecar_endpoint() &&
         !AISidecarClient::initialize_local_session())
         BOOST_LOG_TRIVIAL(error) << "Unable to initialize local AI sidecar session protection; autostart will remain disabled.";
@@ -274,7 +288,7 @@ void AIServiceManager::probe_health(const wxWeakRef<wxWindow>& weak_target,
     http.on_complete([this, weak_target, lifetime, on_complete](std::string body, unsigned) mutable {
         AIServiceAvailability result;
         try {
-            result = parse_health_response(body, AISidecarClient::session_protection_enabled());
+            result = AIServiceAvailability::from_health_response(body, AISidecarClient::session_protection_enabled());
         } catch (const std::exception&) {
             result.error = "AI sidecar returned a malformed health response.";
         }
@@ -370,12 +384,14 @@ void AIServiceManager::try_autostart_local_sidecar()
         child_environment["ORCASLICER_AI_REQUIRE_SESSION"] = "1";
         child_environment["ORCASLICER_AI_PARENT_PID"] = std::to_string(boost::this_process::get_id());
         child_environment["PYTHONNOUSERSITE"] = "1";
+        process::wenvironment launch_environment(child_environment);
+        ai_model_output_directory().configure_child_environment(launch_environment);
         auto owned = std::make_unique<SidecarProcess>();
         owned->child = std::make_unique<process::child>(
             python.GetFullPath().ToStdWstring(),
             process::args(std::vector<std::wstring>{ L"-I", bootstrap.GetFullPath().ToStdWstring(),
                                                      boost::nowide::widen(Slic3r::data_dir()) }),
-            child_environment,
+            launch_environment,
             process::start_dir(bootstrap.GetPath().ToStdWstring()),
             process::std_out > process::null,
             process::std_err > process::null,
