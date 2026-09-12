@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Рамка -->
+  <path d="M0.5,13.5L0.5,1.5C0.5,0.951,0.951,0.5,1.5,0.5L13.5,0.5C14.049,0.5,14.5,0.951,14.5,1.5L14.5,13.5C14.5,14.049,14.049,14.5,13.5,14.5L1.5,14.5C0.951,14.5,0.5,14.049,0.5,13.5Z" style="fill:none;stroke:#949494;stroke-width:1px"/>
+
+  <!-- Центральные пунктирные линии -->
+  <rect x="7" y="1" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="3" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="5" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="7" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="9" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="11" width="1" height="1" style="fill:#009688"/>
+  <rect x="7" y="13" width="1" height="1" style="fill:#009688"/>
+
+  <!-- Правая стрелка -->
+  <path d="M9.5,7.5L12.504,4.504L12.5,10.5L9.5,7.5Z" style="fill:#949494;stroke:#949494;stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5"/>
+</svg>
