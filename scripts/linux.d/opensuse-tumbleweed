@@ -1,0 +1,52 @@
+#!/bin/bash
+# these are the openSUSE Tumbleweed Linux specific build functions
+
+# Additional Dev packages for OrcaSlicer
+export REQUIRED_DEV_PACKAGES=(
+    autoconf
+    automake
+    cmake
+    curl
+    dbus-1
+    eglexternalplatform-devel
+    kf6-extra-cmake-modules
+    file
+    gettext-runtime
+    git
+    glew-devel
+    gstreamer-devel
+    gstreamermm-devel
+    gtk3-devel
+    libcurl-devel
+    libmspack-devel
+    libopenssl-devel
+    libquadmath-devel
+    libsecret-devel
+    libspnav-devel
+    libtool
+    nanum-fonts
+    ninja
+    texinfo
+    webkit2gtk3-minibrowser
+    webkit2gtk3-devel
+    wget
+    wayland-protocols-devel
+)
+
+if [[ -n "$UPDATE_LIB" ]]
+then
+    echo -n -e "Updating linux ...\n"
+    NEEDED_PKGS=()
+    for PKG in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        sudo zypper se -ix "${PKG}" > /dev/null || NEEDED_PKGS+=("${PKG}")
+    done
+
+    if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
+        sudo zypper refresh && sudo zypper in -y "${NEEDED_PKGS[@]}"
+    fi
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(sudo zypper se -ix gtk3-devel)
