@@ -368,6 +368,23 @@ static std::map<unsigned int, ToolBand> tower_layer_bands(const std::vector<Wipe
     return bands;
 }
 
+// A tower layer with no tool change on it, told apart the way WipeTowerIntegration does.
+static bool tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &layer)
+{
+    return layer.size() == 1 && layer.front().initial_tool == layer.front().new_tool;
+}
+
+// The filaments that extrude anything on a tower layer.
+static std::set<unsigned int> tower_layer_filaments(const std::vector<WipeTower::ToolChangeResult> &layer)
+{
+    std::set<unsigned int> filaments;
+    for (const WipeTower::ToolChangeResult &tcr : layer)
+        for (const WipeTower::Extrusion &extrusion : tcr.extrusions)
+            if (extrusion.width > 0.f)
+                filaments.insert(extrusion.tool);
+    return filaments;
+}
+
 // A per-layer tool change between the wall and the infill filaments, so every tower layer has
 // both filaments on it and can be split into regions.
 static DynamicPrintConfig multimaterial_tower_config(bool multimaterial)
@@ -405,9 +422,9 @@ TEST_CASE("The multimaterial prime tower gives each filament its own part of the
     size_t                 split_layers = 0;
 
     for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
+        if (tower_layer_is_sparse(layer))
+            continue; // no tool change, so only one filament is available to print the layer
         const std::map<unsigned int, ToolBand> bands = tower_layer_bands(layer, data.width, data.depth);
-        if (bands.size() < 2)
-            continue; // a layer with no tool change has only one filament to print it with
         REQUIRE(bands.size() == 2);
 
         const ToolBand &first  = bands.begin()->second;
@@ -428,27 +445,41 @@ TEST_CASE("The multimaterial prime tower gives each filament its own part of the
     CHECK(shell_filaments.size() == 1);
 }
 
-TEST_CASE("Turning the multimaterial prime tower off leaves the filaments sharing the footprint", "[WipeTower]")
+// Whether any two tower layers in a row are each printed by a single filament, and by a
+// different one. That stacks one material on the other across the whole footprint, which is
+// exactly what the multimaterial layout is there to avoid.
+static bool tower_swaps_filament_between_whole_layers(const WipeTowerData &data)
+{
+    for (size_t i = 1; i < data.tool_changes.size(); ++i) {
+        const std::set<unsigned int> below = tower_layer_filaments(data.tool_changes[i - 1]);
+        const std::set<unsigned int> above = tower_layer_filaments(data.tool_changes[i]);
+        if (below.size() == 1 && above.size() == 1 && *below.begin() != *above.begin())
+            return true;
+    }
+    return false;
+}
+
+TEST_CASE("Turning the multimaterial prime tower off leaves the stock layout in place", "[WipeTower]")
 {
     Print print;
     Model model;
     slice_prime_tower(multimaterial_tower_config(false), print, model);
     const WipeTowerData &data = print.wipe_tower_data();
-    REQUIRE(data.width > 0.f);
+    REQUIRE(data.tool_changes.size() > 1);
 
-    // The stock tower hands the wall and the leftover sparse infill to one filament and gives
-    // the other a purge band in between, so somewhere up the tower the two bands overlap.
-    bool bands_overlap = false;
-    for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
-        const std::map<unsigned int, ToolBand> bands = tower_layer_bands(layer, data.width, data.depth);
-        if (bands.size() < 2)
-            continue;
-        const ToolBand &first  = bands.begin()->second;
-        const ToolBand &second = std::next(bands.begin())->second;
-        if (first.farthest >= second.nearest && second.farthest >= first.nearest)
-            bands_overlap = true;
-    }
-    CHECK(bands_overlap);
+    // The stock tower gives a whole layer - purge, wall and sparse infill alike - to the filament
+    // the layer's tool change brings in, so the footprint changes material from one layer to the
+    // next. That is the behaviour the multimaterial layout replaces, and it has to survive the
+    // option being off.
+    CHECK(tower_swaps_filament_between_whole_layers(data));
+}
+
+TEST_CASE("The multimaterial prime tower never stacks one filament on the other", "[WipeTower]")
+{
+    Print print;
+    Model model;
+    slice_prime_tower(multimaterial_tower_config(true), print, model);
+    CHECK_FALSE(tower_swaps_filament_between_whole_layers(print.wipe_tower_data()));
 }
 
 TEST_CASE("The multimaterial prime tower still purges the whole prime volume", "[WipeTower]")
