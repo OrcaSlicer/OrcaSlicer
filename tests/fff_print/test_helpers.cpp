@@ -454,6 +454,53 @@ int role_passes(const std::string &gcode, const std::string &role)
     return passes;
 }
 
+// Count of contiguous extrusion blocks of `role` per Z height (each block per layer counts once).
+std::map<double, int> role_passes_per_layer(const std::string &gcode, const std::string &role)
+{
+    std::map<double, int> passes;
+    bool in_role = false;
+    double current_z = -1;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.extruding(self)) { in_role = false; return; }
+        double z = self.z();
+        if (z != current_z) {
+            current_z = z;
+            in_role = false;
+        }
+        const bool is_role = line.comment().find(role) != std::string_view::npos;
+        if (is_role && !in_role) ++passes[z];
+        in_role = is_role;
+    });
+    return passes;
+}
+
+// Total extrusion distance (mm) of `role` per Z height.
+std::map<double, double> role_length_per_layer(const std::string &gcode, const std::string &role)
+{
+    std::map<double, double> lengths;
+    double prev_x = 0, prev_y = 0, prev_z = 0;
+    double current_z = -1;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.extruding(self)) return;
+        double z = (double)self.z();
+        if (z != current_z) {
+            current_z = z;
+            prev_x = (double)self.x(); prev_y = (double)self.y(); prev_z = z;
+            return;
+        }
+        const bool is_role = line.comment().find(role) != std::string_view::npos;
+        if (is_role) {
+            double cx = (double)self.x(), cy = (double)self.y(), cz = z;
+            double dx = cx - prev_x, dy = cy - prev_y, dz = cz - prev_z;
+            lengths[z] += std::sqrt(dx * dx + dy * dy + dz * dz);
+            prev_x = cx; prev_y = cy; prev_z = cz;
+        }
+    });
+    return lengths;
+}
+
 std::vector<std::string> role_sequence(const std::string &gcode, const std::vector<std::string> &roles)
 {
     std::vector<std::string> seq;

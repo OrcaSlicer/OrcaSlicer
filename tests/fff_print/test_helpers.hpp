@@ -121,6 +121,12 @@ double max_z(const std::string &gcode);
 // Count of contiguous extrusion blocks of `role` (each uninterrupted run counts once).
 int role_passes(const std::string &gcode, const std::string &role);
 
+// Count of contiguous extrusion blocks of `role` per Z height.
+std::map<double, int> role_passes_per_layer(const std::string &gcode, const std::string &role);
+
+// Total extrusion distance (mm) of `role` per Z height.
+std::map<double, double> role_length_per_layer(const std::string &gcode, const std::string &role);
+
 // The `roles` in the order their extrusion blocks first appear, consecutive repeats collapsed.
 std::vector<std::string> role_sequence(const std::string &gcode, const std::vector<std::string> &roles);
 
