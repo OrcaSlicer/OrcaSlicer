@@ -7651,7 +7651,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
-    def->label = L("Wipe tower");
+    def->label = L("Prime tower");
     def->category = L("Extruders");
     def->tooltip = L("The extruder to use when printing perimeter of the wipe tower. "
                      "Set to 0 to use the one that is available (non-soluble would be preferred).");
