@@ -16,6 +16,7 @@ using LayerPtrs = std::vector<Layer*>;
 class LayerRegion;
 using LayerRegionPtrs = std::vector<LayerRegion*>;
 class PrintRegion;
+class PrintRegionConfig;
 class PrintObject;
 class Print;
 
@@ -200,6 +201,11 @@ public:
                                                                            FillAdaptive::Octree *support_fill_octree,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
+    // Returns the filament id (1-based) the region is ironed with, or -1 when the
+    // region is not ironed.
+    static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                                    bool spiral_mode,
+                                                    bool is_topmost_layer);
     void                    make_contour_z(const sla::IndexedMesh &mesh);
 
     void                    export_region_slices_to_svg(const char *path) const;
