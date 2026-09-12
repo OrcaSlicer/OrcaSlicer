@@ -160,8 +160,9 @@ bool IMSlider::init_texture()
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover_dark.svg", 56, 56, m_one_layer_on_hover_dark_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_dark.svg", 56, 56, m_one_layer_off_dark_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover_dark.svg", 56, 56, m_one_layer_off_hover_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_pause.svg", 14, 14, m_pause_icon_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_custom.svg", 14, 14, m_custom_icon_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_pause.svg"  , 16, 16, m_pause_icon_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_custom.svg" , 16, 16, m_custom_icon_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_change.svg" , 16, 16, m_change_icon_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_slider_delete.svg", 14, 14, m_delete_icon_id);
     }
 
@@ -551,8 +552,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     ImVec2 handle_center = handle.GetCenter();
 
     // draw scroll line
-    ImRect scroll_line = ImRect(ImVec2(groove.Min.x, groove.Min.y - 2.0f * m_scale),
-        ImVec2(handle_center.x, groove.Max.y + 2.0f * m_scale));
+    ImRect scroll_line = ImRect(ImVec2(groove.Min.x - 2.f * m_scale, groove.Min.y - 2.f * m_scale), ImVec2(handle_center.x, groove.Max.y + 2.f * m_scale));
     window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, range_fill_clr, 0.5f * scroll_line.GetHeight());
 
     // draw handle
@@ -652,39 +652,36 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
 
 void IMSlider::draw_custom_label_block(const ImVec2 anchor, Type type)
 {
-    wxString label;
+    ImTextureID icon_id = m_custom_icon_id;
     switch (type)
     {
     case ColorChange:
-        label = _L("Color");
+        icon_id = m_change_icon_id;
         break;
     case PausePrint:
-        label = _L("Pause");
+        icon_id = m_pause_icon_id;
         break;
     case ToolChange:
-        label = _L("Color");
+        icon_id = m_change_icon_id;
         break;
     case Template:
-        label = _L("Template");
+        icon_id = m_custom_icon_id;
         break;
     case Custom:
-        label = _L("Custom");
+        icon_id = m_custom_icon_id;
         break;
     case Unknown:
         break;
     default:
         break;
     }
-    const ImVec2 text_size = ImGui::CalcTextSize(into_u8(label).c_str());
-    const ImVec2 padding = ImVec2(4, 2) * m_scale;
-    const ImU32  clr = IM_COL32(255, 111, 0, 255);
-    const float  rounding = 2.0f * m_scale;
-    ImVec2 block_pos = { anchor.x - text_size.x - padding.x * 2, anchor.y - text_size.y / 2 - padding.y };
-    ImVec2 block_size = { text_size.x + padding.x * 2, text_size.y + padding.y * 2 };
-    ImGui::RenderFrame(block_pos, block_pos + block_size, clr, false, rounding);
-    ImGui::PushStyleColor(ImGuiCol_Text, { 1,1,1,1 });
-    ImGui::RenderText(block_pos + padding, into_u8(label).c_str());
-    ImGui::PopStyleColor();
+
+    const ImVec2 icon_sz = ImVec2(1.f, 1.f) * std::roundf(16.f * m_scale * 1 / GCODE_VIEWER_SLIDER_SCALE); // temporary solution until fixing scaling issue on class. GCODE_VIEWER_SLIDER_SCALE overrides m_scale globally with 0.6 value
+    ImVec2 icon_pos  = {std::roundf(anchor.x - icon_sz.x), std::roundf(anchor.y - icon_sz.y / 2)};
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , {0, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
+    button_with_pos(icon_id, icon_sz, icon_pos);
+    ImGui::PopStyleVar(2);
 }
 
 void IMSlider::draw_ticks(const ImRect& slideable_region) {
@@ -697,11 +694,11 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
 
     ImGuiContext &context       = *GImGui;
 
-    ImVec2 tick_box      = ImVec2(52.0f, 16.0f) * m_scale;
     ImVec2 tick_offset   = ImVec2(22.0f, 14.0f) * m_scale;
     float  tick_width    = 1.0f * m_scale;
     ImVec2 icon_offset   = ImVec2(16.0f, 7.0f) * m_scale;
     ImVec2 icon_size     = ImVec2(14.0f, 14.0f) * m_scale;
+    ImVec2 left_icon_sz  = ImVec2(16.f, 16.f) * m_scale * 1 / GCODE_VIEWER_SLIDER_SCALE;
 
     const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
     const ImU32 tick_hover_box_clr = m_is_dark ? IM_COL32(65, 65, 71, 255) : IM_COL32(219, 253, 231, 255);
@@ -719,8 +716,10 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
         float tick_pos = get_tick_pos(tick_it->tick);
 
         //draw tick hover box when hovered
-        ImRect tick_hover_box = ImRect(slideable_region.GetCenter().x - tick_box.x / 2, tick_pos - tick_box.y / 2, slideable_region.GetCenter().x + tick_box.x / 2,
-                                       tick_pos + tick_box.y / 2);
+        ImRect tick_hover_box = ImRect(
+            slideable_region.GetCenter().x - tick_offset.y - left_icon_sz.x, tick_pos - left_icon_sz.x / 2,
+            slideable_region.GetCenter().x + tick_offset.x + icon_size.x   , tick_pos + left_icon_sz.x / 2
+        );
 
         if (ImGui::IsMouseHoveringRect(tick_hover_box.Min, tick_hover_box.Max))
         {
@@ -747,23 +746,34 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
         ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_offset.y, tick_pos);
         ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_offset.x, tick_pos);
         ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
-        ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
 
-        //draw pause icon
-        if (tick_it->type == PausePrint) {
-            ImTextureID pause_icon_id = m_pause_icon_id;
-            ImVec2      icon_pos     = ImVec2(slideable_region.GetCenter().x + icon_offset.x, tick_pos - icon_offset.y);
-            button_with_pos(pause_icon_id, icon_size, icon_pos);
+        ImU32 right_tick_clr = tick_clr;
+        if(tick_it->type != Unknown){
+            tick_right.Expand(ImVec2(0.f, 1.f * m_scale)); // make tick thicker
+            switch (tick_it->type) { // match color of tick if it has marker
+                case PausePrint:
+                    right_tick_clr = IM_COL32(255, 111, 0, 255);
+                    break;
+                case ColorChange:
+                case ToolChange:
+                    right_tick_clr = IM_COL32(136, 73, 226, 255);
+                    break;
+                case Template:
+                case Custom:
+                    right_tick_clr = IM_COL32(23, 131, 227, 255);
+                    break;
+            }
         }
-        if (tick_it->type == Custom || tick_it->type == Template) {
-            ImTextureID custom_icon_id = m_custom_icon_id;
-            ImVec2      icon_pos = ImVec2(slideable_region.GetCenter().x + icon_offset.x, tick_pos - icon_offset.y);
-            button_with_pos(custom_icon_id, icon_size, icon_pos);
-        }
+        ImGui::RenderFrame(tick_right.Min, tick_right.Max, right_tick_clr, false);
 
         //draw label block
         ImVec2 label_block_anchor = ImVec2(slideable_region.GetCenter().x - tick_offset.y, tick_pos);
         draw_custom_label_block(label_block_anchor, tick_it->type);
+
+        const ImVec2 icon_pos = {label_block_anchor.x - left_icon_sz.x, label_block_anchor.y - left_icon_sz.y / 2};
+        const ImRect icon_rc  = ImRect(icon_pos, icon_pos + left_icon_sz);
+        if (ImGui::IsMouseHoveringRect(icon_rc.Min, icon_rc.Max) && context.IO.MouseClicked[0])
+            do_go_to_layer(tick_it->tick);
 
         ++tick_it;
     }
@@ -802,6 +812,8 @@ void IMSlider::show_tooltip(const std::string tooltip) {
 }
 
 void IMSlider::show_tooltip(const TickCode& tick){
+    std::string layer_str  = std::to_string(tick.tick + 1) + "  " + get_label(tick.tick, ltHeight) + "\n";
+
     // Use previous layer's complete time as current layer's tick time,
     // since ticks are added at the beginning of current layer
     std::string time_str = "";
@@ -818,16 +830,16 @@ void IMSlider::show_tooltip(const TickCode& tick){
     case CustomGCode::ColorChange:
         break;
     case CustomGCode::PausePrint:
-        show_tooltip(time_str + _u8L("Pause:") + " \"" + gcode(PausePrint) + "\"");
+        show_tooltip(layer_str + time_str + _u8L("Pause:") + " \"" + gcode(PausePrint) + "\"");
         break;
     case CustomGCode::ToolChange:
-        show_tooltip(time_str + _u8L("Change Filament"));
+        show_tooltip(layer_str + time_str + _u8L("Change Filament") + ": " + std::to_string(tick.extruder));
         break;
     case CustomGCode::Template:
-        show_tooltip(time_str + _u8L("Custom Template:") + " \"" + gcode(Template) + "\"");
+        show_tooltip(layer_str + time_str + _u8L("Custom Template:") + " \"" + gcode(Template) + "\"");
         break;
     case CustomGCode::Custom:
-        show_tooltip(time_str + _u8L("Custom G-code:") + " \"" + tick.extra + "\"");
+        show_tooltip(layer_str + time_str + _u8L("Custom G-code:") + " \"" + tick.extra + "\"");
         break;
     default:
         break;
@@ -870,7 +882,7 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
     
     // draw layer time
-    std::string label = get_label(tick, ltEstimatedTime);
+    std::string label = std::to_string(tick + 1) + "  " + get_label(tick, ltHeight) + "\n" + get_label(tick, ltEstimatedTime);
     show_tooltip(label);
 }
 
@@ -970,13 +982,13 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             handle.GetCenter().y - 0.5f * text_size.y);
         return ImRect(text_start, text_start + text_size);
     };
-    auto draw_label = [&](const ImRect& rect, const ImVec2& content_size, const std::string& label, bool hovered, bool active) {
+    auto draw_label = [&](const ImRect& rect, const ImVec2& content_size, const std::string& label, bool hovered, bool active, bool current) {
         const float rounding = 5.0f * m_scale;
         const ImU32 bg_clr = active ? label_bg_active_clr : label_bg_clr;
         const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
-        window->DrawList->AddRectFilled(rect.Min + shadow_offset, rect.Max + shadow_offset, label_shadow_clr, rounding);
+        window->DrawList->AddRectFilled(rect.Min + shadow_offset, rect.Max + shadow_offset, label_shadow_clr, rounding + shadow_offset.x);
         ImGui::RenderFrame(rect.Min, rect.Max, bg_clr, false, rounding);
-        window->DrawList->AddRect(rect.Min, rect.Max, hovered ? handle_clr : label_border_clr, rounding, 0, hovered ? 1.5f * m_scale : 1.0f * m_scale);
+        window->DrawList->AddRect(rect.Min, rect.Max, (hovered || (current && menu_open)) ? handle_clr : label_border_clr, rounding, 0, hovered ? 1.5f * m_scale : 1.0f * m_scale);
         const ImVec2 rect_size = rect.GetSize();
         ImGui::RenderText(rect.Min + ImVec2((rect_size.x - content_size.x) * 0.5f,
             (rect_size.y - content_size.y) * 0.5f), label.c_str());
@@ -1017,7 +1029,8 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     // Persist the label that started the drag after the cursor leaves its rect.
     static LabelDragState label_drag;
 
-    if (hovered_label != ssUndef && context.IO.MouseClicked[0]) {
+    // Allow gaining focus on Left or Right click
+    if (hovered_label != ssUndef && (context.IO.MouseClicked[0] || context.IO.MouseClicked[1])) {
         selection = hovered_label;
         label_drag.id = id;
         label_drag.selection = hovered_label;
@@ -1049,6 +1062,31 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             }
             if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0]) {
                 selection = ssLower;
+            }
+            // Auto switch nearest thumb when clicking on track
+            if (wxGetApp().app_config->get_bool("layers_slider_auto_switch_to_nearest")) {
+                const ImRect higher_label_rc = range_label_rect(higher_handle, higher_text_content_size, true);
+                const ImRect lower_label_rc  = range_label_rect(lower_handle, lower_text_content_size, false);
+                const ImRect clickable_region(ImVec2(higher_label_rc.Min.x, region.Min.y), ImVec2(draw_region.Max.x, region.Max.y));
+                if (context.IO.MouseClicked[0] 
+                    && clickable_region.Contains(context.IO.MousePos) 
+                    && !higher_label_rc.Contains(context.IO.MousePos) 
+                    && !lower_label_rc.Contains(context.IO.MousePos)
+                ) {
+                    const int clicked_value = get_tick_near_point(v_min, v_max, context.IO.MousePos, region);
+                    if (*higher_value == *lower_value){
+                        if (clicked_value > *higher_value && selection == ssLower)
+                            selection = ssHigher;
+                        else if (clicked_value < *lower_value && selection == ssHigher)
+                            selection = ssLower;
+                    } 
+                    else {
+                        const int dist_to_higher = std::abs(clicked_value - *higher_value);
+                        const int dist_to_lower  = std::abs(clicked_value - *lower_value);
+                        selection = dist_to_higher <= dist_to_lower ? ssHigher : ssLower;
+                    }
+
+                }
             }
         }
         bool h_selected = selection != ssLower;
@@ -1114,9 +1152,14 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         }
 
         // judge whether to open menu
-        if (!menu_open && ImGui::ItemHoverable(h_selected ? higher_handle : lower_handle, id) && context.IO.MouseClicked[1])
+        bool any_handle_hovering = (ImGui::ItemHoverable(higher_handle, id) || ImGui::ItemHoverable(lower_handle, id));
+        if (!menu_open && any_handle_hovering && context.IO.MouseClicked[1]){
+            if(ImGui::ItemHoverable(!h_selected ? higher_handle : lower_handle, id))
+                selection = !h_selected ? ssHigher : ssLower; // select non active one when non selected handle right clicked
             m_show_menu = true;
-        if (!menu_open && ((!ImGui::ItemHoverable(h_selected ? higher_handle : lower_handle, id) && context.IO.MouseClicked[1]) ||
+        }
+            
+        if (!menu_open && ((!any_handle_hovering && context.IO.MouseClicked[1]) ||
             context.IO.MouseClicked[0]))
             m_show_menu = false;
 
@@ -1141,17 +1184,21 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         // draw higher label
         text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2;
         ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - label_width_margin, higher_handle_center.y - text_size.y);
-        ImRect text_rect(text_start, text_start + text_size);
+        ImRect higher_text_rect(text_start, text_start + text_size);
         const bool higher_label_active = active_label == ssHigher;
-        draw_label(text_rect, higher_text_content_size, higher_label,
-            hovered_label == ssHigher || higher_label_active, higher_label_active);
+        draw_label(higher_text_rect, higher_text_content_size, higher_label,
+            hovered_label == ssHigher || higher_label_active || ImGui::ItemHoverable(higher_handle, id), higher_label_active, selection == ssHigher);
         // draw lower label
         text_size = ImVec2(max_label_width, lower_text_content_size.y) + text_padding * 2;
         text_start        = ImVec2(lower_handle.Min.x - text_size.x - label_width_margin, lower_handle_center.y);
-        text_rect = ImRect(text_start, text_start + text_size);
+        ImRect lower_text_rect(text_start, text_start + text_size);
         const bool lower_label_active = active_label == ssLower;
-        draw_label(text_rect, lower_text_content_size, lower_label,
-            hovered_label == ssLower || lower_label_active, lower_label_active);
+        draw_label(lower_text_rect, lower_text_content_size, lower_label,
+            hovered_label == ssLower || lower_label_active || ImGui::ItemHoverable(lower_handle, id), lower_label_active, selection == ssLower);
+
+        // Allow opening context menu with right clicking to labels 
+        if (!menu_open && ImGui::ItemHoverable(h_selected ? higher_text_rect : lower_text_rect, id) && context.IO.MouseClicked[1])
+            m_show_menu = true;
         
         // draw mouse position
         if (slider_hovered && !context.IO.MouseDown[0]) {
@@ -1200,7 +1247,11 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         ImVec2 text_start = ImVec2(one_handle.Min.x - text_size.x - label_width_margin, handle_center.y - 0.5 * text_size.y);
         ImRect text_rect = ImRect(text_start, text_start + text_size);
         const bool label_active = context.ActiveId == id && context.IO.MouseDown[0];
-        draw_label(text_rect, higher_text_content_size, higher_label, hovered_label == ssHigher || label_active, label_active);
+        draw_label(text_rect, higher_text_content_size, higher_label, hovered_label == ssHigher || label_active || ImGui::ItemHoverable(one_handle, id), label_active, true);
+
+        // Allow opening context menu with right clicking to label
+        if (!menu_open && ImGui::ItemHoverable(text_rect, id) && context.IO.MouseClicked[1])
+            m_show_menu = true;
         
         // draw mouse position
         if (slider_hovered && !context.IO.MouseDown[0]) {
@@ -1509,10 +1560,6 @@ void IMSlider::render_add_menu()
                 }
                 if (hovered) { show_tooltip(_u8L("Insert template custom G-code at the beginning of this layer.")); }
             }
-
-            if (menu_item_with_icon(_u8L("Jump to layer").c_str(), "")) {
-                m_show_go_to_layer_dialog = true;
-            }
         }
 
         //BBS render this menu item only when extruder_num > 1
@@ -1531,6 +1578,14 @@ void IMSlider::render_add_menu()
                 }
                 end_menu();
             }
+        }
+
+        // ORCA show jump on bottom of context menu since its function not different compared to other items
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
+        ImGui::Separator();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
+        if (menu_item_with_icon(_u8L("Jump to layer").c_str(), "")) {
+            m_show_go_to_layer_dialog = true;
         }
 
         ImGui::EndPopup();
@@ -1562,6 +1617,9 @@ void IMSlider::render_edit_menu(const TickCode& tick)
             if (menu_item_with_icon(_u8L("Edit Custom G-code").c_str(), "")) {
                 m_show_custom_gcode_window = true;
             }
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
+            ImGui::Separator();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
             if (menu_item_with_icon(_u8L("Delete Custom G-code").c_str(), "")) {
                 delete_tick(tick);
             }
@@ -1580,6 +1638,9 @@ void IMSlider::render_edit_menu(const TickCode& tick)
                     }
                     end_menu();
                 }
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
+                ImGui::Separator();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f * m_scale);
                 if (menu_item_with_icon(_u8L("Delete Filament Change").c_str(), "")) {
                     delete_tick(tick);
                 }
