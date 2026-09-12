@@ -231,7 +231,8 @@ public:
                                   const Slic3r::Flashforge*       host,
                                   bool                            supports_material_station,
                                   std::vector<Slic3r::FlashforgeMaterialSlot> slots,
-                                  const std::vector<FilamentInfo>& project_filaments);
+                                  const std::vector<FilamentInfo>& project_filaments,
+                                  bool                            manual_filament_change);
 
     virtual void init() override;
     virtual void EndModal(int ret) override;
@@ -273,6 +274,7 @@ private:
     bool                             m_use_material_station {false};
     bool                             m_supports_material_station {false};
     bool                             m_slots_loaded {false};
+    bool                             m_manual_filament_change {false};
 
     const char* CONFIG_KEY_LEVELING  = "flashforge_leveling_before_print";
     const char* CONFIG_KEY_TIMELAPSE = "flashforge_timelapse_video";
