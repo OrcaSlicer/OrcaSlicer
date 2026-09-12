@@ -165,6 +165,11 @@ public:
     // BBS
     ExPolygons              loverhangs;
     BoundingBox             loverhangs_bbox;
+
+    // Orca: Upward-facing areas painted with the ironing painting gizmo, projected onto this layer.
+    // Only populated when some volume of the object is ironing-painted; used by make_ironing() to
+    // restrict ironing to the painted areas when ironing_type is PaintedOnly.
+    ExPolygons              ironing_painted;
     size_t                  region_count() const { return m_regions.size(); }
     const LayerRegion*      get_region(int idx) const { return m_regions[idx]; }
     LayerRegion*            get_region(int idx) { return m_regions[idx]; }
