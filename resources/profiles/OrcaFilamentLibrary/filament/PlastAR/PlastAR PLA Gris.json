@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "PlastAR PLA Gris",
+	"inherits": "PlastAR PLA @base",
+	"from": "system",
+	"setting_id": "35buCB9PRCukRr3R",
+	"filament_id": "PLSTAR03",
+	"instantiation": "true",
+	"filament_vendor": [
+		"PlastAR"
+	],
+	"default_filament_colour": [
+		"#808080"
+	]
+}

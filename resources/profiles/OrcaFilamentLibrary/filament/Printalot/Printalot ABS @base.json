@@ -1,0 +1,54 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "PRTABS00",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"filament_type": [
+		"ABS"
+	],
+	"filament_notes": "Printalot ABS. Product page: https://printalot.com.ar/productos/filamentos/abs/abs-1-kg/ Community-contributed profile; not affiliated with or endorsed by Printalot.",
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_density": [
+		"1.05"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"filament_retraction_length": [
+		"0.2"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"nozzle_temperature_range_low": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	]
+}

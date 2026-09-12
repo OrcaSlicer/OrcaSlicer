@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Negro",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "E8gtuuxHSTuxmpqE",
+	"filament_id": "PRTABS02",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#1A1A1A"
+	]
+}

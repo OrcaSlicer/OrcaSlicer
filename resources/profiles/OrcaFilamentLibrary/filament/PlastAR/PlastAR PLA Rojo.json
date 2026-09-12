@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "PlastAR PLA Rojo",
+	"inherits": "PlastAR PLA @base",
+	"from": "system",
+	"setting_id": "ajt5hs8jasmB0nJs",
+	"filament_id": "PLSTAR04",
+	"instantiation": "true",
+	"filament_vendor": [
+		"PlastAR"
+	],
+	"default_filament_colour": [
+		"#E00000"
+	]
+}
