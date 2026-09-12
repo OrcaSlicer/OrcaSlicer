@@ -275,6 +275,18 @@ endif()
 
 endfunction(orcaslicer_add_cmake_project)
 
+# Autotools/configure based deps invoke the compiler directly, so
+# CMAKE_<LANG>_COMPILER_LAUNCHER never reaches them. Fold the launcher into
+# CC/CXX for those, guarding against an empty launcher.
+set(DEP_CC "${CMAKE_C_COMPILER}")
+set(DEP_CXX "${CMAKE_CXX_COMPILER}")
+if (CMAKE_C_COMPILER_LAUNCHER)
+    set(DEP_CC "${CMAKE_C_COMPILER_LAUNCHER} ${CMAKE_C_COMPILER}")
+endif ()
+if (CMAKE_CXX_COMPILER_LAUNCHER)
+    set(DEP_CXX "${CMAKE_CXX_COMPILER_LAUNCHER} ${CMAKE_CXX_COMPILER}")
+endif ()
+
 
 if (MSVC)
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "AMD64")
