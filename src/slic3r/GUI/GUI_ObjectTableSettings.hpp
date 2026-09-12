@@ -56,6 +56,8 @@ class ObjectTableSettings : public OTG_Settings
     std::map<std::string, int> m_different_map;
 
 public:
+    using OTG_Settings::UpdateAndShow;
+
     ObjectTableSettings(wxWindow* parent, ObjectGridTable* table);
     ~ObjectTableSettings()
     {
