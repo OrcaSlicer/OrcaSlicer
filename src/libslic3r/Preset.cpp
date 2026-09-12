@@ -135,7 +135,11 @@ Semver get_version_from_json(std::string file_path)
         boost::nowide::ifstream ifs(file_path);
         json j;
         ifs >> j;
-        std::string version_str = j.at(BBL_JSON_KEY_VERSION);
+        if (!j.contains(BBL_JSON_KEY_VERSION) || !j[BBL_JSON_KEY_VERSION].is_string()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": missing or invalid version key in " << file_path;
+            return Semver();
+        }
+        std::string version_str = j[BBL_JSON_KEY_VERSION].get<std::string>();
 
         auto config_version = Semver::parse(version_str);
         if (! config_version) {
@@ -148,6 +152,11 @@ Semver get_version_from_json(std::string file_path)
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file_path<<" got a nlohmann::detail::parse_error, reason = " << err.what();
         return Semver();
         //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file_path, err.what()));
+    } 
+    catch (std::exception& err) {
+        // Also catch std::out_of_range and other std exceptions
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": exception for " << file_path << ": " << err.what();
+        return Semver();
     }
     catch(...) {
         return Semver();
