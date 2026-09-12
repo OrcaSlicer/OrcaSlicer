@@ -6,6 +6,7 @@
 	"setting_id": "GP151",
 	"instantiation": "true",
 	"description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
+	"timelapse_type": "1",
 	"bridge_speed": [
 		"50",
 		"50",
