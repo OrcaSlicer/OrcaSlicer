@@ -2,6 +2,7 @@
 #include "DeviceManager.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
@@ -450,6 +451,18 @@ bool MachineObject::HasRecentLanMessage()
     return diff.count() < 5000;
 }
 
+bool MachineObject::has_access_right() const
+{
+    return !m_access_revoked && (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID || !get_access_code().empty());
+}
+
+void MachineObject::revoke_access()
+{
+    // UI panels retain this object; revoke its binding without invalidating their pointers.
+    access_code.clear();
+    m_access_revoked = true;
+}
+
 std::string MachineObject::get_access_code() const
 {
     return access_code;
@@ -458,6 +471,7 @@ std::string MachineObject::get_access_code() const
 void MachineObject::set_access_code(std::string code, bool only_refresh)
 {
     this->access_code = code;
+    m_access_revoked = false;
     if (only_refresh) {
         AppConfig* config = GUI::wxGetApp().app_config;
         if (config) {
@@ -474,22 +488,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                 if (!code.empty()) {
                     DeviceManager::update_local_machine(*this);
                 } else {
-                    // Only patch an existing record's code - don't persist a brand-new
-                    // never-bound entry just because set_access_code("") was called on it.
-                    const auto& machines = config->get_local_machines();
-                    auto        it       = machines.find(get_dev_id());
-                    if (it != machines.end()) {
-                        BBLocalMachine local_machine = it->second;
-                        local_machine.access_code    = "";
-                        config->update_local_machine(local_machine);
-                    }
-                    // Also clear the pre-scoping flat legacy key when unbinding under BBL, so an
-                    // old BBL-era code can't silently "re-bind" this device again via
-                    // get_access_code_with_legacy_fallback()'s legacy fallback.
-                    if (printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty()) {
-                        config->erase("access_code", get_dev_id());
-                        config->erase("user_access_code", get_dev_id());
-                    }
+                    config->clear_local_machine_access_code(get_dev_id(), printer_agent_id);
                 }
             } else {
                 if (!code.empty())
@@ -2629,9 +2628,23 @@ void MachineObject::set_print_state(std::string status)
 
 int MachineObject::connect(bool use_openssl)
 {
-    if (get_dev_ip().empty()) return -1;
+    if (m_access_revoked || get_dev_ip().empty()) return -1;
     std::string username = "bblp";
     std::string password = get_access_code();
+
+    // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
+    if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID) {
+        if (const PresetBundle* bundle = GUI::wxGetApp().preset_bundle) {
+            const DynamicPrintConfig& config = bundle->printers.get_edited_preset().config;
+            const std::string host = config.opt_string("print_host");
+            if (config.opt_string("printer_agent") == MOONRAKER_PRINTER_AGENT_ID && !host.empty() &&
+                dev_id_from_address(host, config.opt_string("printhost_port")) == get_dev_id()) {
+                password = config.opt_string("printhost_apikey");
+                if (password != get_access_code())
+                    set_access_code(password);
+            }
+        }
+    }
 
     if (m_agent) {
         try {
