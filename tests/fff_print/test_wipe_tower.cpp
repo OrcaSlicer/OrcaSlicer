@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <limits>
 #include <map>
 #include <set>
@@ -498,6 +499,67 @@ TEST_CASE("The multimaterial prime tower still purges the whole prime volume", "
     for (float length : data.used_filament)
         volume += double(length) * area;
     CHECK(volume >= print.config().prime_volume.value * double(data.number_of_toolchanges));
+}
+
+// Filaments that extrude a brim on a layer WipeTowerIntegration would actually emit.
+// The brim is the only part of the rectangular tower printed outside its footprint, so an
+// extrusion at a negative distance from the tower edge is brim and nothing else.
+// is_empty_wipe_tower_gcode drops every sparse layer when no_sparse_layers is on, including
+// the plan's first entry - the one is_first_layer() points at.
+static std::set<unsigned int> tower_printed_brim_filaments(const WipeTowerData &data, bool no_sparse)
+{
+    std::set<unsigned int> filaments;
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
+        if (no_sparse && tower_layer_is_sparse(layer))
+            continue;
+        for (const auto &[filament, band] : tower_layer_bands(layer, data.width, data.depth))
+            if (band.nearest < -0.2f)
+                filaments.insert(filament);
+    }
+    return filaments;
+}
+
+TEST_CASE("The prime tower keeps its brim when sparse layers are skipped", "[WipeTower][Regression]")
+{
+    // First layers of this cube are one filament; the second only appears as sparse infill
+    // higher up. Those first layers still enter the wipe-tower plan (partitions propagate
+    // down), so they are sparse. G-code drops them when no_sparse_layers is on; the brim
+    // has to land on the first layer that actually prints, or the tower has nothing holding
+    // it to the bed.
+    const bool multimaterial = GENERATE(false, true);
+    DYNAMIC_SECTION("multimaterial tower " << (multimaterial ? "on" : "off")) {
+        DynamicPrintConfig config = multimaterial_tower_config(multimaterial);
+        config.set_deserialize_strict({
+            { "wipe_tower_no_sparse_layers", "1" },
+            { "top_surface_filament_id",     1 },
+            { "bottom_surface_filament_id",  1 },
+            { "outer_wall_filament_id",      1 },
+            { "inner_wall_filament_id",      1 },
+            { "internal_solid_filament_id",  1 },
+            { "sparse_infill_filament_id",   2 },
+        });
+
+        Print print;
+        Model model;
+        slice_prime_tower(config, print, model);
+
+        const WipeTowerData &data = print.wipe_tower_data();
+        REQUIRE(data.tool_changes.size() > 1);
+        REQUIRE(std::any_of(data.tool_changes.begin(), data.tool_changes.end(), tower_layer_is_sparse));
+        REQUIRE(std::any_of(data.tool_changes.begin(), data.tool_changes.end(),
+                            [](const std::vector<WipeTower::ToolChangeResult> &layer) {
+                                return !tower_layer_is_sparse(layer);
+                            }));
+
+        const std::set<unsigned int> brim = tower_printed_brim_filaments(data, true);
+        REQUIRE_FALSE(brim.empty());
+        // One filament, the one whose walls the brim grows out of - a brim of the other material
+        // would neither stick to those walls nor hold the tower down.
+        CHECK(brim.size() == 1);
+
+        const std::string gcode_str = gcode(print);
+        CHECK_THAT(gcode_str, Catch::Matchers::ContainsSubstring("WIPE_TOWER_BRIM_START"));
+    }
 }
 
 TEST_CASE("The multimaterial prime tower is rejected for more than two filaments", "[WipeTower]")
