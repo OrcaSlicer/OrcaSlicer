@@ -1629,6 +1629,18 @@
 	],
 	"filament_list": [
 		{
+            "name": "JAYO PETG @Creality K2 Pro 0.4 nozzle",
+            "sub_path": "filament/JAYO PETG @Creality K2 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA @Creality K2 Pro 0.4 nozzle",
+            "sub_path": "filament/JAYO PLA @Creality K2 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
+            "sub_path": "filament/JAYO PLA Classic @Creality K2 Pro 0.4 nozzle.json"
+        },
+		{
 			"name": "fdm_filament_common",
 			"sub_path": "filament/fdm_filament_common.json"
 		},
