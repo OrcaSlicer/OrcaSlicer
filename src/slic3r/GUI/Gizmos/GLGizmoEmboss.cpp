@@ -3722,13 +3722,13 @@ GuiCfg create_gui_configuration()
     cfg.input_width = letter_m_size.x * count_letter_M_in_input;
     GuiCfg::Translations &tr = cfg.translations;
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Select look of letter shape
     tr.font   = _u8L("Font");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Height of one text line - Font Ascent
     tr.height = _u8L("Height");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Size in emboss direction
     tr.depth  = _u8L("Depth");
 
@@ -3739,44 +3739,44 @@ GuiCfg create_gui_configuration()
     cfg.indent       = 20.0f;
     cfg.input_offset = style.WindowPadding.x + cfg.indent + max_text_width + space;
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Copy surface of model on surface of the embossed text
     tr.use_surface = _u8L("Use surface");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Option to change projection on curved surface 
     // for each character(glyph) in text separately
     tr.per_glyph = _u8L("Per glyph");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Align Top|Middle|Bottom and Left|Center|Right
     tr.alignment = _u8L("Alignment");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     tr.char_gap = _u8L("Char gap");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     tr.line_gap = _u8L("Line gap");
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     tr.boldness = _u8L("Boldness");
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Like Font italic 
     tr.skew_ration = _u8L("Skew ratio");
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Distance from model surface to be able 
     // move text as part fully into not flat surface
     // move text as modifier fully out of not flat surface
     tr.from_surface = _u8L("From surface");
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Angle between Y axis and text line direction.
     tr.rotation = _u8L("Rotation");
 
-    // TRN - Input label. Be short as possible
+    // TRN - Input label. Be as short as possible.
     // Keep vector from bottom to top of text aligned with printer Y axis
     tr.keep_up = _u8L("Keep up");
 
-    // TRN - Input label. Be short as possible. 
-    // Some Font file contain multiple fonts inside and
-    // this is numerical selector of font inside font collections
+    // TRN - Input label. Be as short as possible.
+    // Some font files contain multiple fonts inside and
+    // this is a numerical selector of font inside font collections
     tr.collection = _u8L("Collection");
 
     float max_advanced_text_width = std::max({
