@@ -98,7 +98,9 @@ public:
     void        StrReplace(std::string &strBase, std::string strSrc, std::string strDes);
     std::string w2s(wxString sSrc);
     void        GetStardardFilePath(std::string &FilePath);
-    bool LoadFile(std::string jPath, std::string & sContent);
+    // Orca: static -- it touches no instance state, and the machine-profile inherits walk
+    // (GetMachineValue in the .cpp) needs it from file scope. Member call sites are unaffected.
+    static bool LoadFile(std::string jPath, std::string & sContent);
 
     // install plugin
     int DownloadPlugin();
