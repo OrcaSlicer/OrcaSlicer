@@ -109,6 +109,7 @@ struct FillParams
 
     float           horiz_move{0.0}; //move infill to get cross zag pattern
     bool            symmetric_infill_y_axis{false};
+    bool            infill_complete_top{false};
     coord_t         symmetric_y_axis{0};
     bool            locked_zag{false};
     float           infill_lock_depth{0.0};
