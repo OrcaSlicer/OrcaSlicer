@@ -3145,6 +3145,43 @@ int CLI::run(int argc, char **argv)
             flush_and_exit(ret);
         }
     }
+    //ORCA: seed curr_bed_type from the printer, the way the GUI already does.
+    //
+    //      PresetBundle::load_presets() sets project_config's curr_bed_type from
+    //      Preset::get_default_bed_type(), which reads the printer's `default_bed_type`
+    //      and otherwise falls back by printer model (finally btPEI). The CLI never did,
+    //      so every CLI slice used the schema default -- Cool Plate -- no matter which
+    //      printer was selected, silently picking that plate's bed temperature. 18 bundled
+    //      machine profiles declare `default_bed_type` (12 with a usable value); every
+    //      other printer, Bambu included, relies on get_default_bed_type()'s model-id
+    //      fallback. The CLI honoured neither, so it diverged from the GUI for all of them.
+    //
+    //      Applied only when a printer came from --load-settings, the user did not pass
+    //      --curr-bed-type, and no project supplied one (an empty current_printer_name
+    //      means no 3MF was loaded). An explicit choice therefore always wins.
+    if (!new_printer_name.empty() && current_printer_name.empty() && !m_config.has("curr_bed_type")) {
+        std::string   bundle_error;
+        PresetBundle *bundle = ensure_cli_preset_bundle(bundle_error);
+        if (bundle == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << "CLI: no preset bundle for curr_bed_type default: " << bundle_error;
+        } else {
+            Preset *printer_preset = bundle->printers.find_preset2(new_printer_name, true);
+            Preset  shell(Preset::TYPE_PRINTER, new_printer_name);
+            if (printer_preset == nullptr) {
+                //ORCA: preset not in the bundle (e.g. loaded from an arbitrary path) --
+                //      a shell over the resolved config still exposes default_bed_type.
+                shell.config   = load_machine_config;
+                printer_preset = &shell;
+            }
+            BedType bed_type = printer_preset->get_default_bed_type(bundle);
+            if (bed_type > btDefault && bed_type < btCount) {
+                m_print_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(bed_type));
+                BOOST_LOG_TRIVIAL(info) << boost::format("CLI: curr_bed_type defaulted from printer '%1%' to %2%")
+                                               % new_printer_name % int(bed_type);
+            }
+        }
+    }
+
     if (m_print_config.option<ConfigOptionFloats>("nozzle_diameter")) {
         new_extruder_count = m_print_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
         new_is_multi_extruder = new_extruder_count > 1;
