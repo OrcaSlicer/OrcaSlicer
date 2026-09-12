@@ -798,11 +798,9 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
 #endif
     else if (opt_key == "printer_agent")
     {
-        // why: printer_agent is a coString kept out of m_opt_map. The generic non-opt_map revert
-        // below restores the edited config from get_value(), but a deregistered/"(missing)" saved
-        // id has no selectable row, so the field yields no value and the edited config keeps the
-        // user's interim pick -> stuck dirty. Restore the SAVED id straight into the edited config
-        // (displayable or not; config is the saved or system baseline), then repaint and notify.
+        // A deregistered/"(missing)" saved id has no selectable row, so the field yields no
+        // value. Restore the saved id directly instead of letting the generic revert path read
+        // the field value back into the edited config.
         const std::string saved_id = config.opt_string("printer_agent");
         set_value(opt_key, saved_id);
         this->change_opt_value(opt_key, saved_id);
