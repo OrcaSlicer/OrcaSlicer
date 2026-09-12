@@ -32,6 +32,7 @@ add_executable(${_TEST_NAME}_tests
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_step.cpp
+    test_online_models.cpp
     test_stl.cpp
     test_triangle_selector.cpp
     test_meshboolean.cpp
