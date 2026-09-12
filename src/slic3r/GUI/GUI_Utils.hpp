@@ -483,6 +483,7 @@ void staticbox_remove_margin(wxStaticBox* sb);
 #ifdef __WXGTK__
 void RemoveButtonBorder(wxWindow* win);   // for wxButton/wxBitmapToggleButton based controls (SwitchButton, CheckBox)
 void RemoveInputBorder(wxWindow* win);    // for TextCtrl based controls (TextInput, ComboBox, SpinInput..)
+void StyleStaticBox(wxWindow* win, int radiusPx, int borderWidth, const char* borderColor);
 #endif
 
 #if defined(__WXOSX__) || defined(__linux__)
