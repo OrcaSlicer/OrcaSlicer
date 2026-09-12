@@ -1574,6 +1574,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "brim_flow_ratio"
             || opt_key == "filament_flow_ratio"
             || opt_key == "scarf_joint_flow_ratio"
+            || opt_key == "wipe_inward"
+            || opt_key == "wipe_inward_distance"
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);

@@ -6267,6 +6267,35 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_inward", coBool);
+    def->label = L("Wipe inward");
+    def->category = L("Quality");
+    def->tooltip = L("When wiping an external perimeter, shift the wipe path toward the material beside the outer wall "
+                     "instead of retracing the outer wall itself. For outer contours the shift is inward; for holes it "
+                     "is outward. This can reduce visible seam artifacts.\n\n"
+                     "The shifted path is used only when an adjacent inner wall has already been printed and the complete "
+                     "wipe path remains over printed material. Otherwise, including when using Outer/Inner wall order, "
+                     "the regular wipe path is used.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wipe_inward_distance", coFloatOrPercent);
+    def->label = L("Wipe inward distance");
+    def->category = L("Quality");
+    def->tooltip = L("The distance the wipe path is shifted away from the external perimeter, specified in millimeters "
+                     "or as a percentage of the actual outer-wall extrusion width.\n\n"
+                     "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited "
+                     "by both the actual outer-wall width and the available spacing to the adjacent wall, so values "
+                     "above 100% or an equivalent absolute distance have no additional effect. "
+                     "Set to 0 to disable the offset.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "outer_wall_line_width";
+    def->min = 0;
+    def->max = 100;
+    def->max_literal = 2; // Orca: G-code generation also clamps literal values to the actual outer-wall width.
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(50, true));
+
     def = this->add("wipe_before_external_loop", coBool);
     def->label = L("Wipe before external loop");
     def->category = L("Quality");
