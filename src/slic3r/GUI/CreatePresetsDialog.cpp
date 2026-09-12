@@ -173,6 +173,10 @@ static std::set<int> cannot_input_key = {9, 10, 13, 33, 35, 36, 37, 38, 40, 41, 
 
 static std::set<char> special_key = {'\n', '\t', '\r', '\v', '@', ';'};
 
+// Cache for vendor data to avoid repeated JSON loading
+static VendorMap cached_vendors;
+static bool vendors_cached = false;
+
 static std::string remove_special_key(const std::string &str)
 {
     std::string res_str;
@@ -338,13 +342,20 @@ static wxBoxSizer *create_checkbox(wxWindow *parent, wxString &preset_name, std:
 static wxArrayString get_exist_vendor_choices(VendorMap& vendors)
 {
     wxArrayString choices;
-    PresetBundle  temp_preset_bundle;
-    temp_preset_bundle.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
 
+    // Use cached vendors if available, otherwise load from JSON once
+    if (!vendors_cached) {
+        PresetBundle  temp_preset_bundle;
+        temp_preset_bundle.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
+        cached_vendors = temp_preset_bundle.vendors;
+        vendors_cached = true;
+        BOOST_LOG_TRIVIAL(info) << "Vendor data cached in get_exist_vendor_choices";
+    }
+
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     VendorProfile users_models  = preset_bundle->get_custom_vendor_models();
 
-    vendors = temp_preset_bundle.vendors;
+    vendors = cached_vendors;
 
     if (!users_models.models.empty()) {
         vendors[users_models.name] = users_models;
