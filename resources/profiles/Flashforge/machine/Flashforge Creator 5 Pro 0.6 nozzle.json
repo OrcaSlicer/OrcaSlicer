@@ -142,7 +142,7 @@
 		"0"
 	],
 	"machine_pause_gcode": "M25",
-	"machine_start_gcode": ";start_gcode\nM140 S[bed_temperature_initial_layer_single]\nM106 P101 S0 ; L+R_PLA_Turbo_Fan_0-255\nM106 P2 S0 ; Center_Fresch_Air_Input_Fan_for_PLA30%_(80_0-255) \nM191 S0 ; Chamber temp. max65C\nM106 S0 ; Model_Fan_(Heat_Break_Cooler_80-255)100%=255\nM106 P3 S0 ; Filter_Unit_Fan_0-255(ABS=255)\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F2400\nT[initial_extruder]\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nG1 X256 Y0 Z0.2 F6000\nG1 E5 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\nG1 X216 E10 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\n;start_gcode end",
+	"machine_start_gcode": ";start_gcode\nM140 S[bed_temperature_initial_layer_single]\nM106 P101 S0 ; L+R_PLA_Turbo_Fan_0-255\nM106 P2 S0 ; Center_Fresch_Air_Input_Fan_for_PLA30%_(80_0-255) \nM191[chamber_temperature] ; Chamber temp. max65C\nM106 S0 ; Model_Fan_(Heat_Break_Cooler_80-255)100%=255\nM106 P3 S0 ; Filter_Unit_Fan_0-255(ABS=255)\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F2400\nT[initial_extruder]\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nG1 X256 Y0 Z0.2 F6000\nG1 E5 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\nG1 X216 E10 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\n;start_gcode end",
 	"machine_tool_change_time": "7",
 	"machine_unload_filament_time": "0",
 	"manual_filament_change": "0",
