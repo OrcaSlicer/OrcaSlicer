@@ -1909,6 +1909,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercents,            filament_shrinkage_compensation_z))
     ((ConfigOptionBool,                gcode_label_objects))
     ((ConfigOptionBool,                exclude_object))
+    // Orca: Controls emission of percentage metadata used by the overhang preview.
+    ((ConfigOptionBool,                gcode_overhangs))
     ((ConfigOptionFloats,             grab_length))
     ((ConfigOptionBool,                gcode_comments))
     ((ConfigOptionInt,                 slow_down_layers))

@@ -73,6 +73,9 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Layer Height");
     else if (view_type == libvgcode::EViewType::Width)
         return _u8L("Line Width");
+    // Orca: Keep one menu entry; the legend option selects its units and color scale.
+    else if (view_type == libvgcode::EViewType::Overhang)
+        return _u8L("Overhang");
     else if (view_type == libvgcode::EViewType::Speed)
         return _u8L("Speed");
     else if (view_type == libvgcode::EViewType::ActualSpeed)
@@ -322,7 +325,7 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     }
 }
 
-void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type, bool has_overhang_metadata)
 {
     static bool properties_shown = false;
     
@@ -379,6 +382,15 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 else
                     sprintf(detail_buf, "%s%s", _u8L("Width: ").c_str(), NA_CSTR);
                 break;
+            // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
+            case libvgcode::EViewType::Overhang:
+                if (is_extrusion)
+                    sprintf(detail_buf, "%s%.1f %s", _u8L("Overhang: ").c_str(),
+                        viewer->is_overhang_percentage() ? vertex.overhang_percentage : vertex.overhang_degree(),
+                        viewer->is_overhang_percentage() ? "%" : "°");
+                else
+                    sprintf(detail_buf, "%s%s", _u8L("Overhang: ").c_str(), NA_CSTR);
+                break;
             case libvgcode::EViewType::VolumetricFlowRate:
                 if (is_extrusion)
                     sprintf(detail_buf, "%s%.2f", _u8L("Flow: ").c_str(), vertex.volumetric_rate());
@@ -420,7 +432,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         if (properties_shown) {
             float label_w = 0.0f;
             float value_w = 0.0f;
-            properties_rows.reserve(14);
+            // Orca: Reserve rows for both representations of the overhang metadata.
+            properties_rows.reserve(16);
             auto add_row = [&properties_rows, &label_w, &value_w](std::string label, std::string value) {
                  label_w = std::max(label_w, ImGui::CalcTextSize(label.c_str()).x);
                  value_w = std::max(value_w, ImGui::CalcTextSize(value.c_str()).x);
@@ -431,6 +444,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Line Type"), is_extrusion ? _u8L(to_string(vertex.role)) : NA_TXT);
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.width); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Width"), buff);
+            // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
+            // availability rule, but retain both representations for files that actually provide them.
+            if (has_overhang_metadata) {
+                if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_percentage); else strcpy(buff, NA_CSTR);
+                add_row(_u8L("Overhang") + " (%)", buff);
+                if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
+                add_row(_u8L("Overhang") + " (°)", buff);
+            }
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
             // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
@@ -996,12 +1017,13 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
     }
 }
-void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type, bool has_overhang_metadata)
 {
     if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
-        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
+        // Orca: Use the same loaded-file availability as the Overhang menu entry.
+        marker.render_position_window(viewer, canvas_width, canvas_height, view_type, has_overhang_metadata);
     }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
@@ -1111,6 +1133,12 @@ void GCodeViewer::set_scale(float scale)
 
 void GCodeViewer::update_by_mode(ConfigOptionMode mode)
 {
+    // Orca: Preserve the selected semantic view while rebuilding the menu; indices shift when the
+    // optional overhang entry appears or disappears.
+    const libvgcode::EViewType selected_view_type =
+        m_view_type_sel >= 0 && static_cast<size_t>(m_view_type_sel) < view_type_items_str.size() ?
+            view_type_items[m_view_type_sel] : libvgcode::EViewType::FeatureType;
+
     view_type_items.clear();
     view_type_items_str.clear();
     options_items.clear();
@@ -1125,6 +1153,9 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::Jerk);
     view_type_items.push_back(libvgcode::EViewType::Height);
     view_type_items.push_back(libvgcode::EViewType::Width);
+    // Orca: Expose the unified overhang view only when loaded G-code supplies its source data.
+    if (m_has_overhang_metadata)
+        view_type_items.push_back(libvgcode::EViewType::Overhang);
     view_type_items.push_back(libvgcode::EViewType::VolumetricFlowRate);
     view_type_items.push_back(libvgcode::EViewType::ActualVolumetricFlowRate);
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLinear);
@@ -1140,6 +1171,19 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     for (int i = 0; i < view_type_items.size(); i++) {
         view_type_items_str.push_back(get_view_type_string(view_type_items[i]));
     }
+
+    // Orca: Restore the previous selection by type and fall back to Line Type when an unavailable
+    // overhang view was active for the preceding G-code.
+    auto selected_it = std::find(view_type_items.begin(), view_type_items.end(), selected_view_type);
+    if (selected_it == view_type_items.end()) {
+        selected_it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
+        if (m_gl_data_initialized) {
+            set_view_type(libvgcode::EViewType::FeatureType);
+            reset_visible(libvgcode::EViewType::FeatureType);
+        }
+    }
+    m_view_type_sel = selected_it != view_type_items.end() ?
+        static_cast<int>(std::distance(view_type_items.begin(), selected_it)) : 0;
 
     // BBS for first layer inspection
     view_type_items.push_back(libvgcode::EViewType::Tool);
@@ -1357,6 +1401,10 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     //BBS: move the id to the end of reset
     m_last_result_id = gcode_result.id;
     m_gcode_result = &gcode_result;
+    // Orca: Rebuild the selector from parsed metadata instead of the live preset, which may have
+    // changed since this G-code was generated or may not describe an imported file.
+    m_has_overhang_metadata = gcode_result.has_overhang_metadata;
+    update_by_mode(mode);
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
         move_type_times.fill(0.0f);
@@ -1592,6 +1640,9 @@ void GCodeViewer::reset()
     //BBS: should also reset the result id
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
+    // Orca: Clear references and metadata belonging to the discarded processor result.
+    m_gcode_result = nullptr;
+    m_has_overhang_metadata = false;
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
 
@@ -1644,7 +1695,8 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
     m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
     // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
+    // Orca: Keep marker properties consistent with metadata availability after loading or resetting a file.
+    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type(), m_has_overhang_metadata);
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
@@ -2424,6 +2476,9 @@ void GCodeViewer::render_toolpaths()
 
             add_range_property_row("height range", m_viewer.get_color_range(libvgcode::EViewType::Height).get_range());
             add_range_property_row("width range", m_viewer.get_color_range(libvgcode::EViewType::Width).get_range());
+            // Orca: Identify the currently selected overhang range in developer diagnostics.
+            add_range_property_row(m_viewer.is_overhang_percentage() ? "overhang percentage range" : "overhang degree range",
+                m_viewer.get_color_range(libvgcode::EViewType::Overhang).get_range());
             add_range_property_row("speed range", m_viewer.get_color_range(libvgcode::EViewType::Speed).get_range());
             add_range_property_row("acceleration range", m_viewer.get_color_range(libvgcode::EViewType::Acceleration).get_range());
             add_range_property_row("jerk range", m_viewer.get_color_range(libvgcode::EViewType::Jerk).get_range());
@@ -3732,6 +3787,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
     case libvgcode::EViewType::Width:          { imgui.title(_u8L("Line width (mm)")); break; }
+    // Orca: Show the units of the selected overhang color scale in the legend title.
+    case libvgcode::EViewType::Overhang: { imgui.title(_u8L("Overhang") + (m_viewer.is_overhang_percentage() ? " (%)" : " (°)")); break; }
     case libvgcode::EViewType::Speed:
     {
         imgui.title(_u8L("Speed (mm/s)"));
@@ -3959,6 +4016,37 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::Height:                   { append_range(m_viewer.get_color_range(libvgcode::EViewType::Height), 2); break; }
     case libvgcode::EViewType::Width:                    { append_range(m_viewer.get_color_range(libvgcode::EViewType::Width), 2); break; }
+    // Orca: Keep units and scale independently selectable, defaulting to a linear angular legend.
+    case libvgcode::EViewType::Overhang:
+    {
+        // Orca: Fractional labels distinguish the closely spaced low-end stops of the logarithmic scale.
+        const bool logarithmic = m_viewer.is_overhang_logarithmic();
+        append_range(m_viewer.get_color_range(libvgcode::EViewType::Overhang), logarithmic ? 1 : 0);
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Show as percentage"), _u8L("Show as logarithmic scale") } },
+            { _u8L("Display"), { "" } } }, icon_size);
+        append_headers({ { _u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1] } });
+        const bool percentage = m_viewer.is_overhang_percentage();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 3.f));
+        append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Show as percentage"), offsets[0] } },
+            true, predictable_icon_pos, percentage, [this, &imgui, percentage]() {
+                // Orca: Recolor without reslicing and request another frame to refresh the legend and marker too.
+                m_viewer.set_overhang_percentage(!percentage);
+                imgui.set_requires_extra_frame();
+                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+            });
+        // Orca: Reuse the legend's option row and refresh immediately without modifying G-code or reslicing.
+        append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Show as logarithmic scale"), offsets[0] } },
+            true, predictable_icon_pos, logarithmic, [this, &imgui, logarithmic]() {
+                m_viewer.set_overhang_logarithmic(!logarithmic);
+                imgui.set_requires_extra_frame();
+                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+            });
+        ImGui::PopStyleVar(1);
+        break;
+    }
     case libvgcode::EViewType::Speed:       {
         append_range(m_viewer.get_color_range(libvgcode::EViewType::Speed), 0);
         ImGui::Spacing();

@@ -2906,6 +2906,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_last_layer_z = 0.f;
     m_max_layer_z  = 0.f;
     m_last_width = 0.f;
+    // Orca: Reset the cached overhang tag so each export starts with deterministic metadata state.
+    m_last_overhang_percentage = 0.f;
+    // Orca: Each export must establish its own reference-plane spacing, including zero on the first layer.
+    m_last_overhang_z_distance = -1.0f;
     m_last_layer_accumulated_mass = 0.0;
     m_is_role_based_fan_on.fill(false);
     m_role_based_fan_marker_layer.fill(-1);
@@ -5819,7 +5823,9 @@ LayerResult GCode::process_layer(
                 std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
                             m_config.enable_overhang_bridge_fan.values.end(),
                             [](unsigned char value) { return value != 0; });
-            if (enable_overhang_speed || enable_overhang_fan) {
+            // Orca: Prepare geometry only when needed. The estimator resolves the actual lower layer even
+            // after skipped layers, keeping speed and cooling independent of optional preview metadata.
+            if (enable_overhang_speed || enable_overhang_fan || (has_extrusions && m_config.gcode_overhangs)) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
                                                                     layer_to_print.object_layer);
             }
@@ -8134,12 +8140,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
+    // Orca: Keep overhang metadata opt-in because every emitted value increases the final G-code size.
+    const bool emit_overhangs = m_config.gcode_overhangs;
 
     const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
         (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
 
-    if (need_overhang_detection && !this->on_first_layer() && !object_layer_over_raft() &&
-        (is_bridge(path.role()) || is_perimeter(path.role()))) {
+    // Orca: The first layer and layers over a raft have no meaningful model-layer support reference.
+    const bool can_estimate_overhang = !this->on_first_layer() && !object_layer_over_raft() &&
+        (is_bridge(path.role()) || is_perimeter(path.role()));
+
+    if (need_overhang_detection && can_estimate_overhang) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
             if (ref_speed == 0)
@@ -8174,8 +8185,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
-        	}else{
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              emit_overhangs);
+            }else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
                      (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
@@ -8193,7 +8205,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                      FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              emit_overhangs);
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
@@ -8204,6 +8217,12 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 variable_speed = new_points.size() > 1;
             }
     }
+
+    // Orca: Keep visualization independent of the speed/fan options. When no variable-speed path is emitted,
+    // sample each original segment without changing the toolpath geometry.
+    std::vector<float> overhang_percentages;
+    if (emit_overhangs && !variable_speed && can_estimate_overhang)
+        overhang_percentages = m_extrusion_quality_estimator.estimate_overhang_percentages(path);
 
     double F = speed * 60;  // convert mm/sec to mm/min
     
@@ -8277,6 +8296,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
+        // Orca: The processor may have reset the value while handling an intervening non-model section
+        // (for example a wipe tower), so always emit the first value of a newly entered role.
+        if (emit_overhangs)
+            m_last_overhang_percentage = -1.0f;
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
     }
@@ -8292,6 +8315,36 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), m_last_height);
         gcode += buf;
     }
+
+    // Orca: The contour offset is measured between slice planes, not extrusion tops. Export their actual
+    // spacing per object so adaptive layers, differing object profiles and shifted slicing planes retain
+    // the correct angular denominator. Zero marks a missing reference and enables the legacy fallback.
+    if (emit_overhangs) {
+        const float z_distance = m_layer != nullptr && m_layer->lower_layer != nullptr ?
+            static_cast<float>(std::max(0.0, m_layer->slice_z - m_layer->lower_layer->slice_z)) : 0.0f;
+        if (std::abs(z_distance - m_last_overhang_z_distance) > EPSILON) {
+            sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance).c_str(), z_distance);
+            gcode += buf;
+            m_last_overhang_z_distance = z_distance;
+        }
+    }
+
+    // Orca: Round percentages to one decimal and emit only changes to limit metadata growth.
+    auto append_overhang_percentage = [this, &gcode, emit_overhangs](float percentage) {
+        if (!emit_overhangs)
+            return;
+        percentage = std::round(10.0f * std::clamp(percentage, 0.0f, 100.0f)) * 0.1f;
+        if (std::abs(percentage - m_last_overhang_percentage) <= 0.01f)
+            return;
+        char overhang_buf[64];
+        sprintf(overhang_buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang).c_str(), percentage);
+        gcode += overhang_buf;
+        m_last_overhang_percentage = percentage;
+    };
+    // Orca: Missing metadata maps to 0% so non-overhang roles and legacy paths remain fully supported.
+    auto original_segment_overhang = [&overhang_percentages](size_t segment_id) {
+        return segment_id < overhang_percentages.size() ? overhang_percentages[segment_id] : 0.0f;
+    };
     
     // Orca: Dynamic PA
     // Post processor flag generation code segment when option to emit only at role changes is enabled
@@ -8512,11 +8565,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
                 double saved_z      = m_writer.get_position().z();
 
-                for (const Line3& line : path.polyline.lines()) {
+                // Orca: Retain source-segment indices so each emitted line receives the matching percentage.
+                const Lines3 lines = path.polyline.lines();
+                for (size_t line_id = 0; line_id < lines.size(); ++line_id) {
+                    const Line3 &line = lines[line_id];
                     std::string tempDescription = description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
                         continue;
+                    if (emit_overhangs)
+                        append_overhang_percentage(original_segment_overhang(line_id));
                     path_length += line_length;
                     auto dE = e_per_mm * line_length;
                     if (_needSAFC(path)) {
@@ -8579,6 +8637,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             const double line_length = line.length() * SCALING_FACTOR;
                             if (line_length < EPSILON)
                                 continue;
+                            // Orca: Preserve per-segment percentages when arc fitting emits a linear subsection.
+                            if (emit_overhangs)
+                                append_overhang_percentage(original_segment_overhang(point_index - 1));
                             auto dE = e_per_mm * line_length;
                             if (_needSAFC(path)) {
                                 auto oldE = dE;
@@ -8602,6 +8663,36 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
                         if (arc_length < EPSILON)
                             continue;
+                        bool has_overhang_arc_profile = false;
+                        // Orca: Preserve G2/G3 verbatim, but sample the fitted geometry for local preview colors.
+                        // A scalar maximum remains available to older readers and for constant profiles.
+                        if (emit_overhangs) {
+                            std::vector<float> profile;
+                            if (can_estimate_overhang) {
+                                const size_t intervals = size_t(std::clamp(std::ceil(arc_length / std::max(0.1, double(path.width))),
+                                    1.0, double(GCodeProcessor::MAX_OVERHANG_ARC_SAMPLES - 1)));
+                                profile = m_extrusion_quality_estimator.estimate_overhang_arc_percentages(
+                                    arc, path.width, intervals, is_perimeter(path.role()));
+                                for (float &percentage : profile)
+                                    percentage = std::round(percentage * 10.0f) * 0.1f;
+                            }
+                            append_overhang_percentage(profile.empty() ? 0.0f : *std::max_element(profile.begin(), profile.end()));
+                            // Orca: Format: total,offset,p0,...; point i lies at i/(total-1) of the arc.
+                            // Sixteen values keep comment lines short for firmware buffers. Skip uniform data.
+                            if (!profile.empty() && std::any_of(profile.begin(), profile.end(), [&](float p) { return p != profile.front(); })) {
+                                has_overhang_arc_profile = true;
+                                constexpr size_t chunk_size = 16;
+                                for (size_t offset = 0; offset < profile.size(); offset += chunk_size) {
+                                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) +
+                                        std::to_string(profile.size()) + "," + std::to_string(offset);
+                                    for (size_t i = offset; i < std::min(offset + chunk_size, profile.size()); ++i) {
+                                        sprintf(buf, ",%.1f", profile[i]);
+                                        gcode += buf;
+                                    }
+                                    gcode += '\n';
+                                }
+                            }
+                        }
                         const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(arc.start_point);
                         auto dE = e_per_mm * arc_length;
                         if (_needSAFC(path)) {
@@ -8612,12 +8703,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        gcode += m_writer.extrude_arc_to_xy(
+                        std::string arc_gcode = m_writer.extrude_arc_to_xy(
                             this->point_to_gcode(arc.end_point),
                             center_offset,
                             dE,
                             arc.direction == ArcDirection::Arc_Dir_CCW,
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        // Orca: Bind the chunks to this exact command even when normal G-code comments are
+                        // disabled. A separate semicolon keeps the marker machine-readable after a description.
+                        if (has_overhang_arc_profile) {
+                            assert(!arc_gcode.empty() && arc_gcode.back() == '\n');
+                            arc_gcode.insert(arc_gcode.size() - 1,
+                                ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
+                        }
+                        gcode += arc_gcode;
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }
@@ -8673,6 +8772,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double line_length = (p - prev).norm();
             if(line_length < EPSILON)
                 continue;
+            // Orca: Reuse the geometric reading, not the speed/fan overlap inflated for curled edges.
+            if (emit_overhangs)
+                append_overhang_percentage(pre_processed_point.overhang_percentage);
             path_length += line_length;
             double new_speed = pre_processed_point.speed * 60.0;
             

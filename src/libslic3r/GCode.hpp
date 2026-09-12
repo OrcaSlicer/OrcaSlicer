@@ -205,6 +205,8 @@ public:
         m_last_pos_defined(false),
         m_last_extrusion_role(erNone),
         m_last_width(0.0f),
+        // Orca: Cache the last emitted percentage to avoid duplicate overhang tags.
+        m_last_overhang_percentage(0.0f),
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_last_mm3_per_mm(0.0),
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
@@ -689,6 +691,10 @@ private:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
+    // Orca: Last percentage written to the G-code processor metadata stream.
+    float                               m_last_overhang_percentage{ 0.0f };
+    // Orca: Cache the reference-plane spacing separately from extrusion height; -1 forces the first tag.
+    float                               m_last_overhang_z_distance{ -1.0f };
     // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
     // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
     double                              m_last_layer_accumulated_mass{ 0.0 };

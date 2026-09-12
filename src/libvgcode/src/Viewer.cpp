@@ -52,6 +52,30 @@ void Viewer::set_view_type(EViewType type)
     m_impl->set_view_type(type);
 }
 
+// Orca: Keep the GUI's overhang units and the renderer's color scale on the same setting.
+bool Viewer::is_overhang_percentage() const
+{
+    return m_impl->is_overhang_percentage();
+}
+
+// Orca: Forward unit changes so the renderer invalidates its cached colors.
+void Viewer::set_overhang_percentage(bool value)
+{
+    m_impl->set_overhang_percentage(value);
+}
+
+// Orca: Expose the renderer's scale choice to the legend toggle.
+bool Viewer::is_overhang_logarithmic() const
+{
+    return m_impl->is_overhang_logarithmic();
+}
+
+// Orca: Delegate scale changes so colors and legend stops are updated together.
+void Viewer::set_overhang_logarithmic(bool value)
+{
+    m_impl->set_overhang_logarithmic(value);
+}
+
 ETimeMode Viewer::get_time_mode() const
 {
     return m_impl->get_time_mode();
