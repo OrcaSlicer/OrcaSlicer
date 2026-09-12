@@ -20,7 +20,7 @@ class TextImageEntryTests(unittest.TestCase):
     def setUp(self):
         directory = self.enterContext(tempfile.TemporaryDirectory())
         self.enterContext(temporary_environment(
-            OPENAI_API_KEY=None, OPENAI_PRO_API="offline-image-key",
+            OPENAI_API_KEY=None, OPENAI_PRO_API="test-offline-image-key",
             OPENAI_PRO_URL="https://image.invalid/v1", OPENAI_IMAGE_MODEL="gpt-image-2",
             ORCASLICER_AI_ALLOW_PREPROCESS_FALLBACK=None,
             ORCASLICER_AI_OUTPUT_DIR=directory, ORCASLICER_AI_SESSION_TOKEN=None,
@@ -60,7 +60,7 @@ class TextImageEntryTests(unittest.TestCase):
         self.assert_design(job)
 
     def test_broken_legacy_text_provider_cannot_block_image_creation(self):
-        with (temporary_environment(OPENAI_API_KEY="unusable-legacy-key"),
+        with (temporary_environment(OPENAI_API_KEY="test-unusable-legacy-key"),
               mock.patch.object(preprocessor, "complete_text", side_effect=AssertionError("No text rewrite request")) as text):
             job = sidecar._new_job("text", (), style="cartoon")
             sidecar._preprocess_text_job(job, "戴蓝色围巾的小猫")
