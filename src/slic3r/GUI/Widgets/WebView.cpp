@@ -303,8 +303,10 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
             s_schemes_registered = true;
         }
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+#ifndef __linux__
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+#endif
 #endif
 #ifdef __WXMAC__
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
@@ -425,8 +427,10 @@ void WebView::RecreateAll()
     wxString language_code = Slic3r::GUI::wxGetApp().current_language_code().BeforeFirst('_');
     language_code          = language_code.ToStdString();
     for (auto webView : g_webviews) {
+#ifndef __linux__
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
+#endif
         // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
         // the event, skip the reload; legacy pages fall through and reload as before
         // (their own dark.css swap re-themes them on reload).
