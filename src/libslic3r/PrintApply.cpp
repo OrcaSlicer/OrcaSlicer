@@ -1311,6 +1311,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
+    // Orca: variant expansion has run, so all per-N counts are final - enforce here.
+    new_full_config.enforce_cardinality();
+
     auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
     std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
 

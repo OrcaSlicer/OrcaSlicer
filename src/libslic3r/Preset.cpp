@@ -455,51 +455,22 @@ std::string Preset::remove_suffix_modified(const std::string &name)
         name;
 }
 
-// Update new extruder fields at the printer profile.
+// Size per-N array options to the config's extruder/filament counts, then fix up legacy SLA fields.
 void Preset::normalize(DynamicPrintConfig &config)
 {
-    size_t n = 1;
-    if (config.option("single_extruder_multi_material") == nullptr || config.opt_bool("single_extruder_multi_material")) {
-        // BBS
-        auto* filament_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("filament_diameter"));
-        if (filament_diameter != nullptr) {
-            n = filament_diameter->values.size();
-            // Loaded the FFF Printer settings. Verify, that all extruder dependent values have enough values.
-            config.set_num_filaments((unsigned int) n);
-        }
-    } else {
-        auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter"));
-        if (nozzle_diameter != nullptr) {
-            n = nozzle_diameter->values.size();
-            // Loaded the FFF Printer settings. Verify, that all extruder dependent values have enough values.
-            config.set_num_extruders((unsigned int) n);
-        }
+    // Non-SEMM (multiple physical extruders): size the per-extruder options to the extruder count.
+    if (config.option("single_extruder_multi_material") != nullptr && !config.opt_bool("single_extruder_multi_material")) {
+        if (const auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter")))
+            config.set_num_extruders((unsigned int) nozzle_diameter->values.size());
     }
 
-    if (config.option("filament_diameter") != nullptr) {
-        // This config contains single or multiple filament presets.
-        // Ensure that the filament preset vector options contain the correct number of values.
-        const auto &defaults = FullPrintConfig::defaults();
-        for (const std::string &key : Preset::filament_options()) {
-            if (key == "compatible_prints" || key == "compatible_printers")
-                continue;
-            if (filament_options_with_variant.find(key) != filament_options_with_variant.end())
-                continue;
-            if (filament_dev_options.find(key) != filament_dev_options.end())
-                continue;
-            auto *opt = config.option(key, false);
-            /*assert(opt != nullptr);
-            assert(opt->is_vector());*/
-            if (opt != nullptr && opt->is_vector())
-                static_cast<ConfigOptionVectorBase*>(opt)->resize(n, defaults.option(key));
-        }
-        // The following keys are mandatory for the UI, but they are not part of FullPrintConfig, therefore they are handled separately.
-        for (const std::string &key : { "filament_settings_id" }) {
-            auto *opt = config.option(key, false);
-            assert(opt == nullptr || opt->type() == coStrings);
-            if (opt != nullptr && opt->type() == coStrings)
-                static_cast<ConfigOptionStrings*>(opt)->values.resize(n, std::string());
-        }
+    if (const auto* filament_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("filament_diameter"))) {
+        config.enforce_per_filament_cardinality();
+
+        // filament_settings_id is UI-only (not in FullPrintConfig), so size it to the filament count here.
+        const size_t n_filaments = filament_diameter->values.empty() ? 1 : filament_diameter->values.size();
+        if (auto* settings_id = dynamic_cast<ConfigOptionStrings*>(config.option("filament_settings_id", false)))
+            settings_id->values.resize(n_filaments, std::string());
     }
 
     handle_legacy_sla(config);

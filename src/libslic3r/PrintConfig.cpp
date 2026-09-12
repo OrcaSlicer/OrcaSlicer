@@ -8263,61 +8263,6 @@ void PrintConfigDef::init_extruder_option_keys()
     assert(std::is_sorted(m_extruder_retract_keys.begin(), m_extruder_retract_keys.end()));
 }
 
-void PrintConfigDef::init_filament_option_keys()
-{
-    m_filament_option_keys = {
-        "default_filament_profile",
-        "deretraction_speed",
-        "filament_colour",
-        "filament_diameter",
-        "filament_retract_length_nc",
-        // "filament_seam_gap",
-        "long_retractions_when_cut",
-        "max_layer_height",
-        "min_layer_height",
-        "retract_after_wipe",
-        "retract_before_wipe",
-        "retract_length_toolchange",
-        "retract_lift_above",
-        "retract_lift_below",
-        "retract_lift_enforce",
-        "retract_restart_extra",
-        "retract_restart_extra_toolchange",
-        "retract_when_changing_layer",
-        "retraction_distances_when_cut",
-        "retraction_length",
-        "retraction_minimum_travel",
-        "retraction_speed",
-        "volumetric_speed_coefficients",
-        "wipe",
-        "wipe_distance",
-        "z_hop",
-        "z_hop_types",
-    };
-
-    m_filament_retract_keys = {
-        "deretraction_speed",
-        "filament_retract_length_nc",
-        "long_retractions_when_cut",
-        "retract_after_wipe",
-        "retract_before_wipe",
-        "retract_lift_above",
-        "retract_lift_below",
-        "retract_lift_enforce",
-        "retract_restart_extra",
-        "retract_when_changing_layer",
-        "retraction_distances_when_cut",
-        "retraction_length",
-        "retraction_minimum_travel",
-        "retraction_speed",
-        "wipe",
-        "wipe_distance",
-        "z_hop",
-        "z_hop_types"
-    };
-    assert(std::is_sorted(m_filament_retract_keys.begin(), m_filament_retract_keys.end()));
-}
-
 void PrintConfigDef::init_sla_params()
 {
     ConfigOptionDef* def;
@@ -9745,35 +9690,6 @@ void  handle_legacy_sla(DynamicPrintConfig &config)
     }
 }
 
-size_t DynamicPrintConfig::get_parameter_size(const std::string& param_name, size_t extruder_nums)
-{
-    constexpr size_t default_param_length = 1;
-    size_t filament_variant_length = default_param_length;
-    size_t process_variant_length = default_param_length;
-    size_t machine_variant_length = default_param_length;
-
-    if (this->has("filament_extruder_variant"))
-        filament_variant_length = this->option<ConfigOptionStrings>("filament_extruder_variant")->size();
-    if (this->has("print_extruder_variant"))
-        process_variant_length = this->option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if (this->has("printer_extruder_variant"))
-        machine_variant_length = this->option<ConfigOptionStrings>("printer_extruder_variant")->size();
-
-    if (printer_options_with_variant_1.count(param_name) > 0) {
-        return machine_variant_length;
-    }
-    else if (printer_options_with_variant_2.count(param_name) > 0) {
-        return machine_variant_length * 2;
-    }
-    else if (filament_options_with_variant.count(param_name) > 0) {
-        return filament_variant_length;
-    }
-    else if (print_options_with_variant.count(param_name) > 0) {
-        return process_variant_length;
-    }
-    return extruder_nums;
-}
-
 // Orca: Special handling for extruder variants
 // BBL printers have extruder variants pre-defined in system profiles, however for customized multi-extruder profile,
 // we need to set up these parameters automatically, otherwise per-extruder options won't work properly.
@@ -9825,23 +9741,6 @@ void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
         if (opt != nullptr && opt->is_vector()) {
             static_cast<ConfigOptionVectorBase*>(opt)->resize(get_parameter_size(key, num_extruders), defaults.option(key));
         }
-    }
-}
-
-// BBS
-void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
-{
-    const auto& defaults = FullPrintConfig::defaults();
-    for (const std::string& key : print_config_def.filament_option_keys()) {
-        if (key == "default_filament_profile")
-            // Don't resize this field, as it is presented to the user at the "Dependencies" page of the Printer profile and we don't want to present
-            // empty fields there, if not defined by the system profile.
-            continue;
-        auto* opt = this->option(key, false);
-        assert(opt != nullptr);
-        assert(opt->is_vector());
-        if (opt != nullptr && opt->is_vector())
-            static_cast<ConfigOptionVectorBase*>(opt)->resize(num_filaments, defaults.option(key));
     }
 }
 
