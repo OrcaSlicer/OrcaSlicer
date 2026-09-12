@@ -192,7 +192,17 @@ SlicingParameters SlicingParameters::create_from_config(
     /* -------------------------------------------------- */
 
     if (params.base_raft_layers > 0) {
-        params.interface_raft_layers = (params.base_raft_layers + 1) / 2;
+        // number of raft interface layers, only used if advanced raft parameters are enabled
+        if (params.base_raft_layers > 1 && object_config.raft_advanced_params) {
+            params.interface_raft_layers = object_config.raft_interface_layers.value;
+            // If interface layers equal or exceed the total raft size, scale them back so that there is always a based layer.
+            if (params.interface_raft_layers >= params.base_raft_layers) {
+                params.interface_raft_layers = params.base_raft_layers - 1;
+            }
+        } else {
+            params.interface_raft_layers = (params.base_raft_layers + 1) / 2;
+        }
+
         params.base_raft_layers -= params.interface_raft_layers;
         // Use as large as possible layer height for the intermediate raft layers.
         params.base_raft_layer_height       = std::max(params.layer_height, 0.75 * support_material_extruder_dmr);
