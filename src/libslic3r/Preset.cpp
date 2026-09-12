@@ -1188,6 +1188,7 @@ static std::vector<std::string> s_Preset_print_options{
     "resolution",
     "enable_prime_tower",
     "prime_tower_enable_framework",
+    "prime_tower_multimaterial",
     "prime_tower_width",
     "prime_tower_brim_width",
     "prime_tower_skip_points",

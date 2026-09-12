@@ -7484,6 +7484,21 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("prime_tower_multimaterial", coBool);
+    def->label = L("Multimaterial tower");
+    def->tooltip = L("Give each filament its own region of the prime tower, so that a filament is never "
+                     "printed on top of a different one. One filament purges into the outer shell of the "
+                     "tower (and prints its brim), the other purges into the inner core. This helps when "
+                     "the filaments do not bond to each other, such as PLA and PETG.\n\n"
+                     "The tower is sized so that every region can absorb at least its required purge "
+                     "volume, so the tower may use more material than the purge alone would need. On a "
+                     "layer with no tool change only one filament is available, and that layer is "
+                     "printed as a normal single-material tower layer.\n\n"
+                     "Requires exactly two filaments, a rectangular tower wall and a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("flush_volumes_vector", coFloats);
     // BBS: remove _L()
     def->label = ("Purging volumes - load/unload volumes");

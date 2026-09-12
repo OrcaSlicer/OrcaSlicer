@@ -348,6 +348,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "enable_prime_tower"
             || opt_key == "enable_wrapping_detection"
             || opt_key == "prime_tower_enable_framework"
+            || opt_key == "prime_tower_multimaterial"
             || opt_key == "prime_tower_width"
             || opt_key == "prime_tower_brim_width"
             || opt_key == "wipe_tower_type"
@@ -1541,6 +1542,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
         if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
             return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
+
+        // Orca: the multimaterial tower gives each filament its own region of the tower footprint.
+        // Two filaments give the two regions the generator lays out (shell ring and core); the
+        // regions also have to be able to hold the purge, which rules out ramming the old filament
+        // out in long straight lines. See the multimaterial section of WipeTower2.cpp.
+        if (m_config.prime_tower_multimaterial && this->wipe_tower_type() == WipeTowerType::Type2) {
+            if (extruders.size() != 2)
+                return { L("The multimaterial prime tower currently supports exactly two filaments."), nullptr,
+                         "prime_tower_multimaterial" };
+            if (m_config.wipe_tower_wall_type != WipeTowerWallType::wtwRectangle)
+                return { L("The multimaterial prime tower requires the rectangular prime tower wall type."), nullptr,
+                         "prime_tower_multimaterial" };
+            for (unsigned int extruder_id : extruders)
+                if ((m_config.single_extruder_multi_material && m_config.enable_filament_ramming) ||
+                    m_config.filament_multitool_ramming.get_at(extruder_id))
+                    return { L("The multimaterial prime tower cannot be used when the old filament is rammed into the "
+                               "tower. Turn off filament ramming, or turn off the multimaterial prime tower."),
+                             nullptr, "prime_tower_multimaterial" };
+        }
             
 #if 0
         if (m_config.gcode_flavor != gcfRepRapSprinter && m_config.gcode_flavor != gcfRepRapFirmware &&
