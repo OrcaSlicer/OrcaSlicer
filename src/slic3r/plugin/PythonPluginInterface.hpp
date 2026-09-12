@@ -173,6 +173,10 @@ public:
     // exactly as long as the capability does, and are discarded with it on unload. Nothing about a
     // capability outlives the capability — the durable record is the .install_state.json sidecar.
 
+    // Resolve optional type-specific declarations while the loader already owns the GIL.
+    // Implementations cache the result so normal host-side discovery never dispatches into Python.
+    virtual void resolve_type_metadata() {}
+
     // Cached identity. Plain C++ reads, safe under any lock and after the interpreter is gone. Also
     // doubles as the audited capability name (paired with audit_plugin_key()) so host APIs invoked
     // from Python can tell which capability they are serving.
