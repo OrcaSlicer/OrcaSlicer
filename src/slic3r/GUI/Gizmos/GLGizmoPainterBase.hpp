@@ -257,6 +257,24 @@ protected:
         SMART_FILL,
         // BBS
         GAP_FILL,
+        //ORCA: two-click swept line. First click stores the anchor, second click
+        //      paints A→B using the existing TriangleSelector::DoublePointCursor
+        //      machinery (same machinery a drag-stroke uses between adjacent frames).
+        LINE,
+        //ORCA: two-click screen-space rectangle. First click stores the screen-space
+        //      anchor, second click paints every triangle whose centroid projects
+        //      inside the resulting rectangle (any mesh).
+        RECTANGLE,
+        //ORCA: two-click screen-space rectangle + spacing slider. Lays a regular
+        //      grid of screen-space points inside the rectangle, raycasts each
+        //      against the mesh, splats at every hit.
+        GRID,
+        //ORCA: N-click closed polygon. Operator left-clicks each corner of a
+        //      polygon in screen space, then clicks "Close polygon" in the UI
+        //      panel to finalize. Right-click cancels the in-progress polygon.
+        //      The fill samples the polygon's bounding box, point-in-polygon
+        //      tests each sample, raycasts the matching ones, splats at hits.
+        POLYGON,
     };
 
     struct ProjectedMousePosition
@@ -277,6 +295,34 @@ protected:
     bool     m_triangle_splitting_enabled = true;
     ToolType m_tool_type                  = ToolType::BRUSH;
     float    m_smart_fill_angle           = 30.f;
+
+    //ORCA: LINE-tool state machine. After the first click the anchor mesh-hit and
+    //      its owning mesh+facet are stored; the second click triggers a paint
+    //      via DoublePointCursor and clears the pending state. Right-click or
+    //      tool-switch cancels a pending anchor without painting.
+    bool     m_line_pending               = false;
+    Vec3f    m_line_first_hit             = Vec3f::Zero();
+    int      m_line_first_mesh_idx        = -1;
+    int      m_line_first_facet_idx       = -1;
+    //ORCA: RECTANGLE / GRID-tool state machine — same two-click pattern as LINE,
+    //      but the anchor is stored in SCREEN-SPACE (canvas pixels) so the
+    //      operator can drag out a box that selects whatever happens to be
+    //      visible inside it. Grid spacing is in screen pixels too — gives the
+    //      operator a consistent density regardless of camera zoom.
+    bool     m_rect_pending               = false;
+    Vec2d    m_rect_first_screen          = Vec2d::Zero();
+    float    m_grid_spacing_px            = 24.f;
+    //ORCA: POLYGON-tool state — variable-length list of click points in screen
+    //      space. UI panel exposes a Close button that triggers the fill.
+    std::vector<Vec2d> m_polygon_points;
+
+public:
+    //ORCA: Close the in-progress polygon and paint everything inside it. Called
+    //      from the painter gizmo's UI (Close button). enforcer = true paints
+    //      with the LEFT button state (enforcer); false paints with RIGHT
+    //      button state (blocker/erase). Returns true if a paint happened.
+    bool close_and_paint_polygon(bool enforcer);
+protected:
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;

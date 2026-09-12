@@ -76,6 +76,11 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::VisibleIcon            , "im_visible"                    }, //ORCA
     {ImGui::HiddenIcon             , "im_hidden"                     }, //ORCA
     {ImGui::SphereButtonIcon       , "toolbar_modifier_sphere"       },
+    //ORCA: painter LINE / RECTANGLE / GRID tools (added 2026-06-26).
+    {ImGui::LineToolIcon           , "line_paint"                    },
+    {ImGui::RectangleToolIcon      , "rectangle_paint"               },
+    {ImGui::GridToolIcon           , "grid_paint"                    },
+    {ImGui::PolygonToolIcon        , "polygon_paint"                 },
     // dark mode icon
     {ImGui::MinimalizeDarkButton       , "notification_minimalize_dark"       },
     {ImGui::MinimalizeHoverDarkButton  , "notification_minimalize_hover_dark" },
@@ -92,6 +97,11 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::ConfirmDarkIcon            , "confirm_dark"                       },
     {ImGui::GapFillDarkIcon            , "gap_fill_dark"                      },
     {ImGui::SphereButtonDarkIcon       , "toolbar_modifier_sphere_dark"       },
+    //ORCA: dark variants of LINE / RECTANGLE / GRID painter tools.
+    {ImGui::LineToolDarkIcon           , "line_paint_dark"                    },
+    {ImGui::RectangleToolDarkIcon      , "rectangle_paint_dark"               },
+    {ImGui::GridToolDarkIcon           , "grid_paint_dark"                    },
+    {ImGui::PolygonToolDarkIcon        , "polygon_paint_dark"                 },
 
     {ImGui::TextSearchIcon             , "im_text_search"             },
     {ImGui::TextSearchCloseIcon        , "im_text_search_close"       },

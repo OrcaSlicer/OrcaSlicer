@@ -88,6 +88,8 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["gap_fill"]           = _L("Gap fill");
     m_desc["reset_direction"]    = _L("Reset direction");
     m_desc["clipping_of_view"]   = _L("Section view");
+    m_desc["horizontal_cut"]     = _L("Horizontal cut");
+    m_desc["flip"]               = _L("Flip");
     m_desc["cursor_size"]        = _L("Brush size");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
     m_desc["gap_area"]           = _L("Gap area");
@@ -257,14 +259,17 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("tool_type"));
-    std::array<wchar_t, 4> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wchar_t, 4> icons;
+    //ORCA: LineToolIcon is a text-button-only tool (no icon image registered) for the
+    //      two-click swept-line paint. Slots in at the end so the existing icon-button
+    //      indices stay stable.
+    std::array<wchar_t, 8> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectangleToolIcon, ImGui::GridToolIcon, ImGui::PolygonToolIcon };
+    std::array<wchar_t, 8> icons;
     if (m_is_dark_mode)
-        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon };
+        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon, ImGui::LineToolDarkIcon, ImGui::RectangleToolDarkIcon, ImGui::GridToolDarkIcon, ImGui::PolygonToolDarkIcon };
     else
-        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
+        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectangleToolIcon, ImGui::GridToolIcon, ImGui::PolygonToolIcon };
 
-    std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill") };
+    std::array<wxString, 8> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill"), _L("Line (two-click swept stroke)"), _L("Rectangle (two-click screen-space box)"), _L("Grid (two-click box + spacing)"), _L("Polygon (N-click closed shape)") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -395,6 +400,99 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
             update_model_object();
             m_parent.set_as_dirty();
         }
+    } else if (m_current_tool == ImGui::LineToolIcon) {
+        //ORCA: LINE — two-click swept stroke. Uses the CIRCLE cursor (radius from
+        //      the standard brush-size slider) for the swept area. First click
+        //      sets the anchor (no paint), second click paints from anchor to
+        //      the new hit. Switching to another tool cancels a pending anchor.
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::LINE;
+
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        ImGui::TextDisabled(m_line_pending
+            ? "Click a 2nd point to paint A→B. Right-click to erase mode."
+            : "Click 1st point on the mesh. 2nd click paints the swept line.");
+    } else if (m_current_tool == ImGui::RectangleToolIcon) {
+        //ORCA: RECTANGLE — two-click screen-space box, densely raycast-sampled.
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::RECTANGLE;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        ImGui::TextDisabled(m_rect_pending
+            ? "Click the opposite corner to fill the box."
+            : "Click one corner of the box on the canvas.");
+    } else if (m_current_tool == ImGui::PolygonToolIcon) {
+        //ORCA: POLYGON — N-click closed shape. Left-click each corner, then
+        //      press the "Close polygon" button to fill. Right-click on the
+        //      canvas cancels the in-progress polygon.
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::POLYGON;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        ImGui::TextDisabled("Polygon points: %d", int(m_polygon_points.size()));
+        if (m_polygon_points.size() >= 3) {
+            if (m_imgui->button(_L("Close polygon (paint)"))) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Polygon paint", UndoRedo::SnapshotType::GizmoAction);
+                close_and_paint_polygon(true);
+                update_model_object();
+                m_parent.set_as_dirty();
+            }
+            ImGui::SameLine();
+            if (m_imgui->button(_L("Close & erase"))) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Polygon erase", UndoRedo::SnapshotType::GizmoAction);
+                close_and_paint_polygon(false);
+                update_model_object();
+                m_parent.set_as_dirty();
+            }
+        } else {
+            ImGui::TextDisabled("Need at least 3 points. Left-click on the canvas to add. Right-click cancels.");
+        }
+    } else if (m_current_tool == ImGui::GridToolIcon) {
+        //ORCA: GRID — two-click screen-space box, screen-spacing-sampled.
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::GRID;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Grid spacing (px)");
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##grid_spacing", &m_grid_spacing_px, 4.f, 200.f, "%.0f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##grid_spacing_input", &m_grid_spacing_px, 1.f, 0.0f, 0.0f, "%.0f");
+
+        ImGui::TextDisabled(m_rect_pending
+            ? "Click the opposite corner to dot-grid the box."
+            : "Click one corner of the box on the canvas.");
     }
 
     if (m_current_tool != ImGui::GapFillIcon) {
@@ -464,7 +562,23 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_drag_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    if (b_bbl_slider_float || b_drag_input) m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
+    //ORCA: horizontal-cut toggle + Flip button. Default OFF preserves the upstream
+    //      camera-direction semantics, but every slider tick re-captures from the
+    //      CURRENT camera (cheap fix for the upstream "first-drag freezes the cut
+    //      angle forever" UX). When the toggle is ON, the clip-plane normal is
+    //      forced to world (0,0,1) — or (0,0,-1) if Flip is on — so the operator
+    //      can choose between hiding the top (e.g. to expose the underside) and
+    //      hiding the bottom (e.g. to expose the top from below). Flip is only
+    //      meaningful when Horizontal cut is on.
+    bool b_horizontal_toggle = m_imgui->bbl_checkbox(m_desc.at("horizontal_cut"), m_use_vertical_clip);
+    bool b_flip_clicked = false;
+    if (m_use_vertical_clip) {
+        ImGui::SameLine();
+        b_flip_clicked = m_imgui->button(m_desc.at("flip"));
+        if (b_flip_clicked) m_vertical_clip_inverted = !m_vertical_clip_inverted;
+    }
+    if (b_bbl_slider_float || b_drag_input || b_horizontal_toggle || b_flip_clicked)
+        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, m_use_vertical_clip, m_vertical_clip_inverted);
     
     ImGui::Separator();
 
@@ -503,6 +617,16 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
 void GLGizmoFdmSupports::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
+    //ORCA: cancel any in-flight LINE/RECTANGLE/GRID anchor on tool-switch so a
+    //      stale anchor from a previous session doesn't surprise the operator.
+    if (old_tool == ImGui::LineToolIcon      || new_tool == ImGui::LineToolIcon)
+        m_line_pending = false;
+    if (old_tool == ImGui::RectangleToolIcon || new_tool == ImGui::RectangleToolIcon
+     || old_tool == ImGui::GridToolIcon      || new_tool == ImGui::GridToolIcon)
+        m_rect_pending = false;
+    if (old_tool == ImGui::PolygonToolIcon   || new_tool == ImGui::PolygonToolIcon)
+        m_polygon_points.clear();
+
     if ((old_tool == ImGui::GapFillIcon && new_tool == ImGui::GapFillIcon) ||
         (old_tool != ImGui::GapFillIcon && new_tool != ImGui::GapFillIcon))
         return;
