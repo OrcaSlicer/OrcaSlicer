@@ -1,5 +1,6 @@
 #include "PythonPluginBridge.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <exception>
 #include <memory>
@@ -19,6 +20,7 @@
 #include "PyPluginPackage.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
+#include "pluginTypes/pages/PagesPluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
@@ -39,6 +41,7 @@ thread_local std::string g_active_plugin_key;
 std::mutex g_registry_mutex;
 std::unordered_map<std::string, std::vector<py::object>> g_pending_capabilities;
 std::unordered_map<std::string, py::object> g_pending_package;
+std::unordered_map<std::string, std::vector<std::string>> g_pending_fs_read_permissions;
 struct PluginInstanceHandle
 {
     // The C++ plugin interface points into a Python object. Keep both alive through one
@@ -76,6 +79,8 @@ void discard_pending_capture_without_python(const std::string& plugin_key)
         (void) package->second.release();
         g_pending_package.erase(package);
     }
+
+    g_pending_fs_read_permissions.erase(plugin_key);
 }
 
 } // namespace
@@ -100,34 +105,38 @@ void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
         // for this same entry path.
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
+        g_pending_fs_read_permissions.erase(plugin_key);
     }
     // From now until finalize/cancel, @orca.plugin and register_capability() calls made by
     // Python code on this thread are attributed to this plugin.
     g_active_plugin_key = plugin_key;
 }
 
-std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(const std::string& plugin_key, std::string& error)
+std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(const std::string& capture_key,
+                                                                              const std::string& plugin_key,
+                                                                              std::string&       error)
 {
     PythonGILState gil;
     if (!gil) {
         error = "Python interpreter is shutting down";
         return {};
     }
-    BOOST_LOG_TRIVIAL(info) << "Finalizing Python plugin capture for key " << plugin_key;
+    BOOST_LOG_TRIVIAL(info) << "Finalizing Python plugin capture for key " << capture_key;
 
     // Phase 1: run the package class's register_capabilities() while the active key is
     // still set. That method is expected to call orca.register_capability() once per
     // capability class, and register_capability() needs g_active_plugin_key to know which
     // pending bucket to append to.
     {
-        auto clear_active_key = [&plugin_key]() {
-            if (g_active_plugin_key == plugin_key)
+        auto clear_active_key = [&capture_key]() {
+            if (g_active_plugin_key == capture_key)
                 g_active_plugin_key.clear();
         };
-        auto discard_pending_for_key = [&plugin_key]() {
+        auto discard_pending_for_key = [&capture_key]() {
             std::lock_guard<std::mutex> lock(g_registry_mutex);
-            g_pending_capabilities.erase(plugin_key);
-            g_pending_package.erase(plugin_key);
+            g_pending_capabilities.erase(capture_key);
+            g_pending_package.erase(capture_key);
+            g_pending_fs_read_permissions.erase(capture_key);
         };
 
         try {
@@ -137,7 +146,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             py::object package_cls;
             {
                 std::lock_guard<std::mutex> lock(g_registry_mutex);
-                auto it = g_pending_package.find(plugin_key);
+                auto it = g_pending_package.find(capture_key);
                 if (it != g_pending_package.end()) {
                     package_cls = it->second;
                     g_pending_package.erase(it);
@@ -156,6 +165,33 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // are kept.
             py::object package = package_cls();
             package.attr("register_capabilities")();
+
+            // Permission declarations are collected while register_capabilities() runs so the
+            // plugin can describe its needs without touching wx from the Python load worker. Ask
+            // only after registration returns, before capability instances are materialized.
+            std::vector<std::string> fs_read_permissions;
+            {
+                std::lock_guard<std::mutex> lock(g_registry_mutex);
+                auto it = g_pending_fs_read_permissions.find(capture_key);
+                if (it != g_pending_fs_read_permissions.end()) {
+                    fs_read_permissions = std::move(it->second);
+                    g_pending_fs_read_permissions.erase(it);
+                }
+            }
+            if (!fs_read_permissions.empty()) {
+                bool granted = false;
+                {
+                    py::gil_scoped_release release;
+                    granted = PluginAuditManager::instance().request_filesystem_read_permissions(plugin_key, fs_read_permissions);
+                }
+                if (!granted) {
+                    error = "Plugin filesystem read permission request denied";
+                    BOOST_LOG_TRIVIAL(warning) << error << " for key " << plugin_key;
+                    discard_pending_for_key();
+                    clear_active_key();
+                    return {};
+                }
+            }
         } catch (py::error_already_set& err) {
             log_python_exception_keep(err);
             error = err.what();
@@ -179,7 +215,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
     std::vector<py::object> classes;
     {
         std::lock_guard<std::mutex> lock(g_registry_mutex);
-        auto it = g_pending_capabilities.find(plugin_key);
+        auto it = g_pending_capabilities.find(capture_key);
         if (it != g_pending_capabilities.end()) {
             classes = std::move(it->second);
             g_pending_capabilities.erase(it);
@@ -188,10 +224,10 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
 
     // Registration is complete. Later register_capability() calls should fail instead of
     // accidentally attaching themselves to this plugin.
-    if (g_active_plugin_key == plugin_key)
+    if (g_active_plugin_key == capture_key)
         g_active_plugin_key.clear();
 
-    BOOST_LOG_TRIVIAL(info) << "Collected " << classes.size() << " registered capability class(es) for key " << plugin_key;
+    BOOST_LOG_TRIVIAL(info) << "Collected " << classes.size() << " registered capability class(es) for key " << capture_key;
 
     std::vector<CapturedCapability> capabilities;
     capabilities.reserve(classes.size());
@@ -203,7 +239,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             py::object instance = cls();
             if (!py::isinstance<PluginCapabilityInterface>(instance)) {
                 error = "Registered capability must inherit from a PluginCapability base";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -211,7 +247,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             auto capability_iface = instance.cast<std::shared_ptr<PluginCapabilityInterface>>();
             if (!capability_iface) {
                 error = "Failed to cast Python capability to PluginCapabilityInterface";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -225,7 +261,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // here is a hard error that rejects the whole plugin capture.
             if (name.find(';') != std::string::npos) {
                 error = "Capability name must not contain ';': " + name;
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -245,12 +281,12 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // log the traceback here. GIL is held for the duration of finalize_plugin_capture.
             log_python_exception_keep(err);
             error = err.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << plugin_key
+            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << capture_key
                                      << " error=" << error;
             return {};
         } catch (const std::exception& ex) {
             error = ex.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << plugin_key
+            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << capture_key
                                      << " error=" << error;
             return {};
         }
@@ -278,6 +314,7 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
         // may already have registered under this key.
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
+        g_pending_fs_read_permissions.erase(plugin_key);
     }
 
     if (g_active_plugin_key == plugin_key)
@@ -304,6 +341,7 @@ void PythonPluginBridge::clear_pending_captures()
             (void) pkg.release();
         }
         g_pending_package.clear();
+        g_pending_fs_read_permissions.clear();
         g_active_plugin_key.clear();
         return;
     }
@@ -312,6 +350,7 @@ void PythonPluginBridge::clear_pending_captures()
     BOOST_LOG_TRIVIAL(info) << "Clearing " << g_pending_capabilities.size() << " pending Python plugin capture(s)";
     g_pending_capabilities.clear();
     g_pending_package.clear();
+    g_pending_fs_read_permissions.clear();
     g_active_plugin_key.clear();
 }
 
@@ -319,17 +358,17 @@ void bind_python_api(pybind11::module_& m)
 {
     m.doc() = "OrcaSlicer plugin API";
 
-    auto pluginTypes = py::enum_<PluginCapabilityType>(m, "PluginType", "Available plugin capability groups")
-                           .value("PrinterConnection", PluginCapabilityType::PrinterConnection)
-                           .value("Automation", PluginCapabilityType::Automation)
-                           .value("Analysis", PluginCapabilityType::Analysis)
-                           .value("Importer", PluginCapabilityType::Importer)
-                           .value("Exporter", PluginCapabilityType::Exporter)
-                           .value("Visualization", PluginCapabilityType::Visualization)
-                           .value("Script", PluginCapabilityType::Script)
-                           .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
-                           .value("Unknown", PluginCapabilityType::Unknown)
-                           .export_values();
+    py::enum_<PluginCapabilityType>(m, "PluginType", "Available plugin capability groups")
+        .value("PrinterConnection", PluginCapabilityType::PrinterConnection)
+        .value("Pages", PluginCapabilityType::Pages)
+        .value("Analysis", PluginCapabilityType::Analysis)
+        .value("Importer", PluginCapabilityType::Importer)
+        .value("Exporter", PluginCapabilityType::Exporter)
+        .value("Visualization", PluginCapabilityType::Visualization)
+        .value("Script", PluginCapabilityType::Script)
+        .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
+        .value("Unknown", PluginCapabilityType::Unknown)
+        .export_values();
 
     py::enum_<PluginResult>(m, "PluginResult", "Execution summary code")
         .value("Success", PluginResult::Success)
@@ -419,9 +458,10 @@ void bind_python_api(pybind11::module_& m)
     BOOST_LOG_TRIVIAL(debug) << "Registering embedded Python plugin type bindings";
 
     // Make sure you register your bindings here
-    PrinterAgentPluginCapability::RegisterBindings(m, pluginTypes);
-    ScriptPluginCapability::RegisterBindings(m, pluginTypes);
-    SlicingPipelinePluginCapability::RegisterBindings(m, pluginTypes);
+    PrinterAgentPluginCapability::RegisterBindings(m);
+    PagesPluginCapability::RegisterBindings(m);
+    ScriptPluginCapability::RegisterBindings(m);
+    SlicingPipelinePluginCapability::RegisterBindings(m);
     PluginHost::RegisterBindings(m);
     BOOST_LOG_TRIVIAL(debug) << "Registered ScriptPluginCapability Python bindings";
 
@@ -447,6 +487,27 @@ void bind_python_api(pybind11::module_& m)
             BOOST_LOG_TRIVIAL(debug) << "Registered Python plugin capability class for key " << g_active_plugin_key;
         },
         R"pbdoc(Register a PluginCapability subclass while OrcaSlicer loads your module.)pbdoc");
+
+    m.def(
+        "request_permissions",
+        [](const std::vector<std::string>& fs_read) {
+            if (g_active_plugin_key.empty())
+                throw py::value_error("request_permissions() called outside plugin discovery context");
+
+            std::lock_guard<std::mutex> lock(g_registry_mutex);
+            auto& requested = g_pending_fs_read_permissions[g_active_plugin_key];
+            for (const std::string& path : fs_read) {
+                if (path.empty())
+                    throw py::value_error("request_permissions(fs_read=...) does not accept empty paths");
+                if (std::find(requested.begin(), requested.end(), path) == requested.end())
+                    requested.push_back(path);
+            }
+        },
+        py::arg("fs_read") = std::vector<std::string>{},
+        R"pbdoc(Request filesystem read permissions while OrcaSlicer loads your module.
+
+The host presents the request to the user after register_capabilities() returns. Denying the
+request aborts the plugin load.)pbdoc");
 
     m.def("plugin", [](py::object cls) {
         if (g_active_plugin_key.empty())

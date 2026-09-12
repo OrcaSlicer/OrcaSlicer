@@ -26,6 +26,12 @@ enum GCodeFlavor : unsigned char;
 Polylines construct_gap_for_skip_points(
     const Polygon& polygon, const std::vector<Vec2f>& skip_points, float wt_width, float gap_length, Polygon& insert_skip_polygon);
 
+// Klipper acts on commands the instant it parses them, and its G4 reads only P (milliseconds),
+// so the zero-second and seconds-valued dwells every other flavor uses neither synchronize nor
+// pause there. Both defined in WipeTower.cpp, shared by WipeTower and WipeTower2.
+const char* flush_planner_queue_command(GCodeFlavor flavor); // finish queued moves, e.g. around M104/M109
+std::string wait_command(GCodeFlavor flavor, float seconds);  // pause for `seconds`
+
 class WipeTower
 {
 public:
@@ -36,10 +42,41 @@ public:
 	static const std::map<float, float> min_depth_per_height;
     static float get_limit_depth_by_height(float max_height);
     static float get_auto_brim_by_height(float max_height);
+    // Both generators lay the brim in whole loops one line spacing apart, so the printed width
+    // differs from the configured one. WipeTower reports it with half a spacing of line width
+    // added, WipeTower2 reports the loops alone; an estimate has to round like the generator
+    // whose G-code it stands in for.
+    static float estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height, bool type2);
+    // Depth a Type1 tower reserves once nothing but wrapping detection asks for one.
+    static float get_wrapping_detection_depth();
+    // Line width of the nozzle-change purge lines at this nozzle diameter.
+    static float nozzle_change_perimeter_width(float nozzle_diameter);
     static TriangleMesh                 its_make_rib_tower(float width, float depth, float height, float rib_length, float rib_width, bool fillet_wall);
     static TriangleMesh                 its_make_rib_brim(const Polygon& brim, float layer_height);
     static Polygon                      rib_section(float width, float depth, float rib_length, float rib_width, bool fillet_wall);
-    static Vec2f                        move_box_inside_box(const BoundingBox &box1, const BoundingBox &box2, int offset = 0);
+    // One filament's share of a Type1 tower layer, as plan_tower_new() reserves it.
+    struct PurgeEstimate
+    {
+        float prime_volume           = 0.f;   // mm3 wiped after changing to this filament
+        int   category               = 0;     // filament_adhesiveness_category; one purge block per category
+        float filament_change_length = 0.f;   // mm of filament rammed when it leaves its nozzle; 0 when no nozzle change is planned
+        float filament_diameter      = 1.75f;
+    };
+    // Depth of the Type1 purge stack at the given width (also the rectangle-wall depth): each
+    // purge is whole lines at the block infill gap, one block per adhesiveness category sized by
+    // its worst layer, stacked behind one perimeter width.
+    static float estimate_tower_blocks_depth(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing);
+    // Side of the square bounding a rib-wall tower's first layer, brim excluded: the body plus the
+    // rib bulge, with the ribs extended to the height-based minimum as both generators do.
+    static float rib_footprint_side(float width, float depth, float rib_width, float extra_rib_length, float max_height);
+    // Type1 rib tower: plan_tower_new() squares the tower from the depth at the configured width,
+    // then re-plans the depth at the squared width.
+    static float estimate_rib_tower_bbox_side(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing, float rib_width, float extra_rib_length, float max_height);
+    // Translation that brings a footprint inside the printable outline, padded by offset. The prime
+    // tower is validated against the real outline (see layered_print_cleareance_valid), so clamping
+    // against the bounding box alone would leave it off a delta or hexagonal bed. box and polygons
+    // must share one scaled coordinate frame; the translation comes back in millimeters.
+    static Vec2f                        move_box_inside_polygon(const BoundingBox &box, const Polygons &polygons, coord_t offset = 0);
     static Polygon                      rounding_polygon(Polygon &polygon, double rounding = 2., double angle_tol = 30. / 180. * PI);
     struct Extrusion
     {

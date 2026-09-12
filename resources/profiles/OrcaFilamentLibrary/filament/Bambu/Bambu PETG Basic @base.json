@@ -3,7 +3,7 @@
 	"name": "Bambu PETG Basic @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFG00",
+	"filament_id": "OFFvzqcd",
 	"instantiation": "false",
 	"description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
 	"cool_plate_temp": [
@@ -37,6 +37,9 @@
 		"0.95"
 	],
 	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
 		"8"
 	],
 	"filament_vendor": [

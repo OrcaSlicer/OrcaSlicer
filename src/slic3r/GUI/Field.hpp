@@ -25,6 +25,7 @@
 #include "wxExtensions.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/ComboBox.hpp"
 
 #ifdef __WXMSW__
 #define wxMSW true
@@ -385,7 +386,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
     /// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void	        propagate_value() ;
+    void	        propagate_value() override;
 
     void			set_value(const std::string& value, bool change_event = false) {
 		m_disable_change_event = !change_event;
@@ -440,7 +441,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
 	// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-	void			propagate_value();
+	void			propagate_value() override;
 
     /* Under OSX: wxBitmapComboBox->GetWindowStyle() returns some weard value, 
      * so let use a flag, which has TRUE value for a control without wxCB_READONLY style
@@ -469,6 +470,44 @@ public:
     void            suppress_scroll();
 };
 
+// printer_agent is a coString whose choices come from the live agent registry.
+// PrinterAgentChoice uses a ComboBox directly because Choice expects static config enums.
+// Real rows carry the stored agent id in the row alias (SetItemAlias/GetItemAlias).
+class PrinterAgentChoice : public Field
+{
+	using Field::Field;
+
+public:
+	PrinterAgentChoice(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id)
+	{
+	}
+
+	PrinterAgentChoice(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(
+		parent, opt, id)
+	{
+	}
+
+	~PrinterAgentChoice()
+	{
+	}
+
+	wxWindow* window{nullptr};
+
+	void BUILD() override;
+	// Clear and repopulate rows from the live registry (grouped System agents / Plugins).
+	// Does not change selection; the caller follows with set_value(stored id).
+	void reload_rows();
+
+	void set_value(const std::string& value, bool change_event = false);
+	void set_value(const boost::any& value, bool change_event = false) override;
+	boost::any& get_value() override;
+
+	void enable() override;
+	void disable() override;
+	void msw_rescale() override;
+	wxWindow* getWindow() override { return window; }
+};
+
 class PluginField : public Field {
     using Field::Field;
 public:
@@ -494,10 +533,8 @@ public:
 
 private:
     struct PluginRow {
-        ScalableButton* select_btn { nullptr };
-        wxTextCtrl*     display { nullptr };
+        ComboBox*       display { nullptr };
         ScalableButton* remove_btn { nullptr };
-        ScalableButton* add_btn { nullptr };
         wxBoxSizer*     sizer { nullptr };
     };
 
@@ -515,7 +552,7 @@ private:
     wxBoxSizer*             m_main_sizer { nullptr };
     std::vector<PluginRow>  m_rows;
     std::vector<std::string> m_values;
-    ScalableButton*         m_standalone_add_btn { nullptr };
+    Button*                  m_standalone_add_btn { nullptr };
     std::function<std::string()> m_selector;
 };
 
@@ -590,8 +627,10 @@ private:
     void on_button_click(wxCommandEvent &WXUNUSED(ev));
     void save_colors_to_config();
 private:
+#if !defined(__linux__) && !defined(__LINUX__)
     wxColourData*  m_clrData{nullptr};
     wxColourPickerWidget* m_picker_widget{nullptr};
+#endif
 };
 
 class PointCtrl : public Field {
@@ -611,7 +650,7 @@ public:
 	void			BUILD()  override;
 	bool			value_was_changed(wxTextCtrl* win);
     // Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void            propagate_value(wxTextCtrl* win);
+	void			propagate_input_value(wxTextCtrl* win);
 	void			set_value(const Vec2d& value, bool change_event = false);
 	void			set_value(const boost::any& value, bool change_event = false) override;
 	boost::any&		get_value() override;

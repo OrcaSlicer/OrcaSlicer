@@ -23,7 +23,7 @@
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"default_filament_profile": [
-		"Flashforge Generic PLA @G3U"
+		"Generic PLA @Flashforge G3U"
 	],
 	"default_print_profile": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
 	"deretraction_speed": [

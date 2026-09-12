@@ -1,10 +1,11 @@
 {
 	"type": "filament",
-	"from": "system",
-	"instantiation": "true",
 	"name": "PolyLite J1 PLA",
-	"setting_id": "wcpOTTMyZNPFKyXr",
 	"inherits": "PolyLite PLA @base",
+	"filament_id": "OF7SliVn",
+	"from": "system",
+	"setting_id": "wcpOTTMyZNPFKyXr",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",
 		"Snapmaker J1 (0.6 nozzle)",

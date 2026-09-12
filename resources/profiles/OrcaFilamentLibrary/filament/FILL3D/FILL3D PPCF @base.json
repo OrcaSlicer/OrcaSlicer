@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "FILL3D PPCF @base",
 	"from": "system",
-	"filament_id": "FILL3D005",
+	"filament_id": "OFg8hMzT",
 	"instantiation": "false",
 	"inherits": "fdm_filament_pp",
 	"filament_vendor": [

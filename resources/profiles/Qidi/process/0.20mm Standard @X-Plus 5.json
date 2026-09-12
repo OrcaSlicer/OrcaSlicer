@@ -1,0 +1,47 @@
+{
+	"type": "process",
+	"setting_id": "ug7kxxCLKKE7MoJW",
+	"name": "0.20mm Standard @X-Plus 5",
+	"from": "system",
+	"inherits": "fdm_process_n_common",
+	"instantiation": "true",
+	"bridge_flow": "1",
+	"default_acceleration": [
+		"10000"
+	],
+	"elefant_foot_compensation": "0.15",
+	"enable_arc_fitting": "0",
+	"gap_infill_speed": [
+		"250"
+	],
+	"inner_wall_speed": [
+		"300"
+	],
+	"inner_wall_acceleration": [
+		"0"
+	],
+	"internal_solid_infill_speed": [
+		"250"
+	],
+	"ironing_flow": "15%",
+	"outer_wall_acceleration": [
+		"5000"
+	],
+	"outer_wall_speed": [
+		"200"
+	],
+	"prime_tower_width": "60",
+	"prime_tower_flat_ironing": "1",
+	"sparse_infill_speed": [
+		"350"
+	],
+	"top_color_penetration_layers": "5",
+	"top_shell_layers": "5",
+	"top_shell_thickness": "1.0",
+	"travel_speed": [
+		"500"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

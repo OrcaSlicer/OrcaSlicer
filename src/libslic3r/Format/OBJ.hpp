@@ -1,6 +1,7 @@
 #ifndef slic3r_Format_OBJ_hpp_
 #define slic3r_Format_OBJ_hpp_
 #include "libslic3r/Color.hpp"
+#include "objparser.hpp"
 #include <unordered_map>
 namespace Slic3r {
 
@@ -18,6 +19,7 @@ struct ObjInfo {
     std::map<std::string,bool>  pngs;
     std::unordered_map<int, std::string> uv_map_pngs;
     bool              has_uv_png{false};
+    std::vector<ObjParser::ObjUseMtl>      usemtls; // material spans, for texture import
 
 };
 struct ObjDialogInOut
@@ -32,8 +34,18 @@ struct ObjDialogInOut
     std::string lost_material_name{""};
 };
 typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;
-extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message);
-extern bool load_obj(const char *path, Model *model, ObjInfo &vertex_colors, std::string &message, const char *object_name = nullptr);
+extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message, ObjParser::MtlData *out_mtl = nullptr);
+extern bool load_obj(const char *path, Model *model, ObjInfo &vertex_colors, std::string &message, const char *object_name = nullptr, ObjParser::MtlData *out_mtl = nullptr);
+
+struct TexturedMesh;
+// Build a TexturedMesh (vertices + per-face UVs + the texture files named by map_Kd) from a
+// parsed OBJ plus its material table, so the texture-to-color importer can sample face colours.
+extern bool obj_to_textured_mesh(
+    const ObjInfo& obj_info,
+    const indexed_triangle_set& its,
+    const ObjParser::MtlData& mtl_data,
+    const std::string& obj_directory,
+    TexturedMesh& out);
 
 extern bool store_obj(const char *path, TriangleMesh *mesh);
 extern bool store_obj(const char *path, ModelObject *model);

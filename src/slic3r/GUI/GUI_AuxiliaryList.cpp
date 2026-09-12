@@ -217,7 +217,7 @@ void AuxiliaryList::on_context_menu(wxDataViewEvent& evt)
 	}
 	else {
 		append_menu_item(menu, wxID_ANY, _L("Open"), wxEmptyString,
-			[this, node](wxCommandEvent&)
+			[node](wxCommandEvent&)
 			{
 				wxLaunchDefaultApplication(node->path, 0);
 			});

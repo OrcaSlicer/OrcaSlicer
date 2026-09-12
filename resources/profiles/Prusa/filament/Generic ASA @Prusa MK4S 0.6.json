@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Prusa MK4S 0.6",
+	"inherits": "Generic ASA @Prusa MK4S",
+	"renamed_from": "Prusa Generic ASA @MK4S 0.6;Prusa Generic ASA MK4S 0.6",
+	"from": "system",
+	"setting_id": "gtPmGmeYUKi7hwVI",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S 0.6 nozzle"
+	],
+	"nozzle_temperature": "255",
+	"slow_down_layer_time": "15"
+}

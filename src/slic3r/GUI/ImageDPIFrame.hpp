@@ -3,6 +3,8 @@
 
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
+#include <wx/stattext.h>
+#include <wx/timer.h>
 
 class wxStaticBitmap;
 namespace Slic3r { namespace GUI {

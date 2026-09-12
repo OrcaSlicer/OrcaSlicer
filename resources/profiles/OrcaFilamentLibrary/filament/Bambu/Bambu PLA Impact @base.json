@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Impact @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA03",
+	"filament_id": "OFTGHyNC",
 	"instantiation": "false",
 	"filament_cost": [
 		"25.4"

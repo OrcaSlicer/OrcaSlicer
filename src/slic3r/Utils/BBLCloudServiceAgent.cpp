@@ -8,6 +8,9 @@
 #include <sstream>
 #include <boost/algorithm/string/replace.hpp>
 #include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 

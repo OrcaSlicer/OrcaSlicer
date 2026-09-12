@@ -1,6 +1,6 @@
 {
 	"name": "Comgrow",
-	"version": "02.04.00.03",
+	"version": "02.04.00.04",
 	"force_update": "0",
 	"description": "Comgrow configurations",
 	"machine_model_list": [
@@ -105,20 +105,20 @@
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
-			"name": "Comgrow Generic ABS",
-			"sub_path": "filament/Comgrow Generic ABS.json"
+			"name": "Generic ABS @Comgrow",
+			"sub_path": "filament/Generic ABS @Comgrow.json"
 		},
 		{
-			"name": "Comgrow Generic PETG",
-			"sub_path": "filament/Comgrow Generic PETG.json"
+			"name": "Generic PETG @Comgrow",
+			"sub_path": "filament/Generic PETG @Comgrow.json"
 		},
 		{
-			"name": "Comgrow Generic PLA",
-			"sub_path": "filament/Comgrow Generic PLA.json"
+			"name": "Generic PLA @Comgrow",
+			"sub_path": "filament/Generic PLA @Comgrow.json"
 		},
 		{
-			"name": "Comgrow T300 PLA",
-			"sub_path": "filament/Comgrow T300 PLA.json"
+			"name": "Generic PLA @Comgrow T300",
+			"sub_path": "filament/Generic PLA @Comgrow T300.json"
 		}
 	],
 	"machine_list": [

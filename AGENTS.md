@@ -25,6 +25,13 @@ ctest --test-dir ./tests/libslic3r              # individual suite
 ctest --test-dir ./tests/fff_print
 ```
 
+## Documentation
+
+- Docs live in `docs/`; the high-level design of a subsystem goes in `docs/HLSD/<subsystem>.md`.
+- Describe the design as it stands — what the subsystem does, why it exists, and the constraints that shape it. Not the route that got there: no phases, task lists, status markers, or "before/after this PR" framing.
+- Planning and investigation output (brainstorms, superpowers design and plan docs) stays in `docs/superpowers/`, which is gitignored. Never commit it.
+- Write a doc only when the design is not evident from the code, and when a change invalidates an existing one, update it in the same PR.
+
 ## Code Style
 
 - C++17, selective C++20. PascalCase classes, snake_case functions/variables
@@ -56,6 +63,7 @@ ctest --test-dir ./tests/fff_print
 - Add helper functions or utilities only when existing code cannot reasonably be reused. Avoid duplication.
 - Keep code concise and clear. Manually simplify AI generated bloated codes before review.
 - Include targeted tests or documented verification for behavior changes, especially in slicing logic, profiles, formats, and GUI defaults.
+- For profile changes (`resources/profiles/<Vendor>/**`), check that `version` in the sibling `resources/profiles/<Vendor>.json` was bumped.
 - For translation changes (`localization/i18n/**/*.po`), check that recurring terms match the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) for that language.
 
 ## Localization & translations

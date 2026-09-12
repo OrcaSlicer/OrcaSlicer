@@ -9,6 +9,8 @@
 #include <cctype>
 #include <sstream>
 
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 namespace {

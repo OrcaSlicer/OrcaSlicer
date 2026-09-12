@@ -2324,7 +2324,7 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                 bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                 model = Model::read_from_step(
                     input_file, LoadStrategy::LoadModel, nullptr, nullptr,
-                    [this, &is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
+                    [&is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
                                                                                      double& angle_value, bool& is_split) -> int {
                         if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
@@ -3213,7 +3213,7 @@ void ObjectList::merge(bool to_multipart_object)
         //changed_object(obj_idx);
         //remove();
     }
-   /* wxGetApp().plater()->load_model_objects(objects);
+   // wxGetApp().plater()->load_model_objects(objects);
 
     Selection& selection = p->view3D->get_canvas3d()->get_selection();
     size_t last_obj_idx = p->model.objects.size() - 1;
@@ -3233,6 +3233,24 @@ void ObjectList::merge(bool to_multipart_object)
 
 void ObjectList::layers_editing()
 {
+    // Height ranges give each range its own layer height, varying the mixed sub-layer heights just
+    // like an adaptive profile, so this raises the same warning as variable layer height and shares
+    // its do-not-show-again flag.
+    const auto& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    if (print_config.opt_bool("enable_mixed_color_sublayer")) {
+        if (wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            // Orca: parent to the plater like the sibling site in Plater::priv::on_action_layersediting
+            // (BBS passes nullptr, which MsgDialog remaps to the main frame).
+            MessageDialog dlg(wxGetApp().plater(),
+                _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                _L("Warning"), wxICON_WARNING | wxOK);
+            dlg.show_dsa_button();
+            dlg.ShowModal();
+            if (dlg.get_checkbox_state())
+                wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+        }
+    }
+
     const Selection& selection = scene_selection();
     const int obj_idx = selection.get_object_idx();
     wxDataViewItem item = obj_idx >= 0 && GetSelectedItemsCount() > 1 && selection.is_single_full_object() ?
@@ -3299,7 +3317,7 @@ void ObjectList::boolean()
         }
     }
 
-    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [this](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
+    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
 
     // add mesh to model as a new object, keep the original object's name and config
     Model* model = object->get_model();
@@ -6249,7 +6267,7 @@ void GUI::ObjectList::smooth_mesh()
     get_selection_indexes(obj_idxs, vol_idxs);
     auto object_idx = obj_idxs.front();
     ModelObject *obj{nullptr};
-    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+    auto show_warning_dlg = [](int cur_face_count,std::string name,bool is_part) {
         int limit_face_count = 1000000;
         if (cur_face_count > limit_face_count) {
             auto name_str = wxString::FromUTF8(name);
@@ -6262,7 +6280,7 @@ void GUI::ObjectList::smooth_mesh()
         }
         return false;
     };
-    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+    auto show_smooth_mesh_error_dlg = [](std::string name) {
         auto name_str = wxString::FromUTF8(name);
         auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
         WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, wxEmptyString, wxOK);

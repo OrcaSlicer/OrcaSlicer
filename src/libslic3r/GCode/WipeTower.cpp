@@ -617,6 +617,18 @@ Polygon generate_rectange_polygon(const Vec2f &wt_box_min ,const Vec2f & wt_box_
     return res;
 }
 
+const char* flush_planner_queue_command(GCodeFlavor flavor)
+{
+    return flavor == gcfKlipper ? "M400\n" : "G4 S0\n";
+}
+
+std::string wait_command(GCodeFlavor flavor, float seconds)
+{
+    if (flavor == gcfKlipper)
+        return "G4 P" + std::to_string(std::lround(seconds * 1000.f)) + "\n";
+    return "G4 S" + Slic3r::float_to_string_decimal_point(seconds, 3) + "\n";
+}
+
 class WipeTowerWriter
 {
 public:
@@ -1145,7 +1157,7 @@ public:
 	{
         if (time==0.f)
             return *this;
-        m_gcode += "G4 S" + Slic3r::float_to_string_decimal_point(time, 3) + "\n";
+        m_gcode += wait_command(m_gcode_flavor, time);
 		return *this;
     }
 
@@ -1190,7 +1202,7 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += "G4 S0\n";
+		m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -1333,6 +1345,8 @@ public:
     {
         std::string buffer;
         if (wait_for_moves)
+            // Not flush_planner_queue_command(): this BBL precool path wants M400, which every
+            // flavor it reaches understands, not the zero dwell the other flavors flush with.
             buffer += "M400\n";
         buffer += "M104";
         if (target_extruder != -1)
@@ -1616,25 +1630,144 @@ float WipeTower::get_auto_brim_by_height(float max_height) {
     return 8.f;
 }
 
-Vec2f WipeTower::move_box_inside_box(const BoundingBox &box1, const BoundingBox &box2,int scaled_offset)
+float WipeTower::estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height, bool type2)
 {
-    Vec2f res{0, 0};
-    if (box1.size()[0] >= box2.size()[0]- 2*scaled_offset || box1.size()[1] >= box2.size()[1]-2*scaled_offset) return res;
+    if (brim_width <= 0.f)
+        return brim_width;
+    const float spacing = nozzle_diameter * 1.25f - first_layer_height * float(1. - M_PI_4); // Width_To_Nozzle_Ratio
+    if (spacing <= EPSILON)
+        return brim_width;
+    const int loops_num = int((brim_width + spacing / 2.f) / spacing);
+    return loops_num * spacing + (type2 ? 0.f : spacing / 2.f);
+}
 
-    if (box1.max[0] > box2.max[0] - scaled_offset) {
-        res[0] = unscaled<float>((box2.max[0] - scaled_offset) - box1.max[0]);
+float WipeTower::get_wrapping_detection_depth()
+{
+    return float(wrapping_wipe_tower_depth);
+}
+
+float WipeTower::nozzle_change_perimeter_width(float nozzle_diameter)
+{
+    auto it = nozzle_diameter_to_nozzle_change_width.find(nozzle_diameter);
+    return it != nozzle_diameter_to_nozzle_change_width.end() ? it->second : 2.f * nozzle_diameter * 1.25f;
+}
+
+float WipeTower::estimate_tower_blocks_depth(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing)
+{
+    if (purges.empty() || layer_height < EPSILON || nozzle_diameter < EPSILON)
+        return 0.f;
+    const float pw         = nozzle_diameter * 1.25f; // Width_To_Nozzle_Ratio
+    const float ncpw       = nozzle_change_perimeter_width(nozzle_diameter);
+    const float line_width = width - 2.f * pw;
+    if (line_width <= EPSILON)
+        return 0.f;
+    // Line cross-section as volume_to_length() sees it; the infill gap stretches the perimeter
+    // width by the configured ratio and nozzle-change lines keep their own width
+    // (calc_block_infill_gap).
+    auto        line_area   = [layer_height](float w) { return layer_height * (w - layer_height * float(1. - M_PI_4)); };
+    const float extra_width = (extra_spacing - 1.f) * pw;
+    const float gap         = pw + extra_width;
+    const float nc_gap      = ncpw + extra_width;
+    // A layer purges into at most (filaments - 1) targets, so a category holding every filament
+    // never sees its smallest purge (the layer's first filament) in its worst layer.
+    struct Block { float depth = 0.f; float min_purge = 0.f; size_t filaments = 0; };
+    std::map<int, Block> blocks;
+    for (const PurgeEstimate &purge : purges) {
+        Block      &block       = blocks[purge.category];
+        const float purge_depth = std::ceil(purge.prime_volume / line_area(pw) / line_width) * gap;
+        block.min_purge         = block.filaments == 0 ? purge_depth : std::min(block.min_purge, purge_depth);
+        block.depth += purge_depth;
+        ++block.filaments;
+        if (purge.filament_change_length > EPSILON) {
+            // The leaving filament is rammed over the nozzle-change flow, again in whole lines.
+            const float filament_area = float(M_PI) * purge.filament_diameter * purge.filament_diameter / 4.f;
+            const float nc_length     = purge.filament_change_length * filament_area / line_area(ncpw);
+            block.depth += std::ceil(nc_length / (width - ncpw - pw)) * nc_gap;
+        }
     }
-    else if (box1.min[0] < box2.min[0] + scaled_offset) {
-        res[0] = unscaled<float>((box2.min[0] + scaled_offset) - box1.min[0]);
+    float depth = pw; // plan_tower_new starts the first block one perimeter width in
+    for (const auto &[category, block] : blocks)
+        depth += block.filaments == purges.size() ? block.depth - block.min_purge : block.depth;
+    return depth;
+}
+
+float WipeTower::rib_footprint_side(float width, float depth, float rib_width, float extra_rib_length, float max_height)
+{
+    if (width < EPSILON || depth < EPSILON)
+        return 0.f;
+    // Ribs run the diagonal; below the height-based minimum they are extended rather than the
+    // body, then by the extra length, never ending up shorter than the diagonal.
+    const float diagonal   = std::sqrt(width * width + depth * depth);
+    float       rib_length = diagonal;
+    if (depth + EPSILON < get_limit_depth_by_height(max_height))
+        rib_length = std::max(rib_length, get_limit_depth_by_height(max_height) * float(std::sqrt(2.)));
+    rib_length = std::max(diagonal, rib_length + extra_rib_length);
+    // Half the extension at each end of the diagonal plus half the rib width, projected onto the axes.
+    const float rib_w    = std::min(rib_width, std::min(width, depth) / 2.f);
+    const float per_side = ((rib_length - diagonal) / 2.f + rib_w / 2.f) / float(std::sqrt(2.));
+    return std::max(width, depth) + 2.f * per_side;
+}
+
+float WipeTower::estimate_rib_tower_bbox_side(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing, float rib_width, float extra_rib_length, float max_height)
+{
+    if (purges.empty() || width < EPSILON || layer_height < EPSILON || nozzle_diameter < EPSILON)
+        return 0.f;
+    const float pw     = nozzle_diameter * 1.25f; // Width_To_Nozzle_Ratio
+    const float square = align_ceil(std::sqrt(estimate_tower_blocks_depth(purges, width, layer_height, nozzle_diameter, extra_spacing) * width), pw);
+    const float depth  = estimate_tower_blocks_depth(purges, square, layer_height, nozzle_diameter, extra_spacing);
+    return rib_footprint_side(square, depth, rib_width, extra_rib_length, max_height);
+}
+
+Vec2f WipeTower::move_box_inside_polygon(const BoundingBox &box, const Polygons &polygons, coord_t offset)
+{
+    if (polygons.empty()) return Vec2f{0.f, 0.f};
+
+    const BoundingBox bed = get_extents(polygons);
+    // No position fits the footprint.
+    if (box.size().x() >= bed.size().x() - 2 * offset || box.size().y() >= bed.size().y() - 2 * offset)
+        return Vec2f{0.f, 0.f};
+
+    // Clamp against the bounding box first, moving only along the axis that is violated so a dragged
+    // prime tower slides along the bed edge instead of jumping inwards.
+    Point shift(0, 0);
+    for (int axis = 0; axis < 2; ++axis) {
+        if (box.max[axis] > bed.max[axis] - offset)
+            shift[axis] = (bed.max[axis] - offset) - box.max[axis];
+        else if (box.min[axis] < bed.min[axis] + offset)
+            shift[axis] = (bed.min[axis] + offset) - box.min[axis];
     }
 
-    if (box1.max[1] > box2.max[1] - scaled_offset) {
-        res[1] = unscaled<float>((box2.max[1] - scaled_offset) - box1.max[1]);
+    // A bed that fills its own bounding box is fully clamped by that, so every rectangular bed — all
+    // but the delta-style profiles — stops here and keeps its historic placement, including when a
+    // negative margin lets the footprint hang over the edge. The tolerance is relative because an
+    // exact rectangle loses a few ulps once the areas are squared world coordinates.
+    double area = 0.;
+    for (const Polygon &poly : polygons) area += std::abs(poly.area());
+    const double bed_area = double(bed.size().x()) * double(bed.size().y());
+    if (area >= bed_area * (1. - EPSILON)) return unscaled<float>(shift);
+
+    // Clamp a negative margin (an auto brim width that has not been resolved yet) to zero: padding by
+    // it would shrink the footprint and hand back a position the validation still rejects. The
+    // epsilon lets the move's round trip through millimeters land on the outline without counting as
+    // a violation.
+    BoundingBox padded = box.inflated(std::max<coord_t>(offset, 0) - SCALED_EPSILON);
+    padded.translate(shift);
+    auto fits = [&padded, &polygons](const Point &move) {
+        BoundingBox moved = padded;
+        moved.translate(move);
+        return diff(Polygons{moved.polygon()}, polygons).empty();
+    };
+    if (fits(Point(0, 0))) return unscaled<float>(shift);
+
+    // Walk towards the middle of the bed. On every non-rectangular bed we ship, the fitting positions
+    // form a convex region around it, so bisecting stops just inside the outline.
+    Point lo(0, 0), hi = bed.center() - padded.center();
+    if (!fits(hi)) return unscaled<float>(shift);
+    for (int i = 0; i < 12; ++i) {
+        const Point mid = (lo + hi) / 2;
+        if (fits(mid)) hi = mid; else lo = mid;
     }
-    else if (box1.min[1] < box2.min[1] + scaled_offset) {
-        res[1] = unscaled<float>((box2.min[1] + scaled_offset) - box1.min[1]);
-    }
-    return res;
+    return unscaled<float>(Point(shift + hi));
 }
 
 Polygon WipeTower::rib_section(float width, float depth, float rib_length, float rib_width,bool fillet_wall)
@@ -4038,7 +4171,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
         }
         return time * 60.f;
     };
-    auto estimate_wipe_time = [&estimate_time_kernel, & cleaning_box, &target_speed, &x_to_wipe, &xr, &xl, &dy, &WipeSpeedMap, &solid_tool_toolchange](int begin_line) -> float {
+    auto estimate_wipe_time = [&estimate_time_kernel, & cleaning_box, &x_to_wipe, &xr, &xl, &dy, &solid_tool_toolchange](int begin_line) -> float {
         int                      n            = std::ceil(x_to_wipe / (xr - xl));
         if (solid_tool_toolchange) n = (cleaning_box.lu[1] - cleaning_box.ld[1]) / dy;
         float total_time   = estimate_time_kernel(n);
@@ -4838,12 +4971,8 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                     }
                 }
 
-                if (!has_inserted) {
-                    if (finish_block_tcr.gcode.empty())
-                        finish_block_tcr = finish_block_tcr;
-                    else
-                        finish_layer_tcr = merge_tcr(finish_layer_tcr, finish_block_tcr);
-                }
+                if (!has_inserted && !finish_block_tcr.gcode.empty())
+                    finish_layer_tcr = merge_tcr(finish_layer_tcr, finish_block_tcr);
             }
         }
         // record the contact layers of different categories
@@ -5066,7 +5195,7 @@ Polygon WipeTower::generate_rib_polygon(const box_coordinates &wt_box)
 
 Polygon WipeTower::generate_support_wall_new(WipeTowerWriter &writer, const box_coordinates &wt_box, double feedrate, bool first_layer,bool rib_wall, bool extrude_perimeter, bool skip_points)
 {
-    auto get_closet_idx = [this, &writer](Polylines &pls) -> std::pair<int,int> {
+    auto get_closet_idx = [&writer](Polylines &pls) -> std::pair<int,int> {
         Vec2f anchor{writer.x(), writer.y()};
         int   closestIndex = -1;
         int   closestPl = -1;

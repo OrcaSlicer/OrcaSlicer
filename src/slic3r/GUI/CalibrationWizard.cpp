@@ -1,6 +1,7 @@
 #include "CalibrationWizard.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "MsgDialog.hpp"
 #include "CalibrationWizardPage.hpp"
 #include "../../libslic3r/calib.hpp"
@@ -477,7 +478,7 @@ void CalibrationWizard::on_cali_go_home()
         if (go_home_dialog == nullptr)
             go_home_dialog = new SecondaryCheckDialog(this, wxID_ANY, _L("Confirm"));
 
-        go_home_dialog->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this, method](wxCommandEvent &e) {
+        go_home_dialog->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this](wxCommandEvent &e) {
             if (curr_obj) {
                 curr_obj->command_task_abort();
             } else {

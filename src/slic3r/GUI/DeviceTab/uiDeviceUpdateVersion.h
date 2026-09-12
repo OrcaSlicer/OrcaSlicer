@@ -1,9 +1,9 @@
-//**********************************************************/
-/* File: uiDeviceUpdateVersion.h
+/**********************************************************
+* File: uiDeviceUpdateVersion.h
 *  Description: The panel with firmware info
 * 
 *  \n class uiDeviceUpdateVersion
-//**********************************************************/
+**********************************************************/
 
 #pragma once
 #include <wx/panel.h>

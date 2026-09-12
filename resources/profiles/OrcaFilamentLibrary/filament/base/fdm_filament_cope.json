@@ -3,7 +3,6 @@
 	"name": "fdm_filament_cope",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFLC99",
 	"instantiation": "false",
 	"filament_type": [
 		"CoPE"
@@ -39,6 +38,9 @@
 		"1.29"
 	],
 	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_multitool_ramming_flow": [
 		"16"
 	],
 	"filament_scarf_seam_type": [

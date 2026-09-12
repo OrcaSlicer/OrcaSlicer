@@ -31,8 +31,9 @@ namespace AABBTreeLines {
             inline VectorType closest_point_to_origin(size_t primitive_index, ScalarType& squared_distance) const
             {
                 Vec<LineType::Dim, typename LineType::Scalar> nearest_point;
+                Vec<LineType::Dim, typename LineType::Scalar> cast_origin = origin.template cast<typename LineType::Scalar>();
                 const LineType& line = lines[primitive_index];
-                squared_distance = line_alg::distance_to_squared(line, origin.template cast<typename LineType::Scalar>(), &nearest_point);
+                squared_distance = line_alg::distance_to_squared(line, cast_origin, &nearest_point);
                 return nearest_point.template cast<ScalarType>();
             }
         };

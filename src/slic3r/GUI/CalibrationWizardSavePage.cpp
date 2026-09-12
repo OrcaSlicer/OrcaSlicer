@@ -1,4 +1,5 @@
 #include "CalibrationWizardSavePage.hpp"
+#include "GUI.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
@@ -272,7 +273,7 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
     preset_names = default_naming(preset_names);
 
     std::vector<PACalibResult> sorted_cali_result = cali_result;
-    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [this](const PACalibResult &left, const PACalibResult& right) {
+    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [](const PACalibResult &left, const PACalibResult& right) {
         return left.tray_id < right.tray_id;
     });
 
@@ -366,7 +367,7 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
                 }
             }
 
-            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [this, comboBox_tray_name, k_value, n_value](auto& e) {
+            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [comboBox_tray_name](auto& e) {
                 int selection = comboBox_tray_name->GetSelection();
                 auto history = filtered_results[selection];
                 });
@@ -744,7 +745,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
                 }
             }
 
-            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [this, comboBox_tray_name, k_value, n_value](auto &e) {
+            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [comboBox_tray_name](auto &e) {
                 int  selection = comboBox_tray_name->GetSelection();
                 auto history   = filtered_results[selection];
             });

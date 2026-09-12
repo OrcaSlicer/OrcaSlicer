@@ -49,6 +49,10 @@ public:
                                                const std::string& prelude   = {},
                                                const std::string& on_inject = {});
 
+    // Shared by modeless Pages tabs and PluginWebDialog.
+    static std::string theme_user_script();
+    static std::string plugin_defaults_user_script();
+
 protected:
     wxWebView* browser() const { return m_browser; }
 

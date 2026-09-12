@@ -34,7 +34,6 @@
 #include "Widgets/AxisCtrlButton.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/StaticLine.hpp"
-#include "wxMediaCtrl2.h"
 #include "MediaPlayCtrl.h"
 
 ///////////////////////////////////////////////////////////////////////////

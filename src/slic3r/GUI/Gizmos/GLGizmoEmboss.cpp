@@ -566,8 +566,11 @@ bool GLGizmoEmboss::on_mouse_for_translate(const wxMouseEvent &mouse_event)
 
 void GLGizmoEmboss::on_mouse_change_selection(const wxMouseEvent &mouse_event)
 {
-    static bool was_dragging = true;  
-    if ((mouse_event.LeftUp() || mouse_event.RightUp()) && !was_dragging) {
+    static bool was_dragging = true;
+    // The left up may be the end of a drag that started on the gizmo floating window (e.g. selecting
+    // text in the input field). Such a release is not a click on the scene and must not close the gizmo.
+    // (The flag is only set for left up events, so right up behavior is unchanged.)
+    if ((mouse_event.LeftUp() || mouse_event.RightUp()) && !was_dragging && !m_parent.is_mouse_left_up_ignored()) {
         // is hovered volume closest hovered?
         int hovered_idx = m_parent.get_first_hover_volume_idx();
         if (hovered_idx < 0) 
