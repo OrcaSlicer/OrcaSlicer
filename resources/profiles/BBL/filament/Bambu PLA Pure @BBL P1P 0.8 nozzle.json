@@ -1,27 +1,23 @@
 {
 	"type": "filament",
-	"name": "Bambu PLA Pure @BBL H2S",
+	"name": "Bambu PLA Pure @BBL P1P 0.8 nozzle",
 	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSA19_18",
+	"setting_id": "GFSA19_24",
 	"instantiation": "true",
-	"description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
-	"additional_cooling_fan_speed": [
-		"75"
+	"fan_cooling_layer_time": [
+		"80"
 	],
-	"eng_plate_temp": [
-		"55"
-	],
-	"eng_plate_temp_initial_layer": [
-		"55"
+	"fan_min_speed": [
+		"60"
 	],
 	"filament_adaptive_volumetric_speed": [
 		"0",
 		"0"
 	],
 	"filament_cooling_before_tower": [
-		"10",
-		"10"
+		"0",
+		"0"
 	],
 	"filament_deretraction_speed": [
 		"nil",
@@ -80,8 +76,8 @@
 		"-1"
 	],
 	"filament_retract_before_wipe": [
-		"nil",
-		"nil"
+		"0",
+		"0"
 	],
 	"filament_retract_length_nc": [
 		"14",
@@ -127,6 +123,12 @@
 		"Spiral Lift",
 		"Spiral Lift"
 	],
+	"hot_plate_temp": [
+		"65"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
 	"long_retractions_when_ec": [
 		"0",
 		"0"
@@ -147,23 +149,21 @@
 		"20",
 		"20"
 	],
-	"supertack_plate_temp": [
-		"40"
+	"textured_plate_temp": [
+		"65"
 	],
-	"supertack_plate_temp_initial_layer": [
-		"40"
+	"textured_plate_temp_initial_layer": [
+		"65"
 	],
 	"volumetric_speed_coefficients": [
 		"0 0 0 0 0 0",
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle"
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
-	"filament_end_gcode": [
-		"; filament end gcode \n"
+		"; filament start gcode\n{if  (bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S180\n{endif};Prevent PLA from jamming\n\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	]
 }

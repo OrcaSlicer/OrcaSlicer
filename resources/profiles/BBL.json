@@ -10466,6 +10466,30 @@
 			"sub_path": "filament/Bambu PLA Pure @base.json"
 		},
 		{
+			"name": "Bambu PLA Pure @BBL A1",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL A1 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL A1M",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1M.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL A1M 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL A1M 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Pure @BBL A2L",
 			"sub_path": "filament/Bambu PLA Pure @BBL A2L.json"
 		},
@@ -10490,12 +10514,24 @@
 			"sub_path": "filament/Bambu PLA Pure @BBL H2C 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Pure @BBL H2C 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2C 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2C 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2C 0.8 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Pure @BBL H2D",
 			"sub_path": "filament/Bambu PLA Pure @BBL H2D.json"
 		},
 		{
 			"name": "Bambu PLA Pure @BBL H2D 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Pure @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2D 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2D 0.6 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Pure @BBL H2D 0.8 nozzle",
@@ -10510,6 +10546,10 @@
 			"sub_path": "filament/Bambu PLA Pure @BBL H2DP 0.2 nozzle.json"
 		},
 		{
+			"name": "Bambu PLA Pure @BBL H2DP 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2DP 0.6 nozzle.json"
+		},
+		{
 			"name": "Bambu PLA Pure @BBL H2DP 0.8 nozzle",
 			"sub_path": "filament/Bambu PLA Pure @BBL H2DP 0.8 nozzle.json"
 		},
@@ -10520,6 +10560,70 @@
 		{
 			"name": "Bambu PLA Pure @BBL H2S 0.2 nozzle",
 			"sub_path": "filament/Bambu PLA Pure @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2S 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2S 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL H2S 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL H2S 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P1P",
+			"sub_path": "filament/Bambu PLA Pure @BBL P1P.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P1P 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P1P 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P2S 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P2S 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL P2S 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL P2S 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X1C",
+			"sub_path": "filament/Bambu PLA Pure @BBL X1C.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X1C 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X1C 0.8 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X2D 0.6 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X2D 0.6 nozzle.json"
+		},
+		{
+			"name": "Bambu PLA Pure @BBL X2D 0.8 nozzle",
+			"sub_path": "filament/Bambu PLA Pure @BBL X2D 0.8 nozzle.json"
 		},
 		{
 			"name": "Bambu PLA Silk @BBL A2L 0.2 nozzle",
