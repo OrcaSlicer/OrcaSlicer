@@ -100,7 +100,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
           && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-arm","compiler":"clang"}]') }}
+          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -169,7 +169,7 @@ jobs:
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: windows-11-arm
+      os: windows-11-vs2026-arm
       artifact: ${{ github.sha }}-tests-windows-arm64
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:

@@ -96,12 +96,14 @@ jobs:
         id: ccache
         if: ${{ !inputs.macos-combine-only }}
         continue-on-error: true
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           key: ${{ env.CCACHE_LEG }}
           max-size: 3G
           restore: false
           save: false
+          # ccache -s runs as its own step; no summary table per job.
+          job-summary: ''
 
       - name: Restore compiler cache
         if: ${{ steps.ccache.outcome == 'success' }}
