@@ -515,6 +515,7 @@ public:
     void send_to_printer(bool isall = false);
     void export_gcode(bool prefer_removable);
     void export_gcode_3mf(bool export_all = false);
+    void export_gcode_3mf_to_bambu_connect();
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
