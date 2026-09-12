@@ -349,6 +349,21 @@ public:
     int             OnExit() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
+    inline bool     is_printago_enabled() { return this->app_config && this->app_config->get("enable_printago") == "true"; }
+    // Printago print-farm connection (embedded-webview model). connect() shows consent and opens
+    // the Printago tab to sign in; disconnect() clears the stored session token and hides the tab.
+    // The token is captured from the orcaslicer:// callback by printago_handle_nav(). connected()
+    // is true only while enabled AND a session token is held.
+    bool            printago_connected();
+    bool            printago_connect(wxWindow* parent);
+    void            printago_disconnect();
+    bool            printago_handle_nav(const wxString& url); // returns true to veto the navigation
+    wxString        printago_tab_url();
+    wxString        printago_send_url();   // URL for the "Save to Printago" embedded dialog
+    wxString        printago_queue_url();  // URL for the "Save & Queue to Printago" embedded dialog
+    // "Edit in Orca Slicer" round trip (Printago app tab):
+    std::string     printago_edit_part();  // partId of the active edit session, or empty if none
+    bool            printago_request_replace(const std::string& intent); // "save" (replace) | "queue"
 
     std::map<std::string, bool> test_url_state;
 
