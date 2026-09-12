@@ -242,6 +242,26 @@ static t_config_enum_values s_keys_map_FuzzySkinMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
 
+static t_config_enum_values s_keys_map_FuzzySkinTopMode {
+    { "disabled",       int(FuzzySkinTopMode::Disabled) },
+    { "displacement",   int(FuzzySkinTopMode::Displacement) },
+    { "extrusion",      int(FuzzySkinTopMode::Extrusion) },
+    { "combined",       int(FuzzySkinTopMode::Combined)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinTopMode)
+
+static t_config_enum_values s_keys_map_FuzzySkinTopParams {
+    { "same_as_walls", int(FuzzySkinTopParams::SameAsWalls) },
+    { "custom",        int(FuzzySkinTopParams::Custom) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinTopParams)
+
+static t_config_enum_values s_keys_map_FuzzySkinTopArea {
+    { "all",          int(FuzzySkinTopArea::AllTopSurfaces) },
+    { "painted_only", int(FuzzySkinTopArea::PaintedOnly) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinTopArea)
+
 static t_config_enum_values s_keys_map_TopSurfaceExpansionDirection {
     { "inward_and_outward", int(TopSurfaceExpansionDirection::InwardAndOutward) },
     { "inward",             int(TopSurfaceExpansionDirection::Inward) },
@@ -3965,6 +3985,96 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Combined"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
+
+    def = this->add("fuzzy_skin_top", coEnum);
+    def->label = L("Fuzzy skin on top surfaces");
+    def->category = L("Others");
+    def->tooltip = L("Apply fuzzy skin to top surfaces as well as walls.\n"
+                     "A top surface has no sideways direction to fuzz into, so the texture is created differently:\n"
+                     "Displacement: The nozzle is moved up and down while printing the top solid infill. "
+                     "Produces the most visible relief, but adds Z motion to every segment, which slows printing down considerably.\n"
+                     "Extrusion: Z stays flat and the deposited volume is varied instead. No extra motion and no speed penalty, "
+                     "but the texture is subtler and appears as a matte finish rather than raised relief.\n"
+                     "Combined: Both at full strength. Stronger than either mode on its own, at the same "
+                     "speed cost as Displacement.\n\n"
+                     "The same noise field is used as for the walls, so the texture is continuous where a top surface meets a wall. "
+                     "Paint-on fuzzy skin is respected.");
+    def->enum_keys_map = &ConfigOptionEnum<FuzzySkinTopMode>::get_enum_values();
+    def->enum_values.push_back("disabled");
+    def->enum_values.push_back("displacement");
+    def->enum_values.push_back("extrusion");
+    def->enum_values.push_back("combined");
+    def->enum_labels.push_back(L("Disabled"));
+    def->enum_labels.push_back(L("Displacement"));
+    def->enum_labels.push_back(L("Extrusion"));
+    def->enum_labels.push_back(L("Combined"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<FuzzySkinTopMode>(FuzzySkinTopMode::Disabled));
+
+    def = this->add("fuzzy_skin_top_area", coEnum);
+    def->label = L("Top surface area");
+    def->category = L("Others");
+    def->tooltip = L("Which top surfaces get the fuzz.\n\n"
+                     "All top surfaces: every top surface on the object.\n"
+                     "Painted only: only where fuzzy skin has been painted on with the paint tool. "
+                     "Note that the brush is shared with the wall fuzzy skin, so the top faces themselves "
+                     "have to be painted - painting a side wall will not put fuzz on the top.\n\n"
+                     "This is independent of the wall fuzzy skin type, so painting for the walls does not "
+                     "change what happens on top surfaces.");
+    def->enum_keys_map = &ConfigOptionEnum<FuzzySkinTopArea>::get_enum_values();
+    def->enum_values.push_back("all");
+    def->enum_values.push_back("painted_only");
+    def->enum_labels.push_back(L("All top surfaces"));
+    def->enum_labels.push_back(L("Painted only"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<FuzzySkinTopArea>(FuzzySkinTopArea::AllTopSurfaces));
+
+    def = this->add("fuzzy_skin_top_params", coEnum);
+    def->label = L("Top surface parameters");
+    def->category = L("Others");
+    def->tooltip = L("Whether top surfaces reuse the wall fuzzy skin thickness and point distance, "
+                     "or take their own.\n\n"
+                     "Same as walls: follow the wall settings above. Best when you want one continuous "
+                     "texture over the whole part.\n"
+                     "Custom: set the thickness and point distance for top surfaces separately.\n\n"
+                     "Note that the noise type and its scale, octaves and persistence are always taken "
+                     "from the wall settings, in both cases. Sampling a single noise field is what makes "
+                     "the texture line up where a top surface meets a wall, so it is deliberately not "
+                     "separable. Ripple is the exception: it is generated along a wall loop and has no "
+                     "meaning on a flat surface, so top surfaces fall back to Classic noise when it is "
+                     "selected.");
+    def->enum_keys_map = &ConfigOptionEnum<FuzzySkinTopParams>::get_enum_values();
+    def->enum_values.push_back("same_as_walls");
+    def->enum_values.push_back("custom");
+    def->enum_labels.push_back(L("Same as walls"));
+    def->enum_labels.push_back(L("Custom"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<FuzzySkinTopParams>(FuzzySkinTopParams::SameAsWalls));
+
+    def = this->add("fuzzy_skin_top_point_distance", coFloat);
+    def->label = L("Fuzzy skin top point distance");
+    def->category = L("Others");
+    def->tooltip = L("Spacing between the points the top surface fuzz is sampled at.\n\n"
+                     "Smaller values give a finer texture at the cost of many more G-code segments. Note that "
+                     "the texture across the extrusion lines is limited by the line spacing however fine this is set.");
+    def->sidetext = L("mm");
+    // Must not be 0, otherwise subdividing a line never terminates.
+    def->min = 0.01f;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(0.3f));
+
+    def = this->add("fuzzy_skin_top_thickness", coFloat);
+    def->label = L("Fuzzy skin top thickness");
+    def->category = L("Others");
+    def->tooltip = L("Height of the fuzz applied to top surfaces, above and below the layer plane.\n\n"
+                     "In Displacement mode this is how far the nozzle travels in Z. Extrusion is scaled with it, "
+                     "since dipping the nozzle down leaves less room for material, so the downward half is "
+                     "limited to keep the flow high enough for a continuous bead. Values beyond about three "
+                     "quarters of the layer height therefore add texture upwards only.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(0.2));
 
     def = this->add("fuzzy_skin_noise_type", coEnum);
     def->label = L("Fuzzy skin noise type");

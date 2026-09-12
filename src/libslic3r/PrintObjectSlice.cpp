@@ -1,4 +1,6 @@
 #include <boost/log/trivial.hpp>
+#include <fstream>
+#include <cstdlib>
 
 #include <tbb/parallel_for.h>
 
@@ -1040,8 +1042,21 @@ template<typename ThrowOnCancel>
 void apply_fuzzy_skin_segmentation(PrintObject &print_object, ThrowOnCancel throw_on_cancel)
 {
     // Returns fuzzy skin segmentation based on painting in the fuzzy skin painting gizmo.
-    std::vector<std::vector<ExPolygons>> segmentation = fuzzy_skin_segmentation_by_painting(print_object, throw_on_cancel);
+    // ORCA: the region splitting below uses `segmentation` alone, as the walls always have.
+    std::vector<std::vector<ExPolygons>> top_and_bottom_layers;
+    std::vector<std::vector<ExPolygons>> segmentation = fuzzy_skin_segmentation_by_painting(print_object, throw_on_cancel, &top_and_bottom_layers);
     assert(segmentation.size() == print_object.layer_count());
+
+    for (size_t layer_idx = 0; layer_idx < segmentation.size(); ++layer_idx) {
+        ExPolygons painted;
+        if (!segmentation[layer_idx].empty())
+            append(painted, segmentation[layer_idx][0]);
+        // Indexed [state][layer]; state 0 is the unpainted default.
+        for (size_t state = 1; state < top_and_bottom_layers.size(); ++state)
+            if (layer_idx < top_and_bottom_layers[state].size())
+                append(painted, top_and_bottom_layers[state][layer_idx]);
+        print_object.get_layer(int(layer_idx))->fuzzy_skin_painted_areas = union_ex(painted);
+    }
 
     struct ByRegion
     {

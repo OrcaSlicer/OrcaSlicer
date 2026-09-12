@@ -328,7 +328,15 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     const bool                has_object_fuzzy_override  = obj_cfg.option("fuzzy_skin");
     const FuzzySkinType       effective_fuzzy_skin_state = has_object_fuzzy_override ? obj_cfg.opt_enum<FuzzySkinType>("fuzzy_skin")
                                                                                      : glb_cfg.opt_enum<FuzzySkinType>("fuzzy_skin");
-    if (effective_fuzzy_skin_state == FuzzySkinType::Disabled_fuzzy) {
+    // ORCA: painting still takes effect through the top surfaces, so do not warn in that case.
+    const FuzzySkinTopMode effective_top_mode = obj_cfg.option("fuzzy_skin_top") ? obj_cfg.opt_enum<FuzzySkinTopMode>("fuzzy_skin_top")
+                                                                                : glb_cfg.opt_enum<FuzzySkinTopMode>("fuzzy_skin_top");
+    const FuzzySkinTopArea effective_top_area = obj_cfg.option("fuzzy_skin_top_area") ? obj_cfg.opt_enum<FuzzySkinTopArea>("fuzzy_skin_top_area")
+                                                                                     : glb_cfg.opt_enum<FuzzySkinTopArea>("fuzzy_skin_top_area");
+    const bool painting_drives_top_surfaces = effective_top_mode != FuzzySkinTopMode::Disabled &&
+                                              effective_top_area == FuzzySkinTopArea::PaintedOnly;
+
+    if (effective_fuzzy_skin_state == FuzzySkinType::Disabled_fuzzy && !painting_drives_top_surfaces) {
         float font_size = ImGui::GetFontSize();
         auto link_text = [&]() {
             ImColor HyperColor = ImGuiWrapper::COL_ORCA;

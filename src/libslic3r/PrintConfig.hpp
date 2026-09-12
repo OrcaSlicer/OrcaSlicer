@@ -70,6 +70,26 @@ enum class FuzzySkinMode {
     Combined,
 };
 
+// ORCA: Displacement moves the nozzle in Z, Extrusion modulates the deposited volume.
+enum class FuzzySkinTopMode {
+    Disabled,
+    Displacement,
+    Extrusion,
+    Combined,
+};
+
+// ORCA: whether top surfaces reuse the wall thickness and point distance.
+enum class FuzzySkinTopParams {
+    SameAsWalls,
+    Custom,
+};
+
+// ORCA: independent of the wall fuzzy skin type, so painting for walls does not affect tops.
+enum class FuzzySkinTopArea {
+    AllTopSurfaces,
+    PaintedOnly,
+};
+
 // ORCA: direction in which top_surface_expansion grows the top surfaces.
 enum class TopSurfaceExpansionDirection {
     InwardAndOutward,
@@ -1314,6 +1334,12 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                  fuzzy_skin_ripples_per_layer))
     ((ConfigOptionPercent,              fuzzy_skin_ripple_offset))
     ((ConfigOptionInt,                  fuzzy_skin_layers_between_ripple_offset))
+    // ORCA: top surface fuzzy skin. Per-region so paint-on fuzzy skin applies to it.
+    ((ConfigOptionEnum<FuzzySkinTopMode>, fuzzy_skin_top))
+    ((ConfigOptionEnum<FuzzySkinTopArea>, fuzzy_skin_top_area))
+    ((ConfigOptionEnum<FuzzySkinTopParams>, fuzzy_skin_top_params))
+    ((ConfigOptionFloat,                fuzzy_skin_top_thickness))
+    ((ConfigOptionFloat,                fuzzy_skin_top_point_distance))
     ((ConfigOptionFloatsNullable,       gap_infill_speed))
     ((ConfigOptionInt,                  sparse_infill_filament_id))
     ((ConfigOptionFloatOrPercent,       sparse_infill_line_width))
