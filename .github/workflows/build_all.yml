@@ -313,6 +313,7 @@ jobs:
         echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
       shell: bash
     - name: Restore compiler cache
+      id: ccache_restore
       uses: actions/cache/restore@v6
       with:
         path: .flatpak-builder/ccache
@@ -378,16 +379,18 @@ jobs:
         ccache -s -v || ccache -s
       shell: bash
     # Save the new entry first, then drop the older ones for this leg on this
-    # ref, so a failed save leaves the previous entry in place.
+    # ref, so a failed save leaves the previous entry in place. A cancelled or
+    # failed build saves too, since what it compiled is still valid; a restore
+    # that did not finish does not, since the directory may be a truncated copy.
     - name: Save compiler cache
       id: ccache_save
-      if: github.event_name != 'pull_request'
+      if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
       uses: actions/cache/save@v6
       with:
         path: .flatpak-builder/ccache
         key: ${{ env.CCACHE_ENTRY }}
     - name: Drop older compiler cache entries
-      if: ${{ steps.ccache_save.outcome == 'success' }}
+      if: ${{ always() && steps.ccache_save.outcome == 'success' }}
       # The container has no gh, so this is the list and delete over the REST API.
       continue-on-error: true
       env:
