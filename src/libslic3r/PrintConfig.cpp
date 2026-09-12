@@ -1639,6 +1639,153 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
+    def = this->add("filament_set_other_flow_ratios", coBools);
+    def->label = L("Set other flow ratios");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the \"Set other flow ratios\" option.\n\n"
+                     "When enabled, the additional flow ratios apply to this filament, using each "
+                     "filament override when set and the corresponding process value otherwise. "
+                     "When disabled, the additional flow ratios are not applied. "
+                     "When unset, the process-level \"Set other flow ratios\" is used. "
+                     "Top surface, bottom surface and brim flow ratios are unaffected by this option.");
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionBoolsNullable{ ConfigOptionBoolsNullable::nil_value() });
+
+    def = this->add("filament_first_layer_flow_ratio", coFloats);
+    def->label = L("First layer flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the first-layer flow ratio.\n\n"
+                     "This factor is applied as an additional multiplier on top of the path-role flow ratio "
+                     "for the first layer (does not affect brims and skirts).\n\n"
+                     "When unset, the process-level \"First layer flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_top_solid_infill_flow_ratio", coFloats);
+    def->label = L("Top surface flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the top surface flow ratio.\n\n"
+                     "This factor affects the amount of material for top solid infill. "
+                     "You can decrease it slightly for a smoother surface finish.\n\n"
+                     "When unset, the process-level \"Top surface flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_bottom_solid_infill_flow_ratio", coFloats);
+    def->label = L("Bottom surface flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the bottom surface flow ratio.\n\n"
+                     "This factor affects the amount of material for bottom solid infill.\n\n"
+                     "When unset, the process-level \"Bottom surface flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_outer_wall_flow_ratio", coFloats);
+    def->label = L("Outer wall flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the outer wall flow ratio.\n\n"
+                     "This factor affects the amount of material for outer walls.\n\n"
+                     "When unset, the process-level \"Outer wall flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_inner_wall_flow_ratio", coFloats);
+    def->label = L("Inner wall flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the inner wall flow ratio.\n\n"
+                     "This factor affects the amount of material for inner walls.\n\n"
+                     "When unset, the process-level \"Inner wall flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_overhang_flow_ratio", coFloats);
+    def->label = L("Overhang flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the overhang flow ratio.\n\n"
+                     "This factor affects the amount of material for overhangs.\n\n"
+                     "When unset, the process-level \"Overhang flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_sparse_infill_flow_ratio", coFloats);
+    def->label = L("Sparse infill flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the sparse infill flow ratio.\n\n"
+                     "This factor affects the amount of material for sparse infill.\n\n"
+                     "When unset, the process-level \"Sparse infill flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_internal_solid_infill_flow_ratio", coFloats);
+    def->label = L("Internal solid infill flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the internal solid infill flow ratio.\n\n"
+                     "This factor affects the amount of material for internal solid infill.\n\n"
+                     "When unset, the process-level \"Internal solid infill flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_gap_fill_flow_ratio", coFloats);
+    def->label = L("Gap fill flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the gap fill flow ratio.\n\n"
+                     "This factor affects the amount of material for filling the gaps between walls.\n\n"
+                     "When unset, the process-level \"Gap fill flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_support_flow_ratio", coFloats);
+    def->label = L("Support flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the support flow ratio.\n\n"
+                     "This factor affects the amount of material for support.\n\n"
+                     "When unset, the process-level \"Support flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_support_interface_flow_ratio", coFloats);
+    def->label = L("Support interface flow ratio");
+    def->category = L("Advanced");
+    def->tooltip = L("Filament-specific override for the support interface flow ratio.\n\n"
+                     "This factor affects the amount of material for the support interface.\n\n"
+                     "When unset, the process-level \"Support interface flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
     def = this->add("precise_outer_wall",coBool);
     def->label = L("Precise wall");
     def->category = L("Quality");
@@ -1896,6 +2043,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
+
+    def = this->add("filament_brim_flow_ratio", coFloats);
+    def->label = L("Brim flow ratio");
+    def->category = L("Support");
+    def->tooltip = L("Filament-specific override for the brim flow ratio.\n\n"
+                     "This factor affects the amount of material for brims.\n\n"
+                     "Note: The resulting value will not be affected by the first-layer flow ratio.\n\n"
+                     "When unset, the process-level \"Brim flow ratio\" is used.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comExpert;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
 
     def = this->add("brim_use_efc_outline", coBool);
     def->label = L("Brim follows compensated outline");
@@ -9364,6 +9524,19 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ironing_spacing",
     "filament_ironing_inset",
     "filament_ironing_speed",
+    "filament_set_other_flow_ratios",
+    "filament_first_layer_flow_ratio",
+    "filament_top_solid_infill_flow_ratio",
+    "filament_bottom_solid_infill_flow_ratio",
+    "filament_outer_wall_flow_ratio",
+    "filament_inner_wall_flow_ratio",
+    "filament_overhang_flow_ratio",
+    "filament_sparse_infill_flow_ratio",
+    "filament_internal_solid_infill_flow_ratio",
+    "filament_gap_fill_flow_ratio",
+    "filament_brim_flow_ratio",
+    "filament_support_flow_ratio",
+    "filament_support_interface_flow_ratio",
     "activate_air_filtration",
     "activate_air_filtration_during_print",
     "activate_air_filtration_on_completion",
