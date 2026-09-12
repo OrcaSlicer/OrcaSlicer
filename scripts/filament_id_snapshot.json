@@ -8,6 +8,15 @@
    "filament_type": "PLA",
    "filament_vendor": "Creality"
   },
+  "OF02mnRc": {
+   "filaments": [
+    "OrcaFilamentLibrary/INSLOGIC PA6-66",
+    "Prusa/INSLOGIC PA6-66"
+   ],
+   "name": "INSLOGIC PA6-66",
+   "filament_type": "PA",
+   "filament_vendor": "INSLOGIC"
+  },
   "OF03RK6r": {
    "filaments": [
     "BBL/BETA PLA Metal"
@@ -1300,6 +1309,15 @@
    "filament_type": "PLA",
    "filament_vendor": "Elegoo"
   },
+  "OFBdBfg1": {
+   "filaments": [
+    "OrcaFilamentLibrary/INSLOGIC PETG Pro",
+    "Prusa/INSLOGIC PETG Pro"
+   ],
+   "name": "INSLOGIC PETG Pro",
+   "filament_type": "PETG",
+   "filament_vendor": "INSLOGIC"
+  },
   "OFBlFMVp": {
    "filaments": [
     "Snapmaker/Snapmaker Dual PETG"
@@ -1585,6 +1603,15 @@
    "name": "FlyingBear PETG",
    "filament_type": "PETG",
    "filament_vendor": "FlyingBear"
+  },
+  "OFDkHRsW": {
+   "filaments": [
+    "OrcaFilamentLibrary/INSLOGIC PA6-CF",
+    "Prusa/INSLOGIC PA6-CF"
+   ],
+   "name": "INSLOGIC PA6-CF",
+   "filament_type": "PA-CF",
+   "filament_vendor": "INSLOGIC"
   },
   "OFDpW3J8": {
    "filaments": [
@@ -7186,6 +7213,15 @@
    "name": "FilAr PLA Verde FilAr",
    "filament_type": "PLA",
    "filament_vendor": "FilAr"
+  },
+  "OFvPeNbA": {
+   "filaments": [
+    "OrcaFilamentLibrary/INSLOGIC PLA Pro",
+    "Prusa/INSLOGIC PLA Pro"
+   ],
+   "name": "INSLOGIC PLA Pro",
+   "filament_type": "PLA",
+   "filament_vendor": "INSLOGIC"
   },
   "OFvTVZc3": {
    "filaments": [
