@@ -2846,13 +2846,11 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             m_mm_active = false;
     }
     if (!m_mm_active) {
-	plan_tower();
-#if 1
-    for (int i=0;i<5;++i) {
-        save_on_last_wipe();
         plan_tower();
-    }
-#endif
+        for (int i = 0; i < 5; ++i) {
+            save_on_last_wipe();
+            plan_tower();
+        }
     }
 
     if (!m_mm_active && m_wall_type == (int)wtwRib) {
