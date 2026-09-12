@@ -265,6 +265,9 @@ static std::string detect_attached_device()
 // Called by Win32 HID enumeration callback.
 void Mouse3DController::device_attached(const std::string &device)
 {
+    if (m_disabled)
+        return;
+
 	int vid = 0;
 	int pid = 0;
 	if (sscanf(device.c_str(), "\\\\?\\HID#VID_%x&PID_%x&", &vid, &pid) == 2) {
@@ -291,6 +294,9 @@ void Mouse3DController::device_attached(const std::string &device)
 
 void Mouse3DController::device_detached(const std::string& device)
 {
+    if (m_disabled)
+        return;
+
     int vid = 0;
     int pid = 0;
     if (sscanf(device.c_str(), "\\\\?\\HID#VID_%x&PID_%x&", &vid, &pid) == 2) {
@@ -806,6 +812,12 @@ bool Mouse3DController::handle_input(const DataPacketAxis& packet)
 // Initialize the application.
 void Mouse3DController::init()
 {
+    m_disabled = wxGetApp().app_config->get_bool("disable_3dmouse");
+    if (m_disabled) {
+        BOOST_LOG_TRIVIAL(info) << "3D mouse support is disabled";
+        return;
+    }
+
 #ifdef _WIN32
     m_device_str = detect_attached_device();
     if (!m_device_str.empty()) {
@@ -1275,7 +1287,7 @@ void Mouse3DController::collect_input()
 #ifdef _WIN32
 bool Mouse3DController::handle_raw_input_win32(const unsigned char *data, const int packet_length)
 {
-    if (! wxGetApp().IsActive())
+    if (m_disabled || ! wxGetApp().IsActive())
         return false;
 
     if (packet_length == 7 || packet_length == 13) {
