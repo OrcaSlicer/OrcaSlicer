@@ -1021,7 +1021,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double current_z = gcodegen.writer().get_position().z();
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
-        if (!is_approx(z, current_z)) {
+        const bool will_go_down = !is_approx(z, current_z);
+        if (will_go_down) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
@@ -1094,6 +1095,22 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
+
+        // Orca: the wipe tower can currently be printing below the topmost printed layer
+        // (e.g. wipe_tower_no_sparse_layers keeps the tower shorter than the tallest object).
+        // change_filament_gcode is free to perform arbitrary XY travel (parking, homing,
+        // docking a tool, etc.), so restore Z to the real layer height before running it,
+        // otherwise that travel can collide with already-printed parts taller than the tower.
+        // toolchange_retract_str above already keeps us retracted for the whole toolchange, so
+        // just move Z; deretraction_str (further below) brings Z back down to resume the tower.
+        std::string restore_layer_z_str;
+        if (will_go_down) {
+            restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange to avoid collision with printed parts", true);
+            Vec3d position{gcodegen.writer().get_position()};
+            position.z() = current_z;
+            gcodegen.writer().set_position(position);
+            check_add_eol(restore_layer_z_str);
+        }
 
         std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
@@ -1310,6 +1327,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             need_travel_after_change_filament_gcode = true;
         }
 
+        // Orca: mirror of restore_layer_z_str above - bring Z back down to the wipe tower layer
+        // once change_filament_gcode has finished, so the rest of the tower prints at the right height.
+        std::string deretraction_str;
+        if (will_go_down) {
+            deretraction_str += gcodegen.writer().travel_to_z(z, "Restore wipe tower layer Z after toolchange", true);
+            Vec3d position{gcodegen.writer().get_position()};
+            position.z() = z;
+            gcodegen.writer().set_position(position);
+            check_add_eol(deretraction_str);
+        }
+
         std::string toolchange_command;
         if (tcr.priming || (new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id)))
             // Orca: null-safe, layer-aware nozzle lookup — group_result may be null on
@@ -1424,7 +1452,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
         config.set_key_value("filament_end_gcode", new ConfigOptionString(end_filament_gcode_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
+        config.set_key_value("deretraction_from_wipe_tower_generator", new ConfigOptionString(deretraction_str));
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
@@ -1556,6 +1586,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string toolchange_gcode_str;
         std::string deretraction_str;
+        std::string restore_layer_z_str;
         int toolchange_temp_override = -1;
         int interface_temp = -1;
         if (tcr.priming || (new_extruder_id >= 0 && needs_toolchange)) {
@@ -1566,6 +1597,18 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (interface_temp == -1)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
+            }
+            // Orca: the wipe tower can currently be printing below the topmost printed layer
+            // (e.g. wipe_tower_no_sparse_layers keeps the tower shorter than the tallest object).
+            // change_filament_gcode is free to perform arbitrary XY travel (parking, homing,
+            // docking a tool, etc.), so restore Z to the real layer height before running it,
+            // otherwise that travel can collide with already-printed parts taller than the tower.
+            // deretraction_str (below) brings Z back down to resume printing the wipe tower.
+            if (will_go_down && gcodegen.config().enable_prime_tower) {
+                restore_layer_z_str += gcodegen.writer().retract();
+                restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange to avoid collision with printed parts");
+                restore_layer_z_str += gcodegen.writer().unretract();
+                check_add_eol(restore_layer_z_str);
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
@@ -1753,6 +1796,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         DynamicConfig config;
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
         config.set_key_value("deretraction_from_wipe_tower_generator", new ConfigOptionString(deretraction_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
         config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
