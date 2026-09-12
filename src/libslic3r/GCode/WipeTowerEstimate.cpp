@@ -125,6 +125,12 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
     if (semm_flush)
         volume = WipeTower2::estimate_semm_flush_volume(config, filaments_cnt);
 
+    // Orca: the multimaterial tower gives each of its two filaments a region of its own and
+    // prints both regions on every layer, so the footprint has to hold both filaments' purge at
+    // once rather than the single purge a layer performs (see WipeTower2::mm_plan_tower()).
+    if (!type1 && !rib_wall && filaments_cnt == 2 && opt_bool("prime_tower_multimaterial"))
+        volume *= 2.;
+
     // The Type1 planner wipes each filament's own prime volume after changing to it, in a block
     // per adhesiveness category. On a two-nozzle printer the leaving filament is also rammed at
     // every nozzle change; the tool order groups filaments by nozzle, so a layer crosses
