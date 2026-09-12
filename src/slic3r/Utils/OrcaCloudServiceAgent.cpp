@@ -60,7 +60,7 @@ using json = nlohmann::json;
 namespace Slic3r {
 
 namespace {
-constexpr const char* ORCA_DEFAULT_API_URL   = "api.orcaslicer.com";
+constexpr const char* ORCA_DEFAULT_API_URL   = "https://api.orcaslicer.com";
 constexpr const char* ORCA_DEFAULT_AUTH_URL  = "https://auth.orcaslicer.com";
 constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://cloud.orcaslicer.com";
 // Orca: This is a public key with no secret, used to identify the client application to the backend.
