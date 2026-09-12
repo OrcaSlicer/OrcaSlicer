@@ -7,6 +7,10 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <sys/socket.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
@@ -68,8 +72,34 @@ public:
         // This buffer will hold the incoming message
         beast::flat_buffer buffer;
 
+        if (timeout > 0) {
+            // Set socket-level receive timeout
+#ifdef _WIN32
+            DWORD tv = timeout * 1000;
+            setsockopt(ws_.next_layer().native_handle(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+#else
+            struct timeval tv;
+            tv.tv_sec  = timeout;
+            tv.tv_usec = 0;
+            setsockopt(ws_.next_layer().native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+        }
+
         // Read a message into our buffer
         ws_.read(buffer);
+
+        if (timeout > 0) {
+            // Reset timeout to blocking
+#ifdef _WIN32
+            DWORD tv = 0;
+            setsockopt(ws_.next_layer().native_handle(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+#else
+            struct timeval tv;
+            tv.tv_sec  = 0;
+            tv.tv_usec = 0;
+            setsockopt(ws_.next_layer().native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+        }
 
         // Return the message as a string
         return beast::buffers_to_string(buffer.data());
