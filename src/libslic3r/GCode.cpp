@@ -2508,20 +2508,25 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     check_placeholder_parser_failed();
 
-#if ORCA_CHECK_GCODE_PLACEHOLDERS
-    if (!m_placeholder_error_messages.empty()){
-        std::ostringstream message;
-        message << "Some EditGcodeDialog defs were not specified properly. Do so in PrintConfig under SlicingStatesConfigDef:" << std::endl;
-        for (const auto& error : m_placeholder_error_messages) {
-            message << std::endl << error.first << ": " << std::endl;
-            for (const auto& str : error.second)
-                message << str << ", ";
-            message.seekp(-2, std::ios_base::end);
-            message << std::endl;
+    if (m_print->m_is_dev_mode) {
+        for (auto& function_keyword : PlaceholderParser::get_function_keywords()) {
+            if (!functions_config_def.has(function_keyword)) {
+                m_placeholder_error_messages[function_keyword + " - function has no definition (FunctionsConfigDef)"];
+            }
         }
-        throw Slic3r::PlaceholderParserError(message.str());
+        if (!m_placeholder_error_messages.empty()){
+            std::ostringstream message;
+            message << "Some EditGcodeDialog defs were not specified properly. Do so in PrintConfig under SlicingStatesConfigDef:" << std::endl;
+            for (const auto& error : m_placeholder_error_messages) {
+                message << std::endl << error.first << ":" << std::endl;
+                for (const auto& str : error.second)
+                    message << str << ", ";
+                message.seekp(-2, std::ios_base::end);
+                message << std::endl;
+            }
+            m_print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL_DIALOG, message.str());
+        }
     }
-#endif
 
     BOOST_LOG_TRIVIAL(debug) << "Start processing gcode, " << log_memory_info();
     // Post-process the G-code to update time stamps.
@@ -4454,38 +4459,39 @@ std::string GCode::placeholder_parser_process(const std::string &name, const std
     // Orca: Added CMake config option since debug is rarely used in current workflow.
     // Also changed from throwing error immediately to storing messages till slicing is completed
     // to raise all errors at the same time.
-#if ORCA_CHECK_GCODE_PLACEHOLDERS
-    if (config_override) {
-        const auto& custom_gcode_placeholders = custom_gcode_specific_placeholders();
+    if (m_print->m_is_dev_mode) {
+        if (config_override) {
+            const auto& custom_gcode_placeholders = custom_gcode_specific_placeholders();
 
-        // 1-st check: custom G-code "name" have to be present in s_CustomGcodeSpecificPlaceholders;
-        //if (custom_gcode_placeholders.count(name) > 0) {
-        //    const auto& placeholders = custom_gcode_placeholders.at(name);
-        if (auto it = custom_gcode_placeholders.find(name); it != custom_gcode_placeholders.end()) {
-            const auto& placeholders = it->second;
+            // 1-st check: custom G-code "name" have to be present in s_CustomGcodeSpecificPlaceholders;
+            // if (custom_gcode_placeholders.count(name) > 0) {
+            //    const auto& placeholders = custom_gcode_placeholders.at(name);
+            if (auto it = custom_gcode_placeholders.find(name); it != custom_gcode_placeholders.end()) {
+                const auto& placeholders = it->second;
 
-            for (const std::string& key : config_override->keys()) {
-                // 2-nd check: "key" have to be present in s_CustomGcodeSpecificPlaceholders for "name" custom G-code ;
-                if (std::find(placeholders.begin(), placeholders.end(), key) == placeholders.end()) {
-                    auto& vector = m_placeholder_error_messages[name + " - option not specified for custom gcode type (s_CustomGcodeSpecificPlaceholders)"];
-                    if (std::find(vector.begin(), vector.end(), key) == vector.end())
-                        vector.emplace_back(key);
+                for (const std::string& key : config_override->keys()) {
+                    // 2-nd check: "key" have to be present in s_CustomGcodeSpecificPlaceholders for "name" custom G-code ;
+                    if (std::find(placeholders.begin(), placeholders.end(), key) == placeholders.end()) {
+                        auto& vector = m_placeholder_error_messages
+                            [name + " - option not specified for custom gcode type (s_CustomGcodeSpecificPlaceholders)"];
+                        if (std::find(vector.begin(), vector.end(), key) == vector.end())
+                            vector.emplace_back(key);
+                    }
+                    // 3-rd check: "key" have to be present in CustomGcodeSpecificConfigDef for "key" placeholder;
+                    if (!custom_gcode_specific_config_def.has(key)) {
+                        auto& vector = m_placeholder_error_messages[name + " - option has no definition (CustomGcodeSpecificConfigDef)"];
+                        if (std::find(vector.begin(), vector.end(), key) == vector.end())
+                            vector.emplace_back(key);
+                    }
                 }
-                // 3-rd check: "key" have to be present in CustomGcodeSpecificConfigDef for "key" placeholder;
-                if (!custom_gcode_specific_config_def.has(key)) {
-                    auto& vector = m_placeholder_error_messages[name + " - option has no definition (CustomGcodeSpecificConfigDef)"];
-                    if (std::find(vector.begin(), vector.end(), key) == vector.end())
-                        vector.emplace_back(key);
-                }
+            } else {
+                auto& vector = m_placeholder_error_messages[name + " - gcode type not found in s_CustomGcodeSpecificPlaceholders"];
+                if (vector.empty())
+                    vector.emplace_back("");
             }
         }
-        else {
-            auto& vector = m_placeholder_error_messages[name + " - gcode type not found in s_CustomGcodeSpecificPlaceholders"];
-            if (vector.empty())
-                vector.emplace_back("");
-        }
     }
-#endif
+
 
 PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
     try {

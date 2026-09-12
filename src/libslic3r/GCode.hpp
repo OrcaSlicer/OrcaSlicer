@@ -693,14 +693,7 @@ private:
     // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
     double                              m_last_layer_accumulated_mass{ 0.0 };
 
-    // Always check gcode placeholders when building in debug mode.
-#if !defined(NDEBUG)
-#define ORCA_CHECK_GCODE_PLACEHOLDERS 1
-#endif
-    
-#if ORCA_CHECK_GCODE_PLACEHOLDERS
     std::map<std::string, std::vector<std::string>> m_placeholder_error_messages;
-#endif
 
     Point3                              m_last_pos;
     bool                                m_last_pos_defined;

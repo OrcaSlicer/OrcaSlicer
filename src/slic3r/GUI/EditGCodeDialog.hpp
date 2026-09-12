@@ -82,6 +82,7 @@ enum class ParamType {
     Scalar,
     Vector,
     FilamentVector,
+    Function
 };
 
 // On all of 3 different platforms Bitmap+Text icon column looks different 

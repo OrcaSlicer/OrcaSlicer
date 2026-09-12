@@ -3,10 +3,6 @@ project(libslic3r)
 
 include(PrecompiledHeader)
 
-if(NOT DEFINED ORCA_CHECK_GCODE_PLACEHOLDERS)
-    set(ORCA_CHECK_GCODE_PLACEHOLDERS "0")
-endif()
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
 
 if (MINGW)

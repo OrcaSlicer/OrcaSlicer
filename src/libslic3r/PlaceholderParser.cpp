@@ -2193,6 +2193,7 @@ namespace client
                   (assignment_statement(_r1)  [_val = _1])
                 | (new_variable_statement(_r1)[_val = _1])
                 | (conditional_expression(_r1)[px::bind(&expr::to_string2, _1, _val)])
+                | (function(_r1) [px::bind(&expr::to_string2, _1, _val)])
                 ;
 
             // An if expression enclosed in {} (the outmost {} are already parsed by the caller).
@@ -2230,7 +2231,7 @@ namespace client
             legacy_variable_expansion.name("legacy_variable_expansion");
 
             identifier =
-                ! kw[keywords] >>
+                ! kw[keywords | function_keywords] >>
                 raw[lexeme[(alpha | '_') >> *(alnum | '_')]];
             identifier.name("identifier");
 
@@ -2334,7 +2335,18 @@ namespace client
                 |   (lit('-')  > unary_expression(_r1)           )  [ px::bind(&FactorActions::minus_,  _1,     _val) ]
                 |   (lit('+')  > unary_expression(_r1) > iter_pos)  [ px::bind(&FactorActions::expr_,   _1, _2, _val) ]
                 |   ((kw["not"] | '!') > unary_expression(_r1) > iter_pos) [ px::bind(&FactorActions::not_, _1, _val) ]
-                |   (kw["min"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
+                |   function(_r1) [_val = _1]
+                |   (strict_double > iter_pos)                      [ px::bind(&FactorActions::double_, _r1, _1, _2, _val) ]
+                |   (int_      > iter_pos)                          [ px::bind(&FactorActions::int_,    _r1, _1, _2, _val) ]
+                |   (kw[bool_] > iter_pos)                          [ px::bind(&FactorActions::bool_,   _r1, _1, _2, _val) ]
+                |   raw[lexeme['"' > *((utf8char - char_('\\') - char_('"')) | ('\\' > char_)) > '"']]
+                                                                    [ px::bind(&FactorActions::string_, _r1, _1,     _val) ]
+                );
+            unary_expression.name("unary_expression");
+
+            // Any changes to these items should be added/updated in PrintConfig.cpp::FunctionsConfigDef() to keep EditGCodeDialog up-to-date
+            function = iter_pos[px::bind(&FactorActions::set_start_pos, _1, _val)] >> (
+                 (kw["min"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
                                                                     [ px::bind(&expr::min, _val, _2) ]
                 |   (kw["max"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
                                                                     [ px::bind(&expr::max, _val, _2) ]
@@ -2356,13 +2368,8 @@ namespace client
                 |   (kw["empty"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::is_vector_empty, _r1, _1, _val)]
                 |   (kw["size"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::vector_size, _r1, _1, _val)]
                 |   (kw["interpolate_table"] > '(' > interpolate_table(_r1) > ')') [ _val = _1 ]
-                |   (strict_double > iter_pos)                      [ px::bind(&FactorActions::double_, _r1, _1, _2, _val) ]
-                |   (int_      > iter_pos)                          [ px::bind(&FactorActions::int_,    _r1, _1, _2, _val) ]
-                |   (kw[bool_] > iter_pos)                          [ px::bind(&FactorActions::bool_,   _r1, _1, _2, _val) ]
-                |   raw[lexeme['"' > *((utf8char - char_('\\') - char_('"')) | ('\\' > char_)) > '"']]
-                                                                    [ px::bind(&FactorActions::string_, _r1, _1,     _val) ]
-                );
-            unary_expression.name("unary_expression");
+            );
+            function.name("function");
 
             one_of = (unary_expression(_r1)[_a = _1] > one_of_list(_r1, _a))[_val = _2];
             one_of.name("one_of");
@@ -2409,14 +2416,11 @@ namespace client
             regular_expression = raw[lexeme['/' > *((utf8char - char_('\\') - char_('/')) | ('\\' > char_)) > '/']];
             regular_expression.name("regular_expression");
 
-            keywords.add
+            (void)keywords.add
                 ("and")
-                ("digits")
-                ("zdigits")
                 ("empty")
                 ("if")
                 ("int")
-                ("is_nil")
                 ("local")
                 //("inf")
                 ("else")
@@ -2424,23 +2428,27 @@ namespace client
                 ("endif")
                 ("false")
                 ("global")
+                ("repeat")
+                ("not")
+                ("or")
+                ("true");
+
+            (void)function_keywords.add
+                ("digits")
+                ("zdigits")
+                ("is_nil")
                 ("interpolate_table")
                 ("min")
                 ("max")
                 ("random")
                 ("regex_replace")
                 ("filament_change")
-                ("repeat")
                 ("round")
                 ("floor")
                 ("ceil")
-                ("not")
                 ("one_of")
-                ("or")
-                ("size")
-                ("true");
-
-            if (0) {
+                ("size");
+        if (0) {
                 debug(start);
                 debug(text);
                 debug(text_block);
@@ -2461,6 +2469,7 @@ namespace client
                 debug(additive_expression);
                 debug(multiplicative_expression);
                 debug(unary_expression);
+                debug(function);
                 debug(one_of);
                 debug(one_of_list);
                 debug(optional_parameter);
@@ -2501,6 +2510,8 @@ namespace client
         RuleExpression multiplicative_expression;
         // Number literals, functions, braced expressions, variable references, variable indexing references.
         RuleExpression unary_expression;
+        // Function call (max, min, random, etc)
+        RuleExpression function;
         // Accepting an optional parameter.
         RuleExpression optional_parameter;
         // Rule to capture a regular expression enclosed in //.
@@ -2526,7 +2537,8 @@ namespace client
         qi::rule<Iterator, std::string(const MyContext*), qi::locals<bool, MyContext::NewOldVariable>, skipper> new_variable_statement;
         qi::rule<Iterator, std::vector<expr>(const MyContext*), skipper> initializer_list;
 
-        qi::symbols<char> keywords;
+        qi::symbols<> keywords;
+        qi::symbols<> function_keywords;
     };
 }
 
@@ -2568,4 +2580,11 @@ bool PlaceholderParser::evaluate_boolean_expression(const std::string &templ, co
     return process_macro(templ, context) == "true";
 }
 
+std::set<std::string> PlaceholderParser::get_function_keywords()
+{
+    std::set<std::string> function_keywords;
+    g_macro_processor_instance.function_keywords.for_each(
+        [&function_keywords](const std::string& key, auto) { function_keywords.emplace(key); });
+    return function_keywords;
 }
+} // namespace Slic3r
