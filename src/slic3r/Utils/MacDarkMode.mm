@@ -338,6 +338,7 @@ bool addObserver = false;
 @implementation wxNSCustomOpenGLView (Gesture)
 
 wxEvtHandler * _gestureHandler = nullptr;
+static bool scroll_pan_active = false;
 
 - (void) onGestureMove: (NSPanGestureRecognizer*) gesture
 {
@@ -377,9 +378,27 @@ wxEvtHandler * _gestureHandler = nullptr;
     bool shiftDown = [event modifierFlags] & NSShiftKeyMask;
     if (_gestureHandler && shiftDown && event.hasPreciseScrollingDeltas) {
         wxPanGestureEvent evt;
-        evt.SetDelta({-(int)[event scrollingDeltaX], -	(int)[event scrollingDeltaY]});
+        const NSPoint pos = [self convertPoint:[event locationInWindow] fromView:nil];
+        const wxPoint delta(-(int)[event scrollingDeltaX], -(int)[event scrollingDeltaY]);
+        // Orca: GLCanvas3D derives the anchor position as position - delta, so synthesize
+        // the post-delta position from the native cursor coordinate.
+        evt.SetPosition({(int) pos.x + delta.x, (int) pos.y + delta.y});
+        evt.SetDelta(delta);
+        // Preserve the anchor throughout a trackpad scroll, including its momentum events.
+        // Keep it after phase Ended: momentum may follow. The next Began replaces it.
+        const NSEventPhase phase = event.phase;
+        const NSEventPhase momentum_phase = event.momentumPhase;
+        const bool unphased = phase == NSEventPhaseNone && momentum_phase == NSEventPhaseNone;
+        if (!scroll_pan_active || unphased || (phase & (NSEventPhaseMayBegin | NSEventPhaseBegan)))
+            evt.SetGestureStart();
+        if (unphased || (phase & NSEventPhaseCancelled) ||
+            (momentum_phase & (NSEventPhaseEnded | NSEventPhaseCancelled)))
+            evt.SetGestureEnd();
+        scroll_pan_active = !evt.IsGestureEnd();
         _gestureHandler->ProcessEvent(evt);
     } else {
+        // Switching away from Shift-pan must not reuse its depth when Shift is pressed again.
+        scroll_pan_active = false;
         [self scrollWheel2: event];
     }
 }
@@ -402,6 +421,7 @@ wxEvtHandler * _gestureHandler = nullptr;
 //    [self addGestureRecognizer:magnification];
 //    [self addGestureRecognizer:rotation];
     _gestureHandler = handler;
+    scroll_pan_active = false;
 }
 
 @end
