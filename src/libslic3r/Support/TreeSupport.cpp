@@ -1356,7 +1356,7 @@ void TreeSupport::generate_toolpaths()
 {
     const PrintObjectConfig &object_config = m_object->config();
     coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
-    coordf_t nozzle_diameter = m_print_config->nozzle_diameter.get_at(object_config.support_filament - 1);
+    coordf_t nozzle_diameter = nozzle_diameter_for_filament(*m_print_config, object_config.support_filament, m_object->print()->is_BBL_printer());
     coordf_t layer_height = object_config.layer_height.value;
     const size_t wall_count = object_config.tree_support_wall_count.value;
 
