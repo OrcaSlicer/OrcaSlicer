@@ -4,9 +4,11 @@
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
+#include "PublishSettings.hpp"
 #include "enum_bitmask.hpp"
 
 #include <memory>
+#include <map>
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
@@ -168,6 +170,30 @@ struct PresetBundleMetadata
     }
 };
 
+// A "published" 3MF project: keeps the user's currently-selected presets and overlays only the
+// author-selected published keys onto the edited presets.
+struct PublishedConfig
+{
+    bool                        published = false;
+    std::vector<std::string>    published_keys;
+    // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
+    // Partial entries are gated by the author's optional type requirement and written onto the
+    // slot's stored preset in place; full entries instead detach (see PublishedMaterialEntry in
+    // PublishSettings.hpp).
+    std::vector<PublishedMaterialEntry> material_keys;
+    // Keys that could not be applied (missing on the user's machine or vector size mismatch),
+    // filled in by load_config_file_config for notification purposes.
+    std::vector<std::string>    skipped_keys;
+    // Human-readable notices of the slot material replacements performed while loading a
+    // published project, for the load notification.
+    std::vector<std::string>    material_replacements;
+    // Mixed-filament entries that had to be moved off their authored slot on load (a real,
+    // physical filament occupied it): maps the author's zero-based slot number to its final
+    // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
+    // keep geometry references pointing at the relocated definitions.
+    std::map<int, int>          mixed_slot_relocations;
+};
+
 // Bundle of Print + Filament + Printer presets.
 class PresetBundle
 {
@@ -230,7 +256,22 @@ public:
     // Load selections (current print, current filaments, current printer) from config.ini
     // select preferred presets, if any exist
     PresetsConfigSubstitutions load_presets(AppConfig &config, ForwardCompatibilitySubstitutionRule rule,
-                                            const PresetPreferences& preferred_selection = PresetPreferences());
+                                            const PresetPreferences& preferred_selection = PresetPreferences(),
+                                            std::string *errors = nullptr, bool read_only = false);
+
+    // Resolve an explicitly named source file through a canonical flattened
+    // preset. Exact loaded-file identity is preferred; otherwise a manifest-
+    // backed vendor tree is loaded from that source root without using caches.
+    bool resolve_preset_config(DynamicPrintConfig &config, Preset::Type type,
+                               const std::string &source_file,
+                               ForwardCompatibilitySubstitutionRule compatibility_rule,
+                               std::string &error, bool allow_source_manifest = true);
+    // Resolve a source file whose JSON omits `type`. Succeeds only when exactly
+    // one FFF preset collection owns the file and returns that collection's type.
+    bool resolve_preset_config_type(DynamicPrintConfig &config, Preset::Type &type,
+                                    const std::string &source_file,
+                                    ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                    std::string &error, bool allow_source_manifest = true);
 
     // Load selections (current print, current filaments, current printer) from config.ini
     // This is done just once on application start up.
@@ -238,7 +279,7 @@ public:
     void     load_selections(AppConfig &config, const PresetPreferences& preferred_selection = PresetPreferences());
 
     // BBS Load user presets
-    PresetsConfigSubstitutions load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule rule);
+    PresetsConfigSubstitutions load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule rule, bool read_only = false);
     PresetsConfigSubstitutions load_user_presets(AppConfig &config, std::map<std::string, std::map<std::string, std::string>>& my_presets, ForwardCompatibilitySubstitutionRule rule);
     // Orca: Import subscribed bundle presets (load and save to disk in one operation), handles one bundle at a time
     PresetsConfigSubstitutions update_subscribed_presets(AppConfig& config,
@@ -350,6 +391,13 @@ public:
     std::vector<std::vector<DynamicPrintConfig>> get_extruder_filament_info() const;
 
     std::set<std::string> get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only = true);
+    // Orca: the root filament presets a connected machine can use, resolved with the rule the rest
+    // of the app applies (is_compatible_with_printer): an empty compatible_printers means every
+    // printer, minus the alias shadowing exclusions the Orca Filament Library records in
+    // Preset::m_excluded_from.
+    std::vector<Preset *> get_filament_presets_for_machine(const std::string &printer_type,
+                                                           const std::string &nozzle_diameter_str,
+                                                           bool               include_user_presets);
     bool                  check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(const std::string &printer_type,
                                                                                                std::string &      nozzle_diameter_str,
                                                                                                std::string &      setting_id,
@@ -442,8 +490,8 @@ public:
 
     // Load configuration that comes from a model file containing configuration, such as 3MF et al.
     // This method is called by the Plater.
-    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver())
-        { this->load_config_file_config(name, true, std::move(config), file_version); }
+    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver(), PublishedConfig *published_config = nullptr)
+        { this->load_config_file_config(name, true, std::move(config), file_version, false, published_config); }
 
     // Load an external config file containing the print, filament and printer presets.
     // Instead of a config file, a G-code may be loaded containing the full set of parameters.
@@ -474,10 +522,13 @@ public:
     //Orca: load config bundle from json, pass the base bundle to support cross vendor inheritance
     // Orca: `dir` is where the vendor is looked for — its own directory, whether or
     // not the profile JSONs are still there. A whole-vendor load comes from the
-    // vendor's preset cache whenever one covers the profile on disk, and is parsed
-    // from the JSONs in `dir` only when none does. Nothing here reads resources.
+    // vendor's preset cache whenever one covers the profile on disk and allow_cache
+    // is true, and is parsed from the JSONs in `dir` otherwise. Nothing here reads
+    // resources implicitly.
     std::pair<PresetsConfigSubstitutions, size_t> load_vendor_configs_from_json(
-        const std::string &dir, const std::string &vendor_name, LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle = nullptr);
+        const std::string &dir, const std::string &vendor_name, LoadConfigBundleAttributes flags,
+        ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle = nullptr,
+        bool allow_cache = true);
 
     // Export a config bundle file containing all the presets and the names of the active presets.
     //void                        export_configbundle(const std::string &path, bool export_system_settings = false, bool export_physical_printers = false);
@@ -599,6 +650,7 @@ private:
 
     // Whether to (re)write a per-vendor cache after a JSON parse.
     bool m_generate_vendor_caches { false };
+    bool m_preserve_vendor_source_paths { false };
 
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).
@@ -606,7 +658,7 @@ private:
 
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
-    std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule);
+    std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache = true);
     // Update the multicolor information for filaments.
     void update_filament_multi_color();
     // Update renamed_from and alias maps of system profiles.
@@ -620,7 +672,7 @@ private:
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.
     // and the external config is just referenced, not stored into user profile directory.
     // If it is not an external config, then the config will be stored into the user profile directory.
-    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false);
+    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false, PublishedConfig *published_config = nullptr);
     /*ConfigSubstitutions         load_config_file_config_bundle(
         const std::string &path, const boost::property_tree::ptree &tree, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
 

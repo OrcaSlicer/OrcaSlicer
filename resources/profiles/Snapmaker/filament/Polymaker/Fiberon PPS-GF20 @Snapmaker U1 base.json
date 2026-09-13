@@ -3,7 +3,7 @@
 	"name": "Fiberon PPS-GF20 @Snapmaker U1 base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "GFL73",
+	"filament_id": "OFeVzkSU",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

@@ -32,7 +32,8 @@ class FanMover
 private:
     const std::regex regex_fan_speed;
     const float nb_seconds_delay;
-    const bool with_D_option;
+    // Set from fan_speedup_time at the call site, but nothing here reads it.
+    [[maybe_unused]] const bool with_D_option;
     const bool relative_e;
     const bool only_overhangs;
     const float kickstart;

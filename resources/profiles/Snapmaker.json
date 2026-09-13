@@ -1,6 +1,6 @@
 {
 	"name": "Snapmaker",
-	"version": "02.04.00.10",
+	"version": "02.04.00.12",
 	"force_update": "0",
 	"description": "Snapmaker configurations",
 	"machine_model_list": [
@@ -1571,10 +1571,6 @@
 		{
 			"name": "Snapmaker PLA Silk @0.2 nozzle",
 			"sub_path": "filament/Snapmaker PLA Silk @0.2 nozzle.json"
-		},
-		{
-			"name": "Snapmaker PLA-CF @U1",
-			"sub_path": "filament/Snapmaker PLA-CF @U1.json"
 		},
 		{
 			"name": "Snapmaker PLA-CF",

@@ -23,7 +23,7 @@
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "91.5",
 	"default_filament_profile": [
-		"CoLiDo Generic PLA @CoLiDo DIY 4.0"
+		"Generic PLA @CoLiDo DIY 4.0"
 	],
 	"default_print_profile": "0.20mm Standard @CoLiDo DIY 4.0",
 	"deretraction_speed": [

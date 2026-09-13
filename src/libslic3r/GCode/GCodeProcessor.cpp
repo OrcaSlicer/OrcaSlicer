@@ -1468,9 +1468,11 @@ void GCodeProcessor::run_post_process()
 
     // Append a per-filament usage block at a filament change.
     auto handle_filament_change = [&](int filament_id, int cur_line_id, int nozzle_id) {
-        // skip filament changes emitted inside the machine start / end gcode
-        if (m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id ||
-            m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id)
+        // Skip filament changes emitted inside the machine start / end gcode. One forward pass assigns
+        // the tag ids and tests them in the same loop, so inside the start gcode the end tag is unseen
+        // and the id still holds the sentinel. That is why the first clause tests == and the second !=.
+        if ((m_machine_start_gcode_end_line_id == (unsigned int) (-1) && (unsigned int) (cur_line_id) < m_machine_start_gcode_end_line_id) ||
+            (m_machine_end_gcode_start_line_id != (unsigned int) (-1) && (unsigned int) (cur_line_id) > m_machine_end_gcode_start_line_id))
             return;
         if (!m_filament_blocks.empty())
             m_filament_blocks.back().upper_gcode_id = cur_line_id;
@@ -2777,7 +2779,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     std::map<int, std::map<int, GCodePosInfo>> gcode_path_pos; // object_id, filament_id, pos
     for (const GCodeProcessorResult::MoveVertex &move : m_result.moves) {
         // sometimes, the start line extrude was outside the edge of plate a little, this is allowed, so do not include into the gcode_path_pos
-        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/)
+        if (move.type == EMoveType::Extrude /* && move.extrusion_role != ExtrusionRole::erFlush || move.type == EMoveType::Travel*/) {
             if (move.extrusion_role == ExtrusionRole::erCustom) {
                 /*if (move.is_arc_move_with_interpolation_points()) {
                     for (int i = 0; i < move.interpolation_points.size(); i++) {
@@ -2799,6 +2801,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z = std::max(gcode_path_pos[move.object_label_id][int(move.extruder_id)].max_print_z,
                                                                                                    move.print_z);
             }
+        }
     }
 
     bool valid = true;

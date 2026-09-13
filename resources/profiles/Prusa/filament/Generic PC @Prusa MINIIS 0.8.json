@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Prusa MINIIS 0.8",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "Prusa Generic PC @MINIIS 0.8;Prusa Generic PC MINIIS 0.8",
+	"from": "system",
+	"setting_id": "eJ9SwUbq1VyHBciM",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"7"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.07"
+	],
+	"compatible_printers": [
+		"Prusa MINIIS 0.8 nozzle"
+	]
+}

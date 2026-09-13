@@ -993,19 +993,19 @@ TEST_CASE("read_cli rejects an invalid boolean value", "[Config]") {
 
 TEST_CASE("read_cli accepts the common spellings of a boolean value", "[Config]") {
     const auto [text, expected] = GENERATE(table<const char*, bool>({
-        {"--reduce-crossing-wall=1",        true },
-        {"--reduce-crossing-wall=true",     true },
-        {"--reduce-crossing-wall=Yes",      true },
-        {"--reduce-crossing-wall=on",       true },
-        {"--reduce-crossing-wall=enabled",  true },
-        {"--reduce-crossing-wall=TRUE",     true },
-        {"--reduce-crossing-wall=oN",       true },
-        {"--reduce-crossing-wall=0",        false},
-        {"--reduce-crossing-wall=false",    false},
-        {"--reduce-crossing-wall=No",       false},
-        {"--reduce-crossing-wall=off",      false},
+        {"--reduce-crossing-wall=1", true},
+        {"--reduce-crossing-wall=true", true},
+        {"--reduce-crossing-wall=Yes", true},
+        {"--reduce-crossing-wall=on", true},
+        {"--reduce-crossing-wall=enabled", true},
+        {"--reduce-crossing-wall=TRUE", true},
+        {"--reduce-crossing-wall=oN", true},
+        {"--reduce-crossing-wall=0", false},
+        {"--reduce-crossing-wall=false", false},
+        {"--reduce-crossing-wall=No", false},
+        {"--reduce-crossing-wall=off", false},
         {"--reduce-crossing-wall=disabled", false},
-        {"--reduce-crossing-wall=FALSE",    false},
+        {"--reduce-crossing-wall=FALSE", false},
         {"--reduce-crossing-wall=DiSaBlEd", false},
     }));
 
@@ -1187,4 +1187,114 @@ TEST_CASE("read_cli accepts nil entries for a nullable vector option", "[Config]
     REQUIRE(opt->is_nil(0));
     REQUIRE_FALSE(opt->is_nil(1));
     REQUIRE_THAT(opt->values[1], Catch::Matchers::WithinAbs(2.5, 1e-9));
+}
+
+// get_at() returns values.front() for an out-of-range index, so calling it on an empty vector
+// option is UB. filament_id and filament_is_support are unpopulated on a CLI from-scratch slice.
+TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][Filament]")
+{
+    DynamicPrintConfig config;
+    std::string displayed;
+
+    SECTION("an empty filament_type yields no type at all")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "");
+    }
+
+    SECTION("an empty filament_is_support falls back to the plain filament type")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PETG");
+        REQUIRE(displayed == "PETG");
+    }
+
+    SECTION("a support filament with an empty filament_id resolves from the type alone")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
+
+    SECTION("a populated filament_id still selects the support type by id")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings({"GFS00"}));
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
+}
+
+namespace {
+
+// min_object_distance reads exactly these three options.
+DynamicPrintConfig spacing_config(PrinterTechnology tech, PrintSequence seq, double clearance_radius)
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(tech));
+    c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(seq));
+    c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(clearance_radius));
+    return c;
+}
+
+} // namespace
+
+TEST_CASE("min_object_distance floors object spacing per print sequence", "[Config]")
+{
+    struct Case
+    {
+        std::string       description;
+        PrinterTechnology tech;
+        PrintSequence     sequence;
+        double            clearance_radius;
+        double            expected;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"sequential FFF takes a clearance radius above the floor", ptFFF, PrintSequence::ByObject, 12., 12.},
+        {"sequential FFF holds the floor at the radius",            ptFFF, PrintSequence::ByObject,  6.,  6.},
+        {"sequential FFF holds the floor below the radius",         ptFFF, PrintSequence::ByObject,  4.,  6.},
+        {"layered FFF ignores the clearance radius",                ptFFF, PrintSequence::ByLayer,  12.,  6.},
+        {"SLA is a flat 6mm",                                       ptSLA, PrintSequence::ByObject, 12.,  6.},
+        {"SLA ignores the print sequence too",                      ptSLA, PrintSequence::ByLayer,  12.,  6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        CHECK_THAT(min_object_distance(spacing_config(c.tech, c.sequence, c.clearance_radius)),
+                   Catch::Matchers::WithinAbs(c.expected, 1e-9));
+    }
+}
+
+TEST_CASE("min_object_distance yields no floor when an FFF config lacks the options", "[Config]")
+{
+    // Missing options yield 0 rather than an error, so a caller gets no floor at all.
+    SECTION("no clearance radius") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("no print sequence") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("nothing at all") {
+        CHECK_THAT(min_object_distance(DynamicPrintConfig{}), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("an unset printer technology is treated as FFF") {
+        DynamicPrintConfig c;
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
+    }
 }

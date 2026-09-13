@@ -3,7 +3,7 @@
 	"name": "COEX ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "CXABSB01",
+	"filament_id": "OF99UMPq",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

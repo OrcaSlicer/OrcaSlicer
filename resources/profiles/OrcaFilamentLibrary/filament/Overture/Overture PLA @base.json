@@ -3,7 +3,7 @@
 	"name": "Overture PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFL04",
+	"filament_id": "OFc3xdm9",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.15"

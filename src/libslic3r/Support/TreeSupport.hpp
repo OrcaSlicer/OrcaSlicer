@@ -432,7 +432,6 @@ private:
     size_t          m_highest_overhang_layer = 0;
     std::vector<std::vector<MinimumSpanningTree>> m_spanning_trees;
     std::vector< std::unordered_map<Line, bool, LineHash>> m_mst_line_x_layer_contour_caches;
-    float    DO_NOT_MOVER_UNDER_MM = 0.0;
     coordf_t base_radius                        = 0.0;
     const coordf_t MAX_BRANCH_RADIUS = 10.0;
     const coordf_t MIN_BRANCH_RADIUS = 0.4;

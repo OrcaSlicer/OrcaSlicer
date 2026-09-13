@@ -1,4 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 
 #include <catch2/catch_all.hpp>
 #include "test_utils.hpp"

@@ -188,7 +188,7 @@ class ReselectMachineDialog : public wxDialog
 public:
     ReselectMachineDialog(wxWindow* parent);
     ~ReselectMachineDialog();
-    void Update(MachineObject* obj,
+    void UpdateInfo(MachineObject* obj,
                 const std::map<int, int>&  best_pos_map,
                 const std::vector<FilamentInfo>& ams_mapping,
                 wxString save_time);

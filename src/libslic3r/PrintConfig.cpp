@@ -276,6 +276,7 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsfk", ipTpmsFK },
     { "gyroid", ipGyroid },
     { "concentric", ipConcentric },
+    { "spiralinset", ipSpiralInset },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
     { "octagramspiral", ipOctagramSpiral }
@@ -372,6 +373,7 @@ static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "auto",           smipAuto },
     { "rectilinear",    smipRectilinear },
     { "concentric",     smipConcentric },
+    { "spiralinset",    smipSpiralInset },
     { "rectilinear_interlaced", smipRectilinearInterlaced},
     { "grid",           smipGrid }
 };
@@ -2311,6 +2313,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("alignedrectilinear");
     def->enum_values.push_back("concentric");
+    def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
@@ -2319,6 +2322,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
@@ -2401,7 +2405,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which top surfaces are filled when using a center-based pattern "
-                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
                      "Outward starts at the center of the surface, so any excess material is pushed "
                      "towards the edge where it is least visible. Inward starts at the edge and ends "
                      "with the tight curves at the center.\n"
@@ -2420,7 +2424,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bottom surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which bottom surfaces are filled when using a center-based pattern "
-                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
                      "Inward starts each surface with the wider outer curves, which improves first layer "
                      "adhesion on build plates where the tight curves at the center may not stick. "
                      "Outward starts at the center, pushing any excess material towards the edge.\n"
@@ -5445,7 +5449,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->readonly = false;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionFloatsNullable { {0.0} });
+    def->set_default_value(new ConfigOptionFloatsNullable { 0.0 });
 
     def = this->add("cooling_tube_retraction", coFloat);
     def->label = L("Cooling tube position");
@@ -7115,11 +7119,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("auto");
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("concentric");
+	def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("rectilinear_interlaced");
     def->enum_values.push_back("grid");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
+	def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Rectilinear Interlaced"));
     def->enum_labels.push_back(L("Grid"));
     def->mode = comAdvanced;
@@ -10017,7 +10023,15 @@ std::string DynamicPrintConfig::get_filament_type(std::string &displayed_filamen
     auto* filament_type = dynamic_cast<const ConfigOptionStrings*>(this->option("filament_type"));
     auto* filament_is_support = dynamic_cast<const ConfigOptionBools*>(this->option("filament_is_support"));
 
-    if (!filament_type)
+    // get_at() on an empty vector option is undefined behavior (.front() of an empty vector),
+    // and e.g. filament_id is never populated on a CLI from-scratch slice - treat an empty
+    // option the same as a missing one.
+    if (filament_id && filament_id->values.empty())
+        filament_id = nullptr;
+    if (filament_is_support && filament_is_support->values.empty())
+        filament_is_support = nullptr;
+
+    if (!filament_type || filament_type->values.empty())
         return "";
 
     if (!filament_is_support) {

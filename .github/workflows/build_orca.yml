@@ -76,6 +76,57 @@ jobs:
           if (-not (Test-Path "$cmakeBin\cmake.exe")) { throw "cmake.exe not found at $cmakeBin" }
           Add-Content -Path $env:GITHUB_PATH -Value $cmakeBin
 
+      # Compiler cache. Pushes save it, so main keeps it warm; pull requests
+      # restore it and discard what they compiled. Objects are keyed on the
+      # preprocessed source, the compiler and the flags, so a leg only ever
+      # hits its own entries. A failed install costs the caching, not the build.
+      - name: Name the compiler cache leg
+        if: ${{ !inputs.macos-combine-only }}
+        shell: bash
+        run: |
+          leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
+          echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+
+      # The action only installs and configures ccache. Restore and save go
+      # through actions/cache with one path string, since the cache service
+      # only matches entries saved under the identical path and the action
+      # spells it differently on Windows.
+      - name: Compiler cache
+        id: ccache
+        if: ${{ !inputs.macos-combine-only }}
+        continue-on-error: true
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ env.CCACHE_LEG }}
+          max-size: 3G
+          restore: false
+          save: false
+
+      - name: Restore compiler cache
+        if: ${{ steps.ccache.outcome == 'success' }}
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+          restore-keys: ccache-${{ env.CCACHE_LEG }}-
+
+      - name: Enable compiler cache
+        if: ${{ steps.ccache.outcome == 'success' }}
+        shell: bash
+        run: |
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          # Headers a fresh checkout has just written, the few files that
+          # use __DATE__ or __TIME__, and the precompiled header, whose
+          # macros ccache cannot see.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,include_file_mtime,include_file_ctime" >> "$GITHUB_ENV"
+          # Hash the includes the compiler reports instead of preprocessing
+          # every miss before compiling it.
+          echo "CCACHE_DEPEND=1" >> "$GITHUB_ENV"
+          # The restored directory carries the previous run's counters.
+          ccache -z
+
       - name: Get the version and date on Ubuntu and macOS
         if: runner.os != 'Windows'
         run: |
@@ -670,3 +721,32 @@ jobs:
           asset_name: orca_custom_preset_tests.zip
           asset_content_type: application/octet-stream
           max_releases: 1
+
+      - name: Compiler cache statistics
+        if: ${{ always() && steps.ccache.outcome == 'success' }}
+        shell: bash
+        run: ccache -s -v || ccache -s
+
+      # Entries are immutable, so the new one is saved first and the older
+      # ones for this leg on this ref are dropped afterwards: a failed save
+      # leaves the previous entry in place.
+      - name: Save compiler cache
+        id: ccache_save
+        if: ${{ steps.ccache.outcome == 'success' && github.event_name != 'pull_request' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+
+      - name: Drop older compiler cache entries
+        if: ${{ steps.ccache_save.outcome == 'success' }}
+        # A read-only token (fork PRs) cannot delete; that only costs storage.
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --ref "$GITHUB_REF" --key "ccache-$CCACHE_LEG-" --limit 100 --json id,key \
+            | jq -r --arg keep "$CCACHE_ENTRY" '.[] | select(.key != $keep) | .id' \
+            | tr -d '\r' \
+            | while read -r id; do gh cache delete "$id"; done

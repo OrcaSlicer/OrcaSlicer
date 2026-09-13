@@ -1,6 +1,6 @@
 {
 	"name": "Artillery",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Artillery configurations",
 	"machine_model_list": [
@@ -389,28 +389,28 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Artillery Generic ABS",
-			"sub_path": "filament/Artillery Generic ABS.json"
+			"name": "Generic ABS @Artillery",
+			"sub_path": "filament/Generic ABS @Artillery.json"
 		},
 		{
-			"name": "Artillery Generic ASA",
-			"sub_path": "filament/Artillery Generic ASA.json"
+			"name": "Generic ASA @Artillery",
+			"sub_path": "filament/Generic ASA @Artillery.json"
 		},
 		{
-			"name": "Artillery Generic PETG",
-			"sub_path": "filament/Artillery Generic PETG.json"
+			"name": "Generic PETG @Artillery",
+			"sub_path": "filament/Generic PETG @Artillery.json"
 		},
 		{
-			"name": "Artillery Generic PLA",
-			"sub_path": "filament/Artillery Generic PLA.json"
+			"name": "Generic PLA @Artillery",
+			"sub_path": "filament/Generic PLA @Artillery.json"
 		},
 		{
-			"name": "Artillery Generic PLA-CF",
-			"sub_path": "filament/Artillery Generic PLA-CF.json"
+			"name": "Generic PLA-CF @Artillery",
+			"sub_path": "filament/Generic PLA-CF @Artillery.json"
 		},
 		{
-			"name": "Artillery Generic TPU",
-			"sub_path": "filament/Artillery Generic TPU.json"
+			"name": "Generic TPU @Artillery",
+			"sub_path": "filament/Generic TPU @Artillery.json"
 		},
 		{
 			"name": "Artillery ABS",

@@ -1,6 +1,6 @@
 {
 	"name": "Phrozen",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Phrozen configurations",
 	"machine_model_list": [
@@ -57,8 +57,8 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Phrozen PLA @Phrozen Arco 0.4 nozzle",
-			"sub_path": "filament/Phrozen PLA @Phrozen Arco 0.4 nozzle.json"
+			"name": "Generic PLA @Phrozen Arco 0.4 nozzle",
+			"sub_path": "filament/Generic PLA @Phrozen Arco 0.4 nozzle.json"
 		}
 	],
 	"machine_list": [

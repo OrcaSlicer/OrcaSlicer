@@ -1,6 +1,6 @@
 {
 	"name": "Peopoly",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Peopoly configurations",
 	"machine_model_list": [
@@ -105,8 +105,8 @@
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
-			"name": "Peopoly Generic ABS",
-			"sub_path": "filament/Peopoly Generic ABS.json"
+			"name": "Generic ABS @Peopoly",
+			"sub_path": "filament/Generic ABS @Peopoly.json"
 		},
 		{
 			"name": "Peopoly Lancer ABS-GF",
@@ -117,16 +117,16 @@
 			"sub_path": "filament/Peopoly Lancer PET-CF.json"
 		},
 		{
-			"name": "Peopoly Generic PETG",
-			"sub_path": "filament/Peopoly Generic PETG.json"
+			"name": "Generic PETG @Peopoly",
+			"sub_path": "filament/Generic PETG @Peopoly.json"
 		},
 		{
 			"name": "Peopoly Lancer PETG-C",
 			"sub_path": "filament/Peopoly Lancer PETG-C.json"
 		},
 		{
-			"name": "Peopoly Generic PLA",
-			"sub_path": "filament/Peopoly Generic PLA.json"
+			"name": "Generic PLA @Peopoly",
+			"sub_path": "filament/Generic PLA @Peopoly.json"
 		},
 		{
 			"name": "Peopoly Lancer PLA-C",
