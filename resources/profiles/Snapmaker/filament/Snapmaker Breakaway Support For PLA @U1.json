@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker Breakaway Support @base",
 	"from": "system",
 	"setting_id": "5DqT3CYUgp1oJD1V",
+	"filament_id": "OFnmp2pO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

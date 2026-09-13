@@ -8,5 +8,5 @@
 	"bed_model": "Anycubic Kobra Neo_buildplate_model.stl",
 	"bed_texture": "Anycubic Kobra Neo_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Anycubic Generic PLA"
+	"default_materials": "Generic PLA @Anycubic"
 }

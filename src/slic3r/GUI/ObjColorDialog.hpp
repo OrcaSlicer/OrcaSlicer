@@ -79,7 +79,6 @@ private:
     std::vector<wxBoxSizer *> m_row_col_boxsizer_list;
     std::vector<ButtonState*> m_result_icon_list;
     int                       m_last_cluster_num{-1};
-    const int               m_combox_width{50};
     int                     m_combox_icon_width;
     int                     m_combox_icon_height;
     wxButton *              m_image_button = nullptr;
@@ -95,7 +94,6 @@ private:
     std::vector<int>      m_cluster_map_filaments;//show middle
     int                   m_max_filament_index = 0;
     std::vector<wxColour> m_cluster_colours;//from_algo and show left
-    bool                  m_can_add_filament{true};
     bool                  m_deal_thumbnail_flag{false};
     std::vector<wxColour> m_new_add_colors;
     std::vector<wxColour> m_new_add_final_colors;
@@ -124,8 +122,6 @@ private:
     wxBoxSizer *                      m_main_sizer     = nullptr;
     wxBoxSizer *                      m_buttons_sizer   = nullptr;
     std::unordered_map<int, Button *> m_button_list;
-    std::vector<unsigned char>&      m_filament_ids;
-    unsigned char &                  m_first_extruder_id;
 };
 
 #endif  // _WIPE_TOWER_DIALOG_H_

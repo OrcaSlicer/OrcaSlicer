@@ -170,14 +170,13 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
 
 void FanMover::_print_in_middle_G1(BufferData& line_to_split, float nb_sec, const std::string &line_to_write) {
     if (nb_sec < line_to_split.time * 0.1) {
-        // doesn't really need to be split, print it after
-        m_process_output += line_to_split.raw + "\n";
+        // Doesn't need to be split: the insertion point is at the start.
         m_process_output += line_to_write + (line_to_write.back() == '\n'?"":"\n");
-    } else if (nb_sec > line_to_split.time * 0.9) {
-        // doesn't really need to be split, print it before
-        //will also print before if line_to_split.time == 0
-        m_process_output += line_to_write + (line_to_write.back() == '\n' ? "" : "\n");
         m_process_output += line_to_split.raw + "\n";
+    } else if (nb_sec > line_to_split.time * 0.9) {
+        // Doesn't need to be split: the insertion point is at the end.
+        m_process_output += line_to_split.raw + "\n";
+        m_process_output += line_to_write + (line_to_write.back() == '\n' ? "" : "\n");
     }else if(line_to_split.raw.size() > 2
         && line_to_split.raw[0] == 'G' && line_to_split.raw[1] == '1' && line_to_split.raw[2] == ' ') {
         float percent = nb_sec / line_to_split.time;

@@ -5,7 +5,6 @@
 	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "WbAYFZdqFwEZnNAX",
-	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_cooling_final_speed": [
 		"3.5"

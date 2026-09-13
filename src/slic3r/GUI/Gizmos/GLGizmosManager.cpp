@@ -1003,7 +1003,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                     // number waits briefly for a second one.
                     const int digit        = keyCode - '0';
                     const int shortcut_max = int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
-                    auto can_start_two_digit = [shortcut_max](int d) { return d > 0 && d * 10 <= shortcut_max; };
+                    auto can_start_two_digit = [](int d) { return d > 0 && d * 10 <= shortcut_max; };
                     auto select = [mmu_seg](int number) { return number > 0 && mmu_seg->on_number_key_down(number); };
 
                     if (m_timer_set_color.IsRunning() && m_pending_color_shortcut_tens > 0) {

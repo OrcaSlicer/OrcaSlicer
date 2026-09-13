@@ -16,24 +16,27 @@ namespace Slic3r
 // This block is never executed at runtime.
 static void _toolhead_translation_markers()
 {
-    // Dynamic toolhead display names from JSON config — xgettext cannot scan these
-    L("Main Extruder");     L("Main extruder");     L("main extruder");
-    L("Auxiliary Extruder"); L("Auxiliary extruder"); L("auxiliary extruder");
-    L("Left Extruder");     L("Left extruder");     L("left extruder");
-    L("Right Extruder");    L("Right extruder");    L("right extruder");
-    L("Main Nozzle");       L("Main nozzle");       L("main nozzle");
-    L("Auxiliary Nozzle");   L("Auxiliary nozzle");   L("auxiliary nozzle");
-    L("Left Nozzle");       L("Left nozzle");       L("left nozzle");
-    L("Right Nozzle");      L("Right nozzle");      L("right nozzle");
-    L("Main Hotend");       L("Main hotend");       L("main hotend");
-    L("Auxiliary Hotend");   L("Auxiliary hotend");   L("auxiliary hotend");
-    L("Left Hotend");       L("Left hotend");       L("left hotend");
-    L("Right Hotend");      L("Right hotend");      L("right hotend");
-    // standalone position words (short_name=true runtime results)
-    L("main");              L("auxiliary");
-    L("Main");              L("Auxiliary");
-    L("left");              L("right");
-    L("Left");              L("Right");
+    // Possible runtime values of tool_head_display_names, marked for extraction.
+    static const char *const markers[] = {
+        L("Main Extruder"),      L("Main extruder"),      L("main extruder"),
+        L("Auxiliary Extruder"), L("Auxiliary extruder"), L("auxiliary extruder"),
+        L("Left Extruder"),      L("Left extruder"),      L("left extruder"),
+        L("Right Extruder"),     L("Right extruder"),     L("right extruder"),
+        L("Main Nozzle"),        L("Main nozzle"),        L("main nozzle"),
+        L("Auxiliary Nozzle"),   L("Auxiliary nozzle"),   L("auxiliary nozzle"),
+        L("Left Nozzle"),        L("Left nozzle"),        L("left nozzle"),
+        L("Right Nozzle"),       L("Right nozzle"),       L("right nozzle"),
+        L("Main Hotend"),        L("Main hotend"),        L("main hotend"),
+        L("Auxiliary Hotend"),   L("Auxiliary hotend"),   L("auxiliary hotend"),
+        L("Left Hotend"),        L("Left hotend"),        L("left hotend"),
+        L("Right Hotend"),       L("Right hotend"),       L("right hotend"),
+        // standalone position words (short_name=true runtime results)
+        L("main"),               L("auxiliary"),
+        L("Main"),               L("Auxiliary"),
+        L("left"),               L("right"),
+        L("Left"),               L("Right"),
+    };
+    (void) markers;
 }
 
 std::string DevPrinterConfigUtil::m_resource_file_path = "";
