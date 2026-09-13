@@ -7077,7 +7077,15 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "printhost_cafile"sv,
         "printhost_user"sv,
         "printhost_password"sv,
-        "printhost_port"sv
+        "printhost_port"sv,
+        // Gradient-filament preview keys: UI/preview-only metadata with no effect on the
+        // printed result. Kept out of the G-code config block to avoid bloating it and to
+        // avoid adding unusual characters (e.g. the ';' separators in filament_gradient_stops)
+        // that fragile firmware parsers can choke on. This mirrors the rationale of upstream
+        // PR #13507 (skip filament_colour_type) addressing issue #12952 (Anycubic Kobra 3 parse hang).
+        "filament_gradient_stops"sv,
+        "filament_gradient_cycle_length"sv,
+        "filament_gradient_start_offset"sv
     });
     auto is_banned = [](const std::string &key) {
         return banned_keys.find(key) != banned_keys.end();
