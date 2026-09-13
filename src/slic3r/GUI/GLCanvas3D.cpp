@@ -66,6 +66,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
 
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -367,7 +368,6 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
 
 void GLCanvas3D::LayersEditing::render_overlay(GLCanvas3D& canvas)
 {
-    render_variable_layer_height_dialog(canvas);
     render_active_object_annotations(canvas);
     render_profile(canvas);
 }
@@ -1205,6 +1205,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 GLCanvas3D::~GLCanvas3D()
 {
     if (_set_current()) {
+        m_scene_cache.reset();
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
             m_fxaa_texture_id = 0;
@@ -1352,6 +1353,7 @@ void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
             m_gizmos.set_icon_dirty();
         }
     }
+    m_dirty = true;
 }
 
 const float GLCanvas3D::get_scale() const
@@ -1926,7 +1928,14 @@ bool GLCanvas3D::make_current_for_postinit() {
     return _set_current();
 }
 
+// Redraws the scene and presents it.
 void GLCanvas3D::render(bool only_init)
+{
+    m_presented_signature.reset();
+    _render_frame(true, only_init);
+}
+
+void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 {
     if (m_in_render) {
         // if called recursively, return
@@ -2029,103 +2038,21 @@ void GLCanvas3D::render(bool only_init)
         }
     }
 
-    // draw scene
-    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
-    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
-    m_shadow_map_valid = false;
-    _render_background();
-
-    //BBS add partplater rendering logic
-    bool only_current = false, only_body = false, no_partplate = false;
-    bool show_grid = true;
-    GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
-    if (!m_main_toolbar.is_enabled()) {
-        //only_body = true;
-        only_current = true;
-    }
-    else if ((gizmo_type == GLGizmosManager::FdmSupports) || (gizmo_type == GLGizmosManager::Seam) || (gizmo_type == GLGizmosManager::MmSegmentation) || (gizmo_type == GLGizmosManager::FuzzySkin))
-        no_partplate = true;
-    else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
-        show_grid = false;
-
-    /* view3D render*/
-    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
-    if (m_canvas_type == ECanvasType::CanvasView3D) {
-        if (!no_partplate)
-            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        if (!no_partplate) //BBS: add outline logic
-            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
-        
-        //BBS: add outline logic
-        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
-        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
-        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
-        _render_wireframe_overlay();
-    }
-    /* preview render */
-    else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
-        _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
-        // BBS: GUI refactor: add canvas size as parameters
-        _render_gcode(cnv_size.get_width(), cnv_size.get_height());
-    }
-    /* assemble render*/
-    else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
-        //BBS: add outline logic
-        //if (m_show_world_axes) {
-        //    m_axes.render();
-        //}
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_selection();
-        //_render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), show_axes);
-        _render_plane();
-        //BBS: add outline logic insteadof selection under assemble view
-        //_render_selection();
-        // BBS: add outline logic
-        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
-        _render_wireframe_overlay();
-    }
-
-    _render_sequential_clearance();
-#if ENABLE_RENDER_SELECTION_CENTER
-    _render_selection_center();
-#endif // ENABLE_RENDER_SELECTION_CENTER
-
     // we need to set the mouse's scene position here because the depth buffer
     // could be invalidated by the following gizmo render methods
     // this position is used later into on_mouse() to drag the objects
     if (m_picking_enabled)
         m_mouse.scene_position = _mouse_to_3d(m_mouse.position.cast<coord_t>());
 
-    // sidebar hints need to be rendered before the gizmos because the depth buffer
-    // could be invalidated by the following gizmo render methods
-    _render_selection_sidebar_hints();
-    _render_current_gizmo();
+    // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
+    // below once it is known whether the frame differs from the one on screen.
+    const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    if (!reuse_scene)
+        _render_scene(camera, cnv_size);
 
-#if ENABLE_RAYCAST_PICKING_DEBUG
-    if (m_picking_enabled && !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging())
-        m_scene_raycaster.render_hit(camera);
-#endif // ENABLE_RAYCAST_PICKING_DEBUG
-
-#if ENABLE_SHOW_CAMERA_TARGET
-    _render_camera_target();
-#endif // ENABLE_SHOW_CAMERA_TARGET
-
-    if (m_picking_enabled && m_rectangle_selection.is_dragging())
-        m_rectangle_selection.render(*this);
-
-    if (_is_ssao_enabled())
-        _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
-
-    if (_is_fxaa_enabled())
-        _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)
+        // BBS: GUI refactor: add canvas size as parameters
+        _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
 
     // draw overlays
     _render_overlays();
@@ -2218,14 +2145,132 @@ void GLCanvas3D::render(bool only_init)
         wxGetApp().plater()->get_dailytips()->render();
     }
 
-    wxGetApp().imgui()->render();
+    ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
+
+    std::optional<size_t> signature;
+    if (_is_frame_skipping_enabled())
+        signature = _overlay_signature(draw_data);
+
+    if (reuse_scene) {
+        // A reused scene under an unchanged overlay is the frame already on screen.
+        if (signature.has_value() && signature == m_presented_signature)
+            return;
+        m_scene_cache.render(m_background);
+    }
+
+    _render_overlay_toolbars();
+
+    wxGetApp().imgui()->render(draw_data);
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
         m_render_stats.increment_fps_counter();
+        m_presented_signature = signature;
     }
+    else
+        m_presented_signature.reset();
+}
+
+// Everything drawn into the 3D scene, from the clear to the post processing passes, ending in the
+// capture an overlay-only frame reuses.
+void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
+{
+    // Recorded by PartPlate::render_icons() below, when it runs.
+    wxGetApp().plater()->get_partplate_list().clear_hover_tooltip();
+    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
+    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
+    m_shadow_map_valid = false;
+    _render_background();
+
+    //BBS add partplater rendering logic
+    bool only_current = false, only_body = false, no_partplate = false;
+    bool show_grid = true;
+    GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
+    if (!m_main_toolbar.is_enabled()) {
+        //only_body = true;
+        only_current = true;
+    }
+    else if ((gizmo_type == GLGizmosManager::FdmSupports) || (gizmo_type == GLGizmosManager::Seam) || (gizmo_type == GLGizmosManager::MmSegmentation) || (gizmo_type == GLGizmosManager::FuzzySkin))
+        no_partplate = true;
+    else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
+        show_grid = false;
+
+    /* view3D render*/
+    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
+    if (m_canvas_type == ECanvasType::CanvasView3D) {
+        if (!no_partplate)
+            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        if (!no_partplate) //BBS: add outline logic
+            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
+        
+        //BBS: add outline logic
+        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
+        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_sla_slices();
+        _render_selection();
+        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
+        _render_wireframe_overlay();
+    }
+    /* preview render */
+    else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_sla_slices();
+        _render_selection();
+        _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        // BBS: GUI refactor: add canvas size as parameters
+        _render_gcode(cnv_size.get_width(), cnv_size.get_height());
+    }
+    /* assemble render*/
+    else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
+        //BBS: add outline logic
+        //if (m_show_world_axes) {
+        //    m_axes.render();
+        //}
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_selection();
+        //_render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), show_axes);
+        _render_plane();
+        //BBS: add outline logic insteadof selection under assemble view
+        //_render_selection();
+        // BBS: add outline logic
+        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
+        _render_wireframe_overlay();
+    }
+
+    _render_sequential_clearance();
+#if ENABLE_RENDER_SELECTION_CENTER
+    _render_selection_center();
+#endif // ENABLE_RENDER_SELECTION_CENTER
+    // sidebar hints need to be rendered before the gizmos because the depth buffer
+    // could be invalidated by the following gizmo render methods
+    _render_selection_sidebar_hints();
+    _render_current_gizmo();
+
+#if ENABLE_RAYCAST_PICKING_DEBUG
+    if (m_picking_enabled && !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging())
+        m_scene_raycaster.render_hit(camera);
+#endif // ENABLE_RAYCAST_PICKING_DEBUG
+
+#if ENABLE_SHOW_CAMERA_TARGET
+    _render_camera_target();
+#endif // ENABLE_SHOW_CAMERA_TARGET
+
+    if (m_picking_enabled && m_rectangle_selection.is_dragging())
+        m_rectangle_selection.render(*this);
+
+    if (_is_ssao_enabled())
+        _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    if (_is_fxaa_enabled())
+        _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    _capture_scene_cache(camera);
+    m_render_stats.increment_scene_fps_counter();
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -3203,25 +3248,26 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (!m_initialized)
         return;
 
-    m_dirty |= m_main_toolbar.update_items_state();
+    // Toolbar states, notifications and ImGui's own layout settling only touch the overlay.
+    m_overlay_dirty |= m_main_toolbar.update_items_state();
     //BBS: GUI refactor: GLToolbar
-    m_dirty |= m_assemble_view_toolbar.update_items_state();
+    m_overlay_dirty |= m_assemble_view_toolbar.update_items_state();
     // BBS
     //m_dirty |= wxGetApp().plater()->get_view_toolbar().update_items_state();
-    m_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
+    m_overlay_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
     bool mouse3d_controller_applied = wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
     m_dirty |= mouse3d_controller_applied;
-    m_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
+    m_overlay_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
     auto gizmo = wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().get_current();
     if (gizmo != nullptr) m_dirty |= gizmo->update_items_state();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     // ImGuiWrapper::m_requires_extra_frame may have been set by a render made outside of the OnIdle mechanism
     bool imgui_requires_extra_frame = wxGetApp().imgui()->requires_extra_frame();
-    m_dirty |= imgui_requires_extra_frame;
+    m_overlay_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
 
-    if (!m_dirty)
+    if (!m_dirty && !m_overlay_dirty)
         return;
 
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
@@ -3246,19 +3292,24 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_last_frame_start_time = now;
     }
 
-    _refresh_if_shown_on_screen();
+    // Read and cleared before the render; a request made during it is left for the next frame.
+    const bool scene_dirty = m_dirty;
+    m_dirty = false;
+    m_overlay_dirty = false;
+    _refresh_if_shown_on_screen(scene_dirty);
 
-#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-    if (m_extra_frame_requested || mouse3d_controller_applied || imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
-#else
     if (m_extra_frame_requested || mouse3d_controller_applied) {
         m_dirty = true;
-#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
         m_extra_frame_requested = false;
         evt.RequestMore();
     }
-    else
-        m_dirty = false;
+#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+    else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
+        // ImGui settling a window or fading a tooltip.
+        m_overlay_dirty = true;
+        evt.RequestMore();
+    }
+#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 }
 
 void GLCanvas3D::on_char(wxKeyEvent& evt)
@@ -4207,11 +4258,16 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
             mouse_up_cleanup();
 
-        render();
+        // Hovering an ImGui window only changes the overlay, unless a full frame is already pending.
+        const bool overlay_only = evt.Moving() && !m_mouse.dragging;
+        _render_frame(!overlay_only || m_dirty);
 #ifdef SLIC3R_DEBUG_MOUSE_EVENTS
         printf((format_mouse_event_debug_message(evt) + " - Consumed by ImGUI\n").c_str());
 #endif /* SLIC3R_DEBUG_MOUSE_EVENTS */
-        m_dirty = true;
+        if (overlay_only)
+            _set_overlay_as_dirty();
+        else
+            m_dirty = true;
         // do not return if dragging or tooltip not empty to allow for tooltip update
         // also, do not return if the mouse is moving and also is inside MM gizmo to allow update seed fill selection
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
@@ -4334,6 +4390,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             wxGetApp().obj_list()->selection_changed();
         }
 
+        // A gizmo that acts on a click or a drag may not request a frame itself.
+        if (!evt.Moving())
+            m_dirty = true;
         return;
     }
 
@@ -4820,7 +4879,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (m_selection.is_empty())
             m_gizmos.reset_all_states();
 
-        m_dirty = true;
+        _set_overlay_as_dirty();
     }
     else
         evt.Skip();
@@ -4870,6 +4929,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)
 {
+    m_presented_signature.reset();
     if (m_initialized) {
 #ifdef __WXMSW__
         // Idle events are not dispatched during the Windows resize modal loop,
@@ -5419,7 +5479,11 @@ void GLCanvas3D::update_gizmos_on_off_state()
 
 void GLCanvas3D::handle_sidebar_focus_event(const std::string& opt_key, bool focus_on)
 {
-    m_sidebar_field = focus_on ? opt_key : "";
+    const std::string field = focus_on ? opt_key : "";
+    // The gizmo panels report this on every build.
+    if (m_sidebar_field == field)
+        return;
+    m_sidebar_field = field;
 
     //BBS: this event was sent from gizmo now, no need to clear gizmo
     //if (!m_sidebar_field.empty())
@@ -6422,6 +6486,9 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
     //if (thumbnail_params.transparent_background)
     //    glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
     BOOST_LOG_TRIVIAL(info) << boost::format("render_thumbnail: finished");
+
+    // Puts the canvas viewport back in place of the thumbnail one set above.
+    wxGetApp().plater()->get_camera().apply_viewport();
 }
 
 void GLCanvas3D::render_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
@@ -6672,9 +6739,6 @@ void GLCanvas3D::render_thumbnail_legacy(ThumbnailData& thumbnail_data, unsigned
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT
     debug_output_thumbnail(thumbnail_data);
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT
-
-    // restore the default framebuffer size to avoid flickering on the 3D scene
-    //wxGetApp().plater()->get_camera().apply_viewport();
 }
 
 //BBS: GUI refractor
@@ -7223,15 +7287,15 @@ void GLCanvas3D::_update_camera_zoom(double zoom)
     m_dirty = true;
 }
 
-void GLCanvas3D::_refresh_if_shown_on_screen()
+void GLCanvas3D::_refresh_if_shown_on_screen(bool scene_dirty)
 {
     if (_is_shown_on_screen()) {
         const Size& cnv_size = get_canvas_size();
         _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
 
         // Because of performance problems on macOS, where PaintEvents are not delivered
-        // frequently enough, we call render() here directly when we can.
-        render();
+        // frequently enough, we render here directly when we can.
+        _render_frame(scene_dirty);
     }
 }
 
@@ -7623,6 +7687,28 @@ bool GLCanvas3D::_is_fps_overlay_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
 }
 
+bool GLCanvas3D::_is_scene_cache_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SCENE_CACHE);
+}
+
+bool GLCanvas3D::_is_scene_cacheable() const
+{
+    if (!_is_scene_cache_enabled())
+        return false;
+
+    // The scene moves with the cursor during a drag, under a gizmo that draws at the cursor, and in
+    // layer height editing.
+    const GLGizmoBase* gizmo = m_gizmos.get_current();
+    return !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging() &&
+           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !is_layers_editing_enabled();
+}
+
+bool GLCanvas3D::_is_frame_skipping_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES);
+}
+
 void GLCanvas3D::_render_fps_overlay(int fps) const
 {
     if (fps < 0)
@@ -7643,6 +7729,9 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoInputs);
     imgui.text(std::string("FPS: ") + std::to_string(fps));
+    // The subset of those frames that redrew the scene rather than reusing the cached one.
+    if (_is_scene_cache_enabled())
+        imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
     imgui.end();
 }
 
@@ -7655,23 +7744,7 @@ void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)
     if (shader == nullptr)
         return;
 
-    if (m_fxaa_texture_id == 0) {
-        glsafe(::glGenTextures(1, &m_fxaa_texture_id));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
-    }
-
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
-    if (m_fxaa_texture_size[0] != width || m_fxaa_texture_size[1] != height) {
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
-        m_fxaa_texture_size = { width, height };
-    }
-
-    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    GLTexture::copy_from_framebuffer(m_fxaa_texture_id, m_fxaa_texture_size, width, height, GL_LINEAR);
 
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glDisable(GL_BLEND));
@@ -7845,6 +7918,51 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     glsafe(::glEnable(GL_DEPTH_TEST));
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+}
+
+SceneCache::Key GLCanvas3D::_scene_cache_key(const Camera& camera) const
+{
+    SceneCache::Key key;
+    const std::array<int, 4>& viewport = camera.get_viewport();
+    key.size = { { (unsigned int)viewport[2], (unsigned int)viewport[3] } };
+    key.view_matrix = camera.get_view_matrix();
+    key.projection_matrix = camera.get_projection_matrix();
+    // Hover reaches the scene only through the sinking contour a hovered volume draws over
+    // itself (GLVolumeCollection::render()), the plate icons (PartPlate::render_icons()) and the
+    // open gizmo's grabbers.
+    for (size_t i = 0; i < m_volumes.volumes.size(); ++i) {
+        const GLVolume& volume = *m_volumes.volumes[i];
+        if (volume.hover != GLVolume::HS_None && volume.is_sinking() && !volume.is_below_printbed())
+            key.sinking_hover_volume_idxs.emplace_back((int)i);
+    }
+    for (int id : m_hover_plate_idxs) {
+        if (id % PartPlate::GRABBER_COUNT != 0)
+            key.hover_plate_icon_idxs.emplace_back(id);
+    }
+    const GLGizmoBase* gizmo = m_gizmos.get_current();
+    key.gizmo_hover_id = gizmo != nullptr ? gizmo->get_hover_id() : -1;
+    key.render_preview = m_render_preview;
+    return key;
+}
+
+bool GLCanvas3D::_can_reuse_cached_scene(const Camera& camera) const
+{
+    return _is_scene_cacheable() && m_scene_cache.matches(_scene_cache_key(camera));
+}
+
+void GLCanvas3D::_capture_scene_cache(const Camera& camera)
+{
+    if (!_is_scene_cache_enabled()) {
+        m_scene_cache.reset();
+        return;
+    }
+
+    if (!_is_scene_cacheable()) {
+        m_scene_cache.invalidate();
+        return;
+    }
+
+    m_scene_cache.capture(_scene_cache_key(camera));
 }
 
 void GLCanvas3D::_render_background()
@@ -8474,7 +8592,12 @@ void GLCanvas3D::_render_wireframe_overlay()
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
+    m_gcode_viewer.render_scene(canvas_width, canvas_height);
+}
+
+void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
+{
+    m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
 
@@ -8606,20 +8729,14 @@ void GLCanvas3D::_check_and_update_toolbar_icon_scale()
         wxGetApp().set_auto_toolbar_icon_scale(new_scale);
 }
 
+// The ImGui half of the overlay, drawn by ImGui at the end of the frame.
 void GLCanvas3D::_render_overlays()
 {
-    glsafe(::glDisable(GL_DEPTH_TEST));
-
     _check_and_update_toolbar_icon_scale();
 
     _render_assemble_control();
     _render_assemble_info();
 
-    _render_separator_toolbar_right();
-    _render_separator_toolbar_left();
-    _render_main_toolbar();
-    _render_collapse_toolbar();
-    _render_assemble_view_toolbar();
     //BBS: GUI refactor: GLToolbar
     _render_imgui_select_plate_toolbar();
     _render_return_toolbar();
@@ -8627,12 +8744,13 @@ void GLCanvas3D::_render_overlays()
     //_render_view_toolbar();
     _render_paint_toolbar();
 
-    //BBS: GUI refactor: GLToolbar
-    //move gizmos behind of main
-    _render_gizmos_overlay();
+    // The options window of a pressed toolbar item (arrange).
+    m_main_toolbar.render_item_windows(*this);
+
+    m_gizmos.render_overlay_input_window();
 
     if (m_layers_editing.last_object_id >= 0 && m_layers_editing.object_max_z() > 0.0f)
-        m_layers_editing.render_overlay(*this);
+        m_layers_editing.render_variable_layer_height_dialog(*this);
 
 	auto curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     auto curr_print_seq = curr_plate->get_real_print_seq();
@@ -8659,6 +8777,40 @@ void GLCanvas3D::_render_overlays()
     _render_3d_navigator();
 
     _render_canvas_toolbar();
+
+    // Recorded by the scene pass, which a reused frame skips.
+    wxGetApp().plater()->get_partplate_list().render_hover_tooltip();
+}
+
+// The GL half of the overlay.
+void GLCanvas3D::_render_overlay_toolbars()
+{
+    glsafe(::glDisable(GL_DEPTH_TEST));
+
+    _render_separator_toolbar_right();
+    _render_separator_toolbar_left();
+    _render_main_toolbar();
+    _render_collapse_toolbar();
+    _render_assemble_view_toolbar();
+    //BBS: GUI refactor: GLToolbar
+    //move gizmos behind of main
+    _render_gizmos_overlay();
+
+    if (m_layers_editing.last_object_id >= 0 && m_layers_editing.object_max_z() > 0.0f)
+        m_layers_editing.render_overlay(*this);
+}
+
+size_t GLCanvas3D::_overlay_signature(const ImDrawData* draw_data) const
+{
+    // The recorded ImGui geometry plus the state of the toolbars and the gizmo bar, which draw
+    // outside ImGui.
+    size_t hash = ImGuiWrapper::draw_data_signature(draw_data);
+    for (size_t state_hash : { m_main_toolbar.get_state_hash(), m_separator_toolbar.get_state_hash(),
+                               m_assemble_view_toolbar.get_state_hash(),
+                               wxGetApp().plater()->get_collapse_toolbar().get_state_hash(),
+                               m_gizmos.get_overlay_state_hash() })
+        boost::hash_combine(hash, state_hash);
+    return hash;
 }
 
 void GLCanvas3D::_render_style_editor()

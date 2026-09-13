@@ -32,6 +32,8 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
+#include <boost/functional/hash.hpp>
+
 #include <wx/glcanvas.h>
 
 namespace Slic3r {
@@ -611,6 +613,7 @@ void GLGizmosManager::render_painter_assemble_view() const
         m_assemble_view_data->model_objects_clipper()->render_cut();
 }
 
+// The icon bar, drawn with GL.
 void GLGizmosManager::render_overlay()
 {
     if (!m_enabled)
@@ -619,7 +622,27 @@ void GLGizmosManager::render_overlay()
     if (m_icons_texture_dirty)
         generate_icons_texture();
 
-    do_render_overlay();
+    do_render_overlay(true);
+}
+
+// The open gizmo's settings panel, ImGui.
+void GLGizmosManager::render_overlay_input_window()
+{
+    if (!m_enabled)
+        return;
+
+    do_render_overlay(false);
+}
+
+size_t GLGizmosManager::get_overlay_state_hash() const
+{
+    size_t hash = 0;
+    boost::hash_combine(hash, m_enabled);
+    boost::hash_combine(hash, (int)m_hover);
+    boost::hash_combine(hash, (int)m_current);
+    boost::hash_combine(hash, (int)m_highlight.first);
+    boost::hash_combine(hash, m_highlight.second);
+    return hash;
 }
 
 std::string GLGizmosManager::get_tooltip() const
@@ -1202,7 +1225,9 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
 //when rendering, {0, 0} is at the center, {-0.5, 0.5} at the left-top
-void GLGizmosManager::do_render_overlay() const
+// draw_icons selects the icon bar (GL) or the open gizmo's input window (ImGui), placed by the same
+// layout walk.
+void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
     if (selectable_idxs.empty())
@@ -1241,7 +1266,8 @@ void GLGizmosManager::do_render_overlay() const
     }
     float top_y = 1.0f;
 
-    render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
+    if (draw_icons)
+        render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
 
     top_x += border_w;
     top_y -= border_h;
@@ -1278,7 +1304,8 @@ void GLGizmosManager::do_render_overlay() const
         const float v_top    = v_offset + sprite_id * dv;
         const float v_bottom = v_top + dv - v_offset;
 
-        GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
+        if (draw_icons)
+            GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
         if (idx == m_current
             // Orca: Show Svg dialog at the same place as emboss gizmo
             || (m_current == Svg && idx == Emboss)) {
@@ -1286,7 +1313,8 @@ void GLGizmosManager::do_render_overlay() const
             //render_input_window uses a different coordination(imgui)
             //1. no need to scale by camera zoom, set {0,0} at left-up corner for imgui
             //gizmo->render_input_window(width, 0.5f * cnv_h - zoomed_top_y * zoom, toolbar_top);
-            m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
+            if (!draw_icons)
+                m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
 
             is_render_current = true;
         }
@@ -1294,7 +1322,7 @@ void GLGizmosManager::do_render_overlay() const
     }
 
     // BBS simplify gizmo is not a selected gizmo and need to render input window
-    if (!is_render_current && m_current != Undefined) {
+    if (!draw_icons && !is_render_current && m_current != Undefined) {
         m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
     }
 }

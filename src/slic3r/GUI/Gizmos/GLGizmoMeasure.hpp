@@ -228,6 +228,9 @@ protected:
     void restore_scene_raycasters_state();
 
     void render_dimensioning();
+    // Builds the dimension labels on a frame that reused the cached scene and so skipped on_render().
+    void render_dimensioning_if_scene_reused();
+    bool m_rendered_this_frame{ false };
 
 #if ENABLE_MEASURE_GIZMO_DEBUG
     void render_debug_dialog();
@@ -255,6 +258,9 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The hover is resolved inside on_render(), against the mesh and against the grippers of the
+    // selected features, which sit off the mesh.
+    bool render_follows_cursor() const override;
     void on_render() override;
     void on_set_state() override;
 

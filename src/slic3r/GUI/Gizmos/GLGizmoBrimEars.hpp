@@ -167,6 +167,8 @@ protected:
 
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The preview ear is drawn only while the cursor is on the model.
+    bool render_follows_cursor() const override { return render_hover_point.has_value(); }
     //bool on_is_selectable() const override;
     virtual CommonGizmosDataID on_get_requirements() const override;
     void on_load(cereal::BinaryInputArchive& ar) override;
