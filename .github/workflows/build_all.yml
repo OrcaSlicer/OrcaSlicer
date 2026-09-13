@@ -283,21 +283,41 @@ jobs:
       id: fp_cache_key
       run: echo "key=flatpak-builder-${{ matrix.variant.arch }}-${{ hashFiles('deps/**', 'scripts/flatpak/com.orcaslicer.OrcaSlicer.yml', 'scripts/flatpak/make_deps_tar.sh') }}" >> "$GITHUB_OUTPUT"
       shell: bash
-    # Manage flatpak-builder cache externally so PRs restore but never upload
+    # Manage flatpak-builder cache externally so PRs restore but never upload.
+    # The compiler cache under it is keyed per run below, so it is left out.
     - name: Restore flatpak-builder cache
       if: github.event_name == 'pull_request'
       uses: actions/cache/restore@v6
       with:
-        path: .flatpak-builder
+        path: |
+          .flatpak-builder/*
+          !.flatpak-builder/ccache
         key: ${{ steps.fp_cache_key.outputs.key }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Save/restore flatpak-builder cache
       if: github.event_name != 'pull_request'
       uses: actions/cache@v6
       with:
-        path: .flatpak-builder
+        path: |
+          .flatpak-builder/*
+          !.flatpak-builder/ccache
         key: ${{ steps.fp_cache_key.outputs.key }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
+    # Compiler cache for the OrcaSlicer module, as in build_orca.yml. Pull
+    # requests only restore it; every other run (main, release branches, the
+    # nightly, a dispatch) saves it. orca_deps stays on the state cache above.
+    - name: Name the compiler cache leg
+      run: |
+        leg="Flatpak-${{ matrix.variant.arch }}"
+        echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
+        echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+      shell: bash
+    - name: Restore compiler cache
+      uses: actions/cache/restore@v6
+      with:
+        path: .flatpak-builder/ccache
+        key: ${{ env.CCACHE_ENTRY }}
+        restore-keys: ccache-${{ env.CCACHE_LEG }}-
     - name: Disable debug info for faster CI builds
       run: |
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
@@ -307,6 +327,33 @@ jobs:
       run: |
         sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    # flatpak-builder's --ccache only wraps cc and gcc, and the manifest builds
+    # with clang, so CMake's launcher runs ccache instead; --ccache is still what
+    # mounts the cache directory into the sandbox. The settings go into that
+    # directory's own config file, which the sandbox reads too.
+    - name: Enable compiler cache
+      run: |
+        printf '        %s\n' \
+          'CMAKE_C_COMPILER_LAUNCHER: ccache' \
+          'CMAKE_CXX_COMPILER_LAUNCHER: ccache' > "$RUNNER_TEMP/ccache-env.yml"
+        sed -i "/^        git_commit_hash: /r $RUNNER_TEMP/ccache-env.yml" \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+        grep -q '^        CMAKE_CXX_COMPILER_LAUNCHER: ccache$' scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+        mkdir -p .flatpak-builder/ccache
+        export CCACHE_DIR=$PWD/.flatpak-builder/ccache
+        ccache --set-config=max_size=3G
+        # The compiler is reinstalled every run, so its mtime means nothing.
+        ccache --set-config=compiler_check=content
+        # Headers a fresh checkout has just written, the few files that use
+        # __DATE__ or __TIME__, and the precompiled header, whose macros ccache
+        # cannot see.
+        ccache --set-config=sloppiness=pch_defines,time_macros,include_file_mtime,include_file_ctime
+        # Hash the includes the compiler reports instead of preprocessing every
+        # miss before compiling it.
+        ccache --set-config=depend_mode=true
+        # The restored directory carries the previous run's counters.
+        ccache -z
       shell: bash
     - name: Check the manifest keeps orca_deps cacheable
       run: ./scripts/flatpak/check_manifest_cacheable.sh
@@ -318,9 +365,42 @@ jobs:
       with:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         manifest-path: scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
-        cache: false
+        # cache only turns on flatpak-builder --ccache; the caching itself is above.
+        cache: true
+        restore-cache: false
+        save-cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+    - name: Compiler cache statistics
+      if: always()
+      run: |
+        export CCACHE_DIR=$PWD/.flatpak-builder/ccache
+        ccache -s -v || ccache -s
+      shell: bash
+    # Save the new entry first, then drop the older ones for this leg on this
+    # ref, so a failed save leaves the previous entry in place.
+    - name: Save compiler cache
+      id: ccache_save
+      if: github.event_name != 'pull_request'
+      uses: actions/cache/save@v6
+      with:
+        path: .flatpak-builder/ccache
+        key: ${{ env.CCACHE_ENTRY }}
+    - name: Drop older compiler cache entries
+      if: ${{ steps.ccache_save.outcome == 'success' }}
+      # The container has no gh, so this is the list and delete over the REST API.
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches"
+        curl -sSf -H "Authorization: Bearer $GH_TOKEN" \
+          "$api?ref=$GITHUB_REF&key=ccache-$CCACHE_LEG-&per_page=100" \
+          | jq -r --arg keep "$CCACHE_ENTRY" '.actions_caches[] | select(.key != $keep) | .id' \
+          | while read -r id; do
+              curl -sSf -X DELETE -H "Authorization: Bearer $GH_TOKEN" "$api/$id"
+            done
+      shell: bash
     - name: Upload artifacts Flatpak
       uses: actions/upload-artifact@v7
       with:

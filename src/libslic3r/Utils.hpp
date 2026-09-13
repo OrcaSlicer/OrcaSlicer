@@ -255,6 +255,10 @@ extern bool is_gallery_file(const std::string& path, char const* type);
 extern bool is_shapes_dir(const std::string& dir);
 //BBS: add json support
 extern bool is_json_file(const std::string& path);
+// True if rel_path is relative, has no ".." component and, joined to root, still resolves inside it.
+// Both '/' and '\\' are treated as separators on every platform, so an archive rejected on one OS
+// is rejected on all of them.
+extern bool is_path_within_root(const std::string &rel_path, const boost::filesystem::path &root);
 
 // Orca: custom protocal support utils
 inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }

@@ -53,3 +53,4 @@ __pycache__/
 *.pyc
 *.opc
 /.test/
+docs/superpowers/
