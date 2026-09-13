@@ -372,10 +372,13 @@ jobs:
         save-cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+    # The build has just touched everything it can use, so an object untouched
+    # for a week is dead, usually orphaned by a flag change.
     - name: Compiler cache statistics
       if: always()
       run: |
         export CCACHE_DIR=$PWD/.flatpak-builder/ccache
+        ccache --evict-older-than 7d
         ccache -s -v || ccache -s
       shell: bash
     # Save the new entry first, then drop the older ones for this leg on this
