@@ -4119,7 +4119,7 @@ void TabFilament::add_filament_overrides_page()
         append_retraction_option(retraction_optgroup, opt_key, extruder_idx);
 
     ConfigOptionsGroupShp toolchange_optgroup = page->new_optgroup(L("Retraction when switching material"), L"param_retraction_material_change");
-    for (const std::string opt_key : toolchange_opt_keys)
+    for (const std::string& opt_key : toolchange_opt_keys)
         append_retraction_option(toolchange_optgroup, opt_key, extruder_idx);
 
     auto append_option = [&](ConfigOptionsGroupShp& optgroup, const std::string& opt_key, int opt_index)
@@ -4179,7 +4179,7 @@ void TabFilament::add_filament_overrides_page()
         ? m_preset_bundle->prints.get_edited_preset().config.opt_bool("set_other_flow_ratios")
         : flow_gate->get_at(extruder_idx);
 
-    for (const auto opt_key : gated_by_set_other_flow_ratios) {
+    for (const std::string_view& opt_key : gated_by_set_other_flow_ratios) {
         toggle_line(std::string(opt_key), set_other_flow_ratios, extruder_idx + 256);
     }
 }
@@ -4203,7 +4203,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     std::vector<std::string> opt_keys = retraction_opt_keys;
 
     opt_keys.reserve(opt_keys.size() + toolchange_opt_keys.size());
-    for (const auto opt_key : toolchange_opt_keys)
+    for (const std::string& opt_key : toolchange_opt_keys)
         opt_keys.emplace_back(opt_key);
 
     const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
