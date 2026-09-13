@@ -5984,9 +5984,10 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
+msgstr "พบความขัดแย้งของเส้นทาง G-code ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
 msgid "An object is laid over the plate boundaries."
 msgstr "มีวัตถุวางอยู่เหนือขอบเขตของแผ่น"
@@ -9724,8 +9725,9 @@ msgstr "ไม่ได้เปิดใช้งาน"
 msgid "material not published"
 msgstr "วัสดุไม่ได้รับการเผยแพร่"
 
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เปิดใช้งานเส้นพลาสติกทั้งหมดที่ใช้ และเลือก เผยแพร่ทั้งหมด (Full Publish) หรือทำเครื่องหมายข้อกำหนดประเภท (Type)"
+msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เลือก \"เปิดใช้\" สำหรับเส้นพลาสติกทุกเส้นที่เป็นส่วนประกอบ แล้วเลือก \"เผยแพร่ทั้งหมด (Full Publish)\" หรือทำเครื่องหมายที่ข้อกำหนด \"ชนิด\" ของแต่ละเส้น"
 
 msgid "Publish anyway"
 msgstr "เผยแพร่ต่อไป"
@@ -9742,11 +9744,13 @@ msgstr "Wiki การเผยแพร่ 3MF"
 msgid "Publish 3MF Video Guide"
 msgstr "วิดีโอแนะนำการเผยแพร่ 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr "เส้นพลาสติกผสม - จะได้รับการเผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้งาน\" ด้านบน"
+msgstr "เส้นพลาสติกผสม - จะได้รับการเผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้\" ด้านบน"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr "เผยแพร่เส้นพลาสติกผสมนี้ พร้อมเปิดใช้งานและเผยแพร่ทั้งหมด (Full Publish) เส้นพลาสติกที่เป็นส่วนประกอบ"
+msgstr "เผยแพร่เส้นพลาสติกผสมนี้ พร้อมเลือก \"เปิดใช้\" และ \"เผยแพร่ทั้งหมด (Full Publish)\" ให้เส้นพลาสติกที่เป็นส่วนประกอบ"
 
 msgid "Publish this filament slot in the 3MF file"
 msgstr "เผยแพร่ช่องเส้นพลาสติกนี้ในไฟล์ 3MF"
@@ -13684,8 +13688,9 @@ msgstr "จัดแนวเป็นเส้นตรง"
 msgid "Concentric"
 msgstr "ศูนย์กลาง"
 
+# AI Translated
 msgid "Spiral Inset"
-msgstr "เกลียวย่น (Spiral Inset)"
+msgstr "เกลียวร่นเข้า (Spiral Inset)"
 
 msgid "Hilbert Curve"
 msgstr "ฮิลเบิร์ต เคิร์ฟ"
@@ -13776,12 +13781,13 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "ลำดับการเติมพื้นผิวด้านบน"
 
+# AI Translated
 msgid ""
 "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral)\n"
+"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
 "ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
 "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
@@ -13789,12 +13795,13 @@ msgstr ""
 msgid "Bottom surface fill order"
 msgstr "ลำดับการเติมพื้นผิวด้านล่าง"
 
+# AI Translated
 msgid ""
 "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral)\n"
+"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
 "เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
 "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
