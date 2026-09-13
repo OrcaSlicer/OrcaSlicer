@@ -323,13 +323,16 @@ jobs:
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
-    # ci_cache_buster (unique per run) forces the OrcaSlicer module to always
-    # rebuild so the test asset is always produced; deps modules stay cached.
-    - name: Inject commit hash and cache-buster into Flatpak manifest
+    # flatpak-builder reuses a module from its cache when the definition and
+    # sources are unchanged, so a re-run of the same commit would skip the
+    # OrcaSlicer module and ship no test asset. A per-run value in that module's
+    # env keeps it rebuilding; orca_deps stays cached, and the compiler cache
+    # still serves the rebuild.
+    - name: Inject commit hash and flatpak-builder cache buster into Flatpak manifest
       env:
-        ci_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
+        flatpak_builder_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
       run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"\n        ci_cache_buster: \"$ci_cache_buster\"|}" \
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        flatpak_builder_cache_buster: \"$flatpak_builder_cache_buster\"\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     # flatpak-builder's --ccache only wraps cc and gcc, and the manifest builds
@@ -444,7 +447,8 @@ jobs:
         name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
         path: flatpak-test-asset.tar
         retention-days: 1
-    - name: Trim kept build dirs before caching
+    # keep-build-dirs would otherwise land in the flatpak-builder cache saved post-job.
+    - name: Drop the kept build dirs before the flatpak-builder cache saves
       if: always()
       shell: bash
       run: rm -rf .flatpak-builder/build
