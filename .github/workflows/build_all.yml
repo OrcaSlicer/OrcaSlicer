@@ -207,7 +207,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -323,9 +323,16 @@ jobs:
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
-    - name: Inject git commit hash into Flatpak manifest
+    # flatpak-builder reuses a module from its cache when the definition and
+    # sources are unchanged, so a re-run of the same commit would skip the
+    # OrcaSlicer module and ship no test asset. A per-run value in that module's
+    # env keeps it rebuilding; orca_deps stays cached, and the compiler cache
+    # still serves the rebuild.
+    - name: Inject commit hash and flatpak-builder cache buster into Flatpak manifest
+      env:
+        flatpak_builder_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
       run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        flatpak_builder_cache_buster: \"$flatpak_builder_cache_buster\"\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     # flatpak-builder's --ccache only wraps cc and gcc, and the manifest builds
@@ -371,6 +378,10 @@ jobs:
         save-cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+        # run-tests fires the module's build-only test-commands; keep-build-dirs
+        # retains the binaries for the packaging step below.
+        run-tests: true
+        keep-build-dirs: true
     - name: Compiler cache statistics
       if: always()
       run: |
@@ -416,3 +427,46 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+    # The asset is /app (the exes link it at runtime) plus the build tree
+    # slimmed to what ctest needs.
+    - name: Package flatpak test asset
+      shell: bash
+      run: |
+        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+        find "$d/build_flatpak" -mindepth 1 -maxdepth 1 ! -name tests -exec rm -rf {} +
+        # Strip debug info (the SDK builds with -g, only the app gets stripped);
+        # the bounds checks are compiled in, so a stripped exe still catches them.
+        find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
+        # At runtime the tests read tests/ (TEST_DATA_DIR), scripts/, and under
+        # resources/ the shipped profiles (PROFILES_DIR) and the printers/ maps.
+        find "$d" -mindepth 1 -maxdepth 1 -type d \
+          ! -name tests ! -name build_flatpak ! -name scripts ! -name resources -exec rm -rf {} +
+        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers -exec rm -rf {} +
+        tar -cf flatpak-test-asset.tar flatpak_app "$d"
+    - name: Upload flatpak test asset
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
+        path: flatpak-test-asset.tar
+        retention-days: 1
+    # keep-build-dirs would otherwise land in the flatpak-builder cache saved post-job.
+    - name: Drop the kept build dirs before the flatpak-builder cache saves
+      if: always()
+      shell: bash
+      run: rm -rf .flatpak-builder/build
+  unit_tests_flatpak_x86_64:
+    name: Flatpak x86_64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04
+      artifact: ${{ github.sha }}-flatpak-tests-x86_64
+  unit_tests_flatpak_aarch64:
+    name: Flatpak aarch64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04-arm
+      artifact: ${{ github.sha }}-flatpak-tests-aarch64

@@ -378,6 +378,17 @@ modules:
       - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
+    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # test job. Only the test sources compile; nothing installs to /app.
+    test-commands:
+      - cmake . -B build_flatpak -DBUILD_TESTS=ON
+      # A suite missing from this list fails the leg loudly, since ctest registers a
+      # <target>_NOT_BUILT test for it. (tests/all is a Ninja subdirectory target and
+      # this build uses the default Makefile generator, so it is not available here.)
+      - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
+          libslic3r_tests fff_print_tests sla_print_tests libnest2d_tests slic3rutils_tests
+          filament_group_tests
+
     cleanup:
       - /include
 
@@ -414,6 +425,10 @@ modules:
       - type: dir
         path: ../../localization
         dest: localization
+      # For the post-build unit-test step (BUILD_TESTS=ON); not built by the app.
+      - type: dir
+        path: ../../tests
+        dest: tests
 
       - type: file
         path: ../../CMakeLists.txt
@@ -426,6 +441,9 @@ modules:
         dest: scripts
       - type: file
         path: ../build_preset_cache.sh
+        dest: scripts
+      - type: file
+        path: ../run_unit_tests.sh
         dest: scripts
 
       # AppData metainfo for GNOME Software & Co.

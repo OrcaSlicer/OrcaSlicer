@@ -1,0 +1,66 @@
+name: Flatpak Unit Tests
+
+# Run the flatpak build's test asset inside the sandbox, once per arch. The
+# GNOME SDK's _GLIBCXX_ASSERTIONS gives a bounds-checked STL that catches
+# out-of-bounds reads no other test leg does.
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      artifact:
+        description: Test asset uploaded by the flatpak build leg
+        required: true
+        type: string
+
+jobs:
+  unit_tests_flatpak:
+    name: Flatpak Unit Tests
+    runs-on: ${{ inputs.os }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - name: Restore test asset
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact }}
+      - name: Run unit tests (bounds-checked sandbox)
+        shell: bash
+        run: |
+          tar -xf flatpak-test-asset.tar
+          # Recreate the stable module symlink so /run/build/OrcaSlicer resolves.
+          d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+          ln -sfn "$(basename "$d")" .flatpak-builder/build/OrcaSlicer
+          # The runtime + SDK + the llvm extension the app metadata references,
+          # which `flatpak build` mounts; best-effort, the image may have them.
+          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub \
+            org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
+          # `flatpak build` uses bwrap (no rofiles-fuse, which this container
+          # rejects); bind-mount the build tree so the baked TEST_DATA_DIR resolves.
+          flatpak build --die-with-parent --share=network \
+            --bind-mount=/run/build="$PWD/.flatpak-builder/build" \
+            flatpak_app \
+            bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
+      - name: Collect test results
+        if: always()
+        shell: bash
+        run: |
+          d=$(ls -d .flatpak-builder/build/OrcaSlicer-* 2>/dev/null | tail -1 || true)
+          [ -n "$d" ] && [ -f "$d/ctest_results.xml" ] && cp "$d/ctest_results.xml" ctest_results.xml || true
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ inputs.artifact }}
+          path: ctest_results.xml
+          retention-days: 5
+          if-no-files-found: warn
+      - name: Delete Test Asset
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: ${{ inputs.artifact }}
+          failOnError: false
