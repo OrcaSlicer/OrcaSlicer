@@ -2348,9 +2348,9 @@ namespace DoExport {
         static const unsigned int MAX_TAGS_COUNT = 5;
         std::vector<std::pair<std::string, std::string>> ret;
 
-        auto check = [&ret](const std::string& source, const std::string& gcode) {
+        auto check = [&ret, is_bbl_printer = print.is_BBL_printer()](const std::string& source, const std::string& gcode) {
             std::vector<std::string> tags;
-            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags)) {
+            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags, is_bbl_printer)) {
                 if (!tags.empty()) {
                     size_t i = 0;
                     while (ret.size() < MAX_TAGS_COUNT && i < tags.size()) {
