@@ -428,6 +428,10 @@
 			"sub_path": "machine/fdm_klipper_common.json"
 		},
 		{
+			"name": "fdm_ultra_common",
+			"sub_path": "machine/fdm_ultra_common.json"
+		},
+		{
 			"name": "WonderMaker ZR 0.4 nozzle",
 			"sub_path": "machine/WonderMaker ZR 0.4 nozzle.json"
 		},
