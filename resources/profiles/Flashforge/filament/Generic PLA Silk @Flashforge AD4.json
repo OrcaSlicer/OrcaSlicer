@@ -2,10 +2,10 @@
 	"type": "filament",
 	"name": "Generic PLA Silk @Flashforge AD4",
 	"renamed_from": "PLA Silk @Flashforge AD4",
-	"inherits": "Flashforge Generic PLA-Silk",
+	"inherits": "Generic PLA-Silk @Flashforge",
 	"from": "system",
 	"setting_id": "9FrKIXABj3yedXri",
-	"filament_id": "GFL99",
+	"filament_id": "OFesA6rF",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.07"

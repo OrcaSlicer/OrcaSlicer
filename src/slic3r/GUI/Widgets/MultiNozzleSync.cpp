@@ -20,6 +20,8 @@
 #include <set>
 
 #include <wx/choice.h>
+#include <wx/filename.h>
+#include <wx/filesys.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -600,7 +602,7 @@ StaticBox* HotEndTable::CreateNozzleBox(const std::vector<int>& nozzle_indices)
 void HotEndTable::UpdateNozzleItems(const std::unordered_map<int, wgtDeviceNozzleRackNozzleItem*>& nozzle_items, std::shared_ptr<DevNozzleRack> nozzle_rack)
 {
     for (auto& item : nozzle_items)
-        item.second->Update(nozzle_rack);
+        item.second->UpdateInfo(nozzle_rack);
 }
 
 void HotEndTable::OnPaint(wxPaintEvent& evt)

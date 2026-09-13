@@ -1,6 +1,6 @@
 {
 	"name": "CoLiDo",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "CoLiDo configurations",
 	"machine_model_list": [
@@ -189,32 +189,32 @@
 			"sub_path": "filament/CoLiDo ABS @CoLiDo SR1.json"
 		},
 		{
-			"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0",
-			"sub_path": "filament/CoLiDo Generic ABS @CoLiDo DIY 4.0.json"
+			"name": "Generic ABS @CoLiDo DIY 4.0",
+			"sub_path": "filament/Generic ABS @CoLiDo DIY 4.0.json"
 		},
 		{
-			"name": "CoLiDo Generic ABS @CoLiDo X16",
-			"sub_path": "filament/CoLiDo Generic ABS @CoLiDo X16.json"
+			"name": "Generic ABS @CoLiDo X16",
+			"sub_path": "filament/Generic ABS @CoLiDo X16.json"
 		},
 		{
-			"name": "CoLiDo Generic PETG @CoLiDo DIY 4.0",
-			"sub_path": "filament/CoLiDo Generic PETG @CoLiDo DIY 4.0.json"
+			"name": "Generic PETG @CoLiDo DIY 4.0",
+			"sub_path": "filament/Generic PETG @CoLiDo DIY 4.0.json"
 		},
 		{
-			"name": "CoLiDo Generic PETG @CoLiDo X16",
-			"sub_path": "filament/CoLiDo Generic PETG @CoLiDo X16.json"
+			"name": "Generic PETG @CoLiDo X16",
+			"sub_path": "filament/Generic PETG @CoLiDo X16.json"
 		},
 		{
 			"name": "CoLiDo PETG @CoLiDo SR1",
 			"sub_path": "filament/CoLiDo PETG @CoLiDo SR1.json"
 		},
 		{
-			"name": "CoLiDo Generic PLA @CoLiDo DIY 4.0",
-			"sub_path": "filament/CoLiDo Generic PLA @CoLiDo DIY 4.0.json"
+			"name": "Generic PLA @CoLiDo DIY 4.0",
+			"sub_path": "filament/Generic PLA @CoLiDo DIY 4.0.json"
 		},
 		{
-			"name": "CoLiDo Generic PLA @CoLiDo X16",
-			"sub_path": "filament/CoLiDo Generic PLA @CoLiDo X16.json"
+			"name": "Generic PLA @CoLiDo X16",
+			"sub_path": "filament/Generic PLA @CoLiDo X16.json"
 		},
 		{
 			"name": "CoLiDo PLA @CoLiDo SR1",
@@ -229,12 +229,12 @@
 			"sub_path": "filament/CoLiDo PLA+ @CoLiDo DIY 4.0 V2.json"
 		},
 		{
-			"name": "CoLiDo Generic TPU @CoLiDo DIY 4.0",
-			"sub_path": "filament/CoLiDo Generic TPU @CoLiDo DIY 4.0.json"
+			"name": "Generic TPU @CoLiDo DIY 4.0",
+			"sub_path": "filament/Generic TPU @CoLiDo DIY 4.0.json"
 		},
 		{
-			"name": "CoLiDo Generic TPU @CoLiDo X16",
-			"sub_path": "filament/CoLiDo Generic TPU @CoLiDo X16.json"
+			"name": "Generic TPU @CoLiDo X16",
+			"sub_path": "filament/Generic TPU @CoLiDo X16.json"
 		}
 	],
 	"machine_list": [

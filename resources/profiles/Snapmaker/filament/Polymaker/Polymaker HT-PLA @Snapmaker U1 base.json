@@ -3,7 +3,7 @@
 	"name": "Polymaker HT-PLA @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM017",
+	"filament_id": "OFPoyiFs",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

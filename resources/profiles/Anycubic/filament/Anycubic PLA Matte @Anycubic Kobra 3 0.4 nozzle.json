@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic PLA Matte @Anycubic Kobra 3 0.4 nozzle",
-	"inherits": "Anycubic Generic PLA",
+	"inherits": "Generic PLA @Anycubic",
 	"from": "system",
 	"setting_id": "kVOaVF3YyfGrXTdW",
-	"filament_id": "GFL95",
+	"filament_id": "OFIE3vOf",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"

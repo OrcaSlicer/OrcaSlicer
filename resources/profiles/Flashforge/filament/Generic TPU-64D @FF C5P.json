@@ -4,6 +4,7 @@
 	"inherits": "Generic TPU @System",
 	"from": "system",
 	"setting_id": "ERMhwufaef91KJ1d",
+	"filament_id": "OF5c6nq3",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

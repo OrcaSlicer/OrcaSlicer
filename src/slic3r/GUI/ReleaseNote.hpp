@@ -35,6 +35,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include "Widgets/HyperLink.hpp"
 #include <wx/hashmap.h>
 #include <wx/webview.h>
 

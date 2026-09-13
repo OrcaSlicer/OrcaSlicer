@@ -11,6 +11,7 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include <wx/tooltip.h>
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 

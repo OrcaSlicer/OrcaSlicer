@@ -5,8 +5,10 @@
 #include <thread>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
+#include <wx/timer.h>
 
 class Button;
+class Label;
 class CheckBox;
 namespace Slic3r { namespace GUI {
 class CapsuleButton;

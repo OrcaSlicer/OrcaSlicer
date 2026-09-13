@@ -159,11 +159,27 @@ enum class SaveStrategy
     SkipAuxiliary       = 1 << 9,
     UseLoadedId         = 1 << 10,
     ShareMesh           = 1 << 11,
+    // Keep this separate from SplitModel, which uses the 0x1000 bit as part of its
+    // production-extension value.
+    MinimalPublished    = 1 << 13,
 
     SplitModel = 0x1000 | ProductionExt,
     Encrypted  = SecureContentExt | SplitModel,
     Backup = 0x10000 | WithGcode | Silence | SkipStatic | SplitModel,
 };
+
+// Model metadata keys of a "published" 3MF (see MinimalPublished): the flag marks a minimal,
+// tag-less publish export, the others carry the author-selected settings payload. Namespaced
+// with the "orca_published" prefix because metadata_items round-trips verbatim through other
+// slicers, where a bare "published" key could collide.
+inline constexpr const char *ORCA_PUBLISHED_TAG          = "orca_published";
+inline constexpr const char *ORCA_PUBLISHED_KEYS_TAG     = "orca_published_keys";
+inline constexpr const char *ORCA_PUBLISHED_MATERIAL_TAG = "orca_published_material_keys";
+inline constexpr const char *ORCA_PUBLISHED_CONFIG_TAG   = "orca_published_config";
+
+// Published files are produced with "1". The importer and the GUI loader both gate on this
+// exact value, so a "0"/"false"/unknown value is rejected consistently.
+bool is_published_3mf_flag(const std::string &value);
 
 inline SaveStrategy operator | (SaveStrategy lhs, SaveStrategy rhs)
 {
@@ -276,6 +292,9 @@ extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSub
         bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0);
 
 extern std::string bbs_3mf_get_thumbnail(const char * path);
+
+// Lightweight check: does this 3mf carry the "published" (orca_published == "1") marker? Only reads the 3D/3dmodel.model metadata node
+extern bool bbs_3mf_is_published(const std::string &path);
 
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);

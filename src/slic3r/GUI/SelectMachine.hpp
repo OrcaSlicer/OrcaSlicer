@@ -662,7 +662,6 @@ private:
     ScalableButton* m_button_question { nullptr };
 
     wxStaticBitmap* m_bed_image{ nullptr };
-    Label*         m_text_bed_type;
 };
 
 
