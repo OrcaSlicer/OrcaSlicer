@@ -744,12 +744,15 @@ jobs:
       - name: Drop older compiler cache entries
         if: ${{ always() && steps.ccache_save.outcome == 'success' }}
         # A read-only token (fork PRs) cannot delete; that only costs storage.
+        # Older means a lower run id, so two runs finishing close together keep
+        # the newer entry whichever of them cleans up last.
         continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh cache list --ref "$GITHUB_REF" --key "ccache-$CCACHE_LEG-" --limit 100 --json id,key \
-            | jq -r --arg keep "$CCACHE_ENTRY" '.[] | select(.key != $keep) | .id' \
+            | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
+                '.[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \
             | tr -d '\r' \
             | while read -r id; do gh cache delete "$id"; done

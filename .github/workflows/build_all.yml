@@ -392,6 +392,8 @@ jobs:
     - name: Drop older compiler cache entries
       if: ${{ always() && steps.ccache_save.outcome == 'success' }}
       # The container has no gh, so this is the list and delete over the REST API.
+      # Older means a lower run id, so two runs finishing close together keep
+      # the newer entry whichever of them cleans up last.
       continue-on-error: true
       env:
         GH_TOKEN: ${{ github.token }}
@@ -399,7 +401,8 @@ jobs:
         api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches"
         curl -sSf -H "Authorization: Bearer $GH_TOKEN" \
           "$api?ref=$GITHUB_REF&key=ccache-$CCACHE_LEG-&per_page=100" \
-          | jq -r --arg keep "$CCACHE_ENTRY" '.actions_caches[] | select(.key != $keep) | .id' \
+          | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
+              '.actions_caches[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \
           | while read -r id; do
               curl -sSf -X DELETE -H "Authorization: Bearer $GH_TOKEN" "$api/$id"
             done
