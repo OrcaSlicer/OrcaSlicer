@@ -2,10 +2,10 @@
 	"type": "filament",
 	"name": "Generic ASA @Flashforge AD4",
 	"renamed_from": "Generic ASA @AD4",
-	"inherits": "Flashforge Generic ASA",
+	"inherits": "Generic ASA @Flashforge",
 	"from": "system",
 	"setting_id": "tq7YmJohYaNiPplE",
-	"filament_id": "GFL99",
+	"filament_id": "OFLPAxz3",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

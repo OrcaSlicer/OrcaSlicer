@@ -272,6 +272,8 @@ set(lisbslic3r_sources
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
     GCode/WipeTower.hpp
+    GCode/WipeTowerEstimate.cpp
+    GCode/WipeTowerEstimate.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
     Geometry/ArcWelder.hpp
@@ -370,6 +372,8 @@ set(lisbslic3r_sources
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PublishSettings.cpp
+    PublishSettings.hpp
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
@@ -554,6 +558,12 @@ if (_opts)
     target_compile_options(libslic3r_cgal PRIVATE "${_opts_bad}")
 endif()
 
+if (IS_CLANG_CL)
+    # CGAL passes /fp:strict /fp:except-. clang-cl reports the second as overriding part of
+    # the first; the settings cc1 receives are the same ones MSVC produces from that pair.
+    target_compile_options(libslic3r_cgal PRIVATE -Wno-overriding-option)
+endif ()
+
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs)
 
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
@@ -664,6 +674,13 @@ endif()
 if(SLIC3R_PROFILE)
     target_link_libraries(libslic3r PRIVATE Shiny)
 endif()
+
+if (WIN32)
+    # Public, since BlacklistedLibraryCheck.hpp includes windows.h. Empty
+    # WIN32_LEAN_AND_MEAN matches the sources that define it themselves; bare
+    # NOMINMAX matches the one libigl already passes.
+    target_compile_definitions(libslic3r PUBLIC "WIN32_LEAN_AND_MEAN=" "NOMINMAX")
+endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)

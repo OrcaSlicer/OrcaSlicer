@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PETG-CF @base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "1042511226",
+	"filament_id": "OF3msXEa",
 	"instantiation": "false",
 	"required_nozzle_HRC": [
 		"40"

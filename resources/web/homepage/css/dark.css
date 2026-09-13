@@ -39,7 +39,7 @@ body
 .BtnItem:hover
 {
 	color: #efeff0;
-	background-color: #223C3C;
+	background-color: var(--row-hover);
 }
 
 .BtnItem:hover .LeftIcon
@@ -50,7 +50,7 @@ body
 .BtnItemSelected
 {
 	color: #efeff0;
-	background-color: #223C3C;
+	background-color: var(--row-hover);
 }
 
 .BtnItemSelected .LeftIcon
@@ -129,12 +129,23 @@ body
     border: 1px solid rgba(129, 129, 131, 0.64);
 }
 
-/*--- Account Sections ---*/
-.AccountSectionLabel    { color: #818183; }
-.OrcaAccountText        { color: #efeff0; }
-.AccountStatusText      { color: #818183; }
-
-/*--- Bambu Cloud Section ---*/
-#BambuCloudHeader       { color: #818183; }
-#BambuCloudHeader:hover { color: #efeff0; }
-.bambu-chevron svg path { stroke: currentColor; }
+/*--- Account rows and account menu ---*/
+:root
+{
+	--row-hover            : #223C3C;
+	--warn-color           : #F07E4A;
+	--account-avatar-bg    : #3A3A40;
+	--account-avatar-glyph : #7E8785;
+	--account-surface      : #36363B;
+	--account-name         : #EFEFF0;
+	--account-meta         : #949494;
+	--account-border       : #4A4A51;
+	--account-divider      : #3A3A42;
+	--account-action       : #26A69A;
+	--account-danger       : #FF6A6A;
+	--account-danger-bg    : rgba(225, 71, 71, 0.16);
+	--account-warn-bg      : rgba(240, 126, 74, 0.16);  /*----var(--warn-color) at 16%----*/
+	--account-dot-off      : #5A5A62;
+	--account-dot-on       : #4CAF50;
+	--account-menu-shadow  : 0 10px 28px rgba(0, 0, 0, 0.45);
+}

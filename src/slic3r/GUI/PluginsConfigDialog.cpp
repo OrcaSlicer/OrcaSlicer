@@ -1,6 +1,7 @@
 #include "PluginsConfigDialog.hpp"
 
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
 

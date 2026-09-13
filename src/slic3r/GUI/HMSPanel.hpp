@@ -25,7 +25,6 @@ class HMSNotifyItem : public wxPanel
     wxStaticBitmap *m_bitmap_notify;
     wxStaticBitmap *m_bitmap_arrow;
     wxStaticText *  m_hms_content;
-    wxHtmlWindow *  m_html;
     wxPanel *       m_staticline;
 
     wxBitmap m_img_notify_lv1;

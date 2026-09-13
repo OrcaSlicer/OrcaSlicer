@@ -42,9 +42,36 @@ public:
 	static const std::map<float, float> min_depth_per_height;
     static float get_limit_depth_by_height(float max_height);
     static float get_auto_brim_by_height(float max_height);
+    // Both generators lay the brim in whole loops one line spacing apart, so the printed width
+    // differs from the configured one. WipeTower reports it with half a spacing of line width
+    // added, WipeTower2 reports the loops alone; an estimate has to round like the generator
+    // whose G-code it stands in for.
+    static float estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height, bool type2);
+    // Depth a Type1 tower reserves once nothing but wrapping detection asks for one.
+    static float get_wrapping_detection_depth();
+    // Line width of the nozzle-change purge lines at this nozzle diameter.
+    static float nozzle_change_perimeter_width(float nozzle_diameter);
     static TriangleMesh                 its_make_rib_tower(float width, float depth, float height, float rib_length, float rib_width, bool fillet_wall);
     static TriangleMesh                 its_make_rib_brim(const Polygon& brim, float layer_height);
     static Polygon                      rib_section(float width, float depth, float rib_length, float rib_width, bool fillet_wall);
+    // One filament's share of a Type1 tower layer, as plan_tower_new() reserves it.
+    struct PurgeEstimate
+    {
+        float prime_volume           = 0.f;   // mm3 wiped after changing to this filament
+        int   category               = 0;     // filament_adhesiveness_category; one purge block per category
+        float filament_change_length = 0.f;   // mm of filament rammed when it leaves its nozzle; 0 when no nozzle change is planned
+        float filament_diameter      = 1.75f;
+    };
+    // Depth of the Type1 purge stack at the given width (also the rectangle-wall depth): each
+    // purge is whole lines at the block infill gap, one block per adhesiveness category sized by
+    // its worst layer, stacked behind one perimeter width.
+    static float estimate_tower_blocks_depth(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing);
+    // Side of the square bounding a rib-wall tower's first layer, brim excluded: the body plus the
+    // rib bulge, with the ribs extended to the height-based minimum as both generators do.
+    static float rib_footprint_side(float width, float depth, float rib_width, float extra_rib_length, float max_height);
+    // Type1 rib tower: plan_tower_new() squares the tower from the depth at the configured width,
+    // then re-plans the depth at the squared width.
+    static float estimate_rib_tower_bbox_side(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing, float rib_width, float extra_rib_length, float max_height);
     // Translation that brings a footprint inside the printable outline, padded by offset. The prime
     // tower is validated against the real outline (see layered_print_cleareance_valid), so clamping
     // against the bounding box alone would leave it off a delta or hexagonal bed. box and polygons

@@ -1,6 +1,7 @@
 #include "CalibrationWizard.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "MsgDialog.hpp"
 #include "CalibrationWizardPage.hpp"
 #include "../../libslic3r/calib.hpp"

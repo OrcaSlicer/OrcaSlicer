@@ -1,6 +1,9 @@
 #include "EncodedFilament.hpp"
+#include <nlohmann/json.hpp>
 
 #include "GUI_App.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

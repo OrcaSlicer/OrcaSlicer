@@ -8,6 +8,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <nlohmann/json.hpp>
 
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -29,6 +30,8 @@
 #include "Http.hpp"
 #include <wx/busyinfo.h>
 
+
+using json = nlohmann::json;
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

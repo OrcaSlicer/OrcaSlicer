@@ -1,5 +1,6 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
+#include "Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
 #include "wx/graphics.h"
 #include "Widgets/Label.hpp"

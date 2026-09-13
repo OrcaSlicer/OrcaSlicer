@@ -5,7 +5,6 @@
 	"inherits": "Generic TPU @System",
 	"from": "system",
 	"setting_id": "H45dfn4BGdLAx9nN",
-	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

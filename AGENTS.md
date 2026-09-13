@@ -25,6 +25,13 @@ ctest --test-dir ./tests/libslic3r              # individual suite
 ctest --test-dir ./tests/fff_print
 ```
 
+## Documentation
+
+- Docs live in `docs/`; the high-level design of a subsystem goes in `docs/HLSD/<subsystem>.md`.
+- Describe the design as it stands — what the subsystem does, why it exists, and the constraints that shape it. Not the route that got there: no phases, task lists, status markers, or "before/after this PR" framing.
+- Planning and investigation output (brainstorms, superpowers design and plan docs) stays in `docs/superpowers/`, which is gitignored. Never commit it.
+- Write a doc only when the design is not evident from the code, and when a change invalidates an existing one, update it in the same PR.
+
 ## Code Style
 
 - C++17, selective C++20. PascalCase classes, snake_case functions/variables

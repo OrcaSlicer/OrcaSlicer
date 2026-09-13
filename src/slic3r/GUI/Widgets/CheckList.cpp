@@ -1,6 +1,7 @@
 #include "CheckList.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 CheckList::CheckList(
     wxWindow* parent,

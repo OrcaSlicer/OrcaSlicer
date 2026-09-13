@@ -97,6 +97,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
+    GUI/ConfigValueFormatter.cpp
+    GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
     GUI/ConfigWizard_private.hpp
@@ -451,6 +453,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PublishSettingsDialog.cpp
+    GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
@@ -916,6 +920,9 @@ endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r_gui pchheader.hpp FORCEINCLUDE)
+elseif (MSVC)
+    # Puts the Windows headers first when the PCH is off.
+    target_compile_options(libslic3r_gui PRIVATE "/FIslic3r/win_platform.hpp")
 endif ()
 
 if (APPLE)
@@ -980,10 +987,6 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
-
-if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
-    target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
-endif()
 
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE

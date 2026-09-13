@@ -995,7 +995,7 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     radio_btn_name[AIR_DUCT::AIR_DUCT_HEATING_INTERNAL_FILT] = _L("Heating");
     radio_btn_name[AIR_DUCT::AIR_DUCT_EXHAUST] = _L("Exhaust");
     radio_btn_name[AIR_DUCT::AIR_DUCT_FULL_COOLING] = _L("Full Cooling");
-    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = L("Init");
+    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = _L("Init");
 
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_CHAMBER] = _L("Chamber");
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_INNERLOOP] = _L("Innerloop");

@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Vzbot",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Vzbot Generic PLA-CF",
+	"from": "system",
+	"setting_id": "FETpZHhHj60hztGS",
+	"filament_id": "OFWbdGsC",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"filament_max_volumetric_speed": [
+		"50"
+	],
+	"slow_down_layer_time": [
+		"7"
+	],
+	"compatible_printers": [
+		"Vzbot 235 AWD 0.4 nozzle",
+		"Vzbot 330 AWD 0.4 nozzle",
+		"Vzbot 235 AWD 0.5 nozzle",
+		"Vzbot 235 AWD 0.6 nozzle",
+		"Vzbot 330 AWD 0.5 nozzle",
+		"Vzbot 330 AWD 0.6 nozzle"
+	]
+}
