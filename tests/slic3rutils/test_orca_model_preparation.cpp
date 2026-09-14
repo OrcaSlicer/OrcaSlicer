@@ -112,6 +112,61 @@ TEST_CASE("Generated artifact recognition survives portable 3MF source paths", "
     CHECK_FALSE(same_generated_artifact_name(name, "orcaslicer-ai-428a0fe0-8183-4afd-9322-e16be8e77df5.obj"));
     const std::string finish = "orcaslicer-ai-finish-8cf12cbe-5f0b-4145-8347-8f6f3d3ebd9b.obj";
     CHECK(same_generated_artifact_name(finish, "/new/" + finish));
+    const std::string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const std::string glb = "orcaslicer-ai-glb-" + hash + ".obj";
+    CHECK(same_generated_artifact_name(glb, "/new/ai-import/" + glb));
+    CHECK(same_generated_artifact_name("C:\\old\\ai-import\\" + glb, "/new/ai-import/" + glb));
+    CHECK_FALSE(same_generated_artifact_name(glb, "orcaslicer-ai-glb-" + hash.substr(0, 63) + "0.obj"));
+    for (const std::string invalid : std::vector<std::string>{"model.obj", "orcaslicer-ai-glb-.obj",
+             "orcaslicer-ai-glb-" + hash.substr(1) + ".obj", "orcaslicer-ai-glb-" + hash + "0.obj",
+             "orcaslicer-ai-glb-g" + hash.substr(1) + ".obj", "orcaslicer-ai-glb-" + hash + ".glb"}) {
+        CHECK_FALSE(same_generated_artifact_name(invalid, "/new/" + invalid));
+        CHECK_FALSE(same_generated_artifact_name(invalid, glb));
+    }
+}
+
+TEST_CASE("GLB import identity survives a normal 3MF save and reopen", "[ai][ModelColorUpdate]")
+{
+    const std::string name = "orcaslicer-ai-glb-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.obj";
+    const std::string source = "/old/cache/ai-import/" + name;
+    Model model;
+    auto* object = model.add_object("generated GLB", source.c_str(), TriangleMesh(its_make_cube(8, 8, 40)));
+    object->add_instance();
+    ScopedTemporaryDir backup("glb-identity-source");
+    model.set_backup_path(backup.string());
+    ScopedTemporaryFile file(".3mf");
+    const std::string path = file.string();
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    PlateData plate;
+    plate.plate_index = 0;
+    StoreParams params;
+    params.path = path.c_str();
+    params.model = &model;
+    params.config = &config;
+    // A normal project deliberately omits FullPathSources.
+    params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    params.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(params));
+
+    DynamicPrintConfig restored_config;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    PlateDataPtrs plates;
+    std::vector<Preset*> presets;
+    Model restored = Model::read_from_file(path, &restored_config, &substitutions,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig, &plates, &presets);
+    release_PlateData_list(plates);
+    for (auto* preset : presets) delete preset;
+    REQUIRE(restored.objects.size() == 1);
+    const auto* result = restored.objects.front();
+    REQUIRE(result->volumes.size() == 1);
+    CHECK(result->input_file == path);
+    const auto& saved = result->volumes.front()->source.input_file;
+    CHECK(saved == name);
+    CHECK(same_generated_artifact_name(saved, "/another/cache/ai-import/" + name));
+    CHECK(same_generated_artifact_name(saved, "D:\\new-cache\\ai-import\\" + name));
+    CHECK_FALSE(same_generated_artifact_name(saved,
+        "/another/cache/ai-import/orcaslicer-ai-glb-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdee.obj"));
+    CHECK_FALSE(same_generated_artifact_name(saved, "/another/cache/ai-import/model.obj"));
 }
 
 TEST_CASE("Invalid preparation never mutates the current project", "[ai][OrcaModelPreparation]")

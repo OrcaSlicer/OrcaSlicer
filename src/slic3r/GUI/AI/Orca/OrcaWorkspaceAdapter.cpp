@@ -305,7 +305,8 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
         }
         // Saved-version names and history nesting must not lengthen the import
         // copy beyond Windows path limits. The complete content hash owns it.
-        path = cache_root / "ai-import" / hash / "model.obj";
+        // Normal 3MF saves retain only the basename of the volume source.
+        path = cache_root / "ai-import" / ("orcaslicer-ai-glb-" + hash + ".obj");
         if (!AI::is_model_artifact(path) && !AI::write_model_artifact(path, mesh.its, colors.vertex_colors, result.error)) {
             BOOST_LOG_TRIVIAL(error) << "AI model import preparation failed: source=" << original
                 << ", output=" << path << ", error=" << result.error;
