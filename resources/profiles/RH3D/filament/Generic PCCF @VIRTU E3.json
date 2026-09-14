@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Generic PCCF @VIRTU E3",
+	"inherits": "fdm_filament_pccf",
+	"from": "system",
+	"setting_id": "5byL7KQPKyybDAgQ",
+	"filament_id": "Generic PCCF @VIRTU E3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"VIRTU E3 - 0.5 nozzle",
+		"VIRTU E3 - 0.6 nozzle"
+	]
+}
