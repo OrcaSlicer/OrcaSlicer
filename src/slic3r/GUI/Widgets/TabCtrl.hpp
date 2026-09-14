@@ -14,7 +14,6 @@ class TabCtrl : public StaticBox
 
     int sel = -1;
     wxFont bold;
-    int item_space = 2; // space around each button, both sides (SetItemSpace)
 
 public:
     TabCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = 0);
@@ -63,10 +62,6 @@ public:
     int GetFirstVisibleItem() const;
     int GetNextVisible(int item) const;
     bool IsVisible(unsigned int item) const;
-
-    // Extra space around each tab button (in px on both sides). Defaults to the control-wide
-    // standard; call before appending items so every button picks it up.
-    void SetItemSpace(int space);
 
     int GetFullSize() const;
 
