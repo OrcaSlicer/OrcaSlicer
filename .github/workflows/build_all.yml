@@ -31,8 +31,6 @@ on:
      - 'version.inc'
      - ".github/workflows/build_*.yml"
      - 'build_linux.sh'
-     - 'build_release_vs.bat'
-     - 'build_release_vs2022.bat'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
      - 'build_release_macos.sh'
