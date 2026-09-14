@@ -15,6 +15,7 @@
 
 #include "test_helpers.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <iterator>
@@ -315,6 +316,77 @@ TEST_CASE("Rounded internal bridges end on printed support", "[PrintObject][Inte
                         CAPTURE(i, point.x(), point.y());
                         const double gap = unscale<double>(support_tree.distance_from_lines<true>(point)) - 0.5 * path->width;
                         CHECK(gap <= 0.1);
+                        ++checked;
+                    }
+                }
+            }
+    }
+    REQUIRE(checked > 0);
+}
+
+TEST_CASE("Internal bridge ends have support along sloping infill boundaries", "[PrintObject][InternalBridge][Regression]")
+{
+    const std::string solid_pattern = GENERATE("rectilinear", "concentric", "spiralinset");
+    const std::string wall_generator = GENERATE("classic", "arachne");
+    const std::string overlap = GENERATE("-55%", "15%");
+    const double taper = GENERATE(0., 0.1);
+    CAPTURE(solid_pattern, wall_generator, overlap, taper);
+    auto config = internal_bridge_config("hilbertcurve", 1);
+    config.set_deserialize_strict({{"infill_wall_overlap", overlap},
+                                   {"internal_solid_infill_pattern", solid_pattern},
+                                   {"wall_generator", wall_generator},
+                                   {"internal_solid_infill_line_width", 0.22},
+                                   {"sparse_infill_line_width", 0.23},
+                                   {"wall_loops", 3},
+                                   {"internal_bridge_angle", 90},
+                                   {"relative_bridge_angle", false},
+                                   {"layer_height", 0.02},
+                                   {"initial_layer_print_height", 0.1},
+                                   {"nozzle_diameter", 0.2},
+                                   {"top_shell_layers", 10},
+                                   {"detect_narrow_internal_solid_infill", false},
+                                   {"ensure_vertical_shell_thickness", "none"},
+                                   {"only_one_wall_top", false}});
+    // A taper shifts the fill boundary on every layer. Its supporting solid strip
+    // must survive fill generation even without the special narrow-infill pattern.
+    TriangleMesh mesh = make_cylinder(15., 3.);
+    for (Vec3f &vertex : mesh.its.vertices) {
+        const float factor = 1. - taper * vertex.z() / 3.;
+        vertex.x() *= factor;
+        vertex.y() *= factor;
+    }
+    Print print;
+    Model model;
+    init_print({mesh}, print, model, config, nullptr, false);
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    size_t checked = 0;
+    for (size_t i = 1; i < object.layer_count(); ++i) {
+        const auto &regions = object.get_layer(i)->regions();
+        if (std::none_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
+                return !region->fill_surfaces.filter_by_type(stInternalBridge).empty();
+            }))
+            continue;
+        Polygons support;
+        for (const LayerRegion *region : object.get_layer(i - 1)->regions()) {
+            region->perimeters.polygons_covered_by_width(support, 0.f);
+            region->fills.polygons_covered_by_width(support, 0.f);
+        }
+        REQUIRE_FALSE(support.empty());
+        const AABBTreeLines::LinesDistancer<Line> support_tree(to_lines(union_(support)));
+        for (const LayerRegion *region : object.get_layer(i)->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities) {
+                if (entity->role() != erInternalBridgeInfill)
+                    continue;
+                const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+                REQUIRE(path != nullptr);
+                for (const Line &line : path->polyline.to_polyline().lines()) {
+                    if (line.length() < scale_(3. * path->width))
+                        continue;
+                    for (const Point &point : {line.a, line.b}) {
+                        CAPTURE(i, point.x(), point.y());
+                        const double gap = unscale<double>(support_tree.distance_from_lines<true>(point)) - 0.5 * path->width;
+                        CHECK(gap <= 0.01);
                         ++checked;
                     }
                 }
