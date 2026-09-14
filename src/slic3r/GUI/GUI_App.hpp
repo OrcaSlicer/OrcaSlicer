@@ -2,6 +2,7 @@
 #define slic3r_GUI_App_hpp_
 
 #include <memory>
+#include <chrono>
 #include <string>
 #include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
@@ -28,6 +29,8 @@
 #include <wx/string.h>
 #include <wx/snglinst.h>
 #include <wx/msgdlg.h>
+#include <wx/timer.h>
+#include <wx/weakref.h>
 
 #include <mutex>
 #include <stack>
@@ -241,6 +244,13 @@ public:
 private:
     bool            m_initialized { false };
     bool            m_post_initialized { false };
+    enum class StartupStage { Waiting, Runtime, Context, Canvas, Fonts, FirstFrame, Finish, Reveal, Ready, Failed, Closing };
+    StartupStage    m_startup_stage { StartupStage::Waiting };
+    wxTimer         m_startup_timer;
+    wxWeakRef<wxWindow> m_startup_loading;
+    wxWeakRef<wxWindow> m_startup_frame;
+    std::chrono::steady_clock::time_point m_startup_started;
+    std::chrono::steady_clock::time_point m_startup_stage_started;
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
@@ -785,6 +795,11 @@ public:
 private:
     int             updating_bambu_networking();
     bool            on_init_inner();
+    void            advance_startup(wxTimerEvent& event);
+    void            schedule_startup(StartupStage stage, const wxString& message);
+    void            fail_startup();
+    void            finish_post_init();
+    void            log_startup_timing(const char* stage) const;
     void            copy_network_if_available();
     bool            on_init_network(bool try_backup = false);
     void            init_networking_callbacks();

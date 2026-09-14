@@ -17,6 +17,7 @@
 #include <mutex>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <wx/event.h>
+#include <wx/eventfilter.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
@@ -68,6 +69,9 @@
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
+#include <wx/stattext.h>
+#include <wx/button.h>
+#include <wx/sizer.h>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 
@@ -126,6 +130,7 @@
 #include "TroubleshootDialog.hpp"
 
 #include "BitmapCache.hpp"
+#include "Widgets/LoadingBrand.hpp"
 #include "Notebook.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/ProgressDialog.hpp"
@@ -783,30 +788,300 @@ std::vector<std::string> GUI_App::split_str(std::string src, std::string separat
     return result;
 }
 
+// A native sibling of the notebook keeps loading visible while its GL canvas
+// stays mapped. Hiding the canvas would prevent context creation on GTK/EGL.
+class StartupLoadingPanel final : public wxPanel, public wxEventFilter
+{
+public:
+    explicit StartupLoadingPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY)
+    {
+        SetBackgroundColour(wxGetApp().get_window_default_clr());
+        SetForegroundColour(wxGetApp().get_label_clr_default());
+        auto* layout = new wxBoxSizer(wxVERTICAL);
+        layout->AddStretchSpacer();
+        add_loading_brand(this, layout);
+        m_message = new wxStaticText(this, wxID_ANY, _L("Loading configuration"),
+                                    wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
+        m_message->SetFont(wxGetApp().normal_font());
+        layout->Add(m_message, 0, wxALIGN_CENTER | wxALL, FromDIP(12));
+        auto* close = new wxButton(this, wxID_CLOSE, _L("Close"));
+        close->Bind(wxEVT_BUTTON, [parent](wxCommandEvent&) { parent->Close(); });
+        layout->Add(close, 0, wxALIGN_CENTER | wxALL, FromDIP(12));
+        layout->AddStretchSpacer();
+        SetSizer(layout);
+        SetSize(parent->GetClientRect());
+        Layout();
+        close->SetFocus();
+#ifdef __WXMSW__
+        clip_siblings();
+#endif
+        wxEvtHandler::AddFilter(this);
+    }
+
+    ~StartupLoadingPanel() override
+    {
+        wxEvtHandler::RemoveFilter(this);
+#ifdef __WXMSW__
+        for (const auto& entry : m_clipped_siblings) {
+            const auto& sibling = entry.first;
+            if (!sibling || sibling->IsBeingDeleted() || sibling->GetHWND() != entry.second)
+                continue;
+            const HWND handle = sibling->GetHWND();
+            const LONG_PTR style = ::GetWindowLongPtr(handle, GWL_STYLE);
+            ::SetWindowLongPtr(handle, GWL_STYLE, style & ~LONG_PTR(WS_CLIPSIBLINGS));
+        }
+#endif
+    }
+
+    int FilterEvent(wxEvent& event) override
+    {
+        // On macOS menu callbacks are bound to wxMenu itself, before the frame
+        // receives them. Filter only menu commands while this loading UI is shown.
+        if (IsShownOnScreen() && event.GetEventType() == wxEVT_MENU && event.GetId() != wxID_EXIT)
+            return wxEventFilter::Event_Processed;
+        return wxEventFilter::Event_Skip;
+    }
+
+    void set_message(const wxString& message)
+    {
+        m_message->SetLabel(message);
+        m_message->Wrap(FromDIP(480));
+        Layout();
+        Raise();
+        paint_now();
+    }
+
+    void paint_now()
+    {
+#ifdef __WXMSW__
+        clip_siblings();
+#endif
+        paint_loading_content(this);
+    }
+
+private:
+    wxStaticText* m_message;
+#ifdef __WXMSW__
+    void clip_siblings()
+    {
+        // wxWidgets omits WS_CLIPSIBLINGS because ordinary layouts do not
+        // overlap. This temporary cover does overlap the notebook: clip its
+        // siblings so a sidebar repaint cannot draw through the loading UI.
+        for (wxWindow* sibling : GetParent()->GetChildren()) {
+            if (sibling->IsTopLevel() || !sibling->GetHWND())
+                continue;
+            const HWND handle = sibling->GetHWND();
+            const LONG_PTR style = ::GetWindowLongPtr(handle, GWL_STYLE);
+            if ((style & WS_CLIPSIBLINGS) == 0) {
+                ::SetWindowLongPtr(handle, GWL_STYLE, style | WS_CLIPSIBLINGS);
+                m_clipped_siblings.emplace_back(sibling, handle);
+            }
+        }
+    }
+    std::vector<std::pair<wxWeakRef<wxWindow>, HWND>> m_clipped_siblings;
+#endif
+};
+
+void GUI_App::log_startup_timing(const char* stage) const
+{
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: " << stage << " elapsed_ms="
+        << std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - m_startup_started).count();
+}
+
+void GUI_App::schedule_startup(StartupStage stage, const wxString& message)
+{
+    if (is_closing() || !m_startup_frame || m_startup_frame->IsBeingDeleted())
+        return;
+    m_startup_stage = stage;
+    m_startup_stage_started = std::chrono::steady_clock::now();
+    if (m_startup_loading)
+        static_cast<StartupLoadingPanel*>(m_startup_loading.get())->set_message(message);
+    // Return to the event loop between stages. Update() above paints only this
+    // panel; a general wxYield here would allow reentrant startup/shutdown.
+    m_startup_timer.StartOnce(16);
+}
+
+void GUI_App::fail_startup()
+{
+    m_startup_timer.Stop();
+    BOOST_LOG_TRIVIAL(error) << "Startup failed in stage " << static_cast<int>(m_startup_stage);
+    m_startup_stage = StartupStage::Failed;
+    if (is_closing() || !m_startup_loading)
+        return;
+    plater_->canvas3D()->enable_render(false);
+    static_cast<StartupLoadingPanel*>(m_startup_loading.get())->set_message(
+        _L("Could not prepare the interface. Please close OrcaSlicer and try again."));
+    log_startup_timing("failed");
+}
+
 void GUI_App::post_init()
 {
     assert(initialized());
     if (! this->initialized())
         throw Slic3r::RuntimeError("Calling post_init() while not yet initialized");
 
+    if (is_closing() || m_startup_stage != StartupStage::Waiting)
+        return;
+    schedule_startup(StartupStage::Runtime, _L("Preparing the interface..."));
+}
+
+void GUI_App::advance_startup(wxTimerEvent&)
+{
+    if (is_closing() || !m_startup_frame || m_startup_frame.get() != mainframe ||
+        m_startup_frame->IsBeingDeleted() || !plater_ ||
+        m_startup_stage == StartupStage::Closing || m_startup_stage == StartupStage::Failed ||
+        m_startup_stage == StartupStage::Ready)
+        return;
+
+    if (mainframe->IsIconized()) {
+        m_startup_stage_started = std::chrono::steady_clock::now();
+        m_startup_timer.StartOnce(100);
+        return;
+    }
+
+    auto* canvas = plater_->canvas3D();
+    const auto started = std::chrono::steady_clock::now();
+    auto timed_out = [this] {
+        return std::chrono::steady_clock::now() - m_startup_stage_started > std::chrono::seconds(30);
+    };
+    auto log_stage = [started](const char* stage) {
+        BOOST_LOG_TRIVIAL(info) << "Startup timing: " << stage << " elapsed_ms="
+            << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - started).count();
+    };
+    try {
+        switch (m_startup_stage) {
+        case StartupStage::Runtime:
 #if wxUSE_WEBVIEW_EDGE
-    // Ensure the Microsoft WebView2 runtime is installed before any WebView is
-    // created. The setup wizard and several dialogs render entirely through
-    // WebView2; without the runtime they come up blank. This runs here (not in the
-    // constructor) so that wxWidgets is fully initialized and the event loop is
-    // running, and so it precedes the first WebView creation (the setup wizard).
-    init_webview_runtime();
+            init_webview_runtime();
 #endif
+            if (is_closing() || !m_startup_frame)
+                return;
+            canvas->enable_render(false);
+            mainframe->select_tab(TAB_ID_PREPARE);
+            plater_->select_view_3D("3D");
+            log_stage("runtime");
+            schedule_startup(StartupStage::Context, _L("Preparing graphics..."));
+            break;
+        case StartupStage::Context:
+            if (!canvas->get_wxglcanvas()->IsShownOnScreen() || !canvas->make_current_for_postinit()) {
+                if (timed_out() && !mainframe->IsIconized())
+                    fail_startup();
+                else
+                    m_startup_timer.StartOnce(50);
+                return;
+            }
+            {
+                const Size size = canvas->get_canvas_size();
+                imgui()->set_display_size(float(size.get_width()), float(size.get_height()));
+            }
+            if (!init_opengl()) {
+                fail_startup();
+                return;
+            }
+            log_stage("opengl");
+            schedule_startup(StartupStage::Canvas, _L("Preparing the 3D view..."));
+            break;
+        case StartupStage::Canvas:
+            if (!canvas->make_current_for_postinit() || !canvas->init()) {
+                fail_startup();
+                return;
+            }
+            log_stage("canvas");
+            schedule_startup(StartupStage::Fonts, _L("Preparing fonts and graphics..."));
+            break;
+        case StartupStage::Fonts:
+            if (!canvas->make_current_for_postinit()) {
+                fail_startup();
+                return;
+            }
+            imgui()->new_frame();
+            log_stage("imgui_first_frame");
+            schedule_startup(StartupStage::FirstFrame, _L("Preparing the first frame..."));
+            break;
+        case StartupStage::FirstFrame:
+            // Respect the optional Home warmup setting. Prepare and file-open
+            // startup still need a real frame before revealing the canvas.
+            if (app_config->get("slow_bootup") != "true" || app_config->get("default_page") == "1" ||
+                !init_params->input_files.empty() || is_gcode_viewer()) {
+                canvas->enable_render(true);
+                canvas->render(false);
+                canvas->enable_render(false);
+                if (canvas->rendered_frames() == 0) {
+                    if (timed_out() && !mainframe->IsIconized())
+                        fail_startup();
+                    else
+                        m_startup_timer.StartOnce(50);
+                    return;
+                }
+                log_stage("first_render");
+            }
+            schedule_startup(StartupStage::Finish, _L("Opening the workspace..."));
+            break;
+        case StartupStage::Finish:
+            // OS file-open events may now use the initialized graphics. Until
+            // this point they stay in init_params instead of changing canvases.
+            m_post_initialized = true;
+            finish_post_init();
+            if (is_closing() || !m_startup_frame || m_startup_frame.get() != mainframe)
+                return;
+            canvas->enable_render(true);
+            log_stage("workspace");
+            schedule_startup(StartupStage::Reveal, _L("Opening the workspace..."));
+            break;
+        case StartupStage::Reveal:
+            if (mainframe->is_prepare_or_preview_tab()) {
+                // Loading G-code can select Preview. Verify a new frame of the
+                // selected canvas, not the earlier empty Prepare warmup frame.
+                auto* selected_canvas = plater_->get_current_canvas3D();
+                const auto frames_before = selected_canvas->rendered_frames();
+                selected_canvas->enable_render(true);
+                selected_canvas->render(false);
+                if (selected_canvas->rendered_frames() == frames_before) {
+                    if (timed_out() && !mainframe->IsIconized())
+                        fail_startup();
+                    else
+                        m_startup_timer.StartOnce(50);
+                    return;
+                }
+                log_stage("selected_page_frame");
+            }
+            m_startup_stage = StartupStage::Ready;
+            mainframe->m_tabpanel->Enable();
+            if (m_startup_loading) {
+                m_startup_loading->Hide();
+                m_startup_loading->Destroy();
+                m_startup_loading = nullptr;
+            }
+            // The home page starts its visible timeout from idle after the
+            // notebook is enabled and the native startup cover is gone.
+            wxWakeUpIdle();
+            mainframe->Layout();
+            mainframe->Refresh();
+            update_publish_status();
+            log_startup_timing("workspace_revealed");
+            break;
+        default:
+            break;
+        }
+    } catch (const std::exception& error) {
+        BOOST_LOG_TRIVIAL(error) << "Startup initialization failed: " << error.what();
+        fail_startup();
+    }
+}
+
+void GUI_App::finish_post_init()
+{
+    if (is_closing() || !m_startup_frame)
+        return;
 
     m_open_method = "double_click";
-    bool switch_to_3d = false;
 
     if (!this->init_params->input_files.empty()) {
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", init with input files, size %1%, input_gcode %2%")
             %this->init_params->input_files.size() %this->init_params->input_gcode;
-
-        switch_to_3d = true;
 
         const auto first_url = this->init_params->input_files.front();
         if (this->init_params->input_files.size() == 1 && is_supported_open_protocol(first_url)) {
@@ -841,66 +1116,18 @@ void GUI_App::post_init()
         }
     }
 
-//#if BBL_HAS_FIRST_PAGE
-    bool slow_bootup = false;
-    if (app_config->get("slow_bootup") == "true") {
-        slow_bootup = true;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", slow bootup, won't render gl here.";
-    }
-    if (!switch_to_3d) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
-#ifndef __linux__
-        mainframe->Freeze();
-#endif
-        plater_->canvas3D()->enable_render(false);
-        mainframe->select_tab(TAB_ID_PREPARE);
-        plater_->select_view_3D("3D");
-        //BBS init the opengl resource here
-        if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
-            !plater_->canvas3D()->make_current_for_postinit()) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": glcontext not ready, postpone init";
-            plater_->canvas3D()->enable_render(true);
-            plater_->canvas3D()->set_as_dirty();
-#ifdef __linux__
-            // Wayland/EGL may not have committed the GL surface yet; ask the
-            // idle loop to retry post_init when the canvas is actually mapped.
-            // Without this, GL function pointers stay null and the first
-            // Preview focus crashes in Camera::apply_viewport.
-            m_post_initialized = false;
-            return;
-#endif
-        } else {
-            Size canvas_size = plater_->canvas3D()->get_canvas_size();
-            wxGetApp().imgui()->set_display_size(static_cast<float>(canvas_size.get_width()), static_cast<float>(canvas_size.get_height()));
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", start to init opengl";
-            wxGetApp().init_opengl();
-
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished init opengl";
-            plater_->canvas3D()->init();
-
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished init canvas3D";
-            wxGetApp().imgui()->new_frame();
-
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished init imgui frame";
-            plater_->canvas3D()->enable_render(true);
-
-            if (!slow_bootup) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", start to render a first frame for test";
-                plater_->canvas3D()->render(false);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished rendering a first frame for test";
-            }
-        }
+    if (is_closing() || !m_startup_frame)
+        return;
+    if (init_params->input_files.empty()) {
         if (is_editor())
             mainframe->select_tab(TAB_ID_HOME);
         if (app_config->get("default_page") == "1")
             mainframe->select_tab(TAB_ID_PREPARE);
-#ifndef __linux__
-        mainframe->Thaw();
-#endif
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
 
     plater_->trigger_restore_project(1);
+    if (is_closing() || !m_startup_frame)
+        return;
     //#endif
 
     //BBS: remove GCodeViewer as seperate APP logic
@@ -955,6 +1182,8 @@ void GUI_App::post_init()
     if (m_networking_need_update) {
         show_network_plugin_download_dialog(false);
     }
+    if (is_closing() || !m_startup_frame)
+        return;
 
     // Start preset sync after project opened, otherwise we could have preset change during project opening which could cause crash 
     if (app_config->get("sync_user_preset") == "true") {
@@ -976,7 +1205,11 @@ void GUI_App::post_init()
     // Neither wxShowEvent nor wxWindowCreateEvent work reliably.
     if (this->preset_updater) { // G-Code Viewer does not initialize preset_updater.
         CallAfter([this] {
+            if (is_closing() || !mainframe || mainframe->IsBeingDeleted())
+                return;
             bool cw_showed = this->config_wizard_startup();
+            if (is_closing() || !mainframe || mainframe->IsBeingDeleted())
+                return;
 
             if (!app_config->get_stealth_mode()) {
                 std::string http_url = get_http_url(app_config->get_country_code());
@@ -1000,6 +1233,8 @@ void GUI_App::post_init()
     if (is_editor() && m_last_config_version && m_last_config_version->valid()
         && *m_last_config_version < Semver(2, 4, 0)) {
         CallAfter([] {
+            if (wxGetApp().is_closing() || !wxGetApp().mainframe)
+                return;
             const wxString wiki_url = "https://www.orcaslicer.com/wiki/user_profiles/user_profiles.html#profiles-missing-after-updating-from-bambu-cloud";
             MessageDialog dlg(nullptr,
                 _L("Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n\n"
@@ -1029,7 +1264,7 @@ void GUI_App::post_init()
                     return;
                 }
                 GUI::wxGetApp().CallAfter([this, json_str] {
-                    if (m_device_manager) {
+                    if (!is_closing() && m_device_manager) {
                         m_device_manager->on_machine_alive(json_str);
                     }
                     });
@@ -1043,7 +1278,8 @@ void GUI_App::post_init()
 
     //update the plugin tips
     CallAfter([this] {
-            mainframe->refresh_plugin_tips();
+            if (!is_closing() && mainframe && !mainframe->IsBeingDeleted())
+                mainframe->refresh_plugin_tips();
         });
 
     // remove old log files over LOG_FILES_MAX_NUM
@@ -1123,6 +1359,8 @@ GUI_App::GUI_App()
 void GUI_App::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << "GUI_App::shutdown enter";
+    m_startup_timer.Stop();
+    m_startup_stage = StartupStage::Closing;
 
 	if (m_removable_drive_manager) {
 		removable_drive_manager()->shutdown();
@@ -2893,6 +3131,7 @@ void GUI_App::init_plugin_gui_wiring()
 
 bool GUI_App::on_init_inner()
 {
+    m_startup_started = std::chrono::steady_clock::now();
     wxLog::SetActiveTarget(new wxBoostLog());
 
 #ifdef __APPLE__
@@ -3394,7 +3633,41 @@ bool GUI_App::on_init_inner()
         wxYield();
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
+    const auto main_window_started = std::chrono::steady_clock::now();
     mainframe = new MainFrame();
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: main_window_creation elapsed_ms="
+        << std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - main_window_started).count();
+    m_startup_frame = mainframe;
+    plater_->canvas3D()->enable_render(false);
+    m_startup_loading = new StartupLoadingPanel(mainframe);
+    mainframe->m_tabpanel->Disable();
+    m_startup_timer.SetOwner(this);
+    Bind(wxEVT_TIMER, &GUI_App::advance_startup, this, m_startup_timer.GetId());
+    mainframe->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+        if (!is_closing() && m_startup_loading && m_startup_frame) {
+            m_startup_loading->SetSize(m_startup_frame->GetClientRect());
+            m_startup_loading->Layout();
+            m_startup_loading->Raise();
+            static_cast<StartupLoadingPanel*>(m_startup_loading.get())->paint_now();
+        }
+        event.Skip();
+    });
+    mainframe->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& event) {
+        if (!m_startup_loading) {
+            event.Skip();
+            return;
+        }
+        // Keep close available, but do not run application shortcuts against
+        // partially initialized pages during the gaps between startup stages.
+        if (event.GetKeyCode() == WXK_ESCAPE ||
+            (event.AltDown() && event.GetKeyCode() == WXK_F4) ||
+            (event.CmdDown() && event.GetKeyCode() == 'Q'))
+            mainframe->Close();
+        else if (event.GetKeyCode() == WXK_TAB || event.GetKeyCode() == WXK_RETURN ||
+                 event.GetKeyCode() == WXK_SPACE)
+            event.Skip();
+    });
     // hide settings tabs after first Layout
     if (is_editor()) {
         mainframe->select_tab(TAB_ID_HOME);
@@ -3434,8 +3707,15 @@ bool GUI_App::on_init_inner()
 #endif
     if (scrn) { scrn->SetText(_L("Showing main window") + dots, 95); wxYield(); }
     mainframe->Show(true);
-    // Close the splash now that the main UI is visible.
-    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 100); scrn->Destroy(); scrn = nullptr; }
+    log_startup_timing("main_window_shown");
+    // Paint the native loading content before handing off from the splash.
+    // This also applies when the user has disabled the splash preference.
+    m_startup_loading->Raise();
+    m_startup_loading->SetFocus();
+    mainframe->Update();
+    static_cast<StartupLoadingPanel*>(m_startup_loading.get())->paint_now();
+    log_startup_timing("loading_content_painted");
+    if (scrn) { scrn->Destroy(); scrn = nullptr; }
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
 //#if BBL_HAS_FIRST_PAGE
@@ -3461,6 +3741,8 @@ bool GUI_App::on_init_inner()
     obj_list()->set_min_height();
 
     update_mode(); // update view mode after fix of the object_list size
+    if (is_closing() || !m_startup_frame)
+        return false;
 
 #ifdef __APPLE__
    other_instance_message_handler()->bring_instance_forward();
@@ -3471,6 +3753,8 @@ bool GUI_App::on_init_inner()
 
     Bind(wxEVT_IDLE, [this](wxIdleEvent& event)
     {
+        if (is_closing() || !mainframe || mainframe->IsBeingDeleted())
+            return;
         bool curr_studio_active = this->is_studio_active();
         if (m_studio_active != curr_studio_active) {
             if (curr_studio_active) {
@@ -3504,15 +3788,13 @@ bool GUI_App::on_init_inner()
 //#ifdef __linux__
 //        if (!m_post_initialized && m_opengl_initialized) {
 //#else
-        if (!m_post_initialized && !m_adding_script_handler) {
+        if (m_initialized && m_startup_stage == StartupStage::Waiting && !m_adding_script_handler) {
 //#endif
-            m_post_initialized = true;
 #ifdef WIN32
             this->mainframe->register_win32_callbacks();
 #endif
             this->post_init();
 
-            update_publish_status();
         }
 
         if (m_post_initialized && app_config->dirty())
