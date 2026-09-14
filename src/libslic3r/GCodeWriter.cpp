@@ -276,8 +276,16 @@ std::string GCodeWriter::set_temperature(unsigned int temperature, GCodeFlavor f
     }
     gcode << " ; " << comment << "\n";
 
-    if ((flavor == gcfTeacup || flavor == gcfRepRapFirmware) && wait)
-        gcode << "M116 ; wait for temperature to be reached\n";
+    if ((flavor == gcfTeacup || flavor == gcfRepRapFirmware) && wait) {
+        gcode << "M116";
+        if (tool != -1) {
+            if (flavor == gcfRepRapFirmware) {
+                gcode << " P" << tool;
+            }
+        }
+        gcode << "; wait for temperature to be reached\n";
+    }
+
 
     return gcode.str();
 }
