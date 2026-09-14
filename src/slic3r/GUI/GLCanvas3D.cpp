@@ -7697,11 +7697,13 @@ bool GLCanvas3D::_is_scene_cacheable() const
     if (!_is_scene_cache_enabled())
         return false;
 
-    // The scene moves with the cursor during a drag, under a gizmo that draws at the cursor, and in
-    // layer height editing.
+    // The scene follows the cursor during a drag, under a gizmo that draws at the cursor, and while
+    // the cursor is on the layer height bar, where the object shader draws a band at its height.
     const GLGizmoBase* gizmo = m_gizmos.get_current();
+    const bool cursor_on_layers_bar = is_layers_editing_enabled() &&
+        m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y());
     return !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging() &&
-           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !is_layers_editing_enabled();
+           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
 }
 
 bool GLCanvas3D::_is_frame_skipping_enabled() const
