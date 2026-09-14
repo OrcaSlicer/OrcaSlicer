@@ -2244,6 +2244,7 @@ void GLCanvas3D::render(bool only_init)
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
+        ++m_rendered_frames;
         m_render_stats.increment_fps_counter();
     }
 }
@@ -3206,7 +3207,10 @@ void GLCanvas3D::unbind_event_handlers()
 
 void GLCanvas3D::on_idle(wxIdleEvent& evt)
 {
-    if (!m_initialized)
+    // Canvas initialization precedes ImGui's font atlas during staged startup.
+    // Notifications and toolbar state may measure text, so pause them together
+    // with rendering until the startup owner has prepared the fonts.
+    if (!m_initialized || !m_enable_render)
         return;
 
     m_dirty |= m_main_toolbar.update_items_state();

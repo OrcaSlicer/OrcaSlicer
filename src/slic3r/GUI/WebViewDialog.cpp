@@ -14,8 +14,11 @@
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 #include <wx/url.h>
+#include <wx/stattext.h>
+#include <wx/filename.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include "Widgets/LoadingBrand.hpp"
 
 namespace pt = boost::property_tree;
 
@@ -35,11 +38,13 @@ namespace GUI {
 
 WebViewPanel::WebViewPanel(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+        , m_loading_timer(this)
  {
-    wxString url = wxString::Format("file://%s/web/homepage/index.html", from_u8(resources_dir()));
+    const wxFileName home_file(from_u8(resources_dir()) + "/web/homepage/index.html");
+    m_home_url = wxFileSystem::FileNameToURL(home_file);
     wxString strlang = wxGetApp().current_language_code_safe();
-    if (strlang != "")
-        url = wxString::Format("file://%s/web/homepage/index.html?lang=%s", from_u8(resources_dir()), strlang);
+    if (!strlang.empty())
+        m_home_url += "?lang=" + strlang;
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
     
@@ -82,16 +87,34 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     // Create the info panel
     m_info = new wxInfoBar(this);
     topsizer->Add(m_info, wxSizerFlags().Expand());
-    // Create the webview
-    m_browser = WebView::CreateWebView(this, url);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-    m_browser->Hide();
     SetSizer(topsizer);
-
-    topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+    // Keep a native page visible while the browser prepares its main document.
+    // This also works when the browser cannot be created at all.
+    m_loading_panel = new wxPanel(this);
+    m_loading_panel->SetFont(wxGetApp().normal_font());
+    wxGetApp().UpdateDarkUI(m_loading_panel);
+    auto* loading_sizer = new wxBoxSizer(wxVERTICAL);
+    loading_sizer->AddStretchSpacer();
+    add_loading_brand(m_loading_panel, loading_sizer);
+    m_loading_text = new wxStaticText(m_loading_panel, wxID_ANY, _L("Loading home page..."),
+                                    wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+    wxGetApp().UpdateDarkUI(m_loading_text);
+    loading_sizer->Add(m_loading_text, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(16));
+    auto* actions = new wxBoxSizer(wxHORIZONTAL);
+    m_retry_button = new wxButton(m_loading_panel, wxID_ANY, _L("Retry"));
+    m_prepare_button = new wxButton(m_loading_panel, wxID_ANY, _L("Go to Prepare"));
+    wxGetApp().UpdateDarkUI(m_retry_button);
+    wxGetApp().UpdateDarkUI(m_prepare_button);
+    actions->Add(m_retry_button, 0, wxALL, FromDIP(6));
+    actions->Add(m_prepare_button, 0, wxALL, FromDIP(6));
+    loading_sizer->Add(actions, 0, wxALIGN_CENTER_HORIZONTAL);
+    loading_sizer->AddStretchSpacer();
+    m_loading_panel->SetSizer(loading_sizer);
+    topsizer->Add(m_loading_panel, wxSizerFlags().Expand().Proportion(1));
+    m_retry_button->Bind(wxEVT_BUTTON, &WebViewPanel::OnRetryHome, this);
+    m_prepare_button->Bind(wxEVT_BUTTON, &WebViewPanel::OnEnterPrepare, this);
+    Bind(wxEVT_SHOW, &WebViewPanel::OnShow, this);
+    Bind(wxEVT_TIMER, &WebViewPanel::OnLoadingTimeout, this, m_loading_timer.GetId());
 
     // Log backend information
     /* m_browser->GetUserAgent() may lead crash
@@ -219,11 +242,17 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     Bind(wxEVT_CLOSE_WINDOW, &WebViewPanel::OnClose, this);
 
     m_LoginUpdateTimer = nullptr;
+    ShowLoading(m_home_url);
+    // Bind all events and finish constructing the fallback before browser creation:
+    // backends can report initialization failures asynchronously.
+    CreateBrowser(m_home_url);
  }
 
 WebViewPanel::~WebViewPanel()
 {
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " Start";
+    m_loading_state = LoadingState::Closing;
+    m_loading_timer.Stop();
     SetEvtHandlerEnabled(false);
     
     delete m_tools_menu;
@@ -236,15 +265,185 @@ WebViewPanel::~WebViewPanel()
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " End";
 }
 
+bool WebViewPanel::IsCurrentBrowserEvent(const wxWebViewEvent& evt) const
+{
+    return m_browser && evt.GetId() == m_browser->GetId() &&
+           m_loading_state != LoadingState::Closing && !wxGetApp().is_closing();
+}
+
+bool WebViewPanel::IsMainDocumentEvent(const wxWebViewEvent& evt) const
+{
+    if (!IsCurrentBrowserEvent(evt))
+        return false;
+    const wxString& target = evt.GetTarget();
+    if (!target.empty() && target != "_self" && target != "_top")
+        return false;
+    // wxWidgets WebView2, WKWebView and WebKitGTK emit LOADED for the top-level
+    // document. Matching its URL also excludes frame/resource events on other backends.
+    return !evt.GetURL().empty() && evt.GetURL() != "about:blank" &&
+           evt.GetURL() == m_browser->GetCurrentURL();
+}
+
+void WebViewPanel::CreateBrowser(const wxString& url)
+{
+    m_browser = WebView::CreateWebView(this, url);
+    if (m_browser && m_browser->GetParent() != this) {
+        // The shared helper can return an uncreated fallback webview.
+        delete m_browser;
+        m_browser = nullptr;
+    }
+    if (m_browser) {
+        m_browser->Hide();
+        GetSizer()->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+        Layout();
+    } else {
+        ShowLoadFailure(false);
+    }
+#if !BBL_RELEASE_TO_PUBLIC
+    m_button_reload->Enable(m_browser != nullptr);
+    m_button_tools->Enable(m_browser != nullptr);
+    m_url->Enable(m_browser != nullptr);
+#endif
+    UpdateState();
+}
+
+void WebViewPanel::ShowLoading(const wxString& url)
+{
+    m_loading_timer.Stop();
+    m_visible_loading_started_once = false;
+    m_loading_started = std::chrono::steady_clock::now();
+    m_requested_url = url;
+    m_loading_state = LoadingState::Loading;
+    m_loading_text->SetLabel(_L("Loading home page..."));
+    m_retry_button->Hide();
+    m_prepare_button->Hide();
+    if (m_browser)
+        m_browser->Hide();
+    m_loading_panel->Show();
+    m_loading_panel->Layout();
+    Layout();
+    paint_loading_content(m_loading_panel);
+    StartVisibleLoadingTimer();
+}
+
+void WebViewPanel::StartVisibleLoadingTimer()
+{
+    if (m_loading_state != LoadingState::Loading || wxGetApp().is_closing())
+        return;
+    // IsEnabled() includes the notebook ancestor, which remains disabled while
+    // the native startup loading panel covers the workspace.
+    if (!IsEnabled() || !IsShownOnScreen()) {
+        m_loading_timer.Stop();
+        m_visible_loading_started_once = false;
+        return;
+    }
+    if (m_visible_loading_started_once)
+        return;
+    m_visible_loading_started_once = true;
+    m_visible_loading_started = std::chrono::steady_clock::now();
+    m_loading_timer.StartOnce(10000);
+}
+
+void WebViewPanel::ShowLoadFailure(bool timed_out)
+{
+    if (m_loading_state == LoadingState::Closing || wxGetApp().is_closing())
+        return;
+    m_loading_timer.Stop();
+    m_loading_state = LoadingState::Failed;
+    m_loading_text->SetLabel(timed_out
+        ? _L("The home page is taking longer than expected.\nYou can retry or continue to Prepare.")
+        : _L("The home page could not be loaded.\nYou can retry or continue to Prepare."));
+    m_retry_button->Show();
+    m_prepare_button->Show();
+    if (m_browser)
+        m_browser->Hide();
+    m_loading_panel->Show();
+    m_loading_panel->Layout();
+    Layout();
+    paint_loading_content(m_loading_panel);
+    BOOST_LOG_TRIVIAL(warning) << "startup.home " << (timed_out ? "timeout" : "failed")
+        << " elapsed_ms=" << std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - m_loading_started).count()
+        << " visible_wait_ms=" << (m_visible_loading_started_once
+            ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - m_visible_loading_started).count() : 0);
+}
+
+void WebViewPanel::OnShow(wxShowEvent& evt)
+{
+    if (evt.IsShown())
+        StartVisibleLoadingTimer();
+    else {
+        m_loading_timer.Stop();
+        m_visible_loading_started_once = false;
+    }
+    evt.Skip();
+}
+
+void WebViewPanel::OnLoadingTimeout(wxTimerEvent& WXUNUSED(evt))
+{
+    if (m_loading_state != LoadingState::Loading || wxGetApp().is_closing())
+        return;
+    if (!IsEnabled() || !IsShownOnScreen()) {
+        m_loading_timer.Stop();
+        m_visible_loading_started_once = false;
+        return;
+    }
+    if (!m_visible_loading_started_once) {
+        StartVisibleLoadingTimer();
+        return;
+    }
+    // A timeout queued before hiding/retrying may arrive during a newer visible
+    // interval. Only charge the current interval, never the hidden startup work.
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - m_visible_loading_started).count();
+    if (elapsed < 10000) {
+        m_loading_timer.StartOnce(static_cast<int>(10000 - elapsed));
+        return;
+    }
+    ShowLoadFailure(true);
+}
+
+void WebViewPanel::OnRetryHome(wxCommandEvent& WXUNUSED(evt))
+{
+    if (wxGetApp().is_closing())
+        return;
+    // Recreate on an explicit retry to recover failed asynchronous initialization,
+    // and reject any late events from the previous attempt by their browser ID.
+    if (m_browser) {
+        m_browser->SetEvtHandlerEnabled(false);
+        GetSizer()->Detach(m_browser);
+        m_browser->Destroy();
+        m_browser = nullptr;
+    }
+    m_response_js.clear();
+    ShowLoading(m_home_url);
+    CreateBrowser(m_home_url);
+}
+
+void WebViewPanel::OnEnterPrepare(wxCommandEvent& WXUNUSED(evt))
+{
+    if (!wxGetApp().is_closing() && wxGetApp().mainframe && !wxGetApp().mainframe->IsBeingDeleted())
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+}
+
 
 void WebViewPanel::load_url(wxString& url)
 {
+    if (wxGetApp().is_closing())
+        return;
     this->Show();
     this->Raise();
-    m_url->SetLabelText(url);
+    if (m_url)
+        m_url->SetLabelText(url);
 
-    if (wxGetApp().get_mode() == comDevelop)
+    if (m_url && wxGetApp().get_mode() == comDevelop)
         wxLogMessage(m_url->GetValue());
+    ShowLoading(url);
+    if (!m_browser) {
+        CreateBrowser(url);
+        return;
+    }
     m_browser->LoadURL(url);
     m_browser->SetFocus();
     UpdateState();
@@ -256,6 +455,8 @@ void WebViewPanel::load_url(wxString& url)
     */
 void WebViewPanel::UpdateState()
 {
+    if (!m_browser)
+        return;
 #if !BBL_RELEASE_TO_PUBLIC
     if (m_browser->CanGoBack()) {
         m_button_back->Enable(true);
@@ -285,6 +486,11 @@ void WebViewPanel::UpdateState()
 
 void WebViewPanel::OnIdle(wxIdleEvent& WXUNUSED(evt))
 {
+    // A child's SHOW can precede its parent's first Show(). Start the timeout
+    // only once the page can actually be seen, including that initial case.
+    StartVisibleLoadingTimer();
+    if (!m_browser || wxGetApp().is_closing())
+        return;
 #if !BBL_RELEASE_TO_PUBLIC
     if (m_browser->IsBusy())
     {
@@ -304,6 +510,8 @@ void WebViewPanel::OnIdle(wxIdleEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnUrl(wxCommandEvent& WXUNUSED(evt))
 {
+    if (!m_browser || !m_url)
+        return;
     if (wxGetApp().get_mode() == comDevelop)
         wxLogMessage(m_url->GetValue());
     m_browser->LoadURL(m_url->GetValue());
@@ -316,6 +524,8 @@ void WebViewPanel::OnUrl(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnBack(wxCommandEvent& WXUNUSED(evt))
 {
+    if (!m_browser)
+        return;
     m_browser->GoBack();
     UpdateState();
 }
@@ -325,6 +535,8 @@ void WebViewPanel::OnBack(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnForward(wxCommandEvent& WXUNUSED(evt))
 {
+    if (!m_browser)
+        return;
     m_browser->GoForward();
     UpdateState();
 }
@@ -334,6 +546,8 @@ void WebViewPanel::OnForward(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnStop(wxCommandEvent& WXUNUSED(evt))
 {
+    if (!m_browser)
+        return;
     m_browser->Stop();
     UpdateState();
 }
@@ -343,6 +557,9 @@ void WebViewPanel::OnStop(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnReload(wxCommandEvent& WXUNUSED(evt))
 {
+    if (!m_browser)
+        return;
+    ShowLoading(m_browser->GetCurrentURL());
     m_browser->Reload();
     UpdateState();
 }
@@ -411,11 +628,15 @@ void WebViewPanel::OnEnableDevTools(wxCommandEvent& evt)
 
 void WebViewPanel::OnClose(wxCloseEvent& evt)
 {
+    m_loading_timer.Stop();
+    m_visible_loading_started_once = false;
     this->Hide();
 }
 
 void WebViewPanel::OnFreshLoginStatus(wxTimerEvent &event)
 {
+    if (wxGetApp().is_closing())
+        return;
     auto mainframe = Slic3r::GUI::wxGetApp().mainframe;
     if (mainframe && mainframe->m_webview == this) {
         auto* app_config = Slic3r::GUI::wxGetApp().app_config;
@@ -578,6 +799,8 @@ void WebViewPanel::update_mode()
     */
 void WebViewPanel::OnNavigationRequest(wxWebViewEvent& evt)
 {
+    if (!IsCurrentBrowserEvent(evt))
+        return;
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetURL().ToUTF8().data();
     const wxString &url = evt.GetURL();
     if (url.StartsWith("File://") || url.StartsWith("file://")) {
@@ -609,7 +832,8 @@ void WebViewPanel::OnNavigationRequest(wxWebViewEvent& evt)
     if (!m_tools_handle_navigation->IsChecked())
     {
         evt.Veto();
-        m_button_stop->Enable(false);
+        if (m_button_stop)
+            m_button_stop->Enable(false);
     }
     else
     {
@@ -622,13 +846,12 @@ void WebViewPanel::OnNavigationRequest(wxWebViewEvent& evt)
     */
 void WebViewPanel::OnNavigationComplete(wxWebViewEvent& evt)
 {
-    m_browser->Show();
-    Layout();
+    if (!IsCurrentBrowserEvent(evt))
+        return;
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetURL().ToUTF8().data();
     if (wxGetApp().get_mode() == comDevelop)
         wxLogMessage("%s", "Navigation complete; url='" + evt.GetURL() + "'");
     UpdateState();
-    ShowNetpluginTip();
 }
 
 /**
@@ -636,19 +859,31 @@ void WebViewPanel::OnNavigationComplete(wxWebViewEvent& evt)
     */
 void WebViewPanel::OnDocumentLoaded(wxWebViewEvent& evt)
 {
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetTarget().ToUTF8().data();
-    // Only notify if the document is the main frame, not a subframe
-    if (evt.GetURL() == m_browser->GetCurrentURL())
-    {
-        if (wxGetApp().get_mode() == comDevelop)
-            wxLogMessage("%s", "Document loaded; url='" + evt.GetURL() + "'");
+    if (!IsMainDocumentEvent(evt))
+        return;
+    // A browser error page can itself emit LOADED. Keep an explicit failure
+    // visible until the user retries instead of treating that page as success.
+    if (m_loading_state == LoadingState::Failed)
+        return;
+    if (m_loading_state == LoadingState::Loading) {
+        m_loading_timer.Stop();
+        m_loading_state = LoadingState::Ready;
+        m_browser->Show();
+        m_loading_panel->Hide();
+        Layout();
+        BOOST_LOG_TRIVIAL(info) << "startup.home main_document_ready elapsed_ms="
+            << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - m_loading_started).count();
     }
     UpdateState();
+    ShowNetpluginTip();
     SendCloudProvidersInfo();
 }
 
 void WebViewPanel::OnTitleChanged(wxWebViewEvent &evt)
 {
+    if (!IsCurrentBrowserEvent(evt))
+        return;
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetString().ToUTF8().data();
     // wxGetApp().CallAfter([this] { SendRecentList(); });
 }
@@ -658,6 +893,8 @@ void WebViewPanel::OnTitleChanged(wxWebViewEvent &evt)
     */
 void WebViewPanel::OnNewWindow(wxWebViewEvent& evt)
 {
+    if (!IsCurrentBrowserEvent(evt))
+        return;
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetURL().ToUTF8().data();
     wxString flag = " (other)";
 
@@ -679,6 +916,8 @@ void WebViewPanel::OnNewWindow(wxWebViewEvent& evt)
 
 void WebViewPanel::OnScriptMessage(wxWebViewEvent& evt)
 {
+    if (!IsCurrentBrowserEvent(evt))
+        return;
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << evt.GetString().ToUTF8().data();
     // update login status
     if (m_LoginUpdateTimer == nullptr) {
@@ -746,7 +985,7 @@ void WebViewPanel::OnViewTextRequest(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
 {
-    if (m_browser->GetCurrentURL() == "")
+    if (!m_browser || m_browser->GetCurrentURL() == "")
         return;
 
     m_edit_cut->Enable(m_browser->CanCut());
@@ -772,7 +1011,7 @@ void WebViewPanel::RunScript(const wxString& javascript)
     // the "Run Script" dialog box, it is shown there for convenient updating.
     m_javascript = javascript;
 
-    if (!m_browser) return;
+    if (!m_browser || wxGetApp().is_closing()) return;
 
     WebView::RunScript(m_browser, javascript);
 }
@@ -907,6 +1146,24 @@ void WebViewPanel::OnSelectAll(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnError(wxWebViewEvent& evt)
 {
+    if (!IsCurrentBrowserEvent(evt))
+        return;
+    const wxString& target = evt.GetTarget();
+    const bool top_level_target = target.empty() || target == "_self" || target == "_top";
+    bool blank_backend_error = false;
+#if wxUSE_WEBVIEW_EDGE
+    // WebView2 reports a failed top-level NavigationCompleted using get_Source(),
+    // which may still be about:blank before the first document can be loaded.
+    blank_backend_error = evt.GetURL() == "about:blank";
+#endif
+    // Empty URLs denote native browser initialization/API failures on WebView2.
+    // Other failures must belong to the requested/current top-level document;
+    // a failed image, script or iframe must not replace the whole home page.
+    if (top_level_target && evt.GetInt() != wxWEBVIEW_NAV_ERR_USER_CANCELLED &&
+        (IsMainDocumentEvent(evt) ||
+         (m_loading_state == LoadingState::Loading &&
+          (evt.GetURL().empty() || blank_backend_error || evt.GetURL() == m_requested_url))))
+        ShowLoadFailure(false);
 #define WX_ERROR_CASE(type) \
     case type: \
     category = #type; \
