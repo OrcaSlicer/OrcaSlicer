@@ -48,7 +48,7 @@ def completed():
 
 class HunyuanClientTests(unittest.TestCase):
     def setUp(self):
-        self.environment = mock.patch.dict(os.environ, {"HY3D_API": "offline-test-key"}, clear=True)
+        self.environment = mock.patch.dict(os.environ, {"HY3D_API": "test-offline-key"}, clear=True)
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.transport = mock.patch.object(client, "build_network_opener")
@@ -74,7 +74,7 @@ class HunyuanClientTests(unittest.TestCase):
     def test_process_key_wins_without_registry_read(self):
         registry = mock.Mock()
         with mock.patch.object(client.os, "name", "nt"), mock.patch.dict("sys.modules", {"winreg": registry}):
-            self.assertEqual(client._api_key(), "offline-test-key")
+            self.assertEqual(client._api_key(), "test-offline-key")
         registry.OpenKey.assert_not_called()
 
     def test_windows_fallback_reads_only_one_user_variable(self):
@@ -162,7 +162,7 @@ class HunyuanClientTests(unittest.TestCase):
         self.assertEqual(client.submit_model_task(payload), "12345")
         sent = self.opener.open.call_args.args[0]
         self.assertEqual(sent.full_url, "https://tokenhub.tencentmaas.com/v1/api/3d/submit")
-        self.assertEqual(sent.get_header("Authorization"), "Bearer offline-test-key")
+        self.assertEqual(sent.get_header("Authorization"), "Bearer test-offline-key")
         self.assertEqual(json.loads(sent.data), payload)
         self.assertEqual(sent.get_method(), "POST")
         self.opener.open.assert_called_once()
@@ -197,7 +197,7 @@ class HunyuanClientTests(unittest.TestCase):
                 self.assertNotIn("secret", str(raised.exception))
 
     def test_credentials_reject_header_injection_without_network(self):
-        with mock.patch.dict(os.environ, {"HY3D_API": "key\r\nHost: evil.test"}):
+        with mock.patch.dict(os.environ, {"HY3D_API": "test-key\r\nHost: evil.test"}):
             with self.assertRaises(client.HunyuanError):
                 client.submit_model_task({})
         self.opener.open.assert_not_called()
@@ -258,7 +258,7 @@ class HunyuanClientTests(unittest.TestCase):
     def test_submit_diagnostics_redact_key_prompt_images_and_urls_before_bounding(self):
         prompt = "私人婚照"
         encoded = "sensitive-image-content"
-        detail = ("Invalid image_base64: offline-test-key " + prompt + " "
+        detail = ("Invalid image_base64: test-offline-key " + prompt + " "
                   + json.dumps(prompt)[1:-1] + " " + encoded + " "
                   + "https://example.test/?token=private Bearer another-key "
                   + "x" * 100 + "\n" + "more " * 200)
@@ -268,7 +268,7 @@ class HunyuanClientTests(unittest.TestCase):
             client.submit_model_task({"prompt": prompt, "multi_view_images": [{"view_image_base64": encoded}]})
         message = str(raised.exception)
         self.assertIn("Invalid image_base64", message)
-        for private in ("offline-test-key", prompt, json.dumps(prompt)[1:-1], encoded,
+        for private in ("test-offline-key", prompt, json.dumps(prompt)[1:-1], encoded,
                         "example.test", "another-key", "x" * 64, "bad", "\n"):
             self.assertNotIn(private, message)
         self.assertLess(len(message), 600)
