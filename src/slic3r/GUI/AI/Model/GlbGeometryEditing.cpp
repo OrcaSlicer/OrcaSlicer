@@ -289,7 +289,9 @@ std::shared_ptr<GlbGeometrySource> read_glb_geometry_source(const boost::filesys
     for (const char* field : {"extensionsUsed", "extensionsRequired"}) if (doc.contains(field)) {
         require(doc.at(field).is_array(), "GLB extension list is invalid.");
         for (const auto& extension : doc.at(field))
-            require(extension == "KHR_materials_unlit" || extension == "KHR_texture_transform" || extension == "KHR_mesh_quantization",
+            // Specular is material-only; the complete material and texture payload is retained.
+            require(extension == "KHR_materials_unlit" || extension == "KHR_materials_specular" ||
+                extension == "KHR_texture_transform" || extension == "KHR_mesh_quantization",
                 "This GLB extension is not supported for texture-preserving geometry edits.");
     }
     require(doc.at("buffers").size() == 1 && !doc.at("buffers")[0].contains("uri"), "GLB geometry must be embedded in one buffer.");

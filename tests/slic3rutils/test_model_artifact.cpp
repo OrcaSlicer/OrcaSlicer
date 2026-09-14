@@ -540,6 +540,39 @@ TEST_CASE("GLB local smoothing retains texture bytes and outside normals while m
     REQUIRE_FALSE(boost::filesystem::exists(output.string() + ".edited.obj"));
 }
 
+TEST_CASE("GLB smoothing preserves optional specular materials and retains required-extension checks", "[ModelArtifact][GlbGeometry]") {
+    for (bool required : {false, true}) {
+        DYNAMIC_SECTION("required=" << required) {
+            Fixture f;
+            auto original = noisy_glb_grid();
+            original.doc["extensionsUsed"] = {"KHR_materials_specular"};
+            original.doc["extensionsRequired"] = required ? GlbJson {"KHR_materials_specular"} : GlbJson::array();
+            original.doc["materials"][0]["extensions"] = {{"KHR_materials_specular", {
+                {"specularFactor", 0}, {"specularColorFactor", {.2, .4, .6}},
+                {"specularTexture", {{"index", 0}}}, {"specularColorTexture", {{"index", 0}}}
+            }}};
+            const auto input = f.directory / "specular.glb", output = f.directory / "smoothed.glb";
+            save_glb_fixture(input, original);
+            const auto hash = model_artifact_sha256(input);
+            const auto result = finish_model_artifact(input, output, {true, false, .8});
+            INFO(result.error);
+            if (required) {
+                // The color importer does not implement specular shading; it
+                // must still reject assets that require that rendering model.
+                REQUIRE_FALSE(result.success);
+                REQUIRE(result.error == "Unsupported GLB extension: KHR_materials_specular");
+                REQUIRE_FALSE(boost::filesystem::exists(output));
+            } else {
+                REQUIRE(result.success);
+                REQUIRE(result.moved_vertices > 0);
+                REQUIRE(result.faces_before == result.faces_after);
+                require_glb_appearance_retained(original, read_glb_fixture(output));
+            }
+            REQUIRE(model_artifact_sha256(input) == hash);
+        }
+    }
+}
+
 TEST_CASE("GLB preservation rejects unsupported structures and unverified editor mappings before writing", "[ModelArtifact][GlbGeometry]") {
     const auto original = read_glb_fixture(samples / "baseline.glb");
     TriangleMesh mesh; ObjInfo colors; std::string error;
