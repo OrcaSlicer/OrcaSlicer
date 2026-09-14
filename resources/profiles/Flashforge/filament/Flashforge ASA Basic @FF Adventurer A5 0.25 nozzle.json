@@ -1,0 +1,45 @@
+{
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "105"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "105"
+    ],
+    "filament_settings_id": [
+        "Flashforge ASA Basic @FF Adventurer A5 0.25 nozzle"
+    ],
+    "from": "system",
+    "setting_id": "OIUW8rw2VhNpeVpF",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.25 nozzle"
+    ],
+    "inherits": "Flashforge ASA Basic @FF AD5M 0.25 nozzle",
+    "is_custom_defined": "0",
+    "name": "Flashforge ASA Basic @FF Adventurer A5 0.25 nozzle",
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "textured_cool_plate_temp": [
+        "0"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "105"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "105"
+    ],
+    "version": "2.1.1.0"
+}

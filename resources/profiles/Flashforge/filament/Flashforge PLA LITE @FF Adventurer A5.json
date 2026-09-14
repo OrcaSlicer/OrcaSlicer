@@ -1,0 +1,47 @@
+{
+    "cool_plate_temp": [
+        "45"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "1.02"
+    ],
+    "filament_max_volumetric_speed": [
+        "22"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA LITE @FF Adventurer A5"
+    ],
+    "from": "system",
+    "setting_id": "2QZaQyg66IJPbsSc",
+    "instantiation": "true",
+    "compatible_printers": [
+      "Flashforge Adventurer A5 0.4 nozzle",
+      "Flashforge Adventurer A5 0.6 nozzle",
+      "Flashforge Adventurer A5 0.8 nozzle"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "inherits": "Flashforge Generic PLA",
+    "is_custom_defined": "0",
+    "name": "Flashforge PLA LITE @FF Adventurer A5",
+    "pressure_advance": [
+        "0.0325"
+    ],
+    "textured_cool_plate_temp": [
+        "45"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "version": "2.1.1.0"
+}
