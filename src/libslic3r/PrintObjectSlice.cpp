@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "TriangleMeshSlicer.hpp"
 #include "Print.hpp"
 //BBS
 #include "ShortestPath.hpp"
@@ -1036,6 +1037,53 @@ static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCance
         });
 }
 
+// Orca: Project the facets painted with the ironing painting gizmo onto the layers they cap.
+// Ironing only ever runs over upward-facing top surfaces, and slice_mesh_slabs() projects exactly
+// the upward-facing painted triangles onto the slicing plane of the layer they belong to, so the
+// result lines up with the stTop surfaces that make_ironing() collects.
+template<typename ThrowOnCancel>
+static void apply_ironing_painting(PrintObject &print_object, ThrowOnCancel throw_on_cancel)
+{
+    const LayerPtrs &layers = print_object.layers();
+    if (layers.empty())
+        return;
+
+    const std::vector<float> zs           = zs_from_layers(layers);
+    const Transform3d        object_trafo = print_object.trafo_centered();
+    std::vector<Polygons>    top_raw;
+
+    for (const ModelVolume *mv : print_object.model_object()->volumes) {
+        if (!mv->is_model_part() || !mv->is_ironing_painted())
+            continue;
+
+        throw_on_cancel();
+        const indexed_triangle_set painted = mv->ironing_facets.get_facets_strict(*mv, EnforcerBlockerType::IRONING);
+        if (painted.indices.empty())
+            continue;
+
+        std::vector<Polygons> top;
+        slice_mesh_slabs(painted, zs, object_trafo * mv->get_matrix(), &top, nullptr, nullptr, throw_on_cancel);
+        if (top_raw.empty())
+            top_raw = std::move(top);
+        else
+            for (size_t layer_idx = 0; layer_idx < top_raw.size(); ++ layer_idx)
+                append(top_raw[layer_idx], std::move(top[layer_idx]));
+    }
+
+    if (top_raw.empty())
+        return;
+
+    // slice_mesh_slabs() emits one entry per slicing plane, so this is aligned with the layers.
+    assert(top_raw.size() == layers.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, std::min(layers.size(), top_raw.size())), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
+            throw_on_cancel();
+            if (!top_raw[layer_idx].empty())
+                layers[layer_idx]->ironing_painted = union_ex(top_raw[layer_idx]);
+        }
+    });
+}
+
 template<typename ThrowOnCancel>
 void apply_fuzzy_skin_segmentation(PrintObject &print_object, ThrowOnCancel throw_on_cancel)
 {
@@ -1245,6 +1293,13 @@ void PrintObject::slice_volumes()
 
         BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - Fuzzy skin segmentation";
         apply_fuzzy_skin_segmentation(*this, [print]() { print->throw_if_canceled(); });
+    }
+
+    // Is any ModelVolume ironing painted? Unlike the segmentations above this does not split regions,
+    // it only records a per-layer mask that make_ironing() intersects the top surfaces with.
+    if (this->model_object()->is_ironing_painted()) {
+        BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - Ironing painting projection";
+        apply_ironing_painting(*this, [print]() { print->throw_if_canceled(); });
     }
 
     InterlockingGenerator::generate_interlocking_structure(this, [print]() { print->throw_if_canceled(); });

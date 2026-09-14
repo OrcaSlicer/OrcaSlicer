@@ -83,6 +83,7 @@ public:
         FdmSupports,
         Seam,
         FuzzySkin,
+        Ironing,
         MmSegmentation,
         Emboss,
         Svg,

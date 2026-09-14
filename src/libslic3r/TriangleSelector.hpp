@@ -17,6 +17,8 @@ enum class EnforcerBlockerType : int8_t {
     BLOCKER   = 2,
     // For the fuzzy skin, we use just two values (NONE and FUZZY_SKIN).
     FUZZY_SKIN = ENFORCER,
+    // For painted ironing, we use just two values (NONE and IRONING).
+    IRONING = ENFORCER,
     // States 3..17 are serialized into 6 bits using a 2 bit prefix code; states 18 and above use
     // one additional nibble (see TriangleSelector::serialize). ExtruderMax matches the last entry
     // of CONST_FILAMENTS in Model.cpp, which encodes the same range for colored mesh imports.
@@ -401,6 +403,7 @@ public:
         TriangleSplittingData seam;
         TriangleSplittingData mmu;
         TriangleSplittingData fuzzy;
+        TriangleSplittingData ironing;
     };
 
     // Remap painting data from source mesh to target mesh using spatial mapping.
