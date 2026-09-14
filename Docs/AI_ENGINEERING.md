@@ -9,7 +9,7 @@
 - 当前实现：工作树代码和对应测试；报告须说明使用 HEAD 还是含未提交修改的工作树。
 - 最新体验与修改：[性能、质量提示和 3D 美颜](audits/2026-09-09-performance-advisory-finishing.md)，含实际模型加载、美颜保存回退与原生导入取消验证；质量判断不再拦截下一步。
 - 当前产品修正：[不限色生成与本地三维修整](audits/2026-09-09-unrestricted-generation-and-finishing.md)；保留单色写实，仅[AI 原生配色交接](plans/2026-09-09-ai-native-color-matching-handoff.md)由同事实施。[RGB 预检误拦修复](audits/2026-09-09-reference-preflight-fix.md)已验证实际任务恢复、图片确认和切页；其他 GUI 主路径仍需验收，不能用编译结果代替。
-- 本机续建编译路径：[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核)，记录已验证的 MSVC、CMake 和依赖前缀；产物写入当前续建仓库。
+- 本机续建编译路径：先看 [2026-09-12 共享依赖与磁盘存储](coordination/local-build-storage.md) 中的 D 盘公共依赖及兼容入口；[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核) 保留 MSVC、CMake 和历史配置参数。各项目及验证任务保持独立增量构建。
 - 集成基线、运行版本、端口、所有权和预算：[ai-integration-lock.json](../docs/architecture/ai-integration-lock.json)。不要在导航中复制会漂移的版本值。
 - 架构决策：[模块边界与 lineage](../docs/architecture/ADR-003-upstream-lineage-ai-integration.md)、[渐进拆分](../docs/architecture/ADR-005-guarded-incremental-ai-decomposition.md)、[颜色交接](architecture/ADR-006-six-channel-model-color-intent.md)、[智能切片事务](../docs/architecture/ADR-002-smart-slicing-transactional-workbench.md)。Accepted 表示接受的设计，实际完成度仍需代码和验收证据。
 - 硬件/颜色术语及检验限度：[打印与颜色边界](domain/printing-color-boundaries.md)。

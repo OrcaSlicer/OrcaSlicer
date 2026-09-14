@@ -225,6 +225,32 @@ AI::PrintablePaletteSnapshot OrcaWorkspaceAdapter::printable_palette() const
     return snapshot;
 }
 
+TextureImportOptions model_import_color_options(const AI::ModelImportRequest& request)
+{
+    TextureImportOptions options;
+    // Twelve editable target groups leave room for skin, lips and clothing
+    // shades. This is a starting point, not a requirement for twelve filaments.
+    options.initial_target_colors = 12;
+    options.initial_color_smoothing = 0;
+    options.physical_filament_limit = 6;
+    options.preserve_existing_filaments = true;
+    options.z_up = true;
+    const auto to_rgb = [](const auto& color) {
+        return std::array<size_t, 3> {size_t(std::lround(color[0] * 255.f)),
+                                     size_t(std::lround(color[1] * 255.f)),
+                                     size_t(std::lround(color[2] * 255.f))};
+    };
+    for (const auto& override : request.face_color_overrides)
+        options.face_color_overrides.push_back({override.first, to_rgb(override.second)});
+    if (request.color_trial && request.color_trial->valid()) {
+        for (const auto& color : request.color_trial->mapping_colors)
+            options.fixed_mapping_palette.push_back(to_rgb(color));
+        for (const auto& color : request.color_trial->target_colors)
+            options.fixed_palette.push_back(to_rgb(color));
+    }
+    return options;
+}
+
 AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImportRequest& request)
 {
     AI::ModelImportResult result;
@@ -301,28 +327,7 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
             // mixed-filament recipes and undo transaction as regular OBJ imports.
             Plater::TakeSnapshot snapshot(m_plater, snapshot_name);
             ModelColorImportResult color_result;
-            TextureImportOptions options;
-            options.initial_target_colors = 6;
-            options.physical_filament_limit = 6;
-            options.preserve_existing_filaments = true;
-            options.z_up = true;
-            for (const auto& override : request.face_color_overrides)
-                options.face_color_overrides.push_back({override.first, {
-                    size_t(std::lround(override.second[0] * 255.f)),
-                    size_t(std::lround(override.second[1] * 255.f)),
-                    size_t(std::lround(override.second[2] * 255.f))}});
-            if (request.color_trial && request.color_trial->valid()) {
-                const auto to_rgb = [](const auto& source) {
-                    std::vector<std::array<size_t, 3>> colors;
-                    for (const auto& color : source)
-                        colors.push_back({size_t(std::lround(color[0] * 255.f)),
-                                          size_t(std::lround(color[1] * 255.f)),
-                                          size_t(std::lround(color[2] * 255.f))});
-                    return colors;
-                };
-                options.fixed_mapping_palette = to_rgb(request.color_trial->mapping_colors);
-                options.fixed_palette = to_rgb(request.color_trial->target_colors);
-            }
+            TextureImportOptions options = model_import_color_options(request);
             auto loaded = m_plater->load_files({path}, LoadStrategy::LoadModel, false, nullptr, &color_result, &options);
             import_cancelled = color_result.cancelled;
             colors_applied = color_result.colors_applied;

@@ -89,6 +89,9 @@ class AutoMixSelectPopup;
 // Optional desktop import context. Defaults preserve ordinary Orca imports.
 struct TextureImportOptions {
     size_t initial_target_colors = 0;
+    // Negative keeps the ordinary importer's default (5); AI starts with no
+    // boundary cleanup so small lip/eye regions can be checked before merging.
+    int initial_color_smoothing = -1;
     size_t physical_filament_limit = 0;
     bool preserve_existing_filaments = false;
     bool z_up = false;

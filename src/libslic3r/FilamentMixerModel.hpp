@@ -776,6 +776,10 @@ inline void lerp(unsigned char r1, unsigned char g1, unsigned char b1,
         *out_r = r2; *out_g = g2; *out_b = b2;
         return;
     }
+    if (r1 == r2 && g1 == g2 && b1 == b2) {
+        *out_r = r1; *out_g = g1; *out_b = b1;
+        return;
+    }
 
     double x[7] = {
         static_cast<double>(r1), static_cast<double>(g1), static_cast<double>(b1),
@@ -800,6 +804,18 @@ inline void lerp(unsigned char r1, unsigned char g1, unsigned char b1,
         if (c == 0) *out_r = static_cast<unsigned char>(val);
         else if (c == 1) *out_g = static_cast<unsigned char>(val);
         else *out_b = static_cast<unsigned char>(val);
+    }
+
+    // The unconstrained regression can invent a blue hue for neutral inputs
+    // (black/white at 50% used to produce #647DA0). Preserve its estimated
+    // luminance, but keep a neutral mixture on the gray axis and within its
+    // endpoints. This is a preview estimate, not a measured filament recipe.
+    if (r1 == g1 && g1 == b1 && r2 == g2 && g2 == b2) {
+        const int luminance = static_cast<int>(std::lround(
+            0.2126 * *out_r + 0.7152 * *out_g + 0.0722 * *out_b));
+        const auto gray = static_cast<unsigned char>(std::clamp(
+            luminance, static_cast<int>(std::min(r1, r2)), static_cast<int>(std::max(r1, r2))));
+        *out_r = gray; *out_g = gray; *out_b = gray;
     }
 }
 

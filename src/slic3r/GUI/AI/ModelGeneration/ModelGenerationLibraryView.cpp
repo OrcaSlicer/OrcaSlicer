@@ -7,6 +7,7 @@
 #include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include <algorithm>
 #include <wx/button.h>
+#include <wx/choice.h>
 #include <wx/clipbrd.h>
 #include <wx/dataobj.h>
 #include <wx/image.h>
@@ -19,6 +20,61 @@
 #include <wx/weakref.h>
 
 namespace Slic3r::GUI {
+
+void ModelGenerationPanel::persist_generation_options()
+{
+    if (m_shutdown || m_busy || m_restoring_input || !m_awaiting_confirmation || m_job_id.empty() ||
+        !job_inputs_match() || use_printable_colors() != m_job_use_printable_colors ||
+        (use_printable_colors() && current_palette() != m_job_palette)) {
+        refresh_controls();
+        return;
+    }
+    if (!generation_options_valid()) {
+        refresh_controls();
+        show_input_hint(_L("当前设置尚未保存：200 万面需要选择精细几何。"));
+        return;
+    }
+    const auto previous = m_job_generation_options;
+    const auto requested = current_generation_options();
+    const uint64_t sequence = m_sequence;
+    const std::string job_id = m_job_id;
+    m_saving_generation_options = true;
+    m_busy = true;
+    refresh_controls();
+    m_status->SetLabel(_L("正在保存 3D 生成设置..."));
+    wxWeakRef<ModelGenerationPanel> weak(this);
+    const auto finish = [weak, sequence, job_id](AIModelGenerationClient::GenerationOptions options, wxString error) {
+        if (!weak) return;
+        wxGetApp().CallAfter([weak, sequence, job_id, options = std::move(options), error = std::move(error)] {
+            if (!weak || weak->m_shutdown || sequence != weak->m_sequence || weak->m_job_id != job_id) return;
+            weak->m_job_generation_options = options;
+            weak->m_job_face_limit = options.face_limit;
+            weak->m_job_generation_profile = options.face_limit <= 300000 ? "performance" : "quality";
+            weak->m_provider->SetSelection(options.provider == "hunyuan" ? 1 : 0);
+            weak->refresh_provider_options();
+            weak->m_quality->SetSelection(options.face_limit <= 300000 ? 0 : options.face_limit == 2000000 && weak->m_quality->GetCount() == 3 ? 2 : 1);
+            weak->m_geometry_quality->SetSelection(weak->m_geometry_quality->GetCount() > 1 && options.geometry_quality == "detailed" ? 1 : 0);
+            weak->m_texture_quality->SetSelection(weak->m_texture_quality->GetCount() == 1 ? 0 : options.texture_quality == "extreme" ? 2 : options.texture_quality == "detailed" ? 1 : 0);
+            weak->m_output_format->SetSelection(options.output_format == "obj" ? 1 : 0);
+            weak->m_saving_generation_options = false;
+            weak->m_busy = false;
+            weak->refresh_controls();
+            weak->show_input_hint(error.empty() ? _L("3D 生成设置已保存。")
+                : _L("保存未确认，界面已恢复先前设置；请重新打开设计记录核对：") + error);
+        });
+    };
+    m_client.update_generation_options(job_id, requested,
+        [finish, previous, job_id](AIModelGenerationClient::JobStatus status) {
+            if (status.id != job_id || status.state != "awaiting_confirmation") {
+                finish(previous, _L("任务状态已变化，请重新打开设计记录。"));
+                return;
+            }
+            finish(std::move(status.generation_options), wxString());
+        },
+        [finish, previous](std::string error) {
+            finish(previous, wxString::FromUTF8(error));
+        });
+}
 
 void ModelGenerationPanel::load_design_library_entry(const std::string& job_id)
 {
@@ -162,7 +218,7 @@ void ModelGenerationPanel::refresh_library()
             task_id->SetToolTip(wxString::FromUTF8(entry.provider_task_id));
             auto* copy_task_id = new wxButton(
                 task_parent, wxID_ANY, _L("复制"), wxDefaultPosition, wxSize(FromDIP(58), FromDIP(26)));
-            copy_task_id->SetToolTip(_L("复制完整的 Tripo 3D Task ID"));
+            copy_task_id->SetToolTip(_L("复制完整的 3D 生成任务编号"));
             copy_task_id->Bind(wxEVT_BUTTON, [this, provider_task_id = entry.provider_task_id](wxCommandEvent&) {
                 bool copied = false;
                 if (wxTheClipboard->Open()) {

@@ -41,6 +41,7 @@ _GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 class ProviderPolicy:
     design_providers: tuple[str, ...] = ("gpt", "image2")
     geometry_provider: str = "tripo"
+    geometry_providers: tuple[str, ...] = ("tripo", "hunyuan")
     automatic_fallback: bool = False
     max_paid_model_tasks_per_confirmation: int = 1
 
@@ -59,6 +60,7 @@ class ModelTaskRequest:
     generation_profile: str = "quality"
     geometry_quality: str | None = None
     texture_quality: str = "standard"
+    output_format: str = "glb"
 
 
 @dataclass(frozen=True)
@@ -105,7 +107,7 @@ class PaidTaskAuthorization:
         self._consumed = False
 
     @classmethod
-    def confirmed(cls, request_id: str) -> PaidTaskAuthorization:
+    def confirmed(cls, request_id: str, provider: str = "tripo") -> PaidTaskAuthorization:
         normalized = request_id.strip() if isinstance(request_id, str) else ""
         if not normalized:
             raise ProviderGatewayError(
@@ -113,7 +115,10 @@ class PaidTaskAuthorization:
                 code="invalid_authorization",
                 category="authorization",
             )
-        return cls(normalized, "tripo", "model_generation")
+        if provider not in {"tripo", "hunyuan"}:
+            raise ProviderGatewayError("Unsupported model provider.", code="invalid_provider",
+                                       category="validation")
+        return cls(normalized, provider, "model_generation")
 
     @classmethod
     def confirmed_texture(cls, request_id: str) -> PaidTaskAuthorization:

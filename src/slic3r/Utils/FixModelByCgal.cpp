@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "libslic3r/MeshBoolean.hpp"
+#include "libslic3r/MeshSeamRepair.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/format.hpp"
@@ -68,10 +69,17 @@ public:
 
 // Orca: Main function to repair model objects using CGAL, with progress dialog and cancellation support.
 // Returns false if fixing was canceled. fix_result contains error message if failed.
-bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting)
+bool fix_model_with_cgal_gui(ModelObject &original_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting, bool* painting_removed)
 {
+    if (painting_removed)
+        *painting_removed = false;
     // Hold SaveObjectGaurd to prevent backup manager from racing concurrent mesh mutations (use-after-free).
-    SaveObjectGaurd backup_gaurd(model_object);
+    SaveObjectGaurd backup_gaurd(original_object);
+
+    // Repair may split/delete volumes before it succeeds. Keep both geometry
+    // and paint private until the entire operation completes without canceling.
+    Model repair_model;
+    ModelObject& model_object = *repair_model.add_object(original_object);
 
     // Orca: Synchronization primitives for progress updates between worker thread and GUI.
     std::mutex mtx;
@@ -86,6 +94,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     std::atomic<bool> finished = false;
 
     bool   success = false;
+    bool   staged_paint_removed = false;
     size_t ivolume = 0;
 
     // Orca: Lambda for updating progress from worker thread.
@@ -99,7 +108,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     };
 
     // Orca: Worker thread that performs the actual model repair operations.
-    auto worker_thread = std::thread([&model_object, volume_idx, &ivolume, on_progress, &success, &canceled, &finished, &fix_result, keep_painting]() {
+    auto worker_thread = std::thread([&model_object, volume_idx, &ivolume, on_progress, &success, &canceled, &finished, &fix_result, &staged_paint_removed, keep_painting]() {
         try {
 	        set_current_thread_name("cgal_fix_model");
 
@@ -115,6 +124,22 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 on_progress(_u8L("Repairing model object"), 10);
 
                 ModelVolume *volume = model_object.volumes[ivolume];
+                TriangleMesh stitched_mesh = volume->mesh();
+                if (stitch_exact_mesh_seams(stitched_mesh)) {
+                    volume->set_mesh(std::move(stitched_mesh));
+                    volume->set_new_unique_id();
+                    // No faces moved or changed order; even with the general
+                    // keep-painting option off, there is nothing to remap.
+                    on_progress(_u8L("Repair finished"), 100);
+                    continue;
+                }
+                if (!keep_painting) {
+                    staged_paint_removed |= volume->is_any_painted();
+                    volume->supported_facets.reset();
+                    volume->seam_facets.reset();
+                    volume->mmu_segmentation_facets.reset();
+                    volume->fuzzy_skin_facets.reset();
+                }
 
                 // Orca: Split splittable volumes into parts for individual processing.
                 size_t parts_count = 1;
@@ -125,6 +150,8 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                         on_progress(msg, 10);
                     }
                 }
+                if (canceled)
+                    throw RepairCanceledException();
 
                 size_t part_end = std::min(ivolume + parts_count - 1, model_object.volumes.size() - 1);
                 if (volume_idx != -1)
@@ -154,6 +181,9 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 }
 
                 for (size_t part_idx = ivolume; part_idx <= part_end && part_idx < model_object.volumes.size(); ++part_idx) {
+                    if (canceled)
+                        throw RepairCanceledException();
+                    on_progress(_u8L("Repairing model object"), unsigned(100 * (part_idx - ivolume)));
                     ModelVolume *part_volume = model_object.volumes[part_idx];
                     TriangleMesh mesh = part_volume->mesh();
                     if (its_num_open_edges(mesh.its) != 0) {
@@ -166,6 +196,8 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                         std::string error;
                         if (!MeshBoolean::cgal::repair(mesh, nullptr, &error))
                             throw Slic3r::RuntimeError(error.empty() ? _u8L("Repair failed") : error);
+                        if (canceled)
+                            throw RepairCanceledException();
 
                         part_volume->set_mesh(std::move(mesh));
                         part_volume->calculate_convex_hull();
@@ -175,6 +207,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                         // Remap paint back
                         part_volume->restore_painting(saved_painting);
                     }
+                    on_progress(_u8L("Repairing model object"), unsigned(100 * (part_idx - ivolume + 1)));
                 }
 
                 ivolume = part_end;
@@ -223,6 +256,23 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
 
     if (worker_thread.joinable())
         worker_thread.join();
+
+    if (!canceled && success) {
+        const size_t original_volume_count = original_object.volumes.size();
+        try {
+            for (const ModelVolume* volume : model_object.volumes)
+                original_object.add_volume(*volume);
+        } catch (...) {
+            while (original_object.volumes.size() > original_volume_count)
+                original_object.delete_volume(original_object.volumes.size() - 1);
+            throw;
+        }
+        for (size_t i = 0; i < original_volume_count; ++i)
+            original_object.delete_volume(0);
+        original_object.invalidate_bounding_box();
+        if (painting_removed)
+            *painting_removed = staged_paint_removed;
+    }
 
     return !canceled;
 }

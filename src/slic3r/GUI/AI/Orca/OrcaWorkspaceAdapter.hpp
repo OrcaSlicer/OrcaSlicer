@@ -8,6 +8,11 @@
 namespace Slic3r::GUI {
 
 class Plater;
+struct TextureImportOptions;
+
+// Target colors and physical feed slots are separate decisions. Shared by the
+// native handoff and its regression checks; does not mutate a project.
+TextureImportOptions model_import_color_options(const AI::ModelImportRequest& request);
 
 // Anti-corruption layer between AI application contracts and Orca workspace
 // implementation details. No Orca type crosses either public port.

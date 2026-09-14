@@ -521,6 +521,7 @@ public:
                         std::function<void(wxColour)>            on_add_filament,
                         std::function<void()>                    on_decompose_color,
                         std::function<bool()>                    can_add_filament,
+                        std::function<bool()>                    can_decompose_color,
                         std::function<void(bool)>                on_close,
                         std::vector<int>                         display_numbers)
         : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS)
@@ -533,6 +534,7 @@ public:
         , m_on_add_filament(std::move(on_add_filament))
         , m_on_decompose_color(std::move(on_decompose_color))
         , m_can_add_filament(std::move(can_add_filament))
+        , m_can_decompose_color(std::move(can_decompose_color))
         , m_on_close(std::move(on_close))
         , m_display_numbers(std::move(display_numbers))
     {
@@ -597,17 +599,18 @@ public:
         add_label->SetFont(af);
         decompose_label->SetFont(af);
         const bool add_enabled = !m_can_add_filament || m_can_add_filament();
+        const bool decompose_enabled = !m_can_decompose_color || m_can_decompose_color();
         const wxColour action_clr = StateColor::darkModeColorFor(wxColour("#009688"));
         add_label->SetForegroundColour(add_enabled ? action_clr : header_clr);
-        decompose_label->SetForegroundColour(add_enabled ? action_clr : header_clr);
+        decompose_label->SetForegroundColour(decompose_enabled ? action_clr : header_clr);
         add_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
-        decompose_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        decompose_label->SetCursor(wxCursor(decompose_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
         if (!add_enabled)
             add_label->SetToolTip(wxString::Format(
                 _L("The project supports up to %d filaments. Extra filaments will be discarded."),
                 (int)EnforcerBlockerType::ExtruderMax));
         decompose_label->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) {
-            if (m_can_add_filament && !m_can_add_filament())
+            if (m_can_decompose_color && !m_can_decompose_color())
                 return;
             auto on_decompose_color = m_on_decompose_color;
             m_closing_from_action = true;
@@ -891,6 +894,7 @@ private:
     std::function<void(wxColour)>              m_on_add_filament;
     std::function<void()>                      m_on_decompose_color;
     std::function<bool()>                      m_can_add_filament;
+    std::function<bool()>                      m_can_decompose_color;
     std::function<void(bool)>                  m_on_close;
     // 1-based display number per dialog_index, mirroring the post-apply
     // sidebar ordering (ExistingPhysical, NewPhysical, ExistingMixed, NewMixed).
@@ -1775,6 +1779,8 @@ TextureImportDialog::TextureImportDialog(
     SetSize(wxSize(FromDIP(960), FromDIP(640)));
     if (m_options.initial_target_colors > 0)
         m_param_color_count = (int)std::min(m_options.initial_target_colors, max_filament_count());
+    if (m_options.initial_color_smoothing >= 0)
+        m_param_smooth = std::clamp(m_options.initial_color_smoothing, 0, 10);
     if (!m_options.fixed_palette.empty()) {
         m_param_color_count = (int)std::min(m_options.fixed_palette.size(), max_filament_count());
         m_param_smooth = 0;
@@ -2209,9 +2215,9 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
         m_initial_tooltips_set = true;
         CallAfter([this]() {
             if (m_btn_color_auto)
-                m_btn_color_auto->SetToolTip(_L("Automatically determine the optimal color count only and recompute filament mapping"));
+                m_btn_color_auto->SetToolTip(texture_import_label("Suggest a color count and update filament mapping", "自动建议目标色数量，并更新耗材匹配。"));
             if (m_btn_apply)
-                m_btn_apply->SetToolTip(_L("Convert texture to painting using the specified color count and smooth level"));
+                m_btn_apply->SetToolTip(texture_import_label("Update color separation and filament mapping using the current settings", "按当前目标色数量和边界清理设置更新分色预览与耗材匹配。"));
         });
     });
 
@@ -2221,7 +2227,7 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
     sizer->Add(apply_sizer, 0, wxALIGN_RIGHT | wxBOTTOM, FromDIP(8));
 
     m_hint_label = new wxStaticText(parent, wxID_ANY,
-        _L("Reminder: parameters changed, click Apply to take effect"));
+        texture_import_label("Parameters changed. Click Update preview to refresh.", "参数已修改，请点击“更新分色预览”。"));
     m_hint_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF6F00")));
     m_hint_label->SetFont(texture_import_section_title_font(parent));
     m_hint_label->Hide();
@@ -3676,6 +3682,14 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
         m_existing_filament_count, tp->GetSize().x, tp, on_select, on_add_filament,
         on_decompose_color,
         [this]() { return can_add_physical_filament(); },
+        [this]() {
+            // A recipe reuses project materials and only adds a virtual slot.
+            // Keeping physical filaments fixed must not disable this action.
+            return can_add_virtual_filament() &&
+                std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {
+                    return entry.kind == TextureFilamentKind::ExistingPhysical;
+                }) >= 2;
+        },
         on_close,
         display_numbers);
 
@@ -4401,7 +4415,7 @@ void TextureImportDialog::style_confirm_button(bool dirty)
 {
     if (dirty) {
         apply_muted_button_colours(m_btn_ok);
-        m_btn_ok->SetToolTip(_L("Reminder: parameters changed, click Apply to take effect"));
+        m_btn_ok->SetToolTip(texture_import_label("Parameters changed. Click Update preview to refresh.", "参数已修改，请点击“更新分色预览”。"));
     } else {
         apply_accent_button_colours(m_btn_ok);
         m_btn_ok->UnsetToolTip();

@@ -59,6 +59,7 @@ private:
     void on_first_visible_idle(wxIdleEvent& event);
     void build_page();
     wxWindow* build_workflow_panel(wxWindow* parent);
+    wxWindow* build_import_settings(wxWindow* parent);
     wxWindow* build_preview_panel(wxWindow* parent);
     wxWindow* build_model_library(wxWindow* parent);
 
@@ -112,6 +113,8 @@ private:
     std::string current_generation_profile() const;
     wxString current_generation_profile_label() const;
     AIModelGenerationClient::GenerationOptions current_generation_options() const;
+    void refresh_provider_options();
+    void persist_generation_options();
     bool generation_options_valid() const;
     wxString generation_options_summary(bool image_mode) const;
     int current_face_limit() const;
@@ -273,6 +276,7 @@ private:
     wxPanel*        m_custom_style_panel { nullptr };
     wxTextCtrl*     m_custom_style { nullptr };
     wxChoice*       m_quality { nullptr };
+    wxChoice*       m_provider { nullptr };
     wxChoice*       m_geometry_quality { nullptr };
     wxChoice*       m_texture_quality { nullptr };
     wxChoice*       m_output_format { nullptr };
@@ -287,6 +291,7 @@ private:
     wxCheckBox*     m_use_printable_colors { nullptr };
     wxChoice*       m_palette_source { nullptr };
     wxChoice*       m_import_color_mode { nullptr };
+    wxChoice*       m_import_color_source { nullptr };
     wxColourPickerCtrl* m_custom_color { nullptr };
     wxButton*       m_add_custom_color { nullptr };
     wxStaticText*   m_palette_summary { nullptr };
@@ -438,6 +443,7 @@ private:
     bool m_design_history_loading { false };
     uint64_t m_style_recommendation_sequence { 0 };
     bool m_busy { false };
+    bool m_saving_generation_options { false };
     bool m_awaiting_confirmation { false };
     bool m_awaiting_palette_confirmation { false };
     bool m_palette_recommendation_confirmed { false };

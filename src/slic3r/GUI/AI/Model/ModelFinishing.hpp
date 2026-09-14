@@ -69,8 +69,9 @@ ModelFinishingResult finish_model_obj(
     const std::function<bool()>& canceled = {});
 
 // Supports OBJ and GLB sources and preserves the selected output format.
-// GLB textures are sampled into the same editable colors used by the preview;
-// the source GLB and its texture maps are retained unchanged.
+// Pure GLB smoothing retains source UVs, materials, textures and node transforms
+// in a separate GLB version. Unsupported geometry structures and topology edits
+// fail explicitly. Explicit recoloring remains a separate vertex-color export.
 ModelFinishingResult finish_model_artifact(
     const boost::filesystem::path& source,
     const boost::filesystem::path& destination,

@@ -234,6 +234,26 @@ class ImageProviderSelectionTests(unittest.TestCase):
 
 
 class StylePreviewPromptTests(unittest.TestCase):
+    def test_portrait_color_refinement_keeps_identity_and_material_boundaries(self):
+        for builder in (preprocessor.build_geometry_reference_prompt,
+                        preprocessor.build_text_geometry_reference_prompt):
+            for style in ("realistic", "portrait_sketch"):
+                with self.subTest(builder=builder.__name__, style=style):
+                    prompt = builder("两个人，保留本人肤色和唇色", style)
+                    self.assertIn("locked facial geometry", prompt)
+                    self.assertIn("moles, freckles and deliberate makeup", prompt)
+                    self.assertIn("lip edge", prompt)
+                    self.assertIn("neutral white-balanced", prompt)
+                    self.assertIn("face, ears, neck and visible hands", prompt)
+                    self.assertIn("never average their faces", prompt)
+                    self.assertIn("no printer color palette or color-count limit", prompt)
+                    self.assertIn("rather than making skin one flat swatch", prompt)
+
+    def test_portrait_refinement_does_not_add_skin_recoloring_to_monochrome_sculpture(self):
+        prompt = preprocessor.build_geometry_reference_prompt("石膏人像", "sculpture")
+        self.assertIn("single-material appearance", prompt)
+        self.assertNotIn("natural skin hue consistent", prompt)
+
     def test_portrait_prompts_preserve_identity_as_shape_not_a_photo_overlay(self):
         for style in ("realistic", "portrait_sketch"):
             prompts = (

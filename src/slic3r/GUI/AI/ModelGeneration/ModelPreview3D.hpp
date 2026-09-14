@@ -700,10 +700,11 @@ public:
     PreviewPalette::ColorTrialMapping color_trial_mapping() const {
         return {m_color_trial_enabled, m_color_trial->mapping_colors(), m_trial_palette};
     }
-    PreviewPalette::ColorTrialMapping import_color_mapping() const {
-        if (m_color_trial_enabled) return color_trial_mapping();
-        const auto colors = m_trial_histogram ? m_trial_histogram->palette(6, {}, true) : m_trial_palette;
-        return {!colors.empty(), colors, colors};
+    PreviewPalette::ColorTrialMapping import_color_mapping(bool use_current_trial = true) const {
+        // Original-color viewing must not silently commit the six-color trial.
+        // Native matching chooses its target count independently of feed slots.
+        return use_current_trial && m_color_trial_enabled ? color_trial_mapping()
+                                                        : PreviewPalette::ColorTrialMapping {};
     }
     bool region_selection_preparing() const { return !m_region_editor->ready() && region_editing_ready() && bool(m_region_preparation); }
     bool region_editing_ready() const {

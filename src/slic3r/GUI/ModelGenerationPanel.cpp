@@ -275,11 +275,13 @@ void ModelGenerationPanel::restore_job(AIModelGenerationClient::JobStatus status
         m_palette_source->SetSelection(m_job_use_printable_colors ? 2 : 1);
         m_palette_recommendation_confirmed = !status.palette.empty();
     }
+    if (m_provider) m_provider->SetSelection(status.generation_options.provider == "hunyuan" ? 1 : 0);
+    refresh_provider_options();
     if (m_quality != nullptr) {
-        m_quality->SetSelection(status.face_limit == 2000000 ? 2 : status.face_limit <= 300000 ? 0 : 1);
+        m_quality->SetSelection(status.face_limit <= 300000 ? 0 : status.face_limit == 2000000 && m_quality->GetCount() == 3 ? 2 : 1);
     }
-    if (m_geometry_quality) m_geometry_quality->SetSelection(status.generation_options.geometry_quality == "detailed" ? 1 : 0);
-    if (m_texture_quality) m_texture_quality->SetSelection(status.generation_options.texture_quality == "extreme" ? 2 :
+    if (m_geometry_quality) m_geometry_quality->SetSelection(m_geometry_quality->GetCount() > 1 && status.generation_options.geometry_quality == "detailed" ? 1 : 0);
+    if (m_texture_quality) m_texture_quality->SetSelection(m_texture_quality->GetCount() == 1 ? 0 : status.generation_options.texture_quality == "extreme" ? 2 :
                                                          status.generation_options.texture_quality == "detailed" ? 1 : 0);
     if (m_output_format) m_output_format->SetSelection(status.generation_options.output_format == "obj" ? 1 : 0);
     if (m_print_width != nullptr) m_print_width->SetValue(status.print_settings.width_mm);
@@ -745,6 +747,15 @@ wxWindow* ModelGenerationPanel::build_workflow_panel(wxWindow* parent)
     m_model_settings_panel->SetBackgroundColour(wxColour(250, 251, 251));
     auto* model_settings_sizer = new wxBoxSizer(wxVERTICAL);
     model_settings_sizer->Add(section_label(m_model_settings_panel, _L("3D 生成设置")), 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    auto* provider_row = new wxBoxSizer(wxHORIZONTAL);
+    provider_row->Add(new wxStaticText(m_model_settings_panel, wxID_ANY, _L("模型服务")),
+                      0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_provider = new wxChoice(m_model_settings_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                              wxArrayString {wxString("Tripo"), _L("腾讯混元3D")});
+    m_provider->SetMinSize(wxSize(1, -1));
+    m_provider->SetSelection(0);
+    provider_row->Add(m_provider, 1, wxALIGN_CENTER_VERTICAL);
+    model_settings_sizer->Add(provider_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     auto* quality_row = new wxBoxSizer(wxHORIZONTAL);
     auto* quality_label = new wxStaticText(m_model_settings_panel, wxID_ANY, _L("目标面数"));
     wxArrayString quality_levels;
@@ -781,27 +792,7 @@ wxWindow* ModelGenerationPanel::build_workflow_panel(wxWindow* parent)
     m_model_settings_panel->SetSizer(model_settings_sizer);
     sizer->Insert(0, m_model_settings_panel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
-    m_import_settings_panel = new wxPanel(scroll);
-    m_import_settings_panel->SetBackgroundColour(wxColour(250, 251, 251));
-    auto* import_settings_sizer = new wxBoxSizer(wxVERTICAL);
-    import_settings_sizer->Add(section_label(m_import_settings_panel, _L("导入设置")), 0, wxEXPAND | wxBOTTOM, FromDIP(6));
-    auto* import_color_row = new wxBoxSizer(wxHORIZONTAL);
-    auto* import_color_label = new wxStaticText(m_import_settings_panel, wxID_ANY, _L("颜色处理"));
-    wxArrayString import_color_modes;
-    import_color_modes.Add(_L("完整颜色匹配（支持叠色，推荐）"));
-    import_color_modes.Add(_L("自动匹配当前耗材"));
-    import_color_modes.Add(_L("单色导入"));
-    import_color_modes.Add(_L("简单匹配耗材槽"));
-    m_import_color_mode = new wxChoice(m_import_settings_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, import_color_modes);
-    m_import_color_mode->SetSelection(0);
-    m_import_color_mode->SetToolTip(
-        _L("默认打开完整颜色匹配窗口，可预览并选择叠色方案后确认导入；自动匹配仅使用当前物理耗材；单色导入忽略模型颜色。"));
-    import_color_row->Add(import_color_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
-    import_color_row->Add(m_import_color_mode, 1, wxALIGN_CENTER_VERTICAL);
-    import_settings_sizer->Add(import_color_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
-
-    m_import_settings_panel->SetSizer(import_settings_sizer);
-    sizer->Insert(0, m_import_settings_panel, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
+    sizer->Insert(0, build_import_settings(scroll), 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     m_preprocess_section = section_label(scroll, _L("确认提示词"));
     sizer->Add(m_preprocess_section, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(8));
@@ -870,9 +861,8 @@ wxWindow* ModelGenerationPanel::build_workflow_panel(wxWindow* parent)
         });
     }
     m_custom_style->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { refresh_controls(); });
-    m_quality->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_controls(); });
-    for (auto* choice : {m_geometry_quality, m_texture_quality, m_output_format})
-        choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_controls(); });
+    for (auto* choice : {m_provider, m_quality, m_geometry_quality, m_texture_quality, m_output_format})
+        choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_provider_options(); persist_generation_options(); });
     m_choose_image->Bind(wxEVT_BUTTON, &ModelGenerationPanel::on_choose_image, this);
     m_clear_image->Bind(wxEVT_BUTTON, &ModelGenerationPanel::on_clear_image, this);
     m_use_printable_colors->Bind(wxEVT_CHECKBOX, &ModelGenerationPanel::on_printable_colors_toggled, this);
@@ -1622,6 +1612,7 @@ void ModelGenerationPanel::on_recommend_palette(wxCommandEvent&)
     m_job_custom_style = current_custom_style();
     m_job_generation_profile = current_generation_profile();
     m_job_face_limit = current_face_limit();
+    m_job_generation_options = current_generation_options();
     m_job_print_settings = current_print_settings();
     m_job_image_path = m_selected_image_path;
     m_palette_recommendation_confirmed = false;
@@ -1650,11 +1641,11 @@ void ModelGenerationPanel::on_recommend_palette(wxCommandEvent&)
     if (image_mode) {
         m_client.recommend_image_palette(new_request_id(), prompt, m_selected_image_path, m_job_style,
                                          m_job_custom_style, m_job_palette_color_count, m_job_print_settings,
-                                         std::move(success), std::move(failure), true);
+                                         std::move(success), std::move(failure), true, m_job_generation_options);
     } else {
         m_client.recommend_text_palette(new_request_id(), prompt, m_job_style, m_job_custom_style,
                                         m_job_palette_color_count, m_job_print_settings,
-                                        std::move(success), std::move(failure), true);
+                                        std::move(success), std::move(failure), true, m_job_generation_options);
     }
 }
 
@@ -1801,6 +1792,7 @@ void ModelGenerationPanel::on_preprocess(wxCommandEvent& event)
     m_job_custom_style = custom_style;
     m_job_generation_profile = current_generation_profile();
     m_job_face_limit = current_face_limit();
+    m_job_generation_options = current_generation_options();
     m_job_print_settings = current_print_settings();
     m_job_image_path = m_selected_image_path;
     m_job_preview_expected = true;
@@ -1846,12 +1838,12 @@ void ModelGenerationPanel::on_preprocess(wxCommandEvent& event)
         m_client.preprocess_image(new_request_id(), prompt, m_selected_image_path, m_job_palette, m_job_palette_roles,
                                   m_palette_recommendation_confirmed, m_job_style, m_job_custom_style,
                                   m_job_print_settings,
-                                  std::move(success), std::move(failure));
+                                  std::move(success), std::move(failure), m_job_generation_options);
     else
         m_client.preprocess_text(new_request_id(), prompt, m_job_palette, m_job_palette_roles,
                                  m_palette_recommendation_confirmed, m_job_style, m_job_custom_style,
                                  m_job_print_settings,
-                                 std::move(success), std::move(failure));
+                                 std::move(success), std::move(failure), m_job_generation_options);
 }
 
 void ModelGenerationPanel::on_generate(wxCommandEvent&)
@@ -1869,12 +1861,13 @@ void ModelGenerationPanel::on_generate(wxCommandEvent&)
     }
     m_job_generation_profile = current_generation_profile();
     m_job_face_limit = current_face_limit();
-    wxString message = image_mode
-        ? _L("要根据当前 AI 设计图创建 1 个付费 Tripo 3D 生成任务吗？")
-        : _L("要根据已确认的提示词创建 1 个付费 3D 生成任务吗？");
     m_job_generation_options = current_generation_options();
+    const wxString provider_label = m_job_generation_options.provider == "hunyuan" ? _L("腾讯混元3D") : wxString("Tripo");
+    wxString message = wxString::Format(image_mode
+        ? _L("要根据当前 AI 设计图创建 1 个付费 %s 生成任务吗？")
+        : _L("要根据已确认的提示词创建 1 个付费 %s 生成任务吗？"), provider_label);
     message += "\n\n" + generation_options_summary(image_mode);
-    if (m_job_generation_options.output_format == "obj")
+    if (m_job_generation_options.provider == "tripo" && m_job_generation_options.output_format == "obj")
         message += _L("\n本次还将创建 1 个 OBJ 基础转换任务（已计入估算）。");
     message += _L("\n停止：只停止本地等待；已提交的远端任务可能继续运行并计费。");
     MessageDialog confirm(this, message, _L("确认生成 3D 模型"), wxYES_NO | wxICON_QUESTION);
@@ -1956,6 +1949,11 @@ void ModelGenerationPanel::on_retexture_from_library(const std::string& geometry
     if (m_busy || !m_service_available || m_job_id.empty() || geometry_job_id.empty() ||
         geometry_job_id == m_job_id || !m_job_preview_expected || (!m_ready && !m_awaiting_confirmation))
         return;
+    const nlohmann::json geometry_metadata = read_json(library_metadata_path(geometry_job_id));
+    if (geometry_metadata.is_object() && geometry_metadata.value("provider", std::string("tripo")) == "hunyuan") {
+        show_input_hint(_L("腾讯混元3D 历史模型暂不支持复用造型重新上色。可以查看、导入或使用本地编辑。"));
+        return;
+    }
     wxString message = _L("要保留历史模型“") + title + _L("”的脸部和整体造型，只使用当前确认图片重新生成颜色吗？");
     message += _L("\n\n将创建 1 个付费 Tripo 纹理任务，不会重建网格；因此能保留已经满意的脸和姿态，"
                   "但也不会修复历史模型原有的形状问题。"
@@ -2010,6 +2008,7 @@ void ModelGenerationPanel::on_retexture_from_library(const std::string& geometry
 
 void ModelGenerationPanel::on_stop(wxCommandEvent&)
 {
+    if (m_saving_generation_options) return;
     if (m_design_history_loading) {
         ++m_design_history_sequence;
         m_design_history_loading = false;
@@ -2185,6 +2184,9 @@ void ModelGenerationPanel::handle_status(AIModelGenerationClient::JobStatus stat
         m_job_provider_name = status.provider_name;
         m_job_provider_task_id = status.provider_task_id;
         m_job_provider_conversion_task_id = status.provider_conversion_task_id;
+        m_job_generation_options = status.generation_options;
+        m_job_face_limit = status.face_limit;
+        m_job_generation_profile = status.generation_profile;
     }
     if (status.palette_recommendation.available) {
         const bool new_recommendation = m_palette_recommendation_job_id != status.id;
@@ -2612,7 +2614,8 @@ void ModelGenerationPanel::import_local_artifact(const boost::filesystem::path& 
         !m_displayed_model_palette.empty() ? m_displayed_model_palette : m_job_palette;
     request.artifact.used_printable_colors = m_job_use_printable_colors;
     if (m_model_preview && m_displayed_model_path == path) {
-        const auto trial = m_model_preview->import_color_mapping();
+        const auto trial = m_model_preview->import_color_mapping(
+            m_import_color_source == nullptr || m_import_color_source->GetSelection() == 0);
         AI::ModelColorTrial choice {trial.mapping_colors, trial.target_colors};
         if (trial.enabled && choice.valid()) request.color_trial = std::move(choice);
         request.face_color_overrides = m_model_preview->face_color_overrides();
@@ -2767,7 +2770,7 @@ void ModelGenerationPanel::refresh_controls()
 {
     if (m_shutdown || !m_page_initialized)
         return;
-    if (m_preview_loading || m_finishing_running || m_design_history_loading) m_busy = true;
+    if (m_preview_loading || m_finishing_running || m_design_history_loading || m_saving_generation_options) m_busy = true;
     update_adaptive_text_height(m_prompt, 2, 6);
     update_adaptive_text_height(m_custom_style, 2, 5);
     refresh_palette();
@@ -2845,9 +2848,12 @@ void ModelGenerationPanel::refresh_controls()
     m_custom_style_panel->Show(custom_style_selected);
     m_custom_style->Enable(!m_busy && custom_style_selected);
     refresh_style_recommendation();
+    m_provider->Enable(!m_busy);
     m_quality->Enable(!m_busy);
-    for (auto* choice : {m_geometry_quality, m_texture_quality, m_output_format})
-        choice->Enable(!m_busy);
+    const bool hunyuan = m_provider->GetSelection() == 1;
+    m_geometry_quality->Enable(!m_busy && !hunyuan);
+    m_texture_quality->Enable(!m_busy && !hunyuan);
+    m_output_format->Enable(!m_busy);
     m_generation_cost->SetLabel(generation_options_summary(m_job_id.empty() || m_job_preview_expected));
     m_generation_cost->Wrap(FromDIP(280));
     m_choose_image->Enable(!m_busy);
@@ -2855,6 +2861,7 @@ void ModelGenerationPanel::refresh_controls()
     m_use_printable_colors->Enable(!m_busy);
     m_palette_source->Enable(!m_busy);
     m_import_color_mode->Enable(!m_busy);
+    m_import_color_source->Enable(!m_busy && m_import_color_mode->GetSelection() == 0);
     m_custom_color->Enable(!m_busy && printable_colors && m_palette_source->GetSelection() != 0);
     m_add_custom_color->Enable(!m_busy && printable_colors && m_palette_source->GetSelection() != 0 &&
         m_custom_palette.size() < (ai_palette_source ? current_palette_color_count() : Slic3r::AI::kMaxTargetPaletteColors));
@@ -2867,7 +2874,7 @@ void ModelGenerationPanel::refresh_controls()
     m_prepared_prompt->Enable(m_service_available && !m_busy && show_review);
     m_generate->Enable(generation_options_valid() && m_service_available && !m_busy && m_awaiting_confirmation && !stale_job &&
                        (!image_job || m_style_preview_ready));
-    m_stop->Enable(m_design_history_loading || (m_busy && !m_job_id.empty() && (local_model_loading || m_service_available)));
+    m_stop->Enable(!m_saving_generation_options && (m_design_history_loading || (m_busy && !m_job_id.empty() && (local_model_loading || m_service_available))));
     m_retry_service->Enable(!m_service_available && !m_busy && static_cast<bool>(m_service_retry_handler));
     m_import->Enable((local_artifact || m_service_available) && !m_busy &&
                      m_ready && !stale_job &&
@@ -2891,7 +2898,7 @@ void ModelGenerationPanel::refresh_controls()
          (m_awaiting_confirmation && image_job));
     m_preprocess->Show(m_service_available && show_preprocess);
     m_generate->Show(m_service_available && !m_busy && m_awaiting_confirmation);
-    m_stop->Show(m_busy);
+    m_stop->Show(m_busy && !m_saving_generation_options);
     m_retry_service->Show(!m_service_available && !m_busy);
     m_import->Show(!m_busy && m_ready && !stale_job);
     m_discard->Show(!m_busy && has_restartable_work);
@@ -3686,7 +3693,7 @@ wxString ModelGenerationPanel::current_style_label() const
 int ModelGenerationPanel::current_face_limit() const
 {
     const int selection = m_quality ? m_quality->GetSelection() : 1;
-    return selection == 0 ? 300000 : selection == 2 ? 2000000 : 1000000;
+    return selection == 0 ? 300000 : selection == 2 && (!m_provider || m_provider->GetSelection() != 1) ? 2000000 : 1000000;
 }
 
 std::string ModelGenerationPanel::current_generation_profile() const
@@ -3702,12 +3709,42 @@ wxString ModelGenerationPanel::current_generation_profile_label() const
 AIModelGenerationClient::GenerationOptions ModelGenerationPanel::current_generation_options() const
 {
     AIModelGenerationClient::GenerationOptions options;
+    options.provider = m_provider && m_provider->GetSelection() == 1 ? "hunyuan" : "tripo";
     options.face_limit = current_face_limit();
-    options.geometry_quality = m_geometry_quality && m_geometry_quality->GetSelection() == 1 ? "detailed" : "standard";
-    const int texture = m_texture_quality ? m_texture_quality->GetSelection() : 0;
+    options.geometry_quality = options.provider == "tripo" && m_geometry_quality && m_geometry_quality->GetSelection() == 1 ? "detailed" : "standard";
+    const int texture = options.provider == "tripo" && m_texture_quality ? m_texture_quality->GetSelection() : 0;
     options.texture_quality = texture == 2 ? "extreme" : texture == 1 ? "detailed" : "standard";
     options.output_format = m_output_format && m_output_format->GetSelection() == 1 ? "obj" : "glb";
     return options;
+}
+
+void ModelGenerationPanel::refresh_provider_options()
+{
+    if (!m_provider || !m_quality || !m_geometry_quality || !m_texture_quality || !m_output_format)
+        return;
+    const bool hunyuan = m_provider->GetSelection() == 1;
+    if (hunyuan && m_quality->GetCount() == 3) {
+        if (m_quality->GetSelection() == 2) m_quality->SetSelection(1);
+        m_quality->Delete(2);
+    } else if (!hunyuan && m_quality->GetCount() == 2) {
+        m_quality->Append(_L("200 万面（需精细几何）"));
+    }
+    m_quality->SetToolTip(hunyuan
+        ? _L("面数是生成目标，实际结果可能不同。腾讯混元3D 可选择 30 万或 100 万面。")
+        : _L("面数是生成目标，实际结果可能不同。200 万面需 Tripo v3.1 精细几何；更多面数会增加下载、预览和导入耗时。"));
+    if (hunyuan && m_geometry_quality->GetCount() != 1) {
+        m_geometry_quality->Set(wxArrayString {_L("标准")});
+        m_texture_quality->Set(wxArrayString {_L("标准")});
+        m_geometry_quality->SetSelection(0);
+        m_texture_quality->SetSelection(0);
+    } else if (!hunyuan && m_geometry_quality->GetCount() == 1) {
+        m_geometry_quality->Set(wxArrayString {_L("标准（+0 积分）"), _L("精细（+20 积分）")});
+        m_texture_quality->Set(wxArrayString {_L("标准（+0 积分）"), _L("高清（+10 积分）"), _L("8K（+20 积分）")});
+        m_geometry_quality->SetSelection(0);
+        m_texture_quality->SetSelection(0);
+    }
+    m_output_format->SetString(0, hunyuan ? wxString("GLB") : _L("GLB（+0 积分）"));
+    m_output_format->SetString(1, hunyuan ? wxString("OBJ") : _L("OBJ（转换 +5 积分）"));
 }
 
 bool ModelGenerationPanel::generation_options_valid() const
@@ -3719,6 +3756,10 @@ bool ModelGenerationPanel::generation_options_valid() const
 wxString ModelGenerationPanel::generation_options_summary(bool image_mode) const
 {
     const auto options = current_generation_options();
+    if (options.provider == "hunyuan") {
+        return wxString::Format(_L("腾讯混元3D · %d 万面 · %s\n费用按腾讯云账户的套餐或额度结算，实际以账单为准。\nOBJ 使用生成结果，无额外格式转换任务；不含设计图费用。"),
+            options.face_limit / 10000, options.output_format == "obj" ? "OBJ" : "GLB");
+    }
     const int base = image_mode ? 30 : 20;
     const int geometry = options.geometry_quality == "detailed" ? 20 : 0;
     const int texture = options.texture_quality == "extreme" ? 20 : options.texture_quality == "detailed" ? 10 : 0;
@@ -3977,6 +4018,7 @@ void ModelGenerationPanel::refresh_palette()
 
 void ModelGenerationPanel::reset(bool remove_remote)
 {
+    m_saving_generation_options = false;
     ++m_design_history_sequence;
     m_design_history_loading = false;
     m_restoring_input = false;
@@ -4173,7 +4215,7 @@ void ModelGenerationPanel::load_library_entries()
             const std::string provider_task_id = metadata.value("provider_task_id", std::string());
             const std::string provider_conversion_task_id =
                 metadata.value("provider_conversion_task_id", std::string());
-            if (provider == "tripo" && valid_provider_task_id(provider_task_id)) {
+            if ((provider == "tripo" || provider == "hunyuan") && valid_provider_task_id(provider_task_id)) {
                 entry.provider_name = provider;
                 entry.provider_task_id = provider_task_id;
                 if (valid_provider_task_id(provider_conversion_task_id))
@@ -4361,6 +4403,7 @@ void ModelGenerationPanel::save_library_entry(size_t artifact_size, size_t trian
         {"custom_style", m_job_custom_style},
         {"generation_profile", m_job_generation_profile},
         {"face_limit", m_job_face_limit},
+        {"provider", m_job_generation_options.provider},
         {"geometry_quality", m_job_generation_options.geometry_quality},
         {"texture_quality", m_job_generation_options.texture_quality},
         {"output_format", m_job_generation_options.output_format},
@@ -4488,6 +4531,26 @@ void ModelGenerationPanel::load_library_entry(const boost::filesystem::path& mod
         const auto value = metadata.find(key);
         return value != metadata.end() && value->is_string() ? value->get<std::string>() : std::string();
     };
+    m_job_generation_options = {};
+    m_job_generation_options.provider = input_string("provider") == "hunyuan" ? "hunyuan" : "tripo";
+    m_job_generation_options.geometry_quality = input_string("geometry_quality") == "detailed" ? "detailed" : "standard";
+    const std::string texture_quality = input_string("texture_quality");
+    m_job_generation_options.texture_quality = texture_quality == "extreme" || texture_quality == "detailed" ? texture_quality : "standard";
+    m_job_generation_options.output_format = input_string("output_format") == "obj" ? "obj" : "glb";
+    const auto saved_face_limit = metadata.find("face_limit");
+    m_job_face_limit = saved_face_limit != metadata.end() && saved_face_limit->is_number_integer()
+        ? saved_face_limit->get<int>() : 1000000;
+    m_job_generation_options.face_limit = m_job_face_limit;
+    m_job_generation_profile = m_job_face_limit <= 300000 ? "performance" : "quality";
+    m_provider->SetSelection(m_job_generation_options.provider == "hunyuan" ? 1 : 0);
+    refresh_provider_options();
+    m_quality->SetSelection(m_job_face_limit <= 300000 ? 0 : m_job_face_limit == 2000000 && m_quality->GetCount() == 3 ? 2 : 1);
+    m_geometry_quality->SetSelection(m_geometry_quality->GetCount() > 1 && m_job_generation_options.geometry_quality == "detailed" ? 1 : 0);
+    m_texture_quality->SetSelection(m_texture_quality->GetCount() == 1 ? 0 : texture_quality == "extreme" ? 2 : texture_quality == "detailed" ? 1 : 0);
+    m_output_format->SetSelection(m_job_generation_options.output_format == "obj" ? 1 : 0);
+    m_job_provider_name = m_job_generation_options.provider;
+    m_job_provider_task_id = input_string("provider_task_id");
+    m_job_provider_conversion_task_id = input_string("provider_conversion_task_id");
     std::string saved_prompt = input_string("prompt");
     if (saved_prompt == INTERNAL_DEFAULT_IMAGE_INSTRUCTION || input_string("source") == "local_finishing")
         saved_prompt.clear();
@@ -4550,7 +4613,7 @@ void ModelGenerationPanel::load_library_entry(const boost::filesystem::path& mod
     m_model_preview_ready = true;
     if (m_finishing_status != nullptr)
         m_finishing_status->SetLabel(m_artifact_format == "glb"
-            ? _L("GLB 原贴图保留在原文件；美颜新版本使用顶点色。")
+            ? _L("GLB 表面柔化保留原贴图；局部改色使用顶点色。原件保留。")
             : _L("当前历史模型已加载，处理结果将另存为新版本。"));
     show_model_comparison();
     m_library_model_loaded = true;
@@ -4617,7 +4680,7 @@ void ModelGenerationPanel::load_library_entry(const boost::filesystem::path& mod
 void ModelGenerationPanel::update_library_provider_tasks(
     const std::string& job_id, const AIModelGenerationClient::JobStatus& status)
 {
-    if (job_id.empty() || status.provider_name != "tripo" ||
+    if (job_id.empty() || (status.provider_name != "tripo" && status.provider_name != "hunyuan") ||
         !valid_provider_task_id(status.provider_task_id))
         return;
     const boost::filesystem::path metadata_path = library_metadata_path(job_id);
@@ -5031,7 +5094,7 @@ void ModelGenerationPanel::update_workflow(const AIModelGenerationClient::JobSta
             step = 3;
         } else if (status->state == "awaiting_confirmation" && status->phase == "multiview_retry") {
             phase = _L("四视图需重试");
-            guidance = _L("当前预览已保留，可直接重试；尚未创建付费 Tripo 任务");
+            guidance = _L("当前预览已保留，可直接重试；尚未创建付费 3D 生成任务");
             step = 3;
         } else if (status->state == "awaiting_confirmation") {
             phase = image_mode ? _L("确认AI 设计图") : _L("确认提示词");

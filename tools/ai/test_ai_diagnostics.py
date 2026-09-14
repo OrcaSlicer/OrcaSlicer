@@ -63,6 +63,7 @@ class AIDiagnosticsTests(unittest.TestCase):
         secrets = {
             "api_key": "api-key-value",
             "OPENAI_PRO_API": "pro-api-value",
+            "HY3D_API": "hy-test-value",
             "accessToken": "access-token-value",
             "client_secret": "client-secret-value",
             "password": "password-value",

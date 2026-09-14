@@ -183,6 +183,44 @@ TEST_CASE("Protected preview palettes keep supported minority hues among dominan
     REQUIRE(histogram.palette(6, {}, true) == protected_colors);
 }
 
+TEST_CASE("Protected palettes separate saturated accents from a dominant muted hue", "[ModelPreviewPalette]")
+{
+    Histogram histogram;
+    for (unsigned gray : {0u, 40u, 90u, 145u, 200u, 255u})
+        histogram.add((gray << 16) | (gray << 8) | gray, 10000);
+    histogram.add(0x413231, 3000);
+    histogram.add(0xd5a084, 2000);
+    // The accent shares the muted material's hue but has distinct chroma.
+    // Averaging both into one protected hue loses this supported small color.
+    histogram.add(0xbe6961, 50);
+    const Color accent {190.f/255, 105.f/255, 97.f/255};
+    const auto colors = histogram.palette(6, {}, true);
+    REQUIRE(colors.size() == 6);
+    float accent_error = 100, muted_error = 100;
+    for (const auto& color : colors) {
+        accent_error = std::min(accent_error, distance(to_lab(color), to_lab(accent)));
+        muted_error = std::min(muted_error, distance(to_lab(color), to_lab({65.f/255, 50.f/255, 49.f/255})));
+    }
+    REQUIRE_THAT(accent_error, Catch::Matchers::WithinAbs(0, 1e-8));
+    REQUIRE(muted_error < .000225f);
+    REQUIRE(histogram.palette(6, {}, true) == colors);
+}
+
+TEST_CASE("A saturated speck cannot reserve a protected color within a muted hue", "[ModelPreviewPalette]")
+{
+    Histogram histogram;
+    for (unsigned gray : {0u, 40u, 90u, 145u, 200u, 255u})
+        histogram.add((gray << 16) | (gray << 8) | gray, 10000);
+    histogram.add(0x413231, 3000);
+    histogram.add(0xd5a084, 2000);
+    histogram.add(0xbe6961, 2);
+    const Color speck {190.f/255, 105.f/255, 97.f/255};
+    float error = 100;
+    for (const auto& color : histogram.palette(6, {}, true))
+        error = std::min(error, distance(to_lab(color), to_lab(speck)));
+    REQUIRE(error > .000225f);
+}
+
 TEST_CASE("Preview color locks retain exact values and order across reclustering", "[ModelPreviewPalette]")
 {
     Histogram histogram;

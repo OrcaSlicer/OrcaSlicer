@@ -1399,6 +1399,8 @@ if (WIN32)
             "${CMAKE_SOURCE_DIR}/tools/ai/printable_visual_quality.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/sampled_local_thickness.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/tripo_client.py"
+            "${CMAKE_SOURCE_DIR}/tools/ai/hunyuan_client.py"
+            "${CMAKE_SOURCE_DIR}/tools/ai/hunyuan_provider_gateway.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/verify_bundled_runtime.py")
         install(FILES ${ORCA_AI_SIDECAR_RUNTIME_FILES} DESTINATION "./resources/tools/ai")
         install(FILES

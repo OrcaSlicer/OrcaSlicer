@@ -429,6 +429,14 @@ void ModelGenerationPanel::preview_model_finishing()
     AI::ModelFinishingOptions options {!cleanup && !recolor && m_finishing_smooth->GetValue(), !local && m_finishing_repair->GetValue(), m_finishing_strength->GetValue() / 100.0};
     options.clean_color_spots = cleanup;
     options.recolor_selected = recolor;
+    if (AI::model_artifact_format(source) == "glb" && (options.repair_mesh || cleanup)) {
+        m_finishing_status->SetLabel(cleanup
+            ? _L("GLB 的保真保存暂不支持清理杂点。可圈选后统一这块颜色，并保留原版用于对照。")
+            : _L("为保留 GLB 原始贴图，请在这里选择表面柔化。需要修复网格时，可先导入准备页，再使用修复功能。"));
+        wrap_workbench_text(m_finishing_status, FromDIP(260));
+        m_finishing_panel->Layout();
+        return;
+    }
     if (recolor) {
         m_finishing_color_palette = local_recolor_palette();
         if (m_region_color_index < 0 || size_t(m_region_color_index) >= m_finishing_color_palette.size()) {

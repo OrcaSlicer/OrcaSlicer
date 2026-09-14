@@ -301,7 +301,7 @@ private:
             : _L("原色显示 · ");
         text += source == 1 ? _L("使用工程耗材色卡。") : source == 2 ? _L("手动试色。") : source >= 3 ? _L("耗材包试色。") : _L("可点击改色并勾选保留。");
         text += _L("仅供配色对照，不代表实际打印效果；");
-        text += m_enabled ? _L("试色方案将带入导入配色，最终按耗材确认。") : _L("导入默认保留关键色分组，最终按耗材确认。");
+        text += m_enabled ? _L("导入时可沿用当前试色，或从模型原色重新配色。") : _L("原色导入时可重新选择目标颜色数量，再匹配实际耗材。");
         if (source == 1 && !m_project_error.empty()) text += "\n" + m_project_error;
         if (!m_notice.empty()) text += "\n" + m_notice;
         m_status->SetLabel(text); wrap_status(); Layout();

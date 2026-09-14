@@ -50,7 +50,7 @@ wxString localized_job_status(const AIModelGenerationClient::JobStatus& status)
     if (status.state == "preprocessing")
         return _L("AI 正在准备提示词和图片预览...");
     if (status.state == "awaiting_confirmation" && status.phase == "multiview_retry")
-        return _L("四视图准备未通过，本次尚未创建付费 Tripo 任务；当前图片已保留，可直接重试。");
+        return _L("四视图准备未通过，本次尚未创建付费 3D 生成任务；当前图片已保留，可直接重试。");
     if (status.state == "awaiting_confirmation" && status.palette_quality_ok && status.model_input_eligible &&
         std::find(status.model_input_warnings.begin(), status.model_input_warnings.end(),
                   "reference_visual_review_unavailable") != status.model_input_warnings.end())

@@ -19,6 +19,40 @@
 namespace Slic3r::GUI {
 using namespace ModelGenerationPresentation;
 
+wxWindow* ModelGenerationPanel::build_import_settings(wxWindow* parent)
+{
+    m_import_settings_panel = new wxPanel(parent);
+    m_import_settings_panel->SetBackgroundColour(wxColour(250, 251, 251));
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(section_label(m_import_settings_panel, _L("导入设置")), 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    auto* color_row = new wxBoxSizer(wxHORIZONTAL);
+    color_row->Add(new wxStaticText(m_import_settings_panel, wxID_ANY, _L("颜色处理")),
+                   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_import_color_mode = new wxChoice(m_import_settings_panel, wxID_ANY);
+    m_import_color_mode->Append(_L("完整颜色匹配（支持叠色，推荐）"));
+    m_import_color_mode->Append(_L("自动匹配当前耗材"));
+    m_import_color_mode->Append(_L("单色导入"));
+    m_import_color_mode->Append(_L("简单匹配耗材槽"));
+    m_import_color_mode->SetSelection(0);
+    m_import_color_mode->SetToolTip(
+        _L("默认打开完整颜色匹配窗口，可预览并选择叠色方案后确认导入；自动匹配仅使用当前物理耗材；单色导入忽略模型颜色。"));
+    color_row->Add(m_import_color_mode, 1, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(color_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+
+    auto* source_row = new wxBoxSizer(wxHORIZONTAL);
+    source_row->Add(new wxStaticText(m_import_settings_panel, wxID_ANY, _L("配色来源")),
+                    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_import_color_source = new wxChoice(m_import_settings_panel, wxID_ANY);
+    m_import_color_source->Append(_L("沿用当前试色（如已开启）"));
+    m_import_color_source->Append(_L("从模型原色重新配色"));
+    m_import_color_source->SetSelection(0);
+    m_import_color_source->SetToolTip(_L("未开启试色时，直接从原色开始。重新配色可在匹配窗口调整目标颜色数量；两种方式都保留已保存的局部改色。目标颜色数量不等于实体耗材数量。"));
+    source_row->Add(m_import_color_source, 1, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(source_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    m_import_settings_panel->SetSizer(sizer);
+    return m_import_settings_panel;
+}
+
 void ModelGenerationPanel::load_model_preview_async(const boost::filesystem::path& path,
     const std::vector<std::string>& palette,
     std::function<void(size_t, Vec3d, size_t, double)> loaded,

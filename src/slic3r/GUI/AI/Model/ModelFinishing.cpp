@@ -1,5 +1,6 @@
 #include "ModelFinishing.hpp"
 #include "ModelArtifact.hpp"
+#include "GlbGeometryEditing.hpp"
 #include "ModelColorCleanup.hpp"
 #include "VertexColorRegionEditor.hpp"
 
@@ -632,14 +633,20 @@ ModelFinishingResult finish_model_artifact(const boost::filesystem::path& source
     auto output_obj = destination; output_obj += ".edited.obj";
     bool owns_input = false, owns_output = false, owns_destination = false;
     try {
+        const bool preserve_glb = model_artifact_format(source) == "glb";
+        if (preserve_glb && (model_artifact_format(destination) != "glb" || !options.smooth_surface ||
+                            options.repair_mesh || options.clean_color_spots))
+            throw std::runtime_error("To preserve GLB textures and materials, use surface smoothing without mesh repair or color cleanup and save as GLB.");
         if (boost::filesystem::exists(destination) || boost::filesystem::exists(input_obj) || boost::filesystem::exists(output_obj))
             throw std::runtime_error("The output already exists; choose a new model version.");
-        if (canceled && canceled()) throw Canceled {};
+        auto check_cancel = [&] { if (canceled && canceled()) throw Canceled {}; };
+        check_cancel();
         const auto source_hash = file_hash(source, canceled);
         TriangleMesh mesh; ObjInfo colors; std::string error;
-        if (!load_model_artifact(source, mesh, colors, error) ||
-            !write_model_artifact(input_obj, mesh.its, colors.vertex_colors, error))
+        if (!load_model_artifact(source, mesh, colors, error))
             throw std::runtime_error(error);
+        const auto glb = preserve_glb ? read_glb_geometry_source(source, mesh.its, check_cancel) : nullptr;
+        if (!write_model_artifact(input_obj, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
         owns_input = true;
         result = finish_model_obj(input_obj, output_obj, options, canceled);
         owns_output = result.success;
@@ -649,7 +656,8 @@ ModelFinishingResult finish_model_artifact(const boost::filesystem::path& source
             if (canceled && canceled()) throw Canceled {};
             if (!load_model_artifact(output_obj, mesh, colors, error)) throw std::runtime_error(error);
             if (file_hash(source, canceled) != source_hash) throw std::runtime_error("The source model changed during finishing. Please reload it.");
-            if (!write_model_artifact(destination, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
+            if (glb) write_glb_geometry_edit(*glb, destination, mesh.its, options.selected_faces, check_cancel);
+            else if (!write_model_artifact(destination, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
             owns_destination = true;
             result.output_sha256 = file_hash(destination, canceled);
             result.success = true;

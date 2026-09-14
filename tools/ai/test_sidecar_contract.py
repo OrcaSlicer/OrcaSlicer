@@ -779,7 +779,7 @@ class SidecarHealthContractTests(unittest.TestCase):
     def test_legacy_recommendation_routes_create_unrestricted_design_jobs(self):
         for source in ("text", "image"):
             with self.subTest(source=source), tempfile.TemporaryDirectory() as directory, temporary_environment(OPENAI_API_KEY="test-openai", ORCASLICER_AI_OUTPUT_DIR=directory), mock.patch.object(PRODUCTION, "_submit") as submit, mock.patch.object(PRODUCTION, "image_provider_status", return_value={"available": True}), mock.patch.dict(PRODUCTION._JOBS, {}, clear=True), sidecar_server(PRODUCTION.Handler) as port:
-                fields = {"request_id": "legacy", "style": "realistic", "palette_color_count": "20"}
+                fields = {"request_id": "legacy", "style": "realistic", "palette_color_count": "20", "provider": "hunyuan"}
                 if source == "image":
                     fields["instruction"] = "portrait"
                     body, content_type = multipart_image_request(fields, valid_png_bytes())
@@ -793,8 +793,65 @@ class SidecarHealthContractTests(unittest.TestCase):
                 self.assertEqual(job.palette, ())
                 self.assertEqual(job.palette_recommendation, {})
                 self.assertEqual(public["state"], "preprocessing")
+                self.assertEqual(public["provider"], "hunyuan")
+                self.assertEqual(PRODUCTION._load_job(job.directory).provider, "hunyuan")
                 self.assertIs(submit.call_args.args[1], PRODUCTION._preprocess_image_job if source == "image" else PRODUCTION._preprocess_text_job)
                 if source == "image": self.assertEqual(job.input_path.read_bytes(), valid_png_bytes())
+
+    def test_new_design_routes_preserve_all_generation_options(self):
+        cases = (
+            {"provider": "hunyuan", "face_limit": 1000000, "geometry_quality": "standard", "texture_quality": "standard", "output_format": "obj"},
+            {"provider": "tripo", "face_limit": 2000000, "geometry_quality": "detailed", "texture_quality": "extreme", "output_format": "obj"},
+            {},
+        )
+        for route in ("text", "image", "recommend-text-palette", "recommend-image-palette"):
+            for options in cases:
+                with self.subTest(route=route, options=options), tempfile.TemporaryDirectory() as directory, \
+                     mock.patch.object(PRODUCTION, "_model_output_root", return_value=Path(directory)), \
+                     mock.patch.dict(PRODUCTION._JOBS, {}, clear=True), \
+                     mock.patch.object(PRODUCTION, "image_provider_status", return_value={"available": True}), \
+                     mock.patch.object(PRODUCTION, "_submit") as submit, sidecar_server(PRODUCTION.Handler) as port:
+                    fields = {"request_id": "offline-options", "style": "realistic", **options}
+                    if "image" in route:
+                        fields["instruction"] = "test object"
+                        body, content_type = multipart_image_request({key: str(value) for key, value in fields.items()}, valid_png_bytes())
+                    else:
+                        fields["prompt"] = "test object"
+                        body, content_type = json.dumps(fields).encode(), "application/json"
+                    request = urllib.request.Request(f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{route}", data=body,
+                        headers={"X-OrcaSlicer-Client": "native", "Content-Type": content_type})
+                    with urllib.request.urlopen(request, timeout=5) as response:
+                        public = json.loads(response.read())["job"]
+                    restored = PRODUCTION._load_job(PRODUCTION._JOBS[public["id"]].directory)
+                    expected = {"provider": "tripo", "face_limit": PRODUCTION.DEFAULT_MODEL_FACE_LIMIT,
+                                "geometry_quality": None, "texture_quality": "standard", "output_format": "glb", **options}
+                    for key, value in expected.items():
+                        self.assertEqual(public[key], value)
+                        self.assertEqual(getattr(restored, key), value)
+                    self.assertEqual(restored.attempts, [])
+                    self.assertEqual(restored.generation_profile, "quality" if expected["face_limit"] >= 500000 else "performance")
+                    submit.assert_called_once()
+                    self.assertIs(submit.call_args.args[1], PRODUCTION._preprocess_image_job if "image" in route else PRODUCTION._preprocess_text_job)
+
+    def test_generation_options_http_saves_provider_without_submitting(self):
+        with tempfile.TemporaryDirectory() as directory, \
+             mock.patch.object(PRODUCTION, "_model_output_root", return_value=Path(directory)), \
+             mock.patch.dict(PRODUCTION._JOBS, {}, clear=True), \
+             mock.patch.object(PRODUCTION, "_submit") as submit, sidecar_server(PRODUCTION.Handler) as port:
+            job = PRODUCTION._new_job("text", ())
+            job.state = "awaiting_confirmation"
+            PRODUCTION._JOBS[job.id] = job
+            options = {"provider": "hunyuan", "face_limit": 300000, "geometry_quality": "standard",
+                       "texture_quality": "standard", "output_format": "glb"}
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{port}/v1/orcaslicer/model-jobs/{job.id}/generation-options",
+                data=json.dumps(options).encode(), headers={"X-OrcaSlicer-Client": "native", "Content-Type": "application/json"})
+            with urllib.request.urlopen(request, timeout=5) as response:
+                public = json.loads(response.read())["job"]
+            self.assertEqual(public["provider"], "hunyuan")
+            self.assertEqual(PRODUCTION._load_job(job.directory).provider, "hunyuan")
+            self.assertEqual(job.attempts, [])
+            submit.assert_not_called()
 
     def test_legacy_palette_confirmation_continues_same_job_and_recovers_scheduling_failure(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(PRODUCTION._JOBS, {}, clear=True):
@@ -1747,13 +1804,16 @@ class SidecarHealthContractTests(unittest.TestCase):
             "model_input_image_quality.py",
             "model_job_support.py",
             "model_provider_gateway.py",
+            "hunyuan_client.py",
+            "hunyuan_provider_gateway.py",
             "model_refinement.py",
             "sampled_local_thickness.py",
         ):
             self.assertIn(f'"${{CMAKE_SOURCE_DIR}}/tools/ai/{module}"', cmake_manifest)
 
     def test_production_health_contract_with_openai_only(self):
-        with temporary_environment(OPENAI_API_KEY="test-openai", TRIPO_API_KEY=None):
+        with temporary_environment(OPENAI_API_KEY="test-openai", TRIPO_API_KEY=None), \
+             mock.patch.object(PRODUCTION._HUNYUAN_PROVIDER_GATEWAY, "model_generation_available", return_value=False):
             health = self.fetch_health(PRODUCTION.Handler)
         self.assert_contract(health)
         self.assertTrue(health["capabilities"]["config_proposal"]["available"])
