@@ -14,13 +14,15 @@
 
 #include <iosfwd>
 #include <string>
+#include <vector>
 
 namespace Slic3r {
 class Model;
 
 namespace PaintCLI {
 
-void inspect_to_json(const Model &model, const std::string &source_path,
+// `source_paths` lists every input file; the CLI merges them into one Model.
+void inspect_to_json(const Model &model, const std::vector<std::string> &source_paths,
                      std::ostream &out);
 
 } // namespace PaintCLI
