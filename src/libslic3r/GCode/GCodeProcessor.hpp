@@ -1194,6 +1194,7 @@ class Print;
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
         bool m_processing_start_custom_gcode;
+        bool m_in_config_block;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
         CpColor m_cp_color;

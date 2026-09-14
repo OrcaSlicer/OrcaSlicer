@@ -14,7 +14,7 @@ namespace Slic3r {
 class BeltGCode : public GCode
 {
 protected:
-    void init_belt_writer(Print &print, bool is_bbl_printers) override;
+    void init_belt_writer(Print &print) override;
     void write_belt_header(GCodeOutputStream &file, const Print &print) override;
     void on_set_origin(const PrintObject *obj, const Point &inst_shift) override;
     bool should_disable_arc_fitting() const override { return true; }

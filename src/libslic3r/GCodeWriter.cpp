@@ -836,7 +836,6 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
 // BBS: immediately execute an undelayed lift move with a spiral lift pattern
 // designed specifically for subsequent gcode injection (e.g. timelapse)
 std::string GCodeWriter::eager_lift(const LiftType type) {
-    const LiftType effective_type = type;
     std::string lift_move;
     double target_lift = 0;
     {
@@ -850,7 +849,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
     }
 
     // BBS: spiral lift only safe with known position
-    if (effective_type == LiftType::SpiralLift && this->is_current_position_clear()) {
+    if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
         double radius = target_lift / (2 * PI * atan(filament()->travel_slope()));
         // static spiral alignment when no move in x,y plane.
         // spiral centra is a radius distance to the right (y=0)

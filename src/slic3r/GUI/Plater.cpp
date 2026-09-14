@@ -16556,7 +16556,8 @@ void Plater::calib_temp(const Calib_Params& params) {
                                            << ", falling back to 230_190 (embossed numbers will not match)";
                 asset = calib_dir + "belt_temp_tower_230_190.stl";
             }
-            add_model(false, asset);
+            if (!add_model(false, asset) || model().objects.empty())
+                return;
 
             // Place keel-first asset at the belt entry (designed Y = 0) so Z_gcode
             // starts at 0, centered laterally on the bed, resting on the conveyor.

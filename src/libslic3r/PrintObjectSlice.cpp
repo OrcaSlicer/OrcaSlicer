@@ -1806,6 +1806,13 @@ ExPolygons PrintObject::_shrink_contour_holes(double contour_delta, double hole_
     return union_ex(new_ex_polys);
 }
 
+Transform3d PrintObject::trafo_sliced() const
+{
+    Transform3d trafo = this->trafo_centered();
+    BeltSliceStrategy::apply_preslice_transforms(trafo, this->print()->config(), this->model_object()->volumes);
+    return trafo;
+}
+
 std::vector<Polygons> PrintObject::slice_support_volumes(const ModelVolumeType model_volume_type) const
 {
     auto it_volume     = this->model_object()->volumes.begin();
@@ -1820,7 +1827,7 @@ std::vector<Polygons> PrintObject::slice_support_volumes(const ModelVolumeType m
         const Print       *print = this->print();
         auto               throw_on_cancel_callback = std::function<void()>([print](){ print->throw_if_canceled(); });
         MeshSlicingParamsEx params;
-        params.trafo = this->trafo_centered();
+        params.trafo = this->trafo_sliced();
         for (; it_volume != it_volume_end; ++ it_volume)
             if ((*it_volume)->type() == model_volume_type) {
                 std::vector<ExPolygons> slices2 = slice_volume(*(*it_volume), zs, params, throw_on_cancel_callback);

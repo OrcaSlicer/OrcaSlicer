@@ -709,9 +709,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
     const double threshold_rad = Geometry::deg2rad(thresh_angle);
     // Build plate tilt: compute per-layer XY shift for tilted gravity direction
     const PrintConfig& print_cfg = m_object->print()->config();
-    const double tilt_x_rad = Geometry::deg2rad(print_cfg.build_plate_tilt_x.value);
-    const double tilt_y_rad = Geometry::deg2rad(print_cfg.build_plate_tilt_y.value);
-    const bool   has_tilt   = std::abs(tilt_x_rad) > EPSILON || std::abs(tilt_y_rad) > EPSILON;
+    const Vec2d  tilt_slope = build_plate_tilt_slope(print_cfg);
+    const bool   has_tilt   = tilt_slope.cwiseAbs().maxCoeff() > EPSILON;
     // FIXME this is a fudge constant!
     double support_tree_tip_diameter = 0.8;
     auto   enforcer_overhang_offset  = scaled<double>(support_tree_tip_diameter);
@@ -858,10 +857,7 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 ExPolygons shifted_lower;
                 if (has_tilt) {
                     shifted_lower = lower_polys; // copy
-                    const double lh = lower_layer->height;
-                    Point tilt_shift(coord_t(scale_(lh * tan(tilt_y_rad))),
-                                     coord_t(scale_(lh * tan(tilt_x_rad))));
-                    translate(shifted_lower, tilt_shift);
+                    translate(shifted_lower, Point::new_scale(tilt_slope * lower_layer->height));
                 }
                 const ExPolygons &effective_lower = has_tilt ? shifted_lower : lower_polys;
 
@@ -1917,6 +1913,8 @@ void TreeSupport::generate()
                 if (!belt_ext_layers.empty()) {
                     auto &sl_vec = m_object->support_layers();
                     sl_vec.insert(sl_vec.begin(), belt_ext_layers.begin(), belt_ext_layers.end());
+                    for (size_t i = 0; i < sl_vec.size(); ++i)
+                        sl_vec[i]->set_id(i);
                 }
             }
         }

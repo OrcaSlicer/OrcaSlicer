@@ -2069,4 +2069,10 @@ sub clip_with_shape {
 }
 */
 
+Vec2d build_plate_tilt_slope(const PrintConfig &print_config)
+{
+    auto slope = [](double tilt_deg) { return std::tan(Geometry::deg2rad(std::clamp(tilt_deg, -89., 89.))); };
+    return { slope(print_config.build_plate_tilt_y.value), slope(print_config.build_plate_tilt_x.value) };
+}
+
 } // namespace Slic3r

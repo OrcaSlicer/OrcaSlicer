@@ -367,7 +367,7 @@ bool TriangleSelector::is_facet_clipped(int facet_idx, const ClippingPlane &clp)
 
 void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_start, const Transform3d& trafo_no_translate,
                                                   const ClippingPlane &clp, float seed_fill_angle, float highlight_by_angle_deg,
-                                                  bool force_reselection, const Vec3f &up_direction)
+                                                  const Vec3f &up_direction, bool force_reselection)
 {
     assert(facet_start < m_orig_size_indices);
 

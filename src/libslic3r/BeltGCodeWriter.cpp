@@ -85,7 +85,7 @@ std::string BeltGCodeWriter::travel_to_xy(const Vec2d &point, const std::string 
     w.emit_xyz(machine);
     const bool first_layer_for_point = belt_point_on_first_layer(
         m_first_layer_plane, m_first_layer_thickness_mm, m_is_first_layer,
-        Vec3d(point.x(), point.y(), m_pos.z()));
+        Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()));
     auto speed = first_layer_for_point
         ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx)
         : this->config.travel_speed.get_at(m_cached_extruder_idx);
@@ -115,7 +115,7 @@ std::string BeltGCodeWriter::_travel_to_z(double z, const std::string &comment)
     if (speed == 0.) {
         const bool first_layer_for_point = belt_point_on_first_layer(
             m_first_layer_plane, m_first_layer_thickness_mm, m_is_first_layer,
-            Vec3d(m_pos.x(), m_pos.y(), z));
+            Vec3d(m_pos.x() - m_x_offset, m_pos.y() - m_y_offset, z));
         speed = first_layer_for_point ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx)
                                       : this->config.travel_speed.get_at(m_cached_extruder_idx);
     }
@@ -181,7 +181,8 @@ std::string BeltGCodeWriter::travel_to_xyz(const Vec3d &point, const std::string
 
     Vec3d dest_point = point;
     const bool first_layer_for_point = belt_point_on_first_layer(
-        m_first_layer_plane, m_first_layer_thickness_mm, m_is_first_layer, point);
+        m_first_layer_plane, m_first_layer_thickness_mm, m_is_first_layer,
+        Vec3d(point.x() - m_x_offset, point.y() - m_y_offset, point.z()));
     auto travel_speed =
         first_layer_for_point ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx)
                               : this->config.travel_speed.get_at(m_cached_extruder_idx);

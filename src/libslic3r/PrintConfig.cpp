@@ -7163,8 +7163,8 @@ void PrintConfigDef::init_fff_params()
                      "A negative value tilts the -X side higher. Set to 0 for no X-axis tilt. "
                      "In belt printer mode, this is automatically synced to the belt angle.");
     def->sidetext = u8"\u00B0";
-    def->min = -90;
-    def->max = 90;
+    def->min = -89;
+    def->max = 89;
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.));
 
@@ -7175,8 +7175,8 @@ void PrintConfigDef::init_fff_params()
                      "A positive value tilts the plate so the +Y side is higher, shifting gravity toward -Y and increasing overhangs on the +Y side. "
                      "A negative value tilts the -Y side higher. Set to 0 for no Y-axis tilt.");
     def->sidetext = u8"\u00B0";
-    def->min = -90;
-    def->max = 90;
+    def->min = -89;
+    def->max = 89;
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.));
 

@@ -548,14 +548,6 @@ int GLGizmoFdmSupports::get_selection_support_threshold_angle()
     return auto_support ? support_threshold_angle : 0;
 }
 
-std::pair<double, double> GLGizmoFdmSupports::get_build_plate_tilt()
-{
-    const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    double tilt_x = cfg.opt_float("build_plate_tilt_x");
-    double tilt_y = cfg.opt_float("build_plate_tilt_y");
-    return {tilt_x, tilt_y};
-}
-
 void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
 {
     float threshold = (float(M_PI)/180.f)*threshold_deg;
@@ -564,15 +556,9 @@ void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
     const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
 
     // Compute gravity direction accounting for build plate tilt
-    auto [tilt_x_deg, tilt_y_deg] = get_build_plate_tilt();
-    double tilt_x_rad = tilt_x_deg * M_PI / 180.0;
-    double tilt_y_rad = tilt_y_deg * M_PI / 180.0;
-    const bool has_tilt = (tilt_x_deg != 0. || tilt_y_deg != 0.);
-    // NB: use an if, not a ?:, so each branch converts to Vec3d independently
-    // (the two Eigen expression types don't unify in a ternary).
-    Vec3d gravity_dir = -Vec3d::UnitZ();
-    if (has_tilt)
-        gravity_dir = Vec3d(-tan(tilt_y_rad), -tan(tilt_x_rad), -1.0).normalized();
+    const Vec3d up_dir      = build_plate_tilt_up_direction();
+    const bool  has_tilt    = up_dir != Vec3d::UnitZ();
+    const Vec3d gravity_dir = -up_dir;
 
     int mesh_id = -1;
     for (const ModelVolume* mv : mo->volumes) {

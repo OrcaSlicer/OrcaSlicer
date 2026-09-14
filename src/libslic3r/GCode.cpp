@@ -2961,10 +2961,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_fan_mover.release();
     m_ordering_cache.clear();
 
-    m_writer->set_is_bbl_machine(is_bbl_printers);
-
     // Belt printer: initialize belt-specific writer via virtual hook.
-    this->init_belt_writer(print, is_bbl_printers);
+    this->init_belt_writer(print);
+    m_writer->set_is_bbl_machine(is_bbl_printers);
 
     // Standalone axis remap (works with or without belt mode).
     // Sync the writer's remap state to the current export UNCONDITIONALLY — even at
@@ -5342,8 +5341,7 @@ LayerResult GCode::process_belt_brim_layer(
     // skip these layers entirely.
     {
         char buf[64];
-        sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change).c_str(), print_z);
-        gcode += buf;
+        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
         sprintf(buf, ";Z:%g\n", print_z);
         gcode += buf;
         const float band_height = float(height);
@@ -5374,7 +5372,12 @@ LayerResult GCode::process_belt_brim_layer(
             print.config().layer_change_gcode.value, m_writer->filament()->id(), &config) + "\n";
     }
 
-    gcode += this->emit_belt_brim_bands(print, layers, single_object_instance_idx);
+    // Objects sharing this apron Z may use different brim filaments; print each in its own tool.
+    for (const unsigned int brim_extruder : layer_tools.extruders) {
+        if (m_writer->filament() == nullptr || m_writer->filament()->id() != brim_extruder)
+            gcode += this->set_extruder(brim_extruder, print_z);
+        gcode += this->emit_belt_brim_bands(print, layers, single_object_instance_idx, brim_extruder);
+    }
 
     result.gcode = std::move(gcode);
     return result;
@@ -5388,7 +5391,8 @@ LayerResult GCode::process_belt_brim_layer(
 // object layer, takes the ordinary path, and the band would be silently dropped.
 std::string GCode::emit_belt_brim_bands(const Print                     &print,
                                         const std::vector<LayerToPrint> &layers,
-                                        const size_t                     single_object_instance_idx)
+                                        const size_t                     single_object_instance_idx,
+                                        const unsigned int               extruder_id)
 {
     std::string gcode;
     for (const LayerToPrint &ltp : layers) {
@@ -5396,6 +5400,9 @@ std::string GCode::emit_belt_brim_bands(const Print                     &print,
         if (band == nullptr || band->fills.empty() || ltp.original_object == nullptr)
             continue;
         const PrintObject &object = *ltp.original_object;
+        // belt_brim_filament() is 1-based.
+        if (! object.has_belt_brim() || static_cast<unsigned int>(object.belt_brim_filament() - 1) != extruder_id)
+            continue;
         // Speeds, flow and retraction all read m_config.
         m_config.apply(print.default_region_config());
         m_config.apply(object.config(), true);
@@ -6623,39 +6630,11 @@ LayerResult GCode::process_layer(
     std::set<std::pair<size_t, size_t>> belt_brim_emitted;
 
     // Emit every ORDINARY-layer apron band (belt_brim_prologue band coinciding with an
-    // object/support layer) whose brim filament is this pass's extruder.  Mirrors
-    // emit_belt_brim_bands() per band, but filtered to one brim filament so each band
+    // object/support layer) whose brim filament is this pass's extruder, so each band
     // prints in the correct tool's pass (Finding B).  extruder_id is 0-based (the
-    // reindexed tool domain); belt_brim_filament() is 1-based, so subtract one.
+    // reindexed tool domain).
     auto emit_belt_brim_for_extruder = [this, &print, &layers, single_object_instance_idx](unsigned int extruder_id) -> std::string {
-        std::string gc;
-        for (const LayerToPrint &ltp : layers) {
-            const BeltBrimBand *band = ltp.belt_brim_band;
-            if (band == nullptr || band->fills.empty() || ltp.original_object == nullptr)
-                continue;
-            const PrintObject &object = *ltp.original_object;
-            if (! object.has_belt_brim() || (unsigned int)(object.belt_brim_filament() - 1) != extruder_id)
-                continue;
-            // Speeds, flow and retraction all read m_config.
-            m_config.apply(print.default_region_config());
-            m_config.apply(object.config(), true);
-            const size_t i_begin = single_object_instance_idx == size_t(-1) ? 0 : single_object_instance_idx;
-            const size_t i_end   = single_object_instance_idx == size_t(-1) ? object.instances().size()
-                                                                           : single_object_instance_idx + 1;
-            for (size_t i = i_begin; i < i_end && i < object.instances().size(); ++ i) {
-                // Band geometry is object-local, like the object's own extrusions.
-                const Point &offset = object.instances()[i].shift;
-                this->set_origin(unscale(offset));
-                this->on_set_origin(&object, offset);
-                m_avoid_crossing_perimeters.use_external_mp();
-                for (const ExtrusionEntity *ee : band->fills.entities)
-                    if (ee != nullptr)
-                        gc += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
-                m_avoid_crossing_perimeters.use_external_mp(false);
-                m_avoid_crossing_perimeters.disable_once();
-            }
-        }
-        return gc;
+        return this->emit_belt_brim_bands(print, layers, single_object_instance_idx, extruder_id);
     };
 
     for (unsigned int extruder_id : layer_tools.extruders)

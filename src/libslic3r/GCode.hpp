@@ -228,7 +228,7 @@ public:
     void            do_export(Print* print, const char* path, GCodeProcessorResult* result = nullptr, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     void            export_layer_filaments(GCodeProcessorResult* result);
     //BBS: set offset for gcode writer
-    void set_gcode_offset(double x, double y) { m_writer->set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
+    void set_gcode_offset(double x, double y) { m_gcode_offset = Vec2d(x, y); m_writer->set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
 
     // Exported for the helper classes (OozePrevention, Wipe) and for the Perl binding for unit tests.
     const Vec2d&    origin() const { return m_origin; }
@@ -376,7 +376,7 @@ protected:
 
     // Virtual hooks for belt printer subclass (BeltGCode).
     // No-ops in base GCode; overridden in BeltGCode.
-    virtual void init_belt_writer(Print &print, bool is_bbl_printers) {}
+    virtual void init_belt_writer(Print &print) {}
     virtual void write_belt_header(GCodeOutputStream &file, const Print &print) {}
     virtual void on_set_origin(const PrintObject *obj, const Point &inst_shift) {}
     virtual bool should_disable_arc_fitting() const { return false; }
@@ -418,13 +418,14 @@ protected:
         const bool                       last_layer,
         const size_t                     single_object_instance_idx);
 
-    // Emit the apron bands carried by these layers.  Called from both the brim-only
-    // branch and the ordinary path, since a band's print_z can coincide with another
-    // object's layer on a multi-object belt.
+    // Emit the apron bands carried by these layers whose brim filament is extruder_id
+    // (0-based).  Called from both the brim-only branch and the ordinary path, since a
+    // band's print_z can coincide with another object's layer on a multi-object belt.
     std::string emit_belt_brim_bands(
         const Print                     &print,
         const std::vector<LayerToPrint> &layers,
-        const size_t                     single_object_instance_idx);
+        const size_t                     single_object_instance_idx,
+        const unsigned int               extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -767,6 +768,8 @@ protected:
     // printers without a Z-axis shear; in that case all per-path plane
     // checks short-circuit to the legacy Layer::id() == 0 path.
     std::unique_ptr<FirstLayerPlane>    m_first_layer_plane;
+    // Plate origin, kept so a writer replaced during export can be given it again.
+    Vec2d                               m_gcode_offset{ Vec2d::Zero() };
 
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     

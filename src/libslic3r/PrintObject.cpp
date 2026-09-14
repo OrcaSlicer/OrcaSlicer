@@ -1101,7 +1101,10 @@ std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> PrintObject::prepare
     indexed_triangle_set mesh = this->model_object()->raw_indexed_triangle_set();
     // Rotate mesh and build octree on it with axis-aligned (standart base) cubes.
     auto to_octree = transform_to_octree().toRotationMatrix();
-    its_transform(mesh, to_octree * this->trafo_centered(), true);
+    // Overhangs below are placed at Layer::bottom_z(), which includes the belt global Z offset.
+    Transform3d object_trafo = this->trafo_sliced();
+    object_trafo.translation().z() += m_belt_global_z_offset;
+    its_transform(mesh, to_octree * object_trafo, true);
 
     // Triangulate internal bridging surfaces.
     std::vector<std::vector<Vec3d>> overhangs(std::max(surfaces_w_bottom_z.size(), size_t(1)));
@@ -5124,6 +5127,7 @@ static void project_triangles_to_slabs(ConstLayerPtrsAdaptor layers, const index
 void PrintObject::project_and_append_custom_facets(
         bool seam, EnforcerBlockerType type, std::vector<Polygons>& out, std::vector<std::pair<Vec3f, Vec3f>>* vertical_points) const
 {
+    const Transform3d object_trafo = this->trafo_sliced();
     for (const ModelVolume* mv : this->model_object()->volumes)
         if (mv->is_model_part()) {
             const indexed_triangle_set custom_facets = seam
@@ -5132,12 +5136,12 @@ void PrintObject::project_and_append_custom_facets(
             if (! custom_facets.indices.empty()) {
                 if (seam)
                     project_triangles_to_slabs(this->layers(), custom_facets,
-                        (this->trafo_centered() * mv->get_matrix()).cast<float>(),
+                        (object_trafo * mv->get_matrix()).cast<float>(),
                         seam, out);
                 else {
                     std::vector<Polygons> projected;
                     // Support blockers or enforcers. Project downward facing painted areas upwards to their respective slicing plane.
-                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), this->trafo_centered() * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
+                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), object_trafo * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
                     // Merge these projections with the output, layer by layer.
                     assert(! projected.empty());
                     assert(out.empty() || out.size() == projected.size());

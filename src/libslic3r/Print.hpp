@@ -359,6 +359,9 @@ public:
     // Trafo with the center_offset() applied after the transformation, to center the object in XY before slicing.
     Transform3d                  trafo_centered() const
         { Transform3d t = this->trafo(); t.pretranslate(Vec3d(- unscale<double>(m_center_offset.x()), - unscale<double>(m_center_offset.y()), 0)); return t; }
+    // trafo_centered() with the belt pre-slice transforms applied: the frame the layers were sliced in (Layer::slice_z).
+    // Equal to trafo_centered() unless a belt rotation or pre-slice remap is active.
+    Transform3d                  trafo_sliced() const;
     const PrintInstances&        instances() const      { return m_instances; }
     PrintInstances &instances() { return m_instances; }
 

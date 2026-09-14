@@ -3230,16 +3230,17 @@ void TabPrint::toggle_options()
         const auto  current = m_config->opt_enum<BrimType>("brim_type");
         auto       &opt = const_cast<ConfigOptionDef &>(field->m_opt);
         auto        cb  = dynamic_cast<ComboBox *>(choice->window);
-        if (cb != nullptr) {
+        // Keep the entry if it is already selected, so switching to a non-belt
+        // printer cannot leave the control showing a value it does not offer.
+        const bool  offer_leading_edge = is_belt_printer || current == btLeadingEdgeOnly;
+        const bool  offered = std::find(opt.enum_values.begin(), opt.enum_values.end(), "leading_edge_only") != opt.enum_values.end();
+        if (cb != nullptr && offer_leading_edge != offered) {
             auto n = cb->GetValue();
             opt.enum_values.clear();
             opt.enum_labels.clear();
             cb->Clear();
             for (size_t i = 0; i < def->enum_values.size(); ++ i) {
-                // Keep the entry if it is already selected, so switching to a non-belt
-                // printer cannot leave the control showing a value it does not offer.
-                if (def->enum_values[i] == "leading_edge_only" && ! is_belt_printer
-                    && current != btLeadingEdgeOnly)
+                if (def->enum_values[i] == "leading_edge_only" && ! offer_leading_edge)
                     continue;
                 opt.enum_values.push_back(def->enum_values[i]);
                 opt.enum_labels.push_back(def->enum_labels[i]);
@@ -5104,7 +5105,7 @@ void TabPrinter::build_fff()
         {
             Line line = { L("Belt tilt"),
                           L("Belt tilt axis and angle, applied as a mesh rotation before "
-                            "slicing.  Also drives bed rendering and support gravity tilt.  "
+                            "slicing. Also drives bed rendering and support gravity tilt. "
                             "Isometric (no distortion); the back-transform inverts it before "
                             "the machine-frame remap.") };
             line.append_option(belt_og->get_option("belt_slice_rotation"));
@@ -5159,7 +5160,7 @@ void TabPrinter::build_fff()
             {
                 Line line = { L("Machine-frame tilt"),
                               L("The machine-frame shear (tan) and scale (1/cos) are derived from "
-                                "the belt tilt angle.  Enable 'Decouple' to set an independent "
+                                "the belt tilt angle. Enable 'Decouple' to set an independent "
                                 "machine-frame angle when the physical gantry tilt differs from "
                                 "the slicing rotation.") };
                 line.append_option(mf->get_option("belt_frame_tilt_decouple"));

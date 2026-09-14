@@ -3586,6 +3586,7 @@ void GCodeProcessor::reset()
     m_zero_layer_height = 0.0f;
     m_first_layer_height = 0.0f;
     m_processing_start_custom_gcode = false;
+    m_in_config_block = false;
     m_g1_line_id = 0;
     m_layer_id = 0;
     m_cp_color.reset();
@@ -4191,9 +4192,20 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         return;
     }
 
+    if (boost::starts_with(comment, " CONFIG_BLOCK_START")) {
+        m_in_config_block = true;
+        return;
+    }
+    if (boost::starts_with(comment, " CONFIG_BLOCK_END")) {
+        m_in_config_block = false;
+        return;
+    }
+
     // Belt printer: derive the physical tilt magnitude from the slicing-rotation
-    // angle header comment (used to enable the preview's belt view).
-    if (boost::starts_with(comment, " belt_slice_rotation_angle = ")) {
+    // angle header comment (used to enable the preview's belt view). Only the belt
+    // header carries it outside the config block; the config block lists the key
+    // for every printer, belt or not.
+    if (!m_in_config_block && boost::starts_with(comment, " belt_slice_rotation_angle = ")) {
         try {
             m_result.belt_tilt_angle = std::abs(std::stof(std::string(comment.substr(29))));
         } catch (...) {}

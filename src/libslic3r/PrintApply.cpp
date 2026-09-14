@@ -1241,6 +1241,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %changed_keys[i];
         }
     }
+    // On belt printers the support tilt follows the slicing rotation. The GUI keeps the two in
+    // sync, but a CLI or 3MF edit of the rotation alone would otherwise leave supports on a stale tilt.
+    if (const auto *belt_opt = new_full_config.option<ConfigOptionBool>("belt_printer"); belt_opt && belt_opt->value) {
+        const auto *axis_opt  = new_full_config.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+        const auto *angle_opt = new_full_config.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+        if (axis_opt && angle_opt) {
+            const auto tilt = BeltTransformPipeline::physical_tilt(axis_opt->value, angle_opt->value);
+            new_full_config.set_key_value("build_plate_tilt_x", new ConfigOptionFloat(tilt.tilt_x_deg));
+            new_full_config.set_key_value("build_plate_tilt_y", new ConfigOptionFloat(tilt.tilt_y_deg));
+        }
+    }
     const ConfigOption* enable_support_option = new_full_config.option("enable_support");
     if (enable_support_option && enable_support_option->getBool())
         m_support_used = true;

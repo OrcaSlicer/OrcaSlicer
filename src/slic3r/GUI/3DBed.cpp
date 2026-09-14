@@ -746,20 +746,14 @@ void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, co
 
 void Bed3D::render_gravity_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix)
 {
-    const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
     // build_plate_tilt_{x,y} are kept in sync with the belt tilt (see TabPrinter), so
     // reading them here covers both belt and non-belt tilted printers.
-    double tilt_x_deg = cfg.opt_float("build_plate_tilt_x");
-    double tilt_y_deg = cfg.opt_float("build_plate_tilt_y");
-    if (tilt_x_deg == 0. && tilt_y_deg == 0.) {
+    const Vec3d up_dir = build_plate_tilt_up_direction();
+    if (up_dir == Vec3d::UnitZ()) {
         m_gravity_arrow.reset();
         return;
     }
-
-    // Gravity direction (matching the slicer's tilt convention)
-    double tilt_x_rad = Geometry::deg2rad(tilt_x_deg);
-    double tilt_y_rad = Geometry::deg2rad(tilt_y_deg);
-    Vec3d gravity_dir = Vec3d(-tan(tilt_y_rad), -tan(tilt_x_rad), -1.0).normalized();
+    const Vec3d gravity_dir = -up_dir;
 
     // Build the arrow model (same dimensions as the axis arrows)
     if (!m_gravity_arrow.is_initialized()) {

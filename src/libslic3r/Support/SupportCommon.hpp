@@ -150,6 +150,10 @@ Polygons belt_floor_surface_polygon(
     const SlicingParameters &slicing_params, const PrintConfig &print_config,
     const PrintObject &object, coordf_t print_z);
 
+// Build plate tilt: XY drift of gravity per unit of layer height, zero on a level plate.
+// The tilt is capped below 90 degrees to keep the drift finite.
+Vec2d build_plate_tilt_slope(const PrintConfig &print_config);
+
 } // namespace Slic3r
 
 #endif /* slic3r_SupportCommon_hpp_ */

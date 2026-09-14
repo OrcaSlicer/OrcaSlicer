@@ -5,24 +5,18 @@
 
 namespace Slic3r {
 
-void BeltGCode::init_belt_writer(Print &print, bool is_bbl_printers)
+void BeltGCode::init_belt_writer(Print &print)
 {
-    if (!print.config().belt_printer.value)
-        return;
-
     auto belt_writer = std::make_unique<BeltGCodeWriter>();
-    belt_writer->set_is_bbl_machine(is_bbl_printers);
     // Axis remap and build volume max are set by base GCode after init_belt_writer returns.
     belt_writer->set_belt_back_transform(print.config());
     belt_writer->set_machine_frame_transform(print.config());
+    belt_writer->set_xy_offset(m_gcode_offset.x(), m_gcode_offset.y());
     m_writer = std::move(belt_writer);
 }
 
 void BeltGCode::write_belt_header(GCodeOutputStream &file, const Print &print)
 {
-    if (!print.config().belt_printer.value)
-        return;
-
     const auto &full_cfg = print.full_print_config();
     // Slicing rotation: the belt tilt (axis + angle) and the single source of truth
     // for the physical tilt the G-code viewer uses to enable belt view.
@@ -61,7 +55,7 @@ void BeltGCode::on_set_origin(const PrintObject * /*obj*/, const Point & /*inst_
         || (m_config.belt_slice_rotation_global.value
             && m_config.belt_slice_rotation.value != BeltRotationAxis::None
             && std::abs(m_config.belt_slice_rotation_angle.value) > EPSILON);
-    if (!use_global || !m_config.belt_printer.value)
+    if (!use_global)
         return;
 
     // Adjust origin: transform through belt forward pipeline so that

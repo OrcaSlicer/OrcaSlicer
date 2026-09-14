@@ -4923,7 +4923,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Spacing();
         ImGui::Dummy({ window_padding, 0 });
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(0.f, 0.59f, 0.53f, 1.f), "%s", _u8L("Belt Printer").c_str());
+        ImGui::TextColored(ImVec4(0.f, 0.59f, 0.53f, 1.f), "%s", _u8L("Belt printer").c_str());
         ImGui::Dummy({ window_padding, 0 });
         ImGui::SameLine();
         // Checked = show the raw machine-frame G-code (designed/upright view off). Worded to

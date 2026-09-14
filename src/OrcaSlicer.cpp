@@ -4014,6 +4014,10 @@ int CLI::run(int argc, char **argv)
         BOOST_LOG_TRIVIAL(info) << boost::format("%1%, set disable_wipe_tower_after_mapping back to false due to wrapping detect")%__LINE__;
     }
 
+    // Belt printers never get the classic wipe tower (see Print::has_wipe_tower()), so reserve no space for it.
+    const ConfigOptionBool* belt_printer_opt = m_print_config.option<ConfigOptionBool>("belt_printer");
+    const bool is_belt_printer = belt_printer_opt && belt_printer_opt->value;
+
     auto timelapse_type_opt = m_print_config.option("timelapse_type");
     bool is_smooth_timelapse = false;
     if (enable_timelapse && timelapse_type_opt && (timelapse_type_opt->getInt() == TimelapseType::tlSmooth))
@@ -4251,11 +4255,11 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
+    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse, is_belt_printer](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
         plate_obj_size_info.obj_bbox= plate->get_objects_bounding_box();
         BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, object bbox: min {%2%, %3%, %4%} - max {%5%, %6%, %7%}")
                     %(plate_index+1) %plate_obj_size_info.obj_bbox.min.x() % plate_obj_size_info.obj_bbox.min.y() % plate_obj_size_info.obj_bbox.min.z() %plate_obj_size_info.obj_bbox.max.x() % plate_obj_size_info.obj_bbox.max.y() % plate_obj_size_info.obj_bbox.max.z();
-        if (!print_config.has("wipe_tower_x")) {
+        if (is_belt_printer || !print_config.has("wipe_tower_x")) {
             plate_obj_size_info.has_wipe_tower = false;
             BOOST_LOG_TRIVIAL(info) << boost::format("can not found wipe_tower_x in config, set to no wipe tower");
             return;
@@ -5062,7 +5066,7 @@ int CLI::run(int argc, char **argv)
                     }
                 }
 
-                if ((!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1))||(enable_wrapping_detect && !current_wrapping_exclude_area.empty()))
+                if (!is_belt_printer && ((!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1)) || (enable_wrapping_detect && !current_wrapping_exclude_area.empty())))
                 {
                     //prepare the wipe tower
                     int plate_count = partplate_list.get_plate_count();
@@ -5212,7 +5216,7 @@ int CLI::run(int argc, char **argv)
                 bool is_seq_print = false;
                 get_print_sequence(cur_plate, m_print_config, is_seq_print);
 
-                if (!is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
+                if (!is_belt_printer && !is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
                 {
                     //prepare the wipe tower
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
@@ -5361,7 +5365,7 @@ int CLI::run(int argc, char **argv)
                     //add the virtual object into unselect list if has
                     partplate_list.preprocess_exclude_areas(unselected, enable_wrapping_detect);
 
-                    if (used_filament_set.size() > 0)
+                    if (!is_belt_printer && used_filament_set.size() > 0)
                     {
                         //prepare the wipe tower
                         int plate_count = partplate_list.get_plate_count();
@@ -5467,7 +5471,7 @@ int CLI::run(int argc, char **argv)
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": found single object mode");
                     }
 
-                    if (m_print_config.has("wipe_tower_x") && (is_smooth_timelapse || !arrange_cfg.is_seq_print || (selected.size() <= 1))) {
+                    if (!is_belt_printer && m_print_config.has("wipe_tower_x") && (is_smooth_timelapse || !arrange_cfg.is_seq_print || (selected.size() <= 1))) {
                         float x;
                         float y;
                         if (duplicate_count > 0) {
@@ -6037,7 +6041,7 @@ int CLI::run(int argc, char **argv)
                 // The stored (or default) tower position may not fit the tower these plates
                 // need, and no CLI placement site runs on a plain slice - mirror the GUI's
                 // reload clamp and fit every plate's tower into the printable area first.
-                if (m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
+                if (!is_belt_printer && m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
                     for (int index = 0; index < partplate_list.get_plate_count(); index++) {
                         if ((plate_to_slice != 0) && (plate_to_slice != (index + 1)))
                             continue;
