@@ -268,7 +268,7 @@ TEST_CASE("Locally recolored OBJ and GLB artifacts stay closed through native pa
                 Fixture fixture;
                 indexed_triangle_set mesh;
                 mesh.vertices = {Vec3f(0, 0, 0), Vec3f(20, 0, 0), Vec3f(0, 20, 0), Vec3f(0, 0, 20)};
-                mesh.indices = {Vec3i(0, 2, 1), Vec3i(0, 1, 3), Vec3i(1, 2, 3), Vec3i(2, 0, 3)};
+                mesh.indices = {Vec3i32(0, 2, 1), Vec3i32(0, 1, 3), Vec3i32(1, 2, 3), Vec3i32(2, 0, 3)};
                 const RGBA red{1, 0, 0, 1}, green{0, 1, 0, 1}, white{1, 1, 1, 1}, blue{0, 0, 1, 1};
                 std::vector<RGBA> colors{red, red, red, green};
                 if (split_edges >= 2) colors[1] = green;
