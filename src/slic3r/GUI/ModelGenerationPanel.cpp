@@ -2816,7 +2816,7 @@ void ModelGenerationPanel::refresh_controls()
                            : _L("导入到准备页"));
     m_import->SetToolTip(m_visual_quality.available && !m_visual_quality.import_recommended
                              ? _L("外观检查仅供参考，可继续导入；请对照原图确认效果。")
-                             : wxEmptyString);
+                             : wxString());
     m_discard->SetLabel(_L("重新开始"));
     m_clear_image->Show(image_input);
     m_upload_notice->Show(image_input);
@@ -3312,7 +3312,7 @@ void ModelGenerationPanel::on_apply_model_refinement(wxCommandEvent&)
         refresh_controls();
         return;
     }
-    const wxString candidate = prompt + (prompt.empty() ? wxEmptyString : _L("\n\n")) + suffix;
+    const wxString candidate = prompt + (prompt.empty() ? wxString() : _L("\n\n")) + suffix;
     const auto encoded = candidate.ToUTF8();
     if (!encoded || encoded.length() > MAX_MODEL_INPUT_BYTES) {
         m_status->SetLabel(_L("文字输入接近长度上限，请先精简原描述再应用优化建议。"));
