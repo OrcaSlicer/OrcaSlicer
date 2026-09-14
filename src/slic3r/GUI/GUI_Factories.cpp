@@ -2087,11 +2087,7 @@ void MenuFactory::append_menu_item_clone(wxMenu* menu)
 
 void MenuFactory::append_menu_items_copy_paste(wxMenu* menu, bool with_copy)
 {
-#ifdef __APPLE__
-    static const wxString ctrl = ("Ctrl+");
-#else
-    static const wxString ctrl = _L("Ctrl+");
-#endif
+    const wxString ctrl = from_u8(shortkey_ctrl_prefix()); // renders as the Command symbol on macOS
     if (with_copy)
         append_menu_item(menu, wxID_ANY, _L("Copy") + "\t" + ctrl + "C", _L("Copy selection to clipboard"),
             [](wxCommandEvent&) { plater()->copy_selection_to_clipboard(); }, "", nullptr,

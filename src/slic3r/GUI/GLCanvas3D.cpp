@@ -3439,12 +3439,10 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         auto obj_list = wxGetApp().obj_list();
         switch (keyCode)
         {
-        //case WXK_BACK:
+        // Backspace deletes on every platform: the context menu advertises it off Windows, and
+        // GLGizmosManager::on_char already treats it as Delete everywhere.
+        case WXK_BACK:
         case WXK_DELETE: { post_event(SimpleEvent(EVT_GLTOOLBAR_DELETE)); break; }
-        // BBS
-#ifdef __APPLE__
-        case WXK_BACK: { post_event(SimpleEvent(EVT_GLTOOLBAR_DELETE)); break; }
-#endif
         case WXK_ESCAPE: { deselect_all(); break; }
         case WXK_F5: {
             if (wxGetApp().mainframe->is_printer_view())

@@ -752,13 +752,15 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         // ImGui, gizmo and painting mode guards keep applying.
         if (m_plater && is_prepare_or_preview_tab()) {
             int       canvas_key = 0;
+            bool      with_ctrl  = false;
             const int key        = evt.GetKeyCode();
-            if (key == WXK_DELETE && !evt.HasAnyModifiers())
-                canvas_key = WXK_DELETE;
+            if ((key == WXK_DELETE || key == WXK_BACK) && !evt.HasAnyModifiers())
+                canvas_key = key;
             else if (evt.CmdDown() && !evt.ShiftDown() && !evt.AltDown()) {
                 if      (key == 'C') canvas_key = WXK_CONTROL_C;
                 else if (key == 'V') canvas_key = WXK_CONTROL_V;
                 else if (key == 'X') canvas_key = WXK_CONTROL_X;
+                with_ctrl = canvas_key != 0;
             }
             if (canvas_key != 0) {
                 // Text fields and the sidebar (object list included) bind these keys to their own
@@ -772,7 +774,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
                 if (!focus_owns_key && canvas != nullptr) {
                     wxKeyEvent e(wxEVT_CHAR);
                     e.m_keyCode = canvas_key;
-                    e.SetControlDown(canvas_key != WXK_DELETE);
+                    e.SetControlDown(with_ctrl);
                     canvas->on_char(e);
                     return;
                 }
