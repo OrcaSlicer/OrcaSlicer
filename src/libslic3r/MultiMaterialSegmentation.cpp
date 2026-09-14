@@ -1357,7 +1357,9 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
             if (const PrintRegionConfig &config = region->region().config();
                 // color_idx == 0 means "don't know" extruder aka the underlying extruder.
                 // As this region may split existing regions, we collect statistics over all regions for color_idx == 0.
-                color_idx == 0 || config.outer_wall_filament_id == int(color_idx)) {
+                // Orca: also include regions where the per-loop outer-wall filament matches the requested color.
+                color_idx == 0 || config.outer_wall_filament_id == int(color_idx)
+                || (config.surface_wall_override_filament > 0 && config.surface_wall_override_filament == int(color_idx))) {
                 //BBS: the extrusion line width is outer wall rather than inner wall
                 double outer_wall_line_width = resolve_outer_wall_line_width(config, print_object.config(), print_object.print()->config());
                 out.extrusion_width     = std::max<float>(out.extrusion_width, outer_wall_line_width);

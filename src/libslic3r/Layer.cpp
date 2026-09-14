@@ -143,6 +143,9 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
 
         return config.outer_wall_filament_id       == other_config.outer_wall_filament_id
 		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id
+		&& config.surface_wall_override_filament         == other_config.surface_wall_override_filament
+		&& config.outer_wall_count            == other_config.outer_wall_count
+		&& config.surface_wall_override_filament_target == other_config.surface_wall_override_filament_target
 		&& config.wall_loops                  == other_config.wall_loops
 		&& config.wall_sequence               == other_config.wall_sequence
 		&& config.is_infill_first             == other_config.is_infill_first

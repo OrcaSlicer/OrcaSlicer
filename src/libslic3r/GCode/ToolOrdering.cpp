@@ -123,6 +123,20 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().internal_solid_filament_id.value > 0);
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
+
+    // Orca: per-loop filament override (set by perimeter generation for outer-N walls)
+    // takes priority. It is the most specific routing decision the user has made, and the
+    // bucket-split in GCode.cpp guarantees the collection is homogeneous when this fires.
+    // Wipe-tower extrusions never have extruder_override set on their entities, so this
+    // does not interfere with the wipe-tower's LayerTools::extruder_override.
+    if (!extrusions.entities.empty() && extrusions.entities.front()->extruder_override > 0) {
+        const int8_t ov = extrusions.entities.front()->extruder_override;
+        bool uniform = true;
+        for (const ExtrusionEntity *ee : extrusions.entities)
+            if (ee->extruder_override != ov) { uniform = false; break; }
+        if (uniform)
+            return (unsigned int)(ov - 1);
+    }
 	// 1 based extruder ID.
     unsigned int extruder = 1;
     if (this->extruder_override == 0) {
@@ -821,6 +835,17 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
                     if (layerCount == 0) {
                         firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
+                    }
+                    // Orca: when the outer-wall-filament feature routes the
+                    // outermost N loops to a different filament, that filament
+                    // is also active on this layer. Enumerate it here so the
+                    // wipe-tower / SEMM scheduler sees the toolchange coming.
+                    if (extruder_override == 0
+                        && region.config().surface_wall_override_filament.value > 0
+                        && region.config().surface_wall_override_filament.value != region.config().outer_wall_filament_id.value) {
+                        layer_tools.extruders.emplace_back(region.config().surface_wall_override_filament.value);
+                        if (layerCount == 0)
+                            firstLayerExtruders.emplace_back(region.config().surface_wall_override_filament.value);
                     }
                 }
 
