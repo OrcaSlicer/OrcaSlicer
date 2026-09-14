@@ -136,6 +136,7 @@ public:
     bool button(const wxString& label, float width, float height);
     bool button(const wxString& label, const ImVec2 &size, bool enable); // default size = ImVec2(0.f, 0.f)
     bool glyph_button(wchar_t icon_char, ImVec2 icon_size); // ORCA
+    bool revert_button(const std::string& label_id, const std::string& tooltip_str, const bool enabled); // ORCA
     bool radio_button(const wxString &label, bool active);
     static ImVec4          to_ImVec4(const ColorRGB &color);
     bool input_double(const std::string &label, const double &value, const std::string &format = "%.3f");
@@ -388,6 +389,8 @@ public:
     static void pop_combo_style();
     static void push_radio_style(const float scale);
     static void pop_radio_style();
+    static void push_compact_spacing(const float scale);
+    static void pop_compact_spacing();
 
     //BBS
     static int TOOLBAR_WINDOW_FLAGS;
