@@ -1189,6 +1189,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 #endif // ENABLE_RETINA_GL
     }
     m_timer_set_color.Bind(wxEVT_TIMER, &GLCanvas3D::on_set_color_timer, this);
+    m_fps_overlay_timer.Bind(wxEVT_TIMER, &GLCanvas3D::on_fps_overlay_timer, this);
     load_arrange_settings();
 
     m_selection.set_volumes(&m_volumes.volumes);
@@ -2044,11 +2045,17 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (m_picking_enabled)
         m_mouse.scene_position = _mouse_to_3d(m_mouse.position.cast<coord_t>());
 
+    const bool overlay_tick = m_fps_overlay_tick;
+    m_fps_overlay_tick = false;
+
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
     const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
-    if (!reuse_scene)
+    if (!reuse_scene) {
         _render_scene(camera, cnv_size);
+        if (!overlay_tick)
+            m_render_stats.increment_scene_fps_counter();
+    }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)
         // BBS: GUI refactor: add canvas size as parameters
@@ -2058,8 +2065,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     _render_overlays();
 
     const int current_fps = m_render_stats.get_fps_and_reset_if_needed();
-    if (_is_fps_overlay_enabled())
+    if (_is_fps_overlay_enabled()) {
         _render_fps_overlay(current_fps);
+        // The timer requests an overlay-only frame a second from now. A frame it requested
+        // re-arms it only while a count is above zero.
+        if (!overlay_tick || current_fps > 0 || m_render_stats.get_scene_fps() > 0)
+            m_fps_overlay_timer.StartOnce(1000);
+    }
 
     if (wxGetApp().plater()->is_render_statistic_dialog_visible()) {
         ImGui::ShowMetricsWindow();
@@ -2166,7 +2178,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
-        m_render_stats.increment_fps_counter();
+        if (!overlay_tick)
+            m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
     }
     else
@@ -2270,7 +2283,6 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
 
     _capture_scene_cache(camera);
-    m_render_stats.increment_scene_fps_counter();
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -4081,6 +4093,12 @@ void GLCanvas3D::on_set_color_timer(wxTimerEvent& evt)
     m_timer_set_color.Stop();
 }
 
+void GLCanvas3D::on_fps_overlay_timer(wxTimerEvent& evt)
+{
+    m_fps_overlay_tick = true;
+    _set_overlay_as_dirty();
+    wxWakeUpIdle();
+}
 
 void GLCanvas3D::schedule_extra_frame(int milliseconds)
 {

@@ -542,6 +542,10 @@ private:
     bool m_in_render;
     wxTimer m_timer;
     wxTimer m_timer_set_color;
+    // Armed by each frame that draws the FPS overlay; its tick requests an overlay-only frame.
+    wxTimer m_fps_overlay_timer;
+    // True during the frame the timer requested, which is not counted.
+    bool m_fps_overlay_tick{ false };
     LayersEditing m_layers_editing;
     Mouse m_mouse;
     GLGizmosManager m_gizmos;
@@ -1059,6 +1063,7 @@ public:
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
     void on_set_color_timer(wxTimerEvent& evt);
+    void on_fps_overlay_timer(wxTimerEvent& evt);
     void on_mouse(wxMouseEvent& evt);
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
