@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PVA @base",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"filament_id": "3104636980",
+	"filament_id": "OFDKIKyw",
 	"instantiation": "false",
 	"filament_loading_speed_start": [
 		"35"

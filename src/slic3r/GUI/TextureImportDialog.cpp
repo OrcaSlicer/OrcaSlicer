@@ -134,7 +134,9 @@ public:
     }
 
 private:
+#if defined(__WXMSW__) || defined(__APPLE__)
     int m_suspended_count = 0;
+#endif
 };
 
 static bool needs_filament_swatch_border(const wxColour& colour)
@@ -519,7 +521,6 @@ public:
         , m_entries(entries)
         , m_colors_rgba(colors_rgba)
         , m_names(names)
-        , m_existing_count(existing_count)
         , m_dialog_anchor(dialog_anchor)
         , m_on_select(std::move(on_select))
         , m_on_add_filament(std::move(on_add_filament))
@@ -877,7 +878,6 @@ private:
     std::vector<TextureFilamentEntry>          m_entries;
     std::vector<std::array<float, 4>>          m_colors_rgba;
     std::vector<std::string>                   m_names;
-    size_t                                     m_existing_count = 0;
     wxWindow*                                  m_dialog_anchor = nullptr;
     std::function<void(int)>                   m_on_select;
     std::function<void(wxColour)>              m_on_add_filament;

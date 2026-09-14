@@ -3,7 +3,7 @@
 	"name": "QIDI PET-GF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_38",
+	"filament_id": "OFhx4uOG",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"50"

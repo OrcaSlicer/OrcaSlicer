@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Translucent @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA17",
+	"filament_id": "OFFbSnCD",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

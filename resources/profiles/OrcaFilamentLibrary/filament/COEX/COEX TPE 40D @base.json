@@ -3,7 +3,7 @@
 	"name": "COEX TPE 40D @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "CX40DB20",
+	"filament_id": "OFfnXFie",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"

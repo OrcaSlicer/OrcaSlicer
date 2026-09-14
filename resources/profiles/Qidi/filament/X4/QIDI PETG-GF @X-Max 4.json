@@ -3,7 +3,7 @@
 	"name": "QIDI PETG-GF@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_43",
+	"filament_id": "OFdtPd9h",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

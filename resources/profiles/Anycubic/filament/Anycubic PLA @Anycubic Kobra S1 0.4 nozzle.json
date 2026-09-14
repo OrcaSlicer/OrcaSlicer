@@ -4,10 +4,13 @@
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "zYYM5Fznkiz0UgHN",
-	"filament_id": "GFL99",
+	"filament_id": "OFmjN2bc",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PLA @Anycubic Kobra S1 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"Anycubic"
 	],
 	"filament_flow_ratio": [
 		"0.98"

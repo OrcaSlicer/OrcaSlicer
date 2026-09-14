@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Creality Sermoon V1",
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"Generic PLA @Creality"
 	],
 	"default_print_profile": "0.20mm Standard @Creality Sermoon V1",
 	"nozzle_diameter": [

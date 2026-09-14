@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa MK4S 0.8",
+	"inherits": "Generic ABS @Prusa MK4S",
+	"renamed_from": "Prusa Generic ABS @MK4S 0.8;Prusa Generic ABS MK4S 0.8",
+	"from": "system",
+	"setting_id": "sL7NL7GOf52fzxnj",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S 0.8 nozzle"
+	]
+}

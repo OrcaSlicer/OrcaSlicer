@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PLA+ @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"filament_id": "OFkhhUS0",
+	"instantiation": "false"
+}

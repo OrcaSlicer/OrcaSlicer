@@ -4,7 +4,7 @@
 	"inherits": "Generic TPU @base",
 	"from": "system",
 	"setting_id": "GF_ANTA_00",
-	"filament_id": "GF_ANTA",
+	"filament_id": "OFvcIGee",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

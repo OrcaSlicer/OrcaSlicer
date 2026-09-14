@@ -3,6 +3,6 @@
 	"name": "Snapmaker PETG Translucent @U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "PETG_TRANSLUCENT_001",
+	"filament_id": "OFW8lqnb",
 	"instantiation": "false"
 }

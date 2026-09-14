@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic PLA HF @Prusa base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFZr862X",
+	"instantiation": "false"
+}

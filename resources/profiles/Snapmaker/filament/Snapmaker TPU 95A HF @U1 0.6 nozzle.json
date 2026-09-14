@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "Q2svXpkEqg0dCdq3",
-	"filament_id": "GFU99",
+	"filament_id": "OFXSvqOX",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.6 nozzle)"
