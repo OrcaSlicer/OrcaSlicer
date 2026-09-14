@@ -231,7 +231,7 @@ class GenerationOptionsRecoveryTests(unittest.TestCase):
         self.job.attempts = [{"attempt": 1, "generation_task_id": "model-id"}]
         with mock.patch.object(sidecar, "_MODEL_PROVIDER_GATEWAY") as gateway, \
              mock.patch.object(sidecar.os, "replace", side_effect=OSError("disk unavailable")):
-            with self.assertRaisesRegex(tripo.TripoError, "no conversion was submitted"):
+            with self.assertRaisesRegex(tripo.TripoError, "job state could not be saved"):
                 sidecar._download_generation_artifact(self.job, "model-id")
         gateway.start_or_reuse_conversion.assert_not_called()
 
