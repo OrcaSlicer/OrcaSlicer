@@ -602,12 +602,15 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
     int initial_extruder_id = -1;
     std::map<int, double> min_areas_per_extruder;
 
+    const double nozzle_diam = print.config().nozzle_diameter.get_at(0);
+    const coordf_t initial_layer_line_width = print.config().get_abs_value("initial_layer_line_width", nozzle_diam);
+
     for (auto object : print.objects()) {
         const Layer* target_layer = nullptr;
         for(auto layer : object->layers()){
             for(auto layerm : layer->regions()){
                 for(auto& expoly : layerm->raw_slices){
-                    if (!offset_ex(expoly, -0.2 * scale_(print.config().initial_layer_line_width)).empty()) {
+                    if (!offset_ex(expoly, -0.2 * scale_(initial_layer_line_width)).empty()) {
                         target_layer = layer;
                         break;
                     }
@@ -626,9 +629,6 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
             int extruder_id = layerm->region().config().option("outer_wall_filament_id")->getInt();
 
             for (auto expoly : layerm->raw_slices) {
-                const double nozzle_diameter = print.config().nozzle_diameter.get_at(0);
-                const coordf_t initial_layer_line_width = print.config().get_abs_value("initial_layer_line_width", nozzle_diameter);
-
                 if (offset_ex(expoly, -0.2 * scale_(initial_layer_line_width)).empty())
                     continue;
 
@@ -667,11 +667,15 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
     std::vector<unsigned int> tool_order;
     int initial_extruder_id = -1;
     std::map<int, double> min_areas_per_extruder;
+
+    const double nozzle_diameter = object.print()->config().nozzle_diameter.get_at(0);
+    const coordf_t line_width = object.config().get_abs_value("line_width", nozzle_diameter);
+
     const Layer* target_layer = nullptr;
     for(auto layer : object.layers()){
         for(auto layerm : layer->regions()){
             for(auto& expoly : layerm->raw_slices){
-                if (!offset_ex(expoly, -0.2 * scale_(object.config().line_width)).empty()) {
+                if (!offset_ex(expoly, -0.2 * scale_(line_width)).empty()) {
                     target_layer = layer;
                     break;
                 }
@@ -689,9 +693,6 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
     for (auto layerm : target_layer->regions()) {
         int extruder_id = layerm->region().config().option("outer_wall_filament_id")->getInt();
         for (auto expoly : layerm->raw_slices) {
-            const double nozzle_diameter = object.print()->config().nozzle_diameter.get_at(0);
-            const coordf_t line_width = object.config().get_abs_value("line_width", nozzle_diameter);
-
             if (offset_ex(expoly, -0.2 * scale_(line_width)).empty())
                 continue;
 
