@@ -100,7 +100,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
           && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-arm","compiler":"clang"}]') }}
+          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -169,7 +169,7 @@ jobs:
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: windows-11-arm
+      os: windows-11-vs2026-arm
       artifact: ${{ github.sha }}-tests-windows-arm64
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
@@ -313,6 +313,7 @@ jobs:
         echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
       shell: bash
     - name: Restore compiler cache
+      id: ccache_restore
       uses: actions/cache/restore@v6
       with:
         path: .flatpak-builder/ccache
@@ -371,24 +372,31 @@ jobs:
         save-cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+    # The build has just touched everything it can use, so an object untouched
+    # for a week is dead, usually orphaned by a flag change.
     - name: Compiler cache statistics
       if: always()
       run: |
         export CCACHE_DIR=$PWD/.flatpak-builder/ccache
+        ccache --evict-older-than 7d
         ccache -s -v || ccache -s
       shell: bash
     # Save the new entry first, then drop the older ones for this leg on this
-    # ref, so a failed save leaves the previous entry in place.
+    # ref, so a failed save leaves the previous entry in place. A cancelled or
+    # failed build saves too, since what it compiled is still valid; a restore
+    # that did not finish does not, since the directory may be a truncated copy.
     - name: Save compiler cache
       id: ccache_save
-      if: github.event_name != 'pull_request'
+      if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
       uses: actions/cache/save@v6
       with:
         path: .flatpak-builder/ccache
         key: ${{ env.CCACHE_ENTRY }}
     - name: Drop older compiler cache entries
-      if: ${{ steps.ccache_save.outcome == 'success' }}
+      if: ${{ always() && steps.ccache_save.outcome == 'success' }}
       # The container has no gh, so this is the list and delete over the REST API.
+      # Older means a lower run id, so two runs finishing close together keep
+      # the newer entry whichever of them cleans up last.
       continue-on-error: true
       env:
         GH_TOKEN: ${{ github.token }}
@@ -396,7 +404,8 @@ jobs:
         api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches"
         curl -sSf -H "Authorization: Bearer $GH_TOKEN" \
           "$api?ref=$GITHUB_REF&key=ccache-$CCACHE_LEG-&per_page=100" \
-          | jq -r --arg keep "$CCACHE_ENTRY" '.actions_caches[] | select(.key != $keep) | .id' \
+          | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
+              '.actions_caches[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \
           | while read -r id; do
               curl -sSf -X DELETE -H "Authorization: Bearer $GH_TOKEN" "$api/$id"
             done
