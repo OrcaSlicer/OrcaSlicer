@@ -410,6 +410,10 @@ void ObjectClipper::set_position_by_ratio(double pos, bool keep_normal, bool ver
 
 void ObjectClipper::set_range_and_pos(const Vec3d& cpl_normal, double cpl_offset, double pos)
 {
+    // Called every frame by GLGizmoCut3D::on_render(), usually with the plane already set.
+    if (m_clp && *m_clp == ClippingPlane(cpl_normal, cpl_offset) && m_clp_ratio == pos)
+        return;
+
     m_clp.reset(new ClippingPlane(cpl_normal, cpl_offset));
     m_clp_ratio = pos;
     get_pool()->get_canvas()->set_as_dirty();
