@@ -29,6 +29,12 @@ struct GCodeInputData
     // Palette for color print colors
     //
     Palette color_print_colors;
+    //
+    // Per-vertex gradient colors, parallel to vertices[].
+    // Empty when no gradient filaments are configured.
+    // When non-empty, used by EViewType::GradientFilament rendering.
+    //
+    std::vector<Color> gradient_colors;
 };
 
 } // namespace libvgcode
