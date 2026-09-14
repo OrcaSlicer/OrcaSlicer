@@ -54,7 +54,7 @@ while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
         echo "   -u: Build universal app only (requires existing arm64 and x86_64 app bundles)"
         echo "   -n: Nightly build"
         echo "   -t: Specify minimum version of the target platform, default is 11.3"
-        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode"
+        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode (requires ninja; install with 'brew install ninja')"
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
@@ -100,6 +100,12 @@ fi
 
 if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then
   export CMAKE_IGNORE_PREFIX_PATH="/opt/local:/usr/local:/opt/homebrew"
+fi
+
+if [[ "$SLICER_CMAKE_GENERATOR" == Ninja* || "$DEPS_CMAKE_GENERATOR" == Ninja* ]] && ! command -v ninja >/dev/null 2>&1; then
+  echo "Error: Ninja is required when using the -x generator option."
+  echo "Install it with Homebrew: brew install ninja"
+  exit 1
 fi
 
 CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
