@@ -3,6 +3,8 @@
 
 #include <wx/dataview.h>
 #include <map>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "GUI_Utils.hpp"
@@ -306,9 +308,13 @@ public:
         std::string name;
         Preset::Type type;
         bool save_to_project;
+        int filament_idx;
 
-        PresetData(std::string preset_name, Preset::Type preset_type, bool save_project)
-            :name(preset_name), type(preset_type), save_to_project(save_project)
+        PresetData(std::string preset_name, Preset::Type preset_type, bool save_project, int filament_index = -1)
+            : name(std::move(preset_name))
+            , type(preset_type)
+            , save_to_project(save_project)
+            , filament_idx(filament_index)
         {
         }
     };
