@@ -680,8 +680,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/bambu_networking.hpp
     Utils/Bonjour.cpp
     Utils/Bonjour.hpp
-    Utils/MeshOrient.cpp
-    Utils/MeshOrient.hpp
+    Utils/MeshInspect.cpp
+    Utils/MeshInspect.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
     Utils/ColorSpaceConvert.cpp

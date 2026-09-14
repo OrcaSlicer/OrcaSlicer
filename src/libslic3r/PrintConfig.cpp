@@ -11914,6 +11914,13 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("This outputs the model\u2019s information.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("inspect_mesh", coBool);
+    def->label = L("Inspect mesh (JSON to stdout)");
+    def->tooltip = L("Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the "
+                     "convex hull faces it can be laid on, with their normals, areas and centers. These are the faces "
+                     "the --ground-* options choose from. Machine-readable alternative to --info.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file. Use - to write them to stdout.");
@@ -12033,49 +12040,33 @@ CLITransformConfigDef::CLITransformConfigDef()
     def->sidetext = u8"°";	// degrees, don't need translation
     def->set_default_value(new ConfigOptionFloat(0));
 
-    // "Ground a face to the bed" CLI primitives — GUI equivalents (lay-flat / face-pick
-    // gizmos) previously had no CLI counterpart, forcing scripted pipelines to
-    // round-trip through the GUI to set orientation. All work in the mesh-local
-    // frame so they compose with prior --rotate-* flags.
-    def = this->add("ground_largest_face", coInt);
+    // The --ground-* options choose from the faces the "Lay on Face" gizmo offers. Like the other
+    // transforms they run in command-line order, so they see the rotations given before them.
+    def = this->add("ground_largest_face", coBool);
     def->label = L("Ground largest face");
-    def->tooltip = L("Find the largest planar face on the mesh and rotate so it sits "
-                     "on the bed (Z=0). Covers the common 'this part has one obvious "
-                     "orientation' case. 1=on, 0=off. Default 0.");
-    def->cli_params = "0|1";
-    def->set_default_value(new ConfigOptionInt(0));
-
-    def = this->add("lay_flat", coInt);
-    def->label = L("Lay flat");
-    def->tooltip = L("Alias for --ground-largest-face. Matches the GUI's lay-flat "
-                     "terminology. 1=on, 0=off. Default 0.");
-    def->cli_params = "0|1";
-    def->set_default_value(new ConfigOptionInt(0));
+    def->tooltip = L("Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large "
+                     "faces, the one already facing down is kept. Objects without a face large enough to rest on are left "
+                     "as they are. Transforms run in command-line order, so rotations given before this option are respected. "
+                     "--orient 1 runs after all transforms and replaces the orientation.");
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("ground_face_normal", coString);
-    def->label = L("Ground face normal");
-    def->tooltip = L("Rotate so the face whose mesh-local normal best matches NX,NY,NZ "
-                     "sits on the bed. Example: --ground-face-normal 0,0,-1 grounds the "
-                     "face already pointing -Z (typically already flat). Use 1,0,0 to "
-                     "stand a part on its +X side. Vector is normalized internally.");
+    def->label = L("Ground face by normal");
+    def->tooltip = L("Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ "
+                     "and drop it onto the bed. The direction is in object coordinates, which include the rotations given "
+                     "before this option and match the plate axes unless the input file rotates the object. For example, "
+                     "1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation.");
     def->cli_params = "NX,NY,NZ";
     def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("ground_face_point", coString);
     def->label = L("Ground face at point");
-    def->tooltip = L("Find the triangle containing the given mesh-local point X,Y,Z "
-                     "and rotate so its face sits on the bed. Useful when multiple "
-                     "faces have similar normals — picking by point disambiguates. "
-                     "Coords are mesh-local (post-OrcaSlicer centering).");
+    def->tooltip = L("Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. "
+                     "The point is in object coordinates, which include the rotations given before this option; "
+                     "--inspect-mesh reports face centers in them. Objects without such a face are left as they are, and "
+                     "the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation.");
     def->cli_params = "X,Y,Z";
     def->set_default_value(new ConfigOptionString(""));
-
-    def = this->add("center_on_bed", coInt);
-    def->label = L("Center on bed");
-    def->tooltip = L("Translate the model so its XY bounding-box center lands at the bed "
-                     "center. Useful after --ground-* operations. 1=on, 0=off. Default 0.");
-    def->cli_params = "0|1";
-    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("scale", coFloat);
     def->label = L("Scale");

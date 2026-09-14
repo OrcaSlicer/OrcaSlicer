@@ -302,6 +302,8 @@ set(lisbslic3r_sources
     Layer.cpp
     Layer.hpp
     LayerRegion.cpp
+    LayOnFace.cpp
+    LayOnFace.hpp
     libslic3r.cpp
     libslic3r.h
     Line.cpp
