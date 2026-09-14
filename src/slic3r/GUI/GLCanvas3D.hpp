@@ -578,6 +578,7 @@ private:
     //BBS: add flag to controll rendering
     bool m_render_preview{ true };
     bool m_enable_render { true };
+    size_t m_rendered_frames { 0 };
     bool m_apply_zoom_to_volumes_filter;
     bool m_picking_enabled;
     bool m_moving_enabled;
@@ -921,6 +922,7 @@ public:
     bool has_mouse_capture() const;
 
     void render(bool only_init = false);
+    size_t rendered_frames() const { return m_rendered_frames; }
     bool is_rendering_enabled()
     {
         return m_enable_render;

@@ -24,6 +24,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include <chrono>
 
 
 namespace Slic3r {
@@ -106,14 +107,37 @@ public:
 
     void update_mode();
 private:
+    enum class LoadingState { Loading, Ready, Failed, Closing };
 
-    wxWebView* m_browser;
+    void CreateBrowser(const wxString& url);
+    void ShowLoading(const wxString& url);
+    void ShowLoadFailure(bool timed_out);
+    void StartVisibleLoadingTimer();
+    bool IsCurrentBrowserEvent(const wxWebViewEvent& evt) const;
+    bool IsMainDocumentEvent(const wxWebViewEvent& evt) const;
+    void OnShow(wxShowEvent& evt);
+    void OnLoadingTimeout(wxTimerEvent& evt);
+    void OnRetryHome(wxCommandEvent& evt);
+    void OnEnterPrepare(wxCommandEvent& evt);
+
+    wxWebView* m_browser{nullptr};
+    wxPanel* m_loading_panel{nullptr};
+    wxStaticText* m_loading_text{nullptr};
+    wxButton* m_retry_button{nullptr};
+    wxButton* m_prepare_button{nullptr};
+    wxTimer m_loading_timer;
+    LoadingState m_loading_state{LoadingState::Loading};
+    wxString m_home_url;
+    wxString m_requested_url;
+    std::chrono::steady_clock::time_point m_loading_started;
+    std::chrono::steady_clock::time_point m_visible_loading_started;
+    bool m_visible_loading_started_once{false};
     wxBoxSizer *bSizer_toolbar;
     wxButton *  m_button_back;
     wxButton *  m_button_forward;
-    wxButton *  m_button_stop;
+    wxButton *  m_button_stop{nullptr};
     wxButton *  m_button_reload;
-    wxTextCtrl *m_url;
+    wxTextCtrl *m_url{nullptr};
     wxButton *  m_button_tools;
 
     wxMenu* m_tools_menu;
