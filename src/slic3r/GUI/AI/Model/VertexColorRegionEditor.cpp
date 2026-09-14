@@ -1,4 +1,5 @@
 #include "VertexColorRegionEditor.hpp"
+#include "ModelArtifact.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -307,6 +308,7 @@ void VertexColorRegionEditor::clear()
 {
     m_mesh = {};
     m_vertex_colors.clear();
+    m_face_color_overrides.clear();
     m_face_normals.clear();
     m_face_centers.clear();
     m_face_neighbors.clear();
@@ -388,8 +390,18 @@ std::optional<size_t> VertexColorRegionEditor::pick_face(const Vec3d& ray_origin
     return result;
 }
 
+RGBA VertexColorRegionEditor::corner_color(size_t face_index, size_t corner) const
+{
+    const auto edited = m_face_color_overrides.find(face_index);
+    return edited == m_face_color_overrides.end()
+        ? m_vertex_colors[m_mesh.indices[face_index][corner]] : edited->second;
+}
+
 RGBA VertexColorRegionEditor::face_color(size_t face_index) const
 {
+    const auto edited = m_face_color_overrides.find(face_index);
+    if (edited != m_face_color_overrides.end())
+        return edited->second;
     RGBA result {0.0f, 0.0f, 0.0f, 1.0f};
     const stl_triangle_vertex_indices& face = m_mesh.indices[face_index];
     for (size_t channel = 0; channel < 4; ++channel)
@@ -467,7 +479,7 @@ size_t VertexColorRegionEditor::update_selection(size_t seed_face, RegionSelecti
 {
     if (!ready() || seed_face >= m_mesh.indices.size())
         return m_selected_face_count;
-    const std::vector<size_t> region = operation == RegionSelectionOperation::Replace
+    const std::vector<size_t> region = (operation == RegionSelectionOperation::Replace || operation == RegionSelectionOperation::AddSimilar)
         ? smart_region(seed_face, settings) : local_patch(seed_face, settings);
     if (operation == RegionSelectionOperation::Replace) {
         std::fill(m_selected_faces.begin(), m_selected_faces.end(), uint8_t(0));
@@ -628,18 +640,15 @@ bool VertexColorRegionEditor::apply_color(const RGBA& color)
 {
     if (!ready() || m_selected_face_count == 0)
         return false;
-    std::vector<uint8_t> selected_vertices(m_mesh.vertices.size(), 0);
     for (size_t face_index = 0; face_index < m_mesh.indices.size(); ++face_index) {
         if (!m_selected_faces[face_index])
             continue;
-        const stl_triangle_vertex_indices& face = m_mesh.indices[face_index];
-        selected_vertices[face[0]] = 1;
-        selected_vertices[face[1]] = 1;
-        selected_vertices[face[2]] = 1;
-    }
-    for (size_t vertex = 0; vertex < selected_vertices.size(); ++vertex) {
-        if (selected_vertices[vertex])
-            m_vertex_colors[vertex] = color;
+        const auto& face = m_mesh.indices[face_index];
+        if (m_vertex_colors[face[0]] == color && m_vertex_colors[face[1]] == color &&
+            m_vertex_colors[face[2]] == color)
+            m_face_color_overrides.erase(face_index);
+        else
+            m_face_color_overrides[face_index] = color;
     }
     return true;
 }
@@ -649,7 +658,7 @@ bool VertexColorRegionEditor::apply_color_to_obj_copy(const RGBA& color,
                                                       const boost::filesystem::path& destination,
                                                       std::string& error)
 {
-    std::vector<RGBA> original_colors = m_vertex_colors;
+    const auto original_overrides = m_face_color_overrides;
     if (!apply_color(color)) {
         error = "No model region is selected.";
         return false;
@@ -657,8 +666,42 @@ bool VertexColorRegionEditor::apply_color_to_obj_copy(const RGBA& color,
     const bool written = write_obj_copy(source, destination, error);
     // Export is a candidate copy. Keep the source editor intact so cached
     // before/after views and undo followed by another edit use original colors.
-    m_vertex_colors = std::move(original_colors);
+    m_face_color_overrides = original_overrides;
     return written;
+}
+
+void VertexColorRegionEditor::build_color_mesh(indexed_triangle_set& mesh,
+                                               std::vector<RGBA>& colors) const
+{
+    mesh = m_mesh;
+    colors = m_vertex_colors;
+    std::vector<uint8_t> assigned(m_mesh.vertices.size(), 0);
+    std::unordered_map<int, std::vector<int>> variants;
+    for (size_t face_index = 0; face_index < m_mesh.indices.size(); ++face_index) {
+        for (size_t corner = 0; corner < 3; ++corner) {
+            const int source_vertex = m_mesh.indices[face_index][corner];
+            const RGBA color = corner_color(face_index, corner);
+            if (!assigned[source_vertex]) {
+                colors[source_vertex] = color;
+                assigned[source_vertex] = 1;
+            }
+            if (colors[source_vertex] == color)
+                continue;
+            auto& alternatives = variants[source_vertex];
+            auto existing = std::find_if(alternatives.begin(), alternatives.end(),
+                [&colors, &color](int index) { return colors[index] == color; });
+            int output_vertex;
+            if (existing != alternatives.end()) {
+                output_vertex = *existing;
+            } else {
+                output_vertex = int(mesh.vertices.size());
+                mesh.vertices.push_back(m_mesh.vertices[source_vertex]);
+                colors.push_back(color);
+                alternatives.push_back(output_vertex);
+            }
+            mesh.indices[face_index][corner] = output_vertex;
+        }
+    }
 }
 
 bool VertexColorRegionEditor::write_obj_copy(const boost::filesystem::path& source,
@@ -668,6 +711,23 @@ bool VertexColorRegionEditor::write_obj_copy(const boost::filesystem::path& sour
     if (!ready()) {
         error = "No vertex-color model is loaded.";
         return false;
+    }
+    indexed_triangle_set color_mesh;
+    std::vector<RGBA> colors;
+    build_color_mesh(color_mesh, colors);
+    if (model_artifact_format(source) == "glb" || model_artifact_format(destination) == "glb") {
+        TriangleMesh source_mesh; ObjInfo source_colors;
+        if (!load_model_artifact(source, source_mesh, source_colors, error)) return false;
+        if (source_mesh.its.vertices.size() != m_mesh.vertices.size() || source_mesh.its.indices != m_mesh.indices) {
+            error = "The source model changed while recoloring. Please reload it.";
+            return false;
+        }
+        for (size_t i = 0; i < m_mesh.vertices.size(); ++i)
+            if ((source_mesh.its.vertices[i] - m_mesh.vertices[i]).squaredNorm() > 1e-10f) {
+                error = "The source geometry changed while recoloring. Please reload it.";
+                return false;
+            }
+        return write_model_artifact(destination, color_mesh, colors, error);
     }
     boost::filesystem::ifstream input(source);
     if (!input) {
@@ -688,32 +748,89 @@ bool VertexColorRegionEditor::write_obj_copy(const boost::filesystem::path& sour
         return false;
     }
 
+    // Emit the derived position/color array once. Texture and normal records keep
+    // their original ordering; only face position indices are remapped below.
+    output << std::setprecision(std::numeric_limits<float>::max_digits10);
+    for (size_t vertex = 0; vertex < color_mesh.vertices.size(); ++vertex) {
+        const auto& position = color_mesh.vertices[vertex];
+        const auto& color = colors[vertex];
+        output << "v " << position.x() << ' ' << position.y() << ' ' << position.z() << ' '
+               << color[0] << ' ' << color[1] << ' ' << color[2] << ' ' << color[3] << '\n';
+    }
+    auto invalid_source = [&]() {
+        output.close();
+        boost::filesystem::remove(temporary, filesystem_error);
+        error = "The source OBJ geometry or face layout changed while recoloring. Please reload it.";
+        return false;
+    };
     std::string line;
     size_t vertex_index = 0;
+    size_t face_index = 0;
     while (std::getline(input, line)) {
         std::istringstream parser(line);
         std::string tag;
         parser >> tag;
-        if (tag != "v") {
+        if (tag != "v" && tag != "f") {
             output << line << '\n';
             continue;
         }
-        std::string x;
-        std::string y;
-        std::string z;
-        if (!(parser >> x >> y >> z) || vertex_index >= m_vertex_colors.size()) {
-            output.close();
-            boost::filesystem::remove(temporary, filesystem_error);
-            error = "The source OBJ vertex layout changed while recoloring.";
-            return false;
+        if (tag == "v") {
+            Vec3f position;
+            if (!(parser >> position.x() >> position.y() >> position.z()) ||
+                vertex_index >= m_mesh.vertices.size())
+                return invalid_source();
+            if (!position.allFinite() ||
+                (position - m_mesh.vertices[vertex_index]).squaredNorm() > 1e-10f)
+                return invalid_source();
+            ++vertex_index;
+            continue;
         }
-        const RGBA& color = m_vertex_colors[vertex_index++];
-        output << "v " << x << ' ' << y << ' ' << z << ' '
-               << std::fixed << std::setprecision(6)
-               << color[0] << ' ' << color[1] << ' ' << color[2] << ' ' << color[3] << '\n';
+
+        std::vector<int> source_indices;
+        std::vector<std::string> suffixes;
+        std::string token;
+        while (parser >> token) {
+            if (token.front() == '#')
+                break;
+            const size_t slash = token.find('/');
+            const std::string index_text = token.substr(0, slash);
+            std::istringstream index_parser(index_text);
+            int64_t index;
+            char trailing;
+            if (!(index_parser >> index) || (index_parser >> trailing) || index == 0)
+                return invalid_source();
+            index = index < 0 ? int64_t(vertex_index) + index : index - 1;
+            if (index < 0 || index >= int64_t(m_mesh.vertices.size()))
+                return invalid_source();
+            source_indices.push_back(int(index));
+            suffixes.push_back(slash == std::string::npos ? "" : token.substr(slash));
+        }
+        // Match the OBJ reader's triangle/quad fan, preserving face identity even
+        // when the reader corrected the source winding on a closed mesh.
+        if (source_indices.size() < 3 || source_indices.size() > 4)
+            return invalid_source();
+        for (size_t triangle = 1; triangle + 1 < source_indices.size(); ++triangle) {
+            if (face_index >= m_mesh.indices.size())
+                return invalid_source();
+            const std::array<size_t, 3> fan {{0, triangle, triangle + 1}};
+            const auto& source_face = m_mesh.indices[face_index];
+            std::array<size_t, 3> token_indices;
+            for (size_t corner = 0; corner < 3; ++corner) {
+                const auto found = std::find_if(fan.begin(), fan.end(),
+                    [&](size_t token_index) { return source_indices[token_index] == source_face[corner]; });
+                if (found == fan.end())
+                    return invalid_source();
+                token_indices[corner] = *found;
+            }
+            output << "f";
+            for (size_t corner = 0; corner < 3; ++corner)
+                output << ' ' << color_mesh.indices[face_index][corner] + 1 << suffixes[token_indices[corner]];
+            output << '\n';
+            ++face_index;
+        }
     }
     output.close();
-    if (!output || vertex_index != m_vertex_colors.size()) {
+    if (!output || input.bad() || vertex_index != m_vertex_colors.size() || face_index != m_mesh.indices.size()) {
         boost::filesystem::remove(temporary, filesystem_error);
         error = "The edited OBJ could not be written completely.";
         return false;

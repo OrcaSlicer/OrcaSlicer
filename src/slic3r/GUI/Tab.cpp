@@ -5348,7 +5348,7 @@ void TabPrinter::build_sla()
     //build_preset_description_line(optgroup.get());
 }
 
-void TabPrinter::extruders_count_changed(size_t extruders_count)
+void TabPrinter::extruders_count_changed(size_t extruders_count, bool user_initiated)
 {
     bool is_count_changed = false;
     if (m_extruders_count != extruders_count) {
@@ -5368,10 +5368,17 @@ void TabPrinter::extruders_count_changed(size_t extruders_count)
      */
     build_unregular_pages();
 
-    if (is_count_changed) {
+    // Loading a printer preset refreshes its nozzle pages, but must not delete the project's
+    // logical filaments. Only a user edit takes the filament resizing/remapping path.
+    if (is_count_changed && user_initiated) {
         on_value_change("extruders_count", extruders_count);
         // BBS
         //wxGetApp().obj_list()->update_objects_list_filament_column(extruders_count);
+    }
+    else if (is_count_changed) {
+        BOOST_LOG_TRIVIAL(info) << "Loaded printer with " << extruders_count
+                                << " extruders; preserving " << m_preset_bundle->filament_presets.size()
+                                << " project filaments";
     }
 }
 
@@ -5551,7 +5558,7 @@ if (is_marlin_flavor)
             size_t extruders_count = size_t(boost::any_cast<int>(v));
             wxTheApp->CallAfter([this, opt_key, value, extruders_count]() {
                 if (opt_key == "extruders_count" || opt_key == "single_extruder_multi_material") {
-                    extruders_count_changed(extruders_count);
+                    extruders_count_changed(extruders_count, true);
                     init_options_list(); // m_options_list should be updated before UI updating
                     update_dirty();
                     if (opt_key == "single_extruder_multi_material") { // the single_extruder_multimaterial was added to force pages
@@ -5562,7 +5569,7 @@ if (is_marlin_flavor)
 
 // Orca: we use a different logic here. If SEMM is enabled, we set extruder count to 1.
 #if 1
-                            extruders_count_changed(1);
+                            extruders_count_changed(1, true);
 #else
 
                             std::vector<double> nozzle_diameters =
@@ -5808,7 +5815,7 @@ void TabPrinter::on_preset_loaded()
     size_t extruders_count = nozzle_diameter->values.size();
     // update the GUI field according to the number of nozzle diameters supplied
     if (m_extruders_count != extruders_count)
-        extruders_count_changed(extruders_count);
+        extruders_count_changed(extruders_count, false);
 
     m_extruder_variant_list = m_config->option<ConfigOptionStrings>("printer_extruder_variant")->values;
 
@@ -5898,13 +5905,12 @@ void TabPrinter::update_pages()
             if (m_extruders_count > 1)
             {
                 m_preset_bundle->update_multi_material_filament_presets();
-                on_value_change("extruders_count", m_extruders_count);
             }
         }
         else
             m_pages.swap(m_pages_fff);
 
-         wxGetApp().obj_list()->update_objects_list_filament_column(m_extruders_count);
+         wxGetApp().obj_list()->update_objects_list_filament_column(m_preset_bundle->filament_presets.size());
     }
     else
         m_pages_sla.empty() ? build_sla() : m_pages.swap(m_pages_sla);

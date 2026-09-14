@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 #include "slic3r/GUI/AI/Orca/OrcaModelPreparation.hpp"
+#include "slic3r/GUI/AI/Orca/ModelColorUpdate.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Semver.hpp"
@@ -9,6 +10,41 @@
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
+
+TEST_CASE("Updating a matching mesh changes only its color assignments", "[ModelColorUpdate]")
+{
+    Model model;
+    auto* target = model.add_object("edited model", "source.obj", TriangleMesh(its_make_cube(20, 30, 40)));
+    target->add_instance()->set_offset(Vec3d(110, 75, 20));
+    target->config.set_key_value("fill_density", new ConfigOptionPercent(23.));
+    const auto identity = target->id();
+    const auto matrix = target->instances.front()->get_matrix();
+    auto* incoming = model.add_object("incoming", "source.obj", TriangleMesh(its_make_cube(20, 30, 40)));
+    incoming->config.set("extruder", 3);
+    incoming->volumes.front()->config.set("extruder", 3);
+    TriangleSelector selector(incoming->volumes.front()->mesh());
+    selector.set_facet(0, EnforcerBlockerType::Extruder2);
+    REQUIRE(incoming->volumes.front()->mmu_segmentation_facets.set(selector));
+    REQUIRE(update_compatible_model_colors(*target, *incoming));
+    CHECK(target->id() == identity);
+    CHECK(target->name == "edited model");
+    CHECK(target->instances.front()->get_matrix().isApprox(matrix));
+    CHECK(target->config.opt_float("fill_density") == 23.);
+    CHECK(target->config.extruder() == 3);
+    CHECK(target->volumes.front()->mmu_segmentation_facets.get_data() == incoming->volumes.front()->mmu_segmentation_facets.get_data());
+}
+
+TEST_CASE("Updating colors rejects changed geometry without modifying the target", "[ModelColorUpdate]")
+{
+    Model model;
+    auto* target = model.add_object("original", "source.obj", TriangleMesh(its_make_cube(20, 30, 40)));
+    auto* incoming = model.add_object("modified", "source.obj", TriangleMesh(its_make_cube(21, 30, 40)));
+    target->config.set("extruder", 2);
+    const auto before = target->volumes.front()->mmu_segmentation_facets.timestamp();
+    REQUIRE_FALSE(update_compatible_model_colors(*target, *incoming));
+    CHECK(target->config.extruder() == 2);
+    CHECK(target->volumes.front()->mmu_segmentation_facets.timestamp() == before);
+}
 
 TEST_CASE("Native preparation preserves source and targets total world height", "[ai][OrcaModelPreparation]")
 {
@@ -64,6 +100,73 @@ TEST_CASE("Native preparation preserves source and targets total world height", 
     CHECK(based->input_file == "original.obj");
     CHECK_THROWS_WITH(prepare_model(*based, {120, true, 3}), "base_already_exists");
     CHECK_NOTHROW(prepare_model(*based, {130, false, 3}));
+}
+
+TEST_CASE("Generated artifact recognition survives portable 3MF source paths", "[ai][ModelColorUpdate]")
+{
+    const std::string name = "orcaslicer-ai-428a0fe0-8183-4afd-9322-e16be8e77df4.obj";
+    CHECK(same_generated_artifact_name(name, "D:/generated/" + name));
+    CHECK(same_generated_artifact_name("C:\\old\\" + name, "/new/" + name));
+    CHECK_FALSE(same_generated_artifact_name("portrait.obj", "/new/portrait.obj"));
+    CHECK_FALSE(same_generated_artifact_name("orcaslicer-ai-name.obj", "orcaslicer-ai-name.obj"));
+    CHECK_FALSE(same_generated_artifact_name(name, "orcaslicer-ai-428a0fe0-8183-4afd-9322-e16be8e77df5.obj"));
+    const std::string finish = "orcaslicer-ai-finish-8cf12cbe-5f0b-4145-8347-8f6f3d3ebd9b.obj";
+    CHECK(same_generated_artifact_name(finish, "/new/" + finish));
+    const std::string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const std::string glb = "orcaslicer-ai-glb-" + hash + ".obj";
+    CHECK(same_generated_artifact_name(glb, "/new/ai-import/" + glb));
+    CHECK(same_generated_artifact_name("C:\\old\\ai-import\\" + glb, "/new/ai-import/" + glb));
+    CHECK_FALSE(same_generated_artifact_name(glb, "orcaslicer-ai-glb-" + hash.substr(0, 63) + "0.obj"));
+    for (const std::string invalid : std::vector<std::string>{"model.obj", "orcaslicer-ai-glb-.obj",
+             "orcaslicer-ai-glb-" + hash.substr(1) + ".obj", "orcaslicer-ai-glb-" + hash + "0.obj",
+             "orcaslicer-ai-glb-g" + hash.substr(1) + ".obj", "orcaslicer-ai-glb-" + hash + ".glb"}) {
+        CHECK_FALSE(same_generated_artifact_name(invalid, "/new/" + invalid));
+        CHECK_FALSE(same_generated_artifact_name(invalid, glb));
+    }
+}
+
+TEST_CASE("GLB import identity survives a normal 3MF save and reopen", "[ai][ModelColorUpdate]")
+{
+    const std::string name = "orcaslicer-ai-glb-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.obj";
+    const std::string source = "/old/cache/ai-import/" + name;
+    Model model;
+    auto* object = model.add_object("generated GLB", source.c_str(), TriangleMesh(its_make_cube(8, 8, 40)));
+    object->add_instance();
+    ScopedTemporaryDir backup("glb-identity-source");
+    model.set_backup_path(backup.string());
+    ScopedTemporaryFile file(".3mf");
+    const std::string path = file.string();
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    PlateData plate;
+    plate.plate_index = 0;
+    StoreParams params;
+    params.path = path.c_str();
+    params.model = &model;
+    params.config = &config;
+    // A normal project deliberately omits FullPathSources.
+    params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    params.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(params));
+
+    DynamicPrintConfig restored_config;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    PlateDataPtrs plates;
+    std::vector<Preset*> presets;
+    Model restored = Model::read_from_file(path, &restored_config, &substitutions,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig, &plates, &presets);
+    release_PlateData_list(plates);
+    for (auto* preset : presets) delete preset;
+    REQUIRE(restored.objects.size() == 1);
+    const auto* result = restored.objects.front();
+    REQUIRE(result->volumes.size() == 1);
+    CHECK(result->input_file == path);
+    const auto& saved = result->volumes.front()->source.input_file;
+    CHECK(saved == name);
+    CHECK(same_generated_artifact_name(saved, "/another/cache/ai-import/" + name));
+    CHECK(same_generated_artifact_name(saved, "D:\\new-cache\\ai-import\\" + name));
+    CHECK_FALSE(same_generated_artifact_name(saved,
+        "/another/cache/ai-import/orcaslicer-ai-glb-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdee.obj"));
+    CHECK_FALSE(same_generated_artifact_name(saved, "/another/cache/ai-import/model.obj"));
 }
 
 TEST_CASE("Invalid preparation never mutates the current project", "[ai][OrcaModelPreparation]")

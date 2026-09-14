@@ -183,13 +183,18 @@ class IntegrationGuardrailTests(unittest.TestCase):
             "m_palette_recommendation_replace",
             "m_palette_recommendation_remove",
             "m_palette_role_choices",
-            "m_region_material_buttons",
         ):
-            declaration = next(line for line in panel_header.splitlines() if member in line)
-            self.assertIn("Slic3r::AI::kMaxTargetPaletteColors", declaration)
+            self.assertRegex(
+                panel_header,
+                rf"std::array<[^,\n]+,\s*Slic3r::AI::kMaxTargetPaletteColors>\s+{member}\s*\{{",
+            )
 
-        region_colors = next(line for line in panel_header.splitlines() if "m_region_color_buttons" in line)
-        self.assertIn("Slic3r::AI::kMaxPhysicalColorChannels", region_colors)
+        # The current finishing controls select physical material channels;
+        # the removed m_region_material_buttons is not a design-palette array.
+        self.assertRegex(
+            panel_header,
+            r"std::array<[^,\n]+,\s*Slic3r::AI::kMaxPhysicalColorChannels>\s+m_region_color_buttons\s*\{",
+        )
 
         self.assertIn('palette_sources.Add(_L("不限制颜色"))', panel_source)
         self.assertIn('palette_sources.Add(_L("读取耗材颜色"))', panel_source)

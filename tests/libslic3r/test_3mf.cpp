@@ -500,6 +500,94 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
 }
 
 
+TEST_CASE("Logical filaments beyond the nozzle count retain painting and assignments through a 3MF", "[3mf][MultiNozzle][Regression]")
+{
+    Model model;
+    const std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+    REQUIRE(load_stl(src_file.c_str(), &model));
+    model.add_default_instances();
+    ScopedTemporaryDir source_backup("logical_filaments_source");
+    model.set_backup_path(source_backup.string());
+
+    auto* object = model.objects.front();
+    auto* volume = object->volumes.front();
+    object->config.set_key_value("extruder", new ConfigOptionInt(5));
+    volume->config.set_key_value("extruder", new ConfigOptionInt(5));
+    const std::vector<EnforcerBlockerType> states{
+        EnforcerBlockerType::Extruder5, EnforcerBlockerType::Extruder6,
+        EnforcerBlockerType::Extruder7, EnforcerBlockerType::Extruder17};
+    const size_t face_count = volume->mesh().its.indices.size();
+    REQUIRE(face_count >= states.size());
+    TriangleSelector selector(volume->mesh());
+    for (size_t i = 0; i < face_count; ++i)
+        selector.set_facet(static_cast<int>(i), states[i % states.size()]);
+    REQUIRE(volume->mmu_segmentation_facets.set(selector));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(4);
+    config.set_num_filaments(17);
+    const std::vector<std::string> colors{
+        "#C3B7AB", "#4E4137", "#7C6F60", "#A59788", "#59675C", "#E4D7CB",
+        "#2A2321", "#2F6B5E", "#3167A8", "#9A3F77", "#D86B42", "#312F29",
+        "#624231", "#6A625A", "#915D45", "#B07A5C", "#D19D7A"};
+    config.set_key_value("filament_colour", new ConfigOptionStrings(colors));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("printer_extruder_id", new ConfigOptionInts({1, 2, 3, 4}));
+
+    ScopedTemporaryFile file(".3mf");
+    const std::string path = file.string();
+    PlateData plate;
+    plate.plate_index = 0;
+    StoreParams params;
+    params.path = path.c_str();
+    params.model = &model;
+    params.config = &config;
+    params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    params.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(params));
+
+    Model restored;
+    ScopedTemporaryDir restored_backup("logical_filaments_restored");
+    restored.set_backup_path(restored_backup.string());
+    DynamicPrintConfig restored_config;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    PlateDataPtrs plates;
+    std::vector<Preset*> presets;
+    bool is_bbl = false, is_orca = false;
+    Semver version;
+    const bool loaded = load_bbs_3mf(path.c_str(), &restored_config, &substitutions, &restored,
+        &plates, &presets, &is_bbl, &is_orca, &version, nullptr,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+    release_PlateData_list(plates);
+    for (auto* preset : presets)
+        delete preset;
+    REQUIRE(loaded);
+
+    const auto* restored_colors = restored_config.option<ConfigOptionStrings>("filament_colour");
+    REQUIRE(restored_colors != nullptr);
+    CHECK(restored_colors->values == colors);
+    const auto* restored_nozzles = restored_config.option<ConfigOptionFloats>("nozzle_diameter");
+    REQUIRE(restored_nozzles != nullptr);
+    CHECK(restored_nozzles->values.size() == 4);
+    REQUIRE(restored.objects.size() == 1);
+    const auto* restored_object = restored.objects.front();
+    REQUIRE(restored_object->volumes.size() == 1);
+    const auto* restored_volume = restored_object->volumes.front();
+    REQUIRE(restored_object->config.has("extruder"));
+    CHECK(restored_object->config.extruder() == 5);
+    // A single part inherits the object assignment after the importer's normalization.
+    CHECK(restored_volume->extruder_id() == 5);
+    REQUIRE(restored_volume->mesh().its.indices.size() == face_count);
+    CHECK(restored_volume->mmu_segmentation_facets.get_data() == volume->mmu_segmentation_facets.get_data());
+    for (size_t i = 0; i < face_count; ++i) {
+        CAPTURE(i);
+        CHECK(restored_volume->mmu_segmentation_facets.get_triangle_as_string(static_cast<int>(i)) ==
+              volume->mmu_segmentation_facets.get_triangle_as_string(static_cast<int>(i)));
+    }
+    for (const auto state : states)
+        CHECK(restored_volume->mmu_segmentation_facets.has_facets(*restored_volume, state));
+}
+
 // A mixed-color filament occupies an ordinary filament slot, and painting with it stores an
 // ordinary extruder state: a project saved by BambuStudio encodes filament 5 of a 5-slot setup
 // as paint state 5, with the mix described by the parallel filament_mixed_* project arrays.

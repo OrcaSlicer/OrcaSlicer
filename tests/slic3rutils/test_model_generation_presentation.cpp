@@ -1,12 +1,291 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/AI/ModelGeneration/ModelGenerationPresentation.hpp"
+#include "slic3r/GUI/AIModelOutputDirectory.hpp"
+#include "test_utils.hpp"
+
+#include <boost/nowide/cstdlib.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <nlohmann/json.hpp>
+#include <wx/image.h>
+#include <wx/imagpng.h>
 
 #include <algorithm>
+#include <cstdlib>
+#include <optional>
 #include <set>
+#include <stdexcept>
 
 using Slic3r::GUI::AIModelGenerationClient;
 using namespace Slic3r::GUI::ModelGenerationPresentation;
+
+TEST_CASE("sidecar restart authentication is recoverable without retrying provider failures",
+          "[ModelGenerationPresentation][SidecarRecovery]")
+{
+    CHECK(is_transient_sidecar_poll_error("AI sidecar is not reachable."));
+    CHECK(is_transient_sidecar_poll_error("AI sidecar request timed out."));
+    CHECK(is_transient_sidecar_poll_error("A valid OrcaSlicer AI session is required."));
+    CHECK(is_transient_sidecar_poll_error("Model generation request failed with HTTP 401."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Model job not found."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Tripo authentication failed."));
+    CHECK_FALSE(is_transient_sidecar_poll_error("Model generation request failed with HTTP 400."));
+}
+
+namespace {
+
+class ScopedEnvironmentValue
+{
+public:
+    ScopedEnvironmentValue(const char* name, const char* value) : m_name(name)
+    {
+        if (const char* previous = boost::nowide::getenv(name)) m_previous = previous;
+        const int result = value != nullptr ? boost::nowide::setenv(name, value, 1)
+                                             : boost::nowide::unsetenv(name);
+        if (result != 0) throw std::runtime_error("Unable to set test environment variable");
+    }
+    ~ScopedEnvironmentValue()
+    {
+        if (m_previous) boost::nowide::setenv(m_name.c_str(), m_previous->c_str(), 1);
+        else boost::nowide::unsetenv(m_name.c_str());
+    }
+
+private:
+    std::string m_name;
+    std::optional<std::string> m_previous;
+};
+
+class ScopedWorkingDirectory
+{
+public:
+    explicit ScopedWorkingDirectory(const boost::filesystem::path& directory)
+        : m_previous(boost::filesystem::current_path())
+    {
+        boost::filesystem::current_path(directory);
+    }
+    ~ScopedWorkingDirectory()
+    {
+        boost::system::error_code ignored;
+        boost::filesystem::current_path(m_previous, ignored);
+    }
+
+private:
+    boost::filesystem::path m_previous;
+};
+
+nlohmann::json write_design_fixture(const boost::filesystem::path& directory)
+{
+    boost::filesystem::create_directories(directory);
+    if (wxImage::FindHandler(wxBITMAP_TYPE_PNG) == nullptr) wxImage::AddHandler(new wxPNGHandler());
+    wxImage image(64, 64);
+    image.SetRGB(wxRect(0, 0, 64, 64), 24, 128, 200);
+    REQUIRE(image.SaveFile((directory / "preview.png").wstring(), wxBITMAP_TYPE_PNG));
+    boost::filesystem::copy_file(directory / "preview.png", directory / "input.png");
+    nlohmann::json record = {
+        {"version", 1}, {"id", directory.filename().string()}, {"source", "image"},
+        {"state", "awaiting_confirmation"}, {"user_prompt", "cat with a blue scarf"},
+        {"input_path", "input.png"}, {"preview_path", "preview.png"},
+        {"raw_preview_path", "preview.png"}, {"updated_at", 1789132000.25}
+    };
+    REQUIRE(write_json(directory / "job.json", record));
+    return record;
+}
+
+} // namespace
+
+TEST_CASE("Design history preserves separate image versions before any model exists",
+          "[ModelGenerationPresentation][DesignHistory]")
+{
+    ScopedTemporaryDir temporary("orca-design-history");
+    const std::string first = "11111111-1111-4111-8111-111111111111";
+    const std::string second = "22222222-2222-4222-8222-222222222222";
+    auto record = write_design_fixture(temporary.path() / first);
+    write_design_fixture(temporary.path() / second);
+    const auto original = read_design_history_entry(temporary.path(), first);
+    REQUIRE(original);
+    CHECK(original->job_id == first);
+    CHECK(original->prompt == "cat with a blue scarf");
+    CHECK(original->state == "awaiting_confirmation");
+    CHECK(original->input_path == temporary.path() / first / "input.png");
+    CHECK(read_design_history_entry(temporary.path(), second).has_value());
+    CHECK(has_persisted_generation_assets(temporary.path(), first));
+    record["updated_at"] = 1789233000.875;
+    REQUIRE(write_json(temporary.path() / first / "job.json", record));
+    const auto restored = read_design_history_entry(temporary.path(), first);
+    REQUIRE(restored);
+    CHECK(restored->generated_at == original->generated_at);
+}
+
+TEST_CASE("Stopped and failed designs retain raw images without becoming confirmed jobs",
+          "[ModelGenerationPresentation][DesignHistory]")
+{
+    ScopedTemporaryDir temporary("orca-stopped-design");
+    const std::string id = "11111111-1111-4111-8111-111111111111";
+    const auto directory = temporary.path() / id;
+    auto record = write_design_fixture(directory);
+    record["preview_path"] = nullptr;
+    record["input_path"] = nullptr;
+    for (const char* state : {"stopped", "failed"}) {
+        record["state"] = state;
+        REQUIRE(write_json(directory / "job.json", record));
+        const auto entry = read_design_history_entry(temporary.path(), id);
+        REQUIRE(entry);
+        CHECK(entry->state == state);
+        CHECK(entry->input_path.empty());
+        CHECK(entry->preview_path == directory / "preview.png");
+        CHECK(has_persisted_generation_assets(temporary.path(), id));
+    }
+    record["state"] = "preprocessing";
+    REQUIRE(write_json(directory / "job.json", record));
+    CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+}
+
+TEST_CASE("Design history rejects foreign paths invalid images and malformed records",
+          "[ModelGenerationPresentation][DesignHistory]")
+{
+    ScopedTemporaryDir temporary("orca-design-record-validation");
+    const std::string id = "11111111-1111-4111-8111-111111111111";
+    const std::string sibling = "22222222-2222-4222-8222-222222222222";
+    const auto directory = temporary.path() / id;
+    const auto record = write_design_fixture(directory);
+    write_design_fixture(temporary.path() / sibling);
+    for (const std::string& value : std::vector<std::string>{"../" + sibling + "/preview.png", "/missing.png", "missing.png"}) {
+        auto invalid = record;
+        invalid["preview_path"] = value;
+        invalid["raw_preview_path"] = value;
+        REQUIRE(write_json(directory / "job.json", invalid));
+        CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+    }
+    for (const auto& invalid_value : std::vector<nlohmann::json>{7, nullptr, nlohmann::json::array()}) {
+        auto invalid = record;
+        invalid["state"] = invalid_value;
+        REQUIRE(write_json(directory / "job.json", invalid));
+        CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+    }
+    for (const nlohmann::json& patch : std::vector<nlohmann::json>{
+             {{"id", sibling}}, {{"version", 2}}, {{"source", "local_finishing"}},
+             {{"user_prompt", false}}, {{"user_prompt", std::string(65536, 'x')}}}) {
+        auto invalid = record;
+        invalid.update(patch);
+        REQUIRE(write_json(directory / "job.json", invalid));
+        CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+    }
+    REQUIRE(write_json(directory / "job.json", record));
+    boost::filesystem::ofstream(directory / "preview.png", std::ios::binary) << "not an image";
+    CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+    CHECK_FALSE(has_persisted_generation_assets(temporary.path(), id));
+    CHECK_FALSE(read_design_history_entry(temporary.path(), "../" + id));
+}
+
+TEST_CASE("Existing model history takes precedence over design entries and remains preserved",
+          "[ModelGenerationPresentation][DesignHistory]")
+{
+    ScopedTemporaryDir temporary("orca-model-before-design");
+    const std::string id = "11111111-1111-4111-8111-111111111111";
+    const auto directory = temporary.path() / id;
+    write_design_fixture(directory);
+    boost::filesystem::ofstream(directory / "model-vertex-color.obj") << "v 0 0 0\n";
+    CHECK_FALSE(read_design_history_entry(temporary.path(), id));
+    CHECK(has_persisted_generation_assets(temporary.path(), id));
+    boost::filesystem::remove(directory / "job.json");
+    CHECK(has_persisted_generation_assets(temporary.path(), id));
+}
+
+TEST_CASE("AI model history follows the Orca data directory across launch locations",
+          "[ModelGenerationPresentation][AIModelOutputDirectory]")
+{
+    namespace fs = boost::filesystem;
+    ScopedTemporaryDir temporary("orca-model-output");
+    const fs::path user_data = temporary.path() / "user data";
+    const fs::path first_launch = temporary.path() / "first launch";
+    const fs::path second_launch = temporary.path() / "second launch";
+    fs::create_directories(first_launch);
+    fs::create_directories(second_launch);
+    for (const char* override_value : {static_cast<const char*>(nullptr), ""}) {
+        DYNAMIC_SECTION((override_value == nullptr ? "unset override" : "empty override")) {
+            ScopedEnvironmentValue environment("ORCASLICER_AI_OUTPUT_DIR", override_value);
+            ScopedWorkingDirectory working_directory(first_launch);
+            const Slic3r::GUI::AIModelOutputDirectory first(user_data);
+            fs::current_path(second_launch);
+            const Slic3r::GUI::AIModelOutputDirectory second(user_data);
+            CHECK(first.root() == user_data / "generated_models");
+            CHECK(second.root() == first.root());
+            CHECK_FALSE(fs::exists(first.root()));
+            CHECK_FALSE(fs::exists(first_launch / "generated_models"));
+        }
+    }
+}
+
+TEST_CASE("AI model history preserves an explicit absolute output directory",
+          "[ModelGenerationPresentation][AIModelOutputDirectory]")
+{
+    namespace fs = boost::filesystem;
+    ScopedTemporaryDir temporary("orca-model-output");
+    const fs::path custom_output = temporary.path() / "custom model output";
+    ScopedEnvironmentValue environment("ORCASLICER_AI_OUTPUT_DIR", custom_output.string().c_str());
+    const Slic3r::GUI::AIModelOutputDirectory directory(temporary.path() / "other user data");
+    CHECK(directory.root() == custom_output);
+    CHECK_FALSE(fs::exists(directory.root()));
+}
+
+TEST_CASE("AI model output remains fixed after working directory and environment changes",
+          "[ModelGenerationPresentation][AIModelOutputDirectory]")
+{
+    namespace fs = boost::filesystem;
+    ScopedTemporaryDir temporary("orca-model-output");
+    const fs::path parent_start = temporary.path() / "parent start";
+    const fs::path child_start = temporary.path() / "bootstrap directory";
+    fs::create_directories(parent_start);
+    fs::create_directories(child_start);
+    ScopedWorkingDirectory working_directory(parent_start);
+    ScopedEnvironmentValue environment("ORCASLICER_AI_OUTPUT_DIR", "relative output/../model assets");
+    const Slic3r::GUI::AIModelOutputDirectory directory(temporary.path() / "user data");
+    const fs::path expected = parent_start / "model assets";
+    REQUIRE(directory.root().is_absolute());
+    REQUIRE(directory.root() == expected);
+
+    fs::current_path(child_start);
+    ScopedEnvironmentValue changed_environment("ORCASLICER_AI_OUTPUT_DIR", "different output");
+    boost::process::environment child_environment;
+    directory.configure_child_environment(child_environment);
+    CHECK(directory.root() == expected);
+    CHECK(fs::path(child_environment["ORCASLICER_AI_OUTPUT_DIR"].to_string()) == expected);
+    CHECK_FALSE(fs::exists(child_start / "model assets"));
+}
+
+TEST_CASE("AI model output adds only its explicit path to the child environment",
+          "[ModelGenerationPresentation][AIModelOutputDirectory]")
+{
+    ScopedTemporaryDir temporary("orca-model-output");
+    ScopedEnvironmentValue environment("ORCASLICER_AI_OUTPUT_DIR", nullptr);
+    ScopedEnvironmentValue unrelated("ORCA_MODEL_OUTPUT_TEST_UNRELATED", "not-for-child");
+    const Slic3r::GUI::AIModelOutputDirectory directory(temporary.path());
+    boost::process::environment child_environment;
+    child_environment["ORCA_MODEL_OUTPUT_TEST_EXISTING"] = "preserved";
+    directory.configure_child_environment(child_environment);
+    CHECK(child_environment["ORCA_MODEL_OUTPUT_TEST_EXISTING"].to_string() == "preserved");
+    CHECK(child_environment["ORCASLICER_AI_OUTPUT_DIR"].to_string() == directory.root().string());
+    CHECK(child_environment.find("ORCA_MODEL_OUTPUT_TEST_UNRELATED") == child_environment.end());
+}
+
+#ifdef _WIN32
+TEST_CASE("AI model paths retain Unicode in the Windows child environment",
+          "[ModelGenerationPresentation][AIModelOutputDirectory]")
+{
+    ScopedTemporaryDir temporary("orca-model-output");
+    ScopedEnvironmentValue environment("ORCASLICER_AI_OUTPUT_DIR", nullptr);
+    ScopedEnvironmentValue unrelated("ORCA_MODEL_OUTPUT_TEST_UNRELATED", "not-for-child");
+    const boost::filesystem::path user_data = temporary.path() / L"\u7528\u6237 \u6a21\u578b";
+    const Slic3r::GUI::AIModelOutputDirectory directory(user_data);
+    boost::process::environment inherited;
+    inherited["ORCA_MODEL_OUTPUT_TEST_EXISTING"] = "preserved";
+    boost::process::wenvironment launch_environment(inherited);
+    directory.configure_child_environment(launch_environment);
+    CHECK(launch_environment[L"ORCASLICER_AI_OUTPUT_DIR"].to_string() ==
+          (user_data / "generated_models").wstring());
+    CHECK(launch_environment[L"ORCA_MODEL_OUTPUT_TEST_EXISTING"].to_string() == L"preserved");
+    CHECK(launch_environment.find(L"ORCA_MODEL_OUTPUT_TEST_UNRELATED") == launch_environment.end());
+}
+#endif
 
 TEST_CASE("model-generation progress maps service phases to stable UI milestones",
           "[ModelGenerationPresentation]")

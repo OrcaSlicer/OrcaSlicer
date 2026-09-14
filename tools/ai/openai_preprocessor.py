@@ -1499,7 +1499,22 @@ def _unrestricted_creation_prompt(
         if from_image else
         _text_image_prompt(instruction, (), style, custom_style=custom_style, geometry_reference=True)
     )
-    return prompt + (
+    portrait_surface = (
+        " For a real-person subject, refine the surface conservatively while keeping the locked facial geometry. "
+        "Reduce capture noise, isolated specular glare and transient skin blemishes; retain age cues, characteristic "
+        "creases, moles, freckles and deliberate makeup. Do not smooth away the eyelid rim, nostril boundary, lip edge "
+        "or the individual shape of the mouth. Keep lips, eyebrows, irises, sclera, hairline and clothing boundaries "
+        "distinct at the intended reference-image scale without enlarging or outlining them. "
+        "Use neutral white-balanced, broad diffuse illumination: enough gentle shading to read facial planes, with "
+        "no colored rim light, hard cast shadow across the face, oily highlight or beauty-filter whitening. "
+        "Keep the person's natural skin hue consistent across face, ears, neck and visible hands, including shaded "
+        "areas; preserve natural local variation rather than making skin one flat swatch. Lighting darkness must not "
+        "be interpreted as a different skin material, painted dirt, a deep wrinkle or a geometric hole. "
+        "For multiple people, retain each person's own facial proportions and skin tone independently; never average "
+        "their faces or swap their features. A user's explicitly requested lighting or intentional color remains controlling. "
+        if LEGACY_STYLE_ALIASES.get(style, style) in IDENTITY_FIRST_PORTRAIT_STYLES else ""
+    )
+    return prompt + portrait_surface + (
         " Preserve natural colors, continuous gradients, texture, subtle skin tones and material detail. "
         "There is no printer color palette or color-count limit. Do not quantize, posterize, flatten colors, "
         "or impose solid-color regions for printing. A color explicitly requested by the user remains intentional. "

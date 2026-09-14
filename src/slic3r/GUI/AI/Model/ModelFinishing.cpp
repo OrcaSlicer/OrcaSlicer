@@ -1,4 +1,8 @@
 #include "ModelFinishing.hpp"
+#include "ModelArtifact.hpp"
+#include "GlbGeometryEditing.hpp"
+#include "ModelColorCleanup.hpp"
+#include "VertexColorRegionEditor.hpp"
 
 #include "libslic3r/Point.hpp"
 #include <boost/filesystem.hpp>
@@ -7,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <charconv>
 #include <iomanip>
 #include <limits>
 #include <locale>
@@ -54,11 +59,18 @@ Vec3d face_normal(const Face& f, const std::vector<Vec3d>& vertices) {
     return (vertices[f.corners[1].vertex] - vertices[f.corners[0].vertex]).cross(
         vertices[f.corners[2].vertex] - vertices[f.corners[0].vertex]);
 }
-int obj_index(const std::string& text, size_t count) {
-    size_t used = 0;
-    const long long parsed = std::stoll(text, &used);
+int obj_index(std::string_view text, size_t count) {
+    if (!text.empty() && text.front() == '+') {
+        text.remove_prefix(1);
+        if (!text.empty() && text.front() == '-')
+            throw std::runtime_error("OBJ contains an invalid or forward index.");
+    }
+    long long parsed = 0;
+    const auto converted = std::from_chars(text.data(), text.data() + text.size(), parsed);
+    if (converted.ec != std::errc() || converted.ptr != text.data() + text.size())
+        throw std::runtime_error("OBJ contains an invalid or forward index.");
     const long long index = parsed > 0 ? parsed - 1 : static_cast<long long>(count) + parsed;
-    if (used != text.size() || parsed == 0 || index < 0 || index >= static_cast<long long>(count))
+    if (parsed == 0 || index < 0 || index >= static_cast<long long>(count))
         throw std::runtime_error("OBJ contains an invalid or forward index.");
     return static_cast<int>(index);
 }
@@ -81,12 +93,115 @@ EdgeMap edges_of(const std::vector<Face>& faces, const std::vector<size_t>& surf
     }
     return edges;
 }
+
+ModelFinishingResult finish_recolored_artifact(const boost::filesystem::path& source,
+    const boost::filesystem::path& destination, const ModelFinishingOptions& options,
+    const std::function<bool()>& canceled)
+{
+    ModelFinishingResult result;
+    boost::filesystem::path temporary;
+    bool owns_temporary = false;
+    auto check_cancel = [&] { if (canceled && canceled()) throw Canceled {}; };
+    try {
+        if (options.selected_faces.empty())
+            throw std::runtime_error("Select a local surface before changing its color.");
+        if (options.smooth_surface || options.repair_mesh || options.clean_color_spots)
+            throw std::runtime_error("Local recoloring is a separate color-only operation; disable smoothing, repair and color cleanup.");
+        for (const float channel : options.target_color)
+            if (!std::isfinite(channel) || channel < 0 || channel > 1)
+                throw std::runtime_error("Local recoloring requires a normalized finite RGBA color.");
+        if (!is_model_artifact(source) || model_artifact_format(destination).empty())
+            throw std::runtime_error("Choose an available OBJ or GLB source and output model.");
+        if (boost::filesystem::exists(destination))
+            throw std::runtime_error("The output already exists; choose a new model version.");
+        if (boost::filesystem::canonical(source.parent_path()) != boost::filesystem::canonical(destination.parent_path()))
+            throw std::runtime_error("Save the edited model beside its source to preserve material and texture paths.");
+        check_cancel();
+        result.source_sha256 = file_hash(source, canceled);
+        TriangleMesh mesh;
+        ObjInfo colors;
+        std::string error;
+        if (!load_model_artifact(source, mesh, colors, error))
+            throw std::runtime_error(error);
+        if (mesh.its.vertices.size() > 6000000 || mesh.its.indices.size() > 2000000)
+            throw std::runtime_error("This model exceeds the local recoloring limit of two million triangles.");
+        for (const size_t face : options.selected_faces)
+            if (face >= mesh.its.indices.size())
+                throw std::runtime_error("The selected face index is outside this model. Reload it and select its surface again.");
+        check_cancel();
+        Vec3f minimum = mesh.its.vertices.front(), maximum = minimum;
+        for (const Vec3f& position : mesh.its.vertices) {
+            minimum = minimum.cwiseMin(position);
+            maximum = maximum.cwiseMax(position);
+        }
+        for (size_t axis = 0; axis < 3; ++axis)
+            result.dimensions[axis] = double(maximum[axis]) - double(minimum[axis]);
+        result.faces_before = mesh.its.indices.size();
+        VertexColorRegionEditor editor;
+        if (!editor.initialize(std::move(mesh.its), std::move(colors.vertex_colors), error))
+            throw std::runtime_error(error);
+        if (editor.select_faces(options.selected_faces) == 0)
+            throw std::runtime_error("No model region is selected.");
+        for (size_t face = 0; face < editor.selected_faces().size(); ++face) {
+            if ((face & 4095) == 0) check_cancel();
+            if (!editor.selected_faces()[face]) continue;
+            for (size_t corner = 0; corner < 3; ++corner)
+                if (editor.corner_color(face, corner) != options.target_color) {
+                    ++result.recolored_faces;
+                    break;
+                }
+        }
+        temporary = destination.parent_path() / boost::filesystem::unique_path(
+            ".recolor-%%%%-%%%%-%%%%" + destination.extension().string());
+        auto partial = temporary; partial += ".partial";
+        auto obj_temporary = temporary; obj_temporary += ".tmp";
+        if (boost::filesystem::exists(temporary) || boost::filesystem::exists(partial) ||
+            boost::filesystem::exists(obj_temporary))
+            throw std::runtime_error("The temporary output already exists; try a new model version.");
+        owns_temporary = true;
+        if (!editor.apply_color_to_obj_copy(options.target_color, source, temporary, error))
+            throw std::runtime_error(error);
+        check_cancel();
+        TriangleMesh output;
+        ObjInfo output_colors;
+        if (!load_model_artifact(temporary, output, output_colors, error))
+            throw std::runtime_error(error);
+        result.vertices = output.its.vertices.size();
+        result.faces_after = output.its.indices.size();
+        if (result.faces_after != result.faces_before)
+            throw std::runtime_error("The recolored model did not preserve its triangle surface.");
+        if (file_hash(source, canceled) != result.source_sha256)
+            throw std::runtime_error("The source model changed during recoloring. Please reload it.");
+        result.output_sha256 = file_hash(temporary, canceled);
+        check_cancel();
+        if (boost::filesystem::exists(destination))
+            throw std::runtime_error("The output already exists; choose a new model version.");
+        boost::filesystem::rename(temporary, destination);
+        owns_temporary = false;
+        result.success = true;
+    } catch (const Canceled&) {
+        result.canceled = true;
+    } catch (const std::exception& error) {
+        result.error = error.what();
+    }
+    if (owns_temporary) {
+        boost::system::error_code ignored;
+        boost::filesystem::remove(temporary, ignored);
+        auto partial = temporary; partial += ".partial";
+        boost::filesystem::remove(partial, ignored);
+        auto obj_temporary = temporary; obj_temporary += ".tmp";
+        boost::filesystem::remove(obj_temporary, ignored);
+    }
+    return result;
+}
 }
 
 ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
     const boost::filesystem::path& destination, const ModelFinishingOptions& options,
     const std::function<bool()>& canceled)
 {
+    if (options.recolor_selected)
+        return finish_recolored_artifact(source, destination, options, canceled);
     ModelFinishingResult result;
     boost::filesystem::path temporary = destination;
     temporary += ".partial";
@@ -95,9 +210,20 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
     try {
         if (!std::isfinite(options.strength) || options.strength < 0.0 || options.strength > 1.0)
             throw std::runtime_error("Surface strength must be between 0 and 1.");
-        if (!options.smooth_surface && !options.repair_mesh)
+        if (!options.smooth_surface && !options.repair_mesh && !options.clean_color_spots)
             throw std::runtime_error("Choose surface smoothing or mesh repair.");
         const bool local_selection = !options.selected_faces.empty();
+        if (options.clean_color_spots) {
+            if (!local_selection)
+                throw std::runtime_error("Select a local surface before cleaning color spots.");
+            if (options.smooth_surface || options.repair_mesh)
+                throw std::runtime_error("Color cleanup is a separate color-only operation; disable smoothing and mesh repair.");
+            if (options.cleanup_palette.size() < 2 || options.cleanup_palette.size() > 6)
+                throw std::runtime_error("Color cleanup requires two to six source palette colors.");
+            for (const auto& color : options.cleanup_palette) for (const float channel : color)
+                if (!std::isfinite(channel) || channel < 0 || channel > 1)
+                    throw std::runtime_error("Color cleanup requires normalized source palette colors.");
+        }
         if (local_selection && options.repair_mesh)
             throw std::runtime_error("Local surface smoothing cannot include whole-model mesh repair. Disable mesh repair for a selection.");
         if (!boost::filesystem::is_regular_file(source) || boost::filesystem::file_size(source) > 512ull * 1024 * 1024)
@@ -108,50 +234,53 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
             throw std::runtime_error("Save the edited OBJ beside its source to preserve material and texture paths.");
         check_cancel();
         result.source_sha256 = file_hash(source, canceled);
-        boost::filesystem::ifstream input(source);
+        boost::filesystem::ifstream input(source, options.clean_color_spots ? std::ios::binary : std::ios::in);
         input.imbue(std::locale::classic());
         if (!input) throw std::runtime_error("Unable to read the source OBJ.");
         std::vector<std::string> lines, tails;
         std::vector<size_t> vertex_lines, normal_lines;
         std::vector<Vec3d> vertices, normals;
+        std::vector<ColorCleanup::VertexColor> vertex_colors;
         std::vector<Face> faces;
         size_t texture_count = 0;
         std::string line;
-        std::istringstream parser;
-        parser.imbue(std::locale::classic());
+        bool source_final_newline = true;
         while (std::getline(input, line)) {
+            source_final_newline = !input.eof();
             if ((lines.size() & 4095) == 0) check_cancel();
-            parser.clear();
-            parser.str(line);
-            std::string tag;
-            parser >> tag;
+            size_t at = 0;
+            const auto tag = ObjText::next(line, at);
             if (tag == "v" || tag == "vn") {
                 Vec3d p;
-                if (!(parser >> p.x() >> p.y() >> p.z()) || !p.allFinite())
+                if (!ObjText::number(ObjText::next(line, at), p.x()) ||
+                    !ObjText::number(ObjText::next(line, at), p.y()) ||
+                    !ObjText::number(ObjText::next(line, at), p.z()))
                     throw std::runtime_error("OBJ contains an invalid vertex or normal.");
                 if (tag == "v") {
+                    if (options.clean_color_spots) vertex_colors.push_back(ColorCleanup::parse(line));
                     vertices.push_back(p); vertex_lines.push_back(lines.size());
-                    std::string tail; std::getline(parser, tail); tails.push_back(std::move(tail));
+                    tails.push_back(line.substr(at));
                 } else { normals.push_back(p); normal_lines.push_back(lines.size()); }
             } else if (tag == "vt") {
                 ++texture_count;
             } else if (tag == "f") {
                 Face f; f.line = lines.size();
                 for (Corner& c : f.corners) {
-                    if (!(parser >> c.token) || c.token[0] == '#')
+                    const auto token = ObjText::next(line, at);
+                    if (token.empty())
                         throw std::runtime_error("Model finishing requires a triangle OBJ.");
-                    const auto slash = c.token.find('/');
-                    c.vertex = obj_index(c.token.substr(0, slash), vertices.size());
+                    c.token = std::string(token);
+                    const auto slash = token.find('/');
+                    c.vertex = obj_index(token.substr(0, slash), vertices.size());
                     if (slash != std::string::npos) {
-                        const auto next = c.token.find('/', slash + 1);
-                        const auto uv = c.token.substr(slash + 1, next == std::string::npos ? next : next - slash - 1);
+                        const auto next = token.find('/', slash + 1);
+                        const auto uv = token.substr(slash + 1, next == std::string::npos ? next : next - slash - 1);
                         if (!uv.empty()) obj_index(uv, texture_count);
-                        if (next != std::string::npos && next + 1 < c.token.size())
-                            c.normal = obj_index(c.token.substr(next + 1), normals.size());
+                        if (next != std::string::npos && next + 1 < token.size())
+                            c.normal = obj_index(token.substr(next + 1), normals.size());
                     }
                 }
-                std::string extra;
-                if (parser >> extra && extra[0] != '#')
+                if (!ObjText::next(line, at).empty())
                     throw std::runtime_error("Model finishing requires a triangle OBJ; polygon faces are unchanged.");
                 faces.push_back(std::move(f));
             }
@@ -246,6 +375,7 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
             // junction stays fixed. This does not infer semantic face regions.
             const double dot = n1.dot(n2);
             if (n1.squaredNorm() <= degenerate_area_squared || n2.squaredNorm() <= degenerate_area_squared ||
+                dot < 0 ||
                 dot * dot < 0.573576436 * 0.573576436 * n1.squaredNorm() * n2.squaredNorm())
                 pinned[a] = pinned[b] = true;
         }
@@ -283,6 +413,29 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
             }
         }
         result.displacement_limit = diagonal * 0.005 * options.strength;
+        if (options.clean_color_spots) {
+            std::vector<double> areas(vertices.size(), 0);
+            for (size_t i : surface) {
+                if ((i & 4095) == 0) check_cancel();
+                const double third_area = face_normals[i].norm() / 6;
+                for (const Corner& corner : faces[i].corners) areas[corner.vertex] += third_area;
+            }
+            const auto replacements = ColorCleanup::replacements(vertex_colors, options.cleanup_palette,
+                vertices, neighbors, pinned, areas, options.strength, result.cleaned_color_regions, check_cancel);
+            std::vector<std::string> original_rgb(vertices.size());
+            for (size_t i = 0; i < vertices.size(); ++i) {
+                if ((i & 4095) == 0) check_cancel();
+                const auto& color = vertex_colors[i];
+                original_rgb[i] = lines[vertex_lines[i]].substr(color.begin, color.end - color.begin);
+            }
+            for (size_t i = 0; i < vertices.size(); ++i) {
+                if ((i & 4095) == 0) check_cancel();
+                if (replacements[i] == vertices.size()) continue;
+                const auto& color = vertex_colors[i];
+                lines[vertex_lines[i]].replace(color.begin, color.end - color.begin, original_rgb[replacements[i]]);
+                ++result.recolored_vertices;
+            }
+        }
         if (options.smooth_surface && options.strength > 0) {
             const int iterations = 2 + int(std::ceil(10 * options.strength));
             // Only movable samples need iteration buffers. A cheek selection
@@ -398,7 +551,7 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
         result.faces_after = faces.size() - result.removed_degenerate_faces - result.removed_duplicate_faces;
         if (result.faces_after == 0) throw std::runtime_error("Repair would remove every face; the source model is preserved.");
         check_cancel();
-        if (result.changed()) {
+        if (result.changed() && !options.clean_color_spots) {
             std::vector<Vec3d> adjusted_normals(normals.size(), Vec3d::Zero());
             std::vector<bool> preserve_normal(normals.size(), false), affected_normal(normals.size(), false);
             for (size_t i = 0; i < faces.size(); ++i) {
@@ -442,7 +595,10 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
         owns_temporary = true;
         for (size_t i = 0; i < lines.size(); ++i) {
             if ((i & 4095) == 0) check_cancel();
-            if (!lines[i].empty()) output << lines[i] << '\n';
+            if (!lines[i].empty() || options.clean_color_spots) {
+                output << lines[i];
+                if (!options.clean_color_spots || i + 1 < lines.size() || source_final_newline) output << '\n';
+            }
         }
         output.close();
         if (!output) throw std::runtime_error("The edited OBJ could not be written completely.");
@@ -462,6 +618,56 @@ ModelFinishingResult finish_model_obj(const boost::filesystem::path& source,
         boost::system::error_code ignored;
         boost::filesystem::remove(temporary, ignored);
     }
+    return result;
+}
+ModelFinishingResult finish_model_artifact(const boost::filesystem::path& source,
+    const boost::filesystem::path& destination, const ModelFinishingOptions& options,
+    const std::function<bool()>& canceled)
+{
+    if (options.recolor_selected)
+        return finish_recolored_artifact(source, destination, options, canceled);
+    if (model_artifact_format(source) == "obj" && model_artifact_format(destination) == "obj")
+        return finish_model_obj(source, destination, options, canceled);
+    ModelFinishingResult result;
+    auto input_obj = destination; input_obj += ".source.obj";
+    auto output_obj = destination; output_obj += ".edited.obj";
+    bool owns_input = false, owns_output = false, owns_destination = false;
+    try {
+        const bool preserve_glb = model_artifact_format(source) == "glb";
+        if (preserve_glb && (model_artifact_format(destination) != "glb" || !options.smooth_surface ||
+                            options.repair_mesh || options.clean_color_spots))
+            throw std::runtime_error("To preserve GLB textures and materials, use surface smoothing without mesh repair or color cleanup and save as GLB.");
+        if (boost::filesystem::exists(destination) || boost::filesystem::exists(input_obj) || boost::filesystem::exists(output_obj))
+            throw std::runtime_error("The output already exists; choose a new model version.");
+        auto check_cancel = [&] { if (canceled && canceled()) throw Canceled {}; };
+        check_cancel();
+        const auto source_hash = file_hash(source, canceled);
+        TriangleMesh mesh; ObjInfo colors; std::string error;
+        if (!load_model_artifact(source, mesh, colors, error))
+            throw std::runtime_error(error);
+        const auto glb = preserve_glb ? read_glb_geometry_source(source, mesh.its, check_cancel) : nullptr;
+        if (!write_model_artifact(input_obj, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
+        owns_input = true;
+        result = finish_model_obj(input_obj, output_obj, options, canceled);
+        owns_output = result.success;
+        result.source_sha256 = source_hash;
+        if (result.success) {
+            result.success = false;
+            if (canceled && canceled()) throw Canceled {};
+            if (!load_model_artifact(output_obj, mesh, colors, error)) throw std::runtime_error(error);
+            if (file_hash(source, canceled) != source_hash) throw std::runtime_error("The source model changed during finishing. Please reload it.");
+            if (glb) write_glb_geometry_edit(*glb, destination, mesh.its, options.selected_faces, check_cancel);
+            else if (!write_model_artifact(destination, mesh.its, colors.vertex_colors, error)) throw std::runtime_error(error);
+            owns_destination = true;
+            result.output_sha256 = file_hash(destination, canceled);
+            result.success = true;
+        }
+    } catch (const Canceled&) { result.success = false; result.canceled = true; }
+      catch (const std::exception& error) { result.success = false; result.error = error.what(); }
+    boost::system::error_code ignored;
+    if (owns_input) boost::filesystem::remove(input_obj, ignored);
+    if (owns_output) boost::filesystem::remove(output_obj, ignored);
+    if (owns_destination && !result.success) boost::filesystem::remove(destination, ignored);
     return result;
 }
 } // namespace Slic3r::AI

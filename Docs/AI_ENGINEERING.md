@@ -4,12 +4,12 @@
 
 ## 事实与决策入口
 
-- 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
+- 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[日常同步、合入与版本存档](coordination/team-integration-sop.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
 
 - 当前实现：工作树代码和对应测试；报告须说明使用 HEAD 还是含未提交修改的工作树。
 - 最新体验与修改：[性能、质量提示和 3D 美颜](audits/2026-09-09-performance-advisory-finishing.md)，含实际模型加载、美颜保存回退与原生导入取消验证；质量判断不再拦截下一步。
 - 当前产品修正：[不限色生成与本地三维修整](audits/2026-09-09-unrestricted-generation-and-finishing.md)；保留单色写实，仅[AI 原生配色交接](plans/2026-09-09-ai-native-color-matching-handoff.md)由同事实施。[RGB 预检误拦修复](audits/2026-09-09-reference-preflight-fix.md)已验证实际任务恢复、图片确认和切页；其他 GUI 主路径仍需验收，不能用编译结果代替。
-- 本机续建编译路径：[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核)，记录已验证的 MSVC、CMake 和依赖前缀；产物写入当前续建仓库。
+- 本机续建编译路径：先看 [2026-09-12 共享依赖与磁盘存储](coordination/local-build-storage.md) 中的 D 盘公共依赖及兼容入口；[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核) 保留 MSVC、CMake 和历史配置参数。各项目及验证任务保持独立增量构建。
 - 集成基线、运行版本、端口、所有权和预算：[ai-integration-lock.json](../docs/architecture/ai-integration-lock.json)。不要在导航中复制会漂移的版本值。
 - 架构决策：[模块边界与 lineage](../docs/architecture/ADR-003-upstream-lineage-ai-integration.md)、[渐进拆分](../docs/architecture/ADR-005-guarded-incremental-ai-decomposition.md)、[颜色交接](architecture/ADR-006-six-channel-model-color-intent.md)、[智能切片事务](../docs/architecture/ADR-002-smart-slicing-transactional-workbench.md)。Accepted 表示接受的设计，实际完成度仍需代码和验收证据。
 - 硬件/颜色术语及检验限度：[打印与颜色边界](domain/printing-color-boundaries.md)。
@@ -62,7 +62,7 @@ Codex 项目名、任务记录的 cwd、registry 提示与实际 Git worktree �
 | C++ AI DTO/面板/智能切片 | `slic3rutils_tests`；按 [tests/AGENTS.md](../tests/AGENTS.md) 配置、构建和运行，Windows 需 `-C Release` |
 | 网格/格式/颜色数据 | `libslic3r_tests` 中对应测试；产生切片/G-code 的行为用 `fff_print_tests` |
 | GUI/导入/组合流程 | 使用确定的可执行文件、datadir、端口和模型 SHA；核实导入无隐式切片/配置改变，以及 AI 关闭/离线时普通 Orca 流程 |
-| 产品发布验收 | 另按 release 和集成 ADR 执行构建、包、旧 3MF/profile、GUI、平台资格检查；单测通过不足以发布 |
+| 团队内部包与实际验收 | `release/build_internal.ps1 -SourceManifest <handoff/manifest.json>`；完整主程序、EXE/ZIP、3MF/profile 和真实主窗口证据。无需先推送或提交；当前不做正式发布验收。 |
 
 ## 维护导航
 

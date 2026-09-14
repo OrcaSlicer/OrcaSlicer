@@ -305,7 +305,7 @@ public:
     void                            start_ai_workflow(const wxString& summary);
     void                            update_ai_workflow_step(AIWorkflowStep step, AIWorkflowStatus status,
                                                             const wxString& detail = wxString());
-    void                            finish_ai_workflow(bool success, const wxString& summary);
+    void                            finish_ai_workflow(bool success, const wxString& summary, bool cancelled = false);
     bool                            ai_workflow_active() const { return m_ai_workflow_active; }
 
     bool need_auto_sync_after_connect_printer() const { return m_need_auto_sync_after_connect_printer; }

@@ -245,7 +245,7 @@ _finished:
 // Loading model from a file, it may be a simple geometry file as STL or OBJ, however it may be a project file as well.
 // Build a plain geometry ModelObject from a textured mesh. The texture itself is carried
 // separately on Model::texture_mesh and consumed by the texture import dialog.
-static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mesh, const std::string& input_file)
+static void add_textured_mesh_to_model(Model& model, TexturedMesh& tex_mesh, const std::string& input_file)
 {
     std::string object_name = boost::filesystem::path(input_file).filename().string();
 
@@ -261,7 +261,18 @@ static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mes
     its_remove_degenerate_faces(its);
     its_compactify_vertices(its);
 
-    model.add_object(object_name.c_str(), input_file.c_str(), TriangleMesh(std::move(its)));
+    TriangleMesh mesh(std::move(its));
+    if (mesh.volume() < 0.f) {
+        mesh.flip_triangles();
+        // The color importer later rebuilds the volume from this textured mesh.
+        // Keep its winding and per-corner UVs aligned with the printable geometry.
+        for (auto& face : tex_mesh.indices)
+            std::swap(face[1], face[2]);
+        for (auto& face : tex_mesh.uv_indices)
+            std::swap(face[1], face[2]);
+    }
+
+    model.add_object(object_name.c_str(), input_file.c_str(), std::move(mesh));
 }
 
 Model Model::read_from_file(const std::string&                                  input_file,
@@ -394,6 +405,12 @@ Model Model::read_from_file(const std::string&                                  
         auto tex_mesh = std::make_shared<TexturedMesh>();
         result = load_assimp_textured_model(input_file, *tex_mesh, &message);
         if (result) {
+            if (boost::algorithm::iends_with(input_file, ".glb") || boost::algorithm::iends_with(input_file, ".gltf")) {
+                // glTF is Y-up; use Orca's Z-up axes for both geometry and color handoff.
+                // Keep source units for the ordinary importer's explicit conversion choice.
+                for (auto& vertex : tex_mesh->vertices)
+                    vertex = {vertex[0], -vertex[2], vertex[1]};
+            }
             model.texture_mesh = tex_mesh;
             add_textured_mesh_to_model(model, *tex_mesh, input_file);
         } else if (!message.empty()) {

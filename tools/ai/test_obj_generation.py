@@ -45,16 +45,16 @@ class TripoGenerationProfileRequestTests(unittest.TestCase):
     def tearDown(self):
         self.environment.stop()
 
-    def assert_profile_payload(self, payload, profile="quality", face_limit=2000000):
+    def assert_profile_payload(self, payload, profile="quality", face_limit=1000000):
         self.assertEqual(payload["model"], "test-model")
         self.assertFalse(payload["smart_low_poly"])
         self.assertEqual(payload["face_limit"], face_limit)
         self.assertTrue(payload["texture"])
         self.assertTrue(payload["pbr"])
-        self.assertEqual(payload["texture_quality"], "extreme" if profile == "quality" else "standard")
-        self.assertEqual(payload["geometry_quality"], "detailed" if profile == "quality" else "standard")
+        self.assertEqual(payload["texture_quality"], "standard")
+        self.assertEqual(payload["geometry_quality"], "standard")
         self.assertFalse(payload["quad"])
-        self.assertEqual(payload["export_uv"], profile == "quality")
+        self.assertTrue(payload["export_uv"])
 
     def test_text_generation_requests_colored_high_detail_model(self):
         with mock.patch.object(TRIPO, "_post_json", return_value={"task_id": "text-id"}) as post:
@@ -113,6 +113,11 @@ class TripoGenerationProfileRequestTests(unittest.TestCase):
             with self.assertRaisesRegex(TRIPO.TripoError, "additional"):
                 TRIPO.create_multiview_task({"front": "front-token"})
         post.assert_not_called()
+
+    def test_texture_task_defaults_to_standard_texture(self):
+        with mock.patch.object(TRIPO, "_post_json", return_value={"task_id": "texture-id"}) as post:
+            TRIPO.create_texture_task("source-model-task", "image-token")
+        self.assertEqual(post.call_args.args[1]["texture_quality"], "standard")
 
     def test_texture_task_reuses_geometry_with_one_reference_image(self):
         with mock.patch.object(TRIPO, "_post_json", return_value={"task_id": "texture-id"}) as post:
@@ -975,12 +980,12 @@ class ObjGenerationTests(unittest.TestCase):
         gateway = self._provider_gateway()
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact) as download,
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 2, 0)),
         ):
             SIDECAR._generate_job(self.job, "printable object", False, self._paid_authorization())
 
-        download.assert_called_once_with(self.job, "generation-id", "obj", 1)
+        download.assert_called_once_with(self.job, "generation-id", 1, False)
         self.assertEqual(self.job.state, "ready")
         self.assertEqual(self.job.artifact_format, "obj")
         self.assertEqual(self.job.artifact_path, artifact)
@@ -1004,7 +1009,7 @@ class ObjGenerationTests(unittest.TestCase):
 
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact),
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact),
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 2, 0)),
             mock.patch.object(SIDECAR, "_automatic_visual_review", return_value=None),
         ):
@@ -1056,7 +1061,7 @@ class ObjGenerationTests(unittest.TestCase):
 
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact) as download,
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 1, 0)),
         ):
             SIDECAR._retexture_job(
@@ -1071,8 +1076,8 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertEqual(request.source_task_id, "geometry-task")
         self.assertEqual(request.image_path, reference)
         self.assertEqual(request.texture_alignment, "geometry")
-        self.assertEqual(request.texture_quality, "extreme")
-        download.assert_called_once_with(self.job, "texture-task", "obj", 1, False)
+        self.assertEqual(request.texture_quality, "standard")
+        download.assert_called_once_with(self.job, "texture-task", 1, False)
         self.assertEqual(self.job.state, "ready")
         self.assertEqual(self.job.attempts[0]["provider_operation"], "model_texture")
         self.assertEqual(self.job.attempts[0]["source_job_id"], "geometry-job")
@@ -1094,7 +1099,7 @@ class ObjGenerationTests(unittest.TestCase):
 
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact),
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact),
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 1, 0)),
         ):
             SIDECAR._generate_job(self.job, "", False, self._paid_authorization())
@@ -1132,7 +1137,7 @@ class ObjGenerationTests(unittest.TestCase):
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
             mock.patch.object(SIDECAR, "_ensure_portrait_multiview") as multiview,
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact),
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact),
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(935200, 1, 0)),
         ):
             SIDECAR._generate_job(self.job, "", False, self._paid_authorization())
@@ -1178,7 +1183,7 @@ class ObjGenerationTests(unittest.TestCase):
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
             mock.patch.object(SIDECAR, "_ensure_portrait_multiview") as multiview,
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact),
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact),
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(1900000, 1, 0)),
         ):
             SIDECAR._generate_job(self.job, "", False, self._paid_authorization())
@@ -1999,7 +2004,7 @@ class ObjGenerationTests(unittest.TestCase):
 
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact),
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact),
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 2, 0)),
         ):
             SIDECAR._generate_job(
@@ -2088,14 +2093,14 @@ class ObjGenerationTests(unittest.TestCase):
         )
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", return_value=artifact) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", return_value=artifact) as download,
             mock.patch.object(SIDECAR, "_validate_obj_topology", return_value=(300000, 2, 0)),
         ):
             SIDECAR._generate_job(self.job, "printable object", True)
 
         gateway.start_or_reuse_model_task.assert_called_once()
         self.assertIsNone(gateway.start_or_reuse_model_task.call_args.kwargs["authorization"])
-        download.assert_called_once_with(self.job, "existing-generation", "obj", 1, True)
+        download.assert_called_once_with(self.job, "existing-generation", 1, True)
         self.assertEqual(self.job.state, "ready")
         self.assertEqual(self.job.attempts[0]["error"], "")
 
@@ -2104,11 +2109,11 @@ class ObjGenerationTests(unittest.TestCase):
         gateway = self._provider_gateway()
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", side_effect=error) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", side_effect=error) as download,
         ):
             SIDECAR._generate_job(self.job, "printable object", False, self._paid_authorization())
 
-        download.assert_called_once_with(self.job, "generation-id", "obj", 1)
+        download.assert_called_once_with(self.job, "generation-id", 1, False)
         self.assertEqual(self.job.state, "failed")
         self.assertEqual(self.job.message, "OBJ conversion failed")
         self.assertEqual(len(self.job.attempts), 1)
@@ -2121,7 +2126,7 @@ class ObjGenerationTests(unittest.TestCase):
         gateway = self._provider_gateway("generation-1")
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", side_effect=quality_error) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", side_effect=quality_error) as download,
         ):
             SIDECAR._generate_job(self.job, "printable object", False, self._paid_authorization())
 
@@ -2137,7 +2142,7 @@ class ObjGenerationTests(unittest.TestCase):
         gateway = self._provider_gateway("generation-1")
         with (
             mock.patch.object(SIDECAR, "_MODEL_PROVIDER_GATEWAY", gateway),
-            mock.patch.object(SIDECAR, "_download_conversion", side_effect=quality_error) as download,
+            mock.patch.object(SIDECAR, "_download_generation_artifact", side_effect=quality_error) as download,
         ):
             SIDECAR._generate_job(self.job, "printable object", False, self._paid_authorization())
 
@@ -2219,6 +2224,8 @@ class ObjGenerationTests(unittest.TestCase):
         self.assertIsNone(SIDECAR._portrait_material_role_indices(palette, roles, False))
 
     def test_portrait_material_mapping_is_forwarded_for_detected_realistic_job(self):
+        self.job.output_format = "obj"
+        self.job.generation_profile = "quality"
         destination = self.job.directory / "artifact-raw.download"
         destination.write_text(
             "v 0 0 0 1 1 1\nv 1 0 0 1 1 1\nv 0 1 0 1 1 1\nf 1 2 3\n",

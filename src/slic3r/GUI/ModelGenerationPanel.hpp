@@ -4,6 +4,7 @@
 #include "slic3r/AI/Contracts/IModelArtifactConsumer.hpp"
 #include "slic3r/AI/Contracts/IPrintablePaletteProvider.hpp"
 #include "slic3r/GUI/AI/Model/ModelFinishing.hpp"
+#include "slic3r/GUI/AI/Model/SurfaceSelectionState.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <wx/image.h>
@@ -54,8 +55,11 @@ public:
 private:
     std::function<void()> m_prepare_navigation;
     void show_input_hint(const wxString& message, wxWindow* focus = nullptr);
+    void initialize_page();
+    void on_first_visible_idle(wxIdleEvent& event);
     void build_page();
     wxWindow* build_workflow_panel(wxWindow* parent);
+    wxWindow* build_import_settings(wxWindow* parent);
     wxWindow* build_preview_panel(wxWindow* parent);
     wxWindow* build_model_library(wxWindow* parent);
 
@@ -108,6 +112,11 @@ private:
     wxString current_style_label() const;
     std::string current_generation_profile() const;
     wxString current_generation_profile_label() const;
+    AIModelGenerationClient::GenerationOptions current_generation_options() const;
+    void refresh_provider_options();
+    void persist_generation_options();
+    bool generation_options_valid() const;
+    wxString generation_options_summary(bool image_mode) const;
     int current_face_limit() const;
     AIModelGenerationClient::ImagePrintSettings current_print_settings() const;
     bool has_image_input() const;
@@ -121,7 +130,7 @@ private:
     void finish_model_preview_download(const boost::filesystem::path& path, uint64_t sequence);
     void load_model_preview_async(const boost::filesystem::path& path, const std::vector<std::string>& palette,
         std::function<void(size_t, Vec3d, size_t, double)> loaded,
-        std::function<void(std::string)> failed);
+        std::function<void(std::string)> failed, const boost::filesystem::path& metadata_path = {});
     void download_and_import();
     void import_local_artifact(const boost::filesystem::path& path, uint64_t sequence);
     void cleanup_files();
@@ -156,6 +165,7 @@ private:
     std::vector<std::string> local_recolor_palette() const;
     struct GeneratedModelEntry;
     void load_library_entries();
+    void load_design_library_entry(const std::string& job_id);
     void save_library_entry(size_t artifact_size, size_t triangle_count, double width, double depth,
                             double height, size_t color_count, double load_seconds);
     void load_library_entry(const boost::filesystem::path& model_path,
@@ -198,6 +208,7 @@ private:
         double load_seconds { 0.0 };
         std::string print_feedback;
         bool use_printable_colors { false };
+        bool design_only { false };
     };
 
     AI::IModelArtifactConsumer&    m_artifact_consumer;
@@ -212,9 +223,12 @@ private:
     wxChoice* m_finishing_tool {nullptr};
     wxPanel* m_finishing_selection_controls {nullptr};
     wxStaticText* m_finishing_selection_status {nullptr};
+    wxStaticText* m_finishing_cleanup_hint {nullptr};
     wxChoice* m_finishing_selection_operation {nullptr};
     wxSlider* m_finishing_radius {nullptr};
     wxCheckBox* m_finishing_gray {nullptr};
+    wxCheckBox* m_finishing_overlay {nullptr};
+    wxStaticText* m_finishing_strength_value {nullptr};
     wxButton* m_finishing_redo {nullptr};
     bool m_finishing_workbench {false};
     bool m_finishing_compare_held {false};
@@ -244,6 +258,11 @@ private:
     bool m_finishing_before {false};
     std::function<void()> m_finishing_restore_context;
     std::function<void()> m_finishing_source_context;
+    std::function<void()> m_finishing_restore_selection;
+    AI::SurfaceSelectionPersistence::SelectionState m_finishing_selection_state;
+    std::vector<std::pair<size_t, std::array<float, 3>>> m_finishing_candidate_face_overrides;
+    std::vector<std::string> m_finishing_color_palette;
+    std::function<void()> m_finishing_redo_preview;
 
     wxStaticText*   m_prompt_label { nullptr };
     wxTextCtrl*     m_prompt { nullptr };
@@ -257,6 +276,11 @@ private:
     wxPanel*        m_custom_style_panel { nullptr };
     wxTextCtrl*     m_custom_style { nullptr };
     wxChoice*       m_quality { nullptr };
+    wxChoice*       m_provider { nullptr };
+    wxChoice*       m_geometry_quality { nullptr };
+    wxChoice*       m_texture_quality { nullptr };
+    wxChoice*       m_output_format { nullptr };
+    wxStaticText*   m_generation_cost { nullptr };
     wxButton*       m_choose_image { nullptr };
     wxButton*       m_clear_image { nullptr };
     wxStaticText*   m_selected_image { nullptr };
@@ -267,6 +291,7 @@ private:
     wxCheckBox*     m_use_printable_colors { nullptr };
     wxChoice*       m_palette_source { nullptr };
     wxChoice*       m_import_color_mode { nullptr };
+    wxChoice*       m_import_color_source { nullptr };
     wxColourPickerCtrl* m_custom_color { nullptr };
     wxButton*       m_add_custom_color { nullptr };
     wxStaticText*   m_palette_summary { nullptr };
@@ -319,15 +344,8 @@ private:
     wxPanel*        m_local_recolor_panel { nullptr };
     wxToggleButton* m_local_recolor_toggle { nullptr };
     wxPanel*        m_local_recolor_controls { nullptr };
-    std::array<wxToggleButton*, 3> m_region_operation_buttons { nullptr, nullptr, nullptr };
-    wxChoice*       m_region_range { nullptr };
-    std::array<wxButton*, Slic3r::AI::kMaxTargetPaletteColors> m_region_material_buttons {};
     std::array<wxToggleButton*, Slic3r::AI::kMaxPhysicalColorChannels> m_region_color_buttons {};
-    wxStaticText*   m_region_selection_summary { nullptr };
-    wxButton*       m_undo_region_selection { nullptr };
-    wxButton*       m_clear_region_selection { nullptr };
     wxButton*       m_apply_region_color { nullptr };
-    int             m_region_operation_index { 0 };
     int             m_region_color_index { 0 };
     std::vector<std::string> m_region_palette;
     wxPanel*        m_model_decision_panel { nullptr };
@@ -367,6 +385,7 @@ private:
     boost::filesystem::path m_selected_image_path;
     boost::filesystem::path m_job_image_path;
     boost::filesystem::path m_preview_path;
+    std::string m_preview_output { "preview" };
     boost::filesystem::path m_reference_image_path;
     boost::filesystem::path m_raw_preview_path;
     boost::filesystem::path m_artifact_path;
@@ -406,8 +425,9 @@ private:
     std::string m_job_custom_style;
     AIModelGenerationClient::ImagePrintSettings m_job_print_settings;
     size_t m_job_palette_color_count { Slic3r::AI::kLegacyDefaultTargetPaletteColors };
-    int m_job_face_limit { 2000000 };
+    int m_job_face_limit { 1000000 };
     std::string m_job_generation_profile { "quality" };
+    AIModelGenerationClient::GenerationOptions m_job_generation_options;
     std::string m_job_id;
     std::string m_job_phase;
     std::string m_job_provider_name;
@@ -419,8 +439,11 @@ private:
     std::string m_color_intent_schema;
     std::string m_color_intent_sha256;
     uint64_t m_sequence { 0 };
+    uint64_t m_design_history_sequence { 0 };
+    bool m_design_history_loading { false };
     uint64_t m_style_recommendation_sequence { 0 };
     bool m_busy { false };
+    bool m_saving_generation_options { false };
     bool m_awaiting_confirmation { false };
     bool m_awaiting_palette_confirmation { false };
     bool m_palette_recommendation_confirmed { false };
@@ -429,6 +452,9 @@ private:
     bool m_model_preview_ready { false };
     bool m_library_model_loaded { false };
     bool m_service_available { false };
+    bool m_service_availability_known { false };
+    bool m_page_initialized { false };
+    bool m_library_refresh_pending { true };
     bool m_restore_checked { false };
     bool m_restoring_input { false };
     bool m_shutdown { false };

@@ -57,8 +57,7 @@ class PrintableSidecarIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             job = self.make_job(directory)
             job.user_prompt = "一只机械麒麟"
-            with mock.patch.object(sidecar, "preprocess_text", return_value="one printable mechanical qilin"), \
-                 mock.patch.object(
+            with mock.patch.object(
                      sidecar,
                      "generate_geometry_reference_image",
                      side_effect=lambda _instruction, output, *_args, **_kwargs: synthetic_preview(output),

@@ -1,11 +1,14 @@
 #include <catch2/catch_all.hpp>
 
 #include "slic3r/GUI/AI/Model/VertexColorRegionEditor.hpp"
+#include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
+#include "../test_utils.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <sstream>
 
 using namespace Slic3r;
 
@@ -188,6 +191,29 @@ TEST_CASE("vertex color geometric seams preserve region boundaries", "[AI][Verte
         REQUIRE(editor.initialize(mesh, solid_colors(mesh.vertices.size(), {1.0f, 0.0f, 0.0f, 1.0f}), error));
         CHECK(editor.update_selection(0, AI::RegionSelectionOperation::Replace, settings) == 1);
     }
+}
+
+TEST_CASE("Similar color clicks accumulate connected patches without selecting disconnected colors", "[VertexColorRegion]")
+{
+    auto mesh = seamed_square_mesh();
+    // A disconnected triangle has the same blue as the second patch.
+    mesh.vertices.insert(mesh.vertices.end(), {{10, 0, 0}, {11, 0, 0}, {10, 1, 0}});
+    mesh.indices.emplace_back(6, 7, 8);
+    auto colors = solid_colors(mesh.vertices.size(), {0, 0, 1, 1});
+    for (size_t i = 0; i < 3; ++i) colors[i] = {1, 0, 0, 1};
+    AI::VertexColorRegionEditor editor;
+    std::string error;
+    REQUIRE(editor.initialize(std::move(mesh), std::move(colors), error));
+    AI::RegionSelectionSettings settings;
+    REQUIRE(editor.update_selection(0, AI::RegionSelectionOperation::AddSimilar, settings) == 1);
+    const auto first = editor.selected_faces();
+    REQUIRE(editor.update_selection(1, AI::RegionSelectionOperation::AddSimilar, settings) == 2);
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{1, 1, 0});
+    CHECK(editor.update_selection(1, AI::RegionSelectionOperation::AddSimilar, settings) == 2);
+    REQUIRE(editor.restore_selection(first));
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{1, 0, 0});
+    CHECK(editor.update_selection(1, AI::RegionSelectionOperation::Replace, settings) == 1);
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{0, 1, 0});
 }
 
 TEST_CASE("vertex color local patches support add and remove", "[AI][VertexColorRegion]")
@@ -380,7 +406,7 @@ TEST_CASE("vertex color picking acceleration preserves nearest and deterministic
     CHECK_FALSE(editor.pick_face({0.2, 0.2, 10.0}, {0.0, 0.0, 0.0}));
 }
 
-TEST_CASE("vertex color OBJ copy preserves structure and rewrites selected vertices", "[AI][VertexColorRegion]")
+TEST_CASE("vertex color OBJ copy preserves groups and isolates selected faces", "[AI][VertexColorRegion]")
 {
     const boost::filesystem::path root =
         boost::filesystem::current_path() / "generated_models" / "test-local-recolor";
@@ -419,8 +445,155 @@ TEST_CASE("vertex color OBJ copy preserves structure and rewrites selected verti
     CHECK(contents.find("o Body") != std::string::npos);
     CHECK(contents.find("g Surface") != std::string::npos);
     CHECK(contents.find("f 1 2 3") != std::string::npos);
-    CHECK(contents.find("v 0 0 0 0.000000 1.000000 0.000000 1.000000") != std::string::npos);
-    CHECK(contents.find("v 1 1 0 0.000000 0.000000 1.000000 1.000000") != std::string::npos);
+    TriangleMesh result;
+    ObjInfo info;
+    REQUIRE(load_obj(destination.string().c_str(), &result, info, error));
+    REQUIRE(result.its.indices.size() == 2);
+    for (size_t corner = 0; corner < 3; ++corner) {
+        CHECK(info.vertex_colors[result.its.indices[0][corner]] == RGBA{0, 1, 0, 1});
+        CHECK(info.vertex_colors[result.its.indices[1][corner]] == colors[square_mesh().indices[1][corner]]);
+    }
+}
+
+TEST_CASE("Recoloring shared faces leaves neighboring corner colors and source topology intact", "[VertexColorRegion][Regression]")
+{
+    AI::VertexColorRegionEditor editor;
+    std::string error;
+    auto colors = red_colors();
+    colors[3] = {0.1f, 0.2f, 0.3f, 1};
+    const auto mesh = square_mesh();
+    REQUIRE(editor.initialize(mesh, colors, error));
+    REQUIRE(editor.select_faces({0}) == 1);
+    const RGBA green {0, 1, 0, 1};
+    const RGBA blue {0, 0, 1, 1};
+    REQUIRE(editor.apply_color(green));
+    REQUIRE(editor.has_color_overrides());
+    CHECK(editor.mesh().indices == mesh.indices);
+    CHECK(editor.mesh().vertices == mesh.vertices);
+    CHECK(editor.vertex_colors() == colors);
+    for (size_t corner = 0; corner < 3; ++corner) {
+        CHECK(editor.corner_color(0, corner) == green);
+        CHECK(editor.corner_color(1, corner) == colors[mesh.indices[1][corner]]);
+    }
+    REQUIRE(editor.select_palette_material({green, red_colors()[0]}, 0) == 1);
+    CHECK(editor.selected_faces() == std::vector<uint8_t>{1, 0});
+    REQUIRE(editor.select_faces({1}) == 1);
+    REQUIRE(editor.apply_color(blue));
+    for (size_t corner = 0; corner < 3; ++corner) {
+        CHECK(editor.corner_color(0, corner) == green);
+        CHECK(editor.corner_color(1, corner) == blue);
+    }
+    editor.clear();
+    CHECK_FALSE(editor.has_color_overrides());
+}
+
+TEST_CASE("Face edits survive OBJ and GLB exports without bleeding across shared edges", "[VertexColorRegion][Regression]")
+{
+    const auto source_extension = GENERATE(std::string(".obj"), std::string(".glb"));
+    const auto destination_extension = GENERATE(std::string(".obj"), std::string(".glb"));
+    ScopedTemporaryFile source(source_extension);
+    ScopedTemporaryFile destination(destination_extension);
+    auto original_colors = red_colors();
+    original_colors[3] = {0.2f, 0.3f, 0.4f, 1};
+    std::string error;
+    REQUIRE(AI::write_model_artifact(source.path(), square_mesh(), original_colors, error));
+    TriangleMesh input;
+    ObjInfo input_colors;
+    REQUIRE(AI::load_model_artifact(source.path(), input, input_colors, error));
+    AI::VertexColorRegionEditor editor;
+    REQUIRE(editor.initialize(input.its, input_colors.vertex_colors, error));
+    REQUIRE(editor.select_faces({0}) == 1);
+    const RGBA blue {0, 0, 1, 1};
+    REQUIRE(editor.apply_color_to_obj_copy(blue, source.path(), destination.path(), error));
+    CHECK_FALSE(editor.has_color_overrides());
+    TriangleMesh output;
+    ObjInfo output_colors;
+    REQUIRE(AI::load_model_artifact(destination.path(), output, output_colors, error));
+    REQUIRE(output.its.indices.size() == input.its.indices.size());
+    REQUIRE(output_colors.vertex_colors.size() == output.its.vertices.size());
+    for (size_t face = 0; face < input.its.indices.size(); ++face) {
+        for (size_t corner = 0; corner < 3; ++corner) {
+            const int original = input.its.indices[face][corner];
+            const int derived = output.its.indices[face][corner];
+            const RGBA expected = face == 0 ? blue : input_colors.vertex_colors[original];
+            for (size_t axis = 0; axis < 3; ++axis)
+                CHECK_THAT(output.its.vertices[derived][axis], Catch::Matchers::WithinAbs(input.its.vertices[original][axis], 1e-6));
+            for (size_t channel = 0; channel < 4; ++channel)
+                CHECK_THAT(output_colors.vertex_colors[derived][channel], Catch::Matchers::WithinAbs(expected[channel], 1e-6));
+        }
+    }
+}
+
+TEST_CASE("Quad recoloring preserves per-corner UV and normal references with relative OBJ indices", "[VertexColorRegion][Regression]")
+{
+    ScopedTemporaryFile source(".obj");
+    ScopedTemporaryFile destination(".obj");
+    {
+        boost::filesystem::ofstream stream(source.path());
+        stream << "v 0 0 0 1 0 0\nv 1 0 0 1 0 0\nv 1 1 0 1 0 0\nv 0 1 0 1 0 0\n"
+               << "vt 0 0\nvt 1 0\nvt 1 1\nvt 0 1\nvn 0 0 1\ng Cloth\n"
+               << "f -4/1/1 -3/2/1 -2/3/1 -1/4/1\n";
+    }
+    std::string error;
+    TriangleMesh input;
+    ObjInfo info;
+    REQUIRE(load_obj(source.string().c_str(), &input, info, error));
+    AI::VertexColorRegionEditor editor;
+    REQUIRE(editor.initialize(input.its, info.vertex_colors, error));
+    REQUIRE(editor.select_faces({1}) == 1);
+    REQUIRE(editor.apply_color_to_obj_copy({0, 0, 1, 1}, source.path(), destination.path(), error));
+    boost::filesystem::ifstream stream(destination.path());
+    const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    CHECK(contents.find("g Cloth") != std::string::npos);
+    std::istringstream lines(contents);
+    std::vector<std::string> corner_references;
+    std::string line;
+    while (std::getline(lines, line)) {
+        std::istringstream tokens(line);
+        std::string tag;
+        tokens >> tag;
+        if (tag != "f") continue;
+        std::string token;
+        while (tokens >> token) {
+            REQUIRE(token.find('/') != std::string::npos);
+            corner_references.push_back(token.substr(token.find('/')));
+        }
+    }
+    CHECK(corner_references == std::vector<std::string>{"/1/1", "/2/1", "/3/1", "/1/1", "/3/1", "/4/1"});
+    TriangleMesh result;
+    ObjInfo result_colors;
+    REQUIRE(load_obj(destination.string().c_str(), &result, result_colors, error));
+    REQUIRE(result.its.indices.size() == 2);
+    for (size_t corner = 0; corner < 3; ++corner) {
+        CHECK(result_colors.vertex_colors[result.its.indices[0][corner]] == RGBA{1, 0, 0, 1});
+        CHECK(result_colors.vertex_colors[result.its.indices[1][corner]] == RGBA{0, 0, 1, 1});
+    }
+}
+
+TEST_CASE("A changed source face layout cannot overwrite an existing recolor result", "[VertexColorRegion][Regression]")
+{
+    ScopedTemporaryFile source(".obj");
+    ScopedTemporaryFile destination(".obj");
+    std::string error;
+    REQUIRE(AI::write_model_artifact(source.path(), square_mesh(), red_colors(), error));
+    AI::VertexColorRegionEditor editor;
+    REQUIRE(editor.initialize(square_mesh(), red_colors(), error));
+    REQUIRE(editor.select_faces({0}) == 1);
+    REQUIRE(editor.apply_color({0, 1, 0, 1}));
+    {
+        boost::filesystem::ofstream stream(source.path(), std::ios::app);
+        stream << "f 1 2 3\n";
+    }
+    {
+        boost::filesystem::ofstream stream(destination.path());
+        stream << "previous result";
+    }
+    CHECK_FALSE(editor.apply_color_to_obj_copy({0, 0, 1, 1}, source.path(), destination.path(), error));
+    CHECK(editor.has_color_overrides());
+    CHECK(editor.corner_color(0, 0) == RGBA{0, 1, 0, 1});
+    boost::filesystem::ifstream stream(destination.path());
+    const std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    CHECK(contents == "previous result");
 }
 
 TEST_CASE("vertex color OBJ round trip preserves RGB channel order", "[AI][VertexColorRegion]")

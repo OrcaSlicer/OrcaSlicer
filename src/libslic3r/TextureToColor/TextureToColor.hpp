@@ -5,6 +5,7 @@
 #include "opencv2/core.hpp"
 #include <functional>
 #include <string>
+#include <utility>
 
 namespace Slic3r { namespace tex2color {
 
@@ -43,6 +44,9 @@ struct TextureToColorSettings {
     // region membership using the same Oklab metric as the desktop trial.
     std::vector<std::array<std::size_t, 3>> fixed_palette;
     std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
+    // Exact source-face targets; empty preserves ordinary color matching.
+    // Nonempty selections preserve input geometry and skip color smoothing.
+    std::vector<std::pair<size_t, std::array<std::size_t, 3>>> face_color_overrides;
 };
 
 /**

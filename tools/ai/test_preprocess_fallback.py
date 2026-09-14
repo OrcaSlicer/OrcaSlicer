@@ -58,7 +58,7 @@ class PreprocessFallbackTests(unittest.TestCase):
     def test_text_preprocessing_remains_fail_closed_by_default(self):
         job = self.new_job("text")
         error = SIDECAR.OpenAIPreprocessorError("preprocessor unavailable")
-        with fallback_environment(None), mock.patch.object(SIDECAR, "preprocess_text", side_effect=error):
+        with fallback_environment(None), mock.patch.object(SIDECAR, "generate_geometry_reference_image", side_effect=error):
             SIDECAR._preprocess_text_job(job, "printable calibration cube")
 
         self.assertEqual(job.state, "failed")
@@ -67,8 +67,8 @@ class PreprocessFallbackTests(unittest.TestCase):
     def test_text_fallback_retains_subject_and_adds_print_constraints(self):
         job = self.new_job("text")
         error = SIDECAR.OpenAIPreprocessorError("preprocessor unavailable")
-        with fallback_environment("1"), mock.patch.object(SIDECAR, "preprocess_text", side_effect=error), \
-             mock.patch.object(SIDECAR, "generate_geometry_reference_image") as generate:
+        with fallback_environment("1"), \
+             mock.patch.object(SIDECAR, "generate_geometry_reference_image", side_effect=error) as generate:
             SIDECAR._preprocess_text_job(job, "printable calibration cube with a red stripe")
 
         self.assertEqual(job.state, "awaiting_confirmation")
@@ -79,7 +79,7 @@ class PreprocessFallbackTests(unittest.TestCase):
         self.assertNotIn("#00FF00", job.prepared_prompt)
         self.assertIn("natural gradients, textures and material detail without reducing colors", job.prepared_prompt)
         self.assertEqual(job.palette, ())
-        generate.assert_not_called()
+        generate.assert_called_once()
         self.assertIn("original prompt", job.message)
 
     def test_generation_prompt_ignores_legacy_palette_flags_but_keeps_user_color(self):

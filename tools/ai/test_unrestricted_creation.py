@@ -120,8 +120,7 @@ class UnrestrictedCreationTests(unittest.TestCase):
             with self.subTest(source=source), tempfile.TemporaryDirectory() as directory:
                 job = self.job(directory, source)
                 job.input_path = rich_image(Path(directory)/"source.png")
-                with mock.patch.object(sidecar, "preprocess_text", return_value="portrait"), \
-                     mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=lambda _p, out, *_a, **_k: rich_image(out)), \
+                with mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=lambda _p, out, *_a, **_k: rich_image(out)), \
                      mock.patch.object(sidecar, "preprocess_image", side_effect=lambda _i, _p, out, *_a: rich_image(out)), \
                      mock.patch.object(sidecar, "_assess_job_preview_visual_quality"), \
                      mock.patch.object(sidecar, "process_printable_image", side_effect=AssertionError("generation must not quantize")) as quantize:

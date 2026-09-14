@@ -39,6 +39,8 @@ std::string normalize_endpoint(std::string endpoint)
 
 std::string error_message(const std::string& body, const std::string& error, unsigned status)
 {
+    if (status == 401)
+        return "A valid OrcaSlicer AI session is required.";
     if (!error.empty()) {
         if (error.find("connect") != std::string::npos || error.find("Connection") != std::string::npos)
             return "AI sidecar is not reachable.";
@@ -298,10 +300,13 @@ void AIModelGenerationClient::preprocess_text(const std::string& request_id, con
                                                const std::string& style,
                                                const std::string& custom_style,
                                                const ImagePrintSettings& print_settings,
-                                               StatusFn on_complete, ErrorFn on_error)
+                                               StatusFn on_complete, ErrorFn on_error, const GenerationOptions& options)
 {
     post_json("/v1/orcaslicer/model-jobs/text",
               json::object({ { "request_id", request_id }, { "prompt", prompt }, { "palette", palette },
+                             { "provider", options.provider }, { "face_limit", options.face_limit },
+                             { "geometry_quality", options.geometry_quality }, { "texture_quality", options.texture_quality },
+                             { "output_format", options.output_format },
                              { "palette_roles", palette_roles }, { "style", style },
                              { "palette_recommendation_confirmed", palette_recommendation_confirmed },
                              { "custom_style", custom_style },
@@ -317,7 +322,7 @@ void AIModelGenerationClient::preprocess_image(const std::string& request_id, co
                                                  const std::string& style,
                                                  const std::string& custom_style,
                                                  const ImagePrintSettings& print_settings,
-                                                 StatusFn on_complete, ErrorFn on_error)
+                                                 StatusFn on_complete, ErrorFn on_error, const GenerationOptions& options)
 {
     cancel_current();
     if (!is_loopback_endpoint(m_endpoint)) {
@@ -332,6 +337,11 @@ void AIModelGenerationClient::preprocess_image(const std::string& request_id, co
         .timeout_max(130)
         .size_limit(1024 * 1024)
         .form_add("request_id", request_id)
+        .form_add("provider", options.provider)
+        .form_add("face_limit", std::to_string(options.face_limit))
+        .form_add("geometry_quality", options.geometry_quality)
+        .form_add("texture_quality", options.texture_quality)
+        .form_add("output_format", options.output_format)
         .form_add("instruction", instruction)
         .form_add("palette", json(palette).dump())
         .form_add("palette_roles", json(palette_roles).dump())
@@ -354,10 +364,14 @@ void AIModelGenerationClient::recommend_text_palette(const std::string& request_
                                                        const std::string& style, const std::string& custom_style,
                                                        size_t palette_color_count,
                                                        const ImagePrintSettings& print_settings,
-                                                       StatusFn on_complete, ErrorFn on_error, bool generate_image)
+                                                       StatusFn on_complete, ErrorFn on_error, bool generate_image,
+                                                       const GenerationOptions& options)
 {
     post_json("/v1/orcaslicer/model-jobs/recommend-text-palette",
               json::object({ { "request_id", request_id }, { "prompt", prompt }, { "style", style },
+                             { "provider", options.provider }, { "face_limit", options.face_limit },
+                             { "geometry_quality", options.geometry_quality }, { "texture_quality", options.texture_quality },
+                             { "output_format", options.output_format },
                              { "custom_style", custom_style },
                              { "palette_color_count", palette_color_count },
                              { "generate_image", generate_image },
@@ -370,7 +384,8 @@ void AIModelGenerationClient::recommend_image_palette(const std::string& request
                                                         const std::string& style, const std::string& custom_style,
                                                         size_t palette_color_count,
                                                         const ImagePrintSettings& print_settings,
-                                                        StatusFn on_complete, ErrorFn on_error, bool generate_image)
+                                                        StatusFn on_complete, ErrorFn on_error, bool generate_image,
+                                                        const GenerationOptions& options)
 {
     cancel_current();
     if (!is_loopback_endpoint(m_endpoint)) {
@@ -384,6 +399,11 @@ void AIModelGenerationClient::recommend_image_palette(const std::string& request
         .timeout_max(130)
         .size_limit(1024 * 1024)
         .form_add("request_id", request_id)
+        .form_add("provider", options.provider)
+        .form_add("face_limit", std::to_string(options.face_limit))
+        .form_add("geometry_quality", options.geometry_quality)
+        .form_add("texture_quality", options.texture_quality)
+        .form_add("output_format", options.output_format)
         .form_add("instruction", instruction)
         .form_add("style", style)
         .form_add("custom_style", custom_style)
@@ -469,13 +489,28 @@ void AIModelGenerationClient::confirm_palette(const std::string& job_id, const s
 }
 
 void AIModelGenerationClient::generate(const std::string& job_id, const std::string& prepared_prompt,
-                                       const std::vector<std::string>& palette, const std::string& generation_profile,
+                                       const std::vector<std::string>& palette, const GenerationOptions& options,
                                        StatusFn on_complete, ErrorFn on_error)
 {
     post_json("/v1/orcaslicer/model-jobs/" + job_id + "/generate",
               json::object({ { "prepared_prompt", prepared_prompt }, { "palette", palette },
-                             { "generation_profile", generation_profile } }),
+                             { "provider", options.provider },
+                             { "face_limit", options.face_limit },
+                             { "geometry_quality", options.geometry_quality },
+                             { "texture_quality", options.texture_quality },
+                             { "output_format", options.output_format } }),
               std::move(on_complete), std::move(on_error));
+}
+
+void AIModelGenerationClient::update_generation_options(const std::string& job_id, const GenerationOptions& options,
+                                                        StatusFn on_complete, ErrorFn on_error)
+{
+    post_json("/v1/orcaslicer/model-jobs/" + job_id + "/generation-options",
+              json::object({ { "provider", options.provider }, { "face_limit", options.face_limit },
+                             { "geometry_quality", options.geometry_quality },
+                             { "texture_quality", options.texture_quality },
+                             { "output_format", options.output_format } }),
+              std::move(on_complete), std::move(on_error), 30, true);
 }
 
 void AIModelGenerationClient::retexture(const std::string& reference_job_id,
@@ -621,7 +656,7 @@ void AIModelGenerationClient::download_artifact(const std::string& job_id, const
                                                  const boost::filesystem::path& path,
                                                  PathFn on_complete, ErrorFn on_error)
 {
-    if (format != "obj" && format != "3mf" && format != "stl") {
+    if (format != "obj" && format != "glb" && format != "3mf" && format != "stl") {
         if (on_error)
             on_error("The generated artifact format is not supported.");
         return;
@@ -679,9 +714,10 @@ void AIModelGenerationClient::record_journey_event(const std::string& event, con
 }
 
 void AIModelGenerationClient::post_json(const std::string& path, const json& body,
-                                        StatusFn on_complete, ErrorFn on_error, long timeout_seconds)
+                                        StatusFn on_complete, ErrorFn on_error, long timeout_seconds, bool preserve_downloads)
 {
-    cancel_current();
+    if (preserve_downloads) cancel_active_request();
+    else cancel_current();
     if (!is_loopback_endpoint(m_endpoint)) {
         if (on_error)
             on_error("Model generation requires a loopback AI sidecar endpoint.");
@@ -737,8 +773,14 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
     status.prepared_prompt = job.value("prepared_prompt", std::string());
     status.user_prompt = job.value("user_prompt", std::string());
     status.progress = std::clamp(job.value("progress", 0), 0, 100);
-    status.face_limit = job.value("face_limit", 2000000);
+    status.face_limit = job.value("face_limit", 1000000);
     status.generation_profile = job.value("generation_profile", std::string("quality"));
+    status.generation_options.face_limit = status.face_limit;
+    status.generation_options.provider = job.value("provider", std::string("tripo"));
+    if (job.contains("geometry_quality") && job["geometry_quality"].is_string())
+        status.generation_options.geometry_quality = job["geometry_quality"].get<std::string>();
+    status.generation_options.texture_quality = job.value("texture_quality", std::string("standard"));
+    status.generation_options.output_format = job.value("output_format", std::string("glb"));
     status.style = job.value("style", std::string());
     status.custom_style = job.value("custom_style", std::string());
     status.updated_at = job.value("updated_at", 0.0);
@@ -869,8 +911,9 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
         const std::string provider = tasks.value("provider", std::string());
         const std::string generation_task_id = tasks.value("generation_task_id", std::string());
         const std::string conversion_task_id = tasks.value("conversion_task_id", std::string());
-        if (provider == "tripo" && valid_provider_task_id(generation_task_id)) {
+        if ((provider == "tripo" || provider == "hunyuan") && valid_provider_task_id(generation_task_id)) {
             status.provider_name = provider;
+            status.generation_options.provider = provider;
             status.provider_task_id = generation_task_id;
             if (valid_provider_task_id(conversion_task_id))
                 status.provider_conversion_task_id = conversion_task_id;

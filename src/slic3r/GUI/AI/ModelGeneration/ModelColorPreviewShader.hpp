@@ -23,8 +23,8 @@ inline bool initialize_model_color_shader(GLShaderProgram& shader)
     const std::string version = modern ? "#version 140\n" : "#version 110\n";
     GLShaderProgram::ShaderSources sources;
     sources[size_t(GLShaderProgram::EShaderType::Vertex)] = version +
-        (modern ? "in vec3 v_position; in vec3 v_normal; in vec2 v_tex_coord; out vec4 shaded_color; out vec3 source_rgb; out float light_intensity;\n"
-                : "attribute vec3 v_position; attribute vec3 v_normal; attribute vec2 v_tex_coord; varying vec4 shaded_color; varying vec3 source_rgb; varying float light_intensity;\n") + R"(
+        (modern ? "in vec3 v_position; in vec3 v_normal; in vec2 v_tex_coord; out vec4 shaded_color; out vec3 source_rgb; out float light_intensity; out float local_color_lock;\n"
+                : "attribute vec3 v_position; attribute vec3 v_normal; attribute vec2 v_tex_coord; varying vec4 shaded_color; varying vec3 source_rgb; varying float light_intensity; varying float local_color_lock;\n") + R"(
 uniform mat4 view_model_matrix;
 uniform mat4 projection_matrix;
 uniform mat3 view_normal_matrix;
@@ -33,7 +33,8 @@ uniform bool use_uniform_color;
 void main() {
     float encoded_rgb = floor(v_tex_coord.x);
     vec3 rgb = vec3(floor(encoded_rgb / 65536.0), mod(floor(encoded_rgb / 256.0), 256.0), mod(encoded_rgb, 256.0)) / 255.0;
-    vec4 color = use_uniform_color ? uniform_color : vec4(rgb, v_tex_coord.y);
+    local_color_lock = (!use_uniform_color && v_tex_coord.y < 0.0) ? 1.0 : 0.0;
+    vec4 color = use_uniform_color ? uniform_color : vec4(rgb, abs(v_tex_coord.y));
     vec3 normal = normalize(view_normal_matrix * v_normal);
     float intensity = 0.42 + 0.48 * max(dot(normal, vec3(-0.4574957, 0.4574957, 0.7624929)), 0.0)
         + 0.18 * max(dot(normal, vec3(0.6985074, 0.1397015, 0.6985074)), 0.0);
@@ -43,8 +44,8 @@ void main() {
     gl_Position = projection_matrix * view_model_matrix * vec4(v_position, 1.0);
 })";
     sources[size_t(GLShaderProgram::EShaderType::Fragment)] = version +
-        (modern ? "in vec4 shaded_color; in vec3 source_rgb; in float light_intensity; out vec4 out_color;\n"
-                : "varying vec4 shaded_color; varying vec3 source_rgb; varying float light_intensity;\n") + R"(
+        (modern ? "in vec4 shaded_color; in vec3 source_rgb; in float light_intensity; in float local_color_lock; out vec4 out_color;\n"
+                : "varying vec4 shaded_color; varying vec3 source_rgb; varying float light_intensity; varying float local_color_lock;\n") + R"(
 uniform int preview_color_count;
 uniform bool preview_lighting;
 uniform float preview_lightness_weight;
@@ -69,6 +70,7 @@ void main() {
         vec3 selected = source_rgb;
         float best = 100.0;
         for (int i = 0; i < 6; ++i) {
+            if (local_color_lock > 0.5) break;
             if (i >= preview_color_count) break;
             vec3 difference = lab - preview_lab[i];
             difference.x *= preview_lightness_weight;

@@ -82,29 +82,49 @@ class Histogram {
     {
         // This protects supported color families, not semantic regions. Tiny
         // texture speckles and near-neutral illumination must not consume slots.
-        std::array<Bin, 12> hues {};
+        std::array<Bin, 12> hues {}, accents {};
+        constexpr float accent_chroma_gap = .03f;
         double total = 0;
         constexpr float pi = 3.14159265358979323846f;
         for (const auto& sample : samples) {
             total += sample.weight;
             // Dark, muted materials can have low absolute chroma despite a
             // clearly visible hue. Keep them when their area is meaningful.
-            if (std::hypot(sample.lab[1], sample.lab[2]) < .015f) continue;
+            const float chroma = std::hypot(sample.lab[1], sample.lab[2]);
+            if (chroma < .015f) continue;
             float angle = std::atan2(sample.lab[2], sample.lab[1]);
             if (angle < 0) angle += 2*pi;
-            auto& hue = hues[std::min(size_t(11), size_t(angle*12/(2*pi)))];
+            const size_t hue_index = std::min(size_t(11), size_t(angle*12/(2*pi)));
+            auto& hue = hues[hue_index];
             hue.weight += sample.weight;
             for (int c = 0; c < 3; ++c) hue.sum[c] += sample.lab[c]*sample.weight;
+            if (chroma >= .045f) {
+                auto& accent = accents[hue_index];
+                accent.weight += sample.weight;
+                for (int c = 0; c < 3; ++c) accent.sum[c] += sample.lab[c]*sample.weight;
+            }
         }
         std::vector<Sample> candidates;
-        for (const auto& hue : hues) if (hue.weight > 0) {
+        for (size_t index = 0; index < hues.size(); ++index) {
+            const auto& hue = hues[index];
+            if (hue.weight <= 0) continue;
             Color lab {};
             for (int c = 0; c < 3; ++c) lab[c] = float(hue.sum[c]/hue.weight);
             // Strong accents may cover less surface than muted material areas.
             // Both need support; isolated saturated pixels still fail this gate.
             const double minimum_area = std::hypot(lab[1], lab[2]) >= .045f ? .0005 : .0015;
-            if (hue.weight < total*minimum_area) continue;
-            candidates.push_back({lab, hue.weight/total});
+            const bool supported = hue.weight >= total*minimum_area;
+            if (supported) candidates.push_back({lab, hue.weight/total});
+            // A small saturated accent can share a hue with a much larger
+            // muted material. Keep its supported chroma separately instead
+            // of averaging it away; brightness alone does not add a candidate.
+            const auto& accent = accents[index];
+            if (accent.weight > 0 && accent.weight >= total*.0005) {
+                Color accent_lab {};
+                for (int c = 0; c < 3; ++c) accent_lab[c] = float(accent.sum[c]/accent.weight);
+                if (!supported || std::hypot(accent_lab[1], accent_lab[2]) - std::hypot(lab[1], lab[2]) >= accent_chroma_gap)
+                    candidates.push_back({accent_lab, accent.weight/total});
+            }
         }
         std::vector<Color> selected;
         while (selected.size() < limit) {
@@ -112,13 +132,14 @@ class Histogram {
             for (const auto& sample : candidates) {
                 float d = sample.lab[1]*sample.lab[1] + sample.lab[2]*sample.lab[2];
                 if (!selected.empty()) {
-                    // Buckets straddling an edge can describe one hue at
-                    // different brightness/chroma. Prefer another hue family
-                    // over spending a channel on that family's baked shadow.
+                    // Merge nearby hue/chroma candidates rather than spending
+                    // a channel on baked shadows. A supported chroma accent
+                    // may still share a hue with a muted material.
                     const float angle = std::atan2(sample.lab[2], sample.lab[1]);
                     if (std::any_of(selected.begin(), selected.end(), [&](const Color& center) {
                         const float difference = std::abs(std::remainder(angle - std::atan2(center[2], center[1]), 2*pi));
-                        return difference < pi/12; // 15 degrees, independent of hue.
+                        const float chroma_difference = std::abs(std::hypot(sample.lab[1], sample.lab[2]) - std::hypot(center[1], center[2]));
+                        return difference < pi/12 && chroma_difference < accent_chroma_gap;
                     })) continue;
                     d = 100;
                     for (const auto& center : selected) d = std::min(d, distance(sample.lab, center));

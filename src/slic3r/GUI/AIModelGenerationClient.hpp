@@ -144,6 +144,15 @@ public:
         std::string              confidence;
     };
 
+    struct GenerationOptions
+    {
+        std::string provider { "tripo" };
+        int face_limit { 1000000 };
+        std::string geometry_quality { "standard" };
+        std::string texture_quality { "standard" };
+        std::string output_format { "glb" };
+    };
+
     struct JobStatus
     {
         std::string id;
@@ -154,8 +163,9 @@ public:
         std::string prepared_prompt;
         std::string user_prompt;
         int         progress { 0 };
-        int         face_limit { 2000000 };
+        int         face_limit { 1000000 };
         std::string generation_profile { "quality" };
+        GenerationOptions generation_options;
         std::string style;
         std::string custom_style;
         size_t      palette_color_count { Slic3r::AI::kLegacyDefaultTargetPaletteColors };
@@ -224,32 +234,36 @@ public:
                           bool palette_recommendation_confirmed,
                           const std::string& style, const std::string& custom_style,
                           const ImagePrintSettings& print_settings,
-                          StatusFn on_complete, ErrorFn on_error);
+                          StatusFn on_complete, ErrorFn on_error, const GenerationOptions& options);
     void preprocess_image(const std::string& request_id, const std::string& instruction,
                            const boost::filesystem::path& image_path, const std::vector<std::string>& palette,
                            const PaletteRoles& palette_roles, bool palette_recommendation_confirmed,
                            const std::string& style, const std::string& custom_style,
                            const ImagePrintSettings& print_settings,
-                           StatusFn on_complete, ErrorFn on_error);
+                           StatusFn on_complete, ErrorFn on_error, const GenerationOptions& options);
     void recommend_text_palette(const std::string& request_id, const std::string& prompt,
                                 const std::string& style, const std::string& custom_style,
                                 size_t palette_color_count,
                                 const ImagePrintSettings& print_settings,
-                                StatusFn on_complete, ErrorFn on_error, bool generate_image = false);
+                                StatusFn on_complete, ErrorFn on_error, bool generate_image,
+                                const GenerationOptions& options);
     void recommend_image_palette(const std::string& request_id, const std::string& instruction,
                                  const boost::filesystem::path& image_path,
                                  const std::string& style, const std::string& custom_style,
                                  size_t palette_color_count,
                                  const ImagePrintSettings& print_settings,
-                                 StatusFn on_complete, ErrorFn on_error, bool generate_image = false);
+                                 StatusFn on_complete, ErrorFn on_error, bool generate_image,
+                                 const GenerationOptions& options);
     void recommend_image_style(const std::string& prompt,
                                const boost::filesystem::path& image_path,
                                StyleRecommendationFn on_complete, ErrorFn on_error);
     void confirm_palette(const std::string& job_id, const std::vector<std::string>& palette,
                          const PaletteRoles& palette_roles, StatusFn on_complete, ErrorFn on_error);
     void generate(const std::string& job_id, const std::string& prepared_prompt,
-                  const std::vector<std::string>& palette, const std::string& generation_profile,
+                  const std::vector<std::string>& palette, const GenerationOptions& options,
                   StatusFn on_complete, ErrorFn on_error);
+    void update_generation_options(const std::string& job_id, const GenerationOptions& options,
+                                   StatusFn on_complete, ErrorFn on_error);
     void retexture(const std::string& reference_job_id, const std::string& geometry_job_id,
                    StatusFn on_complete, ErrorFn on_error);
     void get_status(const std::string& job_id, StatusFn on_complete, ErrorFn on_error);
@@ -281,7 +295,7 @@ private:
 
     std::string url(const std::string& path) const;
     void post_json(const std::string& path, const json& body, StatusFn on_complete, ErrorFn on_error,
-                   long timeout_seconds = 130);
+                   long timeout_seconds = 130, bool preserve_downloads = false);
     void parse_status_response(std::string body, StatusFn on_complete, ErrorFn on_error);
     static std::optional<JobStatus> parse_job(const json& job);
     static json serialize_print_settings(const ImagePrintSettings& settings);

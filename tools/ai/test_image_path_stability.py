@@ -139,8 +139,7 @@ class ImagePathStabilityTests(unittest.TestCase):
                     def generate_sculpture(_instruction, destination, *_args, **_kwargs):
                         write_preview(Path(destination))
 
-                    with mock.patch.object(sidecar, "preprocess_text", return_value="single-color sculpture"), \
-                         mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=generate_sculpture):
+                    with mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=generate_sculpture):
                         sidecar._preprocess_text_job(sculpture_job, "一个人物雕塑")
                     self.assertEqual(sculpture_job.state, "awaiting_confirmation")
                     self.assertIsNotNone(sculpture_job.preview_path)
@@ -156,8 +155,7 @@ class ImagePathStabilityTests(unittest.TestCase):
                     def generate(_instruction, destination, *_args, **_kwargs):
                         write_preview(Path(destination))
 
-                    with mock.patch.object(sidecar, "preprocess_text", return_value="printable subject"), \
-                         mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=generate):
+                    with mock.patch.object(sidecar, "generate_geometry_reference_image", side_effect=generate):
                         sidecar._preprocess_text_job(text_job, "一个写实摆件")
                     self.assertEqual(text_job.state, "awaiting_confirmation")
                     self.assertEqual(text_job.palette, ())

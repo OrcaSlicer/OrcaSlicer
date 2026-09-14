@@ -39,6 +39,7 @@ from color_intent import (
     write_color_intent_manifest,
 )
 from network_policy import network_diagnostics
+from glb_artifact import Glb, GlbError, prepare_generated_glb, write_analysis_obj
 
 from openai_preprocessor import (
     IDENTITY_FIRST_PORTRAIT_STYLES,
@@ -50,7 +51,6 @@ from openai_preprocessor import (
     image_provider_status,
     PORTRAIT_FACE_LOCK_FILENAME,
     preprocess_image,
-    preprocess_text,
     recommend_printable_palette,
 )
 from printable_image_pipeline import (
@@ -110,6 +110,7 @@ from model_provider_gateway import (
     provider_policy,
 )
 from model_refinement import build_model_refinement_advice
+from hunyuan_provider_gateway import HunyuanModelProviderGateway, validate_options as validate_hunyuan_options
 from printable_model_quality import (
     GATE_VERSION as MODEL_QUALITY_GATE_VERSION,
     ModelQualityError,
@@ -128,9 +129,14 @@ from printable_palette import (
     assign_palette_roles,
     normalize_palette_color_count,
 )
-from tripo_client import TripoError
+from tripo_client import TripoError, validate_generation_options
 
 _MODEL_PROVIDER_GATEWAY = ModelProviderGateway()
+_HUNYUAN_PROVIDER_GATEWAY = HunyuanModelProviderGateway()
+
+
+def _model_gateway(provider: str):
+    return _HUNYUAN_PROVIDER_GATEWAY if provider == "hunyuan" else _MODEL_PROVIDER_GATEWAY
 
 HOST = os.environ.get("ORCASLICER_AI_SIDECAR_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ORCASLICER_AI_SIDECAR_PORT", "18764"))
@@ -159,7 +165,7 @@ MODEL_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
 DEFAULT_MODEL_FACE_LIMIT = 300000
 GENERATION_PROFILES = ("quality", "performance")
 DEFAULT_GENERATION_PROFILE = "quality"
-GENERATION_PROFILE_FACE_LIMITS = {"quality": 2000000, "performance": 300000}
+GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 MAX_GENERATION_ATTEMPTS = 1
 JOB_STATE_FILENAME = "job.json"
 JOB_STATE_VERSION = 1
@@ -219,7 +225,7 @@ PORTRAIT_HEAD_GEOMETRY_MAX_SUBJECT_OCCUPANCY = 0.96
 PORTRAIT_REAR_PLATE_MIN_RUN_RATIO = 0.60
 PORTRAIT_REAR_PLATE_MAX_START_RATIO = 0.15
 DEFAULT_MODEL_SIZE_MM = 100.0
-MODEL_ARTIFACT_FORMAT = "obj"
+MODEL_ARTIFACT_FORMAT = "glb"
 MODEL_QUALITY_FILENAME = "model-quality.json"
 STYLE_IDS = (
     "sculpture", "realistic", "portrait_sketch", "cartoon", "low_poly", "relief", "ink_relief", "diorama", "custom",
@@ -458,6 +464,10 @@ class Job:
     custom_style: str = ""
     face_limit: int = DEFAULT_MODEL_FACE_LIMIT
     generation_profile: str = DEFAULT_GENERATION_PROFILE
+    geometry_quality: str | None = None
+    texture_quality: str = "standard"
+    output_format: str = "glb"
+    provider: str = "tripo"
     user_prompt: str = ""
     prepared_prompt: str = ""
     input_path: Path | None = None
@@ -896,6 +906,30 @@ def _normalize_generation_profile(value: Any) -> str:
     return value
 
 
+def _generation_options(payload: dict[str, Any], face_limit: int) -> tuple[str | None, str, str]:
+    provider = _generation_provider(payload)
+    geometry = payload.get("geometry_quality")
+    texture = payload.get("texture_quality", "standard")
+    output = payload.get("output_format", "glb")
+    try:
+        if provider == "hunyuan":
+            validate_hunyuan_options(face_limit, geometry, texture)
+        else:
+            validate_generation_options(face_limit, geometry, texture)
+    except (TripoError, ProviderGatewayError) as exc:
+        raise RequestError("invalid_generation_options", str(exc), 400) from None
+    if output not in ("glb", "obj"):
+        raise RequestError("invalid_generation_options", "Output format must be glb or obj.", 400)
+    return geometry, texture, output
+
+
+def _generation_provider(payload: dict[str, Any]) -> str:
+    provider = payload.get("provider", "tripo")
+    if not isinstance(provider, str) or provider not in ("tripo", "hunyuan"):
+        raise RequestError("invalid_provider", "Provider must be tripo or hunyuan.", 400)
+    return provider
+
+
 def _validate_face_target(face_count: int, face_limit: int) -> str:
     maximum = min(MAX_MODEL_FACES, math.ceil(face_limit * MAX_MODEL_FACE_RATIO))
     if face_count > maximum:
@@ -1006,7 +1040,15 @@ def _new_job(
     custom_style: str = "",
     print_settings: dict[str, Any] | None = None,
     palette_color_count: int | None = None,
+    provider: str = "tripo",
+    generation_options: dict[str, Any] | None = None,
 ) -> Job:
+    options = dict(generation_options or {}, provider=provider)
+    face_limit = options.get("face_limit", DEFAULT_MODEL_FACE_LIMIT)
+    if isinstance(face_limit, str) and len(face_limit) <= 7 and face_limit.isascii() and face_limit.isdecimal():
+        face_limit = int(face_limit)
+    face_limit = _normalize_face_limit(face_limit)
+    geometry, texture, output = _generation_options(options, face_limit)
     job_id = str(uuid.uuid4())
     output_root = _model_output_root()
     directory = output_root / job_id
@@ -1026,6 +1068,12 @@ def _new_job(
         style=style,
         custom_style=custom_style,
         print_settings=print_settings or asdict(PrintSettings()),
+        provider=provider,
+        face_limit=face_limit,
+        generation_profile="quality" if face_limit >= 500000 else "performance",
+        geometry_quality=geometry,
+        texture_quality=texture,
+        output_format=output,
     )
     _persist_job(job)
     return job
@@ -1071,7 +1119,7 @@ def _copy_job_file(source: Path | None, job: Job, name: str) -> Path | None:
         ) from None
 
 
-def _persist_job(job: Job, *, touch: bool = True) -> None:
+def _persist_job(job: Job, *, touch: bool = True, required: bool = False) -> None:
     if touch:
         job.updated_at = time.time()
     payload = {
@@ -1090,6 +1138,10 @@ def _persist_job(job: Job, *, touch: bool = True) -> None:
         "custom_style": job.custom_style,
         "face_limit": job.face_limit,
         "generation_profile": job.generation_profile,
+        "geometry_quality": job.geometry_quality,
+        "texture_quality": job.texture_quality,
+        "output_format": job.output_format,
+        "provider": job.provider,
         "user_prompt": "" if job.source == "image" and job.user_prompt == DEFAULT_IMAGE_INSTRUCTION else job.user_prompt,
         "prepared_prompt": job.prepared_prompt,
         "input_path": _job_path_value(job, job.input_path),
@@ -1130,6 +1182,8 @@ def _persist_job(job: Job, *, touch: bool = True) -> None:
             temporary.unlink(missing_ok=True)
         except OSError:
             pass
+        if required:
+            raise TripoError("The job state could not be saved.") from None
 
 
 def _load_job(directory: Path) -> Job | None:
@@ -1153,6 +1207,7 @@ def _load_job(directory: Path) -> Job | None:
         style = _normalize_style(payload.get("style"))
         custom_style = _normalize_custom_style(payload.get("custom_style"), style)
         face_limit = _normalize_face_limit(payload.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
+        geometry_quality, texture_quality, output_format = _generation_options(payload, face_limit)
         raw_generation_profile = payload.get("generation_profile")
         generation_profile = _normalize_generation_profile(raw_generation_profile) if raw_generation_profile is not None else \
             ("quality" if face_limit >= 500000 else "performance")
@@ -1176,6 +1231,10 @@ def _load_job(directory: Path) -> Job | None:
         custom_style=custom_style,
         face_limit=face_limit,
         generation_profile=generation_profile,
+        geometry_quality=geometry_quality,
+        texture_quality=texture_quality,
+        output_format=output_format,
+        provider=_generation_provider(payload),
         print_settings=print_settings,
     )
     job.state = str(payload.get("state", "failed"))
@@ -1328,13 +1387,22 @@ def _restore_jobs(*, resume_jobs: bool = True) -> list[Job]:
                 "reason": "legacy_prepaid_multiview_failure",
                 "paid_task_created": False,
             }
+        if _can_manually_retry_hunyuan(job):
+            job.state = "awaiting_confirmation"
+            job.phase = "model_retry"
+            job.message = "The previous Hunyuan submission was rejected. Review the saved design and explicitly confirm a new paid submission."
+            job.progress = 15
         recoverable_error = str(latest_attempt.get("error", "")).lower()
         can_retry_download = (
             job.state == "failed"
             and isinstance(latest_attempt.get("generation_task_id"), str)
             and bool(latest_attempt.get("generation_task_id"))
-            and isinstance(latest_attempt.get("conversion_task_id"), str)
-            and bool(latest_attempt.get("conversion_task_id"))
+            and (
+                (isinstance(latest_attempt.get("conversion_task_id"), str)
+                 and bool(latest_attempt.get("conversion_task_id")))
+                or (job.provider == "tripo" and job.output_format == "glb"
+                    and not latest_attempt.get("conversion_submission_started"))
+            )
             and (any(marker in recoverable_error for marker in (
                 "unsafe artifact location",
                 "invalid obj package",
@@ -1351,6 +1419,12 @@ def _restore_jobs(*, resume_jobs: bool = True) -> list[Job]:
             job.phase = "resuming"
             job.message = "Retrying the existing remote artifact download after restart."
             job.progress = max(75, job.progress)
+        if (job.provider == "hunyuan" and job.state == "failed" and has_paid_model_task
+                and latest_attempt.get("provider_error_retryable") is True
+                and latest_attempt.get("provider_error_ambiguous") is not True):
+            job.state = "queued"
+            job.phase = "resuming"
+            job.message = "Resuming the existing Hunyuan task after a temporary query or download failure."
         if job.state in {"preprocessing", "recommending_palette"}:
             job.state = "failed"
             job.phase = "failed"
@@ -1433,7 +1507,7 @@ def _adopt_legacy_completed_job(job_id: str) -> Job | None:
     job.message = "Recovered historical model library entry."
     job.progress = 100
     job.artifact_path = artifact
-    job.artifact_format = MODEL_ARTIFACT_FORMAT
+    job.artifact_format = "obj"  # This adoption path is for legacy OBJ jobs.
     attempts_path = directory / "attempts.json"
     try:
         if attempts_path.is_file() and attempts_path.stat().st_size <= MAX_JOB_STATE_BYTES:
@@ -1527,7 +1601,7 @@ def _public_job(job: Job) -> dict[str, Any]:
         {},
     )
     provider_tasks = {
-        "provider": "tripo",
+        "provider": job.provider,
         "generation_task_id": str(provider_attempt.get("generation_task_id", "")),
         "conversion_task_id": str(provider_attempt.get("conversion_task_id", "")),
     } if provider_attempt else {}
@@ -1554,6 +1628,10 @@ def _public_job(job: Job) -> dict[str, Any]:
         "custom_style": job.custom_style,
         "face_limit": job.face_limit,
         "generation_profile": job.generation_profile,
+        "geometry_quality": job.geometry_quality,
+        "texture_quality": job.texture_quality,
+        "output_format": job.output_format,
+        "provider": job.provider,
         "state": job.state,
         "phase": job.phase,
         "message": job.message,
@@ -1605,7 +1683,7 @@ def _public_job(job: Job) -> dict[str, Any]:
         "artifact": {
             "ready": artifact_ready,
             "format": job.artifact_format if artifact_ready else "",
-            "color_encoding": "vertex_colors" if artifact_ready and job.artifact_format == "obj" else "",
+            "color_encoding": ("textures_or_vertex_colors" if job.artifact_format == "glb" else "vertex_colors") if artifact_ready else "",
             "filename": artifact_filename,
             "size_bytes": artifact_size if artifact_ready else 0,
             "color_intent": {
@@ -1744,7 +1822,7 @@ def _apply_printable_image_pipeline(job: Job, raw_preview: Path) -> dict[str, in
 
 
 def _write_job_color_intent(job: Job, artifact: Path) -> None:
-    if not job.palette:
+    if not job.palette or artifact.suffix.lower() == ".glb":
         job.color_intent_path, job.color_intent_schema, job.color_intent_sha256 = None, "", ""
         return
     appearance = job.raw_preview_path or job.model_reference_path
@@ -3771,7 +3849,7 @@ def _preprocess_text_job(job: Job, prompt: str) -> None:
     try:
         _stop_boundary(job)
         prepared = _generation_prompt(
-            preprocess_text(prompt, (), job.style, job.custom_style),
+            prompt,
             job.palette,
             max_prompt_bytes=MAX_PROMPT_BYTES,
             constrain_palette=False,
@@ -6112,7 +6190,7 @@ def _promote_attempt_artifact(candidate: Path, artifact: Path) -> None:
     try:
         if candidate.resolve() != artifact.resolve():
             shutil.copyfile(candidate, artifact)
-        for filename in (MODEL_QUALITY_FILENAME, "vertex-color-metrics.json"):
+        for filename in (MODEL_QUALITY_FILENAME, "vertex-color-metrics.json", "analysis-model.obj", "provider-model.glb"):
             source = candidate.parent / filename
             destination = artifact.parent / filename
             if not source.is_file() or source.resolve() == destination.resolve():
@@ -6170,6 +6248,84 @@ def _refresh_stale_face_limit_report(path: Path, palette: tuple[str, ...]) -> No
         raise TripoError(str(exc)) from None
 
 
+def _analysis_artifact(artifact: Path) -> Path:
+    if artifact.suffix.lower() != ".glb":
+        return artifact
+    analysis = artifact.parent / "analysis-model.obj"
+    if not analysis.is_file() or analysis.stat().st_mtime_ns < artifact.stat().st_mtime_ns:
+        try:
+            write_analysis_obj(artifact, analysis)
+        except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+            raise TripoError(f"The GLB could not be read for model checks: {exc}") from None
+    return analysis
+
+
+def _download_generation_artifact(job: Job, generation_id: str, attempt_number: int = 1, resume: bool = False) -> Path:
+    existing = job.attempts[attempt_number - 1] if len(job.attempts) >= attempt_number else {}
+    # GLB consumes the original generation result. OBJ explicitly includes one
+    # basic provider conversion; frozen conversions keep their existing task ID.
+    if job.provider == "tripo" and (existing.get("conversion_task_id") or job.output_format == "obj"):
+        return _download_conversion(job, generation_id, "obj", attempt_number, resume)
+    directory = job.directory / f"attempt-{attempt_number:02d}"
+    directory.mkdir(exist_ok=True)
+    candidate = directory / "model.glb"
+    if resume and candidate.is_file():
+        try:
+            _validate_artifact(candidate, "glb")
+            _analysis_artifact(candidate)
+            return candidate
+        except TripoError:
+            diagnostic_event("model.glb_cache.invalid", level="WARNING")
+    with _JOBS_LOCK:
+        job.phase = "downloading_artifact"
+        job.message = "Downloading the generated model."
+        job.progress = 75
+        _persist_job(job)
+    gateway = _model_gateway(job.provider)
+    result = gateway.wait_for_task(generation_id, stop_event=job.stop_event)
+    _stop_boundary(job)
+    raw = directory / "artifact-raw.download"
+    if job.provider == "hunyuan":
+        gateway.download_artifact(result, raw, MAX_ARTIFACT_BYTES, output_format=job.output_format)
+    else:
+        gateway.download_artifact(result, raw, MAX_ARTIFACT_BYTES)
+    _stop_boundary(job)
+    with raw.open("rb") as stream:
+        is_glb = stream.read(4) == b"glTF"
+    if not is_glb:
+        # Retain compatibility with providers/frozen jobs that return OBJ/ZIP.
+        if resume and (directory / "package").exists():
+            # Keep an interrupted extraction intact and retry in a fresh directory.
+            recovery_number = 1
+            while (directory / f"recovery-{recovery_number:02d}").exists():
+                recovery_number += 1
+            directory = directory / f"recovery-{recovery_number:02d}"
+            directory.mkdir(parents=False, exist_ok=False)
+            raw = raw.replace(directory / "artifact-raw.download")
+        return _prepare_obj_artifact(raw, directory, job.palette, job.palette_roles)
+    original = directory / "provider-model.glb"
+    raw.replace(original)
+    analysis = directory / "analysis-model.obj"
+    try:
+        prepare_generated_glb(original, candidate, analysis, DEFAULT_MODEL_SIZE_MM)
+    except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+        raise TripoError(f"The generated GLB could not be prepared: {exc}") from None
+    _stop_boundary(job)
+    with _JOBS_LOCK:
+        job.phase = "checking_model"
+        job.message = "Checking model geometry and colors."
+        job.progress = 99
+        _persist_job(job)
+    quality = analyze_printable_obj(analysis, ModelQualityThresholds(max_faces=MAX_MODEL_FACES),
+                                    allow_repairable_topology=True)
+    try:
+        write_model_quality_report(quality, directory / MODEL_QUALITY_FILENAME)
+    except ModelQualityError:
+        diagnostic_event("model.quality_report.unavailable", level="WARNING")
+    _write_obj_vertex_color_metrics(analysis, directory / "vertex-color-metrics.json")
+    return candidate
+
+
 def _download_conversion(
     job: Job, generation_id: str, format_name: str, attempt_number: int = 1, resume: bool = False
 ) -> Path:
@@ -6179,13 +6335,21 @@ def _download_conversion(
         job.message = f"Converting generated geometry to {format_name.upper()}."
         job.progress = 75
         _persist_job(job)
-    existing = job.attempts[attempt_number - 1] if resume and len(job.attempts) >= attempt_number else {}
+    existing = job.attempts[attempt_number - 1] if len(job.attempts) >= attempt_number else {}
     conversion_id = existing.get("conversion_task_id", "")
+    if not conversion_id:
+        if job.output_format != "obj" or existing.get("conversion_submission_started"):
+            raise TripoError("Conversion submission has no confirmed task ID; it will not be submitted again.")
+        _stop_boundary(job)
+        # Persist before the paid POST. An interrupted response must never create
+        # another conversion during recovery, even if the server accepted it.
+        _record_attempt(job, attempt_number, conversion_submission_started=True)
+        _persist_job(job, required=True)
     conversion_ref = _MODEL_PROVIDER_GATEWAY.start_or_reuse_conversion(
         generation_id,
         format_name,
         existing_task_id=conversion_id if isinstance(conversion_id, str) else "",
-        allow_create=True,
+        allow_create=job.output_format == "obj" and not conversion_id,
     )
     conversion_id = conversion_ref.task_id
     if not conversion_ref.reused:
@@ -7485,6 +7649,11 @@ def _validate_artifact(path: Path, format_name: str, allow_repairable_obj: bool 
     if format_name == "obj":
         _validate_obj_vertex_colors(path)
         _validate_obj_topology(path, allow_repairable=allow_repairable_obj, quality_advisory=True)
+    if format_name == "glb":
+        try:
+            Glb(path).mesh(with_colors=False)
+        except (GlbError, OSError, ValueError, KeyError, TypeError) as exc:
+            raise TripoError(f"The generated GLB is invalid: {exc}") from None
     if format_name == "3mf" and not signature.startswith(b"PK\x03\x04"):
         raise TripoError("Tripo returned an invalid 3MF artifact.")
     if format_name == "stl":
@@ -7495,6 +7664,21 @@ def _validate_artifact(path: Path, format_name: str, allow_repairable_obj: bool 
     return size
 
 
+def _can_manually_retry_hunyuan(job: Job) -> bool:
+    """A confirmed rejection may be retried only by a new user confirmation."""
+    return (
+        job.provider == "hunyuan" and (job.state == "failed" or
+            (job.state == "awaiting_confirmation" and job.phase == "model_retry")) and bool(job.attempts)
+        and all(attempt.get("status") == "rejected"
+                and attempt.get("provider") == "hunyuan"
+                and attempt.get("provider_error_category") == "validation"
+                and attempt.get("provider_error_ambiguous") is False
+                and not attempt.get("generation_task_id")
+                and not attempt.get("conversion_task_id") for attempt in job.attempts)
+        and _model_generation_reference(job) is not None
+    )
+
+
 def _generate_job(
     job: Job,
     prepared_prompt: str,
@@ -7502,17 +7686,22 @@ def _generate_job(
     authorization: PaidTaskAuthorization | None = None,
 ) -> None:
     _use_unrestricted_creation(job)
+    gateway = _model_gateway(job.provider)
     active_attempt = 0
     try:
         artifact: Path | None = None
         last_quality_error: TripoError | ProviderGatewayError | None = None
-        for attempt_number in range(1, MAX_GENERATION_ATTEMPTS + 1):
+        first_attempt = 1
+        if job.provider == "hunyuan" and job.attempts:
+            first_attempt = len(job.attempts) if resume else len(job.attempts) + 1
+        last_attempt = first_attempt + MAX_GENERATION_ATTEMPTS - 1
+        for attempt_number in range(first_attempt, last_attempt + 1):
             active_attempt = attempt_number
             _stop_boundary(job)
             with _JOBS_LOCK:
                 job.state = "running"
                 job.phase = "generating"
-                job.message = f"Generating printable model (attempt {attempt_number} of {MAX_GENERATION_ATTEMPTS})."
+                job.message = f"Generating printable model (attempt {attempt_number} of {last_attempt})."
                 job.progress = 20
                 _persist_job(job)
             existing = job.attempts[attempt_number - 1] if resume and len(job.attempts) >= attempt_number else {}
@@ -7551,19 +7740,19 @@ def _generate_job(
                         f"The generated image is not suitable for 3D input: {exc}",
                         code="invalid_model_request",
                         category="validation",
-                        provider="tripo",
+                        provider=job.provider,
                         operation="model_generation",
                     ) from None
             with _JOBS_LOCK:
                 job.phase = "generating"
                 job.message = (
                     f"Generating the high-quality portrait from four views (attempt {attempt_number} of "
-                    f"{MAX_GENERATION_ATTEMPTS})."
+                    f"{last_attempt})."
                     if request_source == "multiview"
                     else f"Generating identity-first portrait geometry from the approved front view (attempt {attempt_number} of "
-                    f"{MAX_GENERATION_ATTEMPTS})."
+                    f"{last_attempt})."
                     if identity_geometry
-                    else f"Generating printable model (attempt {attempt_number} of {MAX_GENERATION_ATTEMPTS})."
+                    else f"Generating printable model (attempt {attempt_number} of {last_attempt})."
                 )
                 job.progress = 20
                 _persist_job(job)
@@ -7573,19 +7762,21 @@ def _generate_job(
                         "Explicit confirmation is required before creating a paid model task.",
                         code="authorization_required",
                         category="authorization",
-                        provider="tripo",
+                        provider=job.provider,
                         operation="model_generation",
                     )
                 _record_attempt(
                     job,
                     attempt_number,
-                    provider="tripo",
+                    provider=job.provider,
                     provider_operation="model_generation",
                     provider_request_id=authorization.request_id,
+                    provider_model="hy-3d-3.1" if job.provider == "hunyuan" else "",
                     status="creating",
                     error="",
                 )
-            task_ref = _MODEL_PROVIDER_GATEWAY.start_or_reuse_model_task(
+                _persist_job(job, required=True)
+            task_ref = gateway.start_or_reuse_model_task(
                 ModelTaskRequest(
                     source=request_source,
                     prompt=prepared_prompt,
@@ -7593,6 +7784,9 @@ def _generate_job(
                     image_paths=multiview_paths,
                     face_limit=job.face_limit,
                     generation_profile=job.generation_profile,
+                    geometry_quality=job.geometry_quality,
+                    texture_quality=job.texture_quality,
+                    output_format=job.output_format,
                 ),
                 existing_task_id=generation_id,
                 authorization=authorization,
@@ -7601,19 +7795,18 @@ def _generate_job(
             if not task_ref.reused:
                 _record_attempt(job, attempt_number, generation_task_id=generation_id, status="running")
             _stop_boundary(job)
-            _MODEL_PROVIDER_GATEWAY.wait_for_task(
+            gateway.wait_for_task(
                 generation_id,
                 stop_event=job.stop_event,
                 progress=_progress_callback(job, 20, 70),
             )
             _stop_boundary(job)
             try:
-                candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number, True) if resume else \
-                    _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, attempt_number)
-                face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+                candidate = _download_generation_artifact(job, generation_id, attempt_number, resume)
+                face_count, _, _ = _validate_obj_topology(_analysis_artifact(candidate), quality_advisory=True)
                 warning = _validate_face_target(face_count, job.face_limit)
                 job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
-                artifact = job.directory / "model-vertex-color.obj"
+                artifact = job.directory / ("model.glb" if candidate.suffix.lower() == ".glb" else "model-vertex-color.obj")
                 _promote_attempt_artifact(candidate, artifact)
                 _record_attempt(job, attempt_number, status="accepted", artifact=str(candidate.name), error="")
                 break
@@ -7634,7 +7827,7 @@ def _generate_job(
                         provider_error_ambiguous=exc.ambiguous,
                     )
                 _record_attempt(job, attempt_number, **updates)
-                if not retryable_quality_error or attempt_number == MAX_GENERATION_ATTEMPTS:
+                if not retryable_quality_error or attempt_number == last_attempt:
                     raise
                 last_quality_error = exc
         if artifact is None:
@@ -7646,7 +7839,7 @@ def _generate_job(
             if job.stop_event.is_set():
                 raise JobStopped()
             job.artifact_path = artifact
-            job.artifact_format = MODEL_ARTIFACT_FORMAT
+            job.artifact_format = artifact.suffix.lower().lstrip(".")
             job.state = "ready"
             job.phase = "ready"
             job.message = (
@@ -7787,7 +7980,7 @@ def _retexture_job(
                 source_task_id=source_task_id,
                 image_path=reference,
                 texture_alignment="geometry",
-                texture_quality="extreme" if job.generation_profile == "quality" else "standard",
+                texture_quality="standard",
             ),
             existing_task_id=generation_id,
             authorization=authorization,
@@ -7802,11 +7995,11 @@ def _retexture_job(
             progress=_progress_callback(job, 20, 70),
         )
         _stop_boundary(job)
-        candidate = _download_conversion(job, generation_id, MODEL_ARTIFACT_FORMAT, 1, resume)
-        face_count, _, _ = _validate_obj_topology(candidate, quality_advisory=True)
+        candidate = _download_generation_artifact(job, generation_id, 1, resume)
+        face_count, _, _ = _validate_obj_topology(_analysis_artifact(candidate), quality_advisory=True)
         warning = _validate_face_target(face_count, job.face_limit)
         job.image_metrics["model_delivery_warnings"] = [warning] if warning else []
-        artifact = job.directory / "model-vertex-color.obj"
+        artifact = job.directory / ("model.glb" if candidate.suffix.lower() == ".glb" else "model-vertex-color.obj")
         _promote_attempt_artifact(candidate, artifact)
         _record_attempt(job, 1, status="accepted", artifact=str(candidate.name), error="")
         visual_quality = _automatic_visual_review(job, artifact)
@@ -7815,7 +8008,7 @@ def _retexture_job(
             if job.stop_event.is_set():
                 raise JobStopped()
             job.artifact_path = artifact
-            job.artifact_format = MODEL_ARTIFACT_FORMAT
+            job.artifact_format = artifact.suffix.lower().lstrip(".")
             job.state = "ready"
             job.phase = "ready"
             job.message = (
@@ -8032,7 +8225,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise RequestError("invalid_multipart", "Nested or invalid multipart data is not supported.", 400)
             name = part.get_param("name", header="content-disposition")
             if name not in {
-                "request_id", "instruction", "palette", "palette_roles", "palette_recommendation_confirmed",
+                "request_id", "instruction", "palette", "palette_roles", "palette_recommendation_confirmed", "provider",
+                "face_limit", "geometry_quality", "texture_quality", "output_format",
                 "palette_color_count", "style", "custom_style", "print", "image", "generate_image",
             } or name in seen:
                 raise RequestError("invalid_multipart", "Multipart fields are unexpected or duplicated.", 400)
@@ -8095,7 +8289,7 @@ class Handler(BaseHTTPRequestHandler):
             parts[1] in {
                 "input", "raw-preview", "strict-preview", "preview", "model-reference", "heatmap", "metadata",
                 "background-mask", "subject-mask", "generate", "retexture", "stop", "artifact", "color-intent",
-                "recheck", "visual-review", "model-view-sheet", "confirm-palette",
+                "recheck", "visual-review", "model-view-sheet", "confirm-palette", "generation-options",
             }
             or re.fullmatch(r"mask-[a-z0-9_]+", parts[1])
         ):
@@ -8143,8 +8337,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             config = os.environ.get("OPENAI_API_KEY", "")
             image_provider = image_provider_status()
-            text_preprocessing = bool(config) or _preprocess_fallback_enabled()
-            generation_preprocessing = text_preprocessing or image_provider["available"]
+            text_preprocessing = image_provider["available"] or _preprocess_fallback_enabled()
+            generation_preprocessing = text_preprocessing
             policy = provider_policy()
             self.send_json(
                 200,
@@ -8173,18 +8367,24 @@ class Handler(BaseHTTPRequestHandler):
                     "capabilities": {
                         "config_proposal": {"available": bool(config)},
                         "model_generation": {
-                            "available": generation_preprocessing and
-                                _MODEL_PROVIDER_GATEWAY.model_generation_available(),
+                            "available": generation_preprocessing and any(
+                                _model_gateway(name).model_generation_available() for name in policy.geometry_providers),
+                            "providers": {name: {"available": _model_gateway(name).model_generation_available()}
+                                          for name in policy.geometry_providers},
                             "sources": ["text", "image"],
                             "styles": list(STYLE_IDS),
-                            "artifact_formats": [MODEL_ARTIFACT_FORMAT],
-                            "face_limits": sorted(set(GENERATION_PROFILE_FACE_LIMITS.values())),
+                            "artifact_formats": ["glb", "obj"],
+                            "face_limits": [300000, 1000000, 2000000],
+                            "geometry_qualities": ["standard", "detailed"],
+                            "texture_qualities": ["standard", "detailed", "extreme"],
+                            "output_formats": ["glb", "obj"],
                             "default_face_limit": GENERATION_PROFILE_FACE_LIMITS[DEFAULT_GENERATION_PROFILE],
                             "generation_profiles": list(GENERATION_PROFILES),
                             "default_generation_profile": DEFAULT_GENERATION_PROFILE,
                             "provider_policy": {
                                 "design_providers": list(policy.design_providers),
                                 "geometry_provider": policy.geometry_provider,
+                                "geometry_providers": list(policy.geometry_providers),
                                 "automatic_fallback": policy.automatic_fallback,
                                 "max_paid_model_tasks_per_confirmation":
                                     policy.max_paid_model_tasks_per_confirmation,
@@ -8322,12 +8522,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
             job_id, action = self._job_route(self.path)
             if not job_id or action not in {
-                "generate", "retexture", "stop", "recheck", "visual-review", "confirm-palette"
+                "generate", "retexture", "stop", "recheck", "visual-review", "confirm-palette", "generation-options"
             }:
                 self._model_error(404, "not_found", "Model job route not found.")
                 return
             if action == "generate":
                 self._generate(job_id)
+            elif action == "generation-options":
+                self._set_generation_options(job_id)
             elif action == "retexture":
                 self._retexture(job_id)
             elif action == "confirm-palette":
@@ -8369,8 +8571,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _create_text_job(self) -> None:
-        if not os.environ.get("OPENAI_API_KEY", "") and not _preprocess_fallback_enabled():
-            raise RequestError("feature_unavailable", "Text preprocessing is not configured.", 503)
+        if not image_provider_status()["available"] and not _preprocess_fallback_enabled():
+            raise RequestError("feature_unavailable", "AI style preview generation is not configured.", 503)
         request = self._read_model_json()
         _text_field(request.get("request_id"), "request_id")
         prompt = _text_field(request.get("prompt"), "prompt")
@@ -8379,7 +8581,8 @@ class Handler(BaseHTTPRequestHandler):
         style = _normalize_style(request.get("style"))
         custom_style = _normalize_custom_style(request.get("custom_style"), style)
         print_settings = _normalize_print_settings(request.get("print"))
-        job = _new_job("text", palette, palette_roles, style, custom_style, print_settings)
+        job = _new_job("text", palette, palette_roles, style, custom_style, print_settings,
+                       provider=_generation_provider(request), generation_options=request)
         job.palette_recommendation_confirmed = _boolean_field(
             request.get("palette_recommendation_confirmed"), "palette_recommendation_confirmed"
         )
@@ -8449,7 +8652,8 @@ class Handler(BaseHTTPRequestHandler):
             _validate_image_data(image, minimum_edge=MIN_SOURCE_IMAGE_EDGE)
         except ValueError as exc:
             raise RequestError("invalid_image", str(exc), 415) from None
-        job = _new_job("image", palette, palette_roles, style, custom_style, print_settings)
+        job = _new_job("image", palette, palette_roles, style, custom_style, print_settings,
+                       provider=_generation_provider(fields), generation_options=fields)
         job.palette_recommendation_confirmed = palette_recommendation_confirmed
         job.user_prompt = user_instruction
         suffix = ".png" if detected_type == "image/png" else ".jpg"
@@ -8514,6 +8718,36 @@ class Handler(BaseHTTPRequestHandler):
             response = _public_job(job)
         self.send_json(200, {"job": response})
 
+    def _set_generation_options(self, job_id: str) -> None:
+        request = self._read_model_json()
+        if set(request) != {"provider", "face_limit", "geometry_quality", "texture_quality", "output_format"}:
+            raise RequestError("invalid_request", "Complete generation options are required.", 400)
+        provider = _generation_provider(request)
+        face_limit = _normalize_face_limit(request["face_limit"])
+        geometry, texture, output = _generation_options(request, face_limit)
+        with _JOBS_LOCK:
+            job = self._get_job(job_id)
+            if job is None:
+                raise RequestError("job_not_found", "Model job not found.", 404)
+            retry_design = _can_manually_retry_hunyuan(job)
+            if (job.state != "awaiting_confirmation" or job.attempts) and not retry_design:
+                raise RequestError("invalid_job_state", "Only an unsubmitted design can change generation options.", 409)
+            if retry_design and provider != job.provider:
+                raise RequestError("invalid_request", "A rejected Hunyuan design must keep its provider for retry.", 409)
+            names = ("provider", "face_limit", "generation_profile", "geometry_quality", "texture_quality", "output_format")
+            previous = tuple(getattr(job, name) for name in names)
+            values = (provider, face_limit, "quality" if face_limit >= 500000 else "performance", geometry, texture, output)
+            for name, value in zip(names, values):
+                setattr(job, name, value)
+            try:
+                _persist_job(job, required=True)
+            except TripoError:
+                for name, value in zip(names, previous):
+                    setattr(job, name, value)
+                raise RequestError("state_save_failed", "Generation options could not be saved.", 503, True) from None
+            response = _public_job(job)
+        self.send_json(200, {"job": response})
+
     def _generate(self, job_id: str) -> None:
         request = self._read_model_json()
         if "prepared_prompt" not in request:
@@ -8526,15 +8760,20 @@ class Handler(BaseHTTPRequestHandler):
         job = self._get_job(job_id)
         if job is None:
             raise RequestError("job_not_found", "Model job not found.", 404)
-        if "generation_profile" in request:
+        if "generation_profile" in request and "face_limit" not in request:
             generation_profile = _normalize_generation_profile(request.get("generation_profile"))
             face_limit = GENERATION_PROFILE_FACE_LIMITS[generation_profile]
         else:
             face_limit = _normalize_face_limit(request.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
             generation_profile = "quality" if face_limit >= 500000 else "performance"
+        geometry_quality, texture_quality, output_format = _generation_options(request, face_limit)
+        provider = _generation_provider(request)
         with _JOBS_LOCK:
-            if job.state != "awaiting_confirmation":
+            manual_retry = _can_manually_retry_hunyuan(job)
+            if job.state != "awaiting_confirmation" and not manual_retry:
                 raise RequestError("invalid_job_state", "Job is not awaiting confirmation.", 409)
+            if manual_retry and provider != job.provider:
+                raise RequestError("invalid_request", "A rejected Hunyuan design must keep its provider for retry.", 409)
             _use_unrestricted_creation(job)
             prepared_prompt = raw_prompt.strip()
             reference = _model_generation_reference(job)
@@ -8554,12 +8793,17 @@ class Handler(BaseHTTPRequestHandler):
                         409,
                     ) from None
                 _assess_reference_advice(job)
-            if not _MODEL_PROVIDER_GATEWAY.model_generation_available():
+            if not _model_gateway(provider).model_generation_available():
                 raise RequestError("feature_unavailable", "Model generation is not configured.", 503)
-            authorization = PaidTaskAuthorization.confirmed(f"{job.id}:model:1")
+            next_attempt = len(job.attempts) + 1 if provider == "hunyuan" else 1
+            authorization = PaidTaskAuthorization.confirmed(f"{job.id}:model:{next_attempt}", provider)
+            job.provider = provider
             job.prepared_prompt = prepared_prompt if job.source == "text" else ""
             job.face_limit = face_limit
             job.generation_profile = generation_profile
+            job.geometry_quality = geometry_quality
+            job.texture_quality = texture_quality
+            job.output_format = output_format
             job.state = "queued"
             job.phase = "generating"
             job.message = "Generation queued."
@@ -8570,8 +8814,8 @@ class Handler(BaseHTTPRequestHandler):
             _submit(job, _generate_job, prepared_prompt, False, authorization)
         except RequestError:
             with _JOBS_LOCK:
-                job.state = "awaiting_confirmation"
-                job.phase = "awaiting_confirmation"
+                job.state = "failed" if manual_retry else "awaiting_confirmation"
+                job.phase = job.state
                 job.message = "Review the prepared request before generation."
                 job.progress = 15
                 _persist_job(job)
@@ -8605,6 +8849,9 @@ class Handler(BaseHTTPRequestHandler):
             geometry_job = _adopt_legacy_completed_job(geometry_job_id)
         if reference_job is None or geometry_job is None:
             raise RequestError("job_not_found", "The reference or geometry model job was not found.", 404)
+        if geometry_job.provider != "tripo":
+            raise RequestError("unsupported_provider_operation",
+                               "Hunyuan history does not support preserved-geometry texturing.", 400)
         with _JOBS_LOCK:
             if reference_job.state not in {"awaiting_confirmation", "ready"}:
                 raise RequestError(
@@ -8660,6 +8907,9 @@ class Handler(BaseHTTPRequestHandler):
             child.prepared_prompt = reference_job.prepared_prompt
             child.face_limit = geometry_job.face_limit
             child.generation_profile = geometry_job.generation_profile
+            child.geometry_quality = geometry_job.geometry_quality
+            child.texture_quality = geometry_job.texture_quality
+            child.output_format = geometry_job.output_format
             child.palette_recommendation = json.loads(json.dumps(reference_job.palette_recommendation))
             child.palette_recommendation_confirmed = reference_job.palette_recommendation_confirmed
             child.image_metrics = json.loads(json.dumps(reference_job.image_metrics))
@@ -8747,7 +8997,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise RequestError("invalid_job_state", "Model quality cannot be checked while the job is running.", 409)
             artifact = job.artifact_path
             artifact_format = job.artifact_format
-        if artifact is None or artifact_format != "obj":
+        if artifact is None or artifact_format not in {"obj", "glb"}:
             raise RequestError("artifact_not_ready", "The model OBJ is not available for quality checking.", 409)
         try:
             resolved_artifact = artifact.resolve(strict=True)
@@ -8755,7 +9005,7 @@ class Handler(BaseHTTPRequestHandler):
         except (OSError, ValueError):
             raise RequestError("artifact_not_ready", "The registered model OBJ is unavailable.", 409) from None
         quality = analyze_printable_obj(
-            resolved_artifact,
+            _analysis_artifact(resolved_artifact),
             allow_repairable_topology=True,
             target_palette=job.palette,
         )
@@ -8784,7 +9034,7 @@ class Handler(BaseHTTPRequestHandler):
             if job.state in {"preprocessing", "queued", "running", "stopping"}:
                 raise RequestError("job_busy", "Model generation is still running.", 409)
             artifact = job.artifact_path
-        if artifact is None or job.artifact_format != MODEL_ARTIFACT_FORMAT:
+        if artifact is None or job.artifact_format not in {"obj", "glb"}:
             raise RequestError("artifact_not_ready", "The model OBJ is not available for visual review.", 409)
         try:
             resolved_directory = job.directory.resolve(strict=True)
@@ -8801,7 +9051,7 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError):
                 reference = None
         review_model_visual_quality(
-            resolved_artifact,
+            _analysis_artifact(resolved_artifact),
             resolved_directory,
             description=job.user_prompt,
             style=job.style,
@@ -8849,6 +9099,7 @@ class Handler(BaseHTTPRequestHandler):
             content_type = _stored_image_type(path) if kind in image_kinds or kind.startswith("mask-") else \
                 "application/json; charset=utf-8" if kind in {"metadata", "color-intent"} else {
                 "obj": "model/obj",
+                "glb": "model/gltf-binary",
                 "3mf": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
                 "stl": "model/stl",
             }.get(job.artifact_format, "application/octet-stream")

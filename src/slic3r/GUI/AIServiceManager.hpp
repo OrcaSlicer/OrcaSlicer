@@ -15,6 +15,8 @@ namespace GUI {
 
 struct AIServiceAvailability
 {
+    static AIServiceAvailability from_health_response(const std::string& body, bool require_session_protection);
+
     bool        compatible { false };
     bool        transient { false };
     bool        config_proposal_available { false };

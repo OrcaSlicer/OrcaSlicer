@@ -19,14 +19,49 @@
 namespace Slic3r::GUI {
 using namespace ModelGenerationPresentation;
 
+wxWindow* ModelGenerationPanel::build_import_settings(wxWindow* parent)
+{
+    m_import_settings_panel = new wxPanel(parent);
+    m_import_settings_panel->SetBackgroundColour(wxColour(250, 251, 251));
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(section_label(m_import_settings_panel, _L("导入设置")), 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    auto* color_row = new wxBoxSizer(wxHORIZONTAL);
+    color_row->Add(new wxStaticText(m_import_settings_panel, wxID_ANY, _L("颜色处理")),
+                   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_import_color_mode = new wxChoice(m_import_settings_panel, wxID_ANY);
+    m_import_color_mode->Append(_L("完整颜色匹配（支持叠色，推荐）"));
+    m_import_color_mode->Append(_L("自动匹配当前耗材"));
+    m_import_color_mode->Append(_L("单色导入"));
+    m_import_color_mode->Append(_L("简单匹配耗材槽"));
+    m_import_color_mode->SetSelection(0);
+    m_import_color_mode->SetToolTip(
+        _L("默认打开完整颜色匹配窗口，可预览并选择叠色方案后确认导入；自动匹配仅使用当前物理耗材；单色导入忽略模型颜色。"));
+    color_row->Add(m_import_color_mode, 1, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(color_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+
+    auto* source_row = new wxBoxSizer(wxHORIZONTAL);
+    source_row->Add(new wxStaticText(m_import_settings_panel, wxID_ANY, _L("配色来源")),
+                    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_import_color_source = new wxChoice(m_import_settings_panel, wxID_ANY);
+    m_import_color_source->Append(_L("沿用当前试色（如已开启）"));
+    m_import_color_source->Append(_L("从模型原色重新配色"));
+    m_import_color_source->SetSelection(0);
+    m_import_color_source->SetToolTip(_L("未开启试色时，直接从原色开始。重新配色可在匹配窗口调整目标颜色数量；两种方式都保留已保存的局部改色。目标颜色数量不等于实体耗材数量。"));
+    source_row->Add(m_import_color_source, 1, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(source_row, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    m_import_settings_panel->SetSizer(sizer);
+    return m_import_settings_panel;
+}
+
 void ModelGenerationPanel::load_model_preview_async(const boost::filesystem::path& path,
     const std::vector<std::string>& palette,
     std::function<void(size_t, Vec3d, size_t, double)> loaded,
-    std::function<void(std::string)> failed)
+    std::function<void(std::string)> failed, const boost::filesystem::path& metadata_path)
 {
     if (m_shutdown || m_preview_loading) return;
     size_t triangles = 0, colors = 0; Vec3d dimensions;
-    if (m_model_preview->try_load_cached_model(path, palette, triangles, dimensions, colors)) {
+    // Explicit history navigation restores persisted state, not unsaved cached edits.
+    if (metadata_path.empty() && m_model_preview->try_load_cached_model(path, palette, triangles, dimensions, colors)) {
         loaded(triangles, dimensions, colors, 0.0);
         return;
     }
@@ -36,11 +71,11 @@ void ModelGenerationPanel::load_model_preview_async(const boost::filesystem::pat
     const uint64_t sequence = m_sequence;
     wxWeakRef<ModelGenerationPanel> weak(this);
     try {
-        m_preview_worker = std::thread([weak, path, palette, sequence, loaded, failed] {
+        m_preview_worker = std::thread([weak, path, palette, sequence, loaded, failed, metadata_path] {
             const auto start = std::chrono::steady_clock::now();
             auto prepared = std::make_shared<ModelPreview3D::PreparedModel>();
             std::string error;
-            try { ModelPreview3D::prepare_model(path, *prepared, error); }
+            try { ModelPreview3D::prepare_model(path, *prepared, error, {}, metadata_path); }
             catch (const std::exception& e) { error = e.what(); }
             wxGetApp().CallAfter([weak, prepared, palette, sequence, start, loaded, failed, error]() mutable {
                 if (!weak || weak->m_shutdown) return;
@@ -68,16 +103,16 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
 {
     if (!m_ready || m_job_id.empty() || m_shutdown)
         return;
-    if (m_artifact_format != "obj") {
+    if ((m_artifact_format != "obj" && m_artifact_format != "glb")) {
         m_artifact_download_started = false;
-        m_status->SetLabel(_L("只能预览和导入生成的 OBJ 模型。"));
-        m_result_summary->SetLabel(_L("当前生成结果不是受支持的 OBJ 格式。"));
+        m_status->SetLabel(_L("支持预览和导入 OBJ、GLB 模型。"));
+        m_result_summary->SetLabel(_L("当前生成结果不是受支持的 OBJ 或 GLB 格式。"));
         refresh_controls();
         return;
     }
-    if (m_artifact_color_encoding != "vertex_colors") {
+    if (m_artifact_format == "obj" && m_artifact_color_encoding != "vertex_colors") {
         m_artifact_download_started = false;
-        m_status->SetLabel(_L("生成的 OBJ 不包含受支持的顶点颜色。"));
+        m_status->SetLabel(_L("生成的模型不包含受支持的顶点颜色。"));
         m_result_summary->SetLabel(_L("缺少颜色信息，无法继续彩色模型流程。"));
         refresh_controls();
         return;
@@ -87,7 +122,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
     m_color_intent_path.clear();
     m_busy = true;
     update_progress(94, 4, _L("下载模型"));
-    m_status->SetLabel(_L("正在下载并校验生成的 OBJ 模型..."));
+    m_status->SetLabel(_L("正在下载并校验生成的模型..."));
     m_model_stats->SetLabel(_L("正在加载模型..."));
     m_model_preview_message->SetLabel(_L("下载完成后将在此处显示彩色 3D 预览。"));
     refresh_controls();
@@ -105,7 +140,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
                     weak->finish_model_preview_download(path, sequence);
                     return;
                 }
-                weak->m_status->SetLabel(_L("正在校验模型颜色意图与 OBJ 的绑定..."));
+                weak->m_status->SetLabel(_L("正在校验模型颜色意图与模型的绑定..."));
                 weak->m_color_intent_path = temp_path(weak->m_job_id + "-color-intent", "json");
                 weak->m_client.download_color_intent(
                     weak->m_job_id, weak->m_color_intent_schema, weak->m_color_intent_sha256,
@@ -129,7 +164,7 @@ void ModelGenerationPanel::download_model_preview(uint64_t sequence)
                                 return;
                             weak->m_color_intent_path.clear();
                             weak->m_color_intent_schema.clear(); weak->m_color_intent_sha256.clear();
-                            weak->m_result_summary->SetLabel(_L("颜色清单不可用，将使用 OBJ 自身颜色：") + from_u8(error));
+                            weak->m_result_summary->SetLabel(_L("颜色清单不可用，将使用模型自身颜色：") + from_u8(error));
                             weak->finish_model_preview_download(path, sequence);
                         });
                     });
@@ -161,7 +196,7 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
             m_color_intent_path, m_color_intent_schema, m_color_intent_sha256, path)) {
         m_color_intent_path.clear();
         m_color_intent_schema.clear(); m_color_intent_sha256.clear();
-        m_result_summary->SetLabel(_L("颜色清单不匹配，将使用 OBJ 自身颜色继续。"));
+        m_result_summary->SetLabel(_L("颜色清单不匹配，将使用模型自身颜色继续。"));
     }
 
     load_model_preview_async(path, m_job_palette,
@@ -189,7 +224,7 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
     m_result_summary->SetLabel(visual_gate_blocked
         ? _L("模型已可用。外观检查仅作提示，可继续导入或进行本地美颜。")
         : m_color_intent_path.empty()
-            ? _L("模型已下载并通过 OBJ 解析，可继续按旧版兼容方式导入准备页。")
+            ? _L("模型已下载并通过解析，可继续导入准备页。")
             : _L("模型与颜色意图已校验，可继续导入准备页。"));
     const size_t artifact_size = boost::filesystem::file_size(path);
     save_library_entry(artifact_size, triangle_count, dimensions.x(), dimensions.y(),
@@ -206,10 +241,10 @@ void ModelGenerationPanel::finish_model_preview_download(const boost::filesystem
         m_busy = false;
         m_artifact_download_started = false;
         m_model_preview_ready = false;
-        m_status->SetLabel(_L("OBJ 模型解析失败，已保留本地文件。"));
+        m_status->SetLabel(_L("模型解析失败，已保留本地文件。"));
         m_result_summary->SetLabel(_L("无法显示 3D 预览：") + from_u8(error));
         m_model_stats->SetLabel(_L("模型预览不可用"));
-        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的 OBJ 文件。"));
+        m_model_preview_message->SetLabel(_L("请重试下载，或检查 generated_models/downloads 中的模型文件。"));
         refresh_controls();
     });
 }

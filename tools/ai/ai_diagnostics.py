@@ -18,7 +18,7 @@ _JOB_ID: ContextVar[str] = ContextVar("orcaslicer_ai_job_id", default="")
 _WRITE_LOCK = threading.Lock()
 _MAX_TEXT = 500
 _SENSITIVE_TEXT_FIELD = (
-    r"(?:openai[_-]?pro[_-]?api|[A-Za-z0-9_.-]*(?:api[_-]?key|token|secret|password|passwd|pwd|"
+    r"(?:hy3d[_-]?api|openai[_-]?pro[_-]?api|[A-Za-z0-9_.-]*(?:api[_-]?key|token|secret|password|passwd|pwd|"
     r"authorization|cookie|credential|private[_-]?key|session[_-]?proof|nonce)"
     r")"
 )
@@ -40,7 +40,7 @@ _SECRET_PATTERNS = (
     (re.compile(r"(?i)(bearer\s+)[^\s,;]+"), r"\1<redacted>"),
     (
         re.compile(
-            r"(?i)((?:openai[_-]?pro[_-]?api|api[_-]?key|token|secret|password|passwd|pwd|cookie|credential|"
+            r"(?i)((?:hy3d[_-]?api|openai[_-]?pro[_-]?api|api[_-]?key|token|secret|password|passwd|pwd|cookie|credential|"
             r"private[_-]?key|session[_-]?proof|nonce)\s*[:=]\s*)[^\s,;}\]]+"
         ),
         r"\1<redacted>",
@@ -64,6 +64,8 @@ def _is_sensitive_field(value: Any) -> bool:
     if name in {
         "api_key",
         "openai_pro_api",
+        "hy3d_api",
+        "hy3_d_api",
         "token",
         "secret",
         "password",

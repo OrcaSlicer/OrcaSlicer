@@ -89,11 +89,17 @@ class AutoMixSelectPopup;
 // Optional desktop import context. Defaults preserve ordinary Orca imports.
 struct TextureImportOptions {
     size_t initial_target_colors = 0;
+    // Negative keeps the ordinary importer's default (5); AI starts with no
+    // boundary cleanup so small lip/eye regions can be checked before merging.
+    int initial_color_smoothing = -1;
     size_t physical_filament_limit = 0;
     bool preserve_existing_filaments = false;
     bool z_up = false;
     std::vector<std::array<std::size_t, 3>> fixed_palette;
     std::vector<std::array<std::size_t, 3>> fixed_mapping_palette;
+    // Exact source-face targets; empty preserves ordinary color matching.
+    // Nonempty selections preserve input geometry and skip color smoothing.
+    std::vector<std::pair<size_t, std::array<std::size_t, 3>>> face_color_overrides;
 };
 // Lightweight 3D preview panel using wxGLCanvas.
 // Renders: original textured, multi-color, or filament-mapped.
@@ -170,6 +176,7 @@ private:
     std::vector<std::array<float, 3>> m_painted_vertices;
     std::vector<std::array<int, 3>>   m_painted_indices;
     std::vector<std::array<float, 3>> m_face_colors_rgb;
+    std::map<std::array<std::size_t, 3>, std::vector<size_t>> m_face_color_groups;
     std::vector<std::array<float, 3>> m_original_face_colors_rgb;
     std::vector<std::array<float, 3>> m_filament_colors_rgb;
     std::map<std::array<std::size_t, 3>, std::array<float, 3>> m_color_map;

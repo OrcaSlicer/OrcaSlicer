@@ -1,10 +1,11 @@
 [CmdletBinding()]
 param(
-    [string] $BuildDir = 'build-commercial-review',
+    [string] $BuildDir = 'build-validation',
     [string] $OutputDir = 'build\windows-installer',
     [string] $Revision,
     [string] $CMakeExecutable,
     [string] $NsisDir,
+    [string] $SourceManifest,
     [switch] $SkipTargetedTests,
     [switch] $ValidateOnly
 )
@@ -40,16 +41,6 @@ function Resolve-OperatorPath {
     return $fullPath
 }
 
-function Invoke-GitText {
-    param([Parameter(Mandatory = $true)][string[]] $Arguments)
-
-    $lines = @(& git -C $repoRoot @Arguments)
-    if ($LASTEXITCODE -ne 0) {
-        throw "Git command failed: git $($Arguments -join ' ')"
-    }
-    return ($lines -join "`n").Trim()
-}
-
 function Resolve-CMakeExecutable {
     param([string] $ExplicitPath, [string] $CacheText)
 
@@ -82,19 +73,6 @@ function Resolve-CMakeExecutable {
     throw 'CMake was not found. Pass -CMakeExecutable or install CMake/Visual Studio CMake tools.'
 }
 
-$branch = Invoke-GitText -Arguments @('branch', '--show-current')
-if ($branch -ne 'codex/orca-integration-v2') {
-    throw "Internal releases must use codex/orca-integration-v2, not '$branch'."
-}
-$sourceHead = Invoke-GitText -Arguments @('rev-parse', 'HEAD')
-if ($sourceHead -notmatch '^[0-9a-f]{40}$') {
-    throw 'Unable to lock a full Git source identity.'
-}
-$worktreeStatus = Invoke-GitText -Arguments @('status', '--porcelain', '--untracked-files=all')
-if (-not [string]::IsNullOrWhiteSpace($worktreeStatus)) {
-    throw "The source worktree is not clean. Do not package concurrent or uncommitted changes.`n$worktreeStatus"
-}
-
 $buildPath = Resolve-OperatorPath -Path $BuildDir -Label 'Build directory' -RequireContainer
 $cachePath = Join-Path $buildPath 'CMakeCache.txt'
 $cpackPath = Join-Path $buildPath 'CPackConfig.cmake'
@@ -111,10 +89,31 @@ $configuredSource = [System.IO.Path]::GetFullPath($sourceMatch.Groups[1].Value.T
 if (-not [string]::Equals($configuredSource, $repoRoot.TrimEnd('\'), [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "The selected build directory belongs to another checkout: $configuredSource"
 }
+$pythonMatch = [regex]::Match($cacheText, '(?m)^Python3_EXECUTABLE:FILEPATH=(.+)$')
+if (-not $pythonMatch.Success -or -not (Test-Path -LiteralPath $pythonMatch.Groups[1].Value.Trim() -PathType Leaf)) {
+    throw 'The configured Python interpreter is missing from the CMake cache.'
+}
+$sourcePython = $pythonMatch.Groups[1].Value.Trim()
+$sourceArguments = @('-I', (Join-Path $repoRoot 'scripts\package_source_identity.py'), '--root', $repoRoot)
+if (-not [string]::IsNullOrWhiteSpace($SourceManifest)) {
+    $SourceManifest = Resolve-OperatorPath -Path $SourceManifest -Label 'Source manifest' -RequireLeaf
+    $sourceArguments += @('--manifest', $SourceManifest)
+}
+function Get-InternalSourceIdentity {
+    $sourceJson = & $sourcePython @sourceArguments
+    if ($LASTEXITCODE -ne 0) { throw 'Internal source snapshot verification failed.' }
+    return (($sourceJson -join "`n") | ConvertFrom-Json)
+}
+$sourceIdentity = Get-InternalSourceIdentity
+$sourceHead = $sourceIdentity.source_commit
+$branch = $sourceIdentity.source_branch
 
 if ([string]::IsNullOrWhiteSpace($Revision)) {
-    $shortHead = Invoke-GitText -Arguments @('rev-parse', '--short=10', $sourceHead)
+    $shortHead = $sourceHead.Substring(0,10)
     $Revision = "$(Get-Date -Format yyyyMMdd)-$shortHead"
+    if (-not $sourceIdentity.source_clean) {
+        $Revision += "-snapshot-$($sourceIdentity.source_identity_sha256.Substring(0,10))"
+    }
 }
 if ($Revision -notmatch '^[0-9A-Za-z._-]+$') {
     throw "Revision contains unsupported filename characters: $Revision"
@@ -135,6 +134,8 @@ $validationResult = [pscustomobject]@{
     Repository           = $repoRoot
     Branch               = $branch
     SourceCommit         = $sourceHead
+    SourceIdentitySha256  = $sourceIdentity.source_identity_sha256
+    SourceClean          = $sourceIdentity.source_clean
     Revision             = $Revision
     BuildDir             = $buildPath
     OutputDir            = $outputPath
@@ -162,6 +163,9 @@ $packageArguments = @{
 }
 if ($nsisPath) {
     $packageArguments.NsisDir = $nsisPath
+}
+if ($SourceManifest) {
+    $packageArguments.SourceManifest = $SourceManifest
 }
 & (Join-Path $repoRoot 'scripts\package_internal_fast.ps1') @packageArguments
 if ($LASTEXITCODE -ne 0) {
@@ -192,10 +196,9 @@ if (-not $SkipTargetedTests) {
     if ($LASTEXITCODE -ne 0) { throw 'Smart-slicing tests failed.' }
 }
 
-$finalHead = Invoke-GitText -Arguments @('rev-parse', 'HEAD')
-$finalStatus = Invoke-GitText -Arguments @('status', '--porcelain', '--untracked-files=all')
-if ($finalHead -ne $sourceHead -or -not [string]::IsNullOrWhiteSpace($finalStatus)) {
-    throw 'The source branch or worktree changed during packaging. Do not publish this artifact.'
+$finalSourceIdentity = Get-InternalSourceIdentity
+if ($finalSourceIdentity.source_identity_sha256 -ne $sourceIdentity.source_identity_sha256) {
+    throw 'The source snapshot changed during packaging. Do not distribute this artifact.'
 }
 
 $manifestCandidates = @(Get-ChildItem -LiteralPath $outputPath -Filter "*_${Revision}_*.manifest.json" -File |
@@ -205,7 +208,7 @@ if ($manifestCandidates.Count -eq 0) {
 }
 $manifestPath = $manifestCandidates[0].FullName
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.source_commit -ne $sourceHead -or $manifest.package_revision -ne $Revision -or
+if ($manifest.source_commit -ne $sourceHead -or $manifest.source_identity_sha256 -ne $sourceIdentity.source_identity_sha256 -or $manifest.package_revision -ne $Revision -or
     $manifest.distribution_channel -ne 'internal') {
     throw 'The generated manifest does not match the locked source identity and revision.'
 }

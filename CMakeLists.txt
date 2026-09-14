@@ -1337,7 +1337,8 @@ endif()
 
 # Resources install target, configure fhs.hpp on UNIX
 if (WIN32)
-    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources")
+    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources"
+        PATTERN "generated_models" EXCLUDE)
     set(ORCA_AI_PACKAGE_REVISION "local" CACHE STRING "Revision label used by the OrcaSlicer AI installer")
     set(ORCA_AI_DISTRIBUTION_CHANNEL "internal" CACHE STRING "AI distribution channel: internal or commercial")
     set_property(CACHE ORCA_AI_DISTRIBUTION_CHANNEL PROPERTY STRINGS internal commercial)
@@ -1381,6 +1382,7 @@ if (WIN32)
         set(ORCA_AI_SIDECAR_RUNTIME_FILES
             "${CMAKE_SOURCE_DIR}/tools/ai/ai_diagnostics.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/color_intent.py"
+            "${CMAKE_SOURCE_DIR}/tools/ai/glb_artifact.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/model_input_image_quality.py" "${CMAKE_SOURCE_DIR}/tools/ai/model_job_support.py" "${CMAKE_SOURCE_DIR}/tools/ai/model_provider_gateway.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/model_refinement.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/network_policy.py"
@@ -1397,6 +1399,8 @@ if (WIN32)
             "${CMAKE_SOURCE_DIR}/tools/ai/printable_visual_quality.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/sampled_local_thickness.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/tripo_client.py"
+            "${CMAKE_SOURCE_DIR}/tools/ai/hunyuan_client.py"
+            "${CMAKE_SOURCE_DIR}/tools/ai/hunyuan_provider_gateway.py"
             "${CMAKE_SOURCE_DIR}/tools/ai/verify_bundled_runtime.py")
         install(FILES ${ORCA_AI_SIDECAR_RUNTIME_FILES} DESTINATION "./resources/tools/ai")
         install(FILES
@@ -1415,6 +1419,7 @@ elseif (SLIC3R_FHS)
     set(SLIC3R_FHS_RESOURCES "${CMAKE_INSTALL_FULL_DATAROOTDIR}/OrcaSlicer")
     install(DIRECTORY ${SLIC3R_RESOURCES_DIR}/ DESTINATION ${SLIC3R_FHS_RESOURCES}
         PATTERN "*/udev" EXCLUDE
+        PATTERN "generated_models" EXCLUDE
     )
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
@@ -1432,7 +1437,8 @@ elseif (CMAKE_MACOSX_BUNDLE)
     endif()
 else ()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/applications)
-    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources")
+    install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources"
+        PATTERN "generated_models" EXCLUDE)
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()

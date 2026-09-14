@@ -2023,6 +2023,10 @@ wxBoxSizer* MainFrame::create_side_tools()
             //this->m_plater->select_view_3D("Preview");
             m_plater->exit_gizmo();
             m_plater->update(true, true);
+            m_slice_enable = get_enable_slice_status();
+            m_slice_btn->Enable(m_slice_enable);
+            if (!m_slice_enable)
+                return;
 
             bool slice = true;
 
@@ -2329,8 +2333,8 @@ bool MainFrame::get_enable_slice_status()
     bool enable = true;
 
     bool on_slicing = m_plater->is_background_process_slicing();
-    if (on_slicing) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": on slicing, return false directly!");
+    if (on_slicing || m_plater->is_empty_project()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on slicing or empty project, return false directly!";
         return false;
     }
     else if  (m_plater->only_gcode_mode() || m_plater->using_exported_file()) {
@@ -2360,7 +2364,7 @@ bool MainFrame::get_enable_slice_status()
         {
             enable = false;
         }
-        else if (!current_plate->can_slice())
+        else if (!current_plate->can_slice() || !current_plate->has_printable_instances())
         {
             enable = false;
         }

@@ -4,8 +4,8 @@
   "integration_branch": "codex/team/integration",
   "developers": {
     "model_generation": "arsenaltj",
-    "smart_slicing": null,
-    "maintenance": null
+    "smart_slicing": "tony20160206",
+    "maintenance": "tangjiajie15191661723-web"
   },
   "branches": {
     "model_generation": "codex/team/model-generation",

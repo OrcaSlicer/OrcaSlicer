@@ -14,7 +14,9 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <sstream>
@@ -35,6 +37,8 @@ void clear_textured_mesh(TexturedMesh& out)
     out.material_ids.clear();
     out.material_texture_map.clear();
     out.material_colors.clear();
+    out.precomputed_vertex_colors.clear();
+    out.precomputed_face_colors.clear();
 }
 
 void set_error_message(std::string* error_message, const std::string& message)
@@ -176,16 +180,37 @@ std::array<float, 4> get_material_color(const aiMaterial& material)
     return {1.f, 1.f, 1.f, 1.f};
 }
 
-bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, std::string& error)
+bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, std::string& error,
+                  std::vector<std::array<float, 4>>* raw_vertex_colors, bool precompute_colors)
 {
     if (mesh.mNumVertices > static_cast<size_t>(std::numeric_limits<int>::max()) - vertex_offset) {
         error = "Assimp mesh has too many vertices for TexturedMesh indices";
         return false;
     }
 
+    const auto factor = mesh.mMaterialIndex < out.material_colors.size()
+        ? out.material_colors[mesh.mMaterialIndex] : std::array<float, 4>{1.f, 1.f, 1.f, 1.f};
     for (unsigned int i = 0; i < mesh.mNumVertices; ++i) {
         const aiVector3D& v = mesh.mVertices[i];
         out.vertices.push_back({v.x, v.y, v.z});
+        const aiColor4D color = mesh.HasVertexColors(0) ? mesh.mColors[0][i] : aiColor4D(1.f, 1.f, 1.f, 1.f);
+        if (raw_vertex_colors) {
+            raw_vertex_colors->push_back({color.r, color.g, color.b, color.a});
+        }
+        if (precompute_colors) {
+            std::array<float, 4> converted {color.r, color.g, color.b, color.a};
+            for (size_t channel = 0; channel < converted.size(); ++channel) {
+                const float value = converted[channel] * factor[channel];
+                if (!std::isfinite(value)) {
+                    error = "Assimp mesh has a non-finite vertex or material color";
+                    return false;
+                }
+                const float linear = std::clamp(value, 0.f, 1.f);
+                converted[channel] = channel == 3 ? linear : linear <= 0.0031308f
+                    ? 12.92f * linear : 1.055f * std::pow(linear, 1.f / 2.4f) - 0.055f;
+            }
+            out.precomputed_vertex_colors.push_back(converted);
+        }
 
         if (mesh.HasTextureCoords(0)) {
             const aiVector3D& uv = mesh.mTextureCoords[0][i];
@@ -211,6 +236,17 @@ bool collect_mesh(const aiMesh& mesh, size_t& vertex_offset, TexturedMesh& out, 
             static_cast<int>(static_cast<size_t>(face.mIndices[1]) + vertex_offset),
             static_cast<int>(static_cast<size_t>(face.mIndices[2]) + vertex_offset)});
         out.material_ids.push_back(material_index);
+        if (precompute_colors) {
+            const auto& indices = out.indices.back();
+            std::array<size_t, 3> average;
+            for (size_t channel = 0; channel < average.size(); ++channel) {
+                const float value = (out.precomputed_vertex_colors[indices[0]][channel] +
+                                     out.precomputed_vertex_colors[indices[1]][channel] +
+                                     out.precomputed_vertex_colors[indices[2]][channel]) / 3.f * 255.f;
+                average[channel] = static_cast<size_t>(std::clamp(value, 0.f, 255.f));
+            }
+            out.precomputed_face_colors.push_back(average);
+        }
     }
 
     vertex_offset += mesh.mNumVertices;
@@ -269,9 +305,11 @@ std::string scene_failure_summary(const std::string& path, const char* assimp_er
 
 } // namespace
 
-bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std::string* error_message)
+bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std::string* error_message,
+                               std::vector<std::array<float, 4>>* raw_vertex_colors)
 {
     clear_textured_mesh(out);
+    if (raw_vertex_colors) raw_vertex_colors->clear();
 
     Assimp::Importer importer;
     const unsigned int flags = assimp_import_flags(path);
@@ -292,13 +330,31 @@ bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std:
         return false;
     }
 
+    collect_materials(*scene, boost::filesystem::path(path).parent_path(), out);
+
+    // Precomputed colors bypass texture sampling. Only use them for a glTF
+    // scene with COLOR_0 and no color textures, including on other meshes.
+    bool has_vertex_colors = false;
+    bool has_color_texture = false;
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        const aiMesh* mesh = scene->mMeshes[i];
+        if (!mesh || !mesh->HasPositions())
+            continue;
+        has_vertex_colors |= mesh->HasVertexColors(0);
+        aiString texture_path;
+        if (mesh->mMaterialIndex < scene->mNumMaterials && scene->mMaterials[mesh->mMaterialIndex])
+            has_color_texture |= get_material_texture(*scene->mMaterials[mesh->mMaterialIndex], texture_path);
+    }
+    const bool precompute_colors = has_vertex_colors && !has_color_texture &&
+        (boost::algorithm::iends_with(path, ".glb") || boost::algorithm::iends_with(path, ".gltf"));
+
     size_t vertex_offset = 0;
     for (unsigned int mesh_index = 0; mesh_index < scene->mNumMeshes; ++mesh_index) {
         const aiMesh* mesh = scene->mMeshes[mesh_index];
         if (!mesh || !mesh->HasPositions())
             continue;
         std::string mesh_error;
-        if (!collect_mesh(*mesh, vertex_offset, out, mesh_error)) {
+        if (!collect_mesh(*mesh, vertex_offset, out, mesh_error, raw_vertex_colors, precompute_colors)) {
             const std::string message = mesh_error + ": " + path;
             BOOST_LOG_TRIVIAL(error) << "AssimpImport: " << message;
             set_error_message(error_message, message);
@@ -314,8 +370,6 @@ bool load_assimp_textured_model(const std::string& path, TexturedMesh& out, std:
         clear_textured_mesh(out);
         return false;
     }
-
-    collect_materials(*scene, boost::filesystem::path(path).parent_path(), out);
 
     BOOST_LOG_TRIVIAL(info) << "AssimpImport: loaded " << out.vertices.size()
                             << " vertices, " << out.indices.size()

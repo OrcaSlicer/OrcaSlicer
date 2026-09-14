@@ -7,6 +7,8 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <map>
+#include <unordered_map>
 
 #include <boost/next_prior.hpp>
 #include "CgalUtils.hpp"
@@ -489,15 +491,15 @@ static bool quantize_vertex_colors(
 //
 // Reproduces the split topology that the legacy OBJ vertex-color import encoded
 // into mmu_segmentation_facets (TriangleSelector::perform_split cases 1/2/3), but
-// materializes it as real geometry. An edge is split at its midpoint if and only
-// if its two endpoints belong to different clusters. Because that predicate reads
-// only the shared endpoints, adjacent faces always reach the same conclusion and
-// no T-junctions can appear.
+// materializes it as real geometry. Split a geometric edge if any incident face
+// has endpoints in different clusters. Color seams may duplicate vertex indices,
+// so both the split decision and the output vertices are shared by position.
 static bool adaptive_split_by_vertex_clusters(
     TriMesh& mesh,
     const std::vector<std::size_t>& vertex_cluster_ids,
     const std::vector<RGB>& cluster_centers,
-    std::vector<RGB>& out_face_colors)
+    std::vector<RGB>& out_face_colors,
+    const std::unordered_map<size_t, RGB>& face_color_overrides)
 {
     const TriVertices original_vertices = mesh.vertices;
     const TriFaces    original_faces    = mesh.indices;
@@ -515,11 +517,23 @@ static bool adaptive_split_by_vertex_clusters(
         return false;
     }
 
-    TriVertices out_vertices = original_vertices;
+    TriVertices out_vertices;
+    out_vertices.reserve(original_vertices.size());
+    std::map<std::array<float, 3>, std::size_t> position_to_vertex;
+    std::vector<std::size_t> geometric_vertex(original_vertices.size());
+    for (std::size_t i = 0; i < original_vertices.size(); ++i) {
+        const auto& p = original_vertices[i];
+        if (!p.allFinite())
+            return false;
+        const auto inserted = position_to_vertex.emplace(std::array<float, 3>{p.x(), p.y(), p.z()}, out_vertices.size());
+        if (inserted.second)
+            out_vertices.push_back(p);
+        geometric_vertex[i] = inserted.first->second;
+    }
     TriFaces    out_faces;
-    out_faces.reserve(original_faces.size() * 5);
+    out_faces.reserve(original_faces.size() * 6);
     out_face_colors.clear();
-    out_face_colors.reserve(original_faces.size() * 5);
+    out_face_colors.reserve(original_faces.size() * 6);
 
     auto edge_key = [](std::size_t a, std::size_t b) -> uint64_t {
         return a < b ? ((static_cast<uint64_t>(a) << 32) | b)
@@ -536,10 +550,20 @@ static bool adaptive_split_by_vertex_clusters(
         if (it != edge_to_mid.end())
             return it->second;
         const std::size_t idx = out_vertices.size();
-        out_vertices.push_back((original_vertices[a] + original_vertices[b]) * 0.5f);
+        const TriVertex mid = (out_vertices[a] + out_vertices[b]) * 0.5f;
+        out_vertices.push_back(mid);
         edge_to_mid.emplace(key, idx);
         return idx;
     };
+    // Collect requirements before emitting any faces, including across vertices
+    // duplicated by a local recolor. Uniform neighbors must use these midpoints.
+    for (const auto& face : original_faces) {
+        for (int edge = 0; edge < 3; ++edge) {
+            const auto a = face[edge], b = face[(edge + 1) % 3];
+            if (vertex_cluster_ids[a] != vertex_cluster_ids[b])
+                midpoint_of_edge(geometric_vertex[a], geometric_vertex[b]);
+        }
+    }
     // Points strictly inside an original face are never shared, so they skip the map.
     // The midpoint is computed before push_back so a reallocation cannot dangle it.
     auto append_interior_midpoint = [&](std::size_t a, std::size_t b) -> std::size_t {
@@ -548,24 +572,58 @@ static bool adaptive_split_by_vertex_clusters(
         out_vertices.push_back(mid);
         return idx;
     };
+    const RGB* current_override = nullptr;
     auto emit = [&](std::size_t a, std::size_t b, std::size_t c, std::size_t cluster_id) {
         out_faces.push_back(Vec3i32(static_cast<int>(a), static_cast<int>(b), static_cast<int>(c)));
-        out_face_colors.push_back(cluster_centers[cluster_id]);
+        out_face_colors.push_back(current_override ? *current_override : cluster_centers[cluster_id]);
     };
 
-    for (const auto& f : original_faces) {
-        const std::size_t v[3] = {static_cast<std::size_t>(f[0]), static_cast<std::size_t>(f[1]), static_cast<std::size_t>(f[2])};
-        const std::size_t c[3] = {vertex_cluster_ids[v[0]], vertex_cluster_ids[v[1]], vertex_cluster_ids[v[2]]};
+    for (size_t face_index = 0; face_index < original_faces.size(); ++face_index) {
+        const auto& f = original_faces[face_index];
+        const auto locked = face_color_overrides.find(face_index);
+        current_override = locked == face_color_overrides.end() ? nullptr : &locked->second;
+        // Colors remain attached to the original face corners, while geometry
+        // is shared. Every child of an overridden face inherits its exact color.
+        const std::size_t v[3] = {geometric_vertex[f[0]], geometric_vertex[f[1]], geometric_vertex[f[2]]};
+        const std::size_t c[3] = {vertex_cluster_ids[f[0]], vertex_cluster_ids[f[1]], vertex_cluster_ids[f[2]]};
+        const bool split[3] = {edge_to_mid.count(edge_key(v[0], v[1])) != 0,
+                               edge_to_mid.count(edge_key(v[1], v[2])) != 0,
+                               edge_to_mid.count(edge_key(v[2], v[0])) != 0};
 
-        // Case A: uniform cluster, keep the face untouched.
+        // Case A: uniform color, conform to any splits required by neighbors.
         if (c[0] == c[1] && c[1] == c[2]) {
-            emit(v[0], v[1], v[2], c[0]);
+            const int count = int(split[0]) + int(split[1]) + int(split[2]);
+            if (count == 0) {
+                emit(v[0], v[1], v[2], c[0]);
+            } else if (count == 1) {
+                const int i = split[0] ? 0 : split[1] ? 1 : 2;
+                const int j = (i + 1) % 3, k = (i + 2) % 3;
+                const auto mid = midpoint_of_edge(v[i], v[j]);
+                emit(v[i], mid, v[k], c[0]);
+                emit(mid, v[j], v[k], c[0]);
+            } else if (count == 2) {
+                const int i = !split[0] ? 2 : !split[1] ? 0 : 1;
+                const int j = (i + 1) % 3, k = (i + 2) % 3;
+                const auto next = midpoint_of_edge(v[i], v[j]);
+                const auto previous = midpoint_of_edge(v[k], v[i]);
+                emit(v[i], next, previous, c[0]);
+                emit(next, v[j], previous, c[0]);
+                emit(v[j], v[k], previous, c[0]);
+            } else {
+                const auto m01 = midpoint_of_edge(v[0], v[1]);
+                const auto m12 = midpoint_of_edge(v[1], v[2]);
+                const auto m20 = midpoint_of_edge(v[2], v[0]);
+                emit(v[0], m01, m20, c[0]);
+                emit(v[1], m12, m01, c[0]);
+                emit(v[2], m20, m12, c[0]);
+                emit(m01, m12, m20, c[0]);
+            }
             continue;
         }
 
         // Case B: two vertices share a cluster and the third is isolated. Split the
         // two edges incident to the isolated vertex, which are exactly the
-        // cross-cluster ones; the opposite edge stays intact.
+        // cross-cluster ones; also conform if a neighbor splits the opposite edge.
         int iso = -1;
         if (c[1] == c[2])      iso = 0;
         else if (c[2] == c[0]) iso = 1;
@@ -576,7 +634,13 @@ static bool adaptive_split_by_vertex_clusters(
             const std::size_t m_ki = midpoint_of_edge(v[k], v[i]);
             emit(v[i], m_ij, m_ki, c[i]);
             emit(m_ij, v[j], m_ki, c[j]);
-            emit(v[j], v[k],  m_ki, c[j]);
+            if (split[j]) {
+                const auto m_jk = midpoint_of_edge(v[j], v[k]);
+                emit(v[j], m_jk, m_ki, c[j]);
+                emit(m_jk, v[k], m_ki, c[j]);
+            } else {
+                emit(v[j], v[k], m_ki, c[j]);
+            }
             continue;
         }
 
@@ -587,13 +651,9 @@ static bool adaptive_split_by_vertex_clusters(
         const std::size_t m01 = midpoint_of_edge(v[0], v[1]);
         const std::size_t m12 = midpoint_of_edge(v[1], v[2]);
         const std::size_t m20 = midpoint_of_edge(v[2], v[0]);
-        emit(v[0], m01, m20, c[0]);
-        emit(m01, v[1], m12, c[1]);
-        emit(m12, v[2], m20, c[2]);
-
-        const TriVertex& p0 = original_vertices[v[0]];
-        const TriVertex& p1 = original_vertices[v[1]];
-        const TriVertex& p2 = original_vertices[v[2]];
+        const TriVertex& p0 = out_vertices[v[0]];
+        const TriVertex& p1 = out_vertices[v[1]];
+        const TriVertex& p2 = out_vertices[v[2]];
         const float sq_opposite_v0 = (p2 - p1).squaredNorm();
         const float sq_opposite_v1 = (p0 - p2).squaredNorm();
         const float sq_opposite_v2 = (p1 - p0).squaredNorm();
@@ -602,16 +662,27 @@ static bool adaptive_split_by_vertex_clusters(
         if (sq_opposite_v1 > widest_len) { widest = 1; widest_len = sq_opposite_v1; }
         if (sq_opposite_v2 > widest_len) { widest = 2; }
 
+        const std::size_t midpoints[3] = {m01, m12, m20};
+        const std::size_t mc = append_interior_midpoint(midpoints[(widest + 2) % 3], midpoints[widest]);
+        // The centre cut ends on a corner triangle's edge. Split that triangle
+        // at the same point too, preserving its color without a T-junction.
+        for (int corner = 0; corner < 3; ++corner) {
+            const std::size_t next = midpoints[corner], previous = midpoints[(corner + 2) % 3];
+            if (corner == widest) {
+                emit(v[corner], next, mc, c[corner]);
+                emit(v[corner], mc, previous, c[corner]);
+            } else {
+                emit(v[corner], next, previous, c[corner]);
+            }
+        }
+
         if (widest == 0) {
-            const std::size_t mc = append_interior_midpoint(m20, m01);
             emit(m12, m20, mc,  c[1]);
             emit(mc,  m01, m12, c[2]);
         } else if (widest == 1) {
-            const std::size_t mc = append_interior_midpoint(m01, m12);
             emit(m20, m01, mc,  c[0]);
             emit(mc,  m12, m20, c[2]);
         } else {
-            const std::size_t mc = append_interior_midpoint(m12, m20);
             emit(m01, m12, mc,  c[1]);
             emit(mc,  m20, m01, c[0]);
         }
@@ -690,7 +761,7 @@ static bool repair_cluster_smooth(
         return resample_face_colors(std::move(*repaired_mesh));
     };
 
-    {
+    if (settings.face_color_overrides.empty()) {
         TriangleMesh stats_mesh(static_cast<const indexed_triangle_set&>(mesh));
         const auto& stats = stats_mesh.stats();
         // Orca's TriangleMeshStats only counts open edges: manifold() is open_edges == 0, and
@@ -728,7 +799,10 @@ static bool repair_cluster_smooth(
 
     // A fixed palette with no boundary cleanup only relabels existing faces;
     // it does not need a CGAL halfedge conversion or topology repair.
-    const bool needs_halfedges = settings.fixed_palette.empty() || settings.smooth_weight > 0.0;
+    // Explicit face colors are bound to the source surface. Neither implicit
+    // halfedge repair nor color smoothing may invalidate their face identities.
+    const bool needs_halfedges = settings.face_color_overrides.empty() &&
+        (settings.fixed_palette.empty() || settings.smooth_weight > 0.0);
     if (needs_halfedges && !cgalutils::is_mesh_halfedge_compatible(mesh)) {
         BOOST_LOG_TRIVIAL(info) << log_prefix << ": mesh not halfedge-compatible, attempting RepairMesh.";
         if (!repair_and_resample())
@@ -839,6 +913,8 @@ static bool repair_cluster_smooth(
 
     for (std::size_t i = 0; i < out_clustered_face_colors.size(); ++i)
         out_clustered_face_colors[i] = cluster_centers[clustered_face_labels[i]];
+    for (const auto& face_color : settings.face_color_overrides)
+        out_clustered_face_colors[face_color.first] = face_color.second;
 
 #ifdef OUTPUT_TEST_RESULT
     SaveToOFF(std::string(log_prefix) + "_4_smooth.off", mesh, out_clustered_face_colors);
@@ -851,6 +927,12 @@ static bool repair_cluster_smooth(
 bool TextureToColor(const TriMesh& texture_mesh, const std::vector<std::vector<Vec2f>>& texture_mesh_uv_coords, const cv::Mat& texture, TriMesh& color_mesh,
                     std::vector<std::array<std::size_t, 3>>& face_colors, const TextureToColorSettings& settings, AlgoProgressCallback progress_callback,
                     AlgoCancelCallback cancel_callback) {
+    // Texture sampling can subdivide geometry before clustering, so source face
+    // overrides must use the already sampled ClusterAndSmooth entry point.
+    if (!settings.face_color_overrides.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "TextureToColor: explicit face colors require a precomputed color mesh.";
+        return false;
+    }
     auto report = [&](int pct, const char* msg) {
         if (progress_callback) {
             progress_callback({pct, msg});
@@ -1045,6 +1127,16 @@ bool ClusterAndSmooth(const TriMesh& mesh,
         BOOST_LOG_TRIVIAL(debug) << "ClusterAndSmooth: empty mesh or face colors.";
         return false;
     }
+
+    std::unordered_map<size_t, RGB> face_color_overrides;
+    for (const auto& face_color : settings.face_color_overrides) {
+        if (face_color.first >= mesh.indices.size() ||
+            std::any_of(face_color.second.begin(), face_color.second.end(), [](size_t value) { return value > 255; })) {
+            BOOST_LOG_TRIVIAL(warning) << "ClusterAndSmooth: invalid explicit face color or source face index.";
+            return false;
+        }
+        face_color_overrides[face_color.first] = face_color.second;
+    }
     if (input_face_colors.size() != mesh.indices.size()) {
         BOOST_LOG_TRIVIAL(warning) << "ClusterAndSmooth: face_colors size ("
                                    << input_face_colors.size() << ") != indices size ("
@@ -1082,7 +1174,7 @@ bool ClusterAndSmooth(const TriMesh& mesh,
         if (cancelled()) return false;
 
         report(50, "Splitting color boundaries");
-        if (!adaptive_split_by_vertex_clusters(out_mesh, vertex_cluster_ids, cluster_centers, face_colors)) {
+        if (!adaptive_split_by_vertex_clusters(out_mesh, vertex_cluster_ids, cluster_centers, face_colors, face_color_overrides)) {
             BOOST_LOG_TRIVIAL(debug) << "ClusterAndSmooth: adaptive vertex-color split failed.";
             return false;
         }

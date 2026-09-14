@@ -15,6 +15,7 @@ try:
         create_text_task,
         download_task_artifact,
         upload_image,
+        validate_generation_options,
         wait_for_task,
     )
 except ImportError:
@@ -27,18 +28,20 @@ except ImportError:
         create_text_task,
         download_task_artifact,
         upload_image,
+        validate_generation_options,
         wait_for_task,
     )
 
 
 _MODEL_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
-_GENERATION_PROFILE_FACE_LIMITS = {"quality": 2000000, "performance": 300000}
+_GENERATION_PROFILE_FACE_LIMITS = {"quality": 1000000, "performance": 300000}
 
 
 @dataclass(frozen=True)
 class ProviderPolicy:
     design_providers: tuple[str, ...] = ("gpt", "image2")
     geometry_provider: str = "tripo"
+    geometry_providers: tuple[str, ...] = ("tripo", "hunyuan")
     automatic_fallback: bool = False
     max_paid_model_tasks_per_confirmation: int = 1
 
@@ -53,8 +56,11 @@ class ModelTaskRequest:
     prompt: str = ""
     image_path: Path | None = None
     image_paths: Mapping[str, Path] | None = None
-    face_limit: int = 2000000
+    face_limit: int = 1000000
     generation_profile: str = "quality"
+    geometry_quality: str | None = None
+    texture_quality: str = "standard"
+    output_format: str = "glb"
 
 
 @dataclass(frozen=True)
@@ -62,7 +68,7 @@ class TextureTaskRequest:
     source_task_id: str
     image_path: Path
     texture_alignment: str = "geometry"
-    texture_quality: str = "detailed"
+    texture_quality: str = "standard"
 
 
 @dataclass(frozen=True)
@@ -101,7 +107,7 @@ class PaidTaskAuthorization:
         self._consumed = False
 
     @classmethod
-    def confirmed(cls, request_id: str) -> PaidTaskAuthorization:
+    def confirmed(cls, request_id: str, provider: str = "tripo") -> PaidTaskAuthorization:
         normalized = request_id.strip() if isinstance(request_id, str) else ""
         if not normalized:
             raise ProviderGatewayError(
@@ -109,7 +115,10 @@ class PaidTaskAuthorization:
                 code="invalid_authorization",
                 category="authorization",
             )
-        return cls(normalized, "tripo", "model_generation")
+        if provider not in {"tripo", "hunyuan"}:
+            raise ProviderGatewayError("Unsupported model provider.", code="invalid_provider",
+                                       category="validation")
+        return cls(normalized, provider, "model_generation")
 
     @classmethod
     def confirmed_texture(cls, request_id: str) -> PaidTaskAuthorization:
@@ -249,7 +258,9 @@ class ModelProviderGateway:
                 provider="tripo",
                 operation="model_generation",
             )
-        if request.face_limit != _GENERATION_PROFILE_FACE_LIMITS[request.generation_profile]:
+        if request.face_limit != _GENERATION_PROFILE_FACE_LIMITS[request.generation_profile] and not (
+            request.generation_profile == "quality" and request.face_limit == 2000000
+        ):  # Legacy callers retain their capped standard-geometry payload.
             raise ProviderGatewayError(
                 "The model face target does not match the selected generation profile.",
                 code="invalid_model_request",
@@ -257,6 +268,11 @@ class ModelProviderGateway:
                 provider="tripo",
                 operation="model_generation",
             )
+        try:
+            validate_generation_options(request.face_limit, request.geometry_quality, request.texture_quality)
+        except TripoError as error:
+            raise ProviderGatewayError(str(error), code="invalid_model_request", category="validation",
+                                       provider="tripo", operation="model_generation") from None
         prompt = request.prompt.strip() if isinstance(request.prompt, str) else ""
         image_path = Path(request.image_path) if request.image_path is not None else None
         image_paths = dict(request.image_paths) if isinstance(request.image_paths, Mapping) else {}
@@ -304,20 +320,23 @@ class ModelProviderGateway:
                 operation="model_generation",
             )
         authorization.consume("tripo", "model_generation")
+        options = {}
+        if request.geometry_quality is not None or request.texture_quality != "standard":
+            options = {"geometry_quality": request.geometry_quality, "texture_quality": request.texture_quality}
         try:
             if source == "text":
-                task_id = self._create_text_task(prompt, request.face_limit, request.generation_profile)
+                task_id = self._create_text_task(prompt, request.face_limit, request.generation_profile, **options)
             elif source == "image":
                 assert image_path is not None
                 token = self._upload_image(image_path)
-                task_id = self._create_image_task(token, request.face_limit, request.generation_profile)
+                task_id = self._create_image_task(token, request.face_limit, request.generation_profile, **options)
             else:
                 tokens = {
                     view: self._upload_image(image_paths[view])
                     for view in ("front", "left", "back", "right")
                 }
                 task_id = self._create_multiview_task(
-                    tokens, request.face_limit, request.generation_profile
+                    tokens, request.face_limit, request.generation_profile, **options
                 )
         except TripoError as error:
             raise _classify_tripo_error(error, "model_generation", creation_ambiguous=True) from None

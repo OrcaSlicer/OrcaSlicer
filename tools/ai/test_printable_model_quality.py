@@ -113,6 +113,16 @@ def obj_text(parts) -> str:
     return "\n".join(lines) + "\n"
 
 
+def split_face_parts(part):
+    """Fixed per-corner OBJ fixture: exact positions with alternating face colors."""
+    vertices, faces = part
+    return [
+        ([vertices[index - 1] for index in face], [(1, 2, 3)],
+         (1.0, 0.0, 0.0) if face_index // 2 % 2 == 0 else (0.0, 0.0, 1.0))
+        for face_index, face in enumerate(faces)
+    ]
+
+
 class PrintableModelQualityTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -139,6 +149,105 @@ class PrintableModelQualityTests(unittest.TestCase):
         report = self.analyze(obj_text([(vertices, faces[:-1])]))
         self.assertEqual(report["status"], "reject")
         self.assertIn("boundary_edges", report["errors"])
+
+    def test_exact_color_seams_preserve_closed_topology_and_corner_colors(self):
+        content = obj_text(split_face_parts(box()))
+        report = self.analyze(content, target_palette=("#FF0000", "#0000FF"))
+        metrics = report["metrics"]
+
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(metrics["boundary_edges"], 0)
+        self.assertEqual(metrics["indexed_boundary_edges"], 36)
+        self.assertEqual(metrics["exact_seam_edge_pairs"], 18)
+        self.assertEqual(metrics["non_manifold_edges"], 0)
+        self.assertEqual(metrics["inconsistent_winding_edges"], 0)
+        self.assertEqual(metrics["component_count"], 1)
+        self.assertTrue(metrics["component_thickness_available"])
+        self.assertTrue(metrics["local_thickness_available"])
+        self.assertEqual(metrics["vertex_count"], 36)
+        self.assertEqual(metrics["face_count"], 12)
+        self.assertEqual(metrics["surface_area_mm2"], 600.0)
+        self.assertEqual(metrics["printable_color_count"], 2)
+        self.assertEqual(metrics["color_region_count"], 2)
+        self.assertEqual(
+            [item["surface_ratio"] for item in report["evidence"]["target_palette_surface_usage"]],
+            [0.5, 0.5],
+        )
+        self.assertEqual((self.root / "model.obj").read_text(encoding="ascii"), content)
+
+    def test_single_split_triangle_seals_only_its_exact_seams(self):
+        vertices, faces = box()
+        report = self.analyze(obj_text([(vertices, faces[:-1])] + split_face_parts((vertices, faces[-1:]))))
+        self.assertEqual(report["metrics"]["boundary_edges"], 0)
+        self.assertEqual(report["metrics"]["component_count"], 1)
+
+    def test_nonuniform_seam_copies_preserve_component_thickness(self):
+        vertices, faces = rotate_part(box(size=(20.0, 10.0, 0.4)))
+        baseline = self.analyze(obj_text([(vertices, faces)]))
+        split = self.analyze(obj_text([(vertices, faces[:-1])] + split_face_parts((vertices, faces[-1:]))))
+        self.assertEqual(split["metrics"]["thin_component_count"], 1)
+        self.assertEqual(
+            split["metrics"]["minimum_component_thickness_mm"],
+            baseline["metrics"]["minimum_component_thickness_mm"],
+        )
+
+    def test_split_color_seams_do_not_close_a_real_hole(self):
+        vertices, faces = box()
+        report = self.analyze(obj_text(split_face_parts((vertices, faces[:-1]))))
+        self.assertEqual(report["status"], "reject")
+        self.assertEqual(report["metrics"]["boundary_edges"], 3)
+        self.assertEqual(report["metrics"]["component_count"], 1)
+        self.assertFalse(report["metrics"]["local_thickness_available"])
+
+    def test_nearby_seams_are_not_tolerance_welded(self):
+        parts = split_face_parts(box())
+        vertices, faces, color = parts[-1]
+        parts[-1] = ([(x + 1e-7, y, z) for x, y, z in vertices], faces, color)
+        report = self.analyze(obj_text(parts))
+        self.assertEqual(report["status"], "reject")
+        self.assertEqual(report["metrics"]["boundary_edges"], 6)
+
+    def test_split_same_direction_seams_remain_rejected(self):
+        vertices, faces = box()
+        faces[-1] = tuple(reversed(faces[-1]))
+        report = self.analyze(obj_text(split_face_parts((vertices, faces))))
+        self.assertEqual(report["status"], "reject")
+        self.assertEqual(report["metrics"]["boundary_edges"], 6)
+        self.assertEqual(report["metrics"]["inconsistent_winding_edges"], 3)
+        self.assertIn("inconsistent_winding_edges", report["errors"])
+
+    def test_split_non_manifold_edges_remain_rejected(self):
+        vertices, faces = box()
+        report = self.analyze(obj_text(split_face_parts((vertices, faces + faces[:1]))))
+        self.assertEqual(report["status"], "reject")
+        self.assertEqual(report["metrics"]["boundary_edges"], 9)
+        self.assertEqual(report["metrics"]["non_manifold_edges"], 3)
+        self.assertIn("non_manifold_edges", report["errors"])
+
+    def test_boundary_seams_cannot_hide_a_preexisting_closed_edge(self):
+        vertices, faces = box()
+        for extra_faces in (faces[:1], [faces[0], tuple(reversed(faces[0]))]):
+            with self.subTest(extra_faces=extra_faces):
+                report = self.analyze(obj_text([(vertices, faces)] + split_face_parts((vertices, extra_faces))))
+                self.assertEqual(report["status"], "reject")
+                self.assertEqual(report["metrics"]["boundary_edges"], len(extra_faces) * 3)
+                self.assertEqual(report["metrics"]["non_manifold_edges"], 3)
+
+    def test_exact_point_touch_does_not_join_independent_closed_shells(self):
+        shells = [box(), box((10.0, 10.0, 10.0))]
+        for split in (False, True):
+            with self.subTest(split=split):
+                parts = [part for shell in shells for part in split_face_parts(shell)] if split else shells
+                report = self.analyze(obj_text(parts))
+                self.assertEqual(report["metrics"]["boundary_edges"], 0)
+                self.assertEqual(report["metrics"]["component_count"], 2)
+                self.assertIn("unwelded_structural_components", report["warnings"])
+
+    def test_exact_edge_touch_does_not_join_already_closed_shells(self):
+        report = self.analyze(obj_text([box(), box((10.0, 10.0, 0.0))]))
+        self.assertEqual(report["metrics"]["boundary_edges"], 0)
+        self.assertEqual(report["metrics"]["component_count"], 2)
+        self.assertIn("unwelded_structural_components", report["warnings"])
 
     def test_small_open_mesh_can_be_deferred_to_a_declared_repair_consumer(self):
         vertices, faces = tetrahedron()
@@ -296,7 +405,7 @@ class PrintableModelQualityTests(unittest.TestCase):
     def test_attached_thin_neck_requires_local_thickness_review(self):
         report = self.analyze(obj_text([attached_thin_neck()]))
 
-        self.assertEqual(report["gate_version"], "structural-v11")
+        self.assertEqual(report["gate_version"], "structural-v12")
         self.assertEqual(report["status"], "review")
         self.assertEqual(report["metrics"]["thin_component_count"], 0)
         self.assertTrue(report["metrics"]["local_thickness_available"])
@@ -549,7 +658,7 @@ class PrintableModelQualityTests(unittest.TestCase):
         report = self.analyze(obj_text([tetrahedron()]))
         destination = write_model_quality_report(report, self.root / "model-quality.json")
         self.assertTrue(destination.is_file())
-        self.assertIn('"gate_version": "structural-v11"', destination.read_text(encoding="utf-8"))
+        self.assertIn('"gate_version": "structural-v12"', destination.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

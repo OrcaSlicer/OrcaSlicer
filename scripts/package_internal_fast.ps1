@@ -7,7 +7,11 @@ param(
 
     [string] $Revision,
 
-    [string] $NsisDir
+    [string] $NsisDir,
+
+    [string] $SourceManifest,
+
+    [switch] $ValidateOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,39 +29,47 @@ if (-not (Test-Path -LiteralPath $cmakeCache -PathType Leaf)) {
     throw "CMake cache not found: $cmakeCache"
 }
 
-$currentHead = (& git -C $repoRoot rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $currentHead -notmatch '^[0-9a-fA-F]{40}$') {
-    throw 'Unable to determine the current full Git revision.'
+$cacheText = Get-Content -LiteralPath $cmakeCache -Raw
+$pythonMatch = [regex]::Match($cacheText, '(?m)^Python3_EXECUTABLE:FILEPATH=(.+)$')
+if (-not $pythonMatch.Success -or -not (Test-Path -LiteralPath $pythonMatch.Groups[1].Value.Trim() -PathType Leaf)) {
+    throw 'Unable to resolve the bundled Python interpreter from the selected build directory.'
 }
-$currentBranch = (& git -C $repoRoot branch --show-current).Trim()
-if ($LASTEXITCODE -ne 0 -or $currentBranch -ne 'codex/orca-integration-v2') {
-    throw "Fast internal packages must be built from codex/orca-integration-v2, not '$currentBranch'."
+$bundledPython = $pythonMatch.Groups[1].Value.Trim()
+$sourceArguments = @('-I', (Join-Path $repoRoot 'scripts\package_source_identity.py'), '--root', $repoRoot)
+if (-not [string]::IsNullOrWhiteSpace($SourceManifest)) {
+    $sourceArguments += @('--manifest', (Resolve-Path -LiteralPath $SourceManifest).Path)
 }
-$worktreeChanges = @(& git -C $repoRoot status --porcelain --untracked-files=all)
-if ($LASTEXITCODE -ne 0) {
-    throw 'Unable to verify that the source worktree is clean.'
+function Get-PackageSourceIdentity {
+    $sourceJson = & $bundledPython @sourceArguments
+    if ($LASTEXITCODE -ne 0) { throw 'Internal source snapshot verification failed.' }
+    return (($sourceJson -join "`n") | ConvertFrom-Json)
 }
-if ($worktreeChanges.Count -gt 0) {
-    throw "The source worktree is not clean. Commit or remove all changes before packaging.`n$($worktreeChanges -join "`n")"
-}
+$sourceIdentity = Get-PackageSourceIdentity
+$currentHead = $sourceIdentity.source_commit
+$currentBranch = $sourceIdentity.source_branch
+$teamConfig = Get-Content -LiteralPath (Join-Path $repoRoot '.github\team-collaboration.json') -Raw | ConvertFrom-Json
+$packageKind = if ($currentBranch -eq $teamConfig.integration_branch -and $sourceIdentity.source_clean) { 'integration' } else { 'internal-validation' }
+# Optional provenance only: internal validation must not require a fetch or push.
+$integrationHead = & git -C $repoRoot rev-parse --verify --quiet "refs/remotes/origin/$($teamConfig.integration_branch)"
+if ($LASTEXITCODE -ne 0) { $integrationHead = $null }
 
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
     $OutputDir = Join-Path $repoRoot 'build\windows-installer'
 }
 $resolvedOutputDir = [System.IO.Path]::GetFullPath($OutputDir)
-New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
-
+if ((Test-Path -LiteralPath $resolvedOutputDir) -and @(Get-ChildItem -LiteralPath $resolvedOutputDir -Force).Count -gt 0) {
+    throw 'Use an empty output directory for each build attempt; existing artifacts must not be replaced.'
+}
 if ([string]::IsNullOrWhiteSpace($Revision)) {
-    $Revision = (& git -C $repoRoot rev-parse --short=10 $currentHead).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($Revision)) {
-        throw 'Unable to determine the current Git revision.'
+    $Revision = $currentHead.Substring(0,10)
+    if (-not $sourceIdentity.source_clean) {
+        $Revision += "-snapshot-$($sourceIdentity.source_identity_sha256.Substring(0,10))"
     }
 }
 if ($Revision -notmatch '^[0-9A-Za-z._-]+$') {
     throw "Revision contains unsupported filename characters: $Revision"
 }
 
-$cacheText = Get-Content -LiteralPath $cmakeCache -Raw
 $sourceMatch = [regex]::Match($cacheText, '(?m)^CMAKE_HOME_DIRECTORY:INTERNAL=(.+)$')
 if (-not $sourceMatch.Success) {
     throw 'The selected build directory does not record its CMake source directory.'
@@ -110,11 +122,13 @@ if (-not $cmakeMatch.Success -or -not (Test-Path -LiteralPath $cmakeMatch.Groups
     throw 'Unable to resolve CMake from the selected build directory.'
 }
 $cmakeExecutable = $cmakeMatch.Groups[1].Value.Trim()
-$pythonMatch = [regex]::Match($cacheText, '(?m)^Python3_EXECUTABLE:FILEPATH=(.+)$')
-if (-not $pythonMatch.Success -or -not (Test-Path -LiteralPath $pythonMatch.Groups[1].Value.Trim() -PathType Leaf)) {
-    throw 'Unable to resolve the bundled Python interpreter from the selected build directory.'
+if ($ValidateOnly) {
+    [pscustomobject]@{ Ready = $true; SourceIdentity = $sourceIdentity; Revision = $Revision; BuildDir = $resolvedBuildDir }
+    return
 }
-$bundledPython = $pythonMatch.Groups[1].Value.Trim()
+New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
+$sourceRecordPath = Join-Path $resolvedOutputDir 'source-snapshot.json'
+$sourceIdentity | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $sourceRecordPath -Encoding utf8
 
 & $bundledPython -I (Join-Path $repoRoot 'scripts\verify_ai_integration.py')
 if ($LASTEXITCODE -ne 0) {
@@ -123,7 +137,11 @@ if ($LASTEXITCODE -ne 0) {
 
 # An incremental build is normally a no-op, but it prevents a stale binary from
 # being relabelled with the current source revision.
-& $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui --parallel
+if ($cacheText -match '(?m)^CMAKE_GENERATOR:INTERNAL=Visual Studio') {
+    & $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui -- /m:2 /p:CL_MPCount=1 /p:UseMultiToolTask=false /p:BuildInParallel=false /nologo /v:minimal
+} else {
+    & $cmakeExecutable --build $resolvedBuildDir --config Release --target OrcaSlicer_app_gui --parallel 2
+}
 if ($LASTEXITCODE -ne 0) {
     throw "Incremental Release build failed with exit code $LASTEXITCODE."
 }
@@ -250,14 +268,19 @@ Set-Content -LiteralPath $portableHashFile -Value "$portableHash  $portableName"
 foreach ($artifact in @($finalInstaller, $portablePackage)) {
     & $bundledPython -I (Join-Path $repoRoot 'release\verify_package_contents.py') $artifact --report "$artifact.contents.json"
     if ($LASTEXITCODE -ne 0) {
-        throw "Publication blocked: actual package inspection found credentials or could not complete. Review $artifact.contents.json. Local development remains permitted."
+        throw "Internal delivery blocked: actual package inspection found credentials or could not complete. Review $artifact.contents.json."
     }
     $inspection = Get-Content -LiteralPath "$artifact.contents.json" -Raw | ConvertFrom-Json
     $expectedHash = if ($artifact -eq $finalInstaller) { $hash } else { $portableHash }
     if ($inspection.status -ne 'NOT_DETECTED_WITHIN_SCOPE' -or $inspection.sha256 -ne $expectedHash -or
         (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash -ne $expectedHash) {
-        throw 'Package inspection identity changed. Do not publish this artifact.'
+        throw 'Package inspection identity changed. Do not distribute this artifact.'
     }
+}
+
+$finalSourceIdentity = Get-PackageSourceIdentity
+if ($finalSourceIdentity.source_identity_sha256 -ne $sourceIdentity.source_identity_sha256) {
+    throw 'Source changed during packaging. Keep this attempt for diagnosis and rebuild from a stable source revision.'
 }
 
 $integrationLockPath = Join-Path $repoRoot 'docs\architecture\ai-integration-lock.json'
@@ -267,11 +290,20 @@ if (-not (Test-Path -LiteralPath $integrationLockPath -PathType Leaf)) {
 $integrationLock = Get-Content -LiteralPath $integrationLockPath -Raw | ConvertFrom-Json
 $manifestPath = "$finalInstaller.manifest.json"
 $releaseManifest = [ordered]@{
-    schema_version = 2
+    schema_version = 4
     created_utc = [DateTime]::UtcNow.ToString('o')
     installer = $finalName
     installer_sha256 = $hash
     source_commit = $currentHead
+    source_branch = $currentBranch
+    source_clean = $sourceIdentity.source_clean
+    source_manifest_sha256 = $sourceIdentity.source_manifest_sha256
+    source_identity_sha256 = $sourceIdentity.source_identity_sha256
+    source_snapshot = 'source-snapshot.json'
+    source_snapshot_sha256 = (Get-FileHash -LiteralPath $sourceRecordPath -Algorithm SHA256).Hash
+    build_kind = $packageKind
+    integration_baseline_commit = $integrationHead
+    build_id = "$packageKind-$($sourceIdentity.source_identity_sha256.Substring(0,12))-windows-$architecture-Release-$Revision"
     application_version = $version
     package_revision = $Revision
     distribution_channel = 'internal'

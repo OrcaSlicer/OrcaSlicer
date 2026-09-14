@@ -246,32 +246,48 @@ _ALLOWED_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
 _GENERATION_PROFILES = ("quality", "performance")
 
 
-def _generation_payload(model: str, face_limit: int, generation_profile: str) -> dict[str, Any]:
+def validate_generation_options(face_limit: int, geometry_quality: str | None, texture_quality: str) -> None:
+    if geometry_quality not in (None, "standard", "detailed"):
+        raise TripoError("Geometry quality must be standard or detailed.")
+    if texture_quality not in ("standard", "detailed", "extreme"):
+        raise TripoError("Texture quality must be standard, detailed, or extreme.")
+    if geometry_quality == "standard" and face_limit > 1500000:
+        raise TripoError("The 2-million-face target requires detailed geometry.")
+
+
+def _generation_payload(model: str, face_limit: int, generation_profile: str,
+                        geometry_quality: str | None = None, texture_quality: str = "standard") -> dict[str, Any]:
     if face_limit not in _ALLOWED_FACE_LIMITS:
         raise TripoError(
             "The model face target must be 100000, 300000, 500000, 1000000, or 2000000 triangles."
         )
     if generation_profile not in _GENERATION_PROFILES:
         raise TripoError("The generation profile must be quality or performance.")
-    high_quality = generation_profile == "quality"
+    validate_generation_options(face_limit, geometry_quality, texture_quality)
+    # Old callers did not select geometry explicitly and used a capped standard
+    # request. Never turn a frozen 2M request into a costlier Ultra task implicitly.
+    effective_faces = min(face_limit, 1000000) if geometry_quality is None else face_limit
+    if geometry_quality is not None and effective_faces == 2000000 and model != "v3.1-20260211":
+        raise TripoError("The 2-million-face option requires Tripo v3.1 and detailed geometry.")
     return {
         "model": model,
         "smart_low_poly": False,
-        "face_limit": face_limit,
+        "face_limit": effective_faces,
         "texture": True,
         "pbr": True,
-        "texture_quality": "extreme" if high_quality else "standard",
-        "geometry_quality": "detailed" if high_quality else "standard",
+        "texture_quality": texture_quality,
+        "geometry_quality": geometry_quality or "standard",
         "quad": False,
-        "export_uv": high_quality,
+        "export_uv": True,
     }
 
 
-def create_text_task(prompt: str, face_limit: int = 2000000, generation_profile: str = "quality") -> str:
+def create_text_task(prompt: str, face_limit: int = 1000000, generation_profile: str = "quality", *,
+                     geometry_quality: str | None = None, texture_quality: str = "standard") -> str:
     if not isinstance(prompt, str) or not prompt.strip():
         raise TripoError("A text prompt is required.")
     _, _, model = _config()
-    payload = _generation_payload(model, face_limit, generation_profile)
+    payload = _generation_payload(model, face_limit, generation_profile, geometry_quality, texture_quality)
     payload["prompt"] = prompt
     return _task_id(_post_json("/generation/text-to-model", payload))
 
@@ -318,11 +334,12 @@ def upload_image(path: str | os.PathLike[str]) -> str:
     return token
 
 
-def create_image_task(file_token: str, face_limit: int = 2000000, generation_profile: str = "quality") -> str:
+def create_image_task(file_token: str, face_limit: int = 1000000, generation_profile: str = "quality", *,
+                      geometry_quality: str | None = None, texture_quality: str = "standard") -> str:
     if not isinstance(file_token, str) or not file_token:
         raise TripoError("An uploaded image reference is required.")
     _, _, model = _config()
-    payload = _generation_payload(model, face_limit, generation_profile)
+    payload = _generation_payload(model, face_limit, generation_profile, geometry_quality, texture_quality)
     payload.update({
         "input": file_token,
         "texture_alignment": "original_image",
@@ -339,8 +356,9 @@ _MULTIVIEW_ORDER = ("front", "left", "back", "right")
 
 def create_multiview_task(
     view_tokens: Mapping[str, str],
-    face_limit: int = 2000000,
+    face_limit: int = 1000000,
     generation_profile: str = "quality",
+    *, geometry_quality: str | None = None, texture_quality: str = "standard",
 ) -> str:
     if not isinstance(view_tokens, Mapping):
         raise TripoError("Named multiview inputs are required.")
@@ -355,7 +373,7 @@ def create_multiview_task(
     if "front" not in normalized or len(normalized) < 2:
         raise TripoError("Multiview generation requires front and at least one additional view.")
     _, _, model = _config()
-    payload = _generation_payload(model, face_limit, generation_profile)
+    payload = _generation_payload(model, face_limit, generation_profile, geometry_quality, texture_quality)
     payload["inputs"] = [{view: normalized[view]} for view in _MULTIVIEW_ORDER if view in normalized]
     payload["texture_alignment"] = "original_image"
     payload["orientation"] = "align_image"
@@ -372,7 +390,7 @@ def create_texture_task(
     image_token: str | Sequence[str],
     *,
     texture_alignment: str = "original_image",
-    texture_quality: str = "detailed",
+    texture_quality: str = "standard",
     texture_seed: int | None = None,
 ) -> str:
     """Regenerate only the texture of an existing Tripo geometry task."""

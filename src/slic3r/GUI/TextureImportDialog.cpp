@@ -521,6 +521,7 @@ public:
                         std::function<void(wxColour)>            on_add_filament,
                         std::function<void()>                    on_decompose_color,
                         std::function<bool()>                    can_add_filament,
+                        std::function<bool()>                    can_decompose_color,
                         std::function<void(bool)>                on_close,
                         std::vector<int>                         display_numbers)
         : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS)
@@ -533,6 +534,7 @@ public:
         , m_on_add_filament(std::move(on_add_filament))
         , m_on_decompose_color(std::move(on_decompose_color))
         , m_can_add_filament(std::move(can_add_filament))
+        , m_can_decompose_color(std::move(can_decompose_color))
         , m_on_close(std::move(on_close))
         , m_display_numbers(std::move(display_numbers))
     {
@@ -597,17 +599,18 @@ public:
         add_label->SetFont(af);
         decompose_label->SetFont(af);
         const bool add_enabled = !m_can_add_filament || m_can_add_filament();
+        const bool decompose_enabled = !m_can_decompose_color || m_can_decompose_color();
         const wxColour action_clr = StateColor::darkModeColorFor(wxColour("#009688"));
         add_label->SetForegroundColour(add_enabled ? action_clr : header_clr);
-        decompose_label->SetForegroundColour(add_enabled ? action_clr : header_clr);
+        decompose_label->SetForegroundColour(decompose_enabled ? action_clr : header_clr);
         add_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
-        decompose_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        decompose_label->SetCursor(wxCursor(decompose_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
         if (!add_enabled)
             add_label->SetToolTip(wxString::Format(
                 _L("The project supports up to %d filaments. Extra filaments will be discarded."),
                 (int)EnforcerBlockerType::ExtruderMax));
         decompose_label->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) {
-            if (m_can_add_filament && !m_can_add_filament())
+            if (m_can_decompose_color && !m_can_decompose_color())
                 return;
             auto on_decompose_color = m_on_decompose_color;
             m_closing_from_action = true;
@@ -891,6 +894,7 @@ private:
     std::function<void(wxColour)>              m_on_add_filament;
     std::function<void()>                      m_on_decompose_color;
     std::function<bool()>                      m_can_add_filament;
+    std::function<bool()>                      m_can_decompose_color;
     std::function<void(bool)>                  m_on_close;
     // 1-based display number per dialog_index, mirroring the post-apply
     // sidebar ordering (ExistingPhysical, NewPhysical, ExistingMixed, NewMixed).
@@ -1197,6 +1201,9 @@ static void convert_face_colors(const std::vector<std::array<std::size_t, 3>>& s
 void TexturePreviewCanvas::set_face_colors(const std::vector<std::array<std::size_t, 3>>& face_colors)
 {
     convert_face_colors(face_colors, m_face_colors_rgb);
+    m_face_color_groups.clear(); m_color_map.clear();
+    for (size_t i = 0; i < face_colors.size(); ++i) m_face_color_groups[face_colors[i]].push_back(i);
+    m_filament_colors_rgb = m_face_colors_rgb;
     Refresh();
 }
 
@@ -1209,20 +1216,16 @@ void TexturePreviewCanvas::set_original_face_colors(const std::vector<std::array
 void TexturePreviewCanvas::set_filament_color_map(
     const std::map<std::array<std::size_t, 3>, std::array<float, 3>>& color_map)
 {
-    m_color_map = color_map;
-    m_filament_colors_rgb.resize(m_face_colors_rgb.size());
-    for (size_t i = 0; i < m_face_colors_rgb.size(); ++i) {
-        std::array<std::size_t, 3> key = {
-            (std::size_t)(m_face_colors_rgb[i][0] * 255.f + 0.5f),
-            (std::size_t)(m_face_colors_rgb[i][1] * 255.f + 0.5f),
-            (std::size_t)(m_face_colors_rgb[i][2] * 255.f + 0.5f)
-        };
-        auto it = color_map.find(key);
-        if (it != color_map.end())
-            m_filament_colors_rgb[i] = it->second;
-        else
-            m_filament_colors_rgb[i] = m_face_colors_rgb[i];
+    // Reuse group membership when only a spool assignment changes. No mesh
+    // reload, clustering or RGB-to-key conversion across every face.
+    for (const auto& group : m_face_color_groups) {
+        auto next = color_map.find(group.first);
+        auto previous = m_color_map.find(group.first);
+        if (next != color_map.end() && previous != m_color_map.end() && next->second == previous->second) continue;
+        for (size_t face : group.second)
+            m_filament_colors_rgb[face] = next == color_map.end() ? m_face_colors_rgb[face] : next->second;
     }
+    m_color_map = color_map;
     Refresh();
 }
 
@@ -1776,10 +1779,14 @@ TextureImportDialog::TextureImportDialog(
     SetSize(wxSize(FromDIP(960), FromDIP(640)));
     if (m_options.initial_target_colors > 0)
         m_param_color_count = (int)std::min(m_options.initial_target_colors, max_filament_count());
+    if (m_options.initial_color_smoothing >= 0)
+        m_param_smooth = std::clamp(m_options.initial_color_smoothing, 0, 10);
     if (!m_options.fixed_palette.empty()) {
         m_param_color_count = (int)std::min(m_options.fixed_palette.size(), max_filament_count());
         m_param_smooth = 0;
     }
+    if (!m_options.face_color_overrides.empty())
+        m_param_smooth = 0;
 
     m_filament_colors_rgba.reserve(m_filament_entries.size());
     m_filament_color_strs.reserve(m_filament_entries.size());
@@ -2208,9 +2215,9 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
         m_initial_tooltips_set = true;
         CallAfter([this]() {
             if (m_btn_color_auto)
-                m_btn_color_auto->SetToolTip(_L("Automatically determine the optimal color count only and recompute filament mapping"));
+                m_btn_color_auto->SetToolTip(texture_import_label("Suggest a color count and update filament mapping", "自动建议目标色数量，并更新耗材匹配。"));
             if (m_btn_apply)
-                m_btn_apply->SetToolTip(_L("Convert texture to painting using the specified color count and smooth level"));
+                m_btn_apply->SetToolTip(texture_import_label("Update color separation and filament mapping using the current settings", "按当前目标色数量和边界清理设置更新分色预览与耗材匹配。"));
         });
     });
 
@@ -2220,7 +2227,7 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
     sizer->Add(apply_sizer, 0, wxALIGN_RIGHT | wxBOTTOM, FromDIP(8));
 
     m_hint_label = new wxStaticText(parent, wxID_ANY,
-        _L("Reminder: parameters changed, click Apply to take effect"));
+        texture_import_label("Parameters changed. Click Update preview to refresh.", "参数已修改，请点击“更新分色预览”。"));
     m_hint_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF6F00")));
     m_hint_label->SetFont(texture_import_section_title_font(parent));
     m_hint_label->Hide();
@@ -2284,14 +2291,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
         m_btn_auto_mix->SetTextColor(btn_text);
     }
     m_btn_auto_mix->SetToolTip(_L("Choose the one-click auto-mix mode for texture color import"));
-    m_btn_auto_mix->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& evt) {
-        show_auto_mix_popup();
-        evt.Skip();
-    });
-    m_btn_auto_mix->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
-        show_auto_mix_popup();
-        evt.Skip();
-    });
+    m_btn_auto_mix->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { show_auto_mix_popup(); });
     header_sizer->Add(m_btn_auto_mix, 0, wxALIGN_CENTER_VERTICAL);
 
     sizer->Add(header_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
@@ -2386,9 +2386,9 @@ void TextureImportDialog::update_ui_for_state()
 
     m_color_slider->Enable(editable_palette);
     m_color_spin->Enable(editable_palette);
-    m_smooth_slider->Enable(editable_palette);
-    m_smooth_spin->Enable(editable_palette);
-    m_btn_apply->Enable(!computing);
+    m_smooth_slider->Enable(editable_palette && m_options.face_color_overrides.empty());
+    m_smooth_spin->Enable(editable_palette && m_options.face_color_overrides.empty());
+    m_btn_apply->Enable(!computing && (m_options.fixed_palette.empty() || !valid));
     m_btn_color_4->Enable(editable_palette);
     m_btn_color_6->Enable(editable_palette);
     m_btn_color_8->Enable(editable_palette);
@@ -2446,6 +2446,7 @@ void TextureImportDialog::start_computation(bool auto_color, bool initial)
     settings.target_colors_num = auto_color ? 0 : (size_t)m_param_color_count;
     settings.fixed_palette = m_options.fixed_palette;
     settings.fixed_mapping_palette = m_options.fixed_mapping_palette;
+    settings.face_color_overrides = m_options.face_color_overrides;
     settings.smooth_weight     = m_param_smooth / 10.0;
     settings.mesh_repair_decision = m_mesh_repair_decision;
     // BBS repairs the mesh through the Windows 3D SDK, which is only available on Windows
@@ -2791,8 +2792,41 @@ void TextureImportDialog::update_mapping_summary()
         "目标 %d 色 · 使用 %d 个实体耗材 · %d 个叠色配方\n确认后新增 %d 个实体耗材"),
         (int)m_painted.cluster_colors.size(), (int)physical.size(), (int)mixed.size(), (int)added.size()));
     wxString note;
+    size_t distant = 0;
+    for (const auto& match : m_current_matches) {
+        if (match.filament_index >= 0 && match.filament_index < (int)m_filament_colors_rgba.size() &&
+            Slic3r::compute_delta_e(match.cluster_color, m_filament_colors_rgba[match.filament_index]) > 10.) ++distant;
+    }
+    if (distant) note += wxString::Format(texture_import_label(
+        "\n%d target colors differ visibly from the available filaments; compare before applying",
+        "\n%d 个目标色与耗材色差较大；可对照调整，也可继续导入"), (int)distant);
+    note += texture_import_label("\nMapping changes the whole color group; use the beauty workbench for local edits",
+        "\n换耗材会修改整个颜色组；只改领口等局部请回美颜选区");
     if (!m_options.fixed_palette.empty())
         note += texture_import_label("\nUsing the workbench palette; edit target colors in the workbench", "\n沿用美颜工作台色板；目标颜色请回工作台修改");
+    if (!m_options.face_color_overrides.empty()) {
+        note += texture_import_label("\nLocal color edits are preserved; filament assignments remain editable",
+            "\n已保留局部改色；可继续调整对应耗材");
+        std::set<std::array<size_t, 3>> unmatched_targets;
+        std::set<std::array<size_t, 3>> local_targets;
+        for (const auto& override : m_options.face_color_overrides)
+            local_targets.insert(override.second);
+        for (const auto& target : local_targets) {
+            bool found = false;
+            for (size_t index = 0; index < m_filament_entries.size() && index < m_filament_colors_rgba.size(); ++index) {
+                if (!texture_entry_is_physical(m_filament_entries[index].kind)) continue;
+                const auto& color = m_filament_colors_rgba[index];
+                const std::array<size_t, 3> rgb {{size_t(std::lround(color[0] * 255.f)),
+                    size_t(std::lround(color[1] * 255.f)), size_t(std::lround(color[2] * 255.f))}};
+                if (rgb == target) { found = true; break; }
+            }
+            if (!found) unmatched_targets.insert(target);
+        }
+        if (!unmatched_targets.empty())
+            note += wxString::Format(texture_import_label(
+                "\n%d local target colors have no exact physical filament; review the approximate assignments",
+                "\n局部改色的 %d 个目标色没有同色实体耗材；请核对当前近似匹配"), int(unmatched_targets.size()));
+    }
     if (m_options.preserve_existing_filaments) {
         note += texture_import_label("\nExisting filaments only; CMYW recipes are not CMYK calibration", "\n仅使用已有耗材；CMYW 配方不等于 CMYK 标定");
         const size_t configured_physical = (size_t)std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {
@@ -3591,9 +3625,14 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
             wxString label = (idx >= 0 && idx < (int)m_filament_names.size())
                 ? filament_name_to_wx_string(m_filament_names[idx])
                 : wxString::Format("Filament %d", display_number(idx));
+            if (idx >= 0 && idx < (int)m_filament_colors_rgba.size())
+                label += wxString::FromUTF8(" · " + m_filament_color_strs[idx]) + wxString::Format(_L(" · 色差 %.1f"),
+                    Slic3r::compute_delta_e(m_mapping_rows[row_index].source_color, m_filament_colors_rgba[idx]));
             m_mapping_rows[row_index].target_panel->SetToolTip(label);
             m_mapping_rows[row_index].target_panel->Refresh();
         }
+        m_preview_canvas->set_render_mode(TexturePreviewCanvas::RenderMode::FilamentMap);
+        highlight_view_button(2);
         update_filament_color_map();
     };
 
@@ -3643,6 +3682,15 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
         m_existing_filament_count, tp->GetSize().x, tp, on_select, on_add_filament,
         on_decompose_color,
         [this]() { return can_add_physical_filament(); },
+        [this]() {
+            // Decomposition may add missing base colors, or reuse at least two
+            // existing physical filaments when physical additions are prohibited.
+            return can_add_virtual_filament() &&
+                (can_add_physical_filament() ||
+                 std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {
+                     return entry.kind == TextureFilamentKind::ExistingPhysical;
+                 }) >= 2);
+        },
         on_close,
         display_numbers);
 
@@ -3959,7 +4007,11 @@ void TextureImportDialog::rebuild_mapping_rows()
         row.target_panel = new wxPanel(row_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, row_h),
                                        wxTAB_TRAVERSAL | wxFULL_REPAINT_ON_RESIZE);
         row.target_panel->SetMinSize(wxSize(target_min_w, row_h));
-        row.target_panel->SetToolTip(get_filament_label(row.target_filament_idx));
+        wxString target_hint = get_filament_label(row.target_filament_idx);
+        if (row.target_filament_idx >= 0 && row.target_filament_idx < (int)m_filament_colors_rgba.size())
+            target_hint += wxString::FromUTF8(" · " + m_filament_color_strs[row.target_filament_idx]) + wxString::Format(_L(" · 色差 %.1f"),
+                Slic3r::compute_delta_e(row.source_color, m_filament_colors_rgba[row.target_filament_idx]));
+        row.target_panel->SetToolTip(target_hint);
         row.target_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
         row.target_panel->SetCursor(wxCursor(wxCURSOR_HAND));
 
@@ -4364,7 +4416,7 @@ void TextureImportDialog::style_confirm_button(bool dirty)
 {
     if (dirty) {
         apply_muted_button_colours(m_btn_ok);
-        m_btn_ok->SetToolTip(_L("Reminder: parameters changed, click Apply to take effect"));
+        m_btn_ok->SetToolTip(texture_import_label("Parameters changed. Click Update preview to refresh.", "参数已修改，请点击“更新分色预览”。"));
     } else {
         apply_accent_button_colours(m_btn_ok);
         m_btn_ok->UnsetToolTip();

@@ -1,6 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/AISidecarClient.hpp"
+#include "slic3r/GUI/AIServiceManager.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <array>
 #include <cstdlib>
@@ -11,8 +14,21 @@
 #include <openssl/hmac.h>
 
 using Slic3r::GUI::AISidecarClient;
+using Slic3r::GUI::AIServiceAvailability;
 
 namespace {
+
+nlohmann::json health_response()
+{
+    return {
+        {"ok", true}, {"protocol_version", 2}, {"sidecar_version", "orcaslicer-ai-sidecar-v9"},
+        {"runtime", {{"health_schema_version", 2}, {"session_protected", true}, {"build", nlohmann::json::object()}}},
+        {"capabilities", {
+            {"config_proposal", {{"available", false}}},
+            {"model_generation", {{"available", true}, {"sources", {"text", "image"}}, {"artifact_formats", {"glb", "obj"}}}}
+        }}
+    };
+}
 
 std::string hmac_hex(const std::string& key, const std::string& message)
 {
@@ -29,6 +45,62 @@ std::string hmac_hex(const std::string& key, const std::string& message)
 }
 
 } // namespace
+
+TEST_CASE("AI Sidecar discovery accepts supported GLB and legacy OBJ formats", "[AI][Sidecar][ServiceAvailability]")
+{
+    for (const auto& formats : {nlohmann::json::array({"glb", "obj"}), nlohmann::json::array({"obj", "glb"}),
+                               nlohmann::json::array({"obj"}), nlohmann::json::array({"glb"})}) {
+        DYNAMIC_SECTION(formats.dump()) {
+            auto response = health_response();
+            response["capabilities"]["model_generation"]["artifact_formats"] = formats;
+            const auto result = AIServiceAvailability::from_health_response(response.dump(), true);
+            REQUIRE(result.compatible);
+            REQUIRE(result.model_generation_available);
+            REQUIRE_FALSE(result.config_proposal_available);
+            REQUIRE(result.error.empty());
+        }
+    }
+}
+
+TEST_CASE("AI Sidecar discovery rejects unusable artifact capabilities", "[AI][Sidecar][ServiceAvailability]")
+{
+    for (const auto& formats : {nlohmann::json(), nlohmann::json("glb"), nlohmann::json::array(),
+                               nlohmann::json::array({1}), nlohmann::json::array({"stl"}),
+                               nlohmann::json::array({"glb", "stl"})}) {
+        DYNAMIC_SECTION(formats.dump()) {
+            auto response = health_response();
+            response["capabilities"]["model_generation"]["artifact_formats"] = formats;
+            const auto result = AIServiceAvailability::from_health_response(response.dump(), true);
+            REQUIRE_FALSE(result.compatible);
+            REQUIRE_FALSE(result.model_generation_available);
+            REQUIRE_FALSE(result.error.empty());
+        }
+    }
+}
+
+TEST_CASE("AI Sidecar discovery keeps GLB compatibility separate from provider availability", "[AI][Sidecar][ServiceAvailability]")
+{
+    auto response = health_response();
+    response["capabilities"]["model_generation"]["available"] = false;
+    const auto result = AIServiceAvailability::from_health_response(response.dump(), true);
+    REQUIRE(result.compatible);
+    REQUIRE_FALSE(result.model_generation_available);
+    REQUIRE(result.error.empty());
+}
+
+TEST_CASE("AI Sidecar GLB discovery retains protocol and session validation", "[AI][Sidecar][ServiceAvailability][Security]")
+{
+    auto response = health_response();
+    response["runtime"]["session_protected"] = false;
+    REQUIRE_FALSE(AIServiceAvailability::from_health_response(response.dump(), true).compatible);
+    REQUIRE(AIServiceAvailability::from_health_response(response.dump(), false).compatible);
+    response["protocol_version"] = 1;
+    REQUIRE_FALSE(AIServiceAvailability::from_health_response(response.dump(), false).compatible);
+    response = health_response();
+    response["capabilities"]["model_generation"].erase("artifact_formats");
+    REQUIRE_FALSE(AIServiceAvailability::from_health_response(response.dump(), true).compatible);
+    REQUIRE_FALSE(AIServiceAvailability::from_health_response("not-json", true).compatible);
+}
 
 TEST_CASE("AI Sidecar endpoints stay on loopback", "[AI][Sidecar]")
 {

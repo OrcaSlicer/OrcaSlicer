@@ -10,6 +10,7 @@ add_executable(${_TEST_NAME}_tests
     test_ai_sidecar_client.cpp
     test_model_generation_presentation.cpp
     test_model_preview_palette.cpp
+    test_model_preview_state.cpp
     test_model_color_import.cpp
     test_plugin_host_api.cpp
     test_plugin_capability_config.cpp
@@ -23,7 +24,12 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
     test_vertex_color_region_editor.cpp
+    test_surface_selection.cpp
+    test_surface_selection_refinement.cpp
+    test_surface_selection_state.cpp
+    test_color_trial_state.cpp
     test_model_finishing.cpp
+    test_model_artifact.cpp
     test_orca_model_preparation.cpp
     test_smart_slicing_candidates.cpp
     test_smart_slicing_coordinator.cpp

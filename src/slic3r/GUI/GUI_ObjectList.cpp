@@ -6163,13 +6163,20 @@ void ObjectList::fix_through_cgal()
         }
 
         const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
-        if (!keep_painting) {
-            plater->clear_before_change_mesh(obj_idx);
-        }
+        bool painting_removed = false;
         const size_t volumes_before = object(obj_idx)->volumes.size();
         std::string res;
-        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res, keep_painting))
+        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res, keep_painting, &painting_removed))
             return false;
+        if (!res.empty()) {
+            failed_models.push_back({ model_name, res });
+            return true;
+        }
+        if (painting_removed)
+            plater->get_notification_manager()->push_notification(
+                NotificationType::CustomSupportsAndSeamRemovedAfterRepair,
+                NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
+                _u8L("Custom supports and color painting were removed before repairing."));
         //wxGetApp().plater()->changed_mesh(obj_idx);
         object(obj_idx)->ensure_on_bed();
         plater->changed_mesh(obj_idx);
@@ -6181,10 +6188,7 @@ void ObjectList::fix_through_cgal()
         plater->get_partplate_list().notify_instance_update(obj_idx, 0);
         plater->sidebar().obj_list()->update_plate_values_for_items();
 
-        if (res.empty())
-            succes_models.push_back(model_name);
-        else
-            failed_models.push_back({ model_name, res });
+        succes_models.push_back(model_name);
 
         update_item_error_icon(obj_idx, vol_idx);
         update_info_items(obj_idx);

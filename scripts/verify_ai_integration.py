@@ -224,7 +224,7 @@ SECRET_SCAN_SUFFIXES = {
 }
 DIRECT_OPENAI_KEY_PATTERN = re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{30,}\b")
 LITERAL_PROVIDER_KEY_PATTERN = re.compile(
-    r'''(?i)["']?(OPENAI_PRO_API|OPENAI_API_KEY|TRIPO_API_KEY)["']?\s*[:=]\s*["']([^"'\r\n]{16,})["']'''
+    r'''(?i)["']?(HY3D_API|OPENAI_PRO_API|OPENAI_API_KEY|TRIPO_API_KEY)["']?\s*[:=]\s*["']([^"'\r\n]{16,})["']'''
 )
 PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
 # These two audited negative-test payloads deliberately resemble credentials.
@@ -777,7 +777,7 @@ def validate_git_secret_content(repo_root: Path) -> list[dict[str, str]]:
             "-I",
             "-E",
             "-e",
-            "OPENAI_PRO_API|OPENAI_API_KEY|TRIPO_API_KEY|sk-|PRIVATE KEY",
+            "HY3D_API|OPENAI_PRO_API|OPENAI_API_KEY|TRIPO_API_KEY|sk-|PRIVATE KEY",
             "--",
             *pathspecs,
         ],
