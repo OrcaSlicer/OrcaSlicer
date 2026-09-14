@@ -74,6 +74,8 @@ public:
     static void update_user_name(DynamicConfig &config);
     void update_user_name() { update_user_name(m_config); }
 
+    static std::set<std::string> get_function_keywords();
+
 private:
 	// config has a higher priority than external_config when looking up a symbol.
     DynamicConfig 			 m_config;

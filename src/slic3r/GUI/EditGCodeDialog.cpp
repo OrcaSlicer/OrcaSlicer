@@ -25,6 +25,7 @@
 
 #define BTN_GAP  FromDIP(20)
 #define BTN_SIZE wxSize(FromDIP(58), FromDIP(24))
+#define wrap_wxstring(s) get_wraped_wxString((s), 120)
 
 namespace Slic3r {
 namespace GUI {
@@ -147,6 +148,8 @@ void EditGCodeDialog::on_search_update()
 
 static ParamType get_type(const std::string& opt_key, const ConfigOptionDef& opt_def)
 {
+    if (opt_def.is_function)
+        return ParamType::Function;
     return opt_def.is_scalar() ? ParamType::Scalar : ParamType::Vector;
 }
 
@@ -216,9 +219,17 @@ void EditGCodeDialog::init_params_list(const std::string& custom_gcode_name)
         // Add timestamp subgroup
 
         if (!cgp_timestamps_config_def.empty()) {
-            wxDataViewItem dimensions = m_params_list->AppendGroup(_L("Timestamps"), "custom-gcode_time");
+            wxDataViewItem timestamps = m_params_list->AppendGroup(_L("Timestamps"), "custom-gcode_time");
             for (const auto& [opt_key, def] : cgp_timestamps_config_def.options)
-                m_params_list->AppendParam(dimensions, get_type(opt_key, def), opt_key);
+                m_params_list->AppendParam(timestamps, get_type(opt_key, def), opt_key);
+        }
+
+        // Add function subgroup
+
+        if (!functions_config_def.empty()) {
+            wxDataViewItem functions = m_params_list->AppendGroup(_L("Functions"), "custom-gcode_function");
+            for (const auto& [opt_key, def] : functions_config_def.options)
+                m_params_list->AppendParam(functions, get_type(opt_key, def), opt_key);
         }
     }
 
@@ -320,9 +331,9 @@ void EditGCodeDialog::add_selected_value_to_gcode()
 
     m_gcode_editor->WriteText(m_gcode_editor->GetInsertionPoint() == m_gcode_editor->GetLastPosition() ? "\n" + val : val);
 
-    if (val.Last() == ']') {
+    if (val.Last() == ']' || val.Last() == ')') {
         const long new_pos = m_gcode_editor->GetInsertionPoint();
-        if (val[val.Len() - 2] == '[')
+        if (val[val.Len() - 2] == '[' || val[val.Len() - 2] == '(')
             m_gcode_editor->SetInsertionPoint(new_pos - 1);          // set cursor into brackets
         else
             m_gcode_editor->SetSelection(new_pos - 17, new_pos - 1); // select "current_extruder"
@@ -350,7 +361,8 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
                  &cgp_dimensions_config_def,
                  &cgp_temperatures_config_def,
                  &cgp_timestamps_config_def,
-                 &cgp_other_presets_config_def
+                 &cgp_other_presets_config_def,
+                 &functions_config_def
              }) {
             if (config->has(opt_key)) {
                 def = config->get(opt_key);
@@ -367,7 +379,56 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
             }
         }
 
-            if (def) {
+        if (def) {
+            if (def->is_function) {
+                auto get_types_str = [](int type_flags) -> wxString {
+                    std::string type_str = type_flags & FuncArgType::Void     ? "void" :
+                                           type_flags & FuncArgType::Float    ? "float" :
+                                           type_flags & FuncArgType::Int      ? "integer" :
+                                           type_flags & FuncArgType::Numeric  ? "numeric" :
+                                           type_flags & FuncArgType::String   ? "string" :
+                                           type_flags & FuncArgType::Strings  ? "string..." :
+                                           type_flags & FuncArgType::Variable ? "variable" :
+                                           type_flags & FuncArgType::Bool     ? "bool" :
+                                           type_flags & FuncArgType::Points   ? "points" :
+                                                                                        "undef";
+                    if (type_flags & FuncArgType::Optional) {
+                        return wxString::Format("optional[%s]", std::move(type_str));
+                    }
+                    return type_str;
+                };
+                wxString return_type = get_types_str(def->function_return_type_flags);
+                wxString arg_list;
+                wxString arg_descriptions;
+                for (const auto& [_name, _type_flags, _description, _repeating] : def->function_args) {
+                    if (_name != def->function_args.front().name) {
+                        arg_list += ", ";
+                    }
+                    wxString arg_types_str = get_types_str(_type_flags);
+                    if (_repeating)
+                        arg_types_str += "...";
+
+                    // Add to arg list
+                    arg_list += arg_types_str;
+                    arg_list += " ";
+                    arg_list += _name;
+
+                    // Add to arg description
+                    arg_descriptions += _name;
+                    arg_descriptions += "(";
+                    arg_descriptions += arg_types_str;
+                    arg_descriptions += ")";
+                    if (!_description.empty()) {
+                        arg_descriptions += ": ";
+                        arg_descriptions += _(_description);
+                    }
+                    arg_descriptions += "\n";
+                }
+
+                label = format_wxstr("%1%(%2%)\nReturns: %3%", opt_key, arg_list, return_type);
+                description = format_wxstr("%1%\n\nFunction Args:\n%2%", wrap_wxstring(_(def->tooltip)), wrap_wxstring(_(arg_descriptions)));
+
+            } else {
                 const ConfigOptionType scalar_type = def->is_scalar() ? def->type : static_cast<ConfigOptionType>(def->type - coVectorType);
                 wxString type_str = scalar_type == coNone           ? "none" :
                                                      scalar_type == coFloat          ? "float" :
@@ -381,17 +442,17 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
                 if (!def->is_scalar())
                     type_str += "[]";
 
-                label = (!def || (def->full_label.empty() && def->label.empty()) ) ? format_wxstr("%1%\n(%2%)", opt_key, type_str) :
-                        (!def->full_label.empty() && !def->label.empty() ) ?
+                label = def->full_label.empty() && def->label.empty() ? format_wxstr("%1%\n(%2%)", opt_key, type_str) :
+                        !def->full_label.empty() && !def->label.empty() ?
                                                                                     format_wxstr("%1% > %2%\n(%3%)", _(def->full_label), _(def->label), type_str) :
                                                                                     format_wxstr("%1%\n(%2%)", def->label.empty() ? _(def->full_label) : _(def->label), type_str);
 
-                if (def)
-                    description = get_wraped_wxString(_(def->tooltip), 120);
+                description = wrap_wxstring(_(def->tooltip));
             }
-            else
-                label = "Undef optptr";
-    }
+
+        }
+    } else
+        label = "Undef optptr";
 
     m_param_label->SetLabel(label);
     m_param_description->SetLabel(description);
@@ -429,9 +490,10 @@ void EditGCodeDialog::on_sys_color_changed()
 
 const std::map<ParamType, std::string> ParamsInfo {
 //    Type                      BitmapName
-    { ParamType::Scalar,        "custom-gcode_single"          },
-    { ParamType::Vector,        "custom-gcode_vector"          },
-    { ParamType::FilamentVector,"custom-gcode_vector-index" },
+    { ParamType::Scalar,            "custom-gcode_single"          },
+    { ParamType::Vector,            "custom-gcode_vector"          },
+    { ParamType::FilamentVector,    "custom-gcode_vector-index"    },
+    { ParamType::Function,          "custom-gcode_single"          },
 };
 
 static void make_bold(wxString& str)
@@ -487,6 +549,8 @@ ParamsNode::ParamsNode( ParamsNode*         parent,
         text += "[]";
     else if (param_type == ParamType::FilamentVector)
         text += "[current_extruder]";
+    else if (param_type == ParamType::Function)
+        text += "()";
 
     icon_name = ParamsInfo.at(param_type);
 }
