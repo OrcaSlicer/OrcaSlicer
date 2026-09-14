@@ -1003,6 +1003,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetToolTip(tip);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -1028,6 +1029,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().stop_sync_user_preset();
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+        }
+        else if (param == SETTING_OPENGL_SCENE_CACHE) {
+            if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1915,7 +1919,7 @@ void PreferencesDialog::create_items()
     auto item_scene_cache = create_item_checkbox(
         _L("Reuse the 3D scene while idle"),
         _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-           "and reuses the previous frame's scene instead. Greatly reduces GPU load on integrated graphics.\n"
+           "and reuses the previous frame's scene instead. Reduces GPU load.\n"
            "Disable it if the viewport shows stale or missing contents.\n\n"
            "Takes effect immediately."),
         SETTING_OPENGL_SCENE_CACHE
@@ -1931,6 +1935,7 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
     );
     g_sizer->Add(item_skip_identical_frames);
+    if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(app_config->get_bool(SETTING_OPENGL_SCENE_CACHE));
 
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
