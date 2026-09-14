@@ -11894,18 +11894,17 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("Do not run any validity checks, such as G-code path conflicts check.");
     def->set_default_value(new ConfigOptionBool(false));
 
-    // --strict — opposite of --no-check. Re-elevates NON_CRITICAL slicing
-    // warnings that today only get logged, so AI/CI scripts don't "succeed"
-    // on subtly broken outputs. Also flips the strict_mode marker in
-    // result.json so a consumer can tell whether the same slice would have
-    // failed under strict rules.
+    // --strict turns the non-critical slicing warnings the CLI otherwise only logs into a
+    // failed run, and records strict_mode in result.json so consumers can tell the modes apart.
     def = this->add("strict", coBool);
     def->label = L("Strict mode");
-    def->tooltip = L("Fail loudly (exit non-zero) on any NON_CRITICAL slicing warning "
-                     "that today gets silently logged. Use this in CI / scripted "
-                     "pipelines that should never ship a subtly broken slice. "
-                     "The structured `failures` array in result.json also carries the "
-                     "warning class when --strict fires so downstream tooling can branch on it.");
+    def->tooltip = L("Exit non-zero when slicing raises a non-critical warning that is "
+                     "otherwise only logged, such as a model that needs support while "
+                     "support is disabled. Use this in CI or scripted pipelines that should "
+                     "never ship a subtly broken slice. Each such warning is also listed "
+                     "with a stable class in the `warnings` array of result.json, which is "
+                     "written on Linux only. Cannot be combined with --no-check, which skips "
+                     "the support check.");
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("normative_check", coBool);

@@ -17,8 +17,9 @@ cd "${ROOT_DIR}" || exit 1
 TEST_DIR="${1:-build/tests}"
 BUILD_CONFIG="${2:-}"
 
-# Run the whole suite, excluding tests tagged [NotWorking].
+# Run the whole suite, excluding tests tagged [NotWorking] and tests labelled RequiresApp,
+# which run the built orca-slicer binary that this directory does not contain.
 # --no-tests=error fails the job if the filter matches nothing (instead of passing green).
-args=(--test-dir "${TEST_DIR}" -LE "NotWorking" --no-tests=error --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j)
+args=(--test-dir "${TEST_DIR}" -LE "NotWorking|RequiresApp" --no-tests=error --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j)
 [ -n "${BUILD_CONFIG}" ] && args+=(--build-config "${BUILD_CONFIG}")
 ctest "${args[@]}"

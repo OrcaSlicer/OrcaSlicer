@@ -10,6 +10,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `libnest2d`: 2D nesting and packing.
 - `slic3rutils`: the Python plugin system and its slicing-pipeline bindings.
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
+- `cli`: end-to-end runs of the built `orca-slicer` binary, Linux only. These tests carry the `RequiresApp` label, which the CI unit-test job excludes because it receives only `build/tests`; run them with `ctest --test-dir build/tests -C Release -L RequiresApp`.
 
 ## Building and running
 
