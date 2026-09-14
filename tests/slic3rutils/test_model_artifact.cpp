@@ -2,6 +2,7 @@
 #include "slic3r/GUI/AI/Model/ModelFinishing.hpp"
 #include "slic3r/GUI/AI/Model/VertexColorRegionEditor.hpp"
 #include "libslic3r/Format/AssimpImport.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/TexturePainting.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include <catch2/catch_test_macros.hpp>
@@ -11,6 +12,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <map>
 #include <set>
 
 using namespace Slic3r;
@@ -29,6 +31,29 @@ std::array<int, 3> canonical_face(std::array<int, 3> face)
     const auto minimum = std::min_element(face.begin(), face.end());
     std::rotate(face.begin(), minimum, face.end());
     return face;
+}
+
+void require_closed_painted_mesh(const PaintedMesh& painted)
+{
+    // Count indexed edges, so coincident but unshared vertices and T-junctions
+    // cannot be hidden by a later mesh repair or position-based edge lookup.
+    std::map<std::array<int, 2>, std::pair<int, int>> edges;
+    REQUIRE(painted.face_colors.size() == painted.indices.size());
+    for (const auto& face : painted.indices) {
+        for (int corner = 0; corner < 3; ++corner) {
+            const int a = face[corner], b = face[(corner + 1) % 3];
+            REQUIRE(a >= 0);
+            REQUIRE(size_t(a) < painted.vertices.size());
+            REQUIRE(a != b);
+            auto& edge = edges[{std::min(a, b), std::max(a, b)}];
+            ++edge.first;
+            edge.second += a < b ? 1 : -1;
+        }
+    }
+    for (const auto& edge : edges) {
+        REQUIRE(edge.second.first == 2);
+        REQUIRE(edge.second.second == 0);
+    }
 }
 }
 
@@ -71,6 +96,13 @@ TEST_CASE("GLB textures and transformed scenes match the local analysis colors a
             for (const auto& f : expected.its.indices)
                 expected_faces.insert(canonical_face({f[0], f[1], f[2]}));
             REQUIRE(actual_faces == expected_faces);
+            if (name == "textured" || name == "multi-material") {
+                Model native = Model::read_from_file((samples / (name + ".glb")).string());
+                REQUIRE(native.texture_mesh);
+                REQUIRE_FALSE(native.texture_mesh->textures.empty());
+                CHECK(native.texture_mesh->precomputed_vertex_colors.empty());
+                CHECK(native.texture_mesh->precomputed_face_colors.empty());
+            }
         }
     }
 }
@@ -102,6 +134,8 @@ TEST_CASE("Embedded JPEG textures retain their dimensions and projected colors",
     TexturedMesh textured;
     REQUIRE(load_assimp_textured_model(source.string(), textured, &error));
     REQUIRE(textured.textures.size() == 1);
+    CHECK(textured.precomputed_vertex_colors.empty());
+    CHECK(textured.precomputed_face_colors.empty());
     std::vector<unsigned char> pixels;
     int width = 0, height = 0;
     REQUIRE(decode_texture_to_pixels(textured.textures.front(), pixels, width, height));
@@ -177,8 +211,145 @@ TEST_CASE("Local GLB versions preserve geometry colors and the source file", "[M
             REQUIRE_THAT(read_colors.vertex_colors[match][c], WithinAbs(colors.vertex_colors[i][c], .00001));
         }
     }
+    // File > Import and drag-and-drop use the default loader, without requesting
+    // the optional raw Assimp colors used by the local artifact preview.
+    Model native = Model::read_from_file(output.string());
+    REQUIRE(native.texture_mesh);
+    const auto& textured = *native.texture_mesh;
+    REQUIRE(textured.textures.empty());
+    REQUIRE(textured.precomputed_vertex_colors.size() == textured.vertices.size());
+    REQUIRE(textured.precomputed_face_colors.size() == textured.indices.size());
+    for (size_t i = 0; i < textured.vertices.size(); ++i) {
+        const auto& p = textured.vertices[i];
+        const Vec3f position = Vec3f(p[0], p[1], p[2]) * 1000.f;
+        const auto found = std::find_if(mesh.its.vertices.begin(), mesh.its.vertices.end(),
+            [&](const Vec3f& vertex) { return (vertex - position).norm() < .001f; });
+        REQUIRE(found != mesh.its.vertices.end());
+        const size_t original = size_t(std::distance(mesh.its.vertices.begin(), found));
+        for (size_t channel = 0; channel < 3; ++channel)
+            CHECK_THAT(textured.precomputed_vertex_colors[i][channel], WithinAbs(colors.vertex_colors[original][channel], .00001));
+    }
     REQUIRE(model_artifact_sha256(source) == hash);
     REQUIRE_FALSE(write_model_artifact(output, mesh.its, colors.vertex_colors, error));
+}
+
+TEST_CASE("Ordinary GLB imports apply material factors to linear vertex colors", "[ModelArtifact]") {
+    for (const std::string name : {"vertex-material-color", "ushort-vertex-colors"}) {
+        DYNAMIC_SECTION(name) {
+            Model native = Model::read_from_file((samples / (name + ".glb")).string());
+            TriangleMesh expected; ObjInfo colors; std::string error;
+            REQUIRE(load_model_artifact(samples / (name + ".obj"), expected, colors, error));
+            REQUIRE(native.texture_mesh);
+            const auto& textured = *native.texture_mesh;
+            REQUIRE(textured.precomputed_vertex_colors.size() == textured.vertices.size());
+            REQUIRE(textured.precomputed_face_colors.size() == textured.indices.size());
+            REQUIRE_FALSE(colors.vertex_colors.empty());
+            // These fixtures have a uniform COLOR_0 multiplied by a nonwhite factor.
+            for (const auto& color : textured.precomputed_vertex_colors)
+                for (size_t channel = 0; channel < 3; ++channel)
+                    CHECK_THAT(color[channel], WithinAbs(colors.vertex_colors.front()[channel], .00001));
+            for (const auto& color : textured.precomputed_face_colors)
+                for (size_t channel = 0; channel < 3; ++channel)
+                    CHECK_THAT(double(color[channel]), WithinAbs(colors.vertex_colors.front()[channel] * 255.f, 1.));
+        }
+    }
+}
+
+TEST_CASE("Locally recolored OBJ and GLB artifacts stay closed through native painting", "[ModelArtifact]") {
+    for (const std::string extension : {"obj", "glb"}) {
+        for (int split_edges : {0, 1, 2, 3}) {
+            DYNAMIC_SECTION(extension << " with " << split_edges << " split edges on the recolored face") {
+                Fixture fixture;
+                indexed_triangle_set mesh;
+                mesh.vertices = {Vec3f(0, 0, 0), Vec3f(20, 0, 0), Vec3f(0, 20, 0), Vec3f(0, 0, 20)};
+                mesh.indices = {Vec3i(0, 2, 1), Vec3i(0, 1, 3), Vec3i(1, 2, 3), Vec3i(2, 0, 3)};
+                const RGBA red{1, 0, 0, 1}, green{0, 1, 0, 1}, white{1, 1, 1, 1}, blue{0, 0, 1, 1};
+                std::vector<RGBA> colors{red, red, red, green};
+                if (split_edges >= 2) colors[1] = green;
+                if (split_edges == 3) colors[2] = white;
+                if (split_edges == 1) {
+                    // A preexisting seam also makes a two-color neighbor split
+                    // its equal-color edge to conform to the opposite side.
+                    for (int corner = 0; corner < 3; ++corner) {
+                        const Vec3f position = mesh.vertices[mesh.indices[1][corner]];
+                        mesh.indices[1][corner] = int(mesh.vertices.size());
+                        mesh.vertices.push_back(position);
+                        colors.push_back(corner == 0 ? red : green);
+                    }
+                }
+                std::string error;
+                const auto source = fixture.directory / ("source." + extension);
+                const auto output = fixture.directory / ("recolored." + extension);
+                REQUIRE(write_model_artifact(source, mesh, colors, error));
+                const auto source_hash = model_artifact_sha256(source);
+                TriangleMesh loaded; ObjInfo loaded_colors;
+                REQUIRE(load_model_artifact(source, loaded, loaded_colors, error));
+                VertexColorRegionEditor editor;
+                REQUIRE(editor.initialize(loaded.its, loaded_colors.vertex_colors, error));
+                REQUIRE(editor.select_faces({0}) == 1);
+                REQUIRE(editor.apply_color_to_obj_copy(blue, source, output, error));
+
+                Model native = Model::read_from_file(output.string());
+                REQUIRE(native.objects.size() == 1);
+                REQUIRE(native.objects.front()->volumes.size() == 1);
+                REQUIRE(native.texture_mesh);
+                const auto& textured = *native.texture_mesh;
+                REQUIRE(textured.precomputed_vertex_colors.size() == textured.vertices.size());
+                REQUIRE(textured.precomputed_face_colors.size() == textured.indices.size());
+                const auto& selected = textured.indices.front();
+                const auto point = [&](int index) {
+                    const auto& p = textured.vertices[index];
+                    return Vec3f(p[0], p[1], p[2]);
+                };
+                const Vec3f origin = point(selected[0]);
+                const Vec3f cross = (point(selected[1]) - origin).cross(point(selected[2]) - origin);
+                const Vec3f normal = cross.normalized();
+                TexturePaintingSettings settings;
+                settings.fixed_palette = {{255, 0, 0}, {0, 255, 0}, {255, 255, 255}, {0, 0, 255}};
+                settings.smooth_weight = 0;
+                std::array<size_t, 3> selected_color{0, 0, 255};
+                SECTION("saved face color") {}
+                SECTION("explicit face color override") {
+                    selected_color = {255, 255, 0};
+                    settings.face_color_overrides.push_back({0, selected_color});
+                }
+                PaintedMesh painted;
+                REQUIRE(face_colors_to_painting(textured, painted, settings));
+                require_closed_painted_mesh(painted);
+                size_t selected_children = 0;
+                double selected_area = 0;
+                for (size_t i = 0; i < painted.indices.size(); ++i) {
+                    const auto& face = painted.indices[i];
+                    const auto vertex = [&](int corner) {
+                        const auto& p = painted.vertices[face[corner]];
+                        return Vec3f(p[0], p[1], p[2]);
+                    };
+                    const Vec3f center = (vertex(0) + vertex(1) + vertex(2)) / 3.f;
+                    if (std::abs((center - origin).dot(normal)) < 1e-6f) {
+                        ++selected_children;
+                        CHECK(painted.face_colors[i] == selected_color);
+                        selected_area += (vertex(1) - vertex(0)).cross(vertex(2) - vertex(0)).norm();
+                    } else {
+                        CHECK(painted.face_colors[i] != selected_color);
+                    }
+                }
+                CHECK(selected_children == size_t(split_edges + 1));
+                CHECK_THAT(selected_area, WithinAbs(cross.norm(), cross.norm() * .00001));
+                std::vector<FilamentMatch> matches(painted.cluster_colors.size());
+                for (size_t i = 0; i < matches.size(); ++i) {
+                    matches[i].cluster_index = int(i);
+                    matches[i].filament_index = int(i);
+                }
+                auto& volume = *native.objects.front()->volumes.front();
+                const double original_volume = its_volume(volume.mesh().its);
+                REQUIRE(apply_painted_mesh_to_volume(painted, matches, volume));
+                CHECK(volume.mesh().stats().manifold());
+                CHECK_THAT(its_volume(volume.mesh().its), WithinAbs(original_volume, std::abs(original_volume) * .00001));
+                CHECK_FALSE(volume.mmu_segmentation_facets.empty());
+                CHECK(model_artifact_sha256(source) == source_hash);
+            }
+        }
+    }
 }
 
 TEST_CASE("GLB finishing creates a separate version and supports cancellation", "[ModelArtifact]") {

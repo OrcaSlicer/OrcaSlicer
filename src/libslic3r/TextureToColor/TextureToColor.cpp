@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <unordered_map>
 
 #include <boost/next_prior.hpp>
@@ -490,10 +491,9 @@ static bool quantize_vertex_colors(
 //
 // Reproduces the split topology that the legacy OBJ vertex-color import encoded
 // into mmu_segmentation_facets (TriangleSelector::perform_split cases 1/2/3), but
-// materializes it as real geometry. An edge is split at its midpoint if and only
-// if its two endpoints belong to different clusters. Because that predicate reads
-// only the shared endpoints, adjacent faces always reach the same conclusion and
-// no T-junctions can appear.
+// materializes it as real geometry. Split a geometric edge if any incident face
+// has endpoints in different clusters. Color seams may duplicate vertex indices,
+// so both the split decision and the output vertices are shared by position.
 static bool adaptive_split_by_vertex_clusters(
     TriMesh& mesh,
     const std::vector<std::size_t>& vertex_cluster_ids,
@@ -517,7 +517,19 @@ static bool adaptive_split_by_vertex_clusters(
         return false;
     }
 
-    TriVertices out_vertices = original_vertices;
+    TriVertices out_vertices;
+    out_vertices.reserve(original_vertices.size());
+    std::map<std::array<float, 3>, std::size_t> position_to_vertex;
+    std::vector<std::size_t> geometric_vertex(original_vertices.size());
+    for (std::size_t i = 0; i < original_vertices.size(); ++i) {
+        const auto& p = original_vertices[i];
+        if (!p.allFinite())
+            return false;
+        const auto inserted = position_to_vertex.emplace(std::array<float, 3>{p.x(), p.y(), p.z()}, out_vertices.size());
+        if (inserted.second)
+            out_vertices.push_back(p);
+        geometric_vertex[i] = inserted.first->second;
+    }
     TriFaces    out_faces;
     out_faces.reserve(original_faces.size() * 6);
     out_face_colors.clear();
@@ -538,10 +550,20 @@ static bool adaptive_split_by_vertex_clusters(
         if (it != edge_to_mid.end())
             return it->second;
         const std::size_t idx = out_vertices.size();
-        out_vertices.push_back((original_vertices[a] + original_vertices[b]) * 0.5f);
+        const TriVertex mid = (out_vertices[a] + out_vertices[b]) * 0.5f;
+        out_vertices.push_back(mid);
         edge_to_mid.emplace(key, idx);
         return idx;
     };
+    // Collect requirements before emitting any faces, including across vertices
+    // duplicated by a local recolor. Uniform neighbors must use these midpoints.
+    for (const auto& face : original_faces) {
+        for (int edge = 0; edge < 3; ++edge) {
+            const auto a = face[edge], b = face[(edge + 1) % 3];
+            if (vertex_cluster_ids[a] != vertex_cluster_ids[b])
+                midpoint_of_edge(geometric_vertex[a], geometric_vertex[b]);
+        }
+    }
     // Points strictly inside an original face are never shared, so they skip the map.
     // The midpoint is computed before push_back so a reallocation cannot dangle it.
     auto append_interior_midpoint = [&](std::size_t a, std::size_t b) -> std::size_t {
@@ -560,23 +582,48 @@ static bool adaptive_split_by_vertex_clusters(
         const auto& f = original_faces[face_index];
         const auto locked = face_color_overrides.find(face_index);
         current_override = locked == face_color_overrides.end() ? nullptr : &locked->second;
-        // Keep ordinary shared-edge splitting so arbitrary masks cannot create
-        // T-junctions. A baked uniform face emits once; every split child of an
-        // overridden source face inherits the same exact color.
-        // Do not early-continue for a locked face: its neighbors may still need
-        // the shared edge midpoints, regardless of this face's output color.
-        const std::size_t v[3] = {static_cast<std::size_t>(f[0]), static_cast<std::size_t>(f[1]), static_cast<std::size_t>(f[2])};
-        const std::size_t c[3] = {vertex_cluster_ids[v[0]], vertex_cluster_ids[v[1]], vertex_cluster_ids[v[2]]};
+        // Colors remain attached to the original face corners, while geometry
+        // is shared. Every child of an overridden face inherits its exact color.
+        const std::size_t v[3] = {geometric_vertex[f[0]], geometric_vertex[f[1]], geometric_vertex[f[2]]};
+        const std::size_t c[3] = {vertex_cluster_ids[f[0]], vertex_cluster_ids[f[1]], vertex_cluster_ids[f[2]]};
+        const bool split[3] = {edge_to_mid.count(edge_key(v[0], v[1])) != 0,
+                               edge_to_mid.count(edge_key(v[1], v[2])) != 0,
+                               edge_to_mid.count(edge_key(v[2], v[0])) != 0};
 
-        // Case A: uniform cluster, keep the face untouched.
+        // Case A: uniform color, conform to any splits required by neighbors.
         if (c[0] == c[1] && c[1] == c[2]) {
-            emit(v[0], v[1], v[2], c[0]);
+            const int count = int(split[0]) + int(split[1]) + int(split[2]);
+            if (count == 0) {
+                emit(v[0], v[1], v[2], c[0]);
+            } else if (count == 1) {
+                const int i = split[0] ? 0 : split[1] ? 1 : 2;
+                const int j = (i + 1) % 3, k = (i + 2) % 3;
+                const auto mid = midpoint_of_edge(v[i], v[j]);
+                emit(v[i], mid, v[k], c[0]);
+                emit(mid, v[j], v[k], c[0]);
+            } else if (count == 2) {
+                const int i = !split[0] ? 2 : !split[1] ? 0 : 1;
+                const int j = (i + 1) % 3, k = (i + 2) % 3;
+                const auto next = midpoint_of_edge(v[i], v[j]);
+                const auto previous = midpoint_of_edge(v[k], v[i]);
+                emit(v[i], next, previous, c[0]);
+                emit(next, v[j], previous, c[0]);
+                emit(v[j], v[k], previous, c[0]);
+            } else {
+                const auto m01 = midpoint_of_edge(v[0], v[1]);
+                const auto m12 = midpoint_of_edge(v[1], v[2]);
+                const auto m20 = midpoint_of_edge(v[2], v[0]);
+                emit(v[0], m01, m20, c[0]);
+                emit(v[1], m12, m01, c[0]);
+                emit(v[2], m20, m12, c[0]);
+                emit(m01, m12, m20, c[0]);
+            }
             continue;
         }
 
         // Case B: two vertices share a cluster and the third is isolated. Split the
         // two edges incident to the isolated vertex, which are exactly the
-        // cross-cluster ones; the opposite edge stays intact.
+        // cross-cluster ones; also conform if a neighbor splits the opposite edge.
         int iso = -1;
         if (c[1] == c[2])      iso = 0;
         else if (c[2] == c[0]) iso = 1;
@@ -587,7 +634,13 @@ static bool adaptive_split_by_vertex_clusters(
             const std::size_t m_ki = midpoint_of_edge(v[k], v[i]);
             emit(v[i], m_ij, m_ki, c[i]);
             emit(m_ij, v[j], m_ki, c[j]);
-            emit(v[j], v[k],  m_ki, c[j]);
+            if (split[j]) {
+                const auto m_jk = midpoint_of_edge(v[j], v[k]);
+                emit(v[j], m_jk, m_ki, c[j]);
+                emit(m_jk, v[k], m_ki, c[j]);
+            } else {
+                emit(v[j], v[k], m_ki, c[j]);
+            }
             continue;
         }
 
@@ -598,9 +651,9 @@ static bool adaptive_split_by_vertex_clusters(
         const std::size_t m01 = midpoint_of_edge(v[0], v[1]);
         const std::size_t m12 = midpoint_of_edge(v[1], v[2]);
         const std::size_t m20 = midpoint_of_edge(v[2], v[0]);
-        const TriVertex& p0 = original_vertices[v[0]];
-        const TriVertex& p1 = original_vertices[v[1]];
-        const TriVertex& p2 = original_vertices[v[2]];
+        const TriVertex& p0 = out_vertices[v[0]];
+        const TriVertex& p1 = out_vertices[v[1]];
+        const TriVertex& p2 = out_vertices[v[2]];
         const float sq_opposite_v0 = (p2 - p1).squaredNorm();
         const float sq_opposite_v1 = (p0 - p2).squaredNorm();
         const float sq_opposite_v2 = (p1 - p0).squaredNorm();

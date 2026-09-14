@@ -3,12 +3,20 @@
 #include <algorithm>
 
 namespace Slic3r::GUI {
-// 3MF stores a portable source basename. Only accept our UUID artifact names;
+// 3MF stores a portable source basename. Only accept our UUID or GLB hash names;
 // the complete mesh is still compared before transferring any paint.
 inline bool same_generated_artifact_name(const std::string& saved, const std::string& incoming)
 {
     auto basename = [](const std::string& value) { return value.substr(value.find_last_of("/\\") + 1); };
     const auto name = basename(incoming);
+    const std::string glb_prefix = "orcaslicer-ai-glb-";
+    if (name.rfind(glb_prefix, 0) == 0) {
+        if (name.size() != glb_prefix.size() + 64 + 4 ||
+            name.substr(name.size() - 4) != ".obj" || basename(saved) != name) return false;
+        return std::all_of(name.begin() + glb_prefix.size(), name.end() - 4, [](char c) {
+            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        });
+    }
     const std::string prefix = name.rfind("orcaslicer-ai-finish-", 0) == 0 ? "orcaslicer-ai-finish-" : "orcaslicer-ai-";
     if (name.rfind(prefix, 0) != 0 || name.size() != prefix.size() + 40 ||
         name.substr(name.size() - 4) != ".obj" || basename(saved) != name) return false;
