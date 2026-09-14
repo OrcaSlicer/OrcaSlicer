@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <vector>
 #include <cmath>
+#include <chrono>
 #include <stdexcept>
 
 #include <boost/format.hpp>
@@ -2794,6 +2795,7 @@ void ImGuiWrapper::pop_radio_style()
 
 void ImGuiWrapper::init_font(bool compress)
 {
+    const auto font_init_start = std::chrono::steady_clock::now();
     destroy_font();
 
     ImGuiIO& io = ImGui::GetIO();
@@ -2824,6 +2826,7 @@ void ImGuiWrapper::init_font(bool compress)
     //FIXME replace with io.Fonts->AddFontFromMemoryTTF(buf_decompressed_data, (int)buf_decompressed_size, m_font_size, nullptr, ranges.Data);
     //https://github.com/ocornut/imgui/issues/220
 
+    const auto font_files_start = std::chrono::steady_clock::now();
     // Orca: temp fix for Korean font
     auto font_name_regular = "HarmonyOS_Sans_SC_Regular.ttf";
     auto font_name_bold = "HarmonyOS_Sans_SC_Bold.ttf";
@@ -2891,6 +2894,9 @@ void ImGuiWrapper::init_font(bool compress)
     }
 #endif
 
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_files_setup elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - font_files_start).count();
+
     float font_scale = m_font_size/15;
     int icon_sz = lround(16 * font_scale); // default size of icon is 16 px
 
@@ -2911,7 +2917,12 @@ void ImGuiWrapper::init_font(bool compress)
 
     // Build texture atlas, widening it if the height would exceed GL_MAX_TEXTURE_SIZE.
     // Increasing the width allows the packing algorithm to grow more horizontally which reduces the height.
+    const auto atlas_build_start = std::chrono::steady_clock::now();
+    auto build_start = atlas_build_start;
     io.Fonts->Build();
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_atlas_build attempt=0 elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - build_start).count()
+        << " width=" << io.Fonts->TexWidth << " height=" << io.Fonts->TexHeight;
     GLint gl_max_tex_size = 0;
     glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
     constexpr int max_retries = 6;
@@ -2922,8 +2933,14 @@ void ImGuiWrapper::init_font(bool compress)
         if (width * 2 > gl_max_tex_size)
             break;
         io.Fonts->TexDesiredWidth = width * 2;
+        build_start = std::chrono::steady_clock::now();
         io.Fonts->Build();
+        BOOST_LOG_TRIVIAL(info) << "Startup timing: font_atlas_build attempt=" << attempt + 1 << " elapsed_ms="
+            << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - build_start).count()
+            << " width=" << io.Fonts->TexWidth << " height=" << io.Fonts->TexHeight;
     }
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_atlas_build_total elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - atlas_build_start).count();
     if (io.Fonts->TexHeight > gl_max_tex_size) {
         // Needs both a very large glyph set and a small GL_MAX_TEXTURE_SIZE.
         BOOST_LOG_TRIVIAL(error) << "Font atlas " << io.Fonts->TexWidth << "x" << io.Fonts->TexHeight
@@ -2933,7 +2950,10 @@ void ImGuiWrapper::init_font(bool compress)
 
     unsigned char* pixels;
     int width, height;
+    const auto rgba_start = std::chrono::steady_clock::now();
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_rgba_extraction elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - rgba_start).count();
     BOOST_LOG_TRIVIAL(trace) << "Build default font texture done. width: " << width << ", height: " << height;
 
     auto load_icon_from_svg = [this, &io, pixels, width, &rect_id](const std::pair<const wchar_t, std::string> icon, int icon_sz) {
@@ -2955,6 +2975,7 @@ void ImGuiWrapper::init_font(bool compress)
     };
 
     // Fill rectangles from the SVG-icons
+    const auto svg_start = std::chrono::steady_clock::now();
     for (auto icon : font_icons) {
         load_icon_from_svg(icon, icon_sz);
     }
@@ -2968,6 +2989,8 @@ void ImGuiWrapper::init_font(bool compress)
     for (auto icon : font_icons_extra_large) {
         load_icon_from_svg(icon, icon_sz);
     }
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_svg_rasterization elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - svg_start).count();
 
     // Upload texture to graphics system
     GLint last_texture;
@@ -2977,16 +3000,24 @@ void ImGuiWrapper::init_font(bool compress)
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     glsafe(::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
+    const auto upload_start = std::chrono::steady_clock::now();
     if (compress && GLAD_GL_EXT_texture_compression_s3tc)
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
     else
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+    // Measure the API call, without forcing GPU completion or changing startup behavior.
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_texture_upload elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - upload_start).count()
+        << " compression=" << (compress && GLAD_GL_EXT_texture_compression_s3tc ? "dxt5" : "rgba")
+        << " width=" << width << " height=" << height;
 
     // Store our identifier
     io.Fonts->TexID = (ImTextureID)(intptr_t)m_font_texture;
 
     // Restore state
     glsafe(::glBindTexture(GL_TEXTURE_2D, last_texture));
+    BOOST_LOG_TRIVIAL(info) << "Startup timing: font_init_total elapsed_ms="
+        << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - font_init_start).count();
 }
 
 void ImGuiWrapper::load_fonts_texture()

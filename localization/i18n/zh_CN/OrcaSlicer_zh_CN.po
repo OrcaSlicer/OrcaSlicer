@@ -21211,6 +21211,61 @@ msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
 
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Preparing the interface..."
+msgstr "正在准备界面…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Preparing graphics..."
+msgstr "正在准备图形…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Preparing the 3D view..."
+msgstr "正在准备三维视图…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Preparing fonts and graphics..."
+msgstr "正在准备字体和图形…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Preparing the first frame..."
+msgstr "正在绘制首帧画面…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Opening the workspace..."
+msgstr "正在打开工作区…"
+
+# AI Translated
+#: src/slic3r/GUI/GUI_App.cpp
+msgid "Could not prepare the interface. Please close OrcaSlicer and try again."
+msgstr "界面准备失败，请关闭 OrcaSlicer 后重试。"
+
+# AI Translated
+#: src/slic3r/GUI/WebViewDialog.cpp
+msgid "Loading home page..."
+msgstr "正在加载首页…"
+
+# AI Translated
+#: src/slic3r/GUI/WebViewDialog.cpp
+msgid "Go to Prepare"
+msgstr "进入准备页面"
+
+# AI Translated
+#: src/slic3r/GUI/WebViewDialog.cpp
+msgid "The home page is taking longer than expected.\nYou can retry or continue to Prepare."
+msgstr "首页加载时间较长。\n您可以重试，或进入准备页面继续操作。"
+
+# AI Translated
+#: src/slic3r/GUI/WebViewDialog.cpp
+msgid "The home page could not be loaded.\nYou can retry or continue to Prepare."
+msgstr "首页加载失败。\n您可以重试，或进入准备页面继续操作。"
+
 #~ msgid ""
 #~ "Layer height is too small.\n"
 #~ "It will set to min_layer_height\n"
