@@ -130,11 +130,11 @@ const std::vector<std::pair<EnforcerBlockerType, std::string>> &mmu_states()
 
 } // namespace
 
-void inspect_to_json(const Model &model, const std::string &source_path,
+void inspect_to_json(const Model &model, const std::vector<std::string> &source_paths,
                      std::ostream &out)
 {
     json root;
-    root["source"] = source_path;
+    root["sources"] = source_paths;
     root["frame"]  = "mesh_local";
     root["note"]   = "Coordinates are mesh-local (each volume's own frame). "
                      "Paint gizmos operate in this frame.";
@@ -194,7 +194,10 @@ void inspect_to_json(const Model &model, const std::string &source_path,
         { "painted_facets_total",       total_facets  },
     };
 
-    out << root.dump(2) << std::endl;
+    // Object names and file paths are arbitrary bytes, and dump() throws on invalid
+    // UTF-8 by default. Replace such sequences with U+FFFD so the output is always
+    // valid JSON rather than an exception out of the CLI.
+    out << root.dump(2, ' ', false, json::error_handler_t::replace) << std::endl;
 }
 
 } // namespace PaintCLI
