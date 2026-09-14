@@ -1037,9 +1037,6 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         section.mixed_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
         section.mixed_tabs->SetFont(Label::Body_14);
         section.mixed_tabs->SetBackgroundColour(GetBackgroundColour());
-        // The mixed tabs carry full swatch compositions: give them a touch more room than the
-        // filament tabs so neighbouring compositions stay distinguishable (must precede AppendItem).
-        section.mixed_tabs->SetItemSpace(FromDIP(3));
         page_sizer->Add(section.mixed_tabs, 0, wxEXPAND | wxTOP, FromDIP(2));
         section.mixed_tabs->Hide();
     }

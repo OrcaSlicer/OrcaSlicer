@@ -9,10 +9,10 @@
 		""
 	],
 	"hot_plate_temp": [
-		"110"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"overhang_fan_speed": [
 		"20"

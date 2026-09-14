@@ -337,7 +337,6 @@ class GLCanvas3D
 
         bool dragging{ false };
         Vec2d position{ DBL_MAX, DBL_MAX };
-        Vec3d scene_position{ DBL_MAX, DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
         bool ignore_right_up;
