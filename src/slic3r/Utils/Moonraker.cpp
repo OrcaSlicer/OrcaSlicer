@@ -174,10 +174,10 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
 bool Moonraker::start_print(wxString &error_msg, const std::string &filename) const
 {
     //ORCA: POST /printer/print/start with JSON body { "filename": "<name>.gcode" }.
-    //      `filename` is what /server/files/upload returned as result.item.path (the storage-relative
-    //      path inside `root`, no leading slash, with extension). Build the body via property_tree
-    //      so that special characters in the filename (server-side collision-suffix could produce
-    //      paths with quotes / backslashes on exotic file systems) are properly escaped.
+    //      `filename` is the item.path /server/files/upload returned (the storage-relative
+    //      path inside `root`, no leading slash, with extension), or the original filename
+    //      when the reply had none. Build the body via property_tree so that special characters
+    //      in the filename (quotes, backslashes) are properly escaped.
     const char *name = get_name();
     bool res = true;
     auto url = make_url("printer/print/start");
@@ -212,14 +212,16 @@ bool Moonraker::start_print(wxString &error_msg, const std::string &filename) co
 
 bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
-    // POST /server/files/upload with `print=true` so Moonraker queues the print
-    // itself and respects [power] on_when_upload_queued (issue #14945). Older
-    // Moonraker reports back in two fields: print_started when it began the print
-    // immediately, print_queued when it accepted the job but has not started it yet
-    // -- which is exactly the power-on case, where it waits for Klippy to become
-    // READY. Either means Moonraker owns the print and we must NOT issue our own
-    // /printer/print/start. Only when both are false (an older Moonraker or a fork
-    // that ignores the flag) do we fall back to the explicit start below.
+    // POST /server/files/upload with `print=true` so Moonraker starts the print
+    // itself (issue #14945). It reports back in two fields: print_started when it
+    // began the print immediately, print_queued when it could not start it (Klippy
+    // not ready, or another print running) but put the job in its queue
+    // ([file_manager] queue_gcode_uploads). That covers the power-on case: a
+    // [power <device>] section with on_when_job_queued switches the printer on, and
+    // with [job_queue] load_on_startup the queue runs the job once Klippy is READY.
+    // Either flag means Moonraker owns the print and we must NOT issue our own
+    // /printer/print/start. When both are false (no job queue, a non-G-code upload,
+    // or a server that ignores `print`) we fall back to the explicit start below.
     wxString test_msg;
     if (!test(test_msg)) {
         error_fn(std::move(test_msg));
@@ -269,22 +271,27 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                 pt::ptree ptree;
                 pt::read_json(ss, ptree);
 
-                //ORCA: Moonraker confirms the storage-relative path in result.item.path. We pass exactly
-                //      that string to /printer/print/start so any server-side renaming (collision suffix,
-                //      etc.) is respected.
-                const auto stored_path = ptree.get_optional<std::string>("result.item.path");
+                //ORCA: unlike the other endpoints (compare result.klippy_state in test()), the upload
+                //      answers with a bare object, not a {"result": ...} envelope: Moonraker's
+                //      FileUploadHandler writes finalize_upload()'s dict straight to the response, so
+                //      item, print_started and print_queued are top-level. Reading them under result.
+                //      silently took the fallbacks below on every upload.
+                //ORCA: Moonraker confirms the storage-relative path in item.path. We pass exactly
+                //      that string to /printer/print/start so any server-side renaming (.ufp stored as
+                //      .gcode, surrounding whitespace and leading slashes stripped) is respected.
+                const auto stored_path = ptree.get_optional<std::string>("item.path");
                 if (stored_path) {
                     uploaded_path = *stored_path;
                 } else {
-                    //ORCA: fallback if the server response omits result.item.path (older Moonraker, or
+                    //ORCA: fallback if the server response omits item.path (older Moonraker, or
                     //      a buddy-fork that returns a slimmer envelope). Use the original filename.
                     uploaded_path = upload_filename.string();
                     BOOST_LOG_TRIVIAL(warning) << boost::format(
-                        "%1%: upload response missing result.item.path, falling back to original filename `%2%`")
+                        "%1%: upload response missing item.path, falling back to original filename `%2%`")
                         % name % uploaded_path;
                 }
-                moonraker_started_print = ptree.get<bool>("result.print_started", false) ||
-                                          ptree.get<bool>("result.print_queued", false);
+                moonraker_started_print = ptree.get<bool>("print_started", false) ||
+                                          ptree.get<bool>("print_queued", false);
             } catch (const std::exception &ex) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format(
                     "%1%: could not parse upload response (%2%); falling back to original filename")
@@ -313,8 +320,8 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     if (!result)
         return false;
 
-    // Fallback only when Moonraker neither started nor queued the print, i.e. it did
-    // not honour the `print` flag at all.
+    // Fallback only when Moonraker neither started nor queued the print. If the
+    // printer cannot start it, the error from this request is what the user sees.
     if (want_start && !uploaded_path.empty() && !moonraker_started_print) {
         wxString start_msg;
         if (!start_print(start_msg, uploaded_path)) {
