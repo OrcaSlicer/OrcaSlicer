@@ -1934,9 +1934,9 @@ void PreferencesDialog::create_items()
 
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
-        _L("Displays two counts in the top-right corner of the viewport.\n"
-           "FPS: frames presented to the screen per second.\n"
-           "3D: how many of those redrew the 3D scene rather than reusing it."),
+        _L("Displays rendering counts in the top-right corner of the viewport.") + "\n" +
+        _L("FPS: frames presented to the screen per second.") + "\n" +
+        _L("3D: frames per second that redrew the 3D scene."),
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);

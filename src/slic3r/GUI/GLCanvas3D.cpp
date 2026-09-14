@@ -7732,8 +7732,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoInputs);
     imgui.text(std::string("FPS: ") + std::to_string(fps));
     // The subset of those frames that redrew the scene rather than reusing the cached one.
-    if (_is_scene_cache_enabled())
-        imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+    imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
     imgui.end();
 }
 
