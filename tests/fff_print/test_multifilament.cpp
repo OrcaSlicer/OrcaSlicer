@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -715,3 +716,237 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+static std::string strip_config_block(const std::string& gcode) {
+    size_t start = gcode.find("; CONFIG_BLOCK_START");
+    return start == std::string::npos ? gcode : gcode.substr(0, start);
+}
+
+// multifilament_config sizes flush_volumes_matrix filaments^2 for a single nozzle, but
+// get_flush_volumes_matrix DIVIDES it by the nozzle count before ToolOrdering and GCode index
+// the quotient as filaments^2 again -- on a multi-nozzle config the matrix must be
+// filaments^2 * nozzles or those reads run past the end and the flush-minimizing tool order
+// flips on whatever the heap holds (out of scope here: these tests pin the tower generator,
+// so they must not slice with an undersized matrix).
+static void resize_flush_matrix(DynamicPrintConfig& config, size_t filaments, size_t nozzles) {
+    std::vector<double> flush;
+    flush.reserve(filaments * filaments * nozzles);
+    for (size_t n = 0; n < nozzles; ++n)
+        for (size_t i = 0; i < filaments; ++i)
+            for (size_t j = 0; j < filaments; ++j)
+                flush.push_back(i == j ? 0. : 280.);
+    config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats(flush));
+    for (const char* key : { "flush_multiplier", "flush_multiplier_fast" }) {
+        auto* opt = config.option<ConfigOptionFloats>(key, true);
+        opt->values.assign(nozzles, opt->values.empty() ? 1. : opt->values.front());
+    }
+}
+
+// Two cubes at fixed positions with one filament per object -> a toolchange on every layer.
+// Assignment must be at the object level or the used-filament gate silently disables the tower
+// (see the wait test above). No auto-arrange: for two identical meshes the arranger can swap
+// the tie between runs, which swaps the per-object filament assignment and with it the first
+// tool of the whole print -- these tests compare slices, so the placement has to be pinned.
+static std::string slice_two_assigned_cubes(const DynamicPrintConfig& config)
+{
+    TriangleMesh a = cube(20);
+    a.translate(80, 80, 0);
+    TriangleMesh b = cube(20);
+    b.translate(110, 80, 0);
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(std::move(a));
+    meshes.push_back(std::move(b));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides =
+        { { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    init_print(std::move(meshes), print, model, config, &overrides, /*arrange=*/false);
+    return strip_config_block(gcode(print));
+}
+
+// First 1-based line where the two g-codes part, with both lines -- {0, ...} when equal. The
+// exports are tens of thousands of lines, so a failed whole-string assertion prints nothing
+// usable; the caller reports this instead.
+struct GcodeDiff { size_t line; std::string a, b; };
+static GcodeDiff first_diff_line(const std::string& a, const std::string& b)
+{
+    std::istringstream sa(a), sb(b);
+    std::string la, lb;
+    for (size_t line = 1;; ++line) {
+        const bool ga = static_cast<bool>(std::getline(sa, la));
+        const bool gb = static_cast<bool>(std::getline(sb, lb));
+        if (!ga && !gb)
+            return { 0, {}, {} };
+        if (!ga || !gb || la != lb)
+            return { line, ga ? la : "<end of file>", gb ? lb : "<end of file>" };
+    }
+}
+
+// Both tower generators must produce the same g-code for the same scene every time. The Type1
+// (BBL) generator did not: it indexed the per-filament filament_change_length / _nc vectors with
+// the filament id, and those options default to a SINGLE element, so any config that does not list
+// every filament (a hand-built config, or a filament preset that omits the key) read past the end
+// of the vector for every filament but the first. The garbage that came back was divided and fed
+// to std::ceil, which on an out-of-range result yields INT_MIN, and the tower's whole depth plan
+// followed from it -- so the same config sliced repeatedly in one process gave different tower
+// block counts and a different number of toolchanges depending only on what was on the heap.
+static DynamicPrintConfig tower_determinism_config(const char* wipe_tower_type) {
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", 0 },
+        // Pin the filament-to-extruder grouping: in the default Auto mode the grouping
+        // optimizer itself picks a different map between identical slices of one process
+        // (observed as 67 vs 132 toolchanges for this very scene), which would swamp the
+        // tower-generator determinism under test here.
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "1,2" },
+        { "enable_prime_tower",             1 },
+        { "prime_tower_width",              35 },
+        { "wipe_tower_x",                   "50" },
+        { "wipe_tower_y",                   "50" },
+        { "layer_height",                   "0.3" },
+        { "wipe_tower_type",                wipe_tower_type },
+    });
+    resize_flush_matrix(config, 2, 2);
+    return config;
+}
+
+// It takes more than two slices to see that: what the out-of-range read returns is whatever the
+// allocator last left at that address, so the first slices of a process agree and the divergence
+// appears once the heap has been churned. Six was the smallest count that caught it across
+// MALLOC_PERTURB_ values (it first diverged on the third slice at 255 and the fifth at 42), so a
+// two-slice check passes with the fix reverted and guards nothing.
+TEST_CASE("Slicing the same scene repeatedly emits the same g-code", "[MultiFilament]") {
+    const char* wipe_tower_type = GENERATE("type1", "type2");
+    DYNAMIC_SECTION("wipe_tower_type = " << wipe_tower_type) {
+        const DynamicPrintConfig config = tower_determinism_config(wipe_tower_type);
+        // The generation timestamp in the header is the one line that legitimately differs.
+        auto slice_without_header = [&config]() {
+            const std::string gcode = slice_two_assigned_cubes(config);
+            const size_t generated = gcode.find("; generated by");
+            REQUIRE(generated != std::string::npos);
+            return gcode.substr(gcode.find('\n', generated) + 1);
+        };
+        const std::string first = slice_without_header();
+        REQUIRE(first.find("; WIPE_TOWER_START") != std::string::npos);
+        // Only Type1 ever diverged, and each slice costs real time, so Type2 gets a cheaper check.
+        const int slices = strcmp(wipe_tower_type, "type1") == 0 ? 6 : 2;
+        for (int i = 1; i < slices; ++i) {
+            const GcodeDiff diff = first_diff_line(slice_without_header(), first);
+            INFO("slice " << i << " of " << slices << " first differs from slice 0 at line "
+                 << diff.line << ":\n  " << diff.a << "\nvs\n  " << diff.b);
+            CHECK(diff.line == 0);
+        }
+    }
+}
+
+// Sum of positive extrusion per "; NOZZLE_CHANGE_START <dir>".."; NOZZLE_CHANGE_END" block,
+// grouped by the direction tag (e.g. "OF0 NF1 ON0 NN1").
+static std::map<std::string, std::vector<double>> nozzle_change_e_sums(const std::string& gcode)
+{
+    std::map<std::string, std::vector<double>> sums;
+    std::istringstream in(gcode);
+    std::string dir;
+    double esum = 0.;
+    for (std::string line; std::getline(in, line);) {
+        if (const size_t at = line.find("NOZZLE_CHANGE_START"); at != std::string::npos) {
+            dir  = line.substr(at + std::string("NOZZLE_CHANGE_START").size() + 1);
+            esum = 0.;
+        } else if (line.find("NOZZLE_CHANGE_END") != std::string::npos) {
+            sums[dir].push_back(esum);
+            dir.clear();
+        } else if (!dir.empty() && line.rfind("G1 ", 0) == 0) {
+            const size_t e = line.find(" E");
+            if (e != std::string::npos && line[e + 2] != '-')
+                esum += std::stod(line.substr(e + 2));
+        }
+    }
+    return sums;
+}
+
+// The nozzle-change ramming length is filament_change_length[old_tool] / e_flow, and the two
+// filaments here share every setting -- so the T0->T1 and T1->T0 blocks must extrude the same
+// steady-state length. filament_change_length defaults to a SINGLE element, so before the tower
+// indexed it with get_at's clamping, old_tool 1 read past the end and this symmetry broke (the
+// garbage is often stable within a process, which is why the repeated-slicing test above cannot
+// be relied on to see it). Medians ignore the first layer's flow-ratio outlier.
+TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiFilament]")
+{
+    const std::string gcode = slice_two_assigned_cubes(tower_determinism_config("type1"));
+    REQUIRE(gcode.find("; WIPE_TOWER_START") != std::string::npos);
+    auto sums = nozzle_change_e_sums(gcode);
+    REQUIRE(sums.size() == 2); // both directions present
+    std::vector<double> medians;
+    for (auto& [dir, e] : sums) {
+        INFO("direction " << dir);
+        REQUIRE_FALSE(e.empty());
+        std::sort(e.begin(), e.end());
+        medians.push_back(e[e.size() / 2]);
+        CHECK(medians.back() > 0.);
+    }
+    CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
+}
+
+// The tower's own heater lines (M104/M109 tagged N0, "generated by slicer") index
+// physical_extruder_map by tool number, but that option's stock default is a SINGLE element and
+// most multi-tool profiles never define it -- the read went past the end of the vector and the
+// heater's tool index was whatever the heap held (observed as e.g. "M104 T21979", differing
+// between runs of the same binary). Only the Type1 generator emits heater lines from inside the
+// tower. Both range and run-to-run stability are asserted; a vendor-style map that does cover the
+// tools must still translate through it.
+static std::vector<int> tower_heater_tool_indices(const std::string& gcode) {
+    std::vector<int> tools;
+    std::istringstream in(gcode);
+    for (std::string line; std::getline(in, line);) {
+        line = line.substr(0, line.find(';'));
+        if (line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0)
+            continue;
+        if (line.find(" N0") == std::string::npos)
+            continue; // not a tower-generated heater line
+        size_t t = line.find(" T");
+        if (t == std::string::npos)
+            continue;
+        tools.push_back(std::stoi(line.substr(t + 2)));
+    }
+    return tools;
+}
+
+TEST_CASE("The prime tower never heats a tool index the printer cannot have", "[MultiFilament]") {
+    const bool vendor_tool_map = GENERATE(false, true);
+    DYNAMIC_SECTION("vendor tool map = " << vendor_tool_map) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "printer_extruder_id",            "1,2" },
+            { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+            { "extruder_printable_height",      "0,0" },
+            { "single_extruder_multi_material", 0 },
+            // Pinned for the same reason as in tower_determinism_config: Auto grouping is
+            // not stable between slices, and this test compares two of them.
+            { "filament_map_mode",              "Manual" },
+            { "filament_map",                   "1,2" },
+            { "enable_prime_tower",             1 },
+            { "prime_tower_width",              35 },
+            { "wipe_tower_x",                   "50" },
+            { "wipe_tower_y",                   "50" },
+            { "wipe_tower_type",                "type1" },
+        });
+        resize_flush_matrix(config, 2, 2);
+        if (vendor_tool_map)
+            config.set_key_value("physical_extruder_map", new ConfigOptionInts({ 1, 0 }));
+        const std::string first  = slice_two_assigned_cubes(config);
+        const std::string second = slice_two_assigned_cubes(config);
+        REQUIRE(first.find("; WIPE_TOWER_START") != std::string::npos);
+
+        const std::vector<int> tools = tower_heater_tool_indices(first);
+        REQUIRE_FALSE(tools.empty());
+        for (int tool : tools) {
+            CHECK(tool >= 0);
+            CHECK(tool < 2); // two filaments on two tools
+        }
+        // Same scene, same binary, same indices -- an uninitialized read is not.
+        CHECK(tools == tower_heater_tool_indices(second));
+    }
+}
