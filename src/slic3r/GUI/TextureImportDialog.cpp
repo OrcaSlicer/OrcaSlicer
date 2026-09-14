@@ -3683,12 +3683,13 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
         on_decompose_color,
         [this]() { return can_add_physical_filament(); },
         [this]() {
-            // A recipe reuses project materials and only adds a virtual slot.
-            // Keeping physical filaments fixed must not disable this action.
+            // Decomposition may add missing base colors, or reuse at least two
+            // existing physical filaments when physical additions are prohibited.
             return can_add_virtual_filament() &&
-                std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {
-                    return entry.kind == TextureFilamentKind::ExistingPhysical;
-                }) >= 2;
+                (can_add_physical_filament() ||
+                 std::count_if(m_filament_entries.begin(), m_filament_entries.end(), [](const auto& entry) {
+                     return entry.kind == TextureFilamentKind::ExistingPhysical;
+                 }) >= 2);
         },
         on_close,
         display_numbers);

@@ -269,6 +269,15 @@ bool fix_model_with_cgal_gui(ModelObject &original_object, int volume_idx, GUI::
         }
         for (size_t i = 0; i < original_volume_count; ++i)
             original_object.delete_volume(0);
+        // Preserve transforms changed during staging, including the sole-volume
+        // transform that delete_volume folds into instances during this commit.
+        for (size_t i = 0; i < model_object.instances.size(); ++i) {
+            Geometry::Transformation transformation = model_object.instances[i]->get_transformation();
+            if (model_object.volumes.size() == 1)
+                transformation = Geometry::Transformation(transformation.get_matrix() *
+                    model_object.volumes.front()->get_transformation().get_matrix());
+            original_object.instances[i]->set_transformation(transformation);
+        }
         original_object.invalidate_bounding_box();
         if (painting_removed)
             *painting_removed = staged_paint_removed;
