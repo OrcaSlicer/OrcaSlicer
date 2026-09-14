@@ -2,6 +2,7 @@
 #define __I_CLOUD_SERVICE_AGENT_HPP__
 
 #include "bambu_networking.hpp"
+#include "CloudProvider.hpp"
 #include "../../libslic3r/ProjectTask.hpp"
 #include <string>
 #include <string_view>
@@ -36,9 +37,6 @@ namespace Slic3r {
  * access tokens for cloud-relay operations without coupling to a specific auth
  * implementation.
  */
-
-static const std::string ORCA_CLOUD_PROVIDER("orca");
-static const std::string BBL_CLOUD_PROVIDER("bbl");
 
 struct CloudEvent {
     std::string provider;  // ORCA_CLOUD_PROVIDER or BBL_CLOUD_PROVIDER

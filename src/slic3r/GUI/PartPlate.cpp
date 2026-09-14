@@ -17,6 +17,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "libslic3r/libslic3r.h"
@@ -1112,7 +1113,7 @@ void PartPlate::show_tooltip(const std::string tooltip)
 {
     const auto scale = m_plater->get_current_canvas3D()->get_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6 * scale, 3 * scale});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, {3 * scale});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3 * scale);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGuiWrapper::COL_WINDOW_BACKGROUND);
     ImGui::PushStyleColor(ImGuiCol_Border, {0, 0, 0, 0});
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
@@ -1716,7 +1717,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	return plate_extruders;
 }
 
-std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const
+std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots) const
 {
     std::vector<int> plate_extruders;
 
@@ -1877,7 +1878,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // Expand mixed filament slots to their physical components. A mixed slot is virtual and
     // is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
     // physical filaments it resolves to instead.
-    {
+    if (expand_mixed_slots) {
         auto* is_mixed_opt = full_config.option<ConfigOptionBools>("filament_is_mixed");
         auto* comp_strs_opt = full_config.option<ConfigOptionStrings>("filament_mixed_components");
         if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
@@ -1917,7 +1918,7 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-		if (!contain_instance_totally(obj_idx, 0))
+		if (!contain_any_instance_totally(obj_idx))
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
@@ -2088,7 +2089,7 @@ bool PartPlate::check_single_extruder_mixed_filament_risk(const DynamicPrintConf
                                             "which may significantly increase waste and the risk of nozzle / waste-chute clogging.");
 
     for (int obj_idx = 0; obj_idx < (int)m_model->objects.size(); ++obj_idx) {
-        if (!contain_instance_totally(obj_idx, 0))
+        if (!contain_any_instance_totally(obj_idx))
             continue;
         ModelObject *mo = m_model->objects[obj_idx];
         int obj_ext = mo->config.has("extruder") ? mo->config.extruder() : 1;
@@ -2307,7 +2308,7 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
         return wipe_tower_size;
 
     for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (!use_global_objects && !contain_instance_totally(obj_idx, 0))
+        if (!use_global_objects && !contain_any_instance_totally(obj_idx))
             continue;
 
         BoundingBoxf3 bbox = m_model->objects[obj_idx]->bounding_box();

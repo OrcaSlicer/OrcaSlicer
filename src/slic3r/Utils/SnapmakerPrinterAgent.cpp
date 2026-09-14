@@ -6,6 +6,8 @@
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
 
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 namespace {

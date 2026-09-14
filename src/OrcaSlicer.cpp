@@ -53,6 +53,8 @@ using namespace nlohmann;
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
@@ -77,8 +79,9 @@ using namespace nlohmann;
 #include "libslic3r/ObjColorUtils.hpp"
 
 #include "OrcaSlicer.hpp"
-//BBS: add exception handler for win32
+#include <wx/filename.h>
 #include <wx/stdpaths.h>
+//BBS: add exception handler for win32
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
@@ -160,6 +163,7 @@ std::map<int, std::string> cli_errors = {
     {CLI_FILAMENT_CAN_NOT_MAP, "Some filaments cannot be mapped to correct extruders for multi-extruder Printer."},
     {CLI_ONLY_ONE_TPU_SUPPORTED, "Not support printing 2 or more TPU filaments."},
     {CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER, "Some filaments cannot be printed on the extruder mapped to."},
+    {CLI_MIXED_FILAMENT_INVALID, "A mixed filament is invalid: its components are different filament types, or it has no filament of its own."},
     {CLI_SLICING_ERROR, "Failed slicing the model. Please verify the slicing of all plates on Orca Slicer before uploading."},
     {CLI_GCODE_PATH_CONFLICTS, " G-code conflicts detected after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer. If the file slices normally in Orca Slicer, try moving the wipe tower further from other models, as we use more conservative parameters for it during upload."},
     {CLI_GCODE_PATH_IN_UNPRINTABLE_AREA, "Found G-code in unprintable area of multi-extruder printers after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer."}
@@ -1466,6 +1470,10 @@ int CLI::run(int argc, char **argv)
     std::vector<std::string> upward_compatible_printers, new_print_compatible_printers, current_print_compatible_printers, current_different_settings;
     std::vector<std::string> current_filaments_name, current_filaments_system_name, current_inherits_group, current_extruder_variants, new_extruder_variants, current_print_extruder_variants, new_printer_extruder_variants;
     DynamicPrintConfig load_process_config, load_machine_config;
+    //ORCA: full configs of the "current" (3MF-embedded) process/printer presets, kept so that
+    //      compatible_printers_condition can be evaluated for them below. Previously only the
+    //      literal compatible_printers list was extracted.
+    DynamicPrintConfig current_process_full_config, current_printer_full_config;
     bool new_process_config_is_system = true, new_printer_config_is_system = true;
     std::string pipe_name, makerlab_name, makerlab_version, different_process_setting;
     const std::vector<std::string>              &metadata_name               = m_config.option<ConfigOptionStrings>("metadata_name", true)->values;
@@ -2044,6 +2052,51 @@ int CLI::run(int argc, char **argv)
         }
         return bundle->resolve_preset_config(config, preset_type, file, config_substitution_rule,
                                              error, allow_source_manifest);
+    };
+
+    //ORCA: list the keys a user preset overrides relative to its system parent, for the
+    //      `different_settings_to_system` column of an exported 3MF. Without it the CLI
+    //      writes an empty column, so re-opening a CLI-exported project in the GUI shows
+    //      spurious "unsaved changes" and can revert inherited process/filament/machine
+    //      values to system defaults.
+    //
+    //      The parent comes from the preset bundle that inherits resolution already builds,
+    //      so this adds no extra loading. Returns "" whenever the parent cannot be resolved,
+    //      which is exactly the previous behaviour.
+    auto cli_different_settings = [&ensure_cli_preset_bundle](const DynamicPrintConfig &resolved,
+                                                              const std::string        &parent_name,
+                                                              Preset::Type              type) -> std::string {
+        if (parent_name.empty())
+            return std::string();
+        std::string   error;
+        PresetBundle *bundle = ensure_cli_preset_bundle(error);
+        if (bundle == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << "CLI: no preset bundle for different_settings_to_system: " << error;
+            return std::string();
+        }
+        const PresetCollection *collection = nullptr;
+        switch (type) {
+        case Preset::TYPE_PRINT:    collection = &bundle->prints;    break;
+        case Preset::TYPE_FILAMENT: collection = &bundle->filaments; break;
+        case Preset::TYPE_PRINTER:  collection = &bundle->printers;  break;
+        default:                    return std::string();
+        }
+        const Preset *parent = collection->find_preset2(parent_name, true);
+        if (parent == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: parent preset '%1%' not found; leaving different_settings_to_system empty")%parent_name;
+            return std::string();
+        }
+        std::vector<std::string> keys = resolved.diff(parent->config);
+        //ORCA: preset metadata, not user-tunable settings. compatible_printers /
+        //      compatible_prints have their own tracking columns and would double-count.
+        keys.erase(std::remove_if(keys.begin(), keys.end(), [](const std::string &k) {
+                       return k == "inherits" || k == "compatible_printers" || k == "compatible_prints"
+                           || k == "compatible_printers_condition" || k == "compatible_prints_condition"
+                           || k == "print_settings_id" || k == "filament_settings_id" || k == "printer_settings_id";
+                   }),
+                   keys.end());
+        BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% overrides vs parent '%2%'")%keys.size()%parent_name;
+        return Slic3r::escape_strings_cstyle(keys);
     };
 
     auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
@@ -2635,6 +2688,8 @@ int CLI::run(int argc, char **argv)
                     flush_and_exit(ret);
                 }
                 upward_compatible_printers = config.option<ConfigOptionStrings>("upward_compatible_machine", true)->values;
+                //ORCA: keep the full config so compatible_printers_condition can be evaluated against it below
+                current_printer_full_config = std::move(config);
             }
         }
     }
@@ -2657,6 +2712,8 @@ int CLI::run(int argc, char **argv)
                     flush_and_exit(ret);
                 }
                 current_print_compatible_printers  = config.option<ConfigOptionStrings>("compatible_printers", true)->values;
+                //ORCA: keep the full config so compatible_printers_condition can be evaluated against it below
+                current_process_full_config = std::move(config);
             }
         }
     }
@@ -2675,46 +2732,88 @@ int CLI::run(int argc, char **argv)
     for (int index = 0; index < upward_compatible_printers.size(); index++) {
         BOOST_LOG_TRIVIAL(info) << boost::format("index %1%, upward_compatible_printers %2%")%index %upward_compatible_printers[index];
     }
+    //ORCA: Replace the four manual equality-loop checks below with is_compatible_with_printer(), the
+    //      same helper the GUI uses, which also evaluates compatible_printers_condition. Process
+    //      profiles that declare compatibility via condition only -- leaving compatible_printers
+    //      empty -- were always reported incompatible by the literal-name match, so a CLI slice with
+    //      such a preset exited with CLI_PROCESS_NOT_COMPATIBLE (-17) even though the GUI accepts the
+    //      same pair. Behaviour is unchanged where an explicit list exists: is_compatible_with_printer
+    //      does the same name match, and returns true when both list and condition are empty (which
+    //      matches the "old 3mf, no compatible printers" path below).
+    auto check_compat = [](const DynamicPrintConfig &process_cfg,
+                           const DynamicPrintConfig &printer_cfg,
+                           const std::string        &printer_name) -> bool {
+        return is_compatible_with_printer(process_cfg, Preset::TYPE_PRINT, printer_cfg, printer_name);
+    };
+
+    //ORCA: a 3MF's project config does not carry compatible_printers / compatible_printers_condition.
+    //      PresetBundle::construct_full_config() erases both and re-emits them as
+    //      print_compatible_printers and compatible_machine_expression_group; they are renamed back
+    //      only on the PresetBundle load path, which the CLI does not take. Feeding the project config
+    //      to the check as-is therefore presents no list and no condition, and
+    //      is_compatible_with_printer() reads that as "no constraint" and accepts every printer.
+    //      Translate the two keys back. Index 0 of the expression group is the print preset -- the
+    //      group is filled print, filaments, printer (PresetBundle.cpp).
+    //      The raw keys win whenever they carry something. A project the CLI exported itself has the
+    //      real compatible_printers_condition AND an all-empty compatible_machine_expression_group,
+    //      so copying the group's first entry unconditionally would overwrite a valid condition with
+    //      "" and accept every printer. The renamed keys are only a fallback, and an empty value is
+    //      never written over a real one.
+    auto cli_process_compat_config = [](const DynamicPrintConfig &project_cfg) -> DynamicPrintConfig {
+        DynamicPrintConfig cfg = project_cfg;
+        const auto *raw_list = project_cfg.option<ConfigOptionStrings>("compatible_printers");
+        const auto *list     = project_cfg.option<ConfigOptionStrings>("print_compatible_printers");
+        if ((raw_list == nullptr || raw_list->values.empty()) && list != nullptr && !list->values.empty())
+            cfg.set_key_value("compatible_printers", new ConfigOptionStrings(list->values));
+        const auto *raw_cond = project_cfg.option<ConfigOptionString>("compatible_printers_condition");
+        const auto *group    = project_cfg.option<ConfigOptionStrings>("compatible_machine_expression_group");
+        if ((raw_cond == nullptr || raw_cond->value.empty()) && group != nullptr && !group->values.empty() &&
+            !group->values.front().empty())
+            cfg.set_key_value("compatible_printers_condition", new ConfigOptionString(group->values.front()));
+        return cfg;
+    };
     if (!new_printer_name.empty()) {
         if (!new_process_name.empty()) {
-            for (int index = 0; index < new_print_compatible_printers.size(); index++) {
-                if (new_print_compatible_printers[index] == new_printer_system_name) {
-                    process_compatible = true;
-                    break;
-                }
-            }
+            //new process + new printer: both configs came from --load-settings
+            process_compatible = check_compat(load_process_config, load_machine_config, new_printer_system_name);
             BOOST_LOG_TRIVIAL(info) << boost::format("new printer %1%, inherited from %2%, new process %3%, inherited from %4% ,compatible %5%")
                 %new_printer_name %new_printer_system_name %new_process_name %new_process_system_name %process_compatible;
         }
         else {
-            for (int index = 0; index < current_print_compatible_printers.size(); index++) {
-                if (current_print_compatible_printers[index] == new_printer_system_name) {
-                    process_compatible = true;
-                    break;
-                }
+            //3MF-embedded process vs new printer. current_process_full_config is only populated from
+            //profiles/BBL/process_full/, so for every other vendor fall back to the 3MF's own project
+            //config in m_print_config, with its renamed compatibility keys translated back (see
+            //cli_process_compat_config above). Without this a 3MF built from a condition-only process
+            //is rejected when re-sliced with the very printer it was made for.
+            {
+                //ORCA: profiles/BBL/{process,machine}_full/ are gitignored and not generated in-tree,
+                //      so current_*_full_config is always empty and this fallback is the only live path.
+                const DynamicPrintConfig process_cfg = current_process_full_config.empty()
+                                                           ? cli_process_compat_config(m_print_config)
+                                                           : current_process_full_config;
+                process_compatible = check_compat(process_cfg, load_machine_config, new_printer_system_name);
             }
             BOOST_LOG_TRIVIAL(info) << boost::format("new printer %1%, inherited from %2%, old process %3%, inherited from %4% ,compatible %5%")
                 %new_printer_name %new_printer_system_name %current_process_name %current_process_system_name %process_compatible;
         }
     }
     else if (!new_process_name.empty()) {
-        for (int index = 0; index < new_print_compatible_printers.size(); index++) {
-            if (new_print_compatible_printers[index] == current_printer_system_name) {
-                process_compatible = true;
-                break;
-            }
+        //new process vs 3MF-embedded printer. As above, current_printer_full_config only resolves for
+        //BBL profiles; otherwise evaluate against the 3MF's own project config in m_print_config, which
+        //holds the embedded printer's printer_notes / nozzle_diameter.
+        {
+            const DynamicPrintConfig &printer_cfg = current_printer_full_config.empty() ? m_print_config : current_printer_full_config;
+            process_compatible = check_compat(load_process_config, printer_cfg, current_printer_system_name);
         }
         BOOST_LOG_TRIVIAL(info) << boost::format("old printer %1%, inherited from %2%, new process %3%, inherited from %4% ,compatible %5%")
             %current_printer_name %current_printer_system_name %new_process_name %new_process_system_name %process_compatible;
     }
     else {
-        //check the compatible of old printer&&process
-        for (int index = 0; index < current_print_compatible_printers.size(); index++) {
-            if (current_print_compatible_printers[index] == current_printer_system_name) {
-                process_compatible = true;
-                break;
-            }
-        }
+        //both sides 3MF-embedded (pure reprocess)
+        if (!current_process_full_config.empty() && !current_printer_full_config.empty())
+            process_compatible = check_compat(current_process_full_config, current_printer_full_config, current_printer_system_name);
+        else
+            process_compatible = std::find(current_print_compatible_printers.begin(), current_print_compatible_printers.end(), current_printer_system_name) != current_print_compatible_printers.end();
         if (!process_compatible && current_print_compatible_printers.empty())
         {
             BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf, no compatible printers, set to compatible");
@@ -2937,8 +3036,10 @@ int CLI::run(int argc, char **argv)
             }
         }
         else {
-            //todo: support user machine preset's different settings
-            different_settings[filament_count+1] = "";
+            //ORCA: was a //todo — compute the user's overrides instead of writing an empty column.
+            different_settings[filament_count+1] = new_printer_config_is_system
+                ? std::string()
+                : cli_different_settings(load_machine_config, new_printer_system_name, Preset::TYPE_PRINTER);
             if (new_printer_config_is_system)
                 inherits_group[filament_count+1] = "";
             else
@@ -3080,8 +3181,14 @@ int CLI::run(int argc, char **argv)
             print_compatible_printers = std::move(current_print_compatible_printers);
         }
         else {
-            //todo: support system process preset
-            different_settings[0] = "";
+            //ORCA: was a //todo. Prefer a value the loaded JSON already carried, otherwise
+            //      compute the overrides against the system parent.
+            if (!different_process_setting.empty())
+                different_settings[0] = different_process_setting;
+            else
+                different_settings[0] = new_process_config_is_system
+                    ? std::string()
+                    : cli_different_settings(load_process_config, new_process_system_name, Preset::TYPE_PRINT);
             if (new_process_config_is_system)
                 inherits_group[0] = "";
             else
@@ -3268,6 +3375,16 @@ int CLI::run(int argc, char **argv)
             int filament_index = load_filaments_index[index];
             std::vector<std::string> different_keys;
 
+            //ORCA: diff before load_default_gcodes_to_config, the way the process and machine
+            //      slots above already do. That call materialises absent gcode keys via
+            //      option(..., true), and DynamicConfig::diff only compares keys present in
+            //      both configs -- so a gcode key the leaf did not carry would go from "not
+            //      compared" to "compared as empty against the parent" and land in the column
+            //      as an override the user never made.
+            std::string filament_different_settings;
+            if (load_filament_count > 0)
+                filament_different_settings = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
+
             load_default_gcodes_to_config(config, Preset::TYPE_FILAMENT);
 
             if (load_filament_count > 0) {
@@ -3279,8 +3396,8 @@ int CLI::run(int argc, char **argv)
                 opt_filament_settings->set_at(filament_name_setting, filament_index-1, 0);
                 config.erase("filament_settings_id");
 
-                //todo: update different settings of filaments
-                different_settings[filament_index] = "";
+                //ORCA: was a //todo — same treatment as process/machine above.
+                different_settings[filament_index] = filament_different_settings;
                 inherits_group[filament_index] = load_filaments_inherit[index];
             }
             else {
@@ -3585,6 +3702,15 @@ int CLI::run(int argc, char **argv)
                 }
             }
 
+            // A mixed slot never reaches a nozzle, so its row and column stay empty, as in the GUI.
+            // Command line options are not merged into m_print_config yet, so they win here.
+            const ConfigOptionBools *is_mixed_opt = m_extra_config.option<ConfigOptionBools>("filament_is_mixed");
+            if (!is_mixed_opt)
+                is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+            auto is_mixed_slot = [is_mixed_opt](int idx) {
+                return is_mixed_opt && idx < static_cast<int>(is_mixed_opt->values.size()) && is_mixed_opt->values[idx];
+            };
+
             for (size_t nozzle_id = 0; nozzle_id < new_extruder_count; ++nozzle_id) {
             std::vector<double> flush_vol_mtx = get_flush_volumes_matrix(flush_vol_matrix, nozzle_id, new_extruder_count);
                 for (int from_idx = 0; from_idx < project_filament_count; from_idx++) {
@@ -3594,7 +3720,7 @@ int CLI::run(int argc, char **argv)
                     bool is_from_support = filament_is_support->get_at(from_idx);
                     for (int to_idx = 0; to_idx < project_filament_count; to_idx++) {
                         bool is_to_support = filament_is_support->get_at(to_idx);
-                        if (from_idx == to_idx) {
+                        if (from_idx == to_idx || is_mixed_slot(from_idx) || is_mixed_slot(to_idx)) {
                             flush_vol_mtx[project_filament_count * from_idx + to_idx] = 0.f;
                         } else {
                             int flushing_volume = 0;
@@ -3731,11 +3857,112 @@ int CLI::run(int argc, char **argv)
         }
     }
 
+    //ORCA: settings passed on the command line (--sparse-infill-density 25% ...) override the loaded
+    //      presets right here, so they belong in different_settings_to_system just as a preset
+    //      override does. Without them re-opening the exported project in the GUI shows nothing
+    //      modified and reverts those values to the system presets'.
+    //
+    //      The keys come from m_config, not m_extra_config: read_cli() puts only what the user typed
+    //      into m_config (setup() adds nothing but CLI-own defaults), whereas the CLI writes its own
+    //      values into m_extra_config. Only keys whose value the override actually changed are
+    //      recorded -- a typed value equal to the loaded one modifies nothing -- and each lands in
+    //      the column(s) whose preset type owns it: [0] process, [1..n-2] filaments, [n-1] printer.
+    //
+    //      "Changed" is judged the way the value is read: a list is compared entry by entry with a
+    //      missing entry read as the first, as get_at() does -- so --nozzle-temperature 245 against
+    //      245,245,245 is no change, although the two serialize differently.
+    //
+    //      A key the loaded config does not carry at all is always recorded, even if the typed value
+    //      equals the built-in default. On reopen the GUI restores an unlisted key from the SYSTEM
+    //      preset, which need not match that default: a 3MF written before an option existed leaves
+    //      it absent here, and --sparse-infill-density 20% (the default) against a Prusa system 15%
+    //      would otherwise go unrecorded and be reverted. Over-recording is cosmetic; under-recording
+    //      loses the value.
+    std::map<std::string, std::unique_ptr<ConfigOption>> cli_override_before;
+    for (const std::string &key : m_config.keys()) {
+        if (!m_extra_config.has(key))
+            continue;
+        const ConfigOption *loaded = m_print_config.option(key);
+        cli_override_before[key].reset(loaded != nullptr ? loaded->clone() : nullptr); // null: always recorded
+    }
+
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()
     // (command line options override --load files)
     m_print_config.apply(m_extra_config, true);
+
+    if (!cli_override_before.empty()) {
+        std::vector<std::string> &columns = m_print_config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
+        auto owned_by = [](const std::vector<std::string> &options, const std::string &key) {
+            return std::find(options.begin(), options.end(), key) != options.end();
+        };
+        auto add_to_column = [&columns](size_t index, const std::string &key) {
+            std::vector<std::string> keys;
+            Slic3r::unescape_strings_cstyle(columns[index], keys);
+            if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+                keys.push_back(key);
+                columns[index] = Slic3r::escape_strings_cstyle(keys);
+            }
+        };
+        auto same_value = [](const ConfigOption *a, const ConfigOption *b) {
+            if (a == nullptr || b == nullptr)
+                return false;
+            const auto *va = dynamic_cast<const ConfigOptionVectorBase *>(a);
+            const auto *vb = dynamic_cast<const ConfigOptionVectorBase *>(b);
+            if (va == nullptr || vb == nullptr)
+                return va == vb && a->serialize() == b->serialize();
+            const std::vector<std::string> ea = va->vserialize(), eb = vb->vserialize();
+            if (ea.empty() || eb.empty())
+                return ea.empty() && eb.empty();
+            for (size_t i = 0; i < std::max(ea.size(), eb.size()); ++i)
+                if (ea[i < ea.size() ? i : 0] != eb[i < eb.size() ? i : 0])
+                    return false;
+            return true;
+        };
+        //ORCA: always true after the resize to filament_count + 2 above, and nothing in between can
+        //      shrink the column vector -- different_settings_to_system is not a CLI option. Kept as
+        //      a check rather than an assert: release builds compile asserts out, so an assert would
+        //      protect nothing, while a build with _GLIBCXX_ASSERTIONS would abort on columns[0].
+        if (columns.size() >= 2) {
+            for (const auto &[key, before] : cli_override_before) {
+                if (same_value(before.get(), m_print_config.option(key)))
+                    continue;
+                bool recorded = false;
+                if (owned_by(Preset::print_options(), key)) {
+                    add_to_column(0, key);
+                    recorded = true;
+                }
+                if (owned_by(Preset::filament_options(), key)) {
+                    for (size_t i = 1; i + 1 < columns.size(); ++i)
+                        add_to_column(i, key);
+                    recorded = true;
+                }
+                if (owned_by(Preset::printer_options(), key)) {
+                    add_to_column(columns.size() - 1, key);
+                    recorded = true;
+                }
+                if (recorded)
+                    BOOST_LOG_TRIVIAL(info) << boost::format("CLI: override %1% recorded in different_settings_to_system") % key;
+            }
+        }
+    }
     // Normalizing after importing the 3MFs / AMFs
     m_print_config.normalize_fdm();
+
+    // A mixed slot is virtual but still needs a filament entry of its own. Without one, feature
+    // filament ids aimed at it fall outside the filament count, are reset to the first filament
+    // and the model silently prints in a single colour.
+    if (const auto *is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed")) {
+        const auto &is_mixed = is_mixed_opt->values;
+        for (size_t slot = static_cast<size_t>(std::max(filament_count, 0)); slot < is_mixed.size(); ++slot) {
+            if (!is_mixed[slot])
+                continue;
+            BOOST_LOG_TRIVIAL(error) << boost::format("mixed filament slot %1% has no filament of its own, only %2% filaments are loaded; "
+                                                      "load one filament per slot, including each mixed one")
+                                            % (slot + 1) % filament_count;
+            record_exit_reson(outfile_dir, CLI_MIXED_FILAMENT_INVALID, 0, cli_errors[CLI_MIXED_FILAMENT_INVALID], sliced_info);
+            flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
+        }
+    }
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
@@ -3791,6 +4018,15 @@ int CLI::run(int argc, char **argv)
     bool is_smooth_timelapse = false;
     if (enable_timelapse && timelapse_type_opt && (timelapse_type_opt->getInt() == TimelapseType::tlSmooth))
         is_smooth_timelapse = true;
+    // A mixed filament swaps between its components every layer, so it needs the tower even when
+    // every loaded preset is the same.
+    if (disable_wipe_tower_after_mapping) {
+        if (const auto *is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+            is_mixed_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+            disable_wipe_tower_after_mapping = false;
+            BOOST_LOG_TRIVIAL(info) << boost::format("%1%, set disable_wipe_tower_after_mapping back to false due to a mixed filament")%__LINE__;
+        }
+    }
     if (disable_wipe_tower_after_mapping) {
         if (is_smooth_timelapse)
         {
@@ -5995,6 +6231,36 @@ int CLI::run(int argc, char **argv)
                                 BOOST_LOG_TRIVIAL(error) << boost::format("plate %1% : Found 2 or more tpu filaments on plate ") % (index + 1);
                                 record_exit_reson(outfile_dir, CLI_ONLY_ONE_TPU_SUPPORTED, index + 1, cli_errors[CLI_ONLY_ONE_TPU_SUPPORTED], sliced_info);
                                 flush_and_exit(CLI_ONLY_ONE_TPU_SUPPORTED);
+                            }
+
+                            // Same type gate as the GUI's Sidebar::has_broken_mixed_filament: refuse a plate that uses a
+                            // mixed slot whose components are different filament types. Missing or out-of-range
+                            // components never get here, validate() already rejects them for the whole project.
+                            const auto *is_mixed_opt   = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+                            const auto *components_opt = m_print_config.option<ConfigOptionStrings>("filament_mixed_components");
+                            if (is_mixed_opt && components_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+                                const auto &is_mixed   = is_mixed_opt->values;
+                                const auto &components = components_opt->values;
+                                const size_t num_physical = static_cast<size_t>(filament_count) - static_cast<size_t>(std::count(is_mixed.begin(), is_mixed.end(), true));
+                                std::vector<std::string> physical_types(num_physical);
+                                for (size_t f_index = 0; f_index < num_physical; ++f_index) {
+                                    std::string displayed_type;
+                                    physical_types[f_index] = m_print_config.get_filament_type(displayed_type, static_cast<int>(f_index));
+                                    if (physical_types[f_index].empty())
+                                        physical_types[f_index] = "PLA";
+                                }
+                                const std::vector<size_t> mismatched_slots = check_mixed_filament_type_consistency(is_mixed, components, physical_types);
+                                // plate_filaments has mixed slots expanded to their components; the gate needs the slots.
+                                const std::vector<int> plate_slots = mismatched_slots.empty() ? std::vector<int>() :
+                                                                     part_plate->get_extruders_under_cli(true, m_print_config, false);
+                                for (size_t slot : mismatched_slots) {
+                                    if (std::find(plate_slots.begin(), plate_slots.end(), static_cast<int>(slot) + 1) == plate_slots.end())
+                                        continue;
+                                    BOOST_LOG_TRIVIAL(error) << boost::format("plate %1%: mixed filament %2% mixes components of different filament types")
+                                                                    % (index + 1) % (slot + 1);
+                                    record_exit_reson(outfile_dir, CLI_MIXED_FILAMENT_INVALID, index + 1, cli_errors[CLI_MIXED_FILAMENT_INVALID], sliced_info);
+                                    flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
+                                }
                             }
 
                             if (new_extruder_count > 1) {

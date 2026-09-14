@@ -425,7 +425,7 @@ LPSTACKINFO CStackWalker::StackWalker(HANDLE hThread, const CONTEXT* context)
 	else
 		c = *context;
 
-	STACKFRAME64 sf = {0};
+	STACKFRAME64 sf = {};
 	DWORD imageType;
 
 //intel X86

@@ -11,9 +11,12 @@
 
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include "GUI_Utils.hpp"
+#include "Widgets/ComboBox.hpp"
+
 namespace Slic3r { namespace GUI {
 
-class PluginPickerDialog : public wxDialog
+class PluginPickerDialog : public DPIDialog
 {
 public:
     // Entry for capability-level selection (plugin_type non-empty path).
@@ -40,13 +43,15 @@ public:
     // Returns the {plugin_key, name} of the selected capability (capability path).
     CapabilityEntry selected_capability() const;
 
+    void on_dpi_changed(const wxRect &suggested_rect) override;
+
 private:
     void build_ui(const wxString& plugin_type_label);
     void build_capability_ui(const wxString& plugin_type_label);
     void update_description(int selection);
     void update_capability_description(int selection);
 
-    wxChoice*                      m_choice       { nullptr };
+    ComboBox*                      m_choice       { nullptr };
     wxStaticText*                  m_description  { nullptr };
     std::vector<Slic3r::PluginDescriptor> m_plugins;
     std::vector<CapabilityEntry>   m_capabilities;

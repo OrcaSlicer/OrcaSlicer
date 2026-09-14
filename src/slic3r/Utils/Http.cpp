@@ -321,8 +321,10 @@ void Http::priv::form_add_file(const char *name, const fs::path &path, const cha
 	// We can't use CURLFORM_FILECONTENT, because curl doesn't support Unicode filenames on Windows
 	// and so we use CURLFORM_STREAM with boost ifstream to read the file.
 
+	std::string filename_str;
 	if (filename == nullptr) {
-		filename = path.string().c_str();
+		filename_str = path.string();
+		filename = filename_str.c_str();
 	}
 
 	form_files.emplace_back(path, offset, length);

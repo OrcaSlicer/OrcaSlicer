@@ -16,6 +16,7 @@
 #include <iostream>
 #include <libslic3r/Platform.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>

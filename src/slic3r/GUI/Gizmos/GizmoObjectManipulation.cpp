@@ -702,7 +702,7 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bo
 
      for (int i = 0; i < number; i++)
      {
-         char buf[3][64] = {0};
+         char buf[3][64] = {};
          float buf_size[3] = {0};
          for (int j = 0; j < 3; j++) {
              ImGui::DataTypeFormatString(buf[j], IM_ARRAYSIZE(buf[j]), ImGuiDataType_Double, (void *) &vec[i][j], "%.2f");
