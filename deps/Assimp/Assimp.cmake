@@ -21,6 +21,9 @@ orcaslicer_add_cmake_project(Assimp
     URL ${_assimp_url}
     URL_HASH ${_assimp_hash}
     CMAKE_ARGS
+        # Assimp's ccache support sets the global RULE_LAUNCH_COMPILE, which breaks
+        # the Ninja RC rule. The superbuild forwards CMAKE_<LANG>_COMPILER_LAUNCHER.
+        -DASSIMP_BUILD_USE_CCACHE=OFF
         -DASSIMP_BUILD_TESTS=OFF
         -DASSIMP_BUILD_SAMPLES=OFF
         -DASSIMP_BUILD_ASSIMP_TOOLS=OFF

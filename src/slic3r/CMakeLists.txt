@@ -38,6 +38,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/AuxiliaryDataViewModel.hpp
     GUI/AuxiliaryDialog.cpp
     GUI/AuxiliaryDialog.hpp
+    GUI/AVVideoDecoder.cpp
+    GUI/AVVideoDecoder.hpp
     GUI/Auxiliary.hpp
     GUI/BackgroundSlicingProcess.cpp
     GUI/BackgroundSlicingProcess.hpp
@@ -61,6 +63,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/BuildCommit.cpp
+    GUI/BuildCommit.hpp
     GUI/CrealityDiscoveryDialog.cpp
     GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
@@ -93,6 +97,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
+    GUI/ConfigValueFormatter.cpp
+    GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
     GUI/ConfigWizard_private.hpp
@@ -447,6 +453,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PublishSettingsDialog.cpp
+    GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
@@ -611,6 +619,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/WipeTowerDialog.cpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp
+    GUI/wxMediaCtrl3.cpp
+    GUI/wxMediaCtrl3.h
     plugin/PythonInterpreter.cpp
     plugin/PythonInterpreter.hpp
     plugin/PythonPluginBridge.cpp
@@ -799,21 +809,8 @@ if (APPLE)
             GUI/DeepLinkHandlerMac.mm
             GUI/DeepLinkHandlerMac.h
             GUI/GUI_UtilsMac.mm
-            GUI/wxMediaCtrl2.mm
-            GUI/wxMediaCtrl2.h
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
-else ()
-    list(APPEND SLIC3R_GUI_SOURCES
-            GUI/wxMediaCtrl2.cpp
-            GUI/wxMediaCtrl2.h
-        )
-endif ()
-
-if (UNIX AND NOT APPLE)
-    list(APPEND SLIC3R_GUI_SOURCES
-        GUI/Printer/gstbambusrc.c
-    )
 endif ()
 
 set(ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY}")
@@ -854,6 +851,18 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
 
+# Only BuildCommit.cpp includes the generated header, plus BaseException.cpp on
+# Windows. Both build into libslic3r_gui, so the header only has to exist before
+# that target builds.
+set(_git_commit_hash_header "${CMAKE_CURRENT_BINARY_DIR}/git_commit_hash.h")
+add_custom_target(git_commit_hash_header
+    BYPRODUCTS "${_git_commit_hash_header}"
+    COMMAND ${CMAKE_COMMAND}
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DOUT_FILE=${_git_commit_hash_header}"
+        -P "${CMAKE_CURRENT_LIST_DIR}/GitCommitHash.cmake"
+    COMMENT "Resolving the git commit hash")
+add_dependencies(libslic3r_gui git_commit_hash_header)
 
 if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(_opengl_link_lib "")
@@ -911,7 +920,42 @@ endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r_gui pchheader.hpp FORCEINCLUDE)
+elseif (MSVC)
+    # Puts the Windows headers first when the PCH is off.
+    target_compile_options(libslic3r_gui PRIVATE "/FIslic3r/win_platform.hpp")
 endif ()
+
+if (APPLE)
+    # Static FFmpeg from the deps install: nothing to bundle into the .app,
+    # no rpath/install_name handling. Order matters: avcodec -> swscale -> avutil.
+    find_library(LIBAVCODEC_LIBRARY NAMES libavcodec.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBSWSCALE_LIBRARY NAMES libswscale.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVUTIL_LIBRARY NAMES libavutil.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "Static FFmpeg (libavcodec.a/libswscale.a/libavutil.a) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps — FFMPEG builds static-only on macOS.")
+    endif ()
+    target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
+elseif (WIN32)
+    # Prebuilt shared FFmpeg from the deps install. Windows has no pkg-config,
+    # so resolve the import libraries out of the deps prefix directly; the DLLs
+    # are copied next to the executable by the top level CMakeLists.
+    find_library(LIBAVCODEC_LIBRARY NAMES avcodec PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBSWSCALE_LIBRARY NAMES swscale PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVUTIL_LIBRARY NAMES avutil PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    if (NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "FFmpeg (avcodec/swscale/avutil) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps.")
+    endif ()
+    target_link_libraries(libslic3r_gui ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
+else ()
+    pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+        libavcodec
+        libswscale
+        libavutil
+    )
+    target_link_libraries(libslic3r_gui PkgConfig::LIBAV)
+endif()
 
 # We need to implement some hacks for wxWidgets and touch the underlying GTK
 # layer and sub-libraries. This forces us to use the include locations and
@@ -939,19 +983,10 @@ if (UNIX AND NOT APPLE)
         target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_WAYLAND)
     endif ()
 
-    # We add GStreamer for bambu:/// support.
-    pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
-    pkg_check_modules(GST_BASE REQUIRED gstreamer-base-1.0)
-    target_link_libraries(libslic3r_gui ${GSTREAMER_LIBRARIES} ${GST_BASE_LIBRARIES})
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GSTREAMER_INCLUDE_DIRS} ${GST_BASE_INCLUDE_DIRS})
 endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
-
-if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
-    target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
-endif()
 
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE

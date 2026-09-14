@@ -15,7 +15,13 @@ if(WIN32)
     # See https://github.com/python/cpython/issues/153438
     # Patch from https://github.com/python/cpython/pull/153608
     # This patch has not been merged to 3.12 yet so we need to apply it manually
-    set(_patch_cmd git init && ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
+    #
+    # Without core.autocrlf=false the patched find_python.bat comes out LF and
+    # cmd.exe cannot find its goto labels.
+    set(_patch_cmd git init
+                   && ${GIT_EXECUTABLE} -c core.autocrlf=false apply --verbose
+                      --ignore-space-change --whitespace=fix
+                      ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
 
     if(MSVC_VERSION EQUAL 1800)
         set(_python_platform_toolset v120)
@@ -53,12 +59,9 @@ if(WIN32)
         set(_python_pcbuild_output_dir win32)
     endif()
 
+    # pybind11 undefines _DEBUG around Python.h so a debug build links the
+    # release python3xx.lib; Py_DEBUG could not load release plugin modules.
     set(_python_pcbuild_config Release)
-    set(_python_layout_debug OFF)
-    if(DEFINED DEP_DEBUG AND DEP_DEBUG)
-        set(_python_pcbuild_config Debug)
-        set(_python_layout_debug ON)
-    endif()
 
     # CPython's PCbuild needs a 64-bit-hosted toolchain: find_msbuild.bat picks the
     # 32-bit Bin\MSBuild.exe, whose x86 cl.exe/link.exe run out of address space
@@ -101,7 +104,6 @@ if(WIN32)
             -DPYTHON_BUILD_DIR=<SOURCE_DIR>/PCbuild/${_python_pcbuild_output_dir}
             -DPYTHON_DEST_DIR=${DESTDIR}/libpython
             -DPYTHON_LAYOUT_ARCH=${_python_layout_arch}
-            -DPYTHON_DEBUG=${_python_layout_debug}
             -P ${CMAKE_CURRENT_LIST_DIR}/stage_windows.cmake
     )
 elseif(APPLE)

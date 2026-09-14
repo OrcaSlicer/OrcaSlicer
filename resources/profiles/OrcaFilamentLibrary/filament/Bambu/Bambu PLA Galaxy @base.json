@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Galaxy @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA15",
+	"filament_id": "OFQ3e56w",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

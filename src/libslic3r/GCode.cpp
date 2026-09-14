@@ -6308,8 +6308,13 @@ LayerResult GCode::process_layer(
                                 all_label_ids.insert(inst.label_object_id);
                         break;
                     }
-            std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
-            m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            // Orca: A scheduled extruder may have no object instances on this layer.
+            // Clear any pending mask so it cannot be emitted for the wrong toolchange.
+            m_filament_instances_code.clear();
+            if (!all_label_ids.empty()) {
+                std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
+                m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            }
         }
 
         // The inline _extrude hook may already have taken the snapshot mid-extrusion on a
@@ -8199,9 +8204,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
-                for (ProcessedPoint &point : new_points)
-                    point.speed = speed;
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                if (!NOZZLE_CONFIG(enable_overhang_speed))
+                    for (ProcessedPoint &point : new_points)
+                        point.speed = speed;
                 variable_speed = new_points.size() > 1;
             }
     }
@@ -9082,7 +9088,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
                     continue;
 
                 Polygons temp;
-                temp.emplace_back(std::move(instance_bbox.polygon()));
+                temp.emplace_back(instance_bbox.polygon());
                 if (intersection_pl(travel, temp).empty())
                     continue;
 

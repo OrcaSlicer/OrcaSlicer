@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PLA@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFL99",
+	"filament_id": "OFeelsSM",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"100"

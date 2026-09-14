@@ -3,7 +3,7 @@
 	"name": "Snapmaker PETG-CF @base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "1355502217",
+	"filament_id": "OFOwQuZM",
 	"instantiation": "false",
 	"required_nozzle_HRC": [
 		"40"

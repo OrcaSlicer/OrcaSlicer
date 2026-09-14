@@ -10,6 +10,13 @@ else ()
     set(_options "")
 endif ()
 
+# carotene is OpenCV's ARM NEON HAL. It uses M_PI without _USE_MATH_DEFINES
+# and does not compile with clang-cl.
+set(_disable_carotene "")
+if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(_disable_carotene "-DWITH_CAROTENE=OFF")
+endif ()
+
 if (IN_GIT_REPO)
     set(OpenCV_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OpenCV-prefix/src/dep_OpenCV)
 endif ()
@@ -83,5 +90,6 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_PROTOBUF=OFF
        -DWITH_WIN32UI=OFF
        -DHAVE_WIN32UI=FALSE
+       ${_disable_carotene}
 )
 

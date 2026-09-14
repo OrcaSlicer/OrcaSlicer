@@ -1,6 +1,6 @@
 {
 	"name": "Vzbot",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Vzbot configurations",
 	"machine_model_list": [
@@ -149,44 +149,44 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Vzbot Generic ABS",
-			"sub_path": "filament/Vzbot Generic ABS.json"
+			"name": "Generic ABS @Vzbot",
+			"sub_path": "filament/Generic ABS @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic ASA",
-			"sub_path": "filament/Vzbot Generic ASA.json"
+			"name": "Generic ASA @Vzbot",
+			"sub_path": "filament/Generic ASA @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PA",
-			"sub_path": "filament/Vzbot Generic PA.json"
+			"name": "Generic PA @Vzbot",
+			"sub_path": "filament/Generic PA @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PA-CF",
-			"sub_path": "filament/Vzbot Generic PA-CF.json"
+			"name": "Generic PA-CF @Vzbot",
+			"sub_path": "filament/Generic PA-CF @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PC",
-			"sub_path": "filament/Vzbot Generic PC.json"
+			"name": "Generic PC @Vzbot",
+			"sub_path": "filament/Generic PC @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PETG",
-			"sub_path": "filament/Vzbot Generic PETG.json"
+			"name": "Generic PETG @Vzbot",
+			"sub_path": "filament/Generic PETG @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PLA",
-			"sub_path": "filament/Vzbot Generic PLA.json"
+			"name": "Generic PLA @Vzbot",
+			"sub_path": "filament/Generic PLA @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PLA-CF",
-			"sub_path": "filament/Vzbot Generic PLA-CF.json"
+			"name": "Generic PLA-CF @Vzbot",
+			"sub_path": "filament/Generic PLA-CF @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic PVA",
-			"sub_path": "filament/Vzbot Generic PVA.json"
+			"name": "Generic PVA @Vzbot",
+			"sub_path": "filament/Generic PVA @Vzbot.json"
 		},
 		{
-			"name": "Vzbot Generic TPU",
-			"sub_path": "filament/Vzbot Generic TPU.json"
+			"name": "Generic TPU @Vzbot",
+			"sub_path": "filament/Generic TPU @Vzbot.json"
 		}
 	],
 	"machine_list": [

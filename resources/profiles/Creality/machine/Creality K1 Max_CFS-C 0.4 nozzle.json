@@ -83,7 +83,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Creality HF Generic PLA"
+		"Generic PLA HF @Creality"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#FCE94F",

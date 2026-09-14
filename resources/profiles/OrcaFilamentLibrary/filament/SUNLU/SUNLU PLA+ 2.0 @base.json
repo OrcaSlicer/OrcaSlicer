@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA+ 2.0 @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFSNL04",
+	"filament_id": "OFHmPYRy",
 	"instantiation": "false",
 	"filament_cost": [
 		"18.99"

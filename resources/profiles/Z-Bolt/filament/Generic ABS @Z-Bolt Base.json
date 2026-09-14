@@ -2,9 +2,8 @@
 	"type": "filament",
 	"name": "Generic ABS @Z-Bolt Base",
 	"inherits": "fdm_filament_abs",
-	"renamed_from": "Z-Bolt ABS;Generic ABS @Z-Bolt",
 	"from": "system",
-	"filament_id": "GFL200",
+	"filament_id": "OFY9muEs",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"20"

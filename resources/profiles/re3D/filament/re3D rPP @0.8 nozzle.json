@@ -1,9 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "GFG02",
+	"filament_id": "OFfHGM1D",
 	"setting_id": "i9ii0b7qFYWnkGSq",
 	"name": "re3D rPP @0.8 nozzle",
 	"from": "system",
+	"renamed_from": "re3D rPP",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pp",
 	"filament_type": [

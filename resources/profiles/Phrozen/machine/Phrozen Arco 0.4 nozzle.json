@@ -14,7 +14,7 @@
 	],
 	"default_print_profile": "0.20mm Standard @Phrozen Arco 0.4 nozzle",
 	"default_filament_profile": [
-		"Phrozen PLA @Phrozen Arco 0.4 nozzle"
+		"Generic PLA @Phrozen Arco 0.4 nozzle"
 	],
 	"disable_m73": "1",
 	"gcode_flavor": "klipper",

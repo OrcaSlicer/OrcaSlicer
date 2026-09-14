@@ -2129,6 +2129,23 @@ std::pair<double, double> WipeTower2::get_wipe_tower_cone_base(double width, dou
     return std::make_pair(R, support_scale);
 }
 
+Polygon WipeTower2::cone_base_polygon(double width, double depth, double height, double angle_deg)
+{
+    Polygon box({Point::new_scale(Vec2d(0., 0.)), Point::new_scale(Vec2d(width, 0.)),
+                 Point::new_scale(Vec2d(width, depth)), Point::new_scale(Vec2d(0., depth))});
+    if (angle_deg <= EPSILON || height <= EPSILON || width <= EPSILON || depth <= EPSILON)
+        return box;
+    const auto [R, x_scale] = get_wipe_tower_cone_base(width, height, depth, angle_deg);
+    if (R <= EPSILON)
+        return box;
+    const Vec2d center(width / 2., depth / 2.);
+    Polygon ellipse;
+    for (double alpha = 0.; alpha < 2. * M_PI; alpha += M_PI / 20.)
+        ellipse.points.push_back(Point::new_scale(center + R * Vec2d(std::cos(alpha) / x_scale, std::sin(alpha))));
+    Polygons u = union_({box, ellipse});
+    return u.empty() ? box : u.front();
+}
+
 // Static method to extract wipe_volumes[from][to] from the configuration.
 // Takes a ConfigBase so the GUI's wipe tower size estimate can pass the plate's
 // DynamicPrintConfig directly instead of materializing a full PrintConfig per call.

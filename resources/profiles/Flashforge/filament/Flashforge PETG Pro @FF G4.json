@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG Pro @FF G4",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "Ql2BBBymzqEG7GKk",
+	"filament_id": "OFXiArjA",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

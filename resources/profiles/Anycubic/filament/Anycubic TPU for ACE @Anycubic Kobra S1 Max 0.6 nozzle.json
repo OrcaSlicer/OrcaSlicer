@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "IcPG0rhSw4AuIcPl",
-	"filament_id": "GFTPU for ACE",
+	"filament_id": "OF0FfcAG",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.6 nozzle"
@@ -13,7 +13,7 @@
 		"Anycubic"
 	],
 	"filament_type": [
-		"PEBA"
+		"TPU"
 	],
 	"compatible_printers": [
 		"Anycubic Kobra S1 Max 0.6 nozzle"

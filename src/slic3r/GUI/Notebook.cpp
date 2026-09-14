@@ -56,7 +56,7 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
 
     // BBS: disable custom paint
     //this->Bind(wxEVT_PAINT, &ButtonsListCtrl::OnPaint, this);
-    Bind(wxEVT_SYS_COLOUR_CHANGED, [this](auto& e){
+    Bind(wxEVT_SYS_COLOUR_CHANGED, [](auto& e){
     });
 }
 

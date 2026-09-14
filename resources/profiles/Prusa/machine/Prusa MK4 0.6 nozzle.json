@@ -8,7 +8,7 @@
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MK4",
 	"default_filament_profile": [
-		"Prusa Generic PLA @MK4"
+		"Generic PLA @Prusa MK4"
 	],
 	"default_print_profile": "0.32mm Standard @MK4",
 	"nozzle_diameter": [

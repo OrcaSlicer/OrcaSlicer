@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Anker base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"filament_id": "OFLakOUI",
+	"instantiation": "false"
+}

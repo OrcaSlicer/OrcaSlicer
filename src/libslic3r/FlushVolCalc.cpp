@@ -40,8 +40,8 @@ static float DeltaHS_BBS(float h1, float s1, float v1, float h2, float s2, float
     return std::min(1.2f, dxy);
 }
 
-FlushVolCalculator::FlushVolCalculator(int min, int max, int flush_dataset, float multiplier)
-    :m_min_flush_vol(min), m_max_flush_vol(max), m_multiplier(multiplier), m_flush_dataset(flush_dataset)
+FlushVolCalculator::FlushVolCalculator(int min, int max, int flush_dataset)
+    :m_min_flush_vol(min), m_max_flush_vol(max), m_flush_dataset(flush_dataset)
 {
 }
 

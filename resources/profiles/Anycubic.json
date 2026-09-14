@@ -1,6 +1,6 @@
 {
 	"name": "Anycubic",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Anycubic configurations",
 	"machine_model_list": [
@@ -541,8 +541,8 @@
 			"sub_path": "filament/Anycubic ABS @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
-			"name": "Anycubic Generic ABS",
-			"sub_path": "filament/Anycubic Generic ABS.json"
+			"name": "Generic ABS @Anycubic",
+			"sub_path": "filament/Generic ABS @Anycubic.json"
 		},
 		{
 			"name": "Anycubic ASA @Anycubic Kobra 3 Max 0.6 nozzle",
@@ -561,28 +561,28 @@
 			"sub_path": "filament/Anycubic ASA @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
-			"name": "Anycubic Generic ASA",
-			"sub_path": "filament/Anycubic Generic ASA.json"
+			"name": "Generic ASA @Anycubic",
+			"sub_path": "filament/Generic ASA @Anycubic.json"
 		},
 		{
-			"name": "Anycubic Generic PA",
-			"sub_path": "filament/Anycubic Generic PA.json"
+			"name": "Generic PA @Anycubic",
+			"sub_path": "filament/Generic PA @Anycubic.json"
 		},
 		{
-			"name": "Anycubic Generic PA-CF",
-			"sub_path": "filament/Anycubic Generic PA-CF.json"
+			"name": "Generic PA-CF @Anycubic",
+			"sub_path": "filament/Generic PA-CF @Anycubic.json"
 		},
 		{
 			"name": "Fiberon PA6-CF20 @Anycubic Kobra S1",
 			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @Anycubic Kobra S1.json"
 		},
 		{
-			"name": "Anycubic Generic PC",
-			"sub_path": "filament/Anycubic Generic PC.json"
+			"name": "Generic PC @Anycubic",
+			"sub_path": "filament/Generic PC @Anycubic.json"
 		},
 		{
-			"name": "Anycubic Generic PETG",
-			"sub_path": "filament/Anycubic Generic PETG.json"
+			"name": "Generic PETG @Anycubic",
+			"sub_path": "filament/Generic PETG @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PETG @Anycubic Kobra 3 Max 0.4 nozzle",
@@ -613,12 +613,12 @@
 			"sub_path": "filament/Generic PETG Basic @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
-			"name": "Anycubic Generic PLA",
-			"sub_path": "filament/Anycubic Generic PLA.json"
+			"name": "Generic PLA @Anycubic",
+			"sub_path": "filament/Generic PLA @Anycubic.json"
 		},
 		{
-			"name": "Anycubic Generic PLA-CF",
-			"sub_path": "filament/Anycubic Generic PLA-CF.json"
+			"name": "Generic PLA-CF @Anycubic",
+			"sub_path": "filament/Generic PLA-CF @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PLA @Anycubic Kobra 3 Max 0.4 nozzle",
@@ -705,16 +705,16 @@
 			"sub_path": "filament/Polymaker/Polymaker PLA Pro Metallic @Anycubic Kobra S1.json"
 		},
 		{
-			"name": "Anycubic Generic PVA",
-			"sub_path": "filament/Anycubic Generic PVA.json"
+			"name": "Generic PVA @Anycubic",
+			"sub_path": "filament/Generic PVA @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PVA @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
-			"name": "Anycubic Generic TPU",
-			"sub_path": "filament/Anycubic Generic TPU.json"
+			"name": "Generic TPU @Anycubic",
+			"sub_path": "filament/Generic TPU @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PEBA 95A @Anycubic Kobra 3 Max 0.4 nozzle",
