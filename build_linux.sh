@@ -449,6 +449,8 @@ DISTRIBUTION_LIKE=$(awk -F= '/^ID_LIKE=/ {print $2}' /etc/os-release | tr -d '"'
 # Check for direct distribution match to Ubuntu/Debian
 if [ "${DISTRIBUTION}" == "ubuntu" ] || [ "${DISTRIBUTION}" == "linuxmint" ] ; then
     DISTRIBUTION="debian"
+elif [ "${DISTRIBUTION}" == "opensuse-tumbleweed" ] ; then
+    DISTRIBUTION="opensuse-tumbleweed"
 # Check if distribution is Debian/Ubuntu-like based on ID_LIKE
 elif [[ "${DISTRIBUTION_LIKE}" == *"debian"* ]] || [[ "${DISTRIBUTION_LIKE}" == *"ubuntu"* ]] ; then
     DISTRIBUTION="debian"
