@@ -204,6 +204,14 @@
    "filament_type": "PLA",
    "filament_vendor": "Overture"
   },
+  "OF1PznHI": {
+   "filaments": [
+    "Meltingplot/Extrudr PLA NX2 Matt"
+   ],
+   "name": "Extrudr PLA NX2 Matt",
+   "filament_type": "PLA",
+   "filament_vendor": "Extrudr"
+  },
   "OF1UNk9P": {
    "filaments": [
     "BBL/Generic PP",
@@ -2381,6 +2389,14 @@
    "filament_type": "TPU-90A",
    "filament_vendor": "Generic"
   },
+  "OFJdf5nt": {
+   "filaments": [
+    "Meltingplot/Meltingplot PET-CF15"
+   ],
+   "name": "Meltingplot PET-CF15",
+   "filament_type": "PET-CF",
+   "filament_vendor": "Meltingplot"
+  },
   "OFJgijky": {
    "filaments": [
     "BBL/PolyLite CosPLA",
@@ -3424,6 +3440,14 @@
    "filament_type": "PETG",
    "filament_vendor": "LH Stinger"
   },
+  "OFRdywGp": {
+   "filaments": [
+    "Meltingplot/Meltingplot ASA"
+   ],
+   "name": "Meltingplot ASA",
+   "filament_type": "ASA",
+   "filament_vendor": "Meltingplot"
+  },
   "OFRhBryT": {
    "filaments": [
     "Cubicon/Cubicon PLAi21"
@@ -3867,6 +3891,14 @@
    "name": "QIDI PETG Tough 0.2 nozzle",
    "filament_type": "PETG",
    "filament_vendor": "QIDI"
+  },
+  "OFVIMei2": {
+   "filaments": [
+    "Meltingplot/Meltingplot ABS"
+   ],
+   "name": "Meltingplot ABS",
+   "filament_type": "ABS",
+   "filament_vendor": "Meltingplot"
   },
   "OFVptRxp": {
    "filaments": [
@@ -4774,6 +4806,14 @@
    "name": "DREMC ASA CF",
    "filament_type": "ASA",
    "filament_vendor": "DREMC"
+  },
+  "OFdPevOo": {
+   "filaments": [
+    "Meltingplot/Meltingplot PA6 CF HT"
+   ],
+   "name": "Meltingplot PA6 CF HT",
+   "filament_type": "PA-CF",
+   "filament_vendor": "Meltingplot"
   },
   "OFdXVjGZ": {
    "filaments": [
@@ -7237,6 +7277,14 @@
    "filament_type": "PLA",
    "filament_vendor": "Elegoo"
   },
+  "OFvlreVF": {
+   "filaments": [
+    "Meltingplot/Meltingplot PETG"
+   ],
+   "name": "Meltingplot PETG",
+   "filament_type": "PETG",
+   "filament_vendor": "Meltingplot"
+  },
   "OFvmwTZE": {
    "filaments": [
     "Snapmaker/Snapmaker TPU 95A"
@@ -7337,6 +7385,14 @@
    "name": "Other TPU",
    "filament_type": "TPU",
    "filament_vendor": "Other"
+  },
+  "OFwXRVbB": {
+   "filaments": [
+    "Meltingplot/Meltingplot PLA"
+   ],
+   "name": "Meltingplot PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "Meltingplot"
   },
   "OFwaYjL6": {
    "filaments": [
@@ -7602,6 +7658,14 @@
    "name": "Volumic ABS Ultra",
    "filament_type": "ABS",
    "filament_vendor": "Volumic"
+  },
+  "OFyYfgDM": {
+   "filaments": [
+    "Meltingplot/Meltingplot TitanX"
+   ],
+   "name": "Meltingplot TitanX",
+   "filament_type": "ABS",
+   "filament_vendor": "Meltingplot"
   },
   "OFybzvQN": {
    "filaments": [
