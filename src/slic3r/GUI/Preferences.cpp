@@ -1617,15 +1617,33 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_darkmode);
 #endif
 
-    auto item_single_instance  = create_item_checkbox(_L("Allow only one OrcaSlicer instance"),
+    bool single_instance_enabled = app_config->get("single_instance") == "true";
+    bool open_files_in_existing_instance_enabled = app_config->get("open_files_in_existing_instance") == "true";
+    unsigned int reuse_instance_selection = single_instance_enabled ? 0 :
+        (open_files_in_existing_instance_enabled ? 1 : 2);
+    auto [item_reuse_instance, reuse_instance_combobox] = create_item_combobox_base(
+        _L("Reuse OrcaSlicer instance"),
     #if __APPLE__
-            _L("On OSX there is always only one instance of app running by default. However it is allowed to run multiple instances "
-                "of same app from the command line. In such case this settings will allow only one instance."),
+        _L("On macOS there is always only one instance of the app running by default. However, multiple instances may be started "
+           "from the command line; these options control whether an existing instance is reused in that case.\n\n"
+           "Always: When starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that instance will be reactivated instead.\n\n"
+           "When opening files: Files opened by double-clicking them or from another application are sent to an already running OrcaSlicer instance. Starting OrcaSlicer without a file still opens a new instance.\n\n"
+           "Never: Starting OrcaSlicer does not reuse an existing instance."),
     #else
-            _L("If this is enabled, when starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that instance will be reactivated instead."),
+        _L("Always: When starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that instance will be reactivated instead.\n\n"
+           "When opening files: Files opened by double-clicking them or from another application are sent to an already running OrcaSlicer instance. Starting OrcaSlicer without a file still opens a new instance.\n\n"
+           "Never: Starting OrcaSlicer does not reuse an existing instance."),
     #endif
-            "single_instance");
-    g_sizer->Add(item_single_instance);
+        "",
+        {_L("Always (Single OrcaSlicer instance)"), _L("When opening files"), _L("Never")},
+        reuse_instance_selection);
+    reuse_instance_combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
+        const int selection = e.GetSelection();
+        app_config->set_bool("single_instance", selection == 0);
+        app_config->set_bool("open_files_in_existing_instance", selection == 1);
+        e.Skip();
+    });
+    g_sizer->Add(item_reuse_instance);
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);

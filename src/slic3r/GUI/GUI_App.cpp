@@ -8916,7 +8916,8 @@ void GUI_App::MacOpenURL(const wxString& url)
 void GUI_App::MacOpenFiles(const wxArrayString &fileNames)
 {
     bool single_instance = app_config->get("app", "single_instance") == "true";
-    if (m_post_initialized && !single_instance) {
+    bool open_files_in_existing_instance = app_config->get("app", "open_files_in_existing_instance") == "true";
+    if (m_post_initialized && !single_instance && !open_files_in_existing_instance) {
         bool has3mf = false;
         std::vector<wxString> names;
         for (auto & n : fileNames) {
