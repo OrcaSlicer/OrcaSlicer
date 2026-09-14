@@ -4781,7 +4781,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
 
             //BBS change plate selection
-            if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+            // Same threshold as the context menu above: jitter must not leave the old selection in
+            // place, or "Add Primitive" silently refuses to add anything (ObjectList::load_shape_object).
+            if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.is_camera_drag_threshold_met(pos)) {
                 int hover_idx = m_hover_plate_idxs.front();
                 wxGetApp().plater()->select_plate_by_hover_id(hover_idx, true);
                 if (m_hover_volume_idxs.empty())
@@ -4790,7 +4792,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
 
             //ORCA allow right click on empty space while an object selected
-            if (m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+            if (m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.is_camera_drag_threshold_met(pos)) {
                 deselect_all();
                 render();
             }
