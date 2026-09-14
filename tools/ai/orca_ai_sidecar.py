@@ -1397,8 +1397,12 @@ def _restore_jobs(*, resume_jobs: bool = True) -> list[Job]:
             job.state == "failed"
             and isinstance(latest_attempt.get("generation_task_id"), str)
             and bool(latest_attempt.get("generation_task_id"))
-            and isinstance(latest_attempt.get("conversion_task_id"), str)
-            and bool(latest_attempt.get("conversion_task_id"))
+            and (
+                (isinstance(latest_attempt.get("conversion_task_id"), str)
+                 and bool(latest_attempt.get("conversion_task_id")))
+                or (job.provider == "tripo" and job.output_format == "glb"
+                    and not latest_attempt.get("conversion_submission_started"))
+            )
             and (any(marker in recoverable_error for marker in (
                 "unsafe artifact location",
                 "invalid obj package",
@@ -6290,6 +6294,14 @@ def _download_generation_artifact(job: Job, generation_id: str, attempt_number: 
         is_glb = stream.read(4) == b"glTF"
     if not is_glb:
         # Retain compatibility with providers/frozen jobs that return OBJ/ZIP.
+        if resume and (directory / "package").exists():
+            # Keep an interrupted extraction intact and retry in a fresh directory.
+            recovery_number = 1
+            while (directory / f"recovery-{recovery_number:02d}").exists():
+                recovery_number += 1
+            directory = directory / f"recovery-{recovery_number:02d}"
+            directory.mkdir(parents=False, exist_ok=False)
+            raw = raw.replace(directory / "artifact-raw.download")
         return _prepare_obj_artifact(raw, directory, job.palette, job.palette_roles)
     original = directory / "provider-model.glb"
     raw.replace(original)

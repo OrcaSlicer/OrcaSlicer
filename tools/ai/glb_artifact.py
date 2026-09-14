@@ -13,6 +13,7 @@ import json
 import math
 from pathlib import Path
 import struct
+import tempfile
 from dataclasses import dataclass
 
 from PIL import Image
@@ -324,12 +325,24 @@ class Glb:
 
 def write_analysis_obj(source, destination):
     mesh = Glb(source).mesh()
-    with Path(destination).open("w", encoding="ascii", newline="\n") as stream:
-        stream.write("# GLB analysis projection: Z-up, millimetres, sRGB vertex colors\n")
-        for (x, y, z), color in zip(mesh.vertices, mesh.colors):
-            stream.write("v {:.9g} {:.9g} {:.9g} {:.6f} {:.6f} {:.6f}\n".format(x * 1000, -z * 1000, y * 1000, *color))
-        for face in mesh.faces:
-            stream.write("f {} {} {}\n".format(*(i + 1 for i in face)))
+    path = Path(destination)
+    temporary = None
+    try:
+        # Readers may reuse this cache as soon as it exists. Publish only the
+        # complete projection, using a unique file on the same filesystem.
+        with tempfile.NamedTemporaryFile(mode="w", encoding="ascii", newline="\n",
+                                         dir=path.parent, prefix=f".{path.name}.",
+                                         suffix=".part", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write("# GLB analysis projection: Z-up, millimetres, sRGB vertex colors\n")
+            for (x, y, z), color in zip(mesh.vertices, mesh.colors):
+                stream.write("v {:.9g} {:.9g} {:.9g} {:.6f} {:.6f} {:.6f}\n".format(x * 1000, -z * 1000, y * 1000, *color))
+            for face in mesh.faces:
+                stream.write("f {} {} {}\n".format(*(i + 1 for i in face)))
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return destination
 
 
