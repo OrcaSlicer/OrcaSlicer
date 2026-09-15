@@ -112,6 +112,7 @@ enum PrintDialogStatus : unsigned int {
     // Orca: a nozzle diameter that differs from the one the printer remembers is a warning,
     // not an error, so non-standard nozzles can still be printed with.
     PrintStatusNozzleDiameterMismatch,
+    PrintStatusOptionalPrinterModel,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament

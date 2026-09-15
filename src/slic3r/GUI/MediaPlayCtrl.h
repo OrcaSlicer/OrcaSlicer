@@ -9,6 +9,9 @@
 #define MediaPlayCtrl_h
 
 #include "wxMediaCtrl3.h"
+#include "IMediaController.hpp"
+#include "WebRtcMediaController.hpp"
+#include "slic3r/Utils/IPrinterAgent.hpp"
 
 #include <wx/panel.h>
 
@@ -36,6 +39,10 @@ public:
 
     void SetMachineObject(MachineObject * obj);
 
+    void SetWebMediaController(IMediaController *ctrl);
+
+    void StopWebStream();
+
     bool IsStreaming() const;
 
     void ToggleStream();
@@ -54,6 +61,7 @@ protected:
     void TogglePlay();
 
     void SetStatus(wxString const &msg, bool hyperlink = true);
+    void on_webrtc_status(WebRtcMediaController::Status status);
 
 private:
     void load();
@@ -66,6 +74,8 @@ private:
 
     static bool get_stream_url(std::string *url = nullptr);
 
+    CameraStreamMode current_mode() const;
+
 private:
     static inline const wxMediaState MEDIASTATE_IDLE = static_cast<wxMediaState>(3);
     static inline const wxMediaState MEDIASTATE_INITIALIZING = static_cast<wxMediaState>(4);
@@ -76,6 +86,13 @@ private:
     std::shared_ptr<int> m_token = std::make_shared<int>(0);
 
     wxMediaCtrl3 * m_media_ctrl;
+    IMediaController * m_web_ctrl = nullptr;
+    std::unique_ptr<WebRtcMediaController> m_webrtc_ctrl;
+    CameraStreamMode m_last_mode = CameraStreamMode::none;
+    bool m_webrtc_stopping = false;
+    std::uint64_t m_webrtc_epoch = 0;
+    std::string m_agent_camera_url;
+    bool m_web_user_stopped = false;
     wxMediaState m_last_state = MEDIASTATE_IDLE;
     std::string m_machine;
     int m_lan_proto = 0;

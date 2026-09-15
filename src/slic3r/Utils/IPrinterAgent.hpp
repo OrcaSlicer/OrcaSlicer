@@ -11,6 +11,10 @@
 #define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
+#include <vector>
+#include <functional>
+#include <cstdint>
+#include "ICameraSignalingChannel.hpp"
 
 namespace Slic3r {
 
@@ -41,6 +45,14 @@ enum class FilamentSyncMode {
     none = 0,     ///< Filament synchronization not supported
     subscription, ///< Real-time push updates via subscription (e.g., MQTT)
     pull          ///< On-demand fetch via REST API (blocking call)
+};
+
+enum class CameraStreamMode {
+    none = 0,
+    http,  // LAN or Cloud
+    rtsp,  // LAN only
+    webrtc, // Cloud only
+    http_snapshot // HTTP endpoint returning one image per request
 };
 
 /**
@@ -83,6 +95,38 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
+    // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
+    // publish funnel turns into a dialog.
+    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_calibrate(std::string, int, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_select_tray(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_start_camera(std::string)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+
+    virtual int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                      bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+
+    /**
+     * Default LAN account username for this agent's protocol, if it has a fixed one.
+     * Returns an empty string if the agent has no fixed default (e.g. caller must supply one).
+     */
+    virtual std::string default_lan_username() const { return {}; }
 
     /**
      * Establish a direct LAN connection to a printer.
@@ -168,7 +212,7 @@ public:
     virtual std::string get_user_selected_machine() = 0;
 
     /**
-     * Update the selected machine preference.
+     * Update the selected cloud machine preference.
      */
     virtual int set_user_selected_machine(std::string dev_id) = 0;
 
@@ -285,11 +329,19 @@ public:
     virtual FilamentSyncMode get_filament_sync_mode() const { return FilamentSyncMode::none; }
 
     /**
+     * Get the camera stream mode for this agent. This value can be deterministic and derived at
+     * runtime if the printer supports multiple camera stream modes. E.g. LAN => HTTP/RTSP, Cloud => WebRTC.
+     *
+     * @return CameraStreamMode indicating how the camera stream is obtained or used:
+     */
+    virtual CameraStreamMode get_camera_stream_mode() const { return CameraStreamMode::none; }
+
+    /**
      * Refresh filament info from the printer synchronously.
      * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
-    virtual bool fetch_filament_info(std::string dev_id) { return false; }
+    virtual bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) { return false; }
 
     /**
      * Translate one filament id across the printer boundary.
@@ -300,6 +352,21 @@ public:
      */
     virtual std::string to_orca_filament_id(const std::string& printer_filament_id) const { return printer_filament_id; }
     virtual std::string from_orca_filament_id(const std::string& orca_filament_id) const { return orca_filament_id; }
+
+    /**
+     * Get the current camera stream URL for this agent's active machine.
+     * Only meaningful when get_camera_stream_mode() returns an HTTP or RTSP mode.
+     */
+    virtual std::string get_camera_url() const { return {}; }
+
+    // Optional native camera signaling. Plugin agents retain the default
+    // nullptr until a plugin-facing WebRTC contract is defined.
+    virtual std::unique_ptr<ICameraSignalingChannel>
+    create_camera_signaling_channel(const std::string& dev_id)
+    {
+        (void) dev_id;
+        return nullptr;
+    }
 };
 
 } // namespace Slic3r

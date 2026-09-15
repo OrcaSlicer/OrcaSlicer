@@ -59,6 +59,21 @@ public:
     /*printer*/
     // info
     static std::map<std::string, std::string> get_all_model_id_with_name();
+    // A printer agent may not know the physical model. Keep that case optional so
+    // model compatibility checks do not turn missing identity into a hard error.
+    static bool is_optional_printer_model_id(const std::string& model_id)
+    {
+        if (model_id.empty())
+            return true;
+        if (model_id.size() != 9)
+            return false;
+
+        static constexpr char generic_model_id[] = "orcasonar";
+        return std::equal(model_id.begin(), model_id.end(), generic_model_id,
+                          [](char lhs, char rhs) {
+                              return static_cast<char>(std::tolower(static_cast<unsigned char>(lhs))) == rhs;
+                          });
+    }
     static std::string get_printer_type(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "printer_type"); }
     static std::string get_printer_display_name(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "display_name"); }
     static std::string get_printer_series_str(std::string type_str) { return get_value_from_config<std::string>(type_str, "printer_series"); }

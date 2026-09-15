@@ -3,6 +3,7 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "DeviceCore/DevConfigUtil.h"
 
 namespace Slic3r {
 namespace GUI {
@@ -113,6 +114,11 @@ bool DeviceItem::is_blocking_printing(MachineObject* obj_)
 
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
+    if (DevPrinterConfigUtil::is_optional_printer_model_id(source_model) ||
+        DevPrinterConfigUtil::is_optional_printer_model_id(target_model)) {
+        return false;
+    }
 
     if (source_model != target_model) {
         std::vector<std::string> compatible_machine = obj_->get_compatible_machine();

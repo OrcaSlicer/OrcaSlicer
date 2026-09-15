@@ -389,6 +389,13 @@ if(NOT OPENSSL_FOUND)
     set(OPENSSL_PKG dep_OpenSSL)
 endif()
 
+find_package(LibDataChannel QUIET)
+set(DATACHANNEL_PKG "")
+if (NOT LibDataChannel_FOUND)
+    include(DataChannel/DataChannel.cmake)
+    set(DATACHANNEL_PKG dep_DataChannel)
+endif()
+
 # we don't want to load a "wrong" openssl when loading curl
 # so, just don't even bother
 # ...i think this is how it works? change if wrong
@@ -461,6 +468,7 @@ set(_dep_list
     dep_wxInspector
     dep_FFMPEG
     dep_Assimp
+    ${DATACHANNEL_PKG}
     )
 
 if (MSVC)

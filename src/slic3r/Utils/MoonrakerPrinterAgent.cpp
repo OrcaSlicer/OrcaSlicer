@@ -578,7 +578,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 }
 
-bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
+bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;

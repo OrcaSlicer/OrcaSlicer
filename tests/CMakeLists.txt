@@ -57,18 +57,28 @@ function(orcaslicer_copy_test_dlls)
         # into it). Copy them next to the executable and give it an $ORIGIN
         # rpath so the loader finds them when the tests run on the CI unit-test
         # runner, which only receives this build/tests tree.
-        get_target_property(_linked_libs ${_TEST_NAME}_tests LINK_LIBRARIES)
+        #
+        # Optional first arg: the target to patch, for directories that define
+        # more than one test executable. Defaults to ${_TEST_NAME}_tests so
+        # existing single-executable callers don't need to pass it.
+        if (ARGC GREATER 0)
+            set(_target ${ARGV0})
+        else()
+            set(_target ${_TEST_NAME}_tests)
+        endif()
+
+        get_target_property(_linked_libs ${_target} LINK_LIBRARIES)
         if (NOT "libslic3r_gui" IN_LIST _linked_libs)
             return()
         endif()
 
-        set_property(TARGET ${_TEST_NAME}_tests PROPERTY BUILD_RPATH "$ORIGIN")
+        set_property(TARGET ${_target} PROPERTY BUILD_RPATH "$ORIGIN")
         set(_configs ${CMAKE_CONFIGURATION_TYPES})
         if (NOT _configs)
             set(_configs "${CMAKE_BUILD_TYPE}")
         endif()
         foreach(_cfg IN LISTS _configs)
-            orcaslicer_copy_sos(${_TEST_NAME}_tests "${_cfg}" "" _unused_sos)
+            orcaslicer_copy_sos(${_target} "${_cfg}" "" _unused_sos)
         endforeach()
     endif()
 endfunction()
@@ -76,6 +86,40 @@ endfunction()
 # Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag.
 function(orcaslicer_discover_tests TARGET)
     catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS)
+endfunction()
+
+# Stages a private Python runtime beside TARGET's output and (on macOS) links
+# in the matching rpath, so an embedded pybind11 interpreter in TARGET can find
+# libpython/the stdlib at runtime without depending on the build machine's
+# Python install. Apply this to every test target that embeds an interpreter -
+# duplicating the WIN32/APPLE blocks by hand lets them drift out of sync.
+function(orcaslicer_stage_test_python_runtime TARGET)
+    if (WIN32)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_PREFIX_PATH}/libpython/python${_bundled_python_abi}.dll"
+                "${CMAKE_PREFIX_PATH}/libpython/vcruntime140.dll"
+                "${CMAKE_PREFIX_PATH}/libpython/vcruntime140_1.dll"
+                "$<TARGET_FILE_DIR:${TARGET}>"
+            COMMENT "Copying Python runtime for ${TARGET}"
+            VERBATIM
+        )
+    elseif (APPLE)
+        target_link_options(${TARGET} PRIVATE
+            "LINKER:-rpath,@executable_path/python/lib")
+
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -rf
+                "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_PREFIX_PATH}/libpython"
+                "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMENT "Copying Python runtime for ${TARGET}"
+            VERBATIM
+        )
+    endif()
 endfunction()
 
 add_subdirectory(libnest2d)
