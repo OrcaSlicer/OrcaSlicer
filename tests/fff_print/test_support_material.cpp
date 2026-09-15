@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <map>
+#include <mutex>
 #include <set>
 #include <vector>
 
@@ -126,6 +127,49 @@ TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
         { "enforce_support_layers", 100 }
     });
     REQUIRE(enforced.objects().front()->support_layers().size() > 0);
+}
+
+// Support-needed statuses raised while slicing support_capital() with support off. The CLI lists these
+// in result.json and fails on them under --strict. Collected under a lock: generate_support_material()
+// runs on TBB workers.
+static std::vector<PrintBase::SlicingStatus> support_needed_statuses(bool no_check)
+{
+    Slic3r::Print print;
+    Slic3r::Model model;
+    Slic3r::Test::init_print({ support_capital() }, print, model, {
+        { "enable_support",         0 },
+        { "enforce_support_layers", 0 }
+    });
+    print.set_no_check_flag(no_check);
+
+    std::mutex mutex;
+    std::vector<PrintBase::SlicingStatus> statuses;
+    print.set_status_callback([&mutex, &statuses](const PrintBase::SlicingStatus &status) {
+        if (status.message_type != PrintStateBase::SlicingNeedSupportOn)
+            return;
+        std::lock_guard<std::mutex> lock(mutex);
+        statuses.push_back(status);
+    });
+    print.process();
+    return statuses;
+}
+
+TEST_CASE("An overhang sliced with support off reports that support is needed", "[SupportMaterial]")
+{
+    // The 40mm cap reaches ~22mm past its 8mm stem, beyond the 6mm cantilever limit of
+    // PrintObject::is_support_necessary().
+    const std::vector<PrintBase::SlicingStatus> statuses = support_needed_statuses(false);
+    REQUIRE(! statuses.empty());
+    for (const PrintBase::SlicingStatus &status : statuses) {
+        // The CLI only considers step warnings (warning_step != -1), and --strict only NON_CRITICAL ones.
+        CHECK(status.warning_level == PrintStateBase::WarningLevel::NON_CRITICAL);
+        CHECK(status.warning_step != -1);
+    }
+}
+
+TEST_CASE("The no-check flag skips the support-needed check", "[SupportMaterial]")
+{
+    CHECK(support_needed_statuses(true).empty());
 }
 
 SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")

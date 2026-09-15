@@ -189,6 +189,9 @@ typedef struct _sliced_info {
     int    wall_loops{0};
     std::vector<std::string> upward_machines;
     std::vector<std::string> downward_machines;
+    // Structured slicing warnings for result.json, and whether --strict was on.
+    nlohmann::json      warnings = nlohmann::json::array();
+    bool                strict_mode {false};
 }sliced_info_t;
 std::vector<PrintBase::SlicingStatus> g_slicing_warnings;
 
@@ -424,6 +427,21 @@ static PrinterTechnology get_printer_technology(const DynamicConfig &config)
     return(ret);}
 #endif
 
+// Records a structured slicing warning so a CI or scripted consumer can branch on
+// a stable `class` string instead of matching stderr. Warnings are kept on the
+// run's sliced_info and emitted as the top-level "warnings" array of result.json;
+// a non-empty array does not by itself mean the run failed. Under --strict a
+// NON_CRITICAL warning additionally ends the run non-zero.
+//
+// result.json is written on Linux only (see the guard in record_exit_reson), so
+// neither "warnings" nor "strict_mode" reaches Windows or macOS.
+static void cli_record_warning(sliced_info_t &sliced_info, const std::string &cls,
+                               nlohmann::json details = nlohmann::json::object())
+{
+    details["class"] = cls;
+    sliced_info.warnings.push_back(std::move(details));
+}
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -461,6 +479,9 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
         }
         for (auto& iter: key_values)
             j[iter.first] = iter.second;
+
+        j["warnings"]    = sliced_info.warnings;
+        j["strict_mode"] = sliced_info.strict_mode;
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
@@ -1381,6 +1402,16 @@ int CLI::run(int argc, char **argv)
     bool   need_skip      = (skip_objects.size() > 0)?true:false;
     long long global_begin_time = 0, global_current_time;
     sliced_info_t sliced_info;
+    // Read up front so result.json reports it for early failures too.
+    sliced_info.strict_mode = m_config.opt_bool("strict");
+    // --no-check skips the check behind the only NON_CRITICAL warning --strict acts on
+    // (support needed but disabled), from the point it appears among the actions. The pair
+    // would make --strict a no-op or depend on argument order, so refuse it.
+    if (sliced_info.strict_mode && m_config.opt_bool("no_check")) {
+        boost::nowide::cerr << "--strict cannot be combined with --no-check" << std::endl;
+        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+        flush_and_exit(CLI_INVALID_PARAMS);
+    }
     std::map<std::string, std::string> record_key_values;
 
     ConfigOptionBool* downward_check_option = m_config.option<ConfigOptionBool>("downward_check");
@@ -6009,6 +6040,8 @@ int CLI::run(int argc, char **argv)
             export_3mf_file = m_config.opt_string(opt_key);
         }else if(opt_key=="no_check"){
             no_check = m_config.opt_bool(opt_key);
+        }else if(opt_key=="strict"){
+            //already read into sliced_info at the start of run()
         //} else if (opt_key == "export_gcode" || opt_key == "export_sla" || opt_key == "slice") {
         } else if (opt_key == "normative_check") {
             //already processed before
@@ -6717,6 +6750,15 @@ int CLI::run(int argc, char **argv)
 
                                                 if (status.warning_level == PrintStateBase::WarningLevel::NON_CRITICAL) {
                                                     BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": found NON_CRITICAL slicing warnings: "<<status.text <<std::endl;
+                                                    // Always record for AI/CI consumers; under --strict, elevate to a
+                                                    // non-zero exit so scripted pipelines don't ship a "warning OK" slice.
+                                                    cli_record_warning(sliced_info, "slicing_warning_non_critical",
+                                                                       nlohmann::json{{"plate_id", index+1}, {"text", status.text}});
+                                                    if (sliced_info.strict_mode) {
+                                                        sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                                        record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                                        flush_and_exit(CLI_SLICING_ERROR);
+                                                    }
                                                 }
                                                 else {
                                                     BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: found slicing warnings: %2%, no_check=%3%")%(index+1) %status.text %no_check;

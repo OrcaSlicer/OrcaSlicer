@@ -20,9 +20,9 @@ cmake --build . --config %build_type% --target ALL_BUILD -- -m
 Catch2 framework. Tests in `tests/`; see [tests/AGENTS.md](tests/AGENTS.md) for where a new test belongs and the conventions to follow.
 
 ```bash
-cd build && ctest --output-on-failure           # all tests
-ctest --test-dir ./tests/libslic3r              # individual suite
-ctest --test-dir ./tests/fff_print
+cd build && ctest -C Release --output-on-failure    # all tests
+ctest --test-dir ./tests/libslic3r -C Release       # individual suite
+ctest --test-dir ./tests/fff_print -C Release
 ```
 
 ## Documentation
