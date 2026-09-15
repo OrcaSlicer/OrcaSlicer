@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
-"PO-Revision-Date: 2026-06-19 13:40+0700\n"
+"POT-Creation-Date: 2026-09-13 21:36+0700\n"
+"PO-Revision-Date: 2026-09-13 21:37+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
 "Language: th\n"
@@ -2456,13 +2456,6 @@ msgstr "มีอัปเดตพร้อมใช้งาน เปิด�
 msgid "%s has been removed."
 msgstr "ลบ %s แล้ว"
 
-
-msgid "Select the language"
-msgstr "เลือกภาษา"
-
-msgid "Language"
-msgstr "ภาษา"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -4583,6 +4576,14 @@ msgstr ""
 "ข้อความแสดงข้อผิดพลาด: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"การคัดลอก G-code ชั่วคราวไปยัง G-code ผลลัพธ์ล้มเหลว\n"
+"ข้อความแสดงข้อผิดพลาด: %1%"
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว อาจมีปัญหากับอุปกรณ์เป้าหมาย โปรดลองส่งออกอีกครั้งหรือใช้อุปกรณ์อื่น G-code เอาต์พุตที่เสียหายอยู่ที่ %1%.tmp"
 
@@ -5318,10 +5319,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "ค่า %s อยู่นอกช่วง ช่วงที่ถูกต้องคือตั้งแต่ %d ถึง %d"
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"มันคือ %s%% หรือ %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "มันคือ %s%% หรือ %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5348,20 +5350,16 @@ msgid "System agents"
 msgstr "เอเจนต์ระบบ"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "ไม่ได้เลือกปลั๊กอิน"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "เพิ่มปลั๊กอิน"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "เลือกปลั๊กอิน"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "ลบปลั๊กอิน"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "ไม่ได้เลือกปลั๊กอิน"
 
 # AI Translated
 msgid "Configure"
@@ -5986,9 +5984,10 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, boost-format
+# AI Translated
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
+msgstr "พบความขัดแย้งของเส้นทาง G-code ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
 msgid "An object is laid over the plate boundaries."
 msgstr "มีวัตถุวางอยู่เหนือขอบเขตของแผ่น"
@@ -6299,10 +6298,10 @@ msgid "Save current project as"
 msgstr "บันทึกโครงการปัจจุบันเป็น"
 
 msgid "Publish 3MF"
-msgstr ""
+msgstr "เผยแพร่ 3MF"
 
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "ส่งออกไฟล์ 3MF โดยฝังการตั้งค่าที่เลือกไว้"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7558,6 +7557,12 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "ล่าง"
 
+msgid "This setting does not specify a plugin capability type."
+msgstr "การตั้งค่านี้ไม่ได้ระบุประเภทความสามารถของปลั๊กอิน"
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "การตั้งค่านี้ระบุประเภทความสามารถของปลั๊กอินที่ไม่รู้จัก: "
+
 # AI Translated
 msgid "Plugin Selection"
 msgstr "การเลือกปลั๊กอิน"
@@ -8119,10 +8124,10 @@ msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "การตั้งค่าที่เผยแพร่บางส่วนไม่สามารถนำไปใช้ได้:"
 
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "ช่องเส้นพลาสติกบางช่องมีการเปลี่ยนแปลง:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
@@ -8532,12 +8537,14 @@ msgid "The file %s has been sent to the printer's storage space and can be viewe
 msgstr "ไฟล์ %s ถูกส่งไปยังพื้นที่เก็บข้อมูลของเครื่องพิมพ์แล้ว และสามารถดูได้บนเครื่องพิมพ์"
 
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "เผยแพร่ไฟล์ 3MF เป็น:"
 
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"ไม่สามารถส่งออกไฟล์ 3MF ที่เผยแพร่ได้\n"
+"โปรดตรวจสอบว่ามีโฟลเดอร์นี้ออนไลน์อยู่หรือไม่ หรือมีโปรแกรมอื่นเปิดไฟล์นี้อยู่หรือไม่"
 
 msgid "Publish"
 msgstr "เผยแพร่"
@@ -8752,7 +8759,6 @@ msgstr "ต้องการดำเนินการต่อหรือไ
 msgid "Language selection"
 msgstr "การเลือกภาษา"
 
-
 msgid "Asia-Pacific"
 msgstr "เอเชียแปซิฟิก"
 
@@ -8856,6 +8862,9 @@ msgstr "เส้นทางอินสแตนซ์ปัจจุบัน
 
 msgid "General"
 msgstr "ทั่วไป"
+
+msgid "Language"
+msgstr "ภาษา"
 
 msgid "Metric"
 msgstr "เมตริก"
@@ -9295,9 +9304,6 @@ msgstr "เมื่อเลื่อนแถบเลเยอร์ในต
 msgid "Dimmed layer brightness"
 msgstr "ความสว่างของเลเยอร์ที่หรี่"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9698,62 +9704,65 @@ msgid "Jump to webpage"
 msgstr "ข้ามไปที่หน้าเว็บ"
 
 msgid "Material"
-msgstr ""
+msgstr "วัสดุ"
 
 msgid "Mixed filament"
-msgstr ""
+msgstr "เส้นพลาสติกผสม"
 
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "เส้นพลาสติกผสมบางส่วนขึ้นอยู่กับเส้นพลาสติกที่จะไม่ได้รับการเผยแพร่:"
 
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "เส้นพลาสติก %d (ผสม)"
 
 msgid "needs"
-msgstr ""
+msgstr "ต้องการ"
 
 msgid "not enabled"
-msgstr ""
+msgstr "ไม่ได้เปิดใช้งาน"
 
 msgid "material not published"
-msgstr ""
+msgstr "วัสดุไม่ได้รับการเผยแพร่"
 
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เลือก \"เปิดใช้\" สำหรับเส้นพลาสติกทุกเส้นที่เป็นส่วนประกอบ แล้วเลือก \"เผยแพร่ทั้งหมด (Full Publish)\" หรือทำเครื่องหมายที่ข้อกำหนด \"ชนิด\" ของแต่ละเส้น"
 
 msgid "Publish anyway"
-msgstr ""
+msgstr "เผยแพร่ต่อไป"
 
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "เผยแพร่ 3MF..."
 
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "เลือกการตั้งค่าที่จะเผยแพร่ในไฟล์ 3MF"
 
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "Wiki การเผยแพร่ 3MF"
 
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "วิดีโอแนะนำการเผยแพร่ 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "เส้นพลาสติกผสม - จะได้รับการเผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้\" ด้านบน"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "เผยแพร่เส้นพลาสติกผสมนี้ พร้อมเลือก \"เปิดใช้\" และ \"เผยแพร่ทั้งหมด (Full Publish)\" ให้เส้นพลาสติกที่เป็นส่วนประกอบ"
 
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "เผยแพร่ช่องเส้นพลาสติกนี้ในไฟล์ 3MF"
 
 msgid "Full Publish"
-msgstr ""
+msgstr "เผยแพร่ทั้งหมด (Full Publish)"
 
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "ฝังการตั้งค่าเส้นพลาสติกทั้งหมดของช่องนี้ลงในไฟล์ 3MF"
 
 msgid "Filter non-selected"
-msgstr ""
+msgstr "กรองรายการที่ไม่ได้เลือก"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9771,6 +9780,9 @@ msgstr "คัดลอกค่าที่สืบทอดมาจากพ
 
 msgid "Detach from parent"
 msgstr "แยกออกจากพรีเซ็ตแม่"
+
+msgid "Save without parent"
+msgstr "บันทึกโดยไม่มีพรีเซ็ตแม่"
 
 # AI Translated
 msgid "Unique preset"
@@ -12096,14 +12108,20 @@ msgstr "ยกเลิกการซ่อมแล้ว"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "การคัดลอกไฟล์ %1% ถึง %2% ล้มเหลว: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "โปรดตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
+msgid "Downloading new vendor profile(s): "
+msgstr "กำลังดาวน์โหลดโปรไฟล์ผู้ขายใหม่: "
 
 msgid "Configuration package: "
 msgstr "แพคเกจการกำหนดค่า:"
 
 msgid " updated to "
 msgstr "อัปเดตเป็น"
+
+msgid "Failed to download vendor profile(s): "
+msgstr "ดาวน์โหลดโปรไฟล์ผู้ขายล้มเหลว: "
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "โปรดตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
 
 msgid "Open G-code file:"
 msgstr "เปิดไฟล์ G-code:"
@@ -13670,6 +13688,10 @@ msgstr "จัดแนวเป็นเส้นตรง"
 msgid "Concentric"
 msgstr "ศูนย์กลาง"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "เกลียวร่นเข้า (Spiral Inset)"
+
 msgid "Hilbert Curve"
 msgstr "ฮิลเบิร์ต เคิร์ฟ"
 
@@ -13761,11 +13783,11 @@ msgstr "ลำดับการเติมพื้นผิวด้านบ
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
 "ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
 "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
@@ -13775,11 +13797,11 @@ msgstr "ลำดับการเติมพื้นผิวด้านล
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้รูปแบบที่อิงจุดศูนย์กลาง (ศูนย์กลาง, เกลียวร่นเข้า (Spiral Inset), คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
 "เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
 "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
@@ -20962,13 +20984,13 @@ msgid "Skipping objects."
 msgstr "ข้ามวัตถุ"
 
 msgid "Material Ratio"
-msgstr ""
+msgstr "อัตราส่วนวัสดุ"
 
 msgid "Model Height"
-msgstr ""
+msgstr "ความสูงโมเดล"
 
 msgid "Ratio"
-msgstr ""
+msgstr "อัตราส่วน"
 
 msgid "Select Filament"
 msgstr "เลือกเส้นพลาสติก"
@@ -21675,6 +21697,33 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Select the language"
+#~ msgstr "เลือกภาษา"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "เลือกปลั๊กอิน"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
