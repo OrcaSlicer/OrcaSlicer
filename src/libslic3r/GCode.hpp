@@ -10,6 +10,7 @@
 #include "PrintConfig.hpp"
 #include "GCode/AvoidCrossingPerimeters.hpp"
 #include "GCode/CoolingBuffer.hpp"
+#include "GCode/ExclusionVolumeTravelAvoidance.hpp"
 #include "GCode/FanMover.hpp"
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
 #include "GCode/SpiralVase.hpp"
@@ -369,7 +370,8 @@ private:
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
         size_t instance_id,
-        bool first_layer);
+        bool first_layer,
+        unsigned int extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -413,8 +415,16 @@ private:
     size_t get_extruder_id(unsigned int filament_id) const;
     void   update_placeholder_parser_with_variant_params();
 
-    void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
-    void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
+    void            set_last_pos(const Point &pos) {
+        m_last_pos = Point3(pos, 0);
+        m_last_pos_defined = true;
+        m_pending_start_gcode_position.reset();
+    }
+    void            set_last_pos(const Point3 &pos) {
+        m_last_pos = pos;
+        m_last_pos_defined = true;
+        m_pending_start_gcode_position.reset();
+    }
     bool            last_pos_defined() const { return m_last_pos_defined; }
     void            set_extruders(const std::vector<unsigned int> &extruder_ids);
     std::string     preamble();
@@ -622,6 +632,7 @@ private:
     OozePrevention                      m_ooze_prevention;
     Wipe                                m_wipe;
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
+    ExclusionVolumeTravelAvoidance      m_exclusion_volume_travel_avoidance;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
     TimelapsePosPicker                  m_timelapse_pos_picker;
 
@@ -705,6 +716,19 @@ private:
     Point3                              m_last_pos;
     bool                                m_last_pos_defined;
 
+    struct ToolchangePositionState
+    {
+        int   physical_extruder_id{-1};
+        Vec2d emitted_xy{Vec2d::Zero()};
+    };
+
+    // Capture and restore the actual command-space position around a physical
+    // nozzle change. Model-space m_last_pos is tied to the active nozzle offset,
+    // while the machine position itself does not change when Tx is emitted.
+    std::optional<ToolchangePositionState> capture_toolchange_position();
+    void synchronize_toolchange_position(const ToolchangePositionState &before,
+                                         const std::string             &emitted_gcode);
+
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
 
@@ -739,6 +763,10 @@ private:
 
     // Processor
     GCodeProcessor m_processor;
+    // Command-space endpoint after startup G-code. The processor sees direct
+    // file writes synchronously, while the generator has not established its
+    // first model-space point yet.
+    std::optional<GCodeProcessor::PositionState> m_pending_start_gcode_position;
 
     //some post-processing on the file, with their data class
     std::unique_ptr<FanMover> m_fan_mover;

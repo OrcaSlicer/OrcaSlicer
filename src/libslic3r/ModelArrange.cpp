@@ -180,8 +180,11 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
         ap.has_tree_support = true;
     }
 
-    auto size = obj->instance_convex_hull_bounding_box(instance).size();
-    ap.height = size.z();
+    const BoundingBoxf3 bbox = obj->instance_convex_hull_bounding_box(instance);
+    ap.height = bbox.size().z();
+    ap.z_min = bbox.min.z();
+    ap.z_max = bbox.max.z();
+    ap.has_z_range = bbox.defined;
     ap.name = obj->name;
     return ap;
 }

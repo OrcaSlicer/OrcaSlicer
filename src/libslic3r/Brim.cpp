@@ -1,5 +1,6 @@
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
+#include "ExclusionVolumeGeometry.hpp"
 #include "Layer.hpp"
 #include "Print.hpp"
 #include "ShortestPath.hpp"
@@ -7,9 +8,12 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
+#include "Support/SupportCommon.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <numeric>
+#include <optional>
 #include <tbb/parallel_for.h>
 
 #include <boost/log/trivial.hpp>
@@ -23,6 +27,20 @@
 #endif
 
 namespace Slic3r {
+
+static coord_t brim_exclusion_clearance(const Flow &flow)
+{
+    const coord_t width_spacing_delta = std::max<coord_t>(0, flow.scaled_width() - flow.scaled_spacing());
+    return (width_spacing_delta + 1) / 2 + coord_t(SCALED_EPSILON);
+}
+
+static bool combine_object_brims(const Print &print)
+{
+    const bool has_per_object_skirt_or_shield = print.config().skirt_type == stPerObject &&
+                                                 (print.has_skirt() || print.has_infinite_skirt());
+    return print.config().combine_brims.value && !has_per_object_skirt_or_shield &&
+           print.config().print_sequence != PrintSequence::ByObject;
+}
 
 static void append_and_translate(ExPolygons &dst, const ExPolygons &src, const PrintInstance &instance) {
     size_t dst_idx = dst.size();
@@ -419,6 +437,10 @@ static ExPolygons outer_inner_brim_area(const Print& print,
 {
     unsigned int support_material_extruder = printExtruders.front() + 1;
     Flow flow = print.brim_flow();
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_regions_by_extruder =
+        get_bed_excluded_regions_by_extruder(print.config());
+    const double first_layer_top_z = std::max(0.0, print.skirt_first_layer_height());
+    const coord_t exclusion_clearance = brim_exclusion_clearance(flow);
 
     ExPolygons brim_area;
     ExPolygons no_brim_area;
@@ -617,8 +639,6 @@ static ExPolygons outer_inner_brim_area(const Print& print,
     if (extruder_unprintable_area.empty()) {
         extruder_unprintable_area.resize(extruder_nums, Polygons{Model::getBedPolygon()});
     }
-    std::vector<int> filament_map = print.get_filament_maps();
-
     if (print.has_wipe_tower() && !print.get_fake_wipe_tower().outer_wall.empty()) {
         ExPolygons expolyFromLines{};
         for (auto polyline : print.get_fake_wipe_tower().outer_wall.begin()->second) {
@@ -634,22 +654,36 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         auto iter = std::find_if(objPrintVec.begin(), objPrintVec.end(), [object](const std::pair<ObjectID, unsigned int>& item) {
             return item.first == object->id();
         });
+        std::vector<size_t> object_physical_extruders;
 
-        if (iter != objPrintVec.end()) {
-            int extruder_id = filament_map[iter->second - 1] - 1;
-            auto bedPoly = extruder_unprintable_area[extruder_id];
-            auto bedExPoly   = diff_ex((offset(bedPoly, scale_(30.), jtRound, SCALED_RESOLUTION)), {bedPoly});
-            if (!bedExPoly.empty()) {
-                extruder_no_brim_area.push_back(bedExPoly.front());
+        if (iter != objPrintVec.end() && iter->second > 0) {
+            object_physical_extruders = bed_exclusion_physical_extruders(
+                print, { iter->second - 1 }, exclusion_regions_by_extruder.size(), 0);
+            for (const size_t extruder_id : object_physical_extruders) {
+                if (extruder_id >= extruder_unprintable_area.size())
+                    continue;
+                const Polygons &bed_poly = extruder_unprintable_area[extruder_id];
+                ExPolygons bed_exterior = diff_ex(
+                    offset(bed_poly, scale_(30.), jtRound, SCALED_RESOLUTION), bed_poly);
+                expolygons_append(extruder_no_brim_area, std::move(bed_exterior));
             }
             //extruder_no_brim_area = offset2_ex(extruder_no_brim_area, scaled_flow_width, -scaled_flow_width); // connect scattered small areas to prevent generating very small brims
-
         }
 
-        for (auto& [key, areas] : brimAreaMap)
-            if (key.object_id == object->id())
-                areas = diff_ex(areas, extruder_no_brim_area);
-
+        if (object_physical_extruders.empty()) {
+            object_physical_extruders.resize(exclusion_regions_by_extruder.size());
+            std::iota(object_physical_extruders.begin(), object_physical_extruders.end(), size_t(0));
+        }
+        const ExPolygons exclusions = active_bed_exclusion_footprints(
+            exclusion_regions_by_extruder, object_physical_extruders,
+            0.0, first_layer_top_z, Point(0, 0), exclusion_clearance);
+        for (auto& [key, areas] : brimAreaMap) {
+            if (key.object_id != object->id())
+                continue;
+            areas = diff_ex(areas, extruder_no_brim_area);
+            if (!exclusions.empty())
+                areas = diff_ex(areas, exclusions);
+        }
     }
 
     brim_area.clear();

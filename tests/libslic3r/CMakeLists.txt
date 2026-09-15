@@ -21,6 +21,7 @@ add_executable(${_TEST_NAME}_tests
     test_vendor_cache.cpp
     test_preset_options.cpp
     test_elephant_foot_compensation.cpp
+    test_exclusion_volumes.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp

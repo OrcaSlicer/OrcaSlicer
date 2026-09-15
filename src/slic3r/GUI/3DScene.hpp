@@ -60,7 +60,7 @@ enum ModelInstanceEPrintVolumeState : unsigned char;
 using ModelObjectPtrs = std::vector<ModelObject*>;
 
 struct ObjectFilamentInfo {
-    ModelObject* object;
+    ModelObject* object { nullptr };
     std::map<int, int> manual_filaments; //manual mode: filament id -> extruder id can not be printed
 
     std::vector<int> auto_filaments; //auto mode: filaments in all extruder's outside area
