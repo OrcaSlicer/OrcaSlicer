@@ -405,6 +405,7 @@ namespace Slic3r
         auto           it = localMachineList.find(machine.dev_id);
         if (it != localMachineList.end()) {
             obj = it->second;
+            obj->set_dev_ip(machine.dev_ip);
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
