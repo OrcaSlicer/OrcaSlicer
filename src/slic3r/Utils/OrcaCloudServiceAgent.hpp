@@ -4,7 +4,12 @@
 #include "CloudProvider.hpp"
 #include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
-#include "bambu_networking.hpp"
+
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/websocket.hpp>
 #include <cstdlib>
 #include "libslic3r/ProjectTask.hpp"
 #include <string>
@@ -13,12 +18,17 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <condition_variable>
+#include <cstdint>
+#include <set>
 #include <memory>
 #include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+
+#include "OrcaMqttConnection.hpp"
 
 class wxSecretStore;
 
@@ -212,6 +222,42 @@ public:
     int del_subscribe(std::vector<std::string> dev_list) override;
     void enable_multi_machine(bool enable) override;
 
+    // The fleet MQTT socket carries both directions: inbound reports from
+    // device/<id>/report and commands PUBLISHed to device/<id>/request on this
+    // socket. OrcaPrinterAgent registers its message callback here to receive the
+    // inbound half; pass an empty fn to clear it before the agent is destroyed.
+    int set_printer_status_callback(OnMessageFn fn);
+
+    // Send a Bambu-dialect command to one printer via the cloud relay's REST
+    // endpoint (POST /api/v1/printers/<id>/commands). Synchronous - wraps http_post,
+    // so it carries the standard apikey + bearer headers and token refresh. Callers
+    // that need non-blocking behaviour run it on their own thread.
+    int send_printer_command(const std::string& dev_id, const std::string& body);
+
+    // Upload sliced G-code to the cloud printer's print job storage: requests a
+    // short-lived presigned URL (POST print-jobs/uploads), then PUTs the file
+    // straight to R2 with that URL. Does not start the print or wait for
+    // OrcaSonar to download it - see OrcaPrinterAgent::start_print/start_sdcard_print
+    // for the MQTT hand-off that follows. *job_id receives the id to correlate
+    // with that hand-off; update_fn receives upload progress via Http's on_progress.
+    int upload_gcode_via_cloud(const std::string& dev_id,
+                               const std::string& local_gcode_path,
+                               std::string* job_id,
+                               OnUpdateStatusFn update_fn,
+                               WasCancelledFn cancel_fn);
+
+    // Finalize a presigned print-job upload (step 3 of 3): POST
+    // print-jobs/<job_id>/start. The gateway HEAD-verifies the object landed in
+    // R2, then relays a print.project_file command (download URL + filename +
+    // start) to the printer over the gateway's OWN cloud relay connection to
+    // OrcaSonar - NOT this agent's MQTT session. See
+    // CLOUD_PRINT_JOB_MQTT_DESIGN.md for the MQTT-native alternative this
+    // stands in for until the gap documented there is closed.
+    int start_cloud_print_job(const std::string& dev_id,
+                              const std::string& job_id,
+                              const std::string& filename,
+                              bool start = true);
+
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Settings Synchronization
     // ========================================================================
@@ -352,7 +398,29 @@ public:
 
     static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
+    OrcaMqttConnection* get_mqtt_connection() noexcept {
+        return mqtt_connection.get();
+    }
+
+    const OrcaMqttConnection* get_mqtt_connection() const noexcept {
+        return mqtt_connection.get();
+    }
+
+    // Account-scoped cloud socket: wss://<api_base_url>/api/v1/printers/mqtt.
+    // configure_ blocks for the duration of the initial connect attempt, so callers
+    // drive it off the UI thread; teardown_ is synchronous. The dev_id argument is
+    // retained for source compatibility with the printer-agent lifecycle; it does
+    // not participate in endpoint construction.
+    int         configure_selected_printer_mqtt(const std::string& dev_id,
+                                                OrcaMqttConnection::StateHandler state_handler = {});
+    void        teardown_selected_printer_mqtt();
+    // Test hook: the wss:// URL of the current fleet socket ("" when none).
+    std::string selected_printer_mqtt_url() const;
+
 private:
+    // Fans one inbound fleet MQTT message out to printer_status_callback.
+    void deliver_cloud_message(const std::string& dev_id, const std::string& payload);
+
     // Sync protocol helpers
     int sync_pull(
         std::function<void(const SyncPullResponse&)> on_success,
@@ -376,7 +444,11 @@ private:
 
     // HTTP request helpers
     int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
-    int http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
+    int http_post(const std::string& path,
+                  const std::string& body,
+                  std::string* response_body,
+                  unsigned int* http_code,
+                  const std::string& content_type = "application/json");
     int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code);
     std::map<std::string, std::string> data_headers();
@@ -434,6 +506,9 @@ private:
                                std::chrono::system_clock::now().time_since_epoch()).count()};
 
     // Member variables - connection state
+    std::unique_ptr<OrcaMqttConnection> mqtt_connection;
+    std::string        m_selected_printer_mqtt_url;   // guarded by m_selected_url_mutex
+    mutable std::mutex m_selected_url_mutex;
     bool is_connected{false};
     bool enable_track{false};
     bool multi_machine_enabled{false};
@@ -447,6 +522,7 @@ private:
     AppOnHttpErrorFn on_http_error_fn;
     GetCountryCodeFn get_country_code_fn;
     QueueOnMainFn queue_on_main_fn;
+    OnMessageFn printer_status_callback;
     mutable std::mutex callback_mutex;
 
     // Thread safety
