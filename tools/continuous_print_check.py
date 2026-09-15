@@ -6,7 +6,7 @@ Parses a G-code file (e.g. OrcaSlicer CLI output) and reports, per layer:
   * layer-boundary travels    -- non-extruding XY moves between the end of a layer and the
                                  first extrusion of the next one,
   * chain breaks              -- consecutive extrusion moves whose end/start do not coincide,
-  * retractions and Z regressions at layer boundaries.
+  * retractions, Z regressions, and non-flat object layers.
 
 A pure zero-travel continuous print has zero travels and zero chain breaks in every object
 layer. Setup moves (initial homing/priming, skirt, wipe tower) before the first extrusion of a
@@ -23,7 +23,8 @@ import re
 import sys
 from dataclasses import dataclass, field
 
-XY_TOL = 0.05  # mm; endpoints closer than this count as coincident
+XY_TOL = 0.001  # mm, matching exported XY precision
+Z_TOL = 0.0001
 
 _WORD_RE = re.compile(r"([A-Za-z])\s*(-?(?:\d+\.?\d*|\.\d+))")
 
@@ -69,58 +70,54 @@ class Layer:
 
 def parse(path: str) -> list[Layer]:
     layers: list[Layer] = [Layer(0)]
-    relative_e = False
-    x = y = e = 0.0
-    z = 0.0
-
+    relative_e = relative_xyz = False
+    x = y = z = e = 0.0
+    role = ""
     with open(path, "r", encoding="utf-8", errors="replace") as handle:
         for raw in handle:
             line = raw.strip()
             if line in ("; CHANGE_LAYER", ";CHANGE_LAYER", ";LAYER_CHANGE", "; LAYER_CHANGE"):
                 layers.append(Layer(len(layers)))
                 continue
-            # Drop trailing comments and tool-change/slicing metadata lines.
-            if not line or line.startswith(";"):
-                continue
-            if line.startswith("M83"):
-                relative_e = True
-                continue
-            if line.startswith("M82"):
-                relative_e = False
-                continue
+            # Roles are modal and can be omitted at a layer boundary.
+            if line.startswith(";TYPE:"):
+                role = line[6:].strip()
+            elif line.startswith("; FEATURE: "):
+                role = line[11:].strip()
             code = line.split(";", 1)[0].strip()
-            if not code.startswith("G0") and not code.startswith("G1"):
+            if not code:
                 continue
+            cmd = code.split()[0]
+            if cmd == "M83": relative_e = True
+            if cmd == "M82": relative_e = False
+            if cmd == "G91": relative_xyz = True
+            if cmd == "G90": relative_xyz = False
             w = _words(code)
-            has_xy = "X" in w or "Y" in w
-            has_z = "Z" in w
-            has_e = "E" in w
-            nx = w.get("X", x)
-            ny = w.get("Y", y)
-            nz = w.get("Z", z)
-            ne = w.get("E", e)
-
-            if has_e:
-                delta_e = ne if relative_e else (ne - e)
-            else:
-                delta_e = 0.0
-
-            if has_e and delta_e < 0 and not has_xy:
-                layers[-1].moves.append(Move("retract", x, y, x, y, nz))
-            elif has_xy and (abs(nx - x) > 1e-9 or abs(ny - y) > 1e-9):
-                if has_e and delta_e > 1e-9:
-                    layers[-1].moves.append(Move("extrude", x, y, nx, ny, nz))
-                else:
-                    layers[-1].moves.append(Move("travel", x, y, nx, ny, nz))
-            elif has_z and not has_xy:
-                layers[-1].moves.append(Move("z", x, y, x, y, nz))
-
-            x, y, e, z = nx, ny, ne, nz
-
+            if cmd == "G92":
+                x, y, z, e = (w.get(k, old) for k, old in zip("XYZE", (x, y, z, e)))
+                continue
+            if cmd not in ("G0", "G1", "G2", "G3"):
+                continue
+            nx, ny, nz = (old + w.get(k, 0) if relative_xyz else w.get(k, old)
+                          for k, old in zip("XYZ", (x, y, z)))
+            ne = w.get("E", 0 if relative_e else e)
+            delta_e = ne if relative_e else ne - e
+            moved_xy = math.hypot(nx-x, ny-y) > 1e-9 or cmd in ("G2", "G3")
+            if layers[-1].index > 0 and role not in ("Custom", "Skirt", "Brim", "Wipe tower"):
+                if moved_xy:
+                    kind = "extrude" if delta_e > 1e-9 else "travel"
+                    layers[-1].moves.append(Move(kind, x, y, nx, ny, nz))
+                elif delta_e < 0:
+                    layers[-1].moves.append(Move("retract", x, y, x, y, nz))
+                elif "Z" in w:
+                    layers[-1].moves.append(Move("z", x, y, x, y, nz))
+            x, y, z = nx, ny, nz
+            if not relative_e:
+                e = ne
     return layers
 
 
-def analyse(path: str, verbose: bool = False) -> int:
+def analyse(path: str, verbose: bool = False, allow_z_ramp: bool = False) -> int:
     layers = parse(path)
     violations = 0
     print(f"file: {path}")
@@ -140,26 +137,10 @@ def analyse(path: str, verbose: bool = False) -> int:
         print("no extrusion moves found")
         return 1
 
-    # The continuous region is the longest run of consecutive layers whose extrusions ramp Z within
-    # the layer (the Z-ramp). Setup/skirt/bottom-solid layers keep a constant Z and are excluded, so
-    # the verdict reflects the zero-travel promise of the continuous region only.
-    ramped = []
-    for layer in layers:
-        zs = [m.z for m in layer.extrusions]
-        ramped.append(bool(zs) and max(zs) - min(zs) > 1e-3)
-    best_start = best_len = cur_start = cur_len = 0
-    for idx, flag in enumerate(ramped):
-        if flag:
-            if cur_len == 0:
-                cur_start = layers[idx].index
-            cur_len += 1
-            if cur_len > best_len:
-                best_start, best_len = cur_start, cur_len
-        else:
-            cur_len = 0
-    region_start = best_start if best_len > 0 else first_layer
-    print(f"continuous region: layers {best_start}..{best_start + best_len - 1} ({best_len} Z-ramped layers)"
-          if best_len > 0 else "continuous region: none (no Z-ramped layer found)")
+    # Every model layer is checked, including solid bottom/top and fallback layers.
+    # A Z-ramp is no longer a reliable way to identify continuous printing.
+    region_start = first_layer
+    print(f"object region: layers {first_layer}..{layers[-1].index}")
 
     clean_layers = 0
     object_layers = 0
@@ -168,6 +149,10 @@ def analyse(path: str, verbose: bool = False) -> int:
             object_layers += 1
             intra = layer.intra_travels()
             breaks = layer.chain_breaks()
+            zs = [m.z for m in layer.extrusions]
+            if not allow_z_ramp and max(zs) - min(zs) > Z_TOL:
+                print(f"  layer {layer.index}: non-flat Z {min(zs):.4f}..{max(zs):.4f}")
+                violations += 1
             if intra or breaks:
                 print(f"  layer {layer.index}: intra-travel={len(intra)} chain-breaks={len(breaks)}")
                 for move in intra[:3]:
@@ -184,25 +169,19 @@ def analyse(path: str, verbose: bool = False) -> int:
     for layer, nxt in zip(layers, layers[1:]):
         if not layer.extrusions or not nxt.extrusions or layer.index < region_start:
             continue
-        # find last move after the final extrusion
-        leading = []
-        for m in nxt.moves:
-            if m.kind == "extrude":
-                break
-            if m.kind == "travel":
-                leading.append(m)
-        # The first extrusion move of the next layer welds from wherever the nozzle stopped; a
-        # leading travel means an actual un-extruded reposition.
-        if leading:
-            start = (nxt.extrusions[0].x0, nxt.extrusions[0].y0)
-            prev_end = (layer.extrusions[-1].x1, layer.extrusions[-1].y1)
-            gap = math.hypot(start[0] - prev_end[0], start[1] - prev_end[1])
-            print(f"  layer boundary {layer.index}->{nxt.index}: {len(leading)} leading travel(s), gap={gap:.3f}mm")
-            violations += len(leading)
+        last_extrusion = max(i for i, m in enumerate(layer.moves) if m.kind == "extrude")
+        first_extrusion = next(i for i, m in enumerate(nxt.moves) if m.kind == "extrude")
+        boundary = layer.moves[last_extrusion+1:] + nxt.moves[:first_extrusion]
+        travels = [m for m in boundary if m.kind == "travel"]
+        a, b = layer.extrusions[-1], nxt.extrusions[0]
+        gap = math.hypot(b.x0-a.x1, b.y0-a.y1)
+        if travels or gap > XY_TOL:
+            print(f"  layer boundary {layer.index}->{nxt.index}: {len(travels)} travel(s), gap={gap:.3f}mm")
+            violations += max(1, len(travels))
 
     retractions = sum(len([m for m in l.moves if m.kind == "retract"]) for l in layers)
 
-    # Z must never move backwards on an extruding move (continuous print ramps Z up along the trace).
+    # Model extrusion Z must never move backwards between or within layers.
     z_regressions = 0
     last_z = None
     for layer in layers:
@@ -221,7 +200,8 @@ def analyse(path: str, verbose: bool = False) -> int:
     if violations:
         print(f"RESULT: FAIL ({violations} violation(s) inside the continuous region)")
         return 1
-    print("RESULT: PASS (continuous region: no intra-layer travel, no chain breaks, Z monotonic)")
+    print("RESULT: PASS (all model layers: zero travel, connected XY, "
+          + ("Z monotonic)" if allow_z_ramp else "fixed layer Z)"))
     return 0
 
 
@@ -230,8 +210,9 @@ def main() -> int:
     parser.add_argument("gcode", help="G-code file to check")
     parser.add_argument("--warn-only", action="store_true", help="always exit 0")
     parser.add_argument("-v", "--verbose", action="store_true", help="print per-layer move counts")
+    parser.add_argument("--allow-z-ramp", action="store_true", help="allow varying Z within layers when auditing historical spiral output")
     args = parser.parse_args()
-    code = analyse(args.gcode, args.verbose)
+    code = analyse(args.gcode, args.verbose, args.allow_z_ramp)
     return 0 if args.warn_only else code
 
 

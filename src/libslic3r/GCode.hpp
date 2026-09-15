@@ -176,10 +176,8 @@ struct LayerResult {
     // Is indicating if this LayerResult should be processed, or it is just inserted artificial LayerResult.
     // It is used for the pressure equalizer because it needs to buffer one layer back.
     bool        nop_layer_result { false };
-    // Is zero-travel continuous print post processing enabled for this layer?
-    bool        continuous_print_enable { false };
 
-    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true, false}; }
+    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true}; }
 };
 
 class GCode {
@@ -622,9 +620,9 @@ private:
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
-    // Zero-travel continuous print post processor (M3). Instantiated only when the corresponding
-    // option is enabled; mutually exclusive with the spiral vase filter.
-    std::unique_ptr<ContinuousPrint>    m_continuous_print;
+    // Plan continuous XY extrusion at fixed layer heights when enabled and structurally valid.
+    // Mutually exclusive with the spiral vase filter.
+    bool                              m_continuous_print = false;
     // End point (XY) of the previously emitted continuous layer, used as the preferred chain start
     // of the next layer (transition-point continuity, design doc 3.3).
     Point                               m_continuous_prev_end;

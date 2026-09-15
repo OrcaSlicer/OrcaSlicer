@@ -3,10 +3,8 @@
 
 #include "../libslic3r.h"
 #include "../ExtrusionEntity.hpp"
-#include "../GCodeReader.hpp"
 #include "../Point.hpp"
 #include "../ShortestPath.hpp"
-#include "SpiralVase.hpp"
 
 #include <memory>
 #include <utility>
@@ -33,7 +31,7 @@ struct ContinuousLayerPlan {
     Point start_point;                 // First point of the chain (XY).
     Point end_point;                   // Last point of the chain (XY). Coincides with start_point when closed.
     bool  is_closed = false;           // True if the chain forms a closed loop (start == end).
-    double total_length = 0;           // Total extrusion length of the chain [mm], for the Z-ramp.
+    double total_length = 0;           // Total extrusion length of the chain [mm].
     std::vector<Point> sampling;       // XY samples along the chain, for the transition-curve / off-body checks.
 };
 
@@ -75,39 +73,6 @@ ContinuousPrintVerdict preflight_layer(
     const Point                         *preferred_start = nullptr,
     double                               junction_epsilon = SCALED_EPSILON,
     double                               max_join_distance = 0.);
-
-// Zero-travel continuous print filter (M2 prototype), generalized from SpiralVase:
-// works on any layer emitted as a single continuous extrusion chain (open or closed),
-// not only on a single perimeter loop. Reuses the same four mechanisms: initial Z-move
-// rewrite, Z-ramp, smooth XY interpolation towards the previous layer, travel/retract
-// filtering. The XY smoothing budget reuses spiral_mode_max_xy_smoothing (design doc 5.5).
-// M3 hooks (not implemented yet): transition-point enforcement between layers and
-// off-body checks of the smoothed transition segments.
-class ContinuousPrint
-{
-public:
-    explicit ContinuousPrint(const PrintConfig &config);
-
-    void enable(bool en) {
-        m_transition_layer = en && ! m_enabled;
-        m_enabled          = en;
-    }
-    void set_max_xy_smoothing(float max) { m_max_xy_smoothing = max; }
-
-    std::string process_layer(const std::string &gcode, bool last_layer);
-
-private:
-    const PrintConfig &m_config;
-    GCodeReader m_reader;
-    float       m_max_xy_smoothing = 0.f;
-
-    bool m_enabled = false;
-    // First continuous-print layer. Layer height has to be ramped up from zero to the target layer height.
-    bool m_transition_layer = false;
-    // Whether to interpolate XY coordinates with the previous layer.
-    bool m_smooth = false;
-    std::vector<SpiralVase::SpiralPoint> *m_previous_layer = nullptr;
-};
 
 } // namespace Slic3r
 

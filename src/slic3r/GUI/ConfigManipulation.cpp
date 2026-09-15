@@ -670,8 +670,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
 
     bool has_spiral_vase         = config->opt_bool("spiral_mode");
-    // Continuous print reuses the Smooth Spiral XY smoothing options.
-    bool has_vase_smoothing      = has_spiral_vase || config->opt_bool("continuous_print_mode");
+    // Spiral interpolation does not apply to fixed-height continuous printing.
+    bool has_vase_smoothing      = has_spiral_vase;
     toggle_line("spiral_mode_smooth", has_vase_smoothing);
     toggle_line("spiral_mode_max_xy_smoothing", has_vase_smoothing && config->opt_bool("spiral_mode_smooth"));
     toggle_line("spiral_starting_flow_ratio", has_spiral_vase);

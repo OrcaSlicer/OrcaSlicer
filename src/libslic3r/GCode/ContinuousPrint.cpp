@@ -862,11 +862,11 @@ bool inset_surface_paths(std::vector<std::unique_ptr<ExtrusionEntity>> &fills, c
     return ! fills.empty();
 }
 
-// Solid layers need a contour route, not the sparse layer's endpoint-distance heuristic.
+// Solid layers and distant layer entrances need a contour route.
 // Start on the wall actually underneath the nozzle, then print successive nested walls.
 // Reserve a local band for an additional inner-wall arc before contracting the surface into it.
-bool build_solid_surface_chain(std::vector<std::unique_ptr<ExtrusionEntity>> input,
-                               const Point *preferred, const Point *preserved_end, bool connect_previous, double epsilon, double max_join,
+bool build_contour_connected_chain(std::vector<std::unique_ptr<ExtrusionEntity>> input,
+                               const Point *preferred, bool connect_previous, bool enter_fill, double epsilon, double max_join,
                                std::vector<std::unique_ptr<ExtrusionEntity>> &out)
 {
     std::vector<std::unique_ptr<ExtrusionEntity>> walls, fills;
@@ -903,7 +903,7 @@ bool build_solid_surface_chain(std::vector<std::unique_ptr<ExtrusionEntity>> inp
     const double wall_distance = distance_to(*walls.front());
     double fill_distance = std::numeric_limits<double>::max();
     for (const auto &fill : fills) fill_distance = std::min(fill_distance, distance_to(*fill));
-    const bool walls_first = preferred == nullptr || wall_distance <= fill_distance;
+    const bool walls_first = ! enter_fill && (preferred == nullptr || wall_distance <= fill_distance);
     if (std::getenv("CP_DEBUG") != nullptr)
         std::cerr << "[CP solid begin] walls=" << walls.size() << " walls_first=" << walls_first << "\n";
 
@@ -972,9 +972,6 @@ bool build_solid_surface_chain(std::vector<std::unique_ptr<ExtrusionEntity>> inp
             if (! emit_wall(i)) return false;
 
     const Polyline extension = contour_section(guide, cursor, entry);
-    Polyline exit_extension;
-    if (walls_first && preserved_end != nullptr)
-        exit_extension = contour_section(guide, fill_order.back()->last_point(), *preserved_end);
     // The existing wall and this extra arc use adjacent bead spacings. The infill centreline
     // must remain at least half of each bead's width away from the new arc centreline.
     double fill_width = 0.;
@@ -982,7 +979,6 @@ bool build_solid_surface_chain(std::vector<std::unique_ptr<ExtrusionEntity>> inp
         fill_width = std::max(fill_width, double(static_cast<const ExtrusionPath*>(fill.get())->width));
     Polylines reserved;
     if (extension.length() > SCALED_EPSILON) reserved.push_back(extension);
-    if (exit_extension.length() > SCALED_EPSILON) reserved.push_back(exit_extension);
     if (! reserved.empty()) {
         const auto band = offset(reserved, scale_(0.5 * (inner.width + fill_width)),
                                  ClipperLib::jtRound, scale_(0.0001), ClipperLib::etOpenRound);
@@ -1042,33 +1038,6 @@ bool build_solid_surface_chain(std::vector<std::unique_ptr<ExtrusionEntity>> inp
     if (! walls_first)
         for (size_t i = walls.size(); i -- > 0; )
             if (! emit_wall(i)) return false;
-    // Retain the established handoff into the next sparse layer. Only this solid layer
-    // closes the distance, along its contour and successive wall spacings, so the sparse
-    // planner receives exactly the same endpoint and keeps its existing toolpath.
-    if (preserved_end != nullptr && cursor != *preserved_end) {
-        if (walls_first) {
-            if (exit_extension.length() > SCALED_EPSILON &&
-                ! emit(std::make_unique<ExtrusionPath>(Polyline3(exit_extension), inner), inner))
-                return false;
-            if (! contour.contains(*preserved_end))
-                for (size_t i = walls.size(); i -- > 0; ) {
-                    const Point p = preserved_end->projection_onto(walls[i]->as_polyline());
-                    if (distance(cursor, p) > max_join) return false;
-                    if (cursor != p && ! emit(make_connector_path(cursor, p, *walls[i]), *walls[i])) return false;
-                    Polygon wall_polygon(walls[i]->as_polyline().points);
-                    if (wall_polygon.contains(*preserved_end)) break;
-                }
-        } else {
-            Polygon outer(walls.front()->as_polyline().points);
-            outer.points.pop_back();
-            const auto tail = contour_section(outer, cursor, *preserved_end);
-            if (tail.length() > SCALED_EPSILON &&
-                ! emit(std::make_unique<ExtrusionPath>(Polyline3(tail), *static_cast<const ExtrusionPath*>(walls.front().get())), *walls.front()))
-                return false;
-        }
-        if (distance(cursor, *preserved_end) > max_join) return false;
-        if (cursor != *preserved_end && ! emit(make_connector_path(cursor, *preserved_end, inner), inner)) return false;
-    }
     if (std::getenv("CP_DEBUG") != nullptr)
         std::cerr << "[CP solid] walls_first=" << walls_first << " arc=" << unscale_(extension.length())
                   << "mm start_gap=" << (preferred ? unscale_(distance(out.front()->first_point(), *preferred)) : 0.) << "mm\n";
@@ -1123,24 +1092,7 @@ ContinuousPrintVerdict preflight_layer(
         std::any_of(working.begin(), working.end(), [](const auto &e) { return e->role() == erExternalPerimeter; });
     std::vector<std::unique_ptr<ExtrusionEntity>> ordered;
     if (solid_surface) {
-        Point preserved_end;
-        const Point *handoff = nullptr;
-        if (layer != nullptr && layer->upper_layer != nullptr) {
-            std::vector<ExtrusionEntity*> next_fills;
-            for (const LayerRegion *region : layer->upper_layer->regions())
-                flatten_extrusion_entities(region->fills.entities, next_fills);
-            if (std::any_of(next_fills.begin(), next_fills.end(), [](const auto *e) { return e->role() == erInternalInfill; })) {
-                PrintConfig legacy_config = cfg;
-                legacy_config.continuous_print_mode.value = false;
-                ContinuousLayerPlan legacy_plan;
-                if (preflight_layer(entities, nullptr, legacy_config, &legacy_plan, preferred_start,
-                                    junction_epsilon, max_join_distance) == ContinuousPrintVerdict::Applicable) {
-                    preserved_end = legacy_plan.end_point;
-                    handoff = &preserved_end;
-                }
-            }
-        }
-        if (! build_solid_surface_chain(std::move(working), preferred_start, handoff, layer != nullptr && layer->id() > 0,
+        if (! build_contour_connected_chain(std::move(working), preferred_start, layer != nullptr && layer->id() > 0, false,
                                        junction_epsilon, max_join_distance, ordered))
             return ContinuousPrintVerdict::Reject;
     } else {
@@ -1160,6 +1112,31 @@ ContinuousPrintVerdict preflight_layer(
             splice_surface_fragments(retry, max_join_distance, junction_epsilon);
             if (! build_chain_with_connectors(std::move(retry), preferred_start, max_join_distance, ordered))
                 return ContinuousPrintVerdict::Reject;
+        }
+    }
+
+    // Join from the actual preceding layer endpoint before emission. The old text filter
+    // dropped this travel and thereby changed the first extrusion into an unplanned chord.
+    // Keep normal sparse ordering intact; only distant entrances need a contour route.
+    if (cfg.continuous_print_mode.value && layer != nullptr && layer->id() > 0 && preferred_start != nullptr &&
+        ordered.front()->first_point() != *preferred_start) {
+        const Point entry = ordered.front()->first_point();
+        if ((entry - *preferred_start).cast<double>().norm() <= max_join_distance) {
+            auto connector = make_connector_path(*preferred_start, entry, *ordered.front());
+            if (! connector) return ContinuousPrintVerdict::Reject;
+            ordered.insert(ordered.begin(), std::move(connector));
+        } else {
+            std::vector<std::unique_ptr<ExtrusionEntity>> entrance_input, entrance_order;
+            for (const auto *entity : leaves) {
+                if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity))
+                    linearize_loop_into(*loop, preferred_start, entrance_input);
+                else
+                    entrance_input.emplace_back(entity->clone());
+            }
+            if (! build_contour_connected_chain(std::move(entrance_input), preferred_start, true,
+                    is_infill(ordered.front()->role()), junction_epsilon, max_join_distance, entrance_order))
+                return ContinuousPrintVerdict::Reject;
+            ordered = std::move(entrance_order);
         }
     }
 
@@ -1201,153 +1178,6 @@ ContinuousPrintVerdict preflight_layer(
 
     *out_plan = std::move(plan);
     return ContinuousPrintVerdict::Applicable;
-}
-
-// -----------------------------------------------------------------------------------------------
-// ContinuousPrint filter (M2 prototype)
-// -----------------------------------------------------------------------------------------------
-
-ContinuousPrint::ContinuousPrint(const PrintConfig &config) : m_config(config)
-{
-    m_reader.z() = (float) m_config.z_offset;
-    m_reader.apply_config(m_config);
-    // Reuse the spiral smoothing switch; the budget is set via set_max_xy_smoothing
-    // from spiral_mode_max_xy_smoothing at the pipeline assembly site (M3).
-    m_smooth = config.spiral_mode_smooth;
-}
-
-// Adapted from SpiralVase::process_layer (GCode/SpiralVase.cpp), generalized from
-// "single closed perimeter loop" to "any single continuous extrusion chain (open or closed)".
-// Kept as a separate implementation because M3 will diverge (open-chain transition-point
-// enforcement, off-body checks); the M2 equivalence test guards behavioral parity on closed loops.
-std::string ContinuousPrint::process_layer(const std::string &gcode, [[maybe_unused]] bool last_layer)
-{
-    /*  Assumptions (same style as SpiralVase):
-        - all layers are processed through it, including those that are not supposed
-          to be transformed, in order to update the reader with the XY positions
-        - each call to this method includes a full layer, with a single Z move
-          at the beginning
-        - each layer is emitted as a single continuous extrusion chain (open or closed),
-          i.e. the emitter (M3) produced no intra-layer travel; any remaining travel lines
-          are filtered out here as a safety net  */
-
-    // If we're not going to modify G-code, just feed it to the reader
-    // in order to update positions.
-    if (! m_enabled) {
-        m_reader.parse_buffer(gcode);
-        return gcode;
-    }
-
-    // Get total XY length for this layer by summing all extrusion moves.
-    float total_layer_length = 0;
-    float layer_height = 0;
-    float z = 0.f;
-
-    {
-        GCodeReader r = m_reader; // clone
-        bool set_z = false;
-        r.parse_buffer(gcode, [&total_layer_length, &layer_height, &z, &set_z]
-            (GCodeReader &reader, const GCodeReader::GCodeLine &line) {
-            if (line.cmd_is("G1")) {
-                if (line.extruding(reader)) {
-                    total_layer_length += line.dist_XY(reader);
-                } else if (line.has(Z)) {
-                    layer_height += line.dist_Z(reader);
-                    if (! set_z) {
-                        z = line.new_Z(reader);
-                        set_z = true;
-                    }
-                }
-            }
-        });
-    }
-
-    // Remove layer height from initial Z.
-    z -= layer_height;
-
-    std::vector<SpiralVase::SpiralPoint> *current_layer  = new std::vector<SpiralVase::SpiralPoint>();
-    std::vector<SpiralVase::SpiralPoint> *previous_layer = m_previous_layer;
-
-    bool smooth = m_smooth;
-    std::string new_gcode;
-    float max_xy_dist_for_smoothing = m_max_xy_smoothing;
-    // Transition tapering works reliably with relative extruder distances only (same as SpiralVase).
-    bool transition_in  = m_transition_layer && m_config.use_relative_e_distances.value;
-    // A surface chain need not be closed. Replaying it for the vase finishing taper
-    // would jump back to its start and print the surface twice. Stop at its endpoint.
-
-    float starting_flowrate  = float(m_config.spiral_starting_flow_ratio.value);
-    const float min_segment_length = std::max(float(EPSILON), 2 * float(m_config.resolution.value));
-
-    float len = 0.f;
-    SpiralVase::SpiralPoint last_point = previous_layer != nullptr && ! previous_layer->empty() ?
-        previous_layer->back() : SpiralVase::SpiralPoint(0, 0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, smooth, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, min_segment_length]
-        (GCodeReader &reader, GCodeReader::GCodeLine line) {
-        if (line.cmd_is("G1")) {
-            // Filter out retractions (continuous printing does not retract).
-            // Small surface fragments are real geometry. Only discard stationary priming;
-            // removing a short XY extrusion skips its material and changes the following segment.
-            if (line.retracting(reader) || (line.extruding(reader) && line.dist_XY(reader) <= 0.f)) return;
-            if (line.has_z() && ! (line.has_x() || line.has_y())) {
-                // If this is the initial Z move of the layer, replace it with a
-                // (redundant) move to the last Z of the previous layer.
-                line.set(Z, z);
-                new_gcode += line.raw() + '\n';
-                return;
-            } else {
-                float dist_XY = line.dist_XY(reader);
-                if (line.has_x() || line.has_y()) {
-                    if (dist_XY > 0 && line.extruding(reader)) {
-                        len += dist_XY;
-                        float factor = len / total_layer_length;
-                        if (transition_in) {
-                            // Transition layer: ramp the extrusion from starting_flowrate to 100%.
-                            float starting_e_factor = starting_flowrate + (factor * (1.f - starting_flowrate));
-                            line.set(E, std::max(0.00001f, line.e() * starting_e_factor), 5 /*decimal_digits*/);
-                        }
-                        // Core of the continuous print: ramp up Z smoothly along the chain.
-                        line.set(Z, z + factor * layer_height);
-                        if (smooth) {
-                            // Interpolate X/Y towards the previous layer's chain.
-                            SpiralVase::SpiralPoint p(line.x(), line.y());
-                            current_layer->push_back(p);
-                            if (previous_layer != nullptr) {
-                                bool  found = false;
-                                float dist  = 0;
-                                SpiralVase::SpiralPoint nearestp = SpiralVaseHelpers::nearest_point_on_lines(p, previous_layer, found, dist);
-                                if (found && dist < max_xy_dist_for_smoothing) {
-                                    SpiralVase::SpiralPoint target = SpiralVaseHelpers::add(SpiralVaseHelpers::scale(nearestp, 1 - factor), SpiralVaseHelpers::scale(p, factor));
-                                    // M3 hook: verify the smoothed segment stays on the model body (off-body check).
-                                    float modified_dist_XY = SpiralVaseHelpers::distance(last_point, target);
-                                    if (modified_dist_XY < min_segment_length) {
-                                        line.clear();
-                                    } else {
-                                        line.set(X, target.x);
-                                        line.set(Y, target.y);
-                                        line.set(E, line.e() * modified_dist_XY / dist_XY, 5 /*decimal_digits*/);
-                                        last_point = target;
-                                    }
-                                } else {
-                                    last_point = p;
-                                }
-                            }
-                        }
-                        new_gcode += line.raw() + '\n';
-                    }
-                    // Skip travel moves: in continuous mode the emitter should not produce any;
-                    // any leftover travel is dropped here so chains stay welded (see SpiralVase).
-                    return;
-                }
-            }
-        }
-        new_gcode += line.raw() + '\n';
-    });
-
-    delete m_previous_layer;
-    m_previous_layer = current_layer;
-
-    return new_gcode;
 }
 
 } // namespace Slic3r

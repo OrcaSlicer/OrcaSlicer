@@ -5881,7 +5881,8 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Prints each layer as a single continuous extrusion trace with no travel (no non-extruding XY moves). "
                      "Wall loops, top/bottom surfaces and continuous infill (monotonic / alignedrectilinear) are joined into "
                      "one trace, adding only short connectors bounded by 'Max continuous print join distance'. Layers that "
-                     "cannot be joined fall back to normal printing. Smoothing reuses the Smooth Spiral settings.");
+                     "cannot be joined fall back to normal printing. Each layer is printed at a fixed Z height; "
+                     "layer changes lift Z at the preceding XY endpoint.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

@@ -3,8 +3,6 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCode/ContinuousPrint.hpp"
-#include "libslic3r/GCode/SpiralVase.hpp"
-#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Point.hpp"
@@ -267,21 +265,6 @@ SCENARIO("preflight_layer: in-layer single-chain check", "[ContinuousPrint]") {
     }
 }
 
-// A single-chain layer G-code snippet: one pure-Z move at the beginning, a travel move,
-// a retract, then a closed square of extrusion moves (relative E).
-static std::string make_chain_layer_gcode(double z)
-{
-    std::string s;
-    s += "G1 Z" + std::to_string(z) + " F600\n";
-    s += "G1 X0 Y0 F9000\n";   // travel to chain start: must be filtered out
-    s += "G1 E-0.8 F1800\n";   // retract: must be filtered out
-    s += "G1 X10 Y0 E0.5 F1500\n";
-    s += "G1 X10 Y10 E0.5\n";
-    s += "G1 X0 Y10 E0.5\n";
-    s += "G1 X0 Y0 E0.5\n";
-    return s;
-}
-
 SCENARIO("preflight_layer: preferred start and loop linearization (M3)", "[ContinuousPrint]") {
     PrintConfig cfg;
 
@@ -339,58 +322,6 @@ SCENARIO("flatten_extrusion_entities resolves nested collections", "[ContinuousP
             CHECK(! plan.is_closed);
             CHECK(plan.order.size() == 2);
         }
-    }
-}
-
-SCENARIO("ContinuousPrint filter: parity with SpiralVase and zero-travel output", "[ContinuousPrint]") {
-    PrintConfig cfg;
-    cfg.option<ConfigOptionBool>("use_relative_e_distances", true)->value = true;
-    cfg.option<ConfigOptionBool>("spiral_mode_smooth", true)->value      = false;
-
-    SpiralVase      spiral(cfg);
-    ContinuousPrint continuous(cfg);
-    spiral.enable(true);
-    continuous.enable(true);
-
-    const std::string layer1 = make_chain_layer_gcode(0.2);
-    const std::string layer2 = make_chain_layer_gcode(0.4);
-
-    const std::string spiral_out1     = spiral.process_layer(layer1, false);
-    const std::string continuous_out1 = continuous.process_layer(layer1, false);
-    const std::string spiral_out2     = spiral.process_layer(layer2, true);
-    const std::string continuous_out2 = continuous.process_layer(layer2, true);
-
-    THEN("The ContinuousPrint filter matches SpiralVase exactly on a closed loop") {
-        CHECK(continuous_out1 == spiral_out1);
-        CHECK(continuous_out2 == spiral_out2);
-    }
-
-    THEN("The filtered output contains no non-extruding XY move (zero travel)") {
-        for (const std::string &out : {continuous_out1, continuous_out2}) {
-            GCodeReader reader;
-            reader.apply_config(cfg);
-            reader.parse_buffer(out, [](GCodeReader &r, const GCodeReader::GCodeLine &line) {
-                if (line.cmd_is("G1") && (line.has_x() || line.has_y()) && line.dist_XY(r) > 0)
-                    CHECK(line.extruding(r));
-            });
-        }
-    }
-
-    THEN("Z ramps up smoothly and monotonically across the chain") {
-        GCodeReader reader;
-        reader.apply_config(cfg);
-        float last_z = 0.f;
-        size_t extrusion_moves = 0;
-        reader.parse_buffer(continuous_out2, [&last_z, &extrusion_moves](GCodeReader &r, const GCodeReader::GCodeLine &line) {
-            if (line.cmd_is("G1") && line.extruding(r) && line.dist_XY(r) > 0) {
-                const float z = line.new_Z(r);
-                CHECK(z >= last_z);
-                last_z = z;
-                ++ extrusion_moves;
-            }
-        });
-        CHECK(extrusion_moves == 4);
-        CHECK(last_z == Catch::Approx(0.4).margin(1e-3));
     }
 }
 
@@ -467,29 +398,6 @@ TEST_CASE("Continuous print reseaming preserves every wall corner", "[Continuous
     Point preferred = to_point({10, 5});
     REQUIRE(preflight_layer({&loop}, nullptr, cfg, &plan, &preferred) == ContinuousPrintVerdict::Applicable);
     CHECK(plan.total_length == Catch::Approx(40.0));
-}
-
-TEST_CASE("Continuous print does not replay the final surface", "[ContinuousPrint]") {
-    PrintConfig cfg;
-    cfg.use_relative_e_distances.value = true;
-    ContinuousPrint filter(cfg);
-    filter.enable(true);
-    filter.process_layer("G1 Z0.2\nG1 X10 Y0 E1\n", false);
-    filter.enable(true);
-    const std::string result = filter.process_layer(
-        "; CHANGE_LAYER\nG1 Z0.4\nG1 X10 Y10 E1\nG1 X0 Y10 E1\n", true);
-    GCodeReader reader;
-    reader.apply_config(cfg);
-    reader.parse_buffer("G1 X10 Y0 Z0.2\n");
-    int moves = 0;
-    reader.parse_buffer(result, [&](GCodeReader &r, const GCodeReader::GCodeLine &line) {
-        if (line.cmd_is("G1") && line.dist_XY(r) > 0) {
-            CHECK(line.extruding(r));
-            ++ moves;
-        }
-    });
-    CHECK(moves == 2);
-    CHECK(reader.z() == Catch::Approx(0.4));
 }
 
 TEST_CASE("Surface fragments are visited locally without losing geometry or flow", "[ContinuousPrint]") {
@@ -571,28 +479,6 @@ TEST_CASE("Curved solid remnants and clipped rings join the main infill", "[Cont
     }
 }
 
-TEST_CASE("Continuous print retains tiny surface extrusions through the filter", "[ContinuousPrint]") {
-    PrintConfig cfg;
-    cfg.use_relative_e_distances.value = true;
-    cfg.spiral_starting_flow_ratio.value = 0.;
-    ContinuousPrint filter(cfg);
-    filter.process_layer("G1 Z0.2\nG1 X0 Y0 E1\n", false);
-    filter.enable(true);
-    const auto result = filter.process_layer("G1 Z0.4\nG1 X0.01 Y0 E0.00001\nG1 X20 Y0 E1\n", false);
-    GCodeReader reader;
-    reader.apply_config(cfg);
-    reader.parse_buffer("G1 Z0.2\n");
-    size_t extrusions = 0;
-    reader.parse_buffer(result, [&](GCodeReader &r, const GCodeReader::GCodeLine &line) {
-        if (line.cmd_is("G1") && line.dist_XY(r) > 0.) {
-            CHECK(line.extruding(r));
-            ++ extrusions;
-        }
-    });
-    CHECK(extrusions == 2);
-    CHECK(reader.z() == Catch::Approx(0.4));
-}
-
 TEST_CASE("A reachable surface fragment keeps its direct connection", "[ContinuousPrint]") {
     auto surface = make_path({{0, 0}, {20, 0}});
     surface.set_extrusion_role(erTopSolidInfill);
@@ -629,6 +515,19 @@ TEST_CASE("Solid surfaces enter on the current wall and reserve a contour extens
     REQUIRE(preflight_layer(view_of(input), &layer, cfg, &plan, &preferred, scale_(0.2), scale_(2.)) == ContinuousPrintVerdict::Applicable);
     CHECK(plan.start_point == preferred);
     CHECK(plan.entities.front()->role() == erExternalPerimeter);
+    CHECK(is_solid_infill(plan.entities.back()->role()));
+    // The presence of sparse fill above must not add a trip back to the outer wall.
+    TestLayer upper;
+    auto sparse = make_path({{4,2},{16,2}});
+    sparse.set_extrusion_role(erInternalInfill);
+    upper.add_region(nullptr)->fills.append(sparse);
+    layer.upper_layer = &upper;
+    ContinuousLayerPlan below_sparse;
+    REQUIRE(preflight_layer(view_of(input), &layer, cfg, &below_sparse, &preferred,
+                            scale_(0.2), scale_(2.)) == ContinuousPrintVerdict::Applicable);
+    CHECK(below_sparse.end_point == plan.end_point);
+    CHECK(below_sparse.total_length == plan.total_length);
+    CHECK(is_solid_infill(below_sparse.entities.back()->role()));
     const ExtrusionEntity *extension = nullptr;
     bool reached_fill = false;
     for (size_t i = 0; i < plan.entities.size(); ++ i) {
@@ -681,4 +580,61 @@ TEST_CASE("Solid contour routing can enter beyond the nearest fill trace", "[Con
                 retained |= point == point.projection_onto(entity->as_polyline());
         CHECK(retained);
     }
+}
+
+TEST_CASE("Sparse layer enters from the actual solid endpoint along its contour", "[ContinuousPrint]") {
+    PrintConfig cfg;
+    cfg.continuous_print_mode.value = true;
+    struct TestLayer : Layer { TestLayer() : Layer(3, nullptr, 0.2, 0.8, 0.7) {} } layer;
+    auto outer = make_loop({{118.465,130},{124.232,120.01},{135.768,120.01},{141.535,130},{135.768,139.99},{124.232,139.99}});
+    auto middle = make_loop({{118.967,130},{124.483,120.445},{135.517,120.445},{141.033,130},{135.517,139.555},{124.483,139.555}});
+    auto inner = make_loop({{119.437,130},{124.718,120.852},{135.282,120.852},{140.563,130},{135.282,139.148},{124.718,139.148}});
+    outer.paths.front().set_extrusion_role(erExternalPerimeter);
+    for (auto *wall : {&outer, &middle, &inner}) {
+        wall->paths.front().width = 0.45;
+        wall->paths.front().height = 0.2;
+    }
+    auto fill = make_path({{121.026,132.54},{127.345,138.858},{131.183,138.858},
+                          {120.706,128.382},{122.11,125.948},{135.02,138.858},{135.114,138.858},
+                          {136.485,136.485},{123.515,123.515},{124.886,121.142},{124.98,121.142},
+                          {137.89,134.052},{139.294,131.618},{128.818,121.142},{132.655,121.142},{138.974,127.46}});
+    fill.set_extrusion_role(erInternalInfill);
+    fill.width = 0.45;
+    fill.height = 0.2;
+    const Point previous = to_point({125.549,139.043});
+    ContinuousLayerPlan plan;
+    REQUIRE(preflight_layer({&outer, &middle, &inner, &fill}, &layer, cfg, &plan, &previous,
+                            scale_(0.2), scale_(2.)) == ContinuousPrintVerdict::Applicable);
+    CHECK(plan.start_point == previous);
+    const ExtrusionEntity *entrance_arc = nullptr;
+    for (const auto &entity : plan.entities) {
+        if (entity->role() == erInternalInfill) break;
+        CHECK(entity->role() == erPerimeter);
+        if (entity->length() > scale_(2.)) entrance_arc = entity.get();
+    }
+    REQUIRE(entrance_arc != nullptr);
+    CHECK(entrance_arc->as_polyline().points.size() > 2);
+    for (size_t i = 1; i < plan.entities.size(); ++ i)
+        CHECK(plan.entities[i-1]->last_point() == plan.entities[i]->first_point());
+    for (const auto &entity : plan.entities)
+        if (entity->role() == erInternalInfill)
+            CHECK(intersection_pl(entity->as_polyline(), offset(entrance_arc->as_polyline(), float(scale_(0.449)),
+                  ClipperLib::jtRound, scale_(0.0001), ClipperLib::etOpenRound)).empty());
+}
+
+TEST_CASE("Short layer entrance is explicit and does not distort the first extrusion", "[ContinuousPrint]") {
+    PrintConfig cfg;
+    cfg.continuous_print_mode.value = true;
+    struct TestLayer : Layer { TestLayer() : Layer(3, nullptr, 0.2, 0.8, 0.7) {} } layer;
+    auto fill = make_path({{0,0},{10,0},{10,10}});
+    fill.set_extrusion_role(erInternalInfill);
+    const Point previous = to_point({0,0.2});
+    ContinuousLayerPlan plan;
+    REQUIRE(preflight_layer({&fill}, &layer, cfg, &plan, &previous,
+                            scale_(0.2), scale_(2.)) == ContinuousPrintVerdict::Applicable);
+    REQUIRE(plan.entities.size() == 2);
+    CHECK(plan.start_point == previous);
+    CHECK(plan.entities.front()->last_point() == fill.first_point());
+    CHECK(plan.entities.back()->as_polyline().points == fill.as_polyline().points);
+    CHECK(plan.total_length == Catch::Approx(20.2));
 }
