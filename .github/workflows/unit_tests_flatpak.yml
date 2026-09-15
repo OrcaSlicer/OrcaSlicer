@@ -27,6 +27,7 @@ jobs:
         with:
           name: ${{ inputs.artifact }}
       - name: Run unit tests (bounds-checked sandbox)
+        timeout-minutes: 20
         shell: bash
         run: |
           tar -xf flatpak-test-asset.tar
