@@ -1,5 +1,9 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
+#include <limits>
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -328,4 +332,259 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     REQUIRE(print.has_wipe_tower());
     CHECK(print.wipe_tower_data(1).depth > 0.f);
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
+}
+
+// --- Multimaterial tower ---------------------------------------------------------------------
+//
+// prime_tower_multimaterial splits the tower footprint by filament instead of by tool change:
+// one filament owns the outer shell ring, the other the inner core. The property that defines it
+// is that the two filaments never share a part of the footprint, so neither is ever printed on
+// top of the other. The stock tower does share it - the filament that prints the wall also fills
+// the middle - which is what these tests tell the two layouts apart by.
+
+// The band of the footprint one filament's extrusions cover on a tower layer, measured as the
+// distance from the nearest tower edge (negative outside it, where the brim goes). The tower's
+// own frame is turned half a circle every layer, and that maps the rectangle onto itself, so this
+// places an extrusion in the shell or in the core whichever way up the layer is.
+struct ToolBand
+{
+    float nearest  = std::numeric_limits<float>::max();
+    float farthest = std::numeric_limits<float>::lowest();
+};
+
+static std::map<unsigned int, ToolBand> tower_layer_bands(const std::vector<WipeTower::ToolChangeResult> &layer,
+                                                          float width, float depth)
+{
+    std::map<unsigned int, ToolBand> bands;
+    for (const WipeTower::ToolChangeResult &tcr : layer)
+        for (const WipeTower::Extrusion &extrusion : tcr.extrusions) {
+            if (extrusion.width <= 0.f)
+                continue; // a travel move, recorded to anchor the next extrusion
+            const float distance = std::min(std::min(extrusion.pos.x(), width - extrusion.pos.x()),
+                                            std::min(extrusion.pos.y(), depth - extrusion.pos.y()));
+            ToolBand   &band     = bands[extrusion.tool];
+            band.nearest         = std::min(band.nearest, distance);
+            band.farthest        = std::max(band.farthest, distance);
+        }
+    return bands;
+}
+
+// A tower layer with no tool change on it, told apart the way WipeTowerIntegration does.
+static bool tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &layer)
+{
+    return layer.size() == 1 && layer.front().initial_tool == layer.front().new_tool;
+}
+
+// The filaments that extrude anything on a tower layer.
+static std::set<unsigned int> tower_layer_filaments(const std::vector<WipeTower::ToolChangeResult> &layer)
+{
+    std::set<unsigned int> filaments;
+    for (const WipeTower::ToolChangeResult &tcr : layer)
+        for (const WipeTower::Extrusion &extrusion : tcr.extrusions)
+            if (extrusion.width > 0.f)
+                filaments.insert(extrusion.tool);
+    return filaments;
+}
+
+// A per-layer tool change between the wall and the infill filaments, so every tower layer has
+// both filaments on it and can be split into regions.
+static DynamicPrintConfig multimaterial_tower_config(bool multimaterial)
+{
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({ { "wipe_tower_wall_type", "rectangle" },
+                                    { "prime_volume", "45" },
+                                    { "purge_in_prime_tower", "0" },
+                                    { "single_extruder_multi_material", "0" },
+                                    { "prime_tower_multimaterial", multimaterial ? "1" : "0" } });
+    return config;
+}
+
+// Slices a 10mm cube and leaves the generated tower in `print`. The second apply is what
+// slice_with_prime_tower() needs it for: the first one counts a single filament in use and
+// normalize_fdm_2 would clear enable_prime_tower.
+static void slice_prime_tower(const DynamicPrintConfig &config, Print &print, Model &model)
+{
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+}
+
+TEST_CASE("The multimaterial prime tower gives each filament its own part of the footprint", "[WipeTower]")
+{
+    Print print;
+    Model model;
+    slice_prime_tower(multimaterial_tower_config(true), print, model);
+    const WipeTowerData &data = print.wipe_tower_data();
+    REQUIRE(data.width > 0.f);
+    REQUIRE(data.depth > 0.f);
+
+    std::set<unsigned int> shell_filaments;
+    size_t                 split_layers = 0;
+
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
+        if (tower_layer_is_sparse(layer))
+            continue; // no tool change, so only one filament is available to print the layer
+        const std::map<unsigned int, ToolBand> bands = tower_layer_bands(layer, data.width, data.depth);
+        REQUIRE(bands.size() == 2);
+
+        const ToolBand &first  = bands.begin()->second;
+        const ToolBand &second = std::next(bands.begin())->second;
+        // Whichever filament stays closer to the edge is the shell one.
+        const bool first_is_shell = first.farthest < second.farthest;
+        const ToolBand &shell = first_is_shell ? first : second;
+        const ToolBand &core  = first_is_shell ? second : first;
+        CHECK(shell.farthest < core.nearest);
+
+        shell_filaments.insert((first_is_shell ? bands.begin() : std::next(bands.begin()))->first);
+        ++split_layers;
+    }
+
+    REQUIRE(split_layers > 0);
+    // The shell has to stay with one filament all the way up, or the regions would swap and the
+    // materials would end up stacked on each other after all.
+    CHECK(shell_filaments.size() == 1);
+}
+
+// Whether any two tower layers in a row are each printed by a single filament, and by a
+// different one. That stacks one material on the other across the whole footprint, which is
+// exactly what the multimaterial layout is there to avoid.
+static bool tower_swaps_filament_between_whole_layers(const WipeTowerData &data)
+{
+    for (size_t i = 1; i < data.tool_changes.size(); ++i) {
+        const std::set<unsigned int> below = tower_layer_filaments(data.tool_changes[i - 1]);
+        const std::set<unsigned int> above = tower_layer_filaments(data.tool_changes[i]);
+        if (below.size() == 1 && above.size() == 1 && *below.begin() != *above.begin())
+            return true;
+    }
+    return false;
+}
+
+TEST_CASE("Turning the multimaterial prime tower off leaves the stock layout in place", "[WipeTower]")
+{
+    Print print;
+    Model model;
+    slice_prime_tower(multimaterial_tower_config(false), print, model);
+    const WipeTowerData &data = print.wipe_tower_data();
+    REQUIRE(data.tool_changes.size() > 1);
+
+    // The stock tower gives a whole layer - purge, wall and sparse infill alike - to the filament
+    // the layer's tool change brings in, so the footprint changes material from one layer to the
+    // next. That is the behaviour the multimaterial layout replaces, and it has to survive the
+    // option being off.
+    CHECK(tower_swaps_filament_between_whole_layers(data));
+}
+
+TEST_CASE("The multimaterial prime tower never stacks one filament on the other", "[WipeTower]")
+{
+    Print print;
+    Model model;
+    slice_prime_tower(multimaterial_tower_config(true), print, model);
+    CHECK_FALSE(tower_swaps_filament_between_whole_layers(print.wipe_tower_data()));
+}
+
+TEST_CASE("The multimaterial prime tower still purges the whole prime volume", "[WipeTower]")
+{
+    Print print;
+    Model model;
+    slice_prime_tower(multimaterial_tower_config(true), print, model);
+    const WipeTowerData &data = print.wipe_tower_data();
+    REQUIRE(data.number_of_toolchanges > 0);
+
+    // prime_volume is the minimum a tool change has to purge. Sizing a region in whole loops and
+    // whole rows can only round that up, so the tower may hold more, but never less.
+    const double diameter = print.config().filament_diameter.get_at(0);
+    const double area     = M_PI * diameter * diameter / 4.;
+    double       volume   = 0.;
+    for (float length : data.used_filament)
+        volume += double(length) * area;
+    CHECK(volume >= print.config().prime_volume.value * double(data.number_of_toolchanges));
+}
+
+// Filaments that extrude a brim on a layer WipeTowerIntegration would actually emit.
+// The brim is the only part of the rectangular tower printed outside its footprint, so an
+// extrusion at a negative distance from the tower edge is brim and nothing else.
+// is_empty_wipe_tower_gcode drops every sparse layer when no_sparse_layers is on, including
+// the plan's first entry - the one is_first_layer() points at.
+static std::set<unsigned int> tower_printed_brim_filaments(const WipeTowerData &data, bool no_sparse)
+{
+    std::set<unsigned int> filaments;
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
+        if (no_sparse && tower_layer_is_sparse(layer))
+            continue;
+        for (const auto &[filament, band] : tower_layer_bands(layer, data.width, data.depth))
+            if (band.nearest < -0.2f)
+                filaments.insert(filament);
+    }
+    return filaments;
+}
+
+TEST_CASE("The prime tower keeps its brim when sparse layers are skipped", "[WipeTower][Regression]")
+{
+    // First layers of this cube are one filament; the second only appears as sparse infill
+    // higher up. Those first layers still enter the wipe-tower plan (partitions propagate
+    // down), so they are sparse. G-code drops them when no_sparse_layers is on; the brim
+    // has to land on the first layer that actually prints, or the tower has nothing holding
+    // it to the bed.
+    const bool multimaterial = GENERATE(false, true);
+    DYNAMIC_SECTION("multimaterial tower " << (multimaterial ? "on" : "off")) {
+        DynamicPrintConfig config = multimaterial_tower_config(multimaterial);
+        config.set_deserialize_strict({
+            { "wipe_tower_no_sparse_layers", "1" },
+            { "top_surface_filament_id",     1 },
+            { "bottom_surface_filament_id",  1 },
+            { "outer_wall_filament_id",      1 },
+            { "inner_wall_filament_id",      1 },
+            { "internal_solid_filament_id",  1 },
+            { "sparse_infill_filament_id",   2 },
+        });
+
+        Print print;
+        Model model;
+        slice_prime_tower(config, print, model);
+
+        const WipeTowerData &data = print.wipe_tower_data();
+        REQUIRE(data.tool_changes.size() > 1);
+        REQUIRE(std::any_of(data.tool_changes.begin(), data.tool_changes.end(), tower_layer_is_sparse));
+        REQUIRE(std::any_of(data.tool_changes.begin(), data.tool_changes.end(),
+                            [](const std::vector<WipeTower::ToolChangeResult> &layer) {
+                                return !tower_layer_is_sparse(layer);
+                            }));
+
+        const std::set<unsigned int> brim = tower_printed_brim_filaments(data, true);
+        REQUIRE_FALSE(brim.empty());
+        // One filament, the one whose walls the brim grows out of - a brim of the other material
+        // would neither stick to those walls nor hold the tower down.
+        CHECK(brim.size() == 1);
+
+        const std::string gcode_str = gcode(print);
+        CHECK_THAT(gcode_str, Catch::Matchers::ContainsSubstring("WIPE_TOWER_BRIM_START"));
+    }
+}
+
+TEST_CASE("The multimaterial prime tower is rejected for more than two filaments", "[WipeTower]")
+{
+    // Three filaments would need nested rings; the generator only lays out the two regions, so
+    // the combination is refused rather than silently falling back.
+    DynamicPrintConfig config = multifilament_config(3, {
+        { "sparse_infill_filament_id",  1 },
+        { "internal_solid_filament_id", 1 },
+        { "top_surface_filament_id",    3 },
+        { "bottom_surface_filament_id", 3 },
+        { "outer_wall_filament_id",     2 },
+        { "inner_wall_filament_id",     2 },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_wall_type",       "rectangle" },
+        { "prime_tower_multimaterial",  true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "layer_height",               0.3 } });
+
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    REQUIRE(print.extruders().size() == 3);
+    REQUIRE(print.has_wipe_tower());
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("exactly two filaments"));
 }
