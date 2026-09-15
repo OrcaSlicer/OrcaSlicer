@@ -511,12 +511,16 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
 {
     bool selected_in_ams      = false;
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
-    if (is_bbl_vendor_preset && !m_preset_bundle->filament_ams_list.empty()) {
+    bool has_filament_agent = (!is_bbl_vendor_preset && wxGetApp().getAgent() &&
+                               wxGetApp().getAgent()->get_filament_sync_mode() != FilamentSyncMode::none);
+    if ((is_bbl_vendor_preset || has_filament_agent) && !m_preset_bundle->filament_ams_list.empty()) {
         // When a filament track switch is installed and calibrated, every AMS filament is reachable
         // from both extruders, so present one deduplicated group instead of the Left/Right split.
         bool fila_switch_ready = wxGetApp().sidebar().is_fila_switch_ready();
         bool dual_extruder   = (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
-        if (fila_switch_ready)
+        if (!is_bbl_vendor_preset)
+            set_label_marker(Append(_L("Machine filament"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
+        else if (fila_switch_ready)
             set_label_marker(Append(_L("AMS filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         else
             set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filament"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
