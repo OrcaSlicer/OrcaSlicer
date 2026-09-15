@@ -18,6 +18,7 @@
 // Widgets/StaticLine.hpp).
 class TextInput;
 class StaticLine;
+class CheckBox;
 
 namespace Slic3r { namespace GUI {
 
@@ -97,7 +98,8 @@ private:
         size_t inner_index{0};
         bool dirty{false};          // matches a dirty base key: pre-checked + bold
         bool matches_filter{false}; // survives the active filter (computed by apply_filter)
-        wxCheckBox* check{nullptr};
+        ::CheckBox* check{nullptr};
+        wxStaticText* check_label{nullptr};
         wxStaticText* value_label{nullptr};
         wxStaticText* unit_label{nullptr};
         wxStaticBitmap* color_chip{nullptr}; // Color rows only; swatch next to the value
@@ -131,11 +133,13 @@ private:
         // header row is hidden. For physical slots the Full Publish toggle sits on a second
         // line (full_line_item) visible only when enabled; for mixed slots Enable alone implies
         // publishing the mix definition, so no Full Publish widget exists at all.
-        wxCheckBox* enable_check{nullptr};
+        ::CheckBox* enable_check{nullptr};
+        wxStaticText* enable_label{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows
         // (incl. Color/Type) are disabled.
-        wxCheckBox* full_check{nullptr};
+        ::CheckBox* full_check{nullptr};
+        wxStaticText* full_label{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
