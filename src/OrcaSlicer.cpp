@@ -1404,6 +1404,12 @@ int CLI::run(int argc, char **argv)
                 flush_and_exit(CLI_INVALID_PARAMS);
             }
         }
+        // Without input there is nothing to inspect; fail rather than print nothing and exit 0.
+        if (m_input_files.empty() && m_config.opt_string("load_assemble_list").empty()) {
+            boost::nowide::cerr << "--inspect-mesh needs an input file or --load-assemble-list" << std::endl;
+            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+            flush_and_exit(CLI_INVALID_PARAMS);
+        }
     }
 
     // --export-settings - writes its JSON to stdout, so reject every action or transform that may write there
@@ -4837,7 +4843,9 @@ int CLI::run(int argc, char **argv)
             if (opt_key == "ground_largest_face") {
                 if (m_config.opt_bool(opt_key))
                     pick = [](const std::vector<LayOnFacePlane>& planes, const Transform3d&) { return find_largest_plane(planes); };
-            } else if (const std::string& value = m_config.opt_string(opt_key); !value.empty()) {
+            } else {
+                // Only options given on the command line reach this loop, so an empty value is malformed input too.
+                const std::string& value = m_config.opt_string(opt_key);
                 Vec3d v;
                 int   consumed = 0;
                 if (sscanf(value.c_str(), "%lf,%lf,%lf%n", &v.x(), &v.y(), &v.z(), &consumed) != 3 || consumed != int(value.size()) ||
