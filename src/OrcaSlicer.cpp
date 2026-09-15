@@ -1459,6 +1459,12 @@ int CLI::run(int argc, char **argv)
                 flush_and_exit(CLI_INVALID_PARAMS);
             }
         }
+        // Without input there is nothing to inspect; fail rather than print nothing and exit 0.
+        if (m_input_files.empty() && m_config.opt_string("load_assemble_list").empty()) {
+            boost::nowide::cerr << "--inspect-paint needs an input file or --load-assemble-list" << std::endl;
+            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+            flush_and_exit(CLI_INVALID_PARAMS);
+        }
     }
 
     // --export-settings - writes its JSON to stdout, so reject every action or transform that may write there
