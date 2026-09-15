@@ -111,7 +111,10 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"zaa_enabled", "", 1},
        {"zaa_minimize_perimeter_height", "", 2},
        {"zaa_dont_alternate_fill_direction", "", 3},
-       {"zaa_min_z", "", 4}}},
+       {"zaa_min_z", "", 4},
+       {"wo_enabled", "", 1},
+       {"wo_density", "", 2},
+       {"wo_pattern", "", 3}}},
      {L("Strength"),
       {{"wall_loops", "", 1},
        {"top_shell_layers", L("Top solid layers"), 1},
@@ -162,9 +165,10 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"overhang_2_4_speed", "", 8},
        {"overhang_3_4_speed", "", 9},
        {"overhang_4_4_speed", "", 10},
-       {"bridge_speed", "", 11},
-       {"gap_infill_speed", "", 12},
-       {"internal_bridge_speed", "", 13}}}};
+       {"wo_bridge_speed", "", 11},
+       {"bridge_speed", "", 12},
+       {"gap_infill_speed", "", 13},
+       {"internal_bridge_speed", "", 14}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {

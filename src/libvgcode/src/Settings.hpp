@@ -70,6 +70,7 @@ struct Settings
 		        // ORCA
 		        true, // BottomSurface
 		        true, // InternalBridgeInfill
+		        true, // WaveBridgeInfill
 		        true, // Brim
 		        true, // SupportTransition
 		        true, // Mixed

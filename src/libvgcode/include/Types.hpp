@@ -150,6 +150,7 @@ enum class EGCodeExtrusionRole : uint8_t
       // ORCA
       BottomSurface,
       InternalBridgeInfill,
+      WaveBridgeInfill,
       Brim,
       SupportTransition,
       Mixed,
