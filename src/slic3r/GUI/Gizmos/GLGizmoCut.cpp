@@ -769,7 +769,7 @@ void GLGizmoCut3D::render_cut_rotation_input()
     static const char* axis_labels[3] = { "X", "Y", "Z" };
     for (int axis = 0; axis < 3; ++axis) {
         ImGui::SameLine(caption_max + axis * unit_size + (axis + 1) * space_size + offset_to_center);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(axis_colors[axis]), axis_labels[axis]);
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(axis_colors[axis]), "%s", axis_labels[axis]);
     }
 
     static const char* rel_ids[3] = { "##cut_rotation_rel_x", "##cut_rotation_rel_y", "##cut_rotation_rel_z" };
