@@ -18,9 +18,9 @@ Tests are off by default, so the build has to be told to include them.
 
 - Windows: `build_release_vs.bat tests`, then `ctest --test-dir build/tests -C Release`
 - macOS: `./build_release_macos.sh -s -a arm64 -T`, which builds and runs them
-- Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests`
+- Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests -C Release`
 
-Rebuild a single suite with `cmake --build build --config Release --target <suite>_tests`. Visual Studio and Xcode are multi-configuration generators, so `ctest` needs `-C` there; on Linux it does not.
+Rebuild a single suite with `cmake --build build --config Release --target <suite>_tests`. Visual Studio, Xcode and the Ninja Multi-Config generator that `build_linux.sh` uses are all multi-configuration, so `ctest` needs `-C` on every platform; without it, tests registered with plain `add_test()` lose their labels and report "Not Run".
 
 ## Where a test goes
 

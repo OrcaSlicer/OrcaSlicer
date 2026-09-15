@@ -7,8 +7,9 @@
 #
 # Usage: run_unit_tests.sh [TEST_DIR] [BUILD_CONFIG]
 #   TEST_DIR      directory containing the built tests (default: build/tests)
-#   BUILD_CONFIG  configuration to run; required for multi-config generators
-#                 (Windows/macOS), harmless/omitted for single-config (Linux).
+#   BUILD_CONFIG  configuration to run; required for multi-config generators, which all
+#                 build scripts use (build_linux.sh too: Ninja Multi-Config). Without it,
+#                 tests registered with plain add_test() lose their labels and report "Not Run".
 
 ROOT_DIR="$(dirname "$0")/.."
 
