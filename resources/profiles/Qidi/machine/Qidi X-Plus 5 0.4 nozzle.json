@@ -29,7 +29,8 @@
 	"is_support_multi_box": "1",
 	"is_support_polar_cooler": "1",
 	"is_support_timelapse": "1",
-	"layer_change_gcode": "{if timelapse_type == 1} ; timelapse with wipe tower\nG92 E0\nG1 E-[retraction_length] F1800\n{if layer_z + 0.4 > max_print_height}\nG2 Z{max_print_height} I0.86 J0.86 P1 F20000 ; spiral lift a little\n{else}\nG2 Z{layer_z + 0.4} I0.86 J0.86 P1 F20000 ; spiral lift a little\n{endif}\nMOVE_TO_TRASH\n{if layer_z <=25}\nG1 Z25\n{endif}\nG92 E0\nM400\nTIMELAPSE_TAKE_FRAME\nG1 E[retraction_length] F300\nG1 X140 F8000\nG1 Y319\n{if layer_z <=25}\nG1 Z[layer_z]\n{endif}\n{elsif timelapse_type == 0} ; timelapse without wipe tower\nTIMELAPSE_TAKE_FRAME\n{endif}\nG92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+	"layer_change_gcode": "{if timelapse_type == 0} ; timelapse without wipe tower\nTIMELAPSE_TAKE_FRAME\n{endif}\nG92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+	"time_lapse_gcode": "{if timelapse_type == 1} ; timelapse with wipe tower\nG92 E0\nG1 E-[retraction_length] F1800\n{if layer_z + 0.4 > max_print_height}\nG2 Z{max_print_height} I0.86 J0.86 P1 F20000 ; spiral lift a little\n{else}\nG2 Z{layer_z + 0.4} I0.86 J0.86 P1 F20000 ; spiral lift a little\n{endif}\nMOVE_TO_TRASH\n{if layer_z <=25}\nG1 Z25\n{endif}\nG92 E0\nM400\nTIMELAPSE_TAKE_FRAME\nG1 E[retraction_length] F300\nG1 X140 F8000\nG1 Y319\n{if layer_z <=25}\nG1 Z[layer_z]\n{endif}\n{endif}",
 	"machine_end_gcode": "SET_PRINT_MAIN_STATUS MAIN_STATUS=print_end\nDISABLE_BOX_HEATER\nM141 S0\nM140 S0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\n{if max_layer_z + 3 > max_print_height}\nG0 Z{max_print_height} F600\n{else}\nG0 Z{max_layer_z + 3} F600\n{endif}\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y320 F12000\nG0 X105 Y320 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0\nPRINT_END",
 	"machine_max_acceleration_x": [
 		"20000"
@@ -81,6 +82,7 @@
 	],
 	"support_box_temp_control": "1",
 	"support_multi_bed_types": "1",
+	"support_smooth_timelapse": "1",
 	"thumbnail_size": [
 		"50x50"
 	],
