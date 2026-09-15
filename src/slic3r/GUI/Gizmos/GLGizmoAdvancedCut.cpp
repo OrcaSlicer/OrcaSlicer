@@ -354,7 +354,6 @@ bool GLGizmoAdvancedCut::on_init()
     if (!GLGizmoRotate3D::on_init())
         return false;
 
-    m_shortcut_key = WXK_CONTROL_C;
 
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();

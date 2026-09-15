@@ -26,8 +26,7 @@ public:
         state_ready
     };
 
-    //BBS
-    bool on_key_down_select_tool_type(int keyCode);
+    bool on_tool_shortcut(Shortcut shortcut) override;
 
 protected:
     void on_render_input_window(float x, float y, float bottom_limit) override;

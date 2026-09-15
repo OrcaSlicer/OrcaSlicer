@@ -4,6 +4,7 @@
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
@@ -245,56 +246,15 @@ ObjectList::ObjectList(wxWindow* parent) :
     // Key events are not correctly processed by the wxDataViewCtrl on OSX.
     // Our patched wxWidgets process the keyboard accelerators.
     // On the other hand, using accelerators will break in-place editing on Windows & Linux/GTK (there is no in-place editing working on OSX for wxDataViewCtrl for now).
-//    Bind(wxEVT_KEY_DOWN, &ObjectList::OnChar, this);
-    {
-        // Accelerators
-        // 	wxAcceleratorEntry entries[25];
-        wxAcceleratorEntry entries[26];
-        int index = 0;
-        entries[index++].Set(wxACCEL_CTRL, (int)'C', wxID_COPY);
-        entries[index++].Set(wxACCEL_CTRL, (int)'X', wxID_CUT);
-        entries[index++].Set(wxACCEL_CTRL, (int)'V', wxID_PASTE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'M', wxID_DUPLICATE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'A', wxID_SELECTALL);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Z', wxID_UNDO);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Y', wxID_REDO);
-        entries[index++].Set(wxACCEL_NORMAL, WXK_BACK, wxID_DELETE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('+'), wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_ADD, wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, int('-'), wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_SUBTRACT, wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('p'), wxID_PRINT);
-
-        int numbers_cnt = 0;
-        for (auto char_number : { '1', '2', '3', '4', '5', '6', '7', '8', '9' }) {
-            entries[index + numbers_cnt].Set(wxACCEL_NORMAL, int(char_number), wxID_LAST + numbers_cnt+1);
-            entries[index + 9 + numbers_cnt].Set(wxACCEL_NORMAL, WXK_NUMPAD0 + numbers_cnt - 1, wxID_LAST + numbers_cnt+1);
-            numbers_cnt++;
-            // index++;
-        }
-        wxAcceleratorTable accel(26, entries);
-        SetAcceleratorTable(accel);
-
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->copy();                      }, wxID_COPY);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->paste();                     }, wxID_PASTE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->select_item_all_children();  }, wxID_SELECTALL);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->remove();                    }, wxID_DELETE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->undo();  					}, wxID_UNDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->redo();                    	}, wxID_REDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->cut();                    	}, wxID_CUT);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->clone();                    	}, wxID_DUPLICATE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->increase_instances();        }, wxID_ADD);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->decrease_instances();        }, wxID_REMOVE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->toggle_printable_state();    }, wxID_PRINT);
-
-        for (int i = 1; i < 10; i++)
-            this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
-                if (filaments_count() > 1 && i <= filaments_count())
-                    this->set_extruder_for_selected_items(i);
-            }, wxID_LAST+i);
-
-        m_accel = accel;
-    }
+    m_shortcut_id_base = wxWindow::NewControlId(int(Shortcut::Count));
+    for (size_t i = 0; i < size_t(Shortcut::Count); ++i)
+        this->Bind(wxEVT_MENU, [this, shortcut = Shortcut(i)](wxCommandEvent&) { dispatch_shortcut(shortcut); }, m_shortcut_id_base + int(i));
+    for (int i = 1; i < 10; i++)
+        this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
+            if (filaments_count() > 1 && i <= filaments_count())
+                this->set_extruder_for_selected_items(i);
+        }, wxID_LAST+i);
+    update_shortcut_accelerators();
 #else //__WXOSX__
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
@@ -1796,36 +1756,10 @@ void ObjectList::decrease_instances()
 #ifndef __WXOSX__
 void ObjectList::key_event(wxKeyEvent& event)
 {
-    //if (event.GetKeyCode() == WXK_TAB)
-    //    Navigate(event.ShiftDown() ? wxNavigationKeyEvent::IsBackward : wxNavigationKeyEvent::IsForward);
-    //else
-    if (event.GetKeyCode() == WXK_DELETE /*|| event.GetKeyCode() == WXK_BACK*/ )
-        remove();
-    //else if (event.GetKeyCode() == WXK_F5)
-    //    wxGetApp().plater()->reload_all_from_disk();
-    else if (wxGetKeyState(wxKeyCode('A')) && wxGetKeyState(WXK_CONTROL/*WXK_SHIFT*/))
-        select_item_all_children();
-    else if (wxGetKeyState(wxKeyCode('C')) && wxGetKeyState(WXK_CONTROL))
-        copy();
-    else if (wxGetKeyState(wxKeyCode('V')) && wxGetKeyState(WXK_CONTROL))
-        paste();
-    else if (wxGetKeyState(wxKeyCode('Y')) && wxGetKeyState(WXK_CONTROL))
-        redo();
-    else if (wxGetKeyState(wxKeyCode('Z')) && wxGetKeyState(WXK_CONTROL))
-        undo();
-    else if (wxGetKeyState(wxKeyCode('X')) && wxGetKeyState(WXK_CONTROL))
-        cut();
-    else if (wxGetKeyState(wxKeyCode('K')) && wxGetKeyState(WXK_CONTROL))
-        clone();
-    else if (event.GetUnicodeKey() == '+')
-        increase_instances();
-    else if (event.GetUnicodeKey() == '-')
-        decrease_instances();
-    else if (event.GetUnicodeKey() == 'p')
-        toggle_printable_state();
-    else if (event.GetUnicodeKey() == 'd')
-        toggle_auto_drop();
-    else if (filaments_count() > 1) {
+    const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::ObjectList, KeyChord::from_event(event));
+    if (shortcut.has_value() && dispatch_shortcut(*shortcut))
+        return;
+    if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();
         if (std::find(numbers.begin(), numbers.end(), key_char) != numbers.end()) {
@@ -1841,6 +1775,43 @@ void ObjectList::key_event(wxKeyEvent& event)
         event.Skip();
 }
 #endif /* __WXOSX__ */
+
+#ifdef __WXOSX__
+void ObjectList::update_shortcut_accelerators()
+{
+    std::vector<wxAcceleratorEntry> entries;
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    for (Shortcut shortcut : shortcuts_in(ShortcutContext::ObjectList))
+        if (const KeyChord chord = shortcuts.binding(shortcut); chord.valid())
+            entries.push_back(chord.to_accelerator_entry(m_shortcut_id_base + int(shortcut)));
+    for (int i = 1; i < 10; ++i) {
+        entries.emplace_back(wxACCEL_NORMAL, '0' + i, wxID_LAST + i);
+        entries.emplace_back(wxACCEL_NORMAL, WXK_NUMPAD0 + i, wxID_LAST + i);
+    }
+    m_accel = wxAcceleratorTable(int(entries.size()), entries.data());
+    SetAcceleratorTable(m_accel);
+}
+#endif /* __WXOSX__ */
+
+bool ObjectList::dispatch_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::DeleteSelected:  remove(); break;
+    case Shortcut::SelectAll:       select_item_all_children(); break;
+    case Shortcut::Copy:            copy(); break;
+    case Shortcut::Paste:           paste(); break;
+    case Shortcut::Cut:             cut(); break;
+    case Shortcut::Undo:            undo(); break;
+    case Shortcut::Redo:            redo(); break;
+    case Shortcut::CloneSelected:   clone(); break;
+    case Shortcut::AddInstance:     increase_instances(); break;
+    case Shortcut::RemoveInstance:  decrease_instances(); break;
+    case Shortcut::TogglePrintable: toggle_printable_state(); break;
+    case Shortcut::ToggleAutoDrop:  toggle_auto_drop(); break;
+    default: return false;
+    }
+    return true;
+}
 
 void ObjectList::OnBeginDrag(wxDataViewEvent &event)
 {

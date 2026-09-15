@@ -2,6 +2,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -449,7 +450,7 @@ bool GLGizmoMeasure::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_po
 
 bool GLGizmoMeasure::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_U;
+    m_shortcut = Shortcut::GizmoMeasure;
 
     const wxString shift = GUI::shortkey_shift_prefix();
 
