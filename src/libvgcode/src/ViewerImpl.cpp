@@ -1503,6 +1503,31 @@ void ViewerImpl::toggle_extrusion_role_visibility(EGCodeExtrusionRole role)
     m_settings.update_colors = true;
 }
 
+void ViewerImpl::set_all_extrusion_roles_visibility(bool visible)
+{
+    for (auto& v : m_settings.extrusion_roles_visibility)
+        v = visible;
+    update_view_full_range();
+    m_settings.update_enabled_entities = true;
+    m_settings.update_colors           = true;
+}
+
+void ViewerImpl::set_all_options_visibility(bool visible)
+{
+    const Interval old_enabled_range = m_view_range.get_enabled();
+    for (auto& v : m_settings.options_visibility)
+        v = visible;
+    update_view_full_range();
+    const Interval& new_enabled_range = m_view_range.get_enabled();
+    if (old_enabled_range != new_enabled_range) {
+        const Interval& visible_range = m_view_range.get_visible();
+        if (old_enabled_range == visible_range)
+            m_view_range.set_visible(new_enabled_range);
+    }
+    m_settings.update_enabled_entities = true;
+    m_settings.update_colors           = true;
+}
+
 void ViewerImpl::set_view_visible_range(Interval::value_type min, Interval::value_type max)
 {
     // force update of the full range, to avoid clamping the visible range with full old values

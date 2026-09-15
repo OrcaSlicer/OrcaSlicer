@@ -139,6 +139,14 @@ public:
     //
     // Reset the colors used to render the options to the default value.
     //
+    void set_all_extrusion_roles_visibility(bool visible);
+    //
+    // Set the visibility of all extrusion roles at once.
+    //
+    void set_all_options_visibility(bool visible);
+    //
+    // Set the visibility of all options at once.
+    //
     void reset_default_options_colors();
     //
     // Return the count of colors in the palette used to render
