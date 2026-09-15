@@ -127,9 +127,11 @@ public:
 
     bool is_option_visible(EOptionType type) const;
     void toggle_option_visibility(EOptionType type);
+    void set_all_extrusion_roles_visibility(bool visible);
 
     bool is_extrusion_role_visible(EGCodeExtrusionRole role) const;
     void toggle_extrusion_role_visibility(EGCodeExtrusionRole role);
+    void set_all_options_visibility(bool visible);
 
     const Interval& get_view_full_range() const { return m_view_range.get_full(); }
     const Interval& get_view_enabled_range() const { return m_view_range.get_enabled(); }

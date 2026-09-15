@@ -137,6 +137,16 @@ void Viewer::set_option_color(EOptionType type, const Color& color)
     m_impl->set_option_color(type, color);
 }
 
+void Viewer::set_all_extrusion_roles_visibility(bool visible)
+{
+    m_impl->set_all_extrusion_roles_visibility(visible);
+}
+
+void Viewer::set_all_options_visibility(bool visible)
+{ 
+    m_impl->set_all_options_visibility(visible);
+}
+
 void Viewer::reset_default_options_colors()
 {
     m_impl->reset_default_options_colors();
