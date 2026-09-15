@@ -91,6 +91,8 @@ public:
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
+    std::string emit_retract(double E, std::string comment);
+    std::string emit_unretract(double E, std::string comment);
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
