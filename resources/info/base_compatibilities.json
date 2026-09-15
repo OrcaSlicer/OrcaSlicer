@@ -1,0 +1,16 @@
+{
+	"version": "01.00.00.00",
+	"base_compatibilities": [
+		{
+			"base_material": "ABS",
+			"compatible": ["PC", "HIPS"],
+			"incompatible": ["PLA", "PET"]
+		},
+		{ "base_material": "PC", "compatible": ["ABS"], "incompatible": [] },
+		{ "base_material": "PLA", "compatible": [], "incompatible": ["PET"] },
+		{ "base_material": "PP", "compatible": [], "incompatible": ["*"] },
+		{ "base_material": "PET", "compatible": [], "incompatible": [] },
+		{ "base_material": "BVOH", "compatible": [], "incompatible": ["*"] },
+		{ "base_material": "PVA", "compatible": [], "incompatible": ["*"] }
+	]
+}

@@ -348,8 +348,10 @@ public:
     arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
-    std::vector<int> get_extruders(bool conside_custom_gcode = false) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config) const;
+    // full_config resolves "Auto" support filaments; callers holding one should pass it, since the fallback
+    // builds one from the preset bundle and that is not cheap.
+    std::vector<int> get_extruders(bool conside_custom_gcode = false, const DynamicPrintConfig *full_config = nullptr) const;
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, const DynamicPrintConfig *full_config = nullptr) const;
     // expand_mixed_slots = false keeps mixed filament slots as slots instead of their components.
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;

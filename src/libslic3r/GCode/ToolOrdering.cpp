@@ -11,6 +11,7 @@
 #include "LocalesUtils.hpp"
 #include "Utils.hpp"
 #include "I18N.hpp"
+#include "MaterialType.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -129,7 +130,9 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
         if (extrusions.has_infill()) {
             if (extrusions.has_solid_infill()) {
                 ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
+                if (role == erIroning && region.config().ironing_filament > 0)
+                    extruder = region.config().ironing_filament;
+                else if (role == erTopSolidInfill || role == erIroning)
                     extruder = region.config().top_surface_filament_id;
                 else if (role == erBottomSurface)
                     extruder = region.config().bottom_surface_filament_id;
@@ -395,18 +398,74 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
-    if (m_print_config_ptr->wipe_tower_filament == 0)
-        return false;
 
-    bool changed = false;
-    const unsigned int wipe_extruder = (unsigned int)(m_print_config_ptr->wipe_tower_filament - 1);
-    for (LayerTools &lt : m_layer_tools) {
-        if (lt.wipe_tower_partitions > 0) {
-            if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) == lt.extruders.end()) {
-                lt.extruders.emplace_back(wipe_extruder);
-                changed = true;
+    const bool   auto_mode     = m_print_config_ptr->wipe_tower_filament == 0;
+    const size_t num_extruders = m_print_config_ptr->filament_type.values.size();
+    int          resolved_extruder;
+    if (!auto_mode) {
+        resolved_extruder = m_print_config_ptr->wipe_tower_filament - 1;
+    } else {
+        // The BBL wipe tower (generate_new) keeps its walls consistent through its own
+        // adhesiveness-category blocks; only the generic tower needs a forced filament.
+        if (!m_print || m_print->wipe_tower_type() != WipeTowerType::Type2)
+            return false;
+        // Auto: the print's most used filament, so the tower is built from one consistent material.
+        // Filaments are weighted by the number of layers they appear on; soluble and support never qualify.
+        std::vector<size_t> layers_per_extruder(num_extruders, 0);
+        for (const LayerTools &lt : m_layer_tools)
+            for (unsigned int extruder_id : lt.extruders)
+                if (extruder_id < num_extruders && ! m_print_config_ptr->filament_soluble.get_at(extruder_id) &&
+                    ! m_print_config_ptr->filament_is_support.get_at(extruder_id))
+                    ++ layers_per_extruder[extruder_id];
+
+        // Weigh the type first: one material split across two spools would otherwise lose to a single
+        // filament of a material the print uses less.
+        auto layers_of_type = [&](const std::string &type) {
+            size_t count = 0;
+            for (size_t e = 0; e < num_extruders; ++e)
+                if (layers_per_extruder[e] > 0 && m_print_config_ptr->filament_type.get_at(e) == type)
+                    count += layers_per_extruder[e];
+            return count;
+        };
+        resolved_extruder      = -1;
+        size_t best_type_count = 0, best_count = 0;
+        for (size_t e = 0; e < num_extruders; ++e) {
+            if (layers_per_extruder[e] == 0)
+                continue;
+            const size_t type_count = layers_of_type(m_print_config_ptr->filament_type.get_at(e));
+            if (type_count > best_type_count || (type_count == best_type_count && layers_per_extruder[e] > best_count)) {
+                best_type_count   = type_count;
+                best_count        = layers_per_extruder[e];
+                resolved_extruder = int(e);
             }
         }
+        if (resolved_extruder < 0)
+            return false;
+    }
+    m_wipe_tower_extruder = resolved_extruder; // expose the resolved filament (see wipe_tower_extruder())
+
+    const unsigned int wipe_extruder = (unsigned int)resolved_extruder;
+    // A layer already printing a filament that bonds with the resolved one can finish the tower with that
+    // instead of changing back. That only depends on the filament, so resolve it once rather than per layer.
+    std::vector<char> can_finish_tower;
+    if (auto_mode) {
+        const std::string &wipe_type = m_print_config_ptr->filament_type.get_at(wipe_extruder);
+        can_finish_tower.resize(num_extruders, false);
+        for (size_t e = 0; e < can_finish_tower.size(); ++e)
+            can_finish_tower[e] = ! m_print_config_ptr->filament_soluble.get_at(e) && ! m_print_config_ptr->filament_is_support.get_at(e) &&
+                                  MaterialType::bonds(m_print_config_ptr->filament_type.get_at(e), wipe_type);
+    }
+
+    bool changed = false;
+    for (LayerTools &lt : m_layer_tools) {
+        if (lt.wipe_tower_partitions <= 0 || lt.has_extruder(wipe_extruder))
+            continue;
+        // Only force the change when the layer prints nothing compatible.
+        if (auto_mode && std::any_of(lt.extruders.begin(), lt.extruders.end(),
+                                     [&can_finish_tower](unsigned int e) { return e < can_finish_tower.size() && can_finish_tower[e]; }))
+            continue;
+        lt.extruders.emplace_back(wipe_extruder);
+        changed = true;
     }
     return changed;
 }
@@ -497,6 +556,7 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
 
     // Collect extruders reuqired to print the layers. Add dontcare extruders
     this->collect_extruders(object, std::vector<std::pair<double, unsigned int>>());
+    this->ensure_dontcare_support_extruders(object);
 
     // BBS
     // Reorder the extruders to minimize tool switches.
@@ -560,6 +620,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())
         this->collect_extruders(*object, per_layer_extruder_switches);
+    // Custom per-layer tool changes (MultiAsSingle) fully dictate the extruder per layer; do not fight them.
+    if (per_layer_extruder_switches.empty())
+        for (auto object : print.objects())
+            this->ensure_dontcare_support_extruders(*object);
 
     // Reorder the extruders to minimize tool switches.
     std::vector<unsigned int> first_layer_tool_order;
@@ -740,6 +804,31 @@ void ToolOrdering::initialize_layers(std::vector<coordf_t> &zs)
 }
 
 // Collect extruders reuqired to print layers.
+// Which support roles does this layer carry? collect_extruders() and ensure_dontcare_support_extruders()
+// classify the same entities, and GCode::process_layer() has to agree with both.
+struct SupportRoles {
+    bool base      = false; // erSupportMaterial / erSupportTransition
+    bool interface_ = false;
+    bool ironing   = false;
+};
+
+static SupportRoles support_roles_of(const SupportLayer &support_layer)
+{
+    SupportRoles roles;
+    for (const ExtrusionEntity *ee : support_layer.support_fills.entities) {
+        switch (ee->role()) {
+        case erSupportMaterial:
+        case erSupportTransition:          roles.base       = true; break;
+        case erSupportMaterialInterface:   roles.interface_ = true; break;
+        case erIroning:                    roles.ironing    = true; break;
+        default: break;
+        }
+        if (roles.base && roles.interface_ && roles.ironing)
+            break;
+    }
+    return roles;
+}
+
 void ToolOrdering::collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches)
 {
     // Extruder overrides are ordered by print_z.
@@ -831,12 +920,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             bool has_internal_solid     = false;
             bool has_top_solid_surface  = false;
             bool has_bottom_surface     = false;
+            bool has_ironing            = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (role == erTopSolidInfill || role == erIroning)
+                if (role == erIroning)
+                    has_ironing = true;
+                else if (role == erTopSolidInfill)
                     has_top_solid_surface = true;
                 else if (role == erBottomSurface)
                     has_bottom_surface = true;
@@ -857,14 +949,18 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                         layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
                     if (has_top_solid_surface)
                         layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
+                    // "Default" (0) irons with the top surface filament.
+                    if (has_ironing)
+                        layer_tools.extruders.emplace_back(region.config().ironing_filament > 0 ? region.config().ironing_filament.value :
+                                                                                                  region.config().top_surface_filament_id.value);
                     if (has_bottom_surface)
                         layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
 	                if (has_infill)
 	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_ironing)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_ironing)
                 layer_tools.has_object = true;
         }
 
@@ -924,17 +1020,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     // Collect the support extruders.
     for (auto support_layer : object.support_layers()) {
         LayerTools   &layer_tools   = this->tools_for_layer(support_layer->print_z);
-        ExtrusionRole role          = support_layer->support_fills.role();
-        bool          has_support   = false;
-        bool          has_interface = false;
-        for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
-            ExtrusionRole er = ee->role();
-            if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
-            if (er == erSupportMaterialInterface) has_interface = true;
-            if (has_support && has_interface) break;
-        }
+        ExtrusionRole      role   = support_layer->support_fills.role();
+        const SupportRoles roles  = support_roles_of(*support_layer);
+        const bool  has_support   = roles.base;
+        const bool  has_interface = roles.interface_;
+        const bool  has_ironing   = roles.ironing;
         unsigned int extruder_support   = object.config().support_filament.value;
         unsigned int extruder_interface = object.config().support_interface_filament.value;
+        // Support ironing extruder; "Default" (0) follows the interface filament.
+        unsigned int extruder_ironing   = object.config().support_ironing_filament.value;
         if (has_support) {
             if (extruder_support > 0 || !has_interface || extruder_interface == 0 || layer_tools.has_object)
                 layer_tools.extruders.push_back(extruder_support);
@@ -964,6 +1058,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
         }
         if (has_interface) layer_tools.extruders.push_back(extruder_interface);
+        if (has_ironing) layer_tools.extruders.push_back(extruder_ironing > 0 ? extruder_ironing : extruder_interface);
         if (has_support || has_interface) {
             layer_tools.has_support = true;
             layer_tools.wiping_extrusions().is_support_overriddable_and_mark(role, object);
@@ -977,6 +1072,46 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         // make sure that there are some tools for each object layer (e.g. tall wiping object will result in empty extruders vector)
         if (layer.extruders.empty() && layer.has_object)
             layer.extruders.emplace_back(0); // 0="dontcare" extruder - it will be taken care of in reorder_extruders
+    }
+}
+
+// "Don't care" (Default) support resolves in GCode::process_layer() to the object's own filament, or to a
+// bonding one already printing on the layer. Where neither is planned, the object's filament has to be added
+// here: support assigned to an unplanned extruder is dropped silently, leaving a gap.
+// Must run after collect_extruders() for all objects, and before handle_dontcare_extruder().
+void ToolOrdering::ensure_dontcare_support_extruders(const PrintObject &object)
+{
+    const bool support_dontcare   = object.config().support_filament.value == 0;
+    const bool interface_dontcare = object.config().support_interface_filament.value == 0;
+    if (!support_dontcare && !interface_dontcare)
+        return;
+
+    // The object's own filament, 1-based. If unknown, process_layer() falls back to the layer's first
+    // extruder, which is always planned.
+    unsigned int object_extruder = 0;
+    if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
+        object_extruder = obj_extruders.front() + 1;
+    if (object_extruder == 0)
+        return;
+
+    // Which filaments process_layer() would accept is a property of the filament, not of the layer.
+    const PrintConfig &config      = object.print()->config();
+    const std::string &object_type = config.filament_type.get_at(object_extruder - 1);
+    std::vector<char>  resolves_to_object(config.filament_type.values.size() + 1, false); // indexed 1-based, as layer_tools.extruders is here
+    for (size_t e = 1; e < resolves_to_object.size(); ++e)
+        resolves_to_object[e] = e == object_extruder || MaterialType::bonds(config.filament_type.get_at(e - 1), object_type);
+
+    for (const SupportLayer *support_layer : object.support_layers()) {
+        const SupportRoles roles = support_roles_of(*support_layer);
+        if (!(roles.base && support_dontcare) && !(roles.interface_ && interface_dontcare))
+            continue;
+        LayerTools &layer_tools = tools_for_layer(support_layer->print_z);
+        // Extruder 0 is the "don't care" marker, and is never a candidate.
+        if (std::any_of(layer_tools.extruders.begin(), layer_tools.extruders.end(),
+                        [&resolves_to_object](unsigned int e) { return e > 0 && e < resolves_to_object.size() && resolves_to_object[e]; }))
+            continue;
+        layer_tools.extruders.push_back(object_extruder);
+        sort_remove_duplicates(layer_tools.extruders);
     }
 }
 

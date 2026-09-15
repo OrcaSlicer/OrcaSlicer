@@ -14,6 +14,7 @@
 
 #include "ColorDecomposeRecipe.hpp"
 #include "FilamentMixerModel.hpp"
+#include "MaterialType.hpp"
 #include "LocalesUtils.hpp"
 
 namespace Slic3r {
@@ -500,6 +501,21 @@ void remap_mixed_components_on_delete(
     }
 }
 
+bool mixed_filament_types_compatible(const std::string &type_a, const std::string &type_b)
+{
+    if (type_a == type_b)
+        return true;
+    // A support-flagged filament reads as "<type>-S" here (see DynamicPrintConfig::get_filament_type) and
+    // is made to peel off whatever it touches, so it blends only with itself. MaterialType knows its base
+    // material, not the support variant, and would report the two as the same family.
+    auto is_support_variant = [](const std::string &type) {
+        return type.size() >= 2 && type.compare(type.size() - 2, 2, "-S") == 0;
+    };
+    if (is_support_variant(type_a) || is_support_variant(type_b))
+        return false;
+    return MaterialType::compatibility(type_a, type_b) != MaterialCompatibility::Incompatible;
+}
+
 std::vector<size_t> check_mixed_filament_type_consistency(
     const std::vector<unsigned char> &is_mixed,
     const std::vector<std::string>   &comp_strs,
@@ -512,19 +528,23 @@ std::vector<size_t> check_mixed_filament_type_consistency(
         auto comps = parse_mixed_components(comp_strs[i]);
         if (comps.size() < 2) continue;
 
-        std::string ref_type;
-        bool mismatch = false;
+        // Every pair of components has to bond, so compare them pairwise rather than against the
+        // first one: compatibility is not transitive (A may bond with B and B with C while A and C
+        // are known not to).
+        std::vector<std::string> types;
         for (unsigned int c : comps) {
             if (c == 0) continue; // sentinel for deleted component
             size_t idx = static_cast<size_t>(c) - 1; // 1-based -> 0-based
-            if (idx >= filament_types.size()) continue;
-            if (ref_type.empty())
-                ref_type = filament_types[idx];
-            else if (filament_types[idx] != ref_type) {
-                mismatch = true;
-                break;
-            }
+            if (idx < filament_types.size())
+                types.push_back(filament_types[idx]);
         }
+        bool mismatch = false;
+        for (size_t a = 0; a < types.size() && !mismatch; ++a)
+            for (size_t b = a + 1; b < types.size(); ++b)
+                if (!mixed_filament_types_compatible(types[a], types[b])) {
+                    mismatch = true;
+                    break;
+                }
         if (mismatch)
             result.push_back(i);
     }

@@ -456,3 +456,128 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
 }
+
+// A support filament is picked for NOT bonding - that is how the support detaches, and it is exactly what
+// "Auto" support filament selects for. Applying the material-bonding rule to it would reject the prints the
+// setting was made for. The temperature rules still apply: those are about running the two in one hotend.
+TEST_CASE("A filament used only for support is exempt from the material bonding rule", "[Print][SupportFilament]")
+{
+    // PLA object, PETG support: known-incompatible, which is the property support wants.
+    const std::vector<std::string> types       = { "PLA", "PETG" };
+    const std::vector<int>         temps       = { 220, 240 };
+    const std::vector<int>         range_lows  = { 190, 220 };
+    const std::vector<int>         range_highs = { 250, 260 };
+
+    SECTION("both printing object geometry is still rejected") {
+        CHECK(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs) ==
+              FilamentCompatibilityType::IncompatibleMaterials);
+    }
+    SECTION("the second used only for support is accepted") {
+        CHECK(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs, { 0, 1 }) ==
+              FilamentCompatibilityType::Compatible);
+    }
+    SECTION("a support-only filament outside the object's temperature range is still flagged") {
+        // The exemption covers bonding only. Printing the support filament at 300 puts it above the object
+        // filament's 250 max, which the temperature rule must still catch.
+        const std::vector<int> hot_temps       = { 220, 300 };
+        const std::vector<int> hot_range_highs = { 250, 320 };
+        CHECK(Print::check_multi_filaments_compatibility(types, hot_temps, range_lows, hot_range_highs, { 0, 1 }) ==
+              FilamentCompatibilityType::HighLowMixed);
+    }
+    SECTION("a PETG support interface under a PLA object slices") {
+        // End to end: one nozzle, so check_multi_filament_valid runs and would block the print outright.
+        // Filament 2 prints nothing but the support interface.
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
+            { "filament_type",              "PLA;PETG" },
+            { "enable_support",             "1"        },
+            { "support_interface_filament", "2"        },
+        });
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+    SECTION("a filament that also prints object geometry stays checked") {
+        // The same PETG, now used for a top surface as well: it bonds to the object there, so the rule
+        // applies and the print is rejected.
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
+            { "filament_type",              "PLA;PETG" },
+            { "enable_support",             "1"        },
+            { "support_interface_filament", "2"        },
+            { "top_surface_filament_id",    "2"        },
+        });
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("materials are incompatible") != std::string::npos);
+    }
+}
+
+// Everything inside one object is fused together, so its materials have to bond - the opposite of the support
+// filaments, which are picked for NOT bonding. Covers both a per-feature pick (ironing here) and a modifier
+// volume on its own filament, runs on every printer (a second nozzle does not keep the two apart inside one
+// part) and never blocks: the pairing may be deliberate.
+TEST_CASE("An object printed with materials that do not bond warns", "[Print]")
+{
+    // One nozzle per filament, so the general filament-mixing check does not fire first: the materials never
+    // share a hotend, and only the contact inside the object is left to object to.
+    auto object_config = [](const char *filament_types) {
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "single_extruder_multi_material", 0 },
+            { "filament_type",                  filament_types },
+        });
+        config.set_key_value("layer_change_gcode", new ConfigOptionString("G92 E0\n")); // validate() relative-E reset
+        return config;
+    };
+    auto ironing_config = [&object_config](const char *filament_types) {
+        DynamicPrintConfig config = object_config(filament_types);
+        config.set_deserialize_strict({ { "ironing_type", "top" }, { "ironing_filament", 2 }, { "top_surface_filament_id", 1 } });
+        return config;
+    };
+    // The config also trips unrelated warnings, so count only the material ones. The messages are the shared
+    // filament-compatibility vocabulary: "materials are incompatible" for a known bad pair, "may not bond" for
+    // an unknown one.
+    auto bonding_warnings = [](const std::vector<StringObjectException> &warnings, const std::string &phrase) {
+        return std::count_if(warnings.begin(), warnings.end(),
+            [&phrase](const StringObjectException &w) { return w.string.find(phrase) != std::string::npos; });
+    };
+
+    SECTION("bonding materials pass") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PLA;PLA-CF"), warnings);
+        CHECK(error.string.empty());
+        CHECK(bonding_warnings(warnings, "delaminate") == 0);
+    }
+    SECTION("an ironing filament that does not bond to the surface warns") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PLA;PETG"), warnings);
+        CHECK(error.string.empty());
+        CHECK(bonding_warnings(warnings, "materials are incompatible") == 1);
+    }
+    SECTION("unknown bonding warns too") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PET;TPU"), warnings);
+        CHECK(error.string.empty());
+        CHECK(bonding_warnings(warnings, "may not bond") == 1);
+    }
+    SECTION("a modifier volume on an incompatible filament warns") {
+        // A modifier carving into the part, printed with the second filament: no feature filament is set, the
+        // two materials meet only because the modifier region sits inside the object.
+        Slic3r::Model model;
+        Slic3r::Print print;
+        ModelObject *object = model.add_object();
+        object->name = "modified cube";
+        object->add_volume(cube(20));
+        ModelVolume *modifier = object->add_volume(cube(10), ModelVolumeType::PARAMETER_MODIFIER);
+        modifier->config.set_key_value("extruder", new ConfigOptionInt(2));
+        object->add_instance();
+        object->ensure_on_bed();
+        print.auto_assign_extruders(object);
+        print.apply(model, object_config("PLA;ABS"));
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = print.validate(&warnings);
+        CHECK(error.string.empty());
+        REQUIRE(bonding_warnings(warnings, "materials are incompatible") == 1);
+        CHECK(warnings.front().object == print.model().objects.front());
+    }
+}
