@@ -139,6 +139,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginProgressDialog.hpp
     GUI/PluginWebDialog.cpp
     GUI/PluginWebDialog.hpp
+    GUI/PluginDockPanel.cpp
+    GUI/PluginDockPanel.hpp
+    GUI/PluginWebPanel.cpp
+    GUI/PluginWebPanel.hpp
+    GUI/Widgets/PluginWebContent.cpp
+    GUI/Widgets/PluginWebContent.hpp
+    GUI/Widgets/AuiPaneLayout.cpp
+    GUI/Widgets/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp

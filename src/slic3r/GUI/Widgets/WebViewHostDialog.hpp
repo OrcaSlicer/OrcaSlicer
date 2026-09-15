@@ -52,6 +52,8 @@ public:
     // Shared by modeless Pages tabs and PluginWebDialog.
     static std::string theme_user_script();
     static std::string plugin_defaults_user_script();
+    // Re-themes an already-loaded page in place, for web views hosted outside a dialog.
+    static std::string theme_apply_script();
 
 protected:
     wxWebView* browser() const { return m_browser; }
