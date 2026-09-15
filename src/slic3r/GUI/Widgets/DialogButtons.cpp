@@ -31,6 +31,11 @@ DialogButtons::DialogButtons(wxWindow* parent, std::vector<wxString> non_transla
     SetSizer(m_sizer);
 
     UpdateButtons();
+
+    // Give the primary button the initial keyboard focus, so that Enter confirms the dialog.
+    // UpdateButtons() runs again on every DPI change, so the request belongs here and not in SetPrimaryButton().
+    if (m_primary_button != nullptr)
+        m_primary_button->SetFocusOnShow();
 }
 
 DialogButtons::~DialogButtons() {
@@ -100,12 +105,9 @@ void DialogButtons::SetPrimaryButton(wxString translated_label) {
 
     if(btn == nullptr) return;
 
-    m_primary = translated_label;
+    m_primary        = translated_label;
+    m_primary_button = btn;
 
-    // apply focus only if there is no focused element exist. this prevents stealing focus from input boxes
-    if(m_parent->FindFocus() == nullptr)
-        btn->SetFocus();
- 
     btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 }
 

@@ -148,7 +148,7 @@ void MsgDialog::SetButtonLabel(wxWindowID btn_id, const wxString& label, bool se
     if (Button* btn = get_button(btn_id)) {
         btn->SetLabel(label);
         if (set_focus)
-            btn->SetFocus();
+            btn->SetFocusOnShow();
     }
 }
 
@@ -184,7 +184,7 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
     }
 
     if (set_focus)
-        btn->SetFocus();
+        btn->SetFocusOnShow();
     btn_sizer->Add(btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
     btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent&) { EndModal(btn_id); });
 
