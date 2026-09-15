@@ -46,7 +46,8 @@ inline void export_thumbnails_to_file(ThumbnailsGeneratorCallback&              
                                       int                                                         plate_id,
                                       const std::vector<std::pair<GCodeThumbnailsFormat, Vec2d>>& thumbnails_list,
                                       WriteToOutput                                               output,
-                                      ThrowIfCanceledCallback                                     throw_if_canceled)
+                                      ThrowIfCanceledCallback                                     throw_if_canceled,
+                                      bool                                                        show_bed_in_gcode)
 {
     // Write thumbnails using base64 encoding
     if (thumbnail_cb == nullptr)
@@ -55,7 +56,7 @@ inline void export_thumbnails_to_file(ThumbnailsGeneratorCallback&              
     bool first_ColPic = true;
     for (const auto& [format, size] : thumbnails_list) {
         static constexpr const size_t max_row_length = 78;
-        ThumbnailsList                thumbnails     = thumbnail_cb(ThumbnailsParams{{size}, true, true, true, true, plate_id});
+        ThumbnailsList                thumbnails     = thumbnail_cb(ThumbnailsParams{{size}, true, true, show_bed_in_gcode, true, plate_id});
         for (const ThumbnailData &data : thumbnails) {
             if (data.is_valid()) {
                 auto compressed = compress_thumbnail(data, format);

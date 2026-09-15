@@ -685,9 +685,10 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
     }
 
     if (!m_model.get_filename().empty()) {
-        const Camera &     camera      = wxGetApp().plater()->get_camera();
-        const Transform3d &view_matrix = camera.get_view_matrix();
-        const Transform3d &projection_matrix = camera.get_projection_matrix();
+        // Orca: removed since view_matrix and projection_matrix are already being passed into the function
+        //const Camera &     camera      = wxGetApp().plater()->get_camera();
+        //const Transform3d &view_matrix = camera.get_view_matrix();
+        //const Transform3d &projection_matrix = camera.get_projection_matrix();
         GLShaderProgram* shader = wxGetApp().get_shader("hotbed");
         if (shader != nullptr) {
             shader->start_using();
