@@ -14,6 +14,7 @@ on:
      - 'localization/**'
      - 'resources/**'
      - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
      - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
@@ -30,6 +31,7 @@ on:
      - '**/CMakeLists.txt'
      - 'version.inc'
      - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
      - 'build_linux.sh'
      - 'build_release_vs.bat'
      - 'build_release_vs2022.bat'
