@@ -60,6 +60,7 @@ class PartPlateList;
 #ifdef SLIC3R_CAD
 class DesignSketchTool;   // Design tab: interactive 2D sketch tool
 #endif
+struct KeyChord;
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -610,7 +611,23 @@ private:
     bool m_dynamic_background_enabled;
     bool m_multisample_allowed;
     bool m_moving;
-    bool m_tab_down;
+    // The key-down being dispatched, kept for the char event that may follow it.
+    struct KeyDown
+    {
+        int  code   = WXK_NONE;
+        bool repeat = false;
+    };
+    KeyDown m_key_down;
+    // A keyboard move or rotation of the selection runs from the key-down that started it to
+    // that key's release, so a held key becomes one undo step.
+    struct SelectionEdit
+    {
+        enum Kind { None, Move, Rotate };
+        Kind  kind = None;
+        int   key  = WXK_NONE;   // raw key code of the key-down, matched against the key-up
+        Vec3d direction{ Vec3d::UnitX() };
+    };
+    SelectionEdit m_selection_edit;
     bool m_camera_movement;
     //BBS: add toolpath outside
     bool m_toolpath_outside{ false };
@@ -1073,6 +1090,13 @@ public:
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
+    // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
+    // shortcuts; false when nothing is bound.
+    bool handle_shortcut(const KeyChord& chord);
+    void apply_selection_move(bool slow, bool camera_space);
+    void apply_selection_rotate(double angle_z_rad);
+    void finish_selection_edit();
+    void update_shortcut_tooltips();
     void on_mouse_wheel(wxMouseEvent& evt);
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);

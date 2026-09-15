@@ -3,6 +3,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "BindDialog.hpp"
 #include "DeviceManager.hpp"
 #include "HMS.hpp"
@@ -1120,6 +1121,8 @@ GUI_App::GUI_App()
 {
 	//app config initializes early becasuse it is used in instance checking in OrcaSlicer.cpp
     this->init_app_config();
+    m_shortcuts = std::make_unique<ShortcutRegistry>();
+    m_shortcuts->load(*app_config);
     this->init_download_path();
     // Note: the WebView2 runtime check (init_webview_runtime) used to run here, but
     // the constructor executes before wxWidgets is fully initialized and before the
@@ -4681,6 +4684,22 @@ void GUI_App::keyboard_shortcuts()
 {
     KBShortcutsDialog dlg;
     dlg.ShowModal();
+}
+
+void GUI_App::on_shortcuts_changed()
+{
+    m_shortcuts->save(*app_config);
+    app_config->save();
+    if (mainframe == nullptr)
+        return;
+    mainframe->update_shortcut_labels();
+    if (Plater* plater = this->plater(); plater != nullptr) {
+        if (GLCanvas3D* canvas = plater->get_view3D_canvas3D(); canvas != nullptr)
+            canvas->update_shortcut_tooltips();
+#ifdef __WXOSX__
+        obj_list()->update_shortcut_accelerators();
+#endif
+    }
 }
 
 void GUI_App::troubleshoot()
