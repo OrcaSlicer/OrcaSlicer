@@ -761,7 +761,9 @@ std::tuple<ObjectPart, float> build_object_part_from_slice(const size_t &slice_i
         //  thus has lower adhesion. For now this effect will be neglected.
         ExPolygon  slice_poly = layer->lslices[slice_idx];
         ExPolygons brim;
-        if (params.brim_type == BrimType::btOuterAndInner || params.brim_type == BrimType::btOuterOnly) {
+        // btLeadingEdgeOnly degrades to an outer brim off belt printers (see Brim.cpp).
+        if (params.brim_type == BrimType::btOuterAndInner || params.brim_type == BrimType::btOuterOnly
+            || params.brim_type == BrimType::btLeadingEdgeOnly) {
             Polygon brim_hole = slice_poly.contour;
             brim_hole.reverse();
             Polygons c = expand(slice_poly.contour, scale_(params.brim_width)); // For very small polygons, the expand may result in empty vector, even thought the input is correct.

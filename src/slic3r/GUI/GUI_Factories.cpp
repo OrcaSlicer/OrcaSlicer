@@ -63,6 +63,7 @@ static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF =
     { L("Support")     , { "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap",
                                     "support_base_pattern", "support_on_build_plate_only","support_critical_regions_only",
                                     "support_remove_small_overhang",
+                                    "build_plate_tilt_x", "build_plate_tilt_y",
                                     "support_base_pattern_spacing", "support_expansion"}},
     //BBS
     { L("Flush options")         , { "flush_into_infill", "flush_into_objects", "flush_into_support"} }
@@ -85,14 +86,15 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
                     {"precise_z_height", "",10}
                     }},
-    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_flow_ratio", "",4},{"brim_use_efc_outline", "",5},
-                    {"enable_support", "",6},{"support_type", "",7},{"support_threshold_angle", "",8}, {"support_threshold_overlap", "",9}, {"support_on_build_plate_only", "",10},
-                    {"support_filament", "",11},{"support_interface_filament", "",12},{"support_expansion", "",13},{"support_style", "",14},
-                    {"tree_support_brim_width", "",15}, {"tree_support_branch_angle", "",16},{"tree_support_branch_angle_organic","",17}, {"tree_support_wall_count", "",18},{"tree_support_branch_diameter_angle", "",19},//tree support
-                    {"support_bottom_z_distance", "",20},{"support_top_z_distance", "",21},{"support_base_pattern", "",22},{"support_base_pattern_spacing", "",23},
-                    {"support_interface_top_layers", "",24},{"support_interface_bottom_layers", "",25},{"support_interface_spacing", "",26},{"support_bottom_interface_spacing", "",27},
-                    {"support_object_xy_distance", "",28}, {"bridge_no_support", "",29},{"max_bridge_length", "",30},{"support_critical_regions_only", "",31},{"support_remove_small_overhang","",32},
-                    {"support_object_first_layer_gap","",33}
+    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"leading_brim_length", "",3},{"extra_brim_width", "",4},{"brim_object_gap", "",5},{"brim_flow_ratio", "",6},{"brim_use_efc_outline", "",7},
+                    {"enable_support", "",8},{"support_type", "",9},{"support_threshold_angle", "",10}, {"support_threshold_overlap", "",11}, {"support_on_build_plate_only", "",12},
+                    {"support_filament", "",13},{"support_interface_filament", "",14},{"support_expansion", "",15},{"support_style", "",16},
+                    {"tree_support_brim_width", "",17}, {"tree_support_branch_angle", "",18},{"tree_support_branch_angle_organic","",19}, {"tree_support_wall_count", "",20},{"tree_support_branch_diameter_angle", "",21},//tree support
+                    {"support_bottom_z_distance", "",22},{"support_top_z_distance", "",23},{"support_base_pattern", "",24},{"support_base_pattern_spacing", "",25},
+                    {"support_interface_top_layers", "",26},{"support_interface_bottom_layers", "",27},{"support_interface_spacing", "",28},{"support_bottom_interface_spacing", "",29},
+                    {"support_object_xy_distance", "",30}, {"bridge_no_support", "",31},{"max_bridge_length", "",32},{"support_critical_regions_only", "",33},{"support_remove_small_overhang","",34},
+                    {"build_plate_tilt_x","",35},{"build_plate_tilt_y","",36},
+                    {"support_object_first_layer_gap","",37}
                     }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
                   }}
@@ -1651,7 +1653,7 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     while (menu->GetMenuItemCount() > 0)
         menu->Destroy(menu->FindItemByPosition(0));
 
-    //if (init) { // 
+    //if (init) { //
         append_menu_item(
             menu, wxID_ANY, _L("Edit"), "", [](wxCommandEvent&) {
                 plater()->sidebar().edit_filament(); }, "", nullptr,

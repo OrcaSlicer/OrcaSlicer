@@ -720,9 +720,31 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const bool gcf_is_marlin_firmware = gcflavor == GCodeFlavor::gcfMarlinFirmware;
     const bool gcf_is_klipper = gcflavor == GCodeFlavor::gcfKlipper;
 
+    // Belt printer: detect early since it affects multiple toggle decisions below.
+    // `is_belt_tilted` is the stricter test that mirrors PrintObject::has_belt_brim():
+    // only a tilted belt gets the belt-plane brim, while a belt printer with no
+    // rotation is geometrically a flat bed and keeps the ordinary plate brim.
+    bool is_belt_printer = false;
+    bool is_belt_tilted  = false;
+    {
+        const auto &printer_cfg = preset_bundle->printers.get_edited_preset().config;
+        const auto *belt_opt = printer_cfg.option<ConfigOptionBool>("belt_printer");
+        if (belt_opt)
+            is_belt_printer = belt_opt->value;
+        const auto *axis  = printer_cfg.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+        const auto *angle = printer_cfg.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+        if (is_belt_printer && axis != nullptr && angle != nullptr) {
+            // Same window as Print::has_tilted_belt(); shared constants so the GUI and
+            // the backend cannot drift apart.
+            const double tilt = std::abs(angle->value);
+            is_belt_tilted = (axis->value == BeltRotationAxis::X || axis->value == BeltRotationAxis::Y)
+                          && tilt >= BELT_BRIM_MIN_TILT_DEG && tilt <= BELT_BRIM_MAX_TILT_DEG;
+        }
+    }
+
     bool have_volumetric_extrusion_rate_slope = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope")->value > 0;
     float have_volumetric_extrusion_rate_slope_segment_length = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope_segment_length")->value;
-    toggle_field("enable_arc_fitting", !have_volumetric_extrusion_rate_slope);
+    toggle_field("enable_arc_fitting", !have_volumetric_extrusion_rate_slope && !is_belt_printer);
     toggle_line("max_volumetric_extrusion_rate_slope_segment_length", have_volumetric_extrusion_rate_slope);
     toggle_line("extrusion_rate_smoothing_external_perimeter_only", have_volumetric_extrusion_rate_slope);
     if(have_volumetric_extrusion_rate_slope) config->set_key_value("enable_arc_fitting", new ConfigOptionBool(false));
@@ -888,27 +910,47 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         }
     }
 
-    bool have_skirt = config->opt_int("skirt_loops") > 0;
+    // Belt printer: disable skirt, brim, raft, and draft shield controls.
+    bool have_skirt = config->opt_int("skirt_loops") > 0 && !is_belt_printer;
     toggle_field("skirt_height", have_skirt && config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
         toggle_field(el, have_skirt);
+    if (is_belt_printer) {
+        toggle_field("skirt_loops", false);
+        toggle_field("skirt_height", false);
+    }
 
-    bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
+    // Belt printers now get a brim too, laid onto the tilted belt by BeltBrim.cpp,
+    // so brim type / width / object gap all apply.  A belt printer with no tilt is
+    // geometrically a flat bed and uses the ordinary plate brim, hence the separate
+    // is_belt_tilted test.
+    bool have_brim = config->opt_enum<BrimType>("brim_type") != btNoBrim;
     toggle_field("brim_object_gap", have_brim);
-    toggle_field("brim_use_efc_outline", have_brim);
-    toggle_field("combine_brims", have_brim);
-    bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
+    // Both are first-layer-only concepts that the belt path cannot honour.
+    toggle_field("brim_use_efc_outline", have_brim && !is_belt_tilted);
+    toggle_field("combine_brims", have_brim && !is_belt_tilted);
+    bool have_brim_width = have_brim && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
-    toggle_field("brim_width", have_brim_width);
+    // On a tilted belt Auto / Mouse ear / Painted all collapse to outer-only at the
+    // configured width, so the width field has to stay live for them too.
+    toggle_field("brim_width", have_brim_width || (have_brim && is_belt_tilted));
     toggle_field("brim_flow_ratio", have_brim);
+    // Paired toggle_line + toggle_field: cb_toggle_line is null in the per-object
+    // override panel, so the row cannot be hidden there and greying out is the
+    // fallback.  Both extras are belt-only: one extends the brim ahead along the belt,
+    // the other widens it across the belt.
+    for (auto el : { "leading_brim_length", "extra_brim_width" }) {
+        toggle_line(el, is_belt_tilted);
+        toggle_field(el, is_belt_tilted && have_brim);
+    }
     // Wall filament selectors use the same logic as in Print::extruders().
     toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
     toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
 
     const BrimType brim_type = config->opt_enum<BrimType>("brim_type");
-    const bool have_auto_brim_ear = brim_type == btEar;
-    const bool have_painted_brim_ear = brim_type == btPainted;
+    const bool have_auto_brim_ear = brim_type == btEar && !is_belt_tilted;
+    const bool have_painted_brim_ear = brim_type == btPainted && !is_belt_tilted;
     set_option_label("brim_width", have_auto_brim_ear ? _L("Brim ear radius") : _L("Brim width"));
     const auto brim_width = config->opt_float("brim_width");
     // Automatic brim ear settings require a non-zero brim width.
@@ -923,7 +965,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
-    bool have_raft = config->opt_int("raft_layers") > 0;
+    bool have_raft = config->opt_int("raft_layers") > 0 && !is_belt_printer;
+    if (is_belt_printer)
+        toggle_field("raft_layers", false);
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
 
     SupportType support_type = config->opt_enum<SupportType>("support_type");
@@ -1031,11 +1075,19 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
 
     bool have_prime_tower = config->opt_bool("enable_prime_tower");
+    // ORCA-Belt: belt printers replace the classic wipe tower with the
+    // auto-generated belt purge prism, enabled by the belt-only printer option
+    // enable_belt_purge_tower. Its width (a process option) is only relevant
+    // then. (is_belt_printer is computed at the top of this function.)
+    const bool have_belt_purge_tower = is_belt_printer
+        && preset_bundle->printers.get_edited_preset().config.has("enable_belt_purge_tower")
+        && preset_bundle->printers.get_edited_preset().config.opt_bool("enable_belt_purge_tower");
+    toggle_line("belt_purge_tower_width", have_belt_purge_tower);
     for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
-        toggle_line(el, have_prime_tower);
+        toggle_line(el, have_prime_tower && !is_belt_printer);
 
     toggle_line("enable_tower_interface_cooldown_during_tower",
-                have_prime_tower && config->opt_bool("enable_tower_interface_features"));
+                have_prime_tower && !is_belt_printer && config->opt_bool("enable_tower_interface_features"));
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 
@@ -1043,17 +1095,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
                     "wipe_tower_bridging", "wipe_tower_extra_flow",
                     "wipe_tower_no_sparse_layers"})
-            toggle_line(el, have_prime_tower && supports_wipe_tower_2);
+            toggle_line(el, have_prime_tower && supports_wipe_tower_2 && !is_belt_printer);
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
-    bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;
-    toggle_line("wipe_tower_cone_angle", have_prime_tower && supports_wipe_tower_2 && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
+    bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower&&!is_belt_printer;
+    toggle_line("wipe_tower_cone_angle", have_prime_tower && supports_wipe_tower_2 && !is_belt_printer && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
     toggle_line("wipe_tower_extra_rib_length", have_rib_wall);
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
-    toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
+    toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall && !is_belt_printer);
 
-    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
+    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2 && !is_belt_printer);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 

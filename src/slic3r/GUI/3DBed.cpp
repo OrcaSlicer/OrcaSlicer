@@ -387,12 +387,19 @@ void Bed3D::render_internal(GLCanvas3D& canvas, const Transform3d& view_matrix, 
 
     m_model.set_color(m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR);
 
+    // Belt printer: bed rotation is applied inside render_model() and render_default()
+    // using m_is_belt_printer and m_belt_angle members.
+
     switch (m_type)
     {
     case Type::System: { render_system(canvas, view_matrix, projection_matrix, bottom); break; }
     default:
     case Type::Custom: { render_custom(canvas, view_matrix, projection_matrix, bottom); break; }
     }
+
+    render_gravity_arrow(view_matrix, projection_matrix);
+    render_slicing_arrow(view_matrix, projection_matrix);
+    render_slicing_plane(view_matrix, projection_matrix);
 
     glsafe(::glDisable(GL_DEPTH_TEST));
 }
@@ -692,7 +699,13 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
         if (shader != nullptr) {
             shader->start_using();
             shader->set_uniform("emission_factor", 0.0f);
-            const Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            // Belt printer: rotate the bed model about the tilt axis so the belt tilt
+            // is visible.  Negative angle: belt surface tilts downward away from the nozzle.
+            if (m_is_belt_printer && m_belt_angle > 0.f) {
+                double angle_rad = Geometry::deg2rad(static_cast<double>(m_belt_angle));
+                model_matrix = Eigen::AngleAxisd(-angle_rad, belt_tilt_unit_axis()) * model_matrix;
+            }
             shader->set_uniform("volume_world_matrix",  model_matrix);
             shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
             shader->set_uniform("projection_matrix", projection_matrix);
@@ -731,6 +744,173 @@ void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, co
         render_texture(bottom, canvas);*/
 }
 
+void Bed3D::render_gravity_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    // build_plate_tilt_{x,y} are kept in sync with the belt tilt (see TabPrinter), so
+    // reading them here covers both belt and non-belt tilted printers.
+    double tilt_x_deg = cfg.opt_float("build_plate_tilt_x");
+    double tilt_y_deg = cfg.opt_float("build_plate_tilt_y");
+    if (tilt_x_deg == 0. && tilt_y_deg == 0.) {
+        m_gravity_arrow.reset();
+        return;
+    }
+
+    // Gravity direction (matching the slicer's tilt convention)
+    double tilt_x_rad = Geometry::deg2rad(tilt_x_deg);
+    double tilt_y_rad = Geometry::deg2rad(tilt_y_deg);
+    Vec3d gravity_dir = Vec3d(-tan(tilt_y_rad), -tan(tilt_x_rad), -1.0).normalized();
+
+    // Build the arrow model (same dimensions as the axis arrows)
+    if (!m_gravity_arrow.is_initialized()) {
+        const float stem_length = Axes::DefaultStemLength;
+        const float tip_radius  = Axes::DefaultTipRadius;
+        const float tip_length  = Axes::DefaultTipLength;
+        const float stem_radius = stem_length / 75.f; // same ratio as axis cylinders
+        m_gravity_arrow.init_from(stilized_arrow(16, tip_radius, tip_length, stem_radius, stem_length));
+    }
+
+    // The arrow model points along +Z by default. Compute rotation to align with gravity_dir.
+    // Rotation axis = cross(+Z, gravity_dir), angle = acos(dot(+Z, gravity_dir))
+    Vec3d from = Vec3d::UnitZ();
+    Vec3d to   = gravity_dir;
+    double dot  = from.dot(to);
+    Transform3d rot = Transform3d::Identity();
+    if (dot < -0.9999) {
+        // Nearly opposite — rotate 180° around X
+        rot = Eigen::AngleAxisd(M_PI, Vec3d::UnitX()) * rot;
+    } else if (dot < 0.9999) {
+        Vec3d axis  = from.cross(to).normalized();
+        double angle = std::acos(std::clamp(dot, -1.0, 1.0));
+        rot = Eigen::AngleAxisd(angle, axis) * rot;
+    }
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    shader->start_using();
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Transform3d model_matrix = rot;
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix() * model_matrix);
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+
+    m_gravity_arrow.set_color({ 1.0f, 0.85f, 0.0f, 1.0f }); // yellow
+    m_gravity_arrow.render();
+
+    shader->stop_using();
+}
+
+void Bed3D::render_slicing_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    if (!m_is_belt_printer || m_belt_angle <= 0.f)
+        return;
+
+    // Build the arrow model: shorter and wider than the gravity arrow.
+    if (!m_slicing_arrow.is_initialized()) {
+        const float stem_length = 15.0f;   // shorter than gravity arrow (25)
+        const float stem_radius = 1.0f;    // wider than gravity arrow (~0.33)
+        const float tip_radius  = 3.0f;    // wider tip
+        const float tip_length  = 5.0f;
+        m_slicing_arrow.init_from(stilized_arrow(16, tip_radius, tip_length, stem_radius, stem_length));
+    }
+
+    // The slicing direction: layers stack along the gantry normal, i.e. the image of
+    // +Z under the mesh rotation about the tilt axis.  Use the same AngleAxis as the
+    // slicing pipeline so the arrow matches whichever tilt axis is configured.
+    double angle_rad = Geometry::deg2rad(static_cast<double>(m_belt_angle));
+    Vec3d slice_dir = (Eigen::AngleAxisd(angle_rad, belt_tilt_unit_axis()).toRotationMatrix()
+                       * Vec3d::UnitZ()).normalized();
+
+    // Compute rotation to align +Z (arrow default) with slice_dir.
+    Vec3d from = Vec3d::UnitZ();
+    double dot = from.dot(slice_dir);
+    Transform3d rot = Transform3d::Identity();
+    if (dot < -0.9999) {
+        rot = Eigen::AngleAxisd(M_PI, Vec3d::UnitX()) * rot;
+    } else if (dot < 0.9999) {
+        Vec3d axis  = from.cross(slice_dir).normalized();
+        double angle = std::acos(std::clamp(dot, -1.0, 1.0));
+        rot = Eigen::AngleAxisd(angle, axis) * rot;
+    }
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    // Disable depth test so the arrow is always visible (not occluded by the tilted bed).
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    shader->start_using();
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Transform3d model_matrix = rot;
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix() * model_matrix);
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+
+    m_slicing_arrow.set_color({ 1.0f, 0.2f, 0.6f, 1.0f }); // pink
+    m_slicing_arrow.render();
+
+    shader->stop_using();
+    glsafe(::glEnable(GL_DEPTH_TEST));
+}
+
+void Bed3D::render_slicing_plane(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    if (!m_is_belt_printer || m_belt_angle <= 0.f)
+        return;
+
+    // Build a quad in the XZ plane (world frame) representing the belt slicing plane.
+    // The plane is tilted at belt_angle from horizontal, with normal (0, -sin(a), cos(a)).
+    // We render it as a semi-transparent quad centered on the build plate.
+    if (!m_slicing_plane.is_initialized()) {
+        const float half_size = 120.f;  // mm, large enough to be visible
+        GLModel::Geometry init_data;
+        init_data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3N3 };
+        init_data.reserve_vertices(4);
+        init_data.reserve_indices(2);  // 2 triangles
+
+        // Quad corners in local frame (XY plane, will be rotated to match slicing plane)
+        Vec3f n = Vec3f::UnitZ();
+        init_data.add_vertex(Vec3f(-half_size, -half_size, 0.f), n);
+        init_data.add_vertex(Vec3f( half_size, -half_size, 0.f), n);
+        init_data.add_vertex(Vec3f( half_size,  half_size, 0.f), n);
+        init_data.add_vertex(Vec3f(-half_size,  half_size, 0.f), n);
+        init_data.add_triangle(0, 1, 2);
+        init_data.add_triangle(0, 2, 3);
+
+        m_slicing_plane.init_from(std::move(init_data));
+    }
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+    shader->start_using();
+
+    // Show a tilted plane representing the slicing direction.
+    // The slicing plane is rotated by belt_angle about the tilt axis from horizontal.
+    // Raise it slightly so it's visible above the bed surface.
+    double angle_rad = Geometry::deg2rad(static_cast<double>(m_belt_angle));
+    Transform3d model_matrix = Transform3d::Identity();
+    model_matrix.translate(Vec3d(0., 0., 30.));
+    model_matrix.rotate(Eigen::AngleAxisd(angle_rad, belt_tilt_unit_axis()));
+
+    shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+    m_slicing_plane.set_color({ 0.2f, 0.6f, 1.0f, 0.3f });  // semi-transparent blue
+    m_slicing_plane.render();
+
+    glsafe(::glDisable(GL_BLEND));
+    shader->stop_using();
+}
+
 void Bed3D::render_default(bool bottom, const Transform3d& view_matrix, const Transform3d& projection_matrix)
 {
     // m_texture.reset();
@@ -741,7 +921,15 @@ void Bed3D::render_default(bool bottom, const Transform3d& view_matrix, const Tr
     if (shader != nullptr) {
         shader->start_using();
 
-        shader->set_uniform("view_model_matrix", view_matrix);
+        // Belt printer: rotate the default bed about X so the belt tilt is visible.
+        Transform3d view_model_matrix = view_matrix;
+        if (m_is_belt_printer && m_belt_angle > 0.f) {
+            double angle_rad = Geometry::deg2rad(static_cast<double>(m_belt_angle));
+            Transform3d belt_rotation = Transform3d::Identity();
+            belt_rotation.rotate(Eigen::AngleAxisd(-angle_rad, Vec3d::UnitX()));
+            view_model_matrix = view_matrix * belt_rotation;
+        }
+        shader->set_uniform("view_model_matrix", view_model_matrix);
         shader->set_uniform("projection_matrix", projection_matrix);
 
         glsafe(::glEnable(GL_DEPTH_TEST));

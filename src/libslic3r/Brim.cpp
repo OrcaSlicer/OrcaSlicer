@@ -449,7 +449,9 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             const bool         use_brim_ears = object->config().brim_type == btPainted;
             const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !object->config().brim_ears_outer_only.value;
             const bool         has_inner_brim = brim_type == btInnerOnly || brim_type == btOuterAndInner || use_inner_brim_ears;
-            const bool         has_outer_brim = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btAutoBrim || use_auto_brim_ears || use_brim_ears;
+            // btLeadingEdgeOnly is a belt-printer mode; on a flat bed there is no leading
+            // edge, so it degrades to an ordinary outer brim rather than silently to none.
+            const bool         has_outer_brim = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btAutoBrim || brim_type == btLeadingEdgeOnly || use_auto_brim_ears || use_brim_ears;
             coord_t            ear_detection_length = scale_(object->config().brim_ears_detection_length.value);
             coordf_t           brim_ears_max_angle = object->config().brim_ears_max_angle.value;
             //ORCA: Select brim base slices from EFC-compensated outline when enabled.
@@ -864,6 +866,17 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     std::vector<unsigned int>& printExtruders,
     std::map<ObjectInstanceID, ExPolygons>* objectBrimAreasByInstanceOut)
 {
+    // Belt printers never use the flat plate brim.
+    //
+    // With a tilted belt the brim has to be laid onto the belt plane over many layers,
+    // which BeltBrim.cpp does during posSupportMaterial.  With an untilted belt this
+    // could in principle fall through and produce an ordinary brim, but it would never
+    // reach the G-code: the plate brim is emitted out of skirt_brim_groups(), which
+    // _make_skirt() builds, and that returns early for every belt printer.  Running the
+    // generator anyway would just burn time on geometry nobody prints.
+    if (print.config().belt_printer.value)
+        return;
+
     std::map<ObjectInstanceID, ExPolygons> brimAreaMap;
     Flow                 flow = print.brim_flow();
     ExPolygons           islands_area_ex = outer_inner_brim_area(print,

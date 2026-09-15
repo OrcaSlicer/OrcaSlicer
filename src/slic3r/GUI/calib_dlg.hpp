@@ -59,9 +59,12 @@ protected:
     
     virtual void on_start(wxCommandEvent& event);
     virtual void on_filament_type_changed(wxCommandEvent& event);
+    void on_show(wxShowEvent& event);
     Calib_Params m_params;
 
     RadioGroup* m_rbFilamentType;
+    RadioGroup* m_rbModel = nullptr;
+    wxStaticBoxSizer* m_model_box = nullptr;
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;

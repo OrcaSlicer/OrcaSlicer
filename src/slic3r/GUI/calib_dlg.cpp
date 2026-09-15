@@ -97,6 +97,19 @@ std::vector<wxString> make_shaper_type_labels()
     return labels;
 }
 
+// ORCA-Belt: PA Line / PA Pattern have belt plumbing in place (drawn on the
+// belt surface via BeltGCodeWriter world-coordinates mode) but are not
+// validated yet — belt printers are restricted to the PA Tower for now.
+bool is_belt_printer_selected()
+{
+    if (auto* preset_bundle = wxGetApp().preset_bundle) {
+        const auto& cfg = preset_bundle->printers.get_edited_preset().config;
+        const auto* opt = cfg.option<ConfigOptionBool>("belt_printer");
+        return opt != nullptr && opt->value;
+    }
+    return false;
+}
+
 }
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
@@ -307,6 +320,14 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
             m_params.mode = CalibMode::Calib_PA_Tower;
     }
 
+    // ORCA-Belt: backstop in case the selection slipped past the UI guards.
+    if (is_belt_printer_selected() && m_params.mode != CalibMode::Calib_PA_Tower) {
+        MessageDialog msg_dlg(nullptr, _L("PA Line and PA Pattern tests are not enabled yet on belt printers.\nPlease use the PA Tower method instead."),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
     m_params.print_numbers = m_cbPrintNum->GetValue();
     ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
     ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
@@ -333,6 +354,9 @@ void PA_Calibration_Dlg::on_extruder_type_changed(wxCommandEvent& event) {
     event.Skip();
 }
 void PA_Calibration_Dlg::on_method_changed(wxCommandEvent& event) {
+    // ORCA-Belt: only the PA Tower method is enabled on belt printers so far.
+    if (is_belt_printer_selected() && m_rbMethod->GetSelection() != 0)
+        m_rbMethod->SetSelection(0, true);
     PA_Calibration_Dlg::reset_params();
     event.Skip();
 }
@@ -343,6 +367,17 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 }
 
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
+    // ORCA-Belt: the dialog is cached across printer switches, so refresh the
+    // belt restriction on every show.
+    if (is_belt_printer_selected()) {
+        m_rbMethod->SetSelection(0);
+        const wxString tip = _L("Not enabled yet on belt printers — use the PA Tower method instead.");
+        m_rbMethod->SetRadioTooltip(1, tip);
+        m_rbMethod->SetRadioTooltip(2, tip);
+    } else {
+        m_rbMethod->SetRadioTooltip(1, wxEmptyString);
+        m_rbMethod->SetRadioTooltip(2, wxEmptyString);
+    }
     PA_Calibration_Dlg::reset_params();
 }
 
@@ -378,6 +413,17 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 	m_rbFilamentType = new RadioGroup(this, { _L("PLA"), _L("ABS/ASA"), _L("PETG"), _L("PCTG"), _L("TPU"), _L("PA-CF"), _L("PET-CF"), _L("Custom") }, wxVERTICAL, 2);
     method_box->Add(m_rbFilamentType, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(method_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    // Belt temperature-tower model: Standard (sectioned tower) vs Overhang (engraved
+    // inverted-L provini that stress overhang quality per temperature). Only affects
+    // belt printers; the upright tower ignores it, so the picker is only shown on
+    // belts. The dialog is cached across printer switches, so visibility is toggled
+    // per-show in on_show() rather than gated here at construction time.
+    auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
+    m_model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Standard"), _L("Overhang") }, wxVERTICAL);
+    m_model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(m_model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_temp_str = _L("Start temp: ");
@@ -442,6 +488,11 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     m_rbFilamentType->Connect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
 
+    // Refresh the belt-only model picker on every show — the dialog is cached and
+    // reused across printer switches.
+    this->Connect(wxEVT_SHOW, wxShowEventHandler(Temp_Calibration_Dlg::on_show));
+    m_model_box->ShowItems(is_belt_printer_selected());
+
     wxGetApp().UpdateDlgDarkUI(this);
 
     Layout();
@@ -499,9 +550,25 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     m_params.end = end;
     m_params.nozzle_based_resize = m_cbResize->GetValue();
     m_params.mode = CalibMode::Calib_Temp_Tower;
+    // Picker only exists on belt printers; default non-belt to the Standard model.
+    m_params.test_model = m_rbModel ? m_rbModel->GetSelection() : 0;
     m_plater->calib_temp(m_params);
     EndModal(wxID_OK);
 
+}
+
+void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
+    // ORCA-Belt: the dialog is cached across printer switches, so refresh the
+    // belt-only "Test model" picker on every show. The Overhang model only
+    // applies to belt printers; hide it (and resize the dialog) otherwise.
+    const bool belt = is_belt_printer_selected();
+    if (m_model_box->AreAnyItemsShown() != belt) {
+        m_model_box->ShowItems(belt);
+        Layout();
+        Fit();
+        GetSizer()->SetSizeHints(this);
+    }
+    event.Skip();
 }
 
 void Temp_Calibration_Dlg::on_filament_type_changed(wxCommandEvent& event) {

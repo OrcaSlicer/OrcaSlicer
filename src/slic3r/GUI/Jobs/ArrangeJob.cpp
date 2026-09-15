@@ -290,6 +290,12 @@ void ArrangeJob::prepare_wipe_tower()
     bool enable_prime_tower = op && op->getBool();
     if (!enable_prime_tower || params.is_seq_print) return;
 
+    // Belt printers have no classic wipe tower; purging goes into the belt
+    // purge prism, which is a real model object and arranges like any other.
+    if (const auto *belt_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer");
+        belt_opt && belt_opt->value)
+        return;
+
     bool smooth_timelapse = false;
     auto sop = current_config.option("timelapse_type");
     if (sop) { smooth_timelapse = sop->getInt() == TimelapseType::tlSmooth; }

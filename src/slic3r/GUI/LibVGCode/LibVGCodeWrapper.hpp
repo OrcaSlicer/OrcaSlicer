@@ -71,7 +71,8 @@ extern Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode
 
 // mapping from Slic3r::GCodeProcessorResult to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
-    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer);
+    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
+    const Slic3r::Transform3d* belt_xform = nullptr);
 
 // mapping from Slic3r::Print to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string>& str_tool_colors,

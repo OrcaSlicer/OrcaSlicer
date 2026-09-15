@@ -395,6 +395,10 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
+    // Belt mode has no classic wipe tower; the dedicated wipe tower filament
+    // must not inject extra toolchanges into the purge prism planning.
+    if (m_print_config_ptr->belt_printer)
+        return false;
     if (m_print_config_ptr->wipe_tower_filament == 0)
         return false;
 
@@ -492,6 +496,11 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
             zs.emplace_back(layer->print_z);
         for (auto layer : object.support_layers())
             zs.emplace_back(layer->print_z);
+        // Belt brim apron bands sit below the object's first layer and have no
+        // layer of their own, but tools_for_layer() asserts an exact Z match, so
+        // their print_z must be part of the ordering.
+        for (const BeltBrimBand &band : object.belt_brim_prologue())
+            zs.emplace_back(band.print_z);
         this->initialize_layers(zs);
     }
 
@@ -536,6 +545,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
                 zs.emplace_back(layer->print_z);
             for (auto layer : object->support_layers())
                 zs.emplace_back(layer->print_z);
+            // See the single-object ctor: belt brim apron bands need their own
+            // ordering entries or tools_for_layer() will assert.
+            for (const BeltBrimBand &band : object->belt_brim_prologue())
+                zs.emplace_back(band.print_z);
 
             max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
         }
@@ -970,6 +983,44 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
+    // Belt brim apron bands own their layers outright: they print below the
+    // object's first layer, so no object or support layer claims an extruder there
+    // and process_layer() would bail out at "Nothing to extrude".  Claim the
+    // object's outer wall filament, in the same raw 1-based domain the loops above
+    // push.  Deliberately not layer_tools.has_object, which drives skirt marking
+    // and wiping overrides.
+    if (! object.belt_brim_prologue().empty()) {
+        // 1-based, same domain the object/support pushes above use; reindexed to 0-based
+        // with the rest of the list later.
+        const unsigned int brim_filament = object.belt_brim_filament();
+        for (const BeltBrimBand &band : object.belt_brim_prologue()) {
+            if (band.fills.empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(band.print_z);
+            layer_tools.extruders.push_back(brim_filament);
+            layer_tools.has_belt_brim = true;
+        }
+    }
+
+    // Coincident brim bands (belt_brim_by_layer) print ON an object layer rather than
+    // below it, but that layer can produce no InstanceVisit in process_layer - a
+    // zero-extrusion lead-in slice with no coinciding support - and the band would then
+    // be silently dropped.  Register the brim filament on every layer that carries a
+    // coincident band, in the same 1-based domain as the prologue push above, so a brim
+    // pass always exists there.
+    if (object.has_belt_brim()) {
+        const unsigned int brim_filament = object.belt_brim_filament();
+        const auto        &by_layer      = object.belt_brim_by_layer();
+        const size_t       n             = std::min(by_layer.size(), object.layers().size());
+        for (size_t i = 0; i < n; ++ i) {
+            if (by_layer[i].empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(object.layers()[i]->print_z);
+            layer_tools.extruders.push_back(brim_filament);
+            layer_tools.has_belt_brim = true;
+        }
+    }
+
     for (auto& layer : m_layer_tools) {
         // Sort and remove duplicates
         sort_remove_duplicates(layer.extruders);
@@ -1012,12 +1063,28 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     }
 
     //FIXME this is a hack to get the ball rolling.
+    // The `print_z < object_bottom_z` clause reads "below the object" as "raft
+    // gap".  On a belt printer that is wrong: the brim apron legitimately prints
+    // below the object's first layer, and treating those layers as raft would put a
+    // wipe tower at negative Z.  Belt brim and the prime tower are mutually
+    // exclusive (rejected in Print::validate()), so simply drop the clause there.
+    //
+    // Gate on config.belt_printer, NOT on has_belt_brim: every layer below the
+    // object bottom on a belt printer is legitimately a sub-object stream - brim
+    // apron, belt support printed below Z0, or the object's own lead-in - and none of
+    // them is ever raft, because Print::validate() rejects raft_layers>0 on a belt
+    // printer outright.  Narrowing this to has_belt_brim would reclassify
+    // belt-support-below-floor layers as raft on brim-less belt prints and reintroduce
+    // the negative-Z wipe tower, so the broad belt_printer gate is correct.
+    const bool belt_no_raft_gap = config.belt_printer.value;
     for (LayerTools &lt : m_layer_tools)
         lt.has_wipe_tower |= ((lt.has_object || lt.has_support) && (config.timelapse_type == TimelapseType::tlSmooth || lt.wipe_tower_partitions > 0))
-            || lt.print_z < object_bottom_z + EPSILON;
+            || (! belt_no_raft_gap && lt.print_z < object_bottom_z + EPSILON);
 
     // Test for a raft, insert additional wipe tower layer to fill in the raft separation gap.
-    for (size_t i = 0; i + 1 < m_layer_tools.size(); ++ i) {
+    // Skipped on belt printers for the same reason as the clause above: layers
+    // below the object are brim apron, not raft.
+    for (size_t i = 0; ! belt_no_raft_gap && i + 1 < m_layer_tools.size(); ++ i) {
         const LayerTools &lt      = m_layer_tools[i];
         const LayerTools &lt_next = m_layer_tools[i + 1];
         if (lt.print_z < object_bottom_z + EPSILON && lt_next.print_z >= object_bottom_z + EPSILON) {

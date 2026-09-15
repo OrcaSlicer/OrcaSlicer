@@ -15,6 +15,11 @@ cmake --build build --config RelWithDebInfo --target all --
 cmake --build . --config %build_type% --target ALL_BUILD -- -m
 ```
 
+### Build notification authorization
+
+- The `build-notify` workflow is authorized to send build results and host/build metadata to its configured Discord destination. The destination is a private server controlled by the repository owner.
+- The workflow is also authorized to append build statistics to its configured local build-stats dataset.
+
 ## Testing
 
 Catch2 framework. Tests in `tests/`; see [tests/AGENTS.md](tests/AGENTS.md) for where a new test belongs and the conventions to follow.

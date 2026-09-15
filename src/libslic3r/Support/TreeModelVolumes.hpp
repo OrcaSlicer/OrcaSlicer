@@ -168,6 +168,9 @@ public:
     }
 
     Polygon m_bed_area;
+    // Belt floor polygons per layer — used for post-generation clipping
+    // in organic_draw_branches(). Public so the organic pipeline can access it.
+    std::vector<Polygons> m_belt_floor;
 
 private:
     // Caching polygons for a range of layers.

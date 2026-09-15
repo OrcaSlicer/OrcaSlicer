@@ -625,6 +625,12 @@ private:
 	bool		m_rebuild_kinematics_page = false;
 	void        update_input_shaper_menu(GCodeFlavor flavor);
 
+	// R8: track the belt->non-belt transition so update_fff() only clears the belt-derived
+	// build_plate_tilt on a genuine in-place belt-off toggle, never on a manual tilt or a
+	// preset switch. m_belt_synced_tilt_{x,y} hold the exact values belt-sync last wrote.
+	bool		m_was_belt_printer = false;
+	double		m_belt_synced_tilt_x = 0.;
+	double		m_belt_synced_tilt_y = 0.;
 
     std::vector<PageShp>			m_pages_fff;
     std::vector<PageShp>			m_pages_sla;

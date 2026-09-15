@@ -57,6 +57,10 @@ public:
     // Initialize from PrintConfig::printable_area and PrintConfig::printable_height
     BuildVolume(const std::vector<Vec2d> &printable_area, const double printable_height, const std::vector<std::vector<Vec2d>> &extruder_areas, const std::vector<double>& extruder_printable_heights);
 
+    // Belt printer configuration.
+    void set_belt_printer(bool enabled, double angle_deg, bool infinite_y);
+    bool is_belt_printer() const { return m_is_belt_printer; }
+
     // Source data, unscaled coordinates.
     const std::vector<Vec2d>&   printable_area()         const { return m_bed_shape; }
     double                      printable_height()  const { return m_max_print_height; }
@@ -80,7 +84,7 @@ public:
     indexed_triangle_set        bounding_mesh(bool scale=true) const;
 
     // Center of the print bed, unscaled.
-    Vec2d                       bed_center()        const { return to_2d(m_bboxf.center()); }
+    Vec2d                       bed_center()        const { return get_extents(m_bed_shape).center(); }
     // Convex hull of polygon(), scaled.
     const Polygon&              convex_hull()       const { return m_convex_hull; }
     // Smallest enclosing circle of polygon(), scaled.
@@ -139,6 +143,10 @@ private:
     // Source definition of the print volume height (PrintConfig::printable_height)
     double              m_max_print_height { 0.f };
     std::vector<double> m_extruder_printable_height;
+    // Belt printer state.
+    bool                m_is_belt_printer { false };
+    double              m_belt_angle { 0. };
+    bool                m_belt_infinite_y { false };
 
     // Derived values.
     BuildVolume_Type                m_type { BuildVolume_Type::Invalid };

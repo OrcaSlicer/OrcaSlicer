@@ -80,6 +80,19 @@ set(lisbslic3r_sources
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
+    BeltBrim.cpp
+    BeltBrim.hpp
+    BeltGCode.cpp
+    BeltGCode.hpp
+    BeltGCodeWriter.cpp
+    BeltGCodeWriter.hpp
+    BeltPurge.cpp
+    BeltSliceStrategy.cpp
+    BeltSliceStrategy.hpp
+    BeltTransform.cpp
+    BeltTransform.hpp
+    FirstLayerPlane.cpp
+    FirstLayerPlane.hpp
     Brim.cpp
     BrimEarsPoint.hpp
     Brim.hpp
@@ -228,6 +241,10 @@ set(lisbslic3r_sources
     GCode/AdaptivePAProcessor.hpp
     GCode/AvoidCrossingPerimeters.cpp
     GCode/AvoidCrossingPerimeters.hpp
+    GCode/BeltBackTransform.cpp
+    GCode/BeltBackTransform.hpp
+    GCode/MachineFrameTransform.cpp
+    GCode/MachineFrameTransform.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
@@ -442,6 +459,8 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    Support/BeltFloorContext.cpp
+    Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp

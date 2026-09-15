@@ -110,6 +110,9 @@ private:
     //GLTexture m_temp_texture;
     GLModel m_model;
     Vec3d m_model_offset{ Vec3d::Zero() };
+    GLModel m_gravity_arrow;
+    GLModel m_slicing_arrow;  // Pink arrow showing the effective slicing direction
+    GLModel m_slicing_plane;  // Debug: shows the intended slicing plane direction
     Axes m_axes;
 
     float m_scale_factor{ 1.0f };
@@ -119,6 +122,11 @@ private:
     std::vector<std::vector<Vec2d>> m_extruder_shapes;
     std::vector<double> m_extruder_heights;
     bool m_is_dark = false;
+    // Belt printer state for rendering.
+    bool  m_is_belt_printer = false;
+    float m_belt_angle = 0.f;
+    // Tilt axis: 0 = X (belt travels along Y, the common case), 1 = Y.
+    int   m_belt_tilt_axis = 0;
 
 public:
     Bed3D() = default;
@@ -138,6 +146,16 @@ public:
 
     // Build volume geometry for various collision detection tasks.
     const BuildVolume& build_volume() const { return m_build_volume; }
+    BuildVolume& build_volume() { return m_build_volume; }
+
+    // Belt printer bed settings.  tilt_axis: 0 = X (belt along Y), 1 = Y.
+    void set_belt_printer(bool enabled, float angle_deg, int tilt_axis = 0) {
+        m_is_belt_printer = enabled; m_belt_angle = angle_deg; m_belt_tilt_axis = tilt_axis;
+    }
+    bool is_belt_printer() const { return m_is_belt_printer; }
+    float belt_angle() const { return m_belt_angle; }
+    // Unit vector of the tilt axis in bed space.
+    Vec3d belt_tilt_unit_axis() const { return m_belt_tilt_axis == 1 ? Vec3d::UnitY() : Vec3d::UnitX(); }
 
     // Was the model provided, or was it generated procedurally?
     Type get_type() const { return m_type; }
@@ -177,7 +195,10 @@ private:
     void render_model(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     void render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom);
     void render_default(bool bottom, const Transform3d& view_matrix, const Transform3d& projection_matrix);
-    
+    void render_gravity_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    void render_slicing_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    void render_slicing_plane(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+
     // BBS: remove the bed picking logic
     // void register_raycasters_for_picking(const GLModel::Geometry& geometry, const Transform3d& trafo);
 };

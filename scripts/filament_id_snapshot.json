@@ -1549,6 +1549,7 @@
     "Flashforge/Generic PLA",
     "FlyingBear/Generic PLA",
     "Ginger Additive/Generic PLA",
+    "IdeaFormer/Generic PLA",
     "InfiMech/Generic PLA",
     "LONGER/Generic PLA",
     "Lulzbot/Generic PLA",
@@ -1556,6 +1557,7 @@
     "OrcaFilamentLibrary/Generic PLA",
     "Peopoly/Generic PLA",
     "Phrozen/Generic PLA",
+    "Printcepts/Generic PLA",
     "Prusa/Generic PLA",
     "Qidi/Generic PLA",
     "RH3D/Generic PLA",
@@ -4298,12 +4300,14 @@
     "Flashforge/Generic PETG",
     "FlyingBear/Generic PETG",
     "Ginger Additive/Generic PETG",
+    "IdeaFormer/Generic PETG",
     "InfiMech/Generic PETG",
     "LONGER/Generic PETG",
     "Lulzbot/Generic PETG",
     "OrcaArena/Generic PETG",
     "OrcaFilamentLibrary/Generic PETG",
     "Peopoly/Generic PETG",
+    "Printcepts/Generic PETG",
     "Prusa/Generic PETG",
     "Qidi/Generic PETG",
     "RH3D/Generic PETG",
@@ -5885,6 +5889,15 @@
    "name": "Eryone PA-GF",
    "filament_type": "PA-GF",
    "filament_vendor": "Eryone"
+  },
+  "OFkrxQC4": {
+   "filaments": [
+    "IdeaFormer/eSUN PLA",
+    "Printcepts/eSUN PLA"
+   ],
+   "name": "eSUN PLA",
+   "filament_type": "PLA",
+   "filament_vendor": "eSUN"
   },
   "OFks6esg": {
    "filaments": [
