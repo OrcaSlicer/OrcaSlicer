@@ -1072,7 +1072,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
         ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA));
         
-        if (ImGui::BeginPopup(pop_id.c_str())) {
+        if (ImGui::BeginPopup(pop_id.c_str(), ImGuiWindowFlags_NoMove)) {
             
             m_imgui->text(_L("To:"));
 

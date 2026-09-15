@@ -313,7 +313,7 @@ void Button::render(wxDC& dc)
     auto szContent = textSize;
     // Whether the measured content reserved the text/icon gap. macOS measures an empty label
     // as 0-high, so the gap is skipped there; the dot must not advance past it in that case.
-    const bool gap_reserved = szContent.y > 0;
+    const bool gap_reserved = !text.IsEmpty(); // ORCA check empty string instead text size. fixes icon centering on linux
     if (icon.bmp().IsOk()) {
         if (gap_reserved) {
             //BBS norrow size between text and icon
@@ -402,13 +402,13 @@ void Button::messureSize()
     dc.GetTextExtent(GetLabel(), &textSize.width, &textSize.height, &textSize.x, &textSize.y);
     wxSize szContent = textSize.GetSize();
     if (this->active_icon.bmp().IsOk()) {
-        if (szContent.y > 0) {
-            //BBS norrow size between text and icon
-            if (vertical)
-                szContent.y += 5;
-            else
-                szContent.x += 5;
-        }
+        //BBS norrow size between text and icon
+        int spacing_after_icon = !GetLabel().IsEmpty() ? 0 : 5; // ORCA check empty string instead text size. fixes icon centering on linux
+        if (vertical)
+            szContent.y += spacing_after_icon;
+        else
+            szContent.x += spacing_after_icon;
+
         wxSize szIcon = this->active_icon.GetBmpSize();
         if (vertical) {
             szContent.y += szIcon.y;
