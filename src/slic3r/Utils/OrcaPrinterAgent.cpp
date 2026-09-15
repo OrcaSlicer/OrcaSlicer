@@ -1386,19 +1386,7 @@ AgentInfo OrcaPrinterAgent::get_agent_info_static()
 // Print Job Operations - All Stubs
 // ============================================================================
 
-// Orchestrates the cloud print workflow: upload the sliced G-code straight to R2
-// via a presigned URL (upload_gcode_via_cloud), then finalize over HTTP
-// (start_cloud_print_job). The finalize call is what actually gets the file to
-// the printer: the gateway HEAD-verifies the R2 object, then relays
-// print.project_file to OrcaSonar over the gateway's OWN cloud relay connection -
-// not this agent's MQTT session. See CLOUD_PRINT_JOB_MQTT_DESIGN.md for the
-// MQTT-native alternative (publishing print.project_file directly over this
-// agent's own cloud connection) and why it isn't used yet.
-//
-// This deliberately does NOT go through start_sdcard_print/print.gcode_file:
-// that command is the generic "start this file already on the printer" primitive
-// (also used by the LAN start_local_print path, and meant to stay that way as it
-// grows params like filament mapping), and has no download-awareness to give it.
+// Simply uploads the file to the printer via HTTP (cloud) then sends a HTTP request to start print. In the future, this might be a MQTT command to start print instead of HTTP.
 int OrcaPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
     (void) wait_fn;
