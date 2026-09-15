@@ -73,6 +73,7 @@ using namespace nlohmann;
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/BlacklistedLibraryCheck.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
+#include "libslic3r/LayOnFace.hpp"
 
 #include "libslic3r/Orient.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
@@ -85,6 +86,7 @@ using namespace nlohmann;
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
+#include "slic3r/Utils/MeshInspect.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -1386,6 +1388,29 @@ int CLI::run(int argc, char **argv)
     ConfigOptionBool* downward_check_option = m_config.option<ConfigOptionBool>("downward_check");
     if (downward_check_option)
         downward_check = downward_check_option->value;
+
+    // --inspect-mesh prints its JSON and exits, so any action that does work of its
+    // own (slicing, exporting) would be skipped without notice. Reject those up front;
+    // only options that merely tune how the input is loaded may come along.
+    if (std::find(m_actions.begin(), m_actions.end(), "inspect_mesh") != m_actions.end()) {
+        static const std::set<std::string> inspect_compatible = { "inspect_mesh", "uptodate", "load_defaultfila", "min_save",
+                                                                  "mtcpp", "mstpp", "no_check", "normative_check", "pipe" };
+        for (const std::string &action : m_actions) {
+            if (inspect_compatible.count(action) == 0) {
+                std::string flag = action;
+                std::replace(flag.begin(), flag.end(), '_', '-');
+                boost::nowide::cerr << "--inspect-mesh cannot be combined with --" << flag << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
+        // Without input there is nothing to inspect; fail rather than print nothing and exit 0.
+        if (m_input_files.empty() && m_config.opt_string("load_assemble_list").empty()) {
+            boost::nowide::cerr << "--inspect-mesh needs an input file or --load-assemble-list" << std::endl;
+            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+            flush_and_exit(CLI_INVALID_PARAMS);
+        }
+    }
 
     // --export-settings - writes its JSON to stdout, so reject every action or transform that may write there
     // too (--info, --help, --orient, slicing and exporting). The allowed ones do nothing when nothing is
@@ -4810,6 +4835,64 @@ int CLI::run(int argc, char **argv)
                 for (auto &o : model.objects)
                     // this affects volumes:
                     o->rotate(Geometry::deg2rad(m_config.opt_float(opt_key)), Y);
+        } else if (opt_key == "ground_largest_face" || opt_key == "ground_face_normal" || opt_key == "ground_face_point") {
+            // Each instance is laid on one of its lay-on-face planes, which are computed from the current part
+            // transformations, so the rotations given before this option are respected. A direction or point is in
+            // object coordinates, so it names the same face for every instance of an object.
+            std::function<int(const std::vector<LayOnFacePlane>&, const Transform3d&)> pick;
+            if (opt_key == "ground_largest_face") {
+                if (m_config.opt_bool(opt_key))
+                    pick = [](const std::vector<LayOnFacePlane>& planes, const Transform3d&) { return find_largest_plane(planes); };
+            } else {
+                // Only options given on the command line reach this loop, so an empty value is malformed input too.
+                const std::string& value = m_config.opt_string(opt_key);
+                Vec3d v;
+                int   consumed = 0;
+                if (sscanf(value.c_str(), "%lf,%lf,%lf%n", &v.x(), &v.y(), &v.z(), &consumed) != 3 || consumed != int(value.size()) ||
+                    !v.allFinite() || (opt_key == "ground_face_normal" && v.norm() < EPSILON)) {
+                    BOOST_LOG_TRIVIAL(error) << boost::format("Invalid params: %1% expects three comma-separated numbers, got \"%2%\"") % opt_key % value;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                if (opt_key == "ground_face_normal")
+                    pick = [v](const std::vector<LayOnFacePlane>& planes, const Transform3d&) { return find_plane_by_normal(planes, v); };
+                else
+                    pick = [v](const std::vector<LayOnFacePlane>& planes, const Transform3d& inst_matrix) {
+                        return find_plane_at_point(planes, inst_matrix, v, 0.01);
+                    };
+            }
+            if (pick) {
+                size_t laid = 0, missed = 0;
+                for (auto& model : m_models) {
+                    model.add_default_instances();
+                    for (ModelObject* o : model.objects)
+                        for (size_t i = 0; i < o->instances.size(); ++i) {
+                            const Transform3d                 inst_matrix = o->instances[i]->get_matrix_no_offset();
+                            const std::vector<LayOnFacePlane> planes      = lay_on_face_planes(*o, inst_matrix);
+                            if (planes.empty()) {
+                                // Small or smooth parts (e.g. a sphere) have no face to rest on; the gizmo offers none either.
+                                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: object %2% has no face large enough to lay on, left as it is") % opt_key % o->name;
+                                continue;
+                            }
+                            const int idx = pick(planes, inst_matrix);
+                            if (idx < 0) {
+                                // Only a point can miss: with several objects it usually belongs to one of them.
+                                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: no face of object %2% contains the point, left as it is") % opt_key % o->name;
+                                ++missed;
+                                continue;
+                            }
+                            BOOST_LOG_TRIVIAL(info) << boost::format("%1%: object %2% instance %3% laid on the %4% mm2 face with normal %5%")
+                                                        % opt_key % o->name % i % planes[idx].area % planes[idx].normal.transpose();
+                            lay_on_face(*o, i, planes[idx].normal);
+                            ++laid;
+                        }
+                }
+                if (laid == 0 && missed > 0) {
+                    BOOST_LOG_TRIVIAL(error) << boost::format("Invalid params: %1%: no face of any object contains the point") % opt_key;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+            }
         } else if (opt_key == "scale") {
             float ratio = m_config.opt_float(opt_key);
             if (ratio <= 0.f) {
@@ -5969,6 +6052,29 @@ int CLI::run(int argc, char **argv)
                 model.add_default_instances();
                 model.print_info();
             }
+        } else if (opt_key == "inspect_mesh") {
+            // Machine-readable alternative to --info. Registered as an action so it satisfies the
+            // "needs an action" check and bypasses the GUI fallback, then exits once the JSON is out.
+            for (Model &model : m_models) {
+                model.add_default_instances();
+                Slic3r::MeshInspect::inspect_to_json(model, m_input_files, boost::nowide::cout);
+            }
+            boost::nowide::cout.flush();
+            // Conflicting actions were rejected before loading. Finish like the end of run().
+            // flush_and_exit() is not usable here: it prints "found error ..." to stdout,
+            // which would corrupt the JSON.
+#if defined(__linux__) || defined(__LINUX__)
+            if (g_cli_callback_mgr.is_started()) {
+                PrintBase::SlicingStatus slicing_status{100, "All done, Success"};
+                cli_status_callback(slicing_status);
+            }
+            g_cli_callback_mgr.stop();
+#endif
+            for (Model &m : m_models)
+                m.remove_backup_path_if_exist();
+            record_exit_reson(outfile_dir, CLI_SUCCESS, plate_to_slice, cli_errors[CLI_SUCCESS], sliced_info);
+            boost::nowide::cerr.flush();
+            return CLI_SUCCESS;
         } else if (opt_key == "uptodate") {
             //already processed before
         } else if (opt_key == "min_save") {

@@ -11914,6 +11914,13 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("This outputs the model\u2019s information.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("inspect_mesh", coBool);
+    def->label = L("Inspect mesh (JSON to stdout)");
+    def->tooltip = L("Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the "
+                     "convex hull faces it can be laid on, with their normals, areas and centers. These are the faces "
+                     "the --ground-* options choose from. Machine-readable alternative to --info.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file. Use - to write them to stdout.");
@@ -12032,6 +12039,34 @@ CLITransformConfigDef::CLITransformConfigDef()
     def->tooltip = L("Rotation angle around the Y axis in degrees.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->set_default_value(new ConfigOptionFloat(0));
+
+    // The --ground-* options choose from the faces the "Lay on Face" gizmo offers. Like the other
+    // transforms they run in command-line order, so they see the rotations given before them.
+    def = this->add("ground_largest_face", coBool);
+    def->label = L("Ground largest face");
+    def->tooltip = L("Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large "
+                     "faces, the one already facing down is kept. Objects without a face large enough to rest on are left "
+                     "as they are. Transforms run in command-line order, so rotations given before this option are respected. "
+                     "--orient 1 runs after all transforms and replaces the orientation.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("ground_face_normal", coString);
+    def->label = L("Ground face by normal");
+    def->tooltip = L("Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ "
+                     "and drop it onto the bed. The direction is in object coordinates, which include the rotations given "
+                     "before this option and match the plate axes unless the input file rotates the object. For example, "
+                     "1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation.");
+    def->cli_params = "NX,NY,NZ";
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("ground_face_point", coString);
+    def->label = L("Ground face at point");
+    def->tooltip = L("Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. "
+                     "The point is in object coordinates, which include the rotations given before this option; "
+                     "--inspect-mesh reports face centers in them. Objects without such a face are left as they are, and "
+                     "the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation.");
+    def->cli_params = "X,Y,Z";
+    def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("scale", coFloat);
     def->label = L("Scale");
