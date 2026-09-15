@@ -470,6 +470,15 @@
    "filament_type": "PA-CF",
    "filament_vendor": "Creality"
   },
+  "OF4E0SLW": {
+ "filaments": [
+  "BBL/JAYO PLA Classic",
+  "Creality/JAYO PLA Classic"
+ ],
+ "name": "JAYO PLA Classic",
+ "filament_type": "PLA",
+ "filament_vendor": "JAYO"
+},
   "OF4GM5qX": {
    "filaments": [
     "Ratrig/Generic ASA BigNozzle"
@@ -763,6 +772,15 @@
    "filament_type": "PLA",
    "filament_vendor": "FilAr"
   },
+  "OF63bToB": {
+ "filaments": [
+  "BBL/JAYO PETG",
+  "Creality/JAYO PETG"
+ ],
+ "name": "JAYO PETG",
+ "filament_type": "PETG",
+ "filament_vendor": "JAYO"
+},
   "OF65InrS": {
    "filaments": [
     "Snapmaker/Snapmaker TPU"
@@ -4904,6 +4922,15 @@
    "filament_type": "Breakaway Support",
    "filament_vendor": "Snapmaker"
   },
+  "OFeUeunN": {
+ "filaments": [
+  "BBL/JAYO PLA",
+  "Creality/JAYO PLA"
+ ],
+ "name": "JAYO PLA",
+ "filament_type": "PLA",
+ "filament_vendor": "JAYO"
+},
   "OFeVzkSU": {
    "filaments": [
     "Snapmaker/Fiberon PPS-GF20"
