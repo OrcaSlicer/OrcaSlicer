@@ -290,6 +290,9 @@ public:
     void render_painter_assemble_view() const;
 
     void render_overlay();
+    void render_overlay_input_window();
+    // Hash of the state render_overlay() draws from: enabled, hover, current and highlight.
+    size_t get_overlay_state_hash() const;
 
     void render_arrow(const GLCanvas3D& parent, EType highlighted_type) const;
 
@@ -323,7 +326,7 @@ private:
     
     void render_background(float left, float top, float right, float bottom, float border_w, float border_h) const;
     
-    void do_render_overlay() const;
+    void do_render_overlay(bool draw_icons) const;
 
     bool generate_icons_texture();
 

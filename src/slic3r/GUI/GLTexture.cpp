@@ -707,6 +707,29 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
     glsafe(::glDisable(GL_BLEND));
 }
 
+void GLTexture::copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned int, 2>& tex_size, unsigned int width, unsigned int height, int filter)
+{
+    if (tex_id == 0) {
+        glsafe(::glGenTextures(1, &tex_id));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, tex_id));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    }
+    else
+        glsafe(::glBindTexture(GL_TEXTURE_2D, tex_id));
+
+    if (tex_size[0] != width || tex_size[1] != height) {
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        tex_size = { width, height };
+    }
+
+    // Copying from the default framebuffer resolves its multisampling.
+    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+}
+
 static bool to_squared_power_of_two(const std::string& filename, int max_size_px, int& w, int& h)
 {
     auto is_power_of_two = [](int v) { return v != 0 && (v & (v - 1)) == 0; };

@@ -1003,6 +1003,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetToolTip(tip);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -1028,6 +1029,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().stop_sync_user_preset();
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+        }
+        else if (param == SETTING_OPENGL_SCENE_CACHE) {
+            if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1912,9 +1916,32 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_cap);
 
+    auto item_scene_cache = create_item_checkbox(
+        _L("Reuse the 3D scene while idle"),
+        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+           "and reuses the previous frame's scene instead. Reduces GPU load.\n"
+           "Disable it if the viewport shows stale or missing contents.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SCENE_CACHE
+    );
+    g_sizer->Add(item_scene_cache);
+
+    auto item_skip_identical_frames = create_item_checkbox(
+        _L("Skip unchanged frames"),
+        _L("Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+           "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+           "Disable it if a hover highlight, tooltip or animation stops updating.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+    );
+    g_sizer->Add(item_skip_identical_frames);
+    if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(app_config->get_bool(SETTING_OPENGL_SCENE_CACHE));
+
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
-        _L("Displays current viewport FPS in the top-right corner."),
+        _L("Displays rendering counts in the top-right corner of the viewport.") + "\n" +
+        _L("FPS: frames presented to the screen per second.") + "\n" +
+        _L("3D: frames per second that redrew the 3D scene."),
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);
