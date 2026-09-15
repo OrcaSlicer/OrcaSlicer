@@ -5489,13 +5489,12 @@ LayerResult GCode::process_layer(
                 // The previous chain end is handed over as the preferred start (transition point).
                 bool continuous_layer_emitted = false;
                 // Skirt (below skirt_height) and the brim of the first layer are emitted as separate
-                // setup geometry with their own travels, so those layers are printed normally.
+                // setup geometry with their own travels, so they must bypass the whole-layer filter.
                 const bool layer_has_setup_geometry =
                     layer.id() < size_t(print.config().skirt_height.value) || print.has_infinite_skirt() ||
                     (layer.id() == 0 && print.has_brim());
                 if (m_continuous_print != nullptr && ! is_anything_overridden && gcode_toolchange.empty() &&
                     (instance_to_print.object_by_extruder.support == nullptr || instance_to_print.object_by_extruder.support->empty()) &&
-                    ! layer_has_setup_geometry &&
                     ! instance_to_print.object_by_extruder.islands.empty()) {
                     ++ m_continuous_layer_total;
                     std::vector<ExtrusionEntity*> layer_entities;
@@ -5543,7 +5542,10 @@ LayerResult GCode::process_layer(
                         gcode += this->emit_continuous_print_layer(plan);
                         m_continuous_prev_end  = plan.end_point;
                         m_continuous_has_prev  = true;
-                        result.continuous_print_enable = true;
+                        // Chain the object's bottom surface even when the layer also contains skirt/brim.
+                        // Keep setup moves and the first layer at their original Z; only later,
+                        // setup-free layers may pass through the whole-layer spiral filter.
+                        result.continuous_print_enable = ! layer_has_setup_geometry && layer.id() > 0;
                         continuous_layer_emitted = true;
                     }
                 }
@@ -5691,6 +5693,11 @@ bool GCode::continuous_print_compatible(const Print &print) const
 // _extrude() finds the nozzle already at the start of the next entity and no travel is emitted.
 std::string GCode::emit_continuous_print_layer(ContinuousLayerPlan &plan)
 {
+    // ContinuousPrint's whole-layer filter requires linear extrusion moves. Disable arc fitting
+    // only while emitting this chain; ordinary fallback layers keep their original configuration.
+    const bool arc_fitting = m_config.enable_arc_fitting.value;
+    m_config.enable_arc_fitting.value = false;
+    ScopeGuard restore_arc_fitting([this, arc_fitting] { m_config.enable_arc_fitting.value = arc_fitting; });
     std::string gcode;
     for (const std::pair<size_t, bool> &entry : plan.order) {
         ExtrusionEntity *entity = plan.entities[entry.first].get();
