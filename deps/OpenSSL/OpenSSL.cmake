@@ -80,6 +80,12 @@ ExternalProject_Add(dep_OpenSSL
     INSTALL_COMMAND ${_install_cmd}
 )
 
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    # OpenSSL builds with cl, but MSBuild runs nmake in this project's toolset
+    # environment, and ClangCL's puts clang's headers first. Use the default.
+    set_target_properties(dep_OpenSSL PROPERTIES VS_PLATFORM_TOOLSET "$(DefaultPlatformToolset)")
+endif ()
+
 ExternalProject_Add_Step(dep_OpenSSL install_cmake_files
     DEPENDEES install
 

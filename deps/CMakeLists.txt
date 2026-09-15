@@ -184,6 +184,11 @@ function(orcaslicer_add_cmake_project projectname)
 
     if (_dep_msvc_gen)
       set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
+      # The toolset picks the compiler here, not the CMAKE_<LANG>_COMPILER
+      # forwarded below, so without it a clang-cl superbuild builds with cl.
+      if (CMAKE_GENERATOR_TOOLSET)
+        list(APPEND _gen CMAKE_GENERATOR_TOOLSET "${CMAKE_GENERATOR_TOOLSET}")
+      endif ()
     else()
       set(_gen "")
     endif()
