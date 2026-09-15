@@ -45,8 +45,7 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
         // The old Slic3r way (different from all other slicers): Use rounded extrusions.
         // Get the configured nozzle_diameter for the extruder associated to the flow role requested.
         float thread_diameter = has_bridge_width ? float(bridge_width) : nozzle_diameter;
-        if (bridge_flow_ratio > 0.)
-            thread_diameter *= float(sqrt(bridge_flow_ratio));
+        // For thick bridges, bridge_flow_ratio is applied later and doesn't change the line geometry.
         bridge_flow = Flow::bridging_flow(thread_diameter, nozzle_diameter);
     } else {
         // The same way as other slicers: Use normal extrusions. Apply bridge_flow while maintaining the original spacing.
@@ -56,7 +55,6 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
         bridge_flow = base_flow.with_flow_ratio(bridge_flow_ratio);
     }
     return bridge_flow;
-
 }
 
 // Fill in layerm->fill_surfaces by trimming the layerm->slices by the cummulative layerm->fill_surfaces.
