@@ -246,11 +246,15 @@ _ALLOWED_FACE_LIMITS = (100000, 300000, 500000, 1000000, 2000000)
 _GENERATION_PROFILES = ("quality", "performance")
 
 
-def validate_generation_options(face_limit: int, geometry_quality: str | None, texture_quality: str) -> None:
+def validate_generation_option_values(geometry_quality: str | None, texture_quality: str) -> None:
     if geometry_quality not in (None, "standard", "detailed"):
         raise TripoError("Geometry quality must be standard or detailed.")
     if texture_quality not in ("standard", "detailed", "extreme"):
         raise TripoError("Texture quality must be standard, detailed, or extreme.")
+
+
+def validate_generation_options(face_limit: int, geometry_quality: str | None, texture_quality: str) -> None:
+    validate_generation_option_values(geometry_quality, texture_quality)
     if geometry_quality == "standard" and face_limit > 1500000:
         raise TripoError("The 2-million-face target requires detailed geometry.")
 

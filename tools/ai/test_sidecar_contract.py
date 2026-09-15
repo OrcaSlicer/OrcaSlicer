@@ -802,6 +802,9 @@ class SidecarHealthContractTests(unittest.TestCase):
         cases = (
             {"provider": "hunyuan", "face_limit": 1000000, "geometry_quality": "standard", "texture_quality": "standard", "output_format": "obj"},
             {"provider": "tripo", "face_limit": 2000000, "geometry_quality": "detailed", "texture_quality": "extreme", "output_format": "obj"},
+            # Draft 3D combinations do not affect any of the 2D design routes.
+            {"provider": "tripo", "face_limit": 2000000, "geometry_quality": "standard"},
+            {"provider": "hunyuan", "face_limit": 2000000, "geometry_quality": "detailed", "texture_quality": "extreme"},
             {},
         )
         for route in ("text", "image", "recommend-text-palette", "recommend-image-palette"):

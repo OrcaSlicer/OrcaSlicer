@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/AI/ModelGeneration/ModelGenerationPresentation.hpp"
+#include "slic3r/GUI/AI/ModelGeneration/ModelLibraryThumbnail.hpp"
 #include "slic3r/GUI/AIModelOutputDirectory.hpp"
 #include "test_utils.hpp"
 
@@ -9,6 +10,8 @@
 #include <nlohmann/json.hpp>
 #include <wx/image.h>
 #include <wx/imagpng.h>
+#include <wx/imagjpeg.h>
+#include <wx/log.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -91,6 +94,126 @@ nlohmann::json write_design_fixture(const boost::filesystem::path& directory)
 }
 
 } // namespace
+
+TEST_CASE("History listing defers decoding without weakening design recovery validation",
+          "[ModelGenerationPresentation][DesignHistory]")
+{
+    ScopedTemporaryDir temporary("orca-history-listing");
+    const std::string id = "33333333-3333-4333-8333-333333333333";
+    const auto directory = temporary.path() / id;
+    write_design_fixture(directory);
+    // A recognizable but truncated image may be shown as an unavailable
+    // thumbnail. Reopening it must still fail strict validation.
+    const unsigned char signature[] = {0x89, 'P', 'N', 'G', 13, 10, 26, 10};
+    {
+        boost::filesystem::ofstream file(directory / "preview.png", std::ios::binary);
+        file.write(reinterpret_cast<const char*>(signature), sizeof(signature));
+    }
+    REQUIRE(read_design_history_entry(temporary.path(), id, false).has_value());
+    wxLogNull quiet;
+    CHECK_FALSE(read_design_history_entry(temporary.path(), id).has_value());
+    boost::filesystem::remove(directory / "preview.png");
+    CHECK_FALSE(read_design_history_entry(temporary.path(), id, false).has_value());
+}
+
+TEST_CASE("History thumbnails preserve aspect and source colors at each display scale",
+          "[ModelGenerationPresentation][HistoryThumbnails]")
+{
+    using namespace Slic3r::GUI;
+    ScopedTemporaryDir temporary("orca-history-thumbnail");
+    if (wxImage::FindHandler(wxBITMAP_TYPE_PNG) == nullptr) wxImage::AddHandler(new wxPNGHandler());
+    if (wxImage::FindHandler(wxBITMAP_TYPE_JPEG) == nullptr) wxImage::AddHandler(new wxJPEGHandler());
+    wxImage source(128, 64);
+    source.SetRGB(wxRect(0, 0, 128, 64), 32, 128, 224);
+    const auto png = temporary.path() / boost::filesystem::path(L"历史设计.png");
+    const auto jpeg = temporary.path() / "design.jpg";
+    REQUIRE(source.SaveFile(png.wstring(), wxBITMAP_TYPE_PNG));
+    REQUIRE(source.SaveFile(jpeg.wstring(), wxBITMAP_TYPE_JPEG));
+    std::atomic<bool> cancelled {false};
+    ModelLibraryThumbnailCache cache;
+    for (const int edge : {96, 144, 192}) {
+        const auto thumbnail = cache.load(png, {}, edge, cancelled);
+        REQUIRE(thumbnail.IsOk());
+        CHECK(thumbnail.GetWidth() == edge);
+        CHECK(thumbnail.GetHeight() == edge / 2);
+        CHECK(thumbnail.GetRed(edge / 2, edge / 4) == 32);
+        CHECK(thumbnail.GetBlue(edge / 2, edge / 4) == 224);
+    }
+    const auto jpeg_thumbnail = cache.load(jpeg, {}, 96, cancelled);
+    REQUIRE(jpeg_thumbnail.IsOk());
+    CHECK(jpeg_thumbnail.GetWidth() == 96);
+    CHECK(jpeg_thumbnail.GetHeight() == 48);
+    cancelled = true;
+    CHECK_FALSE(cache.load(png, jpeg, 96, cancelled).IsOk());
+}
+
+TEST_CASE("History thumbnail cache invalidates stale derivatives and missing source files",
+          "[ModelGenerationPresentation][HistoryThumbnails]")
+{
+    using namespace Slic3r::GUI;
+    ScopedTemporaryDir temporary("orca-history-thumbnail-cache");
+    if (wxImage::FindHandler(wxBITMAP_TYPE_PNG) == nullptr) wxImage::AddHandler(new wxPNGHandler());
+    const auto source = temporary.path() / "source.png";
+    const auto display = temporary.path() / "source.png.display.png";
+    const auto fallback = temporary.path() / "reference.png";
+    wxImage image(64, 64);
+    image.SetRGB(wxRect(0, 0, 64, 64), 255, 0, 0);
+    REQUIRE(image.SaveFile(source.wstring(), wxBITMAP_TYPE_PNG));
+    image.SetRGB(wxRect(0, 0, 64, 64), 0, 255, 0);
+    REQUIRE(image.SaveFile(display.wstring(), wxBITMAP_TYPE_PNG));
+    image.SetRGB(wxRect(0, 0, 64, 64), 0, 0, 255);
+    REQUIRE(image.SaveFile(fallback.wstring(), wxBITMAP_TYPE_PNG));
+    const auto time = boost::filesystem::last_write_time(source);
+    boost::filesystem::last_write_time(display, time + 2);
+    std::atomic<bool> cancelled {false};
+    ModelLibraryThumbnailCache cache;
+    auto thumbnail = cache.load(source, fallback, 96, cancelled);
+    REQUIRE(thumbnail.IsOk());
+    CHECK(thumbnail.GetGreen(0, 0) == 255);
+    boost::filesystem::last_write_time(source, time + 4);
+    thumbnail = cache.load(source, fallback, 96, cancelled);
+    REQUIRE(thumbnail.IsOk());
+    CHECK(thumbnail.GetRed(0, 0) == 255);
+    // Mutating a returned result must not mutate the cache's private image.
+    thumbnail.SetRGB(wxRect(0, 0, 96, 96), 0, 0, 0);
+    thumbnail = cache.load(source, fallback, 96, cancelled);
+    CHECK(thumbnail.GetRed(0, 0) == 255);
+    boost::filesystem::remove(source);
+    thumbnail = cache.load(source, fallback, 96, cancelled);
+    REQUIRE(thumbnail.IsOk());
+    CHECK(thumbnail.GetBlue(0, 0) == 255);
+    boost::filesystem::remove(fallback);
+    CHECK_FALSE(cache.load(source, fallback, 96, cancelled).IsOk());
+}
+
+TEST_CASE("Oversized and corrupt history images cannot allocate a full thumbnail decode",
+          "[ModelGenerationPresentation][HistoryThumbnails]")
+{
+    using namespace Slic3r::GUI;
+    ScopedTemporaryFile image(".png");
+    // 8192 x 8192 is above the bounded worker's pixel limit. Only a header
+    // exists, so this also verifies that listing never needs a full decode.
+    const unsigned char header[] = {0x89, 'P', 'N', 'G', 13, 10, 26, 10,
+        0, 0, 0, 13, 'I', 'H', 'D', 'R', 0, 0, 32, 0, 0, 0, 32, 0};
+    {
+        boost::filesystem::ofstream file(image.path(), std::ios::binary);
+        file.write(reinterpret_cast<const char*>(header), sizeof(header));
+    }
+    std::atomic<bool> cancelled {false};
+    bool png = false;
+    CHECK(library_image_dimensions(image.path(), png) == wxSize(8192, 8192));
+    CHECK(png);
+    CHECK(is_library_image_file(image.path()));
+    CHECK_FALSE(load_library_thumbnail(image.path(), 96, cancelled).IsOk());
+    CHECK_FALSE(load_library_thumbnail(image.path(), 0, cancelled).IsOk());
+    CHECK_FALSE(load_library_thumbnail(image.path(), 65536, cancelled).IsOk());
+    {
+        boost::filesystem::ofstream file(image.path(), std::ios::binary);
+        file << "invalid thumbnail";
+    }
+    CHECK_FALSE(is_library_image_file(image.path()));
+    CHECK_FALSE(load_library_thumbnail(image.path(), 96, cancelled).IsOk());
+}
 
 TEST_CASE("Design history preserves separate image versions before any model exists",
           "[ModelGenerationPresentation][DesignHistory]")

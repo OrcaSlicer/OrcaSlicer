@@ -129,7 +129,7 @@ from printable_palette import (
     assign_palette_roles,
     normalize_palette_color_count,
 )
-from tripo_client import TripoError, validate_generation_options
+from tripo_client import TripoError, validate_generation_option_values, validate_generation_options
 
 _MODEL_PROVIDER_GATEWAY = ModelProviderGateway()
 _HUNYUAN_PROVIDER_GATEWAY = HunyuanModelProviderGateway()
@@ -906,16 +906,19 @@ def _normalize_generation_profile(value: Any) -> str:
     return value
 
 
-def _generation_options(payload: dict[str, Any], face_limit: int) -> tuple[str | None, str, str]:
+def _generation_options(payload: dict[str, Any], face_limit: int, *,
+                        validate_provider_constraints: bool = True) -> tuple[str | None, str, str]:
     provider = _generation_provider(payload)
     geometry = payload.get("geometry_quality")
     texture = payload.get("texture_quality", "standard")
     output = payload.get("output_format", "glb")
     try:
-        if provider == "hunyuan":
-            validate_hunyuan_options(face_limit, geometry, texture)
-        else:
-            validate_generation_options(face_limit, geometry, texture)
+        validate_generation_option_values(geometry, texture)
+        if validate_provider_constraints:
+            if provider == "hunyuan":
+                validate_hunyuan_options(face_limit, geometry, texture)
+            else:
+                validate_generation_options(face_limit, geometry, texture)
     except (TripoError, ProviderGatewayError) as exc:
         raise RequestError("invalid_generation_options", str(exc), 400) from None
     if output not in ("glb", "obj"):
@@ -1048,7 +1051,9 @@ def _new_job(
     if isinstance(face_limit, str) and len(face_limit) <= 7 and face_limit.isascii() and face_limit.isdecimal():
         face_limit = int(face_limit)
     face_limit = _normalize_face_limit(face_limit)
-    geometry, texture, output = _generation_options(options, face_limit)
+    # A design preview has no 3D provider request. Preserve the draft choices;
+    # the explicit model confirmation validates their provider-specific combination.
+    geometry, texture, output = _generation_options(options, face_limit, validate_provider_constraints=False)
     job_id = str(uuid.uuid4())
     output_root = _model_output_root()
     directory = output_root / job_id
@@ -1207,7 +1212,10 @@ def _load_job(directory: Path) -> Job | None:
         style = _normalize_style(payload.get("style"))
         custom_style = _normalize_custom_style(payload.get("custom_style"), style)
         face_limit = _normalize_face_limit(payload.get("face_limit", DEFAULT_MODEL_FACE_LIMIT))
-        geometry_quality, texture_quality, output_format = _generation_options(payload, face_limit)
+        # Drafts with an incompatible model choice must remain recoverable so the
+        # user can correct that choice before submitting any paid model task.
+        geometry_quality, texture_quality, output_format = _generation_options(
+            payload, face_limit, validate_provider_constraints=False)
         raw_generation_profile = payload.get("generation_profile")
         generation_profile = _normalize_generation_profile(raw_generation_profile) if raw_generation_profile is not None else \
             ("quality" if face_limit >= 500000 else "performance")

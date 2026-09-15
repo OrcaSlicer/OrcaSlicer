@@ -11,6 +11,10 @@ namespace Slic3r::GUI::ModelGenerationStatusText {
 wxString localized_service_error(const std::string& error)
 {
     wxString message = from_u8(error);
+    if (message.Contains("2-million-face target requires detailed geometry"))
+        return _L("200 万面需要精细几何。请在 3D 设置中选择精细几何，或改为 100 万面后重试。");
+    if (message.Contains("2-million-face option requires Tripo v3.1"))
+        return _L("当前 Tripo 模型版本不支持 200 万面，请改为 100 万面，或检查服务的模型版本设置。");
     if (message.Contains("Could not connect to the preprocessing service"))
         return _L("无法连接图片生成服务，请检查网络、代理和服务地址后重试。");
     if (message.Contains("preprocessing service is temporarily unavailable"))

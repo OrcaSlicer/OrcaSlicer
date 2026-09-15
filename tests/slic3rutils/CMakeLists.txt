@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
     test_orca_palette_snapshot_builder.cpp
     test_ai_sidecar_client.cpp
     test_model_generation_presentation.cpp
+    test_model_generation_client.cpp
     test_model_preview_palette.cpp
     test_model_preview_state.cpp
     test_model_color_import.cpp

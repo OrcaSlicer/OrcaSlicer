@@ -72,7 +72,7 @@ struct DesignHistoryEntry
     std::time_t generated_at { 0 };
 };
 std::optional<DesignHistoryEntry> read_design_history_entry(
-    const boost::filesystem::path& root, const std::string& job_id);
+    const boost::filesystem::path& root, const std::string& job_id, bool validate_images = true);
 bool has_persisted_generation_assets(const boost::filesystem::path& root, const std::string& job_id);
 boost::filesystem::path archive_library_image(const boost::filesystem::path& source,
                                               const std::string& job_id,

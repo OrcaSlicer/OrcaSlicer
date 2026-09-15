@@ -17,6 +17,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -135,6 +136,7 @@ private:
     void import_local_artifact(const boost::filesystem::path& path, uint64_t sequence);
     void cleanup_files();
     void set_preview_empty(const wxString& message);
+    void show_preview_failure(const wxString& message);
     void show_selected_image_preview();
     void update_preview_view(bool center = false);
     void apply_preview_stage(bool center = false);
@@ -165,6 +167,14 @@ private:
     std::vector<std::string> local_recolor_palette() const;
     struct GeneratedModelEntry;
     void load_library_entries();
+    static std::vector<GeneratedModelEntry> read_library_entries(
+        const boost::filesystem::path& root, const std::atomic<bool>& cancelled);
+    void start_library_worker();
+    void cancel_library_loading();
+    void stop_library_loading();
+    void on_library_timer(wxTimerEvent& event);
+    void request_library_thumbnails();
+    wxWindow* create_library_card(const GeneratedModelEntry& entry);
     void load_design_library_entry(const std::string& job_id);
     void save_library_entry(size_t artifact_size, size_t triangle_count, double width, double depth,
                             double height, size_t color_count, double load_seconds);
@@ -380,6 +390,20 @@ private:
     wxScrolledWindow* m_library_scroller { nullptr };
     wxBoxSizer*     m_library_sizer { nullptr };
     wxStaticText*   m_library_empty { nullptr };
+    wxStaticText*   m_library_page_label { nullptr };
+    wxButton*       m_library_previous { nullptr };
+    wxButton*       m_library_next { nullptr };
+    wxTimer         m_library_timer;
+    struct LibraryLoadState;
+    std::shared_ptr<LibraryLoadState> m_library_load_state;
+    std::thread     m_library_worker;
+    size_t         m_library_page { 0 };
+    size_t         m_library_page_size { 12 };
+    uint64_t       m_library_revision { 0 };
+    int            m_library_thumbnail_edge { 0 };
+    int            m_library_layout_width { 0 };
+    std::vector<wxWindow*> m_library_thumbnails;
+    std::set<std::string> m_library_expanded_details;
     wxTimer         m_poll_timer;
 
     boost::filesystem::path m_selected_image_path;
@@ -428,7 +452,9 @@ private:
     int m_job_face_limit { 1000000 };
     std::string m_job_generation_profile { "quality" };
     AIModelGenerationClient::GenerationOptions m_job_generation_options;
+    bool           m_legacy_generation_defaults { false };
     std::string m_job_id;
+    std::string m_job_state;
     std::string m_job_phase;
     std::string m_job_provider_name;
     std::string m_job_provider_task_id;
@@ -459,7 +485,10 @@ private:
     bool m_restoring_input { false };
     bool m_shutdown { false };
     bool m_updating_preview { false };
+    bool m_preview_download_in_flight { false };
+    bool m_preview_download_cancelled { false };
     bool m_style_preview_ready { false };
+    bool m_preview_output_available { false };
     bool m_style_recommendation_loading { false };
     bool m_style_recommendation_available { false };
     bool m_style_user_selected { false };

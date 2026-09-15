@@ -760,6 +760,29 @@ void AIModelGenerationClient::parse_status_response(std::string body, StatusFn o
         on_complete(std::move(*status));
 }
 
+AIModelGenerationClient::GenerationOptions AIModelGenerationClient::restore_generation_options(const json& saved)
+{
+    GenerationOptions options;
+    if (!saved.is_object())
+        return options;
+    if (saved.contains("provider") && saved["provider"].is_string())
+        options.provider = saved["provider"].get<std::string>();
+    if (saved.contains("face_limit") && saved["face_limit"].is_number_integer())
+        options.face_limit = saved["face_limit"].get<int>();
+    const bool legacy_geometry = !saved.contains("geometry_quality") || saved["geometry_quality"].is_null();
+    if (saved.contains("geometry_quality") && saved["geometry_quality"].is_string())
+        options.geometry_quality = saved["geometry_quality"].get<std::string>();
+    if (saved.contains("texture_quality") && saved["texture_quality"].is_string())
+        options.texture_quality = saved["texture_quality"].get<std::string>();
+    if (saved.contains("output_format") && saved["output_format"].is_string())
+        options.output_format = saved["output_format"].get<std::string>();
+    // Match tripo_client's legacy payload semantics. An explicit choice (even
+    // an incompatible standard/2M draft) must instead be reviewed by the user.
+    if (options.provider == "tripo" && legacy_geometry)
+        options.face_limit = std::min(options.face_limit, 1000000);
+    return options;
+}
+
 std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse_job(const json& job)
 {
     if (!job.is_object())
@@ -775,12 +798,7 @@ std::optional<AIModelGenerationClient::JobStatus> AIModelGenerationClient::parse
     status.progress = std::clamp(job.value("progress", 0), 0, 100);
     status.face_limit = job.value("face_limit", 1000000);
     status.generation_profile = job.value("generation_profile", std::string("quality"));
-    status.generation_options.face_limit = status.face_limit;
-    status.generation_options.provider = job.value("provider", std::string("tripo"));
-    if (job.contains("geometry_quality") && job["geometry_quality"].is_string())
-        status.generation_options.geometry_quality = job["geometry_quality"].get<std::string>();
-    status.generation_options.texture_quality = job.value("texture_quality", std::string("standard"));
-    status.generation_options.output_format = job.value("output_format", std::string("glb"));
+    status.generation_options = restore_generation_options(job);
     status.style = job.value("style", std::string());
     status.custom_style = job.value("custom_style", std::string());
     status.updated_at = job.value("updated_at", 0.0);

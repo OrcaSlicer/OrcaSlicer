@@ -1,10 +1,13 @@
 """Generation options and recovery; all provider boundaries are mocked."""
 import json
+import io
 import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+
+from PIL import Image
 
 import model_provider_gateway as gateway_module
 import orca_ai_sidecar as sidecar
@@ -12,6 +15,11 @@ import tripo_client as tripo
 
 
 class GenerationPayloadTests(unittest.TestCase):
+    def setUp(self):
+        network = mock.patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("offline test"))
+        network.start()
+        self.addCleanup(network.stop)
+
     def test_all_explicit_options_reach_each_generation_endpoint(self):
         sources = (
             (tripo.create_text_task, "test object", "/generation/text-to-model"),
@@ -108,7 +116,80 @@ class GenerationOptionsRecoveryTests(unittest.TestCase):
         environment = mock.patch.dict(os.environ, {"ORCASLICER_AI_OUTPUT_DIR": temporary.name})
         environment.start()
         self.addCleanup(environment.stop)
+        network = mock.patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("offline test"))
+        network.start()
+        self.addCleanup(network.stop)
+        jobs = mock.patch.dict(sidecar._JOBS, {}, clear=True)
+        jobs.start()
+        self.addCleanup(jobs.stop)
         self.job = sidecar._new_job("text", ())
+
+    def test_design_creation_preserves_model_choices_until_model_confirmation(self):
+        image = io.BytesIO()
+        Image.new("RGB", (512, 512), "gray").save(image, format="PNG")
+        for source in ("text", "image"):
+            for provider, geometry, texture in (("tripo", "standard", "standard"),
+                                                 ("tripo", "detailed", "extreme"),
+                                                 ("hunyuan", "detailed", "extreme")):
+                with self.subTest(source=source, provider=provider, geometry=geometry):
+                    options = {"provider": provider, "face_limit": 2000000,
+                               "geometry_quality": geometry, "texture_quality": texture, "output_format": "obj"}
+                    handler = object.__new__(sidecar.Handler)
+                    handler._read_model_json = mock.Mock(return_value={
+                        "request_id": "offline-design", "prompt": "test object", **options})
+                    handler._read_image_multipart = mock.Mock(return_value=({
+                        "request_id": "offline-design", "instruction": "test object", **options,
+                        "face_limit": "2000000"}, image.getvalue(), "image/png"))
+                    handler.send_json = mock.Mock()
+                    with mock.patch.object(sidecar, "image_provider_status", return_value={"available": True}), \
+                         mock.patch.object(sidecar, "_submit") as submit, \
+                         mock.patch.object(sidecar.PaidTaskAuthorization, "confirmed") as authorize:
+                        getattr(handler, "_create_" + source + "_job")()
+                    authorize.assert_not_called()
+                    submit.assert_called_once()
+                    job = submit.call_args.args[0]
+                    self.assertIs(submit.call_args.args[1], getattr(sidecar, "_preprocess_" + source + "_job"))
+                    self.assertEqual(handler.send_json.call_args.args[0], 202)
+                    restored = sidecar._load_job(job.directory)
+                    self.assertIsNotNone(restored)
+                    for key, expected in options.items():
+                        self.assertEqual(getattr(restored, key), expected)
+
+    def test_design_creation_still_rejects_malformed_model_option_fields(self):
+        for options in ({"geometry_quality": "ultra"}, {"texture_quality": "low"},
+                        {"output_format": "stl"}, {"face_limit": 123}, {"provider": "unknown"}):
+            with self.subTest(options=options):
+                with self.assertRaises(sidecar.RequestError):
+                    sidecar._new_job("text", provider=options.get("provider", "tripo"), generation_options=options)
+
+    def test_invalid_saved_design_can_be_corrected_before_any_paid_submission(self):
+        self.job.geometry_quality = "standard"
+        self.job.face_limit = 2000000
+        self.job.state = "awaiting_confirmation"
+        sidecar._persist_job(self.job)
+        restored = sidecar._load_job(self.job.directory)
+        self.assertIsNotNone(restored)
+        handler = object.__new__(sidecar.Handler)
+        handler._get_job = mock.Mock(return_value=restored)
+        handler.send_json = mock.Mock()
+        handler._read_model_json = mock.Mock(return_value={
+            "prepared_prompt": "offline object", "provider": "tripo", "face_limit": 2000000,
+            "geometry_quality": "standard", "texture_quality": "standard", "output_format": "glb"})
+        with mock.patch.object(sidecar.PaidTaskAuthorization, "confirmed") as authorize, \
+             mock.patch.object(sidecar, "_submit") as submit:
+            with self.assertRaisesRegex(sidecar.RequestError, "2-million-face"):
+                handler._generate(restored.id)
+            authorize.assert_not_called()
+            submit.assert_not_called()
+            self.assertEqual(restored.state, "awaiting_confirmation")
+            handler._read_model_json.return_value.pop("prepared_prompt")
+            handler._read_model_json.return_value["face_limit"] = 1000000
+            handler._set_generation_options(restored.id)
+            authorize.assert_not_called()
+            submit.assert_not_called()
+        self.assertEqual(restored.face_limit, 1000000)
+        self.assertEqual(restored.geometry_quality, "standard")
+        self.assertEqual(sidecar._load_job(restored.directory).face_limit, 1000000)
 
     def test_legacy_persisted_job_does_not_gain_costlier_options(self):
         state_path = self.job.directory / sidecar.JOB_STATE_FILENAME
@@ -167,9 +248,43 @@ class GenerationOptionsRecoveryTests(unittest.TestCase):
         for key in ("face_limit", "geometry_quality", "texture_quality", "output_format"):
             self.assertEqual(public[key], handler._read_model_json.return_value[key])
 
+    def test_corrected_design_requires_one_explicit_confirmation_and_does_not_submit_twice(self):
+        self.job.state = "awaiting_confirmation"
+        self.job.geometry_quality = "standard"
+        self.job.face_limit = 2000000
+        sidecar._persist_job(self.job)
+        handler = object.__new__(sidecar.Handler)
+        handler._get_job = mock.Mock(return_value=sidecar._load_job(self.job.directory))
+        handler.send_json = mock.Mock()
+        handler._read_model_json = mock.Mock(return_value={
+            "provider": "tripo", "face_limit": 2000000,
+            "geometry_quality": "detailed", "texture_quality": "extreme", "output_format": "obj"})
+        with mock.patch.object(sidecar, "_model_gateway") as gateway, \
+             mock.patch.object(sidecar.PaidTaskAuthorization, "confirmed") as authorize, \
+             mock.patch.object(sidecar, "_submit") as submit:
+            handler._set_generation_options(self.job.id)
+            gateway.assert_not_called()
+            authorize.assert_not_called()
+            submit.assert_not_called()
+            restored = sidecar._load_job(self.job.directory)
+            self.assertEqual((restored.face_limit, restored.geometry_quality, restored.texture_quality),
+                             (2000000, "detailed", "extreme"))
+            handler._get_job.return_value = restored
+            handler._read_model_json.return_value["prepared_prompt"] = "offline corrected design"
+            handler._generate(self.job.id)
+            authorize.assert_called_once_with(f"{self.job.id}:model:1", "tripo")
+            submit.assert_called_once()
+            with self.assertRaisesRegex(sidecar.RequestError, "not awaiting confirmation"):
+                handler._generate(self.job.id)
+            authorize.assert_called_once()
+            submit.assert_called_once()
+            self.assertEqual(restored.state, "queued")
+
     def test_invalid_route_options_do_not_authorize_or_change_job(self):
         for options in ({"geometry_quality": "standard", "face_limit": 2000000},
-                        {"texture_quality": "low"}, {"output_format": "stl"}):
+                        {"texture_quality": "low"}, {"output_format": "stl"},
+                        {"provider": "hunyuan", "face_limit": 2000000},
+                        {"provider": "hunyuan", "geometry_quality": "detailed"}):
             with self.subTest(options=options):
                 self.job.state = "awaiting_confirmation"
                 before = (self.job.directory / sidecar.JOB_STATE_FILENAME).read_bytes()
@@ -177,7 +292,7 @@ class GenerationOptionsRecoveryTests(unittest.TestCase):
                 handler._read_model_json = mock.Mock(return_value={"prepared_prompt": "object", **options})
                 handler._get_job = mock.Mock(return_value=self.job)
                 with mock.patch.object(sidecar.PaidTaskAuthorization, "confirmed") as authorize, \
-                     mock.patch.object(sidecar, "_MODEL_PROVIDER_GATEWAY") as gateway, \
+                     mock.patch.object(sidecar, "_model_gateway") as gateway, \
                      mock.patch.object(sidecar, "_submit") as submit:
                     with self.assertRaises(sidecar.RequestError) as error:
                         handler._generate(self.job.id)

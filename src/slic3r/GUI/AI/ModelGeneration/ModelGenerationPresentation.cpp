@@ -1,4 +1,5 @@
 #include "ModelGenerationPresentation.hpp"
+#include "ModelLibraryThumbnail.hpp"
 #include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include "slic3r/GUI/AIModelOutputDirectory.hpp"
 
@@ -209,7 +210,7 @@ bool path_is_inside(const boost::filesystem::path& root, const boost::filesystem
 }
 
 std::optional<DesignHistoryEntry> read_design_history_entry(
-    const boost::filesystem::path& root, const std::string& job_id)
+    const boost::filesystem::path& root, const std::string& job_id, bool validate_images)
 {
     // Match the sidecar status route, and never follow a record into another job.
     if (job_id.size() != 36) return std::nullopt;
@@ -247,7 +248,10 @@ std::optional<DesignHistoryEntry> read_design_history_entry(
             const auto value = data.find(key);
             if (value == data.end() || !value->is_string() || value->get_ref<const std::string&>().empty()) return {};
             const auto path = directory / value->get<std::string>();
-            return path_is_inside(directory, path) && is_supported_image(path) ? path : boost::filesystem::path();
+            // Listing defers image decoding to the bounded thumbnail worker.
+            // Opening a record still validates full images by default.
+            return path_is_inside(directory, path) &&
+                (validate_images ? is_supported_image(path) : is_library_image_file(path)) ? path : boost::filesystem::path();
         };
         entry.input_path = image_path("input_path");
         entry.raw_preview_path = image_path("raw_preview_path");

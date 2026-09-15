@@ -285,6 +285,9 @@ public:
     void cancel_current();
 
     static bool is_loopback_endpoint(const std::string& endpoint);
+    // Restores editable choices without changing the historical job or silently
+    // upgrading pre-option Tripo jobs to a costlier geometry tier.
+    static GenerationOptions restore_generation_options(const nlohmann::json& saved);
     static bool validate_color_intent_manifest_file(const boost::filesystem::path& manifest_path,
                                                     const std::string& schema, const std::string& sha256,
                                                     const boost::filesystem::path& artifact_path);
