@@ -164,6 +164,7 @@ private:
     //void        update_menu_items_instance_manipulation(MenuType type);
     //BBS add bbl menu item
     void        append_menu_item_clone(wxMenu* menu);
+    void        append_menu_items_copy_paste(wxMenu* menu, bool with_copy = true);
     void        append_menu_item_simplify(wxMenu* menu);
     void        append_menu_item_smooth_mesh(wxMenu *menu);
     void        append_menu_item_center(wxMenu* menu);
