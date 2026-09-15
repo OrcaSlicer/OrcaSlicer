@@ -188,6 +188,17 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
             out = double_to_string(opt->value) + (opt->percent ? "%" : "");
         return out;
     }
+    case coFloatsOrPercents: {
+        const auto* values = static_cast<const ConfigOptionVector<FloatOrPercent>*>(option);
+        // Orca: Preset comparison may request the entire vector instead of an indexed entry.
+        if (orig_opt_idx < 0)
+            return from_u8(option->serialize());
+        if (opt_idx < values->size()) {
+            const FloatOrPercent& value = values->get_at(opt_idx);
+            return double_to_string(value.value) + (value.percent ? "%" : "");
+        }
+        return _L("Undefined");
+    }
     case coEnum: {
         return get_string_from_enum(pure_key, config,
             pure_key == "top_surface_pattern" ||
