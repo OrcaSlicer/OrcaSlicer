@@ -136,6 +136,8 @@ private:
     std::vector<size_t> get_selectable_idxs() const;
     EType get_gizmo_from_mouse(const Vec2d &mouse_pos) const;
 
+    bool is_mouse_over_overlay_background(const Vec2d &mouse_pos) const;
+
     bool activate_gizmo(EType type);
 
     std::string m_tooltip;
