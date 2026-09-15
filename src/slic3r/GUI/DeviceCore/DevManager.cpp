@@ -30,15 +30,31 @@ namespace {
     {
         const auto& machines = config->get_local_machines();
         auto        it       = machines.find(dev_id);
-        if (it != machines.end() && it->second.printer_agent_id == agent_id && !it->second.access_code.empty())
-            return it->second.access_code;
+        const bool  is_bbl   = agent_id == Slic3r::BBL_PRINTER_AGENT_ID || agent_id.empty();
+        const bool  has_scoped_code = it != machines.end() && it->second.printer_agent_id == agent_id
+                                   && !it->second.access_code.empty();
 
-        if (agent_id == Slic3r::BBL_PRINTER_AGENT_ID || agent_id.empty()) {
-            std::string code = config->get("access_code", dev_id);
-            if (code.empty())
-                code = config->get("user_access_code", dev_id);
-            return code;
+        if (is_bbl) {
+            const std::string legacy_code      = config->get("access_code", dev_id);
+            const std::string legacy_user_code = config->get("user_access_code", dev_id);
+
+            // Before the access-code fields were merged, MachineObject::get_access_code()
+            // preferred user_access_code. The initial migration reversed that precedence and
+            // could persist the lower-priority access_code into the new scoped machine record.
+            // Detect that copied value and preserve the old effective credential.
+            if (has_scoped_code && !legacy_user_code.empty() && it->second.access_code == legacy_code
+                && legacy_user_code != legacy_code)
+                return legacy_user_code;
+
+            if (has_scoped_code)
+                return it->second.access_code;
+            if (!legacy_user_code.empty())
+                return legacy_user_code;
+            return legacy_code;
         }
+
+        if (has_scoped_code)
+            return it->second.access_code;
         return "";
     }
 }
@@ -667,16 +683,24 @@ namespace Slic3r
     {
         if (selected_machine.empty()) return nullptr;
 
+        // A logged-in account may contain a cloud object with the same id as a saved LAN
+        // printer. LAN messages are routed to the local object, so prefer it while the selected
+        // device is configured for LAN access. Returning the cloud duplicate here leaves the UI
+        // checking stale counters even though full local status messages are arriving.
+        auto local_it = localMachineList.find(selected_machine);
+        if (local_it != localMachineList.end() && local_it->second->has_access_right()
+            && local_it->second->is_lan_mode_printer())
+            return local_it->second;
+
         MachineObject* obj = get_user_machine(selected_machine, GUI::wxGetApp().get_printer_cloud_provider());
         if (obj)
             return obj;
 
         // return local machine has access code
-        auto it = localMachineList.find(selected_machine);
-        if (it != localMachineList.end())
+        if (local_it != localMachineList.end())
         {
-            if (it->second->has_access_right())
-                return it->second;
+            if (local_it->second->has_access_right())
+                return local_it->second;
         }
         return nullptr;
     }
@@ -740,17 +764,9 @@ namespace Slic3r
     {
         std::map<std::string, MachineObject*> result;
 
-        for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
-        {
-            if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
-                continue;
-
-            if (!it->second->is_lan_mode_printer())
-            {
-                result.insert(std::make_pair(it->first, it->second));
-            }
-        }
-
+        // A saved LAN printer and a cloud printer can share the same device id. Prefer the LAN
+        // object before discovery refreshes the cloud object's connection type, otherwise startup
+        // timing decides whether set_selected_machine() opens a local or cloud connection.
         for (auto it = localMachineList.begin(); it != localMachineList.end(); it++)
         {
             if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
@@ -758,10 +774,21 @@ namespace Slic3r
 
             if (it->second->has_access_right() && it->second->is_avaliable() && it->second->is_lan_mode_printer())
             {
-                // remove redundant in userMachineList
+                result.emplace(it->first, it->second);
+            }
+        }
+
+        for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
+        {
+            if (!it->second || (!agent_id.empty() && it->second->printer_agent_id != agent_id))
+                continue;
+
+            if (!it->second->is_lan_mode_printer())
+            {
+                // Keep the saved LAN object when the cloud list contains the same printer.
                 if (result.find(it->first) == result.end())
                 {
-                    result.emplace(std::make_pair(it->first, it->second));
+                    result.emplace(it->first, it->second);
                 }
             }
         }
