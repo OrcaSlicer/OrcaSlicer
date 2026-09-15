@@ -594,6 +594,11 @@ public:
     std::string     get_saved_mode_str();
     std::string     get_mode_str();
     void            save_mode(const /*ConfigOptionMode*/int mode) ;
+    // Switch to `mode` from the Speed Dial: a developer-mode override hides the saved mode
+    // (get_mode returns comDevelop), so clear it first and persist the choice.
+    void            set_mode(ConfigOptionMode mode);
+    // Turn the developer-mode override on and refresh the UI (used before jumping to a Developer setting).
+    void            enable_developer_mode();
     void            update_mode();
     void            update_internal_development();
     void            show_ip_address_enter_dialog(wxString title = wxEmptyString);
@@ -632,6 +637,9 @@ public:
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
+    void            refresh_plugins();
+    void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return m_action_registry; }

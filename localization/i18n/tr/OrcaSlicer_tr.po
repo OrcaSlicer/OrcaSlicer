@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -2480,13 +2480,6 @@ msgstr "Kullanılabilir bir güncelleme var. Güncellemek için ön ayar paketi 
 msgid "%s has been removed."
 msgstr "%s kaldırıldı."
 
-
-msgid "Select the language"
-msgstr "Dili seçin"
-
-msgid "Language"
-msgstr "Dil"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2523,6 +2516,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Eklentiler iletişim kutusu açılamadı (bilinmeyen hata)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4198,6 +4204,21 @@ msgstr "OrcaSlicer da aynı ruhla, PrusaSlicer, BambuStudio, SuperSlicer ve Cura
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Bugün OrcaSlicer, 3D baskı topluluğunda en yaygın kullanılan ve en etkin geliştirilen açık kaynaklı dilimleyicidir. Yeniliklerinin birçoğu diğer dilimleyiciler tarafından da benimsendi ve bu da onu tüm sektör için itici bir güç haline getirdi."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Yazıcı"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS Malzeme Ayarı"
 
@@ -4640,6 +4661,12 @@ msgid ""
 msgstr ""
 "Geçici G-code'un çıkış G-code'a kopyalanması başarısız oldu. Belki SD kart yazma kilitlidir.\n"
 "Hata mesajı: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5381,10 +5408,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Değer %s aralık dışında. Geçerli aralık %d ile %d arasındadır."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"%s%% mi yoksa %s %s mi?"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% mi yoksa %s %s mi?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5411,20 +5439,16 @@ msgid "System agents"
 msgstr "Sistem aracıları"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Eklenti seçilmedi"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Eklenti ekle"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Eklenti seç"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Eklentiyi kaldır"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Eklenti seçilmedi"
 
 # AI Translated
 msgid "Configure"
@@ -5750,9 +5774,6 @@ msgstr "Renk değişimi"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Yazdır"
-
-msgid "Printer"
-msgstr "Yazıcı"
 
 msgid "Time Estimation"
 msgstr "Zaman Tahmini"
@@ -6545,6 +6566,9 @@ msgstr "3D sahnede seçilen nesnenin etrafındaki ana hatları göster."
 
 msgid "Preferences"
 msgstr "Tercihler"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7485,6 +7509,234 @@ msgstr "Bu iletişim kutusunu bir daha gösterme"
 msgid "Please refer to Wiki before use->"
 msgstr "Lütfen kullanmadan önce Wiki'ye bakın->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "STL'yi dışa aktar"
+
+msgid "Export 3MF"
+msgstr "3MF'yi dışa aktar"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Maksimum Hacimsel Hız Kalibrasyonu"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "Akış Oranı Kalibrasyonu"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Tüm Nesneleri Sil"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Nesnelere Ayır"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D Fare bağlantısı kesildi."
 
@@ -7646,6 +7898,12 @@ msgstr "Üst"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Alt"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8340,19 +8598,11 @@ msgid "Delete Object"
 msgstr "Nesneyi Sil"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Tüm Nesneleri Sil"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Projeyi Sıfırla"
 
 msgid "The selected object couldn't be split."
 msgstr "Seçilen nesne bölünemedi."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Nesnelere Ayır"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Z konumunu korumak için Otomatik düşürme devre dışı bırakılsın mı?\n"
@@ -8854,7 +9104,6 @@ msgstr "Devam etmek istiyor musun?"
 msgid "Language selection"
 msgstr "Dil seçimi"
 
-
 msgid "Asia-Pacific"
 msgstr "Asya Pasifik"
 
@@ -8958,6 +9207,9 @@ msgstr "Mevcut Örnek Yolu: "
 
 msgid "General"
 msgstr "Genel"
+
+msgid "Language"
+msgstr "Dil"
 
 msgid "Metric"
 msgstr "Metrik"
@@ -9165,6 +9417,21 @@ msgstr "Çoklu cihaz yönetimi"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Bu seçenek etkinleştirildiğinde, aynı anda birden fazla cihaza bir görev gönderebilir ve birden fazla cihazı yönetebilirsiniz."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Filament gruplama modunu seçmek için açılır pencere"
@@ -9422,9 +9689,6 @@ msgstr "Dilimlenmiş önizlemede katman kaydırıcısı gezdirilirken, geçerli 
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Karartılmış katman parlaklığı"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9916,6 +10180,9 @@ msgstr "Üst ön ayardan devralınan tüm değerleri bu ön ayara kopyalar ve ü
 msgid "Detach from parent"
 msgstr "Ebeveynden ayrıl"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "Bağımsız ön ayar"
@@ -9974,6 +10241,126 @@ msgstr "\"%1%\" için \"%2%\"yi yeni ön ayar olarak ekleyin"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Kolayca \"%1%\"e geçin"
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Diğer"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Görev iptal edildi"
@@ -11011,9 +11398,6 @@ msgstr "Uyumlu süreç profilleri"
 msgid "Printable space"
 msgstr "Plaka Ayarı"
 
-msgid "Printer Agent"
-msgstr "Yazıcı Aracısı"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Yazıcı iletişimi için ağ aracısı uygulamasını seçin. Kullanılabilir aracılar başlangıçta kaydedilir."
 
@@ -11846,6 +12230,17 @@ msgstr "3Dconnexion cihazları ayarları iletişim kutusunu Göster/Gizle"
 msgid "Switch table page"
 msgstr "Tablo sayfasını değiştir"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Boşluk"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Klavye kısayolları listesini göster"
 
@@ -12007,15 +12402,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Hazırlama/Önizleme arasında geçiş yap"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Boşluk"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Eylem hızlı erişim menüsünü aç"
 
 msgid "Plater"
 msgstr "Plakacı"
@@ -12291,14 +12677,20 @@ msgstr "Onarım iptal edildi"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% dosyasının %2% dosyasına kopyalanması başarısız oldu: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Yapılandırma güncellemelerinden önce kaydedilmemiş değişiklikleri kontrol etmeniz gerekir."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Yapılandırma paketi: "
 
 msgid " updated to "
 msgstr " güncellendi "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Yapılandırma güncellemelerinden önce kaydedilmemiş değişiklikleri kontrol etmeniz gerekir."
 
 msgid "Open G-code file:"
 msgstr "G-code dosyasını açın:"
@@ -12847,6 +13239,9 @@ msgstr "G-code yerine 3MF kullan"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Yazıcı, baskı işi olarak 3MF dosyası kabul ediyorsa bunu etkinleştirin. Etkinleştirildiğinde Orca Slicer, dilimlenmiş dosyayı düz bir .gcode dosyası yerine .gcode.3mf olarak gönderir."
+
+msgid "Printer Agent"
+msgstr "Yazıcı Aracısı"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Yazıcı iletişimi için ağ aracısı uygulamasını seçin."
@@ -13918,6 +14313,9 @@ msgstr "Hizalanmış doğrusal"
 msgid "Concentric"
 msgstr "Konsantrik"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert eğrisi"
 
@@ -14007,29 +14405,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Üst yüzey doldurma sırası"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken üst yüzeylerin doldurulma yönü.\n"
-"Dışarı, yüzeyin merkezinden başlar; böylece fazla malzeme en az göründüğü kenara doğru itilir. İçeri kenardan başlar ve merkezdeki dar kavislerle biter.\n"
-"Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Alt yüzey doldurma sırası"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken alt yüzeylerin doldurulma yönü.\n"
-"İçeri, her yüzeye daha geniş dış kavislerle başlar; bu da merkezdeki dar kavislerin yapışmayabileceği yapı plakalarında ilk katman yapışmasını iyileştirir. Dışarı merkezden başlar ve fazla malzemeyi kenara doğru iter.\n"
-"Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 msgid "Internal solid infill pattern"
 msgstr "İç katı dolgu deseni"
@@ -17103,9 +17493,6 @@ msgstr "Üçgen mesh dilimleme sırasında 2x boşluk kapatma yarıçapından k�
 msgid "Slicing Mode"
 msgstr "Dilimleme modu"
 
-msgid "Other"
-msgstr "Diğer"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrint uçak modelleri için \"Çift-tek\" seçeneğini kullanın. Modeldeki tüm delikleri kapatmak için \"Delikleri kapat\"ı kullanın."
 
@@ -18049,9 +18436,6 @@ msgstr "çok büyük çizgi genişliği "
 msgid " not in range "
 msgstr " aralıkta değil "
 
-msgid "Export 3MF"
-msgstr "3MF'yi dışa aktar"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Projeyi 3MF olarak dışa aktarın."
 
@@ -18066,9 +18450,6 @@ msgstr "Dilimleme verilerini yükle"
 
 msgid "Load cached slicing data from directory."
 msgstr "Önbelleğe alınmış dilimleme verilerini dizinden yükle."
-
-msgid "Export STL"
-msgstr "STL'yi dışa aktar"
 
 msgid "Export the objects as single STL."
 msgstr "Nesneleri tek STL olarak dışa aktarın."
@@ -18727,9 +19108,6 @@ msgstr "Dosya geçersiz köşe dizini içeriyor."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Bu OBJ dosyası boş olduğundan okunamadı."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Maksimum Hacimsel Hız Kalibrasyonu"
 
 msgid "Manage Result"
 msgstr "Sonucu Yönet"
@@ -19583,10 +19961,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "NOT: Yüksek değerler Katman kaymasına neden olabilir (>%s)"
-
-# AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "Akış Oranı Kalibrasyonu"
 
 # AI Translated
 msgid "Calibration Test Type"
@@ -22130,6 +22504,37 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Eklenti seç"
+
+#~ msgid "Select the language"
+#~ msgstr "Dili seçin"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Eylem hızlı erişim menüsünü aç"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken üst yüzeylerin doldurulma yönü.\n"
+#~ "Dışarı, yüzeyin merkezinden başlar; böylece fazla malzeme en az göründüğü kenara doğru itilir. İçeri kenardan başlar ve merkezdeki dar kavislerle biter.\n"
+#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken alt yüzeylerin doldurulma yönü.\n"
+#~ "İçeri, her yüzeye daha geniş dış kavislerle başlar; bu da merkezdeki dar kavislerin yapışmayabileceği yapı plakalarında ilk katman yapışmasını iyileştirir. Dışarı merkezden başlar ve fazla malzemeyi kenara doğru iter.\n"
+#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

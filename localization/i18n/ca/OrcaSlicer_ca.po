@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2522,13 +2522,6 @@ msgstr "Hi ha una actualització disponible. Obriu el quadre de diàleg del paqu
 msgid "%s has been removed."
 msgstr "%s s'ha eliminat."
 
-
-msgid "Select the language"
-msgstr "Seleccioneu l'idioma"
-
-msgid "Language"
-msgstr "Idioma"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2565,6 +2558,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "No s'ha pogut obrir el quadre de diàleg de Connectors (error desconegut)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4247,6 +4253,21 @@ msgstr "OrcaSlicer va néixer amb aquest mateix esperit, inspirant-se en PrusaSl
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Avui, OrcaSlicer és el laminador de codi obert més utilitzat i amb un desenvolupament més actiu de la comunitat d'impressió 3D. Moltes de les seves innovacions han estat adoptades per altres laminadors, cosa que el converteix en una força motriu per a tot el sector."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Impressora"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "Configuració de materials AMS"
 
@@ -4686,6 +4707,12 @@ msgid ""
 msgstr ""
 "Error en copiar el codi-G temporal al codi-G de sortida. Potser la targeta SD està bloquejada contra escriptura?\n"
 "Missatge d'error: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5428,10 +5455,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "El valor %s està fora de rang. El rang vàlid és de %d a %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"És %s%% or %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "És %s%% or %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5458,20 +5486,16 @@ msgid "System agents"
 msgstr "Agents del sistema"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Cap connector seleccionat"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Afegir connector"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Seleccionar connector"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Eliminar connector"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Cap connector seleccionat"
 
 # AI Translated
 msgid "Configure"
@@ -5799,9 +5823,6 @@ msgstr "Canvi de color"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Imprimir"
-
-msgid "Printer"
-msgstr "Impressora"
 
 msgid "Time Estimation"
 msgstr "Estimació temporal"
@@ -6594,6 +6615,9 @@ msgstr "Mostrar el contorn al voltant de l'objecte seleccionat a l'escena 3D"
 
 msgid "Preferences"
 msgstr "Preferències"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7540,6 +7564,234 @@ msgstr "No tornis a mostrar aquest diàleg"
 msgid "Please refer to Wiki before use->"
 msgstr "Consulteu la Wiki abans d'usar ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "Exportar STL"
+
+msgid "Export 3MF"
+msgstr "Exportar 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Calibratge de Velocitat Volumètrica Màxima"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "Calibratge de la relació de flux"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Suprimir tots els objectes"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Separar en objectes"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "S'ha desconnectat el ratolí 3D."
 
@@ -7703,6 +7955,12 @@ msgstr "Superior"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Inferior"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8402,19 +8660,11 @@ msgid "Delete Object"
 msgstr "Suprimir l'objecte"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Suprimir tots els objectes"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Restablir el projecte"
 
 msgid "The selected object couldn't be split."
 msgstr "L'objecte seleccionat no s'ha pogut partir."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Separar en objectes"
 
 # AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
@@ -8918,7 +9168,6 @@ msgstr "Voleu continuar?"
 msgid "Language selection"
 msgstr "Selecció d'idiomes"
 
-
 msgid "Asia-Pacific"
 msgstr "Àsia-Pacífic"
 
@@ -9023,6 +9272,9 @@ msgstr "Ruta de la Instància Actual: "
 # AI Translated
 msgid "General"
 msgstr "General"
+
+msgid "Language"
+msgstr "Idioma"
 
 msgid "Metric"
 msgstr "Mètric"
@@ -9231,6 +9483,21 @@ msgstr "Gestió multidispositiu"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius alhora i gestionar múltiples dispositius."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
@@ -9488,9 +9755,6 @@ msgstr "En desplaçar el control lliscant de capes a la previsualització lamina
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Brillantor de les capes enfosquides"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9985,6 +10249,9 @@ msgstr "Copia en aquest perfil tots els valors heretats del perfil pare i elimin
 msgid "Detach from parent"
 msgstr "Desvincula del pare"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "Perfil únic"
@@ -10043,6 +10310,126 @@ msgstr "Per a \"%1%\", afegir \"%2%\" com a perfil nou"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Simplement canviar a \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Altre"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Tasca cancel·lada"
@@ -11072,9 +11459,6 @@ msgstr "Perfils de processos compatibles"
 msgid "Printable space"
 msgstr "Espai imprimible"
 
-msgid "Printer Agent"
-msgstr "Agent de la impressora"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora. Els agents disponibles es registren a l'inici."
 
@@ -11908,6 +12292,17 @@ msgstr "Mostrar/Amagar quadre de diàleg Configuració de Dispositius 3Dconnexio
 msgid "Switch table page"
 msgstr "Canviar de pàgina de taula"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Espai"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Mostrar la llista de dreceres de teclat"
 
@@ -12072,15 +12467,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Canviar entre Preparar/Previsualitzar"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Espai"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Obrir el marcatge ràpid d'accions"
 
 msgid "Plater"
 msgstr "Plataforma"
@@ -12355,14 +12741,20 @@ msgstr "Reparació cancel·lada"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "La còpia del fitxer %1% a %2% ha fallat: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Paquet de configuració: "
 
 msgid " updated to "
 msgstr " actualitzat a "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
 
 msgid "Open G-code file:"
 msgstr "Obre el fitxer de Codi-G:"
@@ -12910,6 +13302,9 @@ msgstr "Utilitzar 3MF en lloc de G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Activeu-ho si la impressora accepta un fitxer 3MF com a treball d'impressió. Quan està activat, Orca Slicer envia el fitxer laminat com a .gcode.3mf, en lloc d'un fitxer .gcode simple."
+
+msgid "Printer Agent"
+msgstr "Agent de la impressora"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora."
@@ -13987,6 +14382,9 @@ msgstr "Alineat Rectilini"
 msgid "Concentric"
 msgstr "Concèntric"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Corba de Hilbert"
 
@@ -14076,29 +14474,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Ordre d'emplenament de la superfície superior"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Ordre d'emplenament de la superfície inferior"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 msgid "Internal solid infill pattern"
 msgstr "Patró de farciment sòlid intern"
@@ -17169,9 +17559,6 @@ msgstr "Les esquerdes de menys de dues vegades el radi de tancament de buits s'o
 msgid "Slicing Mode"
 msgstr "Mode de laminat"
 
-msgid "Other"
-msgstr "Altre"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Utilitzeu \"Parell-imparell\" per als models d'avió 3DLabPrint. Utilitzeu \"Tancar forats\" per tancar tots els forats del model."
 
@@ -18117,9 +18504,6 @@ msgstr "amplada de línia massa gran "
 msgid " not in range "
 msgstr " fora de rang "
 
-msgid "Export 3MF"
-msgstr "Exportar 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Exportar projecte a 3MF."
 
@@ -18134,9 +18518,6 @@ msgstr "Carregar dades de laminació"
 
 msgid "Load cached slicing data from directory."
 msgstr "Carregar les dades de laminació a la memòria cau des del directori"
-
-msgid "Export STL"
-msgstr "Exportar STL"
 
 msgid "Export the objects as single STL."
 msgstr "Exportar tots els objectes com a un STL."
@@ -18795,9 +19176,6 @@ msgstr "El fitxer conté índex de vèrtex no vàlid."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Aquest fitxer OBJ no s'ha pogut llegir perquè està buit."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Calibratge de Velocitat Volumètrica Màxima"
 
 msgid "Manage Result"
 msgstr "Gestionar els resultats"
@@ -19646,10 +20024,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "NOTA: valors alts poden causar desplaçament de capes (>%s)"
-
-# AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "Calibratge de la relació de flux"
 
 # AI Translated
 msgid "Calibration Test Type"
@@ -22199,6 +22573,37 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Seleccionar connector"
+
+#~ msgid "Select the language"
+#~ msgstr "Seleccioneu l'idioma"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Obrir el marcatge ràpid d'accions"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

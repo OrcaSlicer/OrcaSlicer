@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2293,13 +2293,6 @@ msgstr ""
 msgid "%s has been removed."
 msgstr ""
 
-
-msgid "Select the language"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
 #, possible-c-format, possible-boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr ""
@@ -2325,6 +2318,19 @@ msgid ""
 msgstr ""
 
 msgid "Failed to open the Plugins dialog (unknown error)."
+msgstr ""
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
 msgstr ""
 
 msgid "Plugin Terminal"
@@ -3909,6 +3915,21 @@ msgstr ""
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr ""
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr ""
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr ""
 
@@ -4319,6 +4340,12 @@ msgstr ""
 #, possible-boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\n"
+"Error message: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
 
@@ -4994,8 +5021,10 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid ""
-"Is it %s%% or %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr ""
+
+msgid "%"
 msgstr ""
 
 #, possible-boost-format
@@ -5021,16 +5050,13 @@ msgstr ""
 msgid "System agents"
 msgstr ""
 
-msgid "No plugin selected"
-msgstr ""
-
 msgid "Add plugin"
 msgstr ""
 
-msgid "Select plugin"
+msgid "Remove plugin"
 msgstr ""
 
-msgid "Remove plugin"
+msgid "No plugin selected"
 msgstr ""
 
 msgid "Configure"
@@ -5351,9 +5377,6 @@ msgstr ""
 
 msgctxt "Noun"
 msgid "Print"
-msgstr ""
-
-msgid "Printer"
 msgstr ""
 
 msgid "Time Estimation"
@@ -6125,6 +6148,9 @@ msgid "Show outline around selected object in 3D scene."
 msgstr ""
 
 msgid "Preferences"
+msgstr ""
+
+msgid "Open speed dial..."
 msgstr ""
 
 msgctxt "Menu"
@@ -7025,6 +7051,231 @@ msgstr ""
 msgid "Please refer to Wiki before use->"
 msgstr ""
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr ""
+
+msgid "Export 3MF"
+msgstr ""
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr ""
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr ""
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+msgid "Split to Objects"
+msgstr ""
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr ""
 
@@ -7178,6 +7429,12 @@ msgstr ""
 
 msgctxt "Layers"
 msgid "Bottom"
+msgstr ""
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
 msgstr ""
 
 msgid "Plugin Selection"
@@ -7808,16 +8065,10 @@ msgstr ""
 msgid "Delete Object"
 msgstr ""
 
-msgid "Delete All Objects"
-msgstr ""
-
 msgid "Reset Project"
 msgstr ""
 
 msgid "The selected object couldn't be split."
-msgstr ""
-
-msgid "Split to Objects"
 msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
@@ -8290,7 +8541,6 @@ msgstr ""
 msgid "Language selection"
 msgstr ""
 
-
 msgid "Asia-Pacific"
 msgstr ""
 
@@ -8382,6 +8632,9 @@ msgid "Current Instance Path: "
 msgstr ""
 
 msgid "General"
+msgstr ""
+
+msgid "Language"
 msgstr ""
 
 msgid "Metric"
@@ -8564,6 +8817,21 @@ msgid "Multi device management"
 msgstr ""
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr ""
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -8771,9 +9039,6 @@ msgid "When scrubbing the layer slider in the sliced preview, render the layers 
 msgstr ""
 
 msgid "Dimmed layer brightness"
-msgstr ""
-
-msgid "%"
 msgstr ""
 
 msgid ""
@@ -9230,6 +9495,9 @@ msgstr ""
 msgid "Detach from parent"
 msgstr ""
 
+msgid "Save without parent"
+msgstr ""
+
 msgid "Unique preset"
 msgstr ""
 
@@ -9284,6 +9552,126 @@ msgstr ""
 
 #, possible-boost-format
 msgid "Simply switch to \"%1%\""
+msgstr ""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s actions"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s matches"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
 msgstr ""
 
 msgid "Task canceled"
@@ -10230,9 +10618,6 @@ msgstr ""
 msgid "Printable space"
 msgstr ""
 
-msgid "Printer Agent"
-msgstr ""
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr ""
 
@@ -10981,6 +11366,16 @@ msgstr ""
 msgid "Switch table page"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr ""
 
@@ -11134,13 +11529,6 @@ msgid "Tab"
 msgstr ""
 
 msgid "Switch between Prepare/Preview"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr ""
-
-msgid "Open actions speed dial"
 msgstr ""
 
 msgid "Plater"
@@ -11401,13 +11789,19 @@ msgstr ""
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr ""
 
-msgid "Please check any unsaved changes before updating the configuration."
+msgid "Downloading new vendor profile(s): "
 msgstr ""
 
 msgid "Configuration package: "
 msgstr ""
 
 msgid " updated to "
+msgstr ""
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
 msgstr ""
 
 msgid "Open G-code file:"
@@ -11902,6 +12296,9 @@ msgid "Use 3MF instead of G-code"
 msgstr ""
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
+msgstr ""
+
+msgid "Printer Agent"
 msgstr ""
 
 msgid "Select the network agent implementation for printer communication."
@@ -12752,6 +13149,9 @@ msgstr ""
 msgid "Concentric"
 msgstr ""
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr ""
 
@@ -12821,7 +13221,7 @@ msgid "Top surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
@@ -12830,7 +13230,7 @@ msgid "Bottom surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
@@ -15547,9 +15947,6 @@ msgstr ""
 msgid "Slicing Mode"
 msgstr ""
 
-msgid "Other"
-msgstr ""
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr ""
 
@@ -16380,9 +16777,6 @@ msgstr ""
 msgid " not in range "
 msgstr ""
 
-msgid "Export 3MF"
-msgstr ""
-
 msgid "This exports the project as a 3MF file."
 msgstr ""
 
@@ -16396,9 +16790,6 @@ msgid "Load slicing data"
 msgstr ""
 
 msgid "Load cached slicing data from directory."
-msgstr ""
-
-msgid "Export STL"
 msgstr ""
 
 msgid "Export the objects as single STL."
@@ -17048,9 +17439,6 @@ msgid "The file contains invalid vertex index."
 msgstr ""
 
 msgid "This OBJ file couldn't be read because it's empty."
-msgstr ""
-
-msgid "Max Volumetric Speed Calibration"
 msgstr ""
 
 msgid "Manage Result"
@@ -17797,9 +18185,6 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
-msgstr ""
-
-msgid "Flow Ratio Calibration"
 msgstr ""
 
 msgid "Calibration Test Type"

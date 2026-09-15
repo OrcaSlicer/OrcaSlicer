@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2767,13 +2767,6 @@ msgstr "Det finns en uppdatering tillgänglig. Öppna dialogrutan för förinst�
 msgid "%s has been removed."
 msgstr "%s har tagits bort."
 
-
-msgid "Select the language"
-msgstr "Välj språk"
-
-msgid "Language"
-msgstr "Språk"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2810,6 +2803,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Det gick inte att öppna dialogrutan Insticksmoduler (okänt fel)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4589,6 +4595,21 @@ msgstr "OrcaSlicer började i samma anda och hämtade från PrusaSlicer, BambuSt
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "I dag är OrcaSlicer det mest använda och mest aktivt utvecklade beredningsprogrammet med öppen källkod i 3D-utskriftscommunityn. Många av dess nyheter har tagits upp av andra program, vilket gör det till en drivkraft för hela branschen."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Skrivare"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS Material Inställning"
 
@@ -5065,6 +5086,12 @@ msgid ""
 msgstr ""
 "Det gick inte att kopiera den tillfälliga G-code-filen till utdatafilen. Kanske är SD-kortet skrivskyddat?\n"
 "Felmeddelande: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 # AI Translated
 #, boost-format
@@ -5904,10 +5931,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Värdet %s ligger utanför intervallet. Giltigt intervall är från %d till %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Det är %s%% eller %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Det är %s%% eller %s %s?"
+
+msgid "%"
+msgstr "%"
 
 # AI Translated
 #, boost-format
@@ -5939,20 +5967,16 @@ msgid "System agents"
 msgstr "Systemagenter"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Ingen insticksmodul vald"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Lägg till insticksmodul"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Välj insticksmodul"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Ta bort insticksmodul"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Ingen insticksmodul vald"
 
 # AI Translated
 msgid "Configure"
@@ -6303,9 +6327,6 @@ msgstr "Färg byte"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Skriv ut"
-
-msgid "Printer"
-msgstr "Skrivare"
 
 msgid "Time Estimation"
 msgstr "Beräknad tid"
@@ -7164,6 +7185,9 @@ msgstr "Visa en kontur runt det markerade objektet i 3D-scenen."
 
 msgid "Preferences"
 msgstr "Inställningar"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -8198,6 +8222,234 @@ msgstr "Visa inte den här dialogrutan igen"
 msgid "Please refer to Wiki before use->"
 msgstr "Läs wikin före användning->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "Exportera STL"
+
+msgid "Export 3MF"
+msgstr "Exportera 3mf"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Max volymetrisk hastighets kalibrering"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "Kalibrering av flödesförhållande"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Radera alla objekt"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Dela upp i objekt"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D mus bortkopplad."
 
@@ -8359,6 +8611,12 @@ msgstr "Topplager"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Bottenlager"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -9125,19 +9383,11 @@ msgid "Delete Object"
 msgstr "Radera objekt"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Radera alla objekt"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Återställ projekt"
 
 msgid "The selected object couldn't be split."
 msgstr "Det valda objektet kan inte delas."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Dela upp i objekt"
 
 # AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
@@ -9688,7 +9938,6 @@ msgstr "Fortsätta?"
 msgid "Language selection"
 msgstr "Språkval"
 
-
 msgid "Asia-Pacific"
 msgstr "Asien-Stillahavsområdet"
 
@@ -9807,6 +10056,9 @@ msgstr "Sökväg till aktuell instans: "
 
 msgid "General"
 msgstr "Allmän"
+
+msgid "Language"
+msgstr "Språk"
 
 msgid "Metric"
 msgstr "Metrisk"
@@ -10047,6 +10299,21 @@ msgstr "Hantering av flera enheter"
 # AI Translated
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Med det här alternativet aktiverat kan du skicka en uppgift till flera enheter samtidigt och hantera flera enheter."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 # AI Translated
 msgid "Pop up to select filament grouping mode"
@@ -10325,9 +10592,6 @@ msgstr "När du drar i lagerreglaget i den beredda förhandsgranskningen rendera
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Ljusstyrka för dämpade lager"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -10847,6 +11111,9 @@ msgstr "Kopierar alla ärvda värden från den överordnade förinställningen t
 msgid "Detach from parent"
 msgstr "Koppla loss från överordnad"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "Unik förinställning"
@@ -10905,6 +11172,126 @@ msgstr "För \"%1%\", lägg till \"%2%\" som ny förinställning"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Byta till \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Andra"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Uppgift avbruten"
@@ -12053,10 +12440,6 @@ msgid "Printable space"
 msgstr "Utskriftsbar yta"
 
 # AI Translated
-msgid "Printer Agent"
-msgstr "Skrivaragent"
-
-# AI Translated
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Välj vilken nätverksagentimplementation som ska användas för kommunikation med skrivaren. Tillgängliga agenter registreras vid start."
 
@@ -12978,6 +13361,17 @@ msgstr "Visa/Dölj 3Dconnexion enheternas inställnings dialogruta"
 msgid "Switch table page"
 msgstr "Byt tabellsida"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Blanksteg"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Visa tangentbordets genvägs lista"
 
@@ -13142,15 +13536,6 @@ msgstr "Tabb"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Växla mellan Förbered/Förhandsgranska"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Blanksteg"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Öppna snabbvalsmenyn för åtgärder"
 
 msgid "Plater"
 msgstr "Plätering/Förgyllning"
@@ -13450,8 +13835,8 @@ msgstr "Reparation avbruten"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopierar fil %1% till %2% misslyckade: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Kontrollera ej sparade ändringar innan konfigureringen uppdateras."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 # AI Translated
 msgid "Configuration package: "
@@ -13460,6 +13845,12 @@ msgstr "Konfigurationspaket: "
 # AI Translated
 msgid " updated to "
 msgstr " uppdaterat till "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Kontrollera ej sparade ändringar innan konfigureringen uppdateras."
 
 msgid "Open G-code file:"
 msgstr "Öppna G-kod fil:"
@@ -14049,6 +14440,10 @@ msgstr "Använd 3MF i stället för G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Aktivera detta om skrivaren tar emot en 3MF-fil som utskriftsjobb. När det är aktiverat skickar Orca Slicer den beredda filen som en .gcode.3mf i stället för en vanlig .gcode-fil."
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Skrivaragent"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -15214,6 +15609,9 @@ msgstr "Justerade Rätlinjig"
 msgid "Concentric"
 msgstr "Koncentrisk"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert kurvan"
 
@@ -15309,29 +15707,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Fyllordning för ovansidan"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Riktning i vilken ovansidor fylls när ett centrumbaserat mönster används (Koncentrisk, Arkimediska kordor, Oktagramspiral).\n"
-"Utåt börjar i ytans mitt, så att överskottsmaterial trycks ut mot kanten där det syns minst. Inåt börjar vid kanten och slutar med de trånga kurvorna i mitten.\n"
-"Standard använder ordning efter kortaste väg, vilken kan gå i endera riktningen."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Fyllordning för undersidan"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Riktning i vilken undersidor fylls när ett centrumbaserat mönster används (Koncentrisk, Arkimediska kordor, Oktagramspiral).\n"
-"Inåt börjar varje yta med de bredare yttre kurvorna, vilket förbättrar det första lagrets vidhäftning på byggplattor där de trånga kurvorna i mitten kanske inte fastnar. Utåt börjar i mitten och trycker överskottsmaterial mot kanten.\n"
-"Standard använder ordning efter kortaste väg, vilken kan gå i endera riktningen."
 
 msgid "Internal solid infill pattern"
 msgstr "Invändigt mönster för fyllning av solida ytor"
@@ -18809,9 +19199,6 @@ msgstr "Sprickor mindre än 2 x gap stängningsradie fylls under triangeln mesh 
 msgid "Slicing Mode"
 msgstr "Berednings läge"
 
-msgid "Other"
-msgstr "Andra"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Använd ”Jämn-Udda” för 3DLabPrint flygplans modeller. Använd ”Stäng hål” för att stänga alla hål i modellen."
 
@@ -19834,9 +20221,6 @@ msgstr "för stor linjebredd "
 msgid " not in range "
 msgstr " inte inom intervallet "
 
-msgid "Export 3MF"
-msgstr "Exportera 3mf"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Exportera projekt som 3MF."
 
@@ -19851,9 +20235,6 @@ msgstr "Ladda berednings data"
 
 msgid "Load cached slicing data from directory."
 msgstr "Ladda cachad berednings data från katalogen"
-
-msgid "Export STL"
-msgstr "Exportera STL"
 
 # AI Translated
 msgid "Export the objects as single STL."
@@ -20658,9 +21039,6 @@ msgstr "Filen innehåller ett ogiltigt vertex index."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Denna OBJ fil kunde inte läsas eftersom den är tom."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Max volymetrisk hastighets kalibrering"
 
 msgid "Manage Result"
 msgstr "Hantera resultat"
@@ -21580,10 +21958,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "OBS! Höga värden kan orsaka lagerförskjutning (>%s)"
-
-# AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "Kalibrering av flödesförhållande"
 
 # AI Translated
 msgid "Calibration Test Type"
@@ -24375,6 +24749,37 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Välj insticksmodul"
+
+#~ msgid "Select the language"
+#~ msgstr "Välj språk"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Öppna snabbvalsmenyn för åtgärder"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Riktning i vilken ovansidor fylls när ett centrumbaserat mönster används (Koncentrisk, Arkimediska kordor, Oktagramspiral).\n"
+#~ "Utåt börjar i ytans mitt, så att överskottsmaterial trycks ut mot kanten där det syns minst. Inåt börjar vid kanten och slutar med de trånga kurvorna i mitten.\n"
+#~ "Standard använder ordning efter kortaste väg, vilken kan gå i endera riktningen."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Riktning i vilken undersidor fylls när ett centrumbaserat mönster används (Koncentrisk, Arkimediska kordor, Oktagramspiral).\n"
+#~ "Inåt börjar varje yta med de bredare yttre kurvorna, vilket förbättrar det första lagrets vidhäftning på byggplattor där de trånga kurvorna i mitten kanske inte fastnar. Utåt börjar i mitten och trycker överskottsmaterial mot kanten.\n"
+#~ "Standard använder ordning efter kortaste väg, vilken kan gå i endera riktningen."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

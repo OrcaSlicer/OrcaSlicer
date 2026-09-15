@@ -578,113 +578,131 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
     return sub_menu;
 }
 
+// Orca: handy models shipped under <resources>/handy_models. Defining everything in one table keeps
+// the menu label, the files to load and the per-model behavior in a single place. Labels are wrapped
+// in L() so they are picked up for translation. Shared with the command palette.
+const std::vector<MenuFactory::HandyModel>& MenuFactory::handy_models()
+{
+    static const std::vector<HandyModel> models = {
+        {"orca_cube",           L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
+        {"orcasliced_combo",    L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
+        {"orca_badge",          L("Orca Badge"),          {"OrcaBadge.3mf"}},
+        {"orca_tolerance_test", L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
+        {"3dbenchy",            L("3DBenchy"),            {"3DBenchy.drc"}},
+        {"cali_cat",            L("Cali Cat"),            {"calicat.drc"}},
+        {"autodesk_fdm_test",   L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},
+        {"voron_cube",          L("Voron Cube"),          {"Voron_Design_Cube_v7.drc"}},
+        {"stanford_bunny",      L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
+        {"orca_string_hell",    L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
+    };
+    return models;
+}
+
+void MenuFactory::load_handy_model(std::size_t index)
+{
+    const std::vector<HandyModel>& models = handy_models();
+    if (index >= models.size())
+        return;
+    const HandyModel& model = models[index];
+
+    std::vector<boost::filesystem::path> input_files;
+    input_files.reserve(model.file_names.size());
+    for (const auto& file_name : model.file_names)
+        input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
+
+    Plater* pl = plater();
+    if (!pl)
+        return;
+    pl->load_files(input_files, LoadStrategy::LoadModel);
+    if (model.arrange_after_import) {
+        pl->set_prepare_state(Job::PREPARE_STATE_MENU);
+        pl->arrange();
+    }
+
+    // Suggest to change settings for stringhell
+    // This serves as mini tutorial for new users
+    if (model.is_stringhell) {
+        wxGetApp().CallAfter([=] {
+            DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+
+            bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
+            auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
+            if (is_only_one_wall_top && min_width_top_surface > 0) {
+                wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "
+                                       "advisable to set the 'One Wall Threshold (min_width_top_surface)' "
+                                       "to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
+                                       "Yes - Change these settings automatically\n"
+                                       "No  - Do not change these settings for me");
+
+                MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
+                if (dialog.ShowModal() == wxID_YES) {
+                    m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
+                    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+                    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+                }
+                wxGetApp().plater()->update();
+            }
+        });
+    }
+}
+
 // Orca: add submenu for adding handy models
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    // Orca: handy models shipped under <resources>/handy_models. Defining everything in one table
-    // keeps the menu label, the files to load and the per-model behavior in a single place and
-    // avoids repeating the label strings (and the value-vs-pointer comparison pitfalls that come
-    // with that). Labels are wrapped in L() so they are picked up for translation.
-    struct HandyModel
-    {
-        const char*              label;
-        std::vector<std::string> file_names;
-        bool                     arrange_after_import = false;
-        bool                     is_stringhell        = false;
-    };
-    static const std::vector<HandyModel> handy_models = {
-        {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
-        {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
-        {L("Orca Badge"),          {"OrcaBadge.3mf"}},
-        {L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
-        {L("3DBenchy"),            {"3DBenchy.drc"}},
-        {L("Cali Cat"),            {"calicat.drc"}},
-        {L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},
-        {L("Voron Cube"),          {"Voron_Design_Cube_v7.drc"}},
-        {L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
-        {L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
-    };
-
-    for (const auto& model : handy_models) {
-        append_menu_item(
-            sub_menu, wxID_ANY, _(model.label), "",
-            [&model](wxCommandEvent&) {
-                std::vector<boost::filesystem::path> input_files;
-                input_files.reserve(model.file_names.size());
-                for (const auto& file_name : model.file_names)
-                    input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
-
-                plater()->load_files(input_files, LoadStrategy::LoadModel);
-                if (model.arrange_after_import) {
-                    plater()->set_prepare_state(Job::PREPARE_STATE_MENU);
-                    plater()->arrange();
-                }
-
-                // Suggest to change settings for stringhell
-                // This serves as mini tutorial for new users
-                if (model.is_stringhell) {
-                    wxGetApp().CallAfter([=] {
-                        DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
-
-                        bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
-                        auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
-                        if (is_only_one_wall_top && min_width_top_surface > 0) {
-                            wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "
-                                                   "advisable to set the 'One Wall Threshold (min_width_top_surface)' "
-                                                   "to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-                                                   "Yes - Change these settings automatically\n"
-                                                   "No  - Do not change these settings for me");
-
-                            MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
-                            if (dialog.ShowModal() == wxID_YES) {
-                                m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
-                                wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
-                                wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
-                            }
-                            wxGetApp().plater()->update();
-                        }
-                    });
-                }
-            },
-            "", menu);
+    const std::vector<HandyModel>& models = handy_models();
+    for (std::size_t i = 0; i < models.size(); ++i) {
+        append_menu_item(sub_menu, wxID_ANY, _(models[i].label), "",
+            [i](wxCommandEvent&) { MenuFactory::load_handy_model(i); }, "", menu);
     }
-
 
     return sub_menu;
 }
+
+// Create a Text/SVG volume through the matching gizmo. `type == INVALID` means "create a new object".
+// Shared by the add menu and the command palette.
+static void add_volume_with_gizmo(GLGizmosManager::EType gizmo_type, ModelVolumeType type)
+{
+    Plater* pl = plater();
+    if (!pl)
+        return;
+    const GLCanvas3D* canvas = pl->canvas3D();
+    if (!canvas)
+        return;
+    GLGizmoBase* gizmo_base = canvas->get_gizmos_manager().get_gizmo(gizmo_type);
+    if (!gizmo_base)
+        return;
+
+    ModelVolumeType volume_type = type;
+    // no selected object means create new object
+    if (volume_type == ModelVolumeType::INVALID)
+        volume_type = ModelVolumeType::MODEL_PART;
+
+    auto screen_position = canvas->get_popup_menu_position();
+    if (gizmo_type == GLGizmosManager::Emboss) {
+        auto* emboss = dynamic_cast<GLGizmoEmboss*>(gizmo_base);
+        if (emboss == nullptr)
+            return;
+        if (screen_position.has_value())
+            emboss->create_volume(volume_type, *screen_position);
+        else
+            emboss->create_volume(volume_type);
+    } else if (gizmo_type == GLGizmosManager::Svg) {
+        auto* svg = dynamic_cast<GLGizmoSVG*>(gizmo_base);
+        if (svg == nullptr)
+            return;
+        if (screen_position.has_value())
+            svg->create_volume(volume_type, *screen_position);
+        else
+            svg->create_volume(volume_type);
+    }
+}
+
+void MenuFactory::add_text_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Emboss, type); }
+void MenuFactory::add_svg_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Svg, type); }
+
 static void append_menu_itemm_add_(const wxString& name, GLGizmosManager::EType gizmo_type, wxMenu *menu, ModelVolumeType type, bool is_submenu_item) {
-    auto add_ = [type, gizmo_type](const wxCommandEvent & /*unnamed*/) {
-        const GLCanvas3D *canvas = plater()->canvas3D();
-        const GLGizmosManager &mng = canvas->get_gizmos_manager();
-        GLGizmoBase *gizmo_base = mng.get_gizmo(gizmo_type);
-
-        ModelVolumeType volume_type = type;
-        // no selected object means create new object
-        if (volume_type == ModelVolumeType::INVALID)
-            volume_type = ModelVolumeType::MODEL_PART;
-
-        auto screen_position = canvas->get_popup_menu_position();
-        if (gizmo_type == GLGizmosManager::Emboss) {
-            auto emboss = dynamic_cast<GLGizmoEmboss *>(gizmo_base);
-            assert(emboss != nullptr);
-            if (emboss == nullptr) return;
-            if (screen_position.has_value()) {
-                emboss->create_volume(volume_type, *screen_position);
-            } else {
-                emboss->create_volume(volume_type);
-            }
-        } else if (gizmo_type == GLGizmosManager::Svg) {
-            auto svg = dynamic_cast<GLGizmoSVG *>(gizmo_base);
-            assert(svg != nullptr);
-            if (svg == nullptr) return;
-            if (screen_position.has_value()) {
-                svg->create_volume(volume_type, *screen_position);
-            } else {
-                svg->create_volume(volume_type);
-            }
-        }
-    };
+    auto add_ = [type, gizmo_type](const wxCommandEvent & /*unnamed*/) { add_volume_with_gizmo(gizmo_type, type); };
 
     if (type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER ||
         type == ModelVolumeType::INVALID // cannot use gizmo without selected object

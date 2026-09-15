@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2481,13 +2481,6 @@ msgstr "사용 가능한 업데이트가 있습니다. 사전 설정 번들 대�
 msgid "%s has been removed."
 msgstr "%s이(가) 제거되었습니다."
 
-
-msgid "Select the language"
-msgstr "언어 선택"
-
-msgid "Language"
-msgstr "언어"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2524,6 +2517,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "플러그인 대화 상자를 열지 못했습니다(알 수 없는 오류)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4179,6 +4185,21 @@ msgstr "OrcaSlicer도 같은 정신으로 시작하여 PrusaSlicer, BambuStudio,
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "오늘날 OrcaSlicer는 3D 프린팅 커뮤니티에서 가장 널리 사용되고 가장 활발하게 개발되는 오픈 소스 슬라이서입니다. 그 혁신 가운데 다수가 다른 슬라이서에도 채택되어 업계 전체를 이끄는 원동력이 되고 있습니다."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "프린터"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS 재료 설정"
 
@@ -4624,6 +4645,12 @@ msgid ""
 msgstr ""
 "임시 Gcode를 출력 Gcode로 복사하지 못했습니다. SD 카드가 쓰기 잠겨 있나요?\n"
 "오류 메시지입니다: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5363,10 +5390,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "값 %s이 범위를 벗어났습니다. 유효한 범위는 %d에서 %d까지입니다."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"%s%% 또는 %s %s입니까?"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% 또는 %s %s입니까?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5393,20 +5421,16 @@ msgid "System agents"
 msgstr "시스템 에이전트"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "선택된 플러그인 없음"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "플러그인 추가"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "플러그인 선택"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "플러그인 제거"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "선택된 플러그인 없음"
 
 # AI Translated
 msgid "Configure"
@@ -5732,9 +5756,6 @@ msgstr "색 변경"
 msgctxt "Noun"
 msgid "Print"
 msgstr "출력"
-
-msgid "Printer"
-msgstr "프린터"
 
 msgid "Time Estimation"
 msgstr "추정 시간"
@@ -6523,6 +6544,9 @@ msgstr "3D 장면에서 선택한 객체 주변에 윤곽선 표시"
 
 msgid "Preferences"
 msgstr "기본 설정"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7462,6 +7486,234 @@ msgstr "이 대화 상자를 다시 표시하지 마세요."
 msgid "Please refer to Wiki before use->"
 msgstr "사용하기 전에 Wiki를 참조하십시오->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "STL 내보내기"
+
+msgid "Export 3MF"
+msgstr "3MF 내보내기"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "최대 압출 속도 교정"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "압출량 비율 교정"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "모든 객체 삭제"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "객체로 분할"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D 마우스가 분리됨."
 
@@ -7620,6 +7872,12 @@ msgstr "상부"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "하부"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8325,19 +8583,11 @@ msgid "Delete Object"
 msgstr "객체 삭제"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "모든 객체 삭제"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "프로젝트 초기화"
 
 msgid "The selected object couldn't be split."
 msgstr "선택한 객체를 분할할 수 없습니다."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "객체로 분할"
 
 # AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
@@ -8854,7 +9104,6 @@ msgstr "계속하시겠습니까?"
 msgid "Language selection"
 msgstr "언어 선택"
 
-
 msgid "Asia-Pacific"
 msgstr "아시아 태평양"
 
@@ -8967,6 +9216,9 @@ msgstr "현재 인스턴스 경로: "
 
 msgid "General"
 msgstr "일반"
+
+msgid "Language"
+msgstr "언어"
 
 msgid "Metric"
 msgstr "미터법"
@@ -9192,6 +9444,21 @@ msgstr "다중 장치 관리"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "필라멘트 그룹화 모드를 선택하기 위한 팝업"
@@ -9462,9 +9729,6 @@ msgstr "슬라이스된 미리보기에서 레이어 슬라이더를 움직일 �
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "어둡게 표시된 레이어의 밝기"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9972,6 +10236,9 @@ msgstr "상위 사전 설정에서 상속한 모든 값을 이 사전 설정으�
 msgid "Detach from parent"
 msgstr "상위 항목에서 분리"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "독립 사전 설정"
@@ -10030,6 +10297,126 @@ msgstr "%1%에 대해, %2%를 새 사전 설정으로 추가합니다"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "\"%1%\"로 단순 전환"
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "기타"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "작업이 취소됨"
@@ -11067,10 +11454,6 @@ msgid "Printable space"
 msgstr "출력 가능 공간"
 
 # AI Translated
-msgid "Printer Agent"
-msgstr "프린터 에이전트"
-
-# AI Translated
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "프린터 통신에 사용할 네트워크 에이전트 구현을 선택합니다. 사용 가능한 에이전트는 시작 시 등록됩니다."
 
@@ -11918,6 +12301,17 @@ msgstr "3D 연결 장치 설정 표시/숨기기 대화상자"
 msgid "Switch table page"
 msgstr "테이블 페이지 전환"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "키보드 단축키 목록 보기"
 
@@ -12081,15 +12475,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "준비 하기/미리 보기 전환"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "작업 스피드 다이얼 열기"
 
 msgid "Plater"
 msgstr "출력판"
@@ -12364,14 +12749,20 @@ msgstr "수리 취소됨"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "파일 %1%를 %2%으로 복사 실패: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "구성 패키지: "
 
 msgid " updated to "
 msgstr " 로 업데이트되었습니다 "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
 
 msgid "Open G-code file:"
 msgstr "Gcode 파일 열기:"
@@ -12929,6 +13320,10 @@ msgstr "G-code 대신 3MF 사용"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "프린터가 출력 작업으로 3MF 파일을 허용하는 경우 이 옵션을 활성화하십시오. 활성화하면 Orca Slicer가 슬라이스된 파일을 일반 .gcode 파일 대신 .gcode.3mf로 전송합니다."
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "프린터 에이전트"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14029,6 +14424,9 @@ msgstr "정렬된 직선"
 msgid "Concentric"
 msgstr "동심"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "힐베르트 곡선"
 
@@ -14120,29 +14518,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "상단 표면 채우기 순서"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
-"바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "하단 표면 채우기 순서"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
-"안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 msgid "Internal solid infill pattern"
 msgstr "꽉찬 내부 채우기 패턴"
@@ -17255,9 +17645,6 @@ msgstr "간격 폐쇄 반경의 2배보다 작은 균열은 삼각형 메시 슬
 msgid "Slicing Mode"
 msgstr "슬라이싱 모드"
 
-msgid "Other"
-msgstr "기타"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrint 비행기 모델에는 \"짝수-홀수\"를 사용하세요. \"구멍 닫기\"를 사용하여 모델의 모든 구멍을 닫습니다."
 
@@ -18207,9 +18594,6 @@ msgstr "너무 넓은 선 너비 "
 msgid " not in range "
 msgstr " 범위를 벗어남 "
 
-msgid "Export 3MF"
-msgstr "3MF 내보내기"
-
 msgid "This exports the project as a 3MF file."
 msgstr "프로젝트를 3MF로 내보내기."
 
@@ -18224,9 +18608,6 @@ msgstr "슬라이싱 데이터 로드"
 
 msgid "Load cached slicing data from directory."
 msgstr "디렉토리에 캐시된 슬라이싱 데이터 로드"
-
-msgid "Export STL"
-msgstr "STL 내보내기"
 
 msgid "Export the objects as single STL."
 msgstr "객체를 단일 STL로 내보냅니다."
@@ -18902,9 +19283,6 @@ msgstr "파일에 잘못된 꼭지점 인덱스가 포함되어 있습니다."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "이 OBJ 파일은 비어 있어서 읽을 수 없습니다."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "최대 압출 속도 교정"
 
 msgid "Manage Result"
 msgstr "결과 관리"
@@ -19787,10 +20165,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "참고: 값이 크면 레이어 밀림이 발생할 수 있습니다 (>%s)"
-
-# AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "압출량 비율 교정"
 
 # AI Translated
 msgid "Calibration Test Type"
@@ -22367,6 +22741,37 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "플러그인 선택"
+
+#~ msgid "Select the language"
+#~ msgstr "언어 선택"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "작업 스피드 다이얼 열기"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
+#~ "바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
+#~ "안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

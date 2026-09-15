@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2460,13 +2460,6 @@ msgstr "Frissítés érhető el. Nyisd meg a beállításcsomag párbeszédablak
 msgid "%s has been removed."
 msgstr "%s eltávolítva."
 
-
-msgid "Select the language"
-msgstr "Válaszd ki a nyelvet"
-
-msgid "Language"
-msgstr "Nyelv"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2503,6 +2496,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nem sikerült megnyitni a Bővítmények párbeszédablakot (ismeretlen hiba)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4159,6 +4165,21 @@ msgstr "Az OrcaSlicer ugyanebben a szellemben indult, a PrusaSlicer, a BambuStud
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Ma az OrcaSlicer a legszélesebb körben használt és legaktívabban fejlesztett nyílt forráskódú szeletelő a 3D nyomtatási közösségben. Sok újítását más szeletelők is átvették, így az egész iparág hajtóereje."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Nyomtató"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS anyagok beállítása"
 
@@ -4600,6 +4621,12 @@ msgid ""
 msgstr ""
 "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni. Lehet, hogy az SD-kártya írásvédett?\n"
 "Hibaüzenet: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5337,10 +5364,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "%s érték tartományon kívül van. Az érvényes tartomány: %d - %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"%s%% vagy %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% vagy %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5367,20 +5395,16 @@ msgid "System agents"
 msgstr "Rendszerügynökök"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nincs kiválasztott bővítmény"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Bővítmény hozzáadása"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Bővítmény kiválasztása"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Bővítmény eltávolítása"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nincs kiválasztott bővítmény"
 
 # AI Translated
 msgid "Configure"
@@ -5703,9 +5727,6 @@ msgstr "Színváltás"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Nyomtatás"
-
-msgid "Printer"
-msgstr "Nyomtató"
 
 msgid "Time Estimation"
 msgstr "Időbecslés"
@@ -6498,6 +6519,9 @@ msgstr "Körvonal megjelenítése a kijelölt objektum körül a 3D nézetben."
 
 msgid "Preferences"
 msgstr "Beállítások"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7438,6 +7462,233 @@ msgstr "Ne jelenjen meg többé ez a párbeszédablak"
 msgid "Please refer to Wiki before use->"
 msgstr "Használat előtt nézd meg a Wikit ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "STL exportálása"
+
+msgid "Export 3MF"
+msgstr "3MF exportálása"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Max. volumetrikus sebesség kalibrálása"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "Anyagáramlás kalibrálás"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Összes objektum törlése"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Felosztás objektumokra"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D Mouse csatlakoztatva."
 
@@ -7597,6 +7848,12 @@ msgstr "Felső"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Alsó"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8287,19 +8544,11 @@ msgid "Delete Object"
 msgstr "Objektum törlése"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Összes objektum törlése"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Projekt visszaállítása"
 
 msgid "The selected object couldn't be split."
 msgstr "A kijelölt objektumot nem lehet feldarabolni."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Felosztás objektumokra"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Letiltja az Auto-Drop funkciót a Z pozicionálás megőrzéséhez?\n"
@@ -8800,7 +9049,6 @@ msgstr "Szeretnéd folytatni?"
 msgid "Language selection"
 msgstr "Nyelv kiválasztása"
 
-
 msgid "Asia-Pacific"
 msgstr "Ázsia-Csendes-óceáni térség"
 
@@ -8904,6 +9152,9 @@ msgstr "Jelenlegi példány útvonala: "
 
 msgid "General"
 msgstr "Általános"
+
+msgid "Language"
+msgstr "Nyelv"
 
 msgid "Metric"
 msgstr "Metrikus"
@@ -9108,6 +9359,21 @@ msgstr "Többeszközös kezelés"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Ezzel az opcióval egyszerre több eszközre küldhetsz feladatot és több eszközt kezelhetsz."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Felugró ablak a filamentcsoportosítási mód kiválasztásához"
@@ -9348,9 +9614,6 @@ msgstr "A rétegcsúszka mozgatásakor a szeletelt előnézetben az aktuális r�
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Elhalványított rétegek fényereje"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9841,6 +10104,9 @@ msgstr "Az összes örökölt értéket átmásolja a szülő előbeállításb�
 msgid "Detach from parent"
 msgstr "Leválasztás a szülőről"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "Önálló előbeállítás"
@@ -9899,6 +10165,126 @@ msgstr "Ehhez: \"%1%\", add hozzá \"%2%\"-t új beállításként"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Csak válts a(z) \"%1%\"-ra"
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Egyéb"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Feladat megszakítva"
@@ -10925,9 +11311,6 @@ msgstr "Kompatibilis folyamatprofilok"
 msgid "Printable space"
 msgstr "Nyomtatási terület"
 
-msgid "Printer Agent"
-msgstr "Nyomtatóügynök"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Válaszd ki a nyomtatóval való kommunikációhoz használt hálózati ügynököt. Az elérhető ügynököket indításkor regisztrálja a rendszer."
 
@@ -11743,6 +12126,17 @@ msgstr "3Dconnexion-eszközbeállítások párbeszédablak megjelenítése/elrej
 msgid "Switch table page"
 msgstr "Váltás táblázatra"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Szóköz"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Gyorsgombok listájának megjelenítése"
 
@@ -11902,15 +12296,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Váltás előkészítés/előnézet között"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Szóköz"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Műveletek gyorsmenüjének megnyitása"
 
 msgid "Plater"
 msgstr "Tálca"
@@ -12183,14 +12568,20 @@ msgstr "Javítás megszakítva"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fájl másolása sikertelen a következő helyre: %2% Hiba: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Konfigurációs csomag: "
 
 msgid " updated to "
 msgstr " frissítve erre: "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
 
 msgid "Open G-code file:"
 msgstr "G-kód fájl megnyitása:"
@@ -12728,6 +13119,9 @@ msgstr "3MF használata G-kód helyett"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Kapcsold be, ha a nyomtató 3MF fájlt fogad el nyomtatási feladatként. Bekapcsolva az Orca Slicer a szeletelt fájlt .gcode.3mf formátumban küldi el egyszerű .gcode fájl helyett."
+
+msgid "Printer Agent"
+msgstr "Nyomtatóügynök"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Válaszd ki a nyomtató kommunikációjához használt hálózati ügynök implementációját."
@@ -13790,6 +14184,9 @@ msgstr "Igazított vonal"
 msgid "Concentric"
 msgstr "Koncentrikus"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbert-görbe"
 
@@ -13879,29 +14276,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Felső felület kitöltési sorrendje"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Alsó felület kitöltési sorrendje"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Internal solid infill pattern"
@@ -16924,9 +17313,6 @@ msgstr "A háromszögháló szeletelésekor kitölti a hézagzárási sugár ké
 msgid "Slicing Mode"
 msgstr "Szeletelési mód"
 
-msgid "Other"
-msgstr "Egyéb"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Használd a \"Páros-páratlan\" opciót a 3DLabPrint repülőgépmodellekhez. Használd a \"Hézagok lezárása\" lehetőséget a modell összes házagának lezárásához."
 
@@ -17852,9 +18238,6 @@ msgstr "túl nagy vonalszélesség "
 msgid " not in range "
 msgstr " nincs a tartományban "
 
-msgid "Export 3MF"
-msgstr "3MF exportálása"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Projekt exportálása 3MF formátumban."
 
@@ -17869,9 +18252,6 @@ msgstr "Szeletelési adatok betöltése"
 
 msgid "Load cached slicing data from directory."
 msgstr "Gyorsítótárazott szeletelési adatok betöltése mappából"
-
-msgid "Export STL"
-msgstr "STL exportálása"
 
 msgid "Export the objects as single STL."
 msgstr "Az objektumok exportálása egyetlen STL fájlként."
@@ -18530,9 +18910,6 @@ msgstr "A fájl érvénytelen csúcsindexet tartalmaz."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Ez az OBJ fájl nem olvasható be, mert üres."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Max. volumetrikus sebesség kalibrálása"
 
 msgid "Manage Result"
 msgstr "Eredmények kezelése"
@@ -19378,9 +19755,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "MEGJEGYZÉS: A magas értékek rétegeltolódást okozhatnak (>%s)"
-
-msgid "Flow Ratio Calibration"
-msgstr "Anyagáramlás kalibrálás"
 
 msgid "Calibration Test Type"
 msgstr "Kalibrációs teszt típusa"
@@ -21921,6 +22295,37 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Bővítmény kiválasztása"
+
+#~ msgid "Select the language"
+#~ msgstr "Válaszd ki a nyelvet"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Műveletek gyorsmenüjének megnyitása"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -2456,13 +2456,6 @@ msgstr "มีอัปเดตพร้อมใช้งาน เปิด�
 msgid "%s has been removed."
 msgstr "ลบ %s แล้ว"
 
-
-msgid "Select the language"
-msgstr "เลือกภาษา"
-
-msgid "Language"
-msgstr "ภาษา"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2499,6 +2492,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "ไม่สามารถเปิดกล่องโต้ตอบปลั๊กอินได้ (ข้อผิดพลาดที่ไม่รู้จัก)"
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4144,6 +4150,21 @@ msgstr "OrcaSlicer เริ่มต้นด้วยจิตวิญญา�
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "ปัจจุบัน OrcaSlicer เป็นตัวแบ่งส่วนข้อมูลแบบโอเพ่นซอร์สที่ใช้กันอย่างแพร่หลายและได้รับการพัฒนาอย่างแข็งขันที่สุดในชุมชนการพิมพ์ 3 มิติ นวัตกรรมหลายอย่างของบริษัทได้ถูกนำไปใช้โดยตัวแบ่งส่วนข้อมูลอื่นๆ ทำให้สิ่งนี้เป็นแรงผลักดันสำหรับอุตสาหกรรมทั้งหมด"
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "เครื่องพิมพ์"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "การตั้งค่าวัสดุ AMS"
 
@@ -4581,6 +4602,12 @@ msgid ""
 msgstr ""
 "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว บางทีการ์ด SD อาจถูกล็อคการเขียน?\n"
 "ข้อความแสดงข้อผิดพลาด: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5318,10 +5345,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "ค่า %s อยู่นอกช่วง ช่วงที่ถูกต้องคือตั้งแต่ %d ถึง %d"
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"มันคือ %s%% หรือ %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "มันคือ %s%% หรือ %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5348,20 +5376,16 @@ msgid "System agents"
 msgstr "เอเจนต์ระบบ"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "ไม่ได้เลือกปลั๊กอิน"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "เพิ่มปลั๊กอิน"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "เลือกปลั๊กอิน"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "ลบปลั๊กอิน"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "ไม่ได้เลือกปลั๊กอิน"
 
 # AI Translated
 msgid "Configure"
@@ -5684,9 +5708,6 @@ msgstr "เปลี่ยนสี"
 msgctxt "Noun"
 msgid "Print"
 msgstr "พิมพ์"
-
-msgid "Printer"
-msgstr "เครื่องพิมพ์"
 
 msgid "Time Estimation"
 msgstr "การประมาณเวลา"
@@ -6477,6 +6498,9 @@ msgstr "แสดงเค้าร่างรอบๆ วัตถุที�
 
 msgid "Preferences"
 msgstr "การตั้งค่า"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7405,6 +7429,233 @@ msgstr "อย่าแสดงกล่องโต้ตอบนี้อี
 msgid "Please refer to Wiki before use->"
 msgstr "โปรดดู Wiki ก่อนใช้งาน ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "ส่งออก STL"
+
+msgid "Export 3MF"
+msgstr "ส่งออก 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "ปรับเทียบความเร็วปริมาตรสูงสุด"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "การปรับเทียบอัตราส่วนการไหล"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "ลบวัตถุทั้งหมด"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "แยกเป็นวัตถุ"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "เมาส์ 3D ถูกตัดการเชื่อมต่อ"
 
@@ -7557,6 +7808,12 @@ msgstr "บน"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "ล่าง"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8242,19 +8499,11 @@ msgid "Delete Object"
 msgstr "ลบวัตถุ"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "ลบวัตถุทั้งหมด"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "รีเซ็ตโปรเจกต์"
 
 msgid "The selected object couldn't be split."
 msgstr "ไม่สามารถแยกวัตถุที่เลือกได้"
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "แยกเป็นวัตถุ"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "ปิดการใช้งานการวางอัตโนมัติเพื่อรักษาตำแหน่ง z หรือไม่\n"
@@ -8752,7 +9001,6 @@ msgstr "ต้องการดำเนินการต่อหรือไ
 msgid "Language selection"
 msgstr "การเลือกภาษา"
 
-
 msgid "Asia-Pacific"
 msgstr "เอเชียแปซิฟิก"
 
@@ -8856,6 +9104,9 @@ msgstr "เส้นทางอินสแตนซ์ปัจจุบัน
 
 msgid "General"
 msgstr "ทั่วไป"
+
+msgid "Language"
+msgstr "ภาษา"
 
 msgid "Metric"
 msgstr "เมตริก"
@@ -9060,6 +9311,21 @@ msgstr "การจัดการอุปกรณ์หลายเครื
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "เมื่อเปิดใช้งานตัวเลือกนี้ คุณสามารถส่งงานไปยังอุปกรณ์หลายเครื่องพร้อมกันและจัดการอุปกรณ์หลายเครื่องได้"
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "ปรากฏขึ้นเพื่อเลือกโหมดการจัดกลุ่มเส้นพลาสติก"
@@ -9294,9 +9560,6 @@ msgstr "เมื่อเลื่อนแถบเลเยอร์ในต
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "ความสว่างของเลเยอร์ที่หรี่"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9772,6 +10035,9 @@ msgstr "คัดลอกค่าที่สืบทอดมาจากพ
 msgid "Detach from parent"
 msgstr "แยกออกจากพรีเซ็ตแม่"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "พรีเซ็ตอิสระ"
@@ -9830,6 +10096,126 @@ msgstr "สำหรับ \"%1%\" ให้เพิ่ม \"%2%\" เป็น
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "เพียงเปลี่ยนเป็น \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "อื่นๆ"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "ยกเลิกงานแล้ว"
@@ -10847,9 +11233,6 @@ msgstr "โปรไฟล์กระบวนการที่เข้าก
 msgid "Printable space"
 msgstr "พื้นที่ที่สามารถพิมพ์ได้"
 
-msgid "Printer Agent"
-msgstr "ตัวแทนเครื่องพิมพ์"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์ ตัวแทนที่มีอยู่จะได้รับการลงทะเบียนเมื่อเริ่มต้น"
 
@@ -11660,6 +12043,17 @@ msgstr "แสดง/ซ่อนกล่องโต้ตอบการต�
 msgid "Switch table page"
 msgstr "สลับหน้าตาราง"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "แสดงรายการแป้นพิมพ์ลัด"
 
@@ -11819,15 +12213,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "สลับระหว่างการเตรียม/ดูตัวอย่าง"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "เปิดสปีดไดอัลการดำเนินการ"
 
 msgid "Plater"
 msgstr "เพลเตอร์"
@@ -12096,14 +12481,20 @@ msgstr "ยกเลิกการซ่อมแล้ว"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "การคัดลอกไฟล์ %1% ถึง %2% ล้มเหลว: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "โปรดตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "แพคเกจการกำหนดค่า:"
 
 msgid " updated to "
 msgstr "อัปเดตเป็น"
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "โปรดตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
 
 msgid "Open G-code file:"
 msgstr "เปิดไฟล์ G-code:"
@@ -12624,6 +13015,9 @@ msgstr "ใช้ 3MF แทน G-code"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "เปิดใช้งานหากเครื่องพิมพ์รับไฟล์ 3MF เป็นงานพิมพ์ เมื่อเปิดใช้งาน OrcaSlicer จะส่งไฟล์ที่สไลซ์แล้วเป็น .gcode.3mf แทนไฟล์ .gcode ธรรมดา"
+
+msgid "Printer Agent"
+msgstr "ตัวแทนเครื่องพิมพ์"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์"
@@ -13670,6 +14064,9 @@ msgstr "จัดแนวเป็นเส้นตรง"
 msgid "Concentric"
 msgstr "ศูนย์กลาง"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "ฮิลเบิร์ต เคิร์ฟ"
 
@@ -13759,29 +14156,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "ลำดับการเติมพื้นผิวด้านบน"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
-"ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
-"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "ลำดับการเติมพื้นผิวด้านล่าง"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
-"เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
-"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 msgid "Internal solid infill pattern"
 msgstr "รูปแบบไส้ในของแข็งภายใน"
@@ -16787,9 +17176,6 @@ msgstr "รอยแตกร้าวที่มีขนาดเล็กก
 msgid "Slicing Mode"
 msgstr "โหมดการแบ่งส่วน"
 
-msgid "Other"
-msgstr "อื่นๆ"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "ใช้ \"เลขคู่\" สำหรับโมเดลเครื่องบิน 3DLabPrint ใช้ \"ปิดรู\" เพื่อปิดรูทั้งหมดในโมเดล"
 
@@ -17719,9 +18105,6 @@ msgstr "ความกว้างของเส้นใหญ่เกิน
 msgid " not in range "
 msgstr "ไม่อยู่ในช่วง"
 
-msgid "Export 3MF"
-msgstr "ส่งออก 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "ส่งออกโครงการเป็น 3MF"
 
@@ -17736,9 +18119,6 @@ msgstr "โหลดข้อมูลการแบ่งส่วน"
 
 msgid "Load cached slicing data from directory."
 msgstr "โหลดข้อมูลการแบ่งส่วนแคชจากไดเรกทอรี"
-
-msgid "Export STL"
-msgstr "ส่งออก STL"
 
 msgid "Export the objects as single STL."
 msgstr "ส่งออกวัตถุเป็น STL เดี่ยว"
@@ -18395,9 +18775,6 @@ msgstr "ไฟล์นี้มีดัชนีจุดยอดที่ไ
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "ไฟล์ OBJ นี้ไม่สามารถอ่านได้เนื่องจากไฟล์ว่างเปล่า"
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "ปรับเทียบความเร็วปริมาตรสูงสุด"
 
 msgid "Manage Result"
 msgstr "จัดการผลลัพธ์"
@@ -19245,9 +19622,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "หมายเหตุ: ค่าที่สูงอาจทำให้เกิดการเลื่อนเลเยอร์ (>%s)"
-
-msgid "Flow Ratio Calibration"
-msgstr "การปรับเทียบอัตราส่วนการไหล"
 
 msgid "Calibration Test Type"
 msgstr "ประเภทการทดสอบการสอบเทียบ"
@@ -21675,6 +22049,37 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "เลือกปลั๊กอิน"
+
+#~ msgid "Select the language"
+#~ msgstr "เลือกภาษา"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "เปิดสปีดไดอัลการดำเนินการ"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"

@@ -324,7 +324,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
                                wxID_ANY,
                                wxDefaultPosition,
                                wxDefaultSize,
-                               wxVSCROLL) // hide hori-bar will cause hidden field mis-position
+                               wxVSCROLL            // hide hori-bar will cause hidden field mis-position
+                               | wxTAB_TRAVERSAL    // Allows for traversal via tab key
+                            ) 
         {
             // ShowScrollBar(GetHandle(), SB_BOTH, FALSE);
             Bind(wxEVT_SCROLL_CHANGED, [this](auto &e) {

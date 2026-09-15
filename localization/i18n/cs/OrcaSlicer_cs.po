@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-14 12:09+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -2482,13 +2482,6 @@ msgstr "Je k dispozici aktualizace. Otevřete dialog balíčku předvoleb a prov
 msgid "%s has been removed."
 msgstr "%s bylo odstraněno."
 
-
-msgid "Select the language"
-msgstr "Zvolte jazyk"
-
-msgid "Language"
-msgstr "Jazyk"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2525,6 +2518,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nepodařilo se otevřít dialog Pluginy (neznámá chyba)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -4202,6 +4208,21 @@ msgstr "OrcaSlicer vznikl ve stejném duchu a vycházel z projektů PrusaSlicer,
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Dnes je OrcaSlicer nejpoužívanějším a nejaktivněji vyvíjeným open-source slicerem v komunitě 3D tisku. Mnoho jeho inovací převzaly i další slicery, díky čemuž se stal hnací silou celého odvětví."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Tiskárna"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "Nastavení materiálů AMS"
 
@@ -4646,6 +4667,12 @@ msgid ""
 msgstr ""
 "Kopírování dočasného G-kódu do výstupního G-kódu selhalo. Možná je SD karta uzamčená pro zápis?\n"
 "Chybová zpráva: %1%"
+
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5385,10 +5412,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Hodnota %s je mimo rozsah. Platný rozsah je od %d do %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Je to %s%% nebo %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Je to %s%% nebo %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5415,20 +5443,16 @@ msgid "System agents"
 msgstr "Systémoví agenti"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Není vybrán žádný plugin"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Přidat plugin"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Vybrat plugin"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Odebrat plugin"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Není vybrán žádný plugin"
 
 # AI Translated
 msgid "Configure"
@@ -5756,9 +5780,6 @@ msgstr "Změna barvy"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Tisk"
-
-msgid "Printer"
-msgstr "Tiskárna"
 
 msgid "Time Estimation"
 msgstr "Odhad času"
@@ -6559,6 +6580,9 @@ msgstr "Zobrazit obrys kolem vybraného objektu ve 3D scéně."
 
 msgid "Preferences"
 msgstr "Předvolby"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7507,6 +7531,233 @@ msgstr "Tento dialog již nezobrazovat"
 msgid "Please refer to Wiki before use->"
 msgstr "Před použitím si přečtěte Wiki ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "Exportovat STL"
+
+msgid "Export 3MF"
+msgstr "Exportovat 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Kalibrace maximální objemové rychlosti"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "Kalibrace průtokového poměru"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Odstranit všechny objekty"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Rozdělit na objekty"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D myš odpojena."
 
@@ -7670,6 +7921,12 @@ msgstr "Horní"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Spodní"
+
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8363,19 +8620,11 @@ msgid "Delete Object"
 msgstr "Odstranit objekt"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Odstranit všechny objekty"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Resetovat projekt"
 
 msgid "The selected object couldn't be split."
 msgstr "Zvolený objekt nelze rozdělit."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Rozdělit na objekty"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Zakázat automatické položení pro zachování pozice v ose Z?\n"
@@ -8876,7 +9125,6 @@ msgstr "Chcete pokračovat?"
 msgid "Language selection"
 msgstr "Výběr jazyka"
 
-
 msgid "Asia-Pacific"
 msgstr "Asie-Pacifik"
 
@@ -8981,6 +9229,9 @@ msgstr "Cesta k aktuální instanci: "
 
 msgid "General"
 msgstr "Obecné"
+
+msgid "Language"
+msgstr "Jazyk"
 
 msgid "Metric"
 msgstr "Metrika"
@@ -9185,6 +9436,21 @@ msgstr "Správa více zařízení"
 
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Pokud je tato volba povolena, můžete odeslat úlohu na více zařízení současně a spravovat více zařízení."
+
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Zobrazit dialog pro výběr režimu seskupení filamentů"
@@ -9443,9 +9709,6 @@ msgstr "Při posouvání posuvníku vrstev v náhledu po slicování vykresluje 
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Jas ztmavených vrstev"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9934,6 +10197,9 @@ msgstr "Zkopíruje do této předvolby všechny hodnoty zděděné z nadřazené
 msgid "Detach from parent"
 msgstr "Oddělit od nadřazeného"
 
+msgid "Save without parent"
+msgstr ""
+
 # AI Translated
 msgid "Unique preset"
 msgstr "Samostatná předvolba"
@@ -9992,6 +10258,126 @@ msgstr "Pro \"%1%\" přidat \"%2%\" jako novou předvolbu"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Jednoduše přepněte na \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Ostatní"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Úloha zrušena"
@@ -11021,10 +11407,6 @@ msgstr "Kompatibilní procesní profily"
 msgid "Printable space"
 msgstr "Tisknutelný prostor"
 
-# AI Translated
-msgid "Printer Agent"
-msgstr "Agent tiskárny"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Vyberte implementaci síťového agenta pro komunikaci s tiskárnou. Dostupní agenti jsou registrováni při spuštění."
 
@@ -11895,6 +12277,17 @@ msgstr "Zobrazit/Skrýt dialog nastavení zařízení 3Dconnexion"
 msgid "Switch table page"
 msgstr "Přepnout stránku tabulky"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Mezerník"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "Zobrazit seznam klávesových zkratek"
 
@@ -12056,15 +12449,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Přepnout mezi Přípravou/Náhledem"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Mezerník"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Otevřít rychlou nabídku akcí"
 
 msgid "Plater"
 msgstr "Deska"
@@ -12339,14 +12723,20 @@ msgstr "Oprava zrušena"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopírování souboru %1% do %2% selhalo: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Balíček konfigurace: "
 
 msgid " updated to "
 msgstr " aktualizováno na "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
 
 msgid "Open G-code file:"
 msgstr "Otevřít G-code soubor:"
@@ -12888,6 +13278,10 @@ msgstr "Použít 3MF místo G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Zapněte, pokud tiskárna přijímá jako tiskovou úlohu soubor 3MF. Je-li zapnuto, odešle Orca Slicer slicovaný soubor jako .gcode.3mf místo prostého souboru .gcode."
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Agent tiskárny"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -13952,6 +14346,9 @@ msgstr "Zarovnaná pravoúhlá"
 msgid "Concentric"
 msgstr "Koncentrický"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilbertova křivka"
 
@@ -14041,29 +14438,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Pořadí vyplňování horního povrchu"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Směr, ve kterém jsou horní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
-"Ven začíná ve středu povrchu, takže je přebytečný materiál vytlačen k okraji, kde je nejméně viditelný. Dovnitř začíná u okraje a končí těsnými oblouky ve středu.\n"
-"Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Pořadí vyplňování spodního povrchu"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Směr, ve kterém jsou spodní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
-"Dovnitř začíná každý povrch širšími vnějšími oblouky, což zlepšuje přilnavost první vrstvy na podložkách, kde se těsné oblouky ve středu nemusí přichytit. Ven začíná ve středu a přebytečný materiál vytlačuje k okraji.\n"
-"Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 msgid "Internal solid infill pattern"
 msgstr "Vzor vnitřní plné výplně"
@@ -17109,9 +17498,6 @@ msgstr "Trhliny menší než 2x poloměr uzavření mezery jsou při řezání t
 msgid "Slicing Mode"
 msgstr "Režim slicingu"
 
-msgid "Other"
-msgstr "Ostatní"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Použijte \"Sudý-lichý\" pro modely letadel 3DLabPrint. Použijte \"Zavřít díry\" pro uzavření všech otvorů v modelu."
 
@@ -18037,9 +18423,6 @@ msgstr "příliš velká šířka čáry "
 msgid " not in range "
 msgstr " není v rozsahu "
 
-msgid "Export 3MF"
-msgstr "Exportovat 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Exportovat projekt jako 3MF."
 
@@ -18054,9 +18437,6 @@ msgstr "Načíst data řezu"
 
 msgid "Load cached slicing data from directory."
 msgstr "Načíst uložená data řezu z adresáře."
-
-msgid "Export STL"
-msgstr "Exportovat STL"
 
 msgid "Export the objects as single STL."
 msgstr "Exportovat objekty jako jeden STL."
@@ -18717,9 +19097,6 @@ msgstr "Soubor obsahuje neplatný index vrcholu."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Tento soubor OBJ nelze načíst, protože je prázdný."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Kalibrace maximální objemové rychlosti"
 
 msgid "Manage Result"
 msgstr "Správa výsledku"
@@ -19566,9 +19943,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "POZNÁMKA: Vysoké hodnoty mohou způsobit posun vrstev (>%s)"
-
-msgid "Flow Ratio Calibration"
-msgstr "Kalibrace průtokového poměru"
 
 msgid "Calibration Test Type"
 msgstr "Typ kalibračního testu"
@@ -22180,6 +22554,37 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Vybrat plugin"
+
+#~ msgid "Select the language"
+#~ msgstr "Zvolte jazyk"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Otevřít rychlou nabídku akcí"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Směr, ve kterém jsou horní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
+#~ "Ven začíná ve středu povrchu, takže je přebytečný materiál vytlačen k okraji, kde je nejméně viditelný. Dovnitř začíná u okraje a končí těsnými oblouky ve středu.\n"
+#~ "Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Směr, ve kterém jsou spodní povrchy vyplňovány při použití vzoru vycházejícího ze středu (Koncentrický, Archimédovy akordy, Oktagramová spirála).\n"
+#~ "Dovnitř začíná každý povrch širšími vnějšími oblouky, což zlepšuje přilnavost první vrstvy na podložkách, kde se těsné oblouky ve středu nemusí přichytit. Ven začíná ve středu a přebytečný materiál vytlačuje k okraji.\n"
+#~ "Výchozí používá řazení podle nejkratší dráhy, které může probíhat v obou směrech."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
