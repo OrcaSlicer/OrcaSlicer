@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PluginWebDialog_hpp_
-#define slic3r_GUI_PluginWebDialog_hpp_
+#ifndef slic3r_GUI_WebDialog_hpp_
+#define slic3r_GUI_WebDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
 
@@ -21,7 +21,7 @@ namespace Slic3r { namespace GUI {
 // GIL held; the plugin layer wraps any Python callables in a GIL-safe holder.
 //
 // Usable both modally (ShowModal -> read result()) and modelessly (Show()).
-class PluginWebDialog : public Slic3r::GUI::WebViewHostDialog
+class WebDialog : public Slic3r::GUI::WebViewHostDialog
 {
 public:
     using MessageHandler = std::function<void(const nlohmann::json& data)>;
@@ -32,20 +32,20 @@ public:
     // user/JS-initiated close (while the window is alive). on_destroyed runs from
     // the destructor on every path and must touch host-side state only (no Python
     // / no derived members).
-    PluginWebDialog(wxWindow*          parent,
-                    const wxString&    title,
-                    const std::string& html,
-                    const wxSize&      size,
-                    MessageHandler     on_message,
-                    SubmitHandler      on_submit,
-                    CloseHandler       on_close,
-                    CloseHandler       on_destroyed,
-                    long               wx_style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER);
-    ~PluginWebDialog() override;
+    WebDialog(wxWindow*          parent,
+              const wxString&    title,
+              const std::string& html,
+              const wxSize&      size,
+              MessageHandler     on_message,
+              SubmitHandler      on_submit,
+              CloseHandler       on_close,
+              CloseHandler       on_destroyed,
+              long               wx_style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER);
+    ~WebDialog() override;
 
-    static void post_message(PluginWebDialog* dialog, const nlohmann::json& data);
-    static void request_close(PluginWebDialog* dialog);
-    static void destroy_for_plugin(PluginWebDialog* dialog);
+    static void post_message(WebDialog* dialog, const nlohmann::json& data);
+    static void request_close(WebDialog* dialog);
+    static void destroy_silently(WebDialog* dialog);
 
     // Push a payload to the page; delivered to handlers registered via
     // window.orca.onMessage(). MAIN-THREAD ONLY (the plugin layer marshals).
@@ -65,7 +65,7 @@ protected:
 private:
     void on_bootstrap_event(wxWebViewEvent& event);
     void on_navigated(wxWebViewEvent& event);
-    void load_plugin_content();
+    void load_page_html();
     void on_close_window(wxCloseEvent& event);
     void fire_submit(const nlohmann::json& data);
     void fire_close();
@@ -86,4 +86,4 @@ private:
 
 }} // namespace Slic3r::GUI
 
-#endif // slic3r_GUI_PluginWebDialog_hpp_
+#endif // slic3r_GUI_WebDialog_hpp_
