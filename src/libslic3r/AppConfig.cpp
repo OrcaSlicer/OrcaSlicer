@@ -174,6 +174,9 @@ void AppConfig::set_defaults()
         if (get("single_instance").empty())
             set_bool("single_instance", false);
 
+        if (get("open_files_in_existing_instance").empty())
+            set_bool("open_files_in_existing_instance", false);
+
 #ifdef SUPPORT_REMEMBER_OUTPUT_PATH
         if (get("remember_output_path").empty())
             set_bool("remember_output_path", true);
