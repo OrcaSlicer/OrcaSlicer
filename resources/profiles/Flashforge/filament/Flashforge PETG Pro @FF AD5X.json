@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG Pro @FF AD5X",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "cTxrnqzr2wVt4Nj7",
+	"filament_id": "OFXiArjA",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

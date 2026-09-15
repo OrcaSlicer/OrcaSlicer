@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "1210173120",
+	"filament_id": "OFYEtXuk",
 	"instantiation": "false",
 	"overhang_fan_speed": [
 		"55"

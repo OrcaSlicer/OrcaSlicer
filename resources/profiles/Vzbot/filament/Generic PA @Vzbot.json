@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PA @Vzbot",
+	"inherits": "fdm_filament_pa",
+	"renamed_from": "Vzbot Generic PA",
+	"from": "system",
+	"setting_id": "fwiU6RaIAOV38A9B",
+	"filament_id": "OFg8ndtj",
+	"instantiation": "true",
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"filament_max_volumetric_speed": [
+		"50"
+	],
+	"compatible_printers": [
+		"Vzbot 235 AWD 0.4 nozzle",
+		"Vzbot 330 AWD 0.4 nozzle",
+		"Vzbot 235 AWD 0.5 nozzle",
+		"Vzbot 235 AWD 0.6 nozzle",
+		"Vzbot 330 AWD 0.5 nozzle",
+		"Vzbot 330 AWD 0.6 nozzle"
+	]
+}

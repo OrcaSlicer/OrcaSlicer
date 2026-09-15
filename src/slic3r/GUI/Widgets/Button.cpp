@@ -95,14 +95,11 @@ void Button::SetIcon(const wxString& icon)
     }
 }
 
-void Button::SetInactiveIcon(const wxString &icon)
+void Button::SetIcon(const wxBitmap& icon)
 {
-    if (!icon.IsEmpty()) {
-        // BBS set button icon default size to 20
-        this->inactive_icon = ScalableBitmap(this, icon.ToStdString(), this->active_icon.px_cnt());
-    } else {
-        this->inactive_icon = ScalableBitmap();
-    }
+    this->active_icon = ScalableBitmap();
+    this->active_icon.bmp() = icon;
+    messureSize();
     Refresh();
 }
 
@@ -164,6 +161,15 @@ bool Button::GetValue() const { return state_handler.states() & StateHandler::Ch
 void Button::SetCenter(bool isCenter)
 {
     this->isCenter = isCenter; }
+
+void Button::SetIndicator(bool on)
+{
+    if (m_show_indicator == on)
+        return;
+    m_show_indicator = on;
+    messureSize();
+    Refresh();
+}
 
 void Button::SetVertical(bool vertical)
 {
@@ -257,11 +263,9 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
 
 void Button::Rescale()
 {
-    if (this->active_icon.bmp().IsOk())
+    // Only a named icon can be re-rasterized; one set from a wxBitmap has no source file,
+    if (!this->active_icon.name().empty())
         this->active_icon.msw_rescale();
-
-    if (this->inactive_icon.bmp().IsOk())
-        this->inactive_icon.msw_rescale();
 
     messureSize();
 
@@ -293,11 +297,7 @@ void Button::render(wxDC& dc)
     wxSize szIcon;
     wxSize textSize = this->textSize.GetSize();
 
-    ScalableBitmap icon;
-    if (m_selected || ((states & (int)StateColor::State::Hovered) != 0))
-        icon = active_icon;
-    else
-        icon = inactive_icon;
+    const ScalableBitmap& icon = active_icon;
     wxSize padding = this->paddingSize;
     int spacing = 5;
     // Wrap text
@@ -311,8 +311,11 @@ void Button::render(wxDC& dc)
         }
     }
     auto szContent = textSize;
+    // Whether the measured content reserved the text/icon gap. macOS measures an empty label
+    // as 0-high, so the gap is skipped there; the dot must not advance past it in that case.
+    const bool gap_reserved = szContent.y > 0;
     if (icon.bmp().IsOk()) {
-        if (szContent.y > 0) {
+        if (gap_reserved) {
             //BBS norrow size between text and icon
             if (vertical)
                 szContent.y += spacing;
@@ -333,6 +336,13 @@ void Button::render(wxDC& dc)
             szContent.x -= d;
         }
     }
+    if (m_show_indicator) {
+        const int dot = FromDIP(6);
+        if (vertical)
+            szContent.y += dot + FromDIP(6);
+        else
+            szContent.x += dot + FromDIP(6);
+    }
     // move to center
     wxRect rcContent = { {0, 0}, size };
     if (isCenter) {
@@ -350,10 +360,10 @@ void Button::render(wxDC& dc)
         dc.DrawBitmap(icon.bmp(), pt);
         //BBS norrow size between text and icon
         if (vertical) {
-            pt.y += szIcon.y + spacing;
+            pt.y += szIcon.y + (gap_reserved ? spacing : 0);
             pt.x = rcContent.x;
         } else {
-            pt.x += szIcon.x + spacing;
+            pt.x += szIcon.x + (gap_reserved ? spacing : 0);
             pt.y = rcContent.y;
         }
     }
@@ -372,6 +382,17 @@ void Button::render(wxDC& dc)
         dc.DrawRectangle(pt, textSize.GetSize());
 #endif
         dc.DrawText(text, pt);
+    }
+    if (m_show_indicator) {
+        const int dot = FromDIP(6); // diameter
+        wxPoint dot_pt;
+        dot_pt.x = pt.x + (text.IsEmpty() ? 0 : textSize.x) + FromDIP(6) + dot / 2;
+        // Centre on the content vertically; a bitmap-only (empty-label) tab has no text row.
+        dot_pt.y = text.IsEmpty() ? rcContent.y + rcContent.height / 2 : pt.y + textSize.y / 2;
+        const wxColour c = StateColor::darkModeColorFor(m_indicator_color);
+        dc.SetBrush(wxBrush(c));
+        dc.SetPen(wxPen(c));
+        dc.DrawCircle(dot_pt, dot / 2);
     }
 }
 
@@ -396,6 +417,14 @@ void Button::messureSize()
             szContent.x += szIcon.x;
             if (szIcon.y > szContent.y) szContent.y = szIcon.y;
         }
+    }
+    if (m_show_indicator) {
+        // Indicator dot sits to the right of the label: its diameter plus the gap from the text.
+        const int dot = FromDIP(6);
+        if (vertical)
+            szContent.y += dot + FromDIP(6);
+        else
+            szContent.x += dot + FromDIP(6);
     }
     wxSize size = szContent + paddingSize * 2;
     if (minSize.GetHeight() > 0)
@@ -512,8 +541,8 @@ void Button::OnParentMotion(wxMouseEvent& event)
     {
         if (!tipWindow)
         {
-            tipWindow = new wxTipWindow(this, tip);
-            tipWindow->Bind(wxEVT_DESTROY, [this](wxEvent& event) { this->tipWindow = nullptr;});
+            tipWindow = wxTipWindow::New(this, tip);
+            if (!tipWindow) return event.Skip();
             tipWindow->Enable(false);
         }
 
@@ -531,7 +560,8 @@ void Button::OnParentMotion(wxMouseEvent& event)
     {
         if (tipWindow)
         {
-            delete tipWindow;
+            tipWindow->Dismiss();
+            tipWindow->Destroy();
             tipWindow = nullptr;
         }
     }
@@ -552,7 +582,7 @@ void Button::OnParentLeave(wxMouseEvent& event)
         if (!screen_rect.Contains(pos))
         {
             tipWindow->Dismiss();
-            delete tipWindow;
+            tipWindow->Destroy();
             tipWindow = nullptr;
         }
     }

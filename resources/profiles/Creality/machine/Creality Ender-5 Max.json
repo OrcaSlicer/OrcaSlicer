@@ -9,5 +9,5 @@
 	"bed_texture": "creality_ender5max_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_bed_type": "Textured PEI Plate",
-	"default_materials": "Creality Hyper PLA-CF @Ender-5Max-all;Creality Hyper PLA @Ender-5Max-all;Creality Hyper ABS @Ender-5Max-all;Creality Generic TPU @Ender-5Max-all;Creality Generic ASA @Ender-5Max-all;Creality Silk PLA @Ender-5Max-all;Creality Generic PLA @Ender-5Max-all;Creality Generic PETG @Ender-5Max-all;Creality Generic ABS @Ender-5Max-all;Creality Generic PA @Ender-5Max-all"
+	"default_materials": "Creality Hyper PLA-CF @Ender-5Max-all;Creality Hyper PLA @Ender-5Max-all;Creality Hyper ABS @Ender-5Max-all;Generic TPU @Creality Ender-5Max-all;Generic ASA @Creality Ender-5Max-all;Creality Silk PLA @Ender-5Max-all;Generic PLA @Creality Ender-5Max-all;Generic PETG @Creality Ender-5Max-all;Generic ABS @Creality Ender-5Max-all;Generic PA @Creality Ender-5Max-all"
 }

@@ -8,5 +8,5 @@
 	"bed_model": "InfiMech TX-bed.stl",
 	"bed_texture": "InfiMech TX-texture.svg",
 	"hotend_model": "",
-	"default_materials": "InfiMech Generic ABS;InfiMech Generic PA-CF;InfiMech Generic PC;InfiMech Generic PETG;InfiMech Generic PLA;InfiMech Generic TPU"
+	"default_materials": "Generic ABS @InfiMech;Generic PA-CF @InfiMech;Generic PC @InfiMech;Generic PETG @InfiMech;Generic PLA @InfiMech;Generic TPU @InfiMech"
 }

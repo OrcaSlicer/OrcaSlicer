@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Prusa CORE One 0.8",
+	"inherits": "Generic ASA @Prusa CORE One",
+	"renamed_from": "Prusa Generic ASA @CORE One 0.8;Prusa Generic ASA CORE One 0.8",
+	"from": "system",
+	"setting_id": "VtxVQIuWVkP6W3aN",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.8 nozzle"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"overhang_fan_speed": [
+		"30"
+	],
+	"slow_down_layer_time": [
+		"20"
+	]
+}

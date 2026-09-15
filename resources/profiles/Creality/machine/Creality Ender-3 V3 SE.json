@@ -8,5 +8,5 @@
 	"bed_model": "creality_ender3v3se_buildplate_model.stl",
 	"bed_texture": "creality_ender3v3se_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Creality Generic ABS @Ender-3V3-all;Creality Generic ASA @Ender-3V3-all;Creality Generic PETG @Ender-3V3-all;Creality Generic PLA @Ender-3V3-all;Creality Generic PLA High Speed @Ender-3V3-all;Creality Generic PLA Matte @Ender-3V3-all;Creality Generic PLA Silk @Ender-3V3-all;Creality Generic TPU @Ender-3V3-all"
+	"default_materials": "Generic ABS @Creality Ender-3V3-all;Generic ASA @Creality Ender-3V3-all;Generic PETG @Creality Ender-3V3-all;Generic PLA @Creality Ender-3V3-all;Generic PLA High Speed @Creality Ender-3V3-all;Generic PLA Matte @Creality Ender-3V3-all;Generic PLA Silk @Creality Ender-3V3-all;Generic TPU @Creality Ender-3V3-all"
 }

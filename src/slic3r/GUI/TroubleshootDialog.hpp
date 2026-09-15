@@ -168,6 +168,9 @@ private:
         }
         wxClientDC dc(this);
         int cWidth = GetClientSize().GetWidth();
+        // Don't compute/commit a size based on a not-yet-laid-out width
+        // Mirrors the guard in OnPaint() so both use the same wrap results
+        if (cWidth < 50) return;
 
         int y = 0;
         for (size_t i = 0; i < m_lines.size(); ++i) {

@@ -16,6 +16,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -135,11 +139,22 @@ jobs:
               choco install strawberryperl
             }
             $arch = "${{ inputs.arch }}"
+            # -l selects clang-cl and -x Ninja; together they build the deps with clang.
+            $clang = "${{ inputs.compiler }}" -eq "clang"
+            $flags = if ($clang) { "-l", "-x" } else { @() }
+            if ($clang) {
+              # OpenSSL builds with nmake, which needs a VC environment.
+              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+              $vs = & $vswhere -latest -property installationPath
+              $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
+              Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+              Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
+            }
             if ($arch -eq "arm64") {
-              .\build_release_vs.bat deps arm64
+              .\build_release_vs.bat deps arm64 @flags
               .\build_release_vs.bat pack arm64
             } else {
-              .\build_release_vs.bat deps
+              .\build_release_vs.bat deps @flags
               .\build_release_vs.bat pack
             }
         shell: pwsh
@@ -149,9 +164,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
-              brew install automake texinfo libtool
+              brew install automake texinfo libtool pkgconf yasm nasm
             fi
-            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a ${{ inputs.arch }} -t 10.15
             (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
             find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 
@@ -204,4 +219,5 @@ jobs:
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
     secrets: inherit

@@ -3,7 +3,7 @@
 *  Description: The panel with rack updating
 *
 * \n class wgtDeviceNozzleRackUpdate
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleRackUpdate.h"
 

@@ -192,7 +192,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
 
 
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
     Fit();
 
@@ -468,7 +468,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_link_privacy_title->SetFont(Label::Head_13);
      m_link_privacy_title->SetMaxSize(wxSize(FromDIP(450), -1));
      m_link_privacy_title->Wrap(FromDIP(450));
-     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
+     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [](auto& e) {
          std::string url;
          std::string country_code = Slic3r::GUI::wxGetApp().app_config->get_country_code();
 
@@ -670,7 +670,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -893,7 +893,7 @@ void BindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
             }).perform();
         }
@@ -992,7 +992,7 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
      m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -1099,7 +1099,7 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
                 }).perform();
 

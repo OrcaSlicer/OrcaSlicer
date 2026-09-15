@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "YUMI PETG",
-	"inherits": "Yumi Generic PETG",
+	"inherits": "Generic PETG @Yumi",
 	"from": "system",
 	"setting_id": "PFFm20QNgwqyuglH",
-	"filament_id": "GFG99",
+	"filament_id": "OF5NqBfC",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Yumi"

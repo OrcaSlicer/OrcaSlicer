@@ -4,7 +4,7 @@
 	"inherits": "Generic SBS @base",
 	"from": "system",
 	"setting_id": "BFLSBS99-1",
-	"filament_id": "BFLSBS99",
+	"filament_id": "OFhQfUQY",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Bambu Lab X1 Carbon 0.4 nozzle",
