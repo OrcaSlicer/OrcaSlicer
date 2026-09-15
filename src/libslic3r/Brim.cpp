@@ -131,6 +131,7 @@ double getadhesionCoeff(const PrintObject* printObject)
     }
     double adhesionCoeff = 1;
     for (const ModelVolume* modelVolume : objectVolumes) {
+        if (modelVolume->is_precise_seam()) continue; // non-printing helper geometry
         for (auto iter = extrudersFirstLayer.begin(); iter != extrudersFirstLayer.end(); iter++) {
             if (modelVolume->extruder_id() == *iter) {
                 if (Model::extruderParamsMap.find(modelVolume->extruder_id()) != Model::extruderParamsMap.end()) {

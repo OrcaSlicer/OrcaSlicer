@@ -67,7 +67,7 @@ bool Selection::Clipboard::is_sla_compliant() const
             return false;
 
         for (const ModelVolume* v : o->volumes) {
-            if (v->is_modifier())
+            if (v->is_modifier() || v->is_precise_seam()) // Precise Seam not supported in SLA
                 return false;
         }
     }

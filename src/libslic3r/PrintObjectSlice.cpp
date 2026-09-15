@@ -1602,4 +1602,24 @@ std::vector<Polygons> PrintObject::slice_support_volumes(const ModelVolumeType m
     return slices;
 }
 
+
+std::vector<Polygons> PrintObject::slice_single_volume(const ModelVolume* volume) const
+{
+    std::vector<Polygons> slices;
+
+    std::vector<float> zs = zs_from_layers(this->layers());
+    const Print *print = this->print();
+    auto throw_on_cancel_callback = std::function<void()>([print](){ print->throw_if_canceled(); });
+
+    MeshSlicingParamsEx params;
+    params.trafo = this->trafo_centered();
+
+    std::vector<ExPolygons> slices2 = slice_volume(*volume, zs, params, throw_on_cancel_callback);
+
+    slices.reserve(slices2.size());
+    for (ExPolygons &src : slices2)
+        slices.emplace_back(to_polygons(std::move(src)));
+
+    return slices;
+}
 } // namespace Slic3r

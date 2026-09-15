@@ -368,7 +368,14 @@ ModelVolumeType type_from_string(const std::string &s)
     if (s == "ParameterModifier") return ModelVolumeType::PARAMETER_MODIFIER;
     if (s == "SupportEnforcer") return ModelVolumeType::SUPPORT_ENFORCER;
     if (s == "SupportBlocker") return ModelVolumeType::SUPPORT_BLOCKER;
-    // Default value if invalud type string received.
+    // Precise Seam types (snake_case strings from ModelVolume::type_to_string)
+    if (s == "precise_seam_center")   return ModelVolumeType::PRECISE_SEAM_CENTER;
+    if (s == "precise_seam_left")     return ModelVolumeType::PRECISE_SEAM_LEFT;
+    if (s == "precise_seam_right")    return ModelVolumeType::PRECISE_SEAM_RIGHT;
+    if (s == "precise_seam_enforced") return ModelVolumeType::PRECISE_SEAM_ENFORCED;
+    if (s == "precise_seam_blocked")  return ModelVolumeType::PRECISE_SEAM_BLOCKED;
+    if (s == "precise_seam_neutral")  return ModelVolumeType::PRECISE_SEAM_NEUTRAL;
+    // Default value if invalid type string received.
     return ModelVolumeType::MODEL_PART;
 }
 
@@ -3123,7 +3130,10 @@ ModelVolumeType type_from_string(const std::string &s)
                                 stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << NAME_KEY << "\" " << VALUE_ATTR << "=\"" << xml_escape(volume->name) << "\"/>\n";
 
                             // stores volume's modifier field (legacy, to support old slicers)
-                            if (volume->is_modifier())
+                            // Precise Seam volumes are non-printing helper geometry, so mark
+                            // them as modifiers too — prevents older slicers from treating
+                            // them as printable bodies.
+                            if (volume->is_modifier() || volume->is_precise_seam())
                                 stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << MODIFIER_KEY << "\" " << VALUE_ATTR << "=\"1\"/>\n";
                             // stores volume's type (overrides the modifier field above)
                             stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << VOLUME_TYPE_KEY << "\" " <<
