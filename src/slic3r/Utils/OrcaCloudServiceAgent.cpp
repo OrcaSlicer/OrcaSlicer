@@ -6,6 +6,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast/core/detail/base64.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/websocket.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -21,14 +23,18 @@
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/ssl.h>
 
 #include <algorithm>
 #include <cctype>
+#include <condition_variable>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <optional>
 #include <random>
+#include <set>
 #include <sstream>
 
 #include <string>
@@ -492,6 +498,7 @@ OrcaCloudServiceAgent::OrcaCloudServiceAgent(std::string log_dir)
     , api_base_url(ORCA_DEFAULT_API_URL)
     , auth_base_url(ORCA_DEFAULT_AUTH_URL)
     , cloud_base_url(ORCA_DEFAULT_CLOUD_URL)
+    , mqtt_connection(std::make_unique<OrcaMqttConnection>())
 {
     auth_headers["apikey"]    = ORCA_DEFAULT_PUB_KEY;
     pkce_bundle.loopback_port = choose_loopback_port();
@@ -502,6 +509,8 @@ OrcaCloudServiceAgent::OrcaCloudServiceAgent(std::string log_dir)
 
 OrcaCloudServiceAgent::~OrcaCloudServiceAgent()
 {
+    if (mqtt_connection)
+        mqtt_connection->stop();
     if (refresh_thread.joinable()) {
         refresh_thread.join();
     }
@@ -942,22 +951,45 @@ bool OrcaCloudServiceAgent::ensure_token_fresh(const std::string& reason) { retu
 
 int OrcaCloudServiceAgent::connect_server()
 {
+    const bool logged_in = is_user_login();
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: OrcaCloudServiceAgent::connect_server logged_in=" << logged_in
+                            << " api_base_url=" << api_base_url;
+    if (!logged_in) {
+        if (mqtt_connection)
+            mqtt_connection->stop();
+        {
+            std::lock_guard<std::recursive_mutex> lock(state_mutex);
+            is_connected = false;
+        }
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: connect_server requires a logged-in user";
+        invoke_server_connected_callback(-1, 401);
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
     std::string response;
     unsigned int http_code = 0;
     int result             = http_get(ORCA_HEALTH_PATH, &response, &http_code);
 
     bool connected = (result == BAMBU_NETWORK_SUCCESS && http_code >= 200 && http_code < 300);
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: cloud health result=" << result << " http_code=" << http_code
+                            << " connected=" << connected << " response_bytes=" << response.size();
+
+    // connect_server() remains a REST health probe. The long-lived fleet MQTT socket
+    // is started lazily by set_user_selected_machine -> configure_selected_printer_mqtt;
+    // subscriptions queued before that point are replayed when it starts.
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
         is_connected = connected;
     }
-
     invoke_server_connected_callback(connected ? 0 : -1, http_code);
     return connected ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
 }
 
 bool OrcaCloudServiceAgent::is_server_connected()
 {
+    // The REST health probe is the signal; the per-printer MQTT socket does not gate
+    // whole-cloud connectivity (one printer reconnecting must not report the whole
+    // cloud as lost).
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
     return is_connected;
 }
@@ -978,13 +1010,232 @@ int OrcaCloudServiceAgent::stop_subscribe(std::string module)
 
 int OrcaCloudServiceAgent::add_subscribe(std::vector<std::string> dev_list)
 {
-    (void) dev_list;
-    return BAMBU_NETWORK_SUCCESS;
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: OrcaCloudServiceAgent::add_subscribe count=" << dev_list.size()
+                            << " logged_in=" << is_user_login() << " mqtt_connection=" << (mqtt_connection ? "set" : "null");
+    if (!is_user_login() || !mqtt_connection) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: add_subscribe rejected because cloud is not ready";
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+    bool queued = true;
+    for (const std::string& dev_id : dev_list)
+        queued = mqtt_connection->subscribe(dev_id) && queued;
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: add_subscribe queued=" << queued;
+    return queued ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
 int OrcaCloudServiceAgent::del_subscribe(std::vector<std::string> dev_list)
 {
-    (void) dev_list;
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: OrcaCloudServiceAgent::del_subscribe count=" << dev_list.size()
+                            << " logged_in=" << is_user_login() << " mqtt_connection=" << (mqtt_connection ? "set" : "null");
+    if (!is_user_login() || !mqtt_connection) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: del_subscribe rejected because cloud is not ready";
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+    bool queued = true;
+    for (const std::string& dev_id : dev_list)
+        queued = mqtt_connection->unsubscribe(dev_id) && queued;
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: del_subscribe queued=" << queued;
+    return queued ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+}
+
+int OrcaCloudServiceAgent::configure_selected_printer_mqtt(const std::string& dev_id,
+                                                           OrcaMqttConnection::StateHandler state_handler)
+{
+    (void) dev_id;
+    OrcaMqttConnection::Config cfg;
+    cfg.url               = "wss://" + api_base_url + "/api/v1/printers/mqtt";
+    cfg.use_tls           = true;
+    cfg.bearer_provider   = [this] { return get_access_token(); };
+    cfg.client_id         = "OrcaSlicer";
+    cfg.keepalive_seconds = 300;
+
+    {
+        std::lock_guard<std::mutex> lock(m_selected_url_mutex);
+        m_selected_printer_mqtt_url = cfg.url;
+    }
+
+    if (mqtt_connection->is_running()) {
+        BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: fleet MQTT connection already running";
+        return BAMBU_NETWORK_SUCCESS;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: configuring fleet MQTT endpoint=" << cfg.url;
+
+    // NOTE: no lock is held across start() — it blocks for the whole initial connect
+    // attempt (up to ~10s), and the message handler below re-enters callback_mutex on
+    // the MQTT worker thread.
+    const bool ok = mqtt_connection->start(
+        cfg,
+        [this](const std::string& id, const std::string& payload) { deliver_cloud_message(id, payload); },
+        std::move(state_handler));
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: fleet MQTT start returned=" << ok;
+    return ok ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+}
+
+void OrcaCloudServiceAgent::teardown_selected_printer_mqtt()
+{
+    if (mqtt_connection) {
+        mqtt_connection->stop();
+        // The connection object is reused for the next printer; drop this printer's
+        // report topic so its 1:1 socket does not re-subscribe the previous device.
+        mqtt_connection->clear_subscriptions();
+    }
+    std::lock_guard<std::mutex> lock(m_selected_url_mutex);
+    m_selected_printer_mqtt_url.clear();
+}
+
+std::string OrcaCloudServiceAgent::selected_printer_mqtt_url() const
+{
+    std::lock_guard<std::mutex> lock(m_selected_url_mutex);
+    return m_selected_printer_mqtt_url;
+}
+
+void OrcaCloudServiceAgent::deliver_cloud_message(const std::string& dev_id, const std::string& payload)
+{
+    OnMessageFn callback;
+    {
+        std::lock_guard<std::mutex> lock(callback_mutex);
+        callback = printer_status_callback;
+    }
+    if (callback)
+        callback(dev_id, payload);
+}
+
+int OrcaCloudServiceAgent::set_printer_status_callback(OnMessageFn fn)
+{
+    std::lock_guard<std::mutex> lock(callback_mutex);
+    printer_status_callback = std::move(fn);
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: printer status callback=" << (printer_status_callback ? "set" : "clear");
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+int OrcaCloudServiceAgent::send_printer_command(const std::string& dev_id, const std::string& body)
+{
+    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: send_printer_command dev_id=" << dev_id
+                            << " body_bytes=" << body.size() << " logged_in=" << is_user_login();
+    if (dev_id.empty() || !is_user_login()) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: send_printer_command rejected";
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    const std::string path = std::string(ORCA_CLOUD_PRINTER) + "/" + dev_id + "/commands";
+    std::string  response;
+    unsigned int http_code = 0;
+    int          result    = http_post(path, body, &response, &http_code);
+    BOOST_LOG_TRIVIAL(info) << "OrcaCloudServiceAgent: command dev=" << dev_id
+                            << " http=" << http_code << " result=" << result
+                            << " response_bytes=" << response.size();
+    return (result == BAMBU_NETWORK_SUCCESS && http_code >= 200 && http_code < 300)
+               ? BAMBU_NETWORK_SUCCESS
+               : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+}
+
+int OrcaCloudServiceAgent::upload_gcode_via_cloud(const std::string& dev_id,
+                                                  const std::string& local_gcode_path,
+                                                  std::string* job_id,
+                                                  OnUpdateStatusFn update_fn,
+                                                  WasCancelledFn cancel_fn)
+{
+    if (dev_id.empty() || local_gcode_path.empty() || !is_user_login())
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    if (cancel_fn && cancel_fn())
+        return BAMBU_NETWORK_ERR_CANCELED;
+
+    // Step 1: POST print-jobs/uploads -> a short-lived presigned R2 PUT URL. No
+    // metadata rides this request; filename/start are only relevant to the HTTP
+    // .../start finalize route, which this MQTT-driven flow does not call.
+    const std::string uploads_path = std::string(ORCA_CLOUD_PRINTER) + "/" + Http::url_encode(dev_id) + "/print-jobs/uploads";
+    std::string response;
+    unsigned int http_code = 0;
+    int result = http_post(uploads_path, "{}", &response, &http_code);
+    if (result != BAMBU_NETWORK_SUCCESS || http_code < 200 || http_code >= 300) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: print-jobs/uploads failed http_code=" << http_code;
+        return BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    }
+
+    std::string upload_job_id;
+    std::string upload_url;
+    try {
+        const nlohmann::json j = nlohmann::json::parse(response);
+        upload_job_id = j.value("job_id", "");
+        upload_url    = j.value("upload_url", "");
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: failed to parse print-jobs/uploads response: " << e.what();
+        return BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    }
+    if (upload_job_id.empty() || upload_url.empty()) {
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: print-jobs/uploads response missing job_id/upload_url";
+        return BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    }
+
+    if (cancel_fn && cancel_fn())
+        return BAMBU_NETWORK_ERR_CANCELED;
+
+    // Step 2: PUT the G-code straight to R2 with the one-time URL from step 1. This
+    // is a scoped, PUT-only, short-TTL capability with no bearer token of its own,
+    // so it bypasses http_put (which always prefixes api_base_url and attaches the
+    // cloud session's Authorization header - neither belongs on an R2 PUT).
+    bool canceled = false;
+    unsigned put_status = 0;
+    std::string put_error;
+    Http::put(upload_url)
+        .tls_verify(true)
+        .header("Content-Type", "text/x.gcode")
+        .set_put_body(boost::filesystem::path(local_gcode_path))
+        .timeout_connect(5)
+        .timeout_max(300) // large G-code over a slow link
+        .on_progress([&](Http::Progress progress, bool& cancel) {
+            if (cancel_fn && cancel_fn()) {
+                cancel   = true;
+                canceled = true;
+                return;
+            }
+            if (update_fn && progress.ultotal > 0) {
+                const int percent = static_cast<int>((progress.ulnow * 100) / progress.ultotal);
+                update_fn(PrintingStageUpload, percent, "Uploading...");
+            }
+        })
+        .on_complete([&](std::string, unsigned status) { put_status = status; })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            put_status = status;
+            put_error  = std::move(err);
+        })
+        .perform_sync();
+
+    if (canceled)
+        return BAMBU_NETWORK_ERR_CANCELED;
+    if (put_status < 200 || put_status >= 300) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: R2 upload failed status=" << put_status << " error=" << put_error;
+        return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
+    }
+
+    if (job_id)
+        *job_id = std::move(upload_job_id);
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+int OrcaCloudServiceAgent::start_cloud_print_job(const std::string& dev_id,
+                                                 const std::string& job_id,
+                                                 const std::string& filename,
+                                                 bool start)
+{
+    if (dev_id.empty() || job_id.empty() || !is_user_login())
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+
+    nlohmann::json body;
+    if (!filename.empty())
+        body["filename"] = filename;
+    body["start"] = start;
+
+    const std::string path = std::string(ORCA_CLOUD_PRINTER) + "/" + Http::url_encode(dev_id) + "/print-jobs/" +
+                             Http::url_encode(job_id) + "/start";
+    std::string response;
+    unsigned int http_code = 0;
+    const int result = http_post(path, body.dump(), &response, &http_code);
+    if (result != BAMBU_NETWORK_SUCCESS || http_code < 200 || http_code >= 300) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: print-jobs/" << job_id << "/start failed http_code=" << http_code;
+        return BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    }
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -2025,6 +2276,10 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
 
 void OrcaCloudServiceAgent::clear_session()
 {
+    if (mqtt_connection) {
+        mqtt_connection->stop();
+        mqtt_connection->clear_subscriptions();
+    }
     {
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
@@ -2140,7 +2395,11 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
     return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
-int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code)
+int OrcaCloudServiceAgent::http_post(const std::string& path,
+                                     const std::string& body,
+                                     std::string* response_body,
+                                     unsigned int* http_code,
+                                     const std::string& content_type)
 {
     std::string url = api_base_url + path;
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: POST " << url;
@@ -2164,7 +2423,7 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
                 http.header("Authorization", "Bearer " + token);
             }
 
-            http.header("Content-Type", "application/json");
+            http.header("Content-Type", content_type);
             http.set_post_body(body);
 
             http.on_complete([&](std::string resp_body, unsigned resp_status) {
@@ -2631,19 +2890,28 @@ int OrcaCloudServiceAgent::get_user_print_info(unsigned int* http_code, std::str
     if (http_code)
         *http_code = code;
 
-    if (result != 0 || code != 200)
+    if (result != 0 || code != 200) {
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: get_user_print_info failed - http_code=" << code << ", response=" << response;
         return result != 0 ? result : BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
+    }
+
+    BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: get_user_print_info fetched - http_code=" << code << ", response=" << response;
 
     try {
         auto resp_json = nlohmann::json::parse(response);
         nlohmann::json devices = nlohmann::json::array();
 
         for (const auto& printer : resp_json.value("data", nlohmann::json::array())) {
-            const std::string role = printer.value("access_role", "");
+            nlohmann::json device;
+            std::string role = printer.value("access_role", "");
+
+            // A printer with the role "view" only has monitoring access for orca cloud.
+            // The printer is owned by a different person and was shared to the current user without
+            // any permission to control the printer so we discard this printer. Comment this out if 
+            // OrcaSlicer wants to support view only printers.
             if (role.empty() || role == "viewer")
                 continue;
 
-            nlohmann::json device;
             device["dev_id"]   = printer.value("id", "");
             device["dev_name"] = printer.value("name", "");
             if (printer.contains("model") && printer["model"].is_string())
@@ -2657,15 +2925,20 @@ int OrcaCloudServiceAgent::get_user_print_info(unsigned int* http_code, std::str
                     device["task_status"] = status["job"].value("state", "");
             }
             device["dev_online"] = online;
-            devices.push_back(std::move(device));
+
+            devices.push_back(device);
         }
 
         if (http_body) {
             nlohmann::json out;
-            out["devices"] = std::move(devices);
+            out["devices"] = devices;
             *http_body = out.dump();
         }
-    } catch (const std::exception&) {
+
+        BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_user_print_info parsed - device_count=" << devices.size()
+                                  << ", devices=" << devices.dump();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: get_user_print_info parse exception - " << e.what();
         return BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
     }
 
