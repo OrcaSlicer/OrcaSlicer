@@ -3,53 +3,108 @@
 
 #include <wx/wx.h>
 #include <map>
+#include <variant>
 #include <vector>
 
 #include "GUI_Utils.hpp"
+#include "Shortcuts.hpp"
 #include "wxExtensions.hpp"
 #include <wx/simplebook.h>
+
+class Button;
+class Label;
+class TabCtrl;
 
 namespace Slic3r {
 namespace GUI {
 
-class Select
-{
-public:
-    int       m_index;
-    wxWindow *m_tab_button;
-    wxWindow *m_tab_text;
-};
-WX_DECLARE_HASH_MAP(int, Select *, wxIntegerHash, wxIntegerEqual, SelectHash);
-
+// Lists every shortcut per context and lets the user rebind the assignable ones.
 class KBShortcutsDialog : public DPIDialog
 {
-    typedef std::pair<std::string, std::string> Shortcut;
-    typedef std::vector<Shortcut> Shortcuts;
-    typedef std::pair<std::pair<wxString, wxString>, Shortcuts> ShortcutsItem;
-    typedef std::vector<ShortcutsItem> ShortcutsVec;
+    // A key the user cannot rebind.
+    struct FixedKey
+    {
+        wxString    key;
+        const char* description;   // untranslated
+    };
+    // A mouse button whose camera action is chosen in Preferences.
+    struct MouseAction
+    {
+        wxString    button;
+        const char* preference;    // AppConfig key of the action
+    };
+    struct Row
+    {
+        std::variant<Shortcut, FixedKey, MouseAction> content;
+        ShortcutSection                               section;
+    };
+    struct Page
+    {
+        wxString         title;
+        wxString         caption;   // when the page's keys apply
+        std::vector<Row> rows;
+    };
+    struct EditableRow
+    {
+        Shortcut        shortcut;
+        wxStaticText*   key;
+        ScalableButton* reset;
+    };
+    struct PreferenceRow
+    {
+        const char*   preference;
+        wxStaticText* description;
+    };
 
-    ShortcutsVec    m_full_shortcuts;
-    ScalableBitmap  m_logo_bmp;
-    wxStaticBitmap* m_header_bitmap;
-    std::vector<wxPanel*> m_pages;
+    std::vector<Page>          m_pages;
+    std::vector<EditableRow>   m_editable_rows;
+    std::vector<PreferenceRow> m_preference_rows;
+
+    TabCtrl*      m_tabs;
+    wxSimplebook* m_simplebook;
 
 public:
-    KBShortcutsDialog();
-    wxWindow* create_button(int id, wxString text);
-    void          OnSelectTabel(wxCommandEvent &event);
-    wxPanel *m_panel_selects;
-    wxBoxSizer *m_sizer_right;
-    wxSimplebook *m_simplebook;
-    wxBoxSizer *  m_sizer_body;
-    SelectHash  m_hash_selector;
+    KBShortcutsDialog(wxWindow* parent);
 
 protected:
     void on_dpi_changed(const wxRect &suggested_rect) override;
 
 private:
-    void fill_shortcuts();
-    wxPanel* create_header(wxWindow* parent, const wxFont& bold_font);
-    wxPanel* create_page(wxWindow* parent, const ShortcutsItem& shortcuts, const wxFont& font, const wxFont& bold_font);
+    void fill_pages();
+    wxPanel* create_page(wxWindow* parent, const Page& page);
+    void edit_shortcut(Shortcut shortcut);
+    void reset_shortcut(Shortcut shortcut);
+    // Asks question before unbinding conflicts; false when the user declined.
+    bool take_chord_from(Shortcut shortcut, const std::vector<Shortcut>& conflicts, const wxString& question);
+    void apply_bindings();   // refreshes the rows and pushes the change to the rest of the app
+    void open_mouse_preferences();
+};
+
+// Records one key chord for a shortcut, warning about the shortcuts it would take the chord from.
+class ShortcutCaptureDialog : public DPIDialog
+{
+public:
+    ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut);
+
+    // Valid after ShowModal() returned wxID_OK; an invalid chord means "unbind".
+    const KeyChord&              chord() const { return m_chord; }
+    const std::vector<Shortcut>& conflicts() const { return m_conflicts; }
+
+protected:
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+private:
+    void on_key(wxKeyEvent& evt);
+    void on_char(wxKeyEvent& evt);
+    void record(const KeyChord& chord);
+
+    Shortcut              m_shortcut;
+    KeyChord              m_chord;
+    std::vector<Shortcut> m_conflicts;
+    wxStaticText*         m_chord_label;
+    Label*                m_status;
+    wxColour              m_status_colour;
+    Button*               m_ok;
 };
 
 } // namespace GUI

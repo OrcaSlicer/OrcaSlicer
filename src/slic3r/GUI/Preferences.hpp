@@ -60,6 +60,9 @@ public:
 
     ~PreferencesDialog();
 
+    enum class Tab : size_t { General, Control, Graphics, Online };
+    void select_tab(Tab tab);
+
     wxString m_backup_interval_time;
     wxTimer m_filament_height_timer;
 

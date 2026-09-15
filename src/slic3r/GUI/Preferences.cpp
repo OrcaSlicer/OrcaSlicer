@@ -1518,6 +1518,8 @@ PreferencesDialog::~PreferencesDialog()
 {
 }
 
+void PreferencesDialog::select_tab(Tab tab) { m_pref_tabs->SelectItem(int(tab)); }
+
 void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
     m_pref_tabs->Rescale();
 
@@ -1854,6 +1856,14 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_middle_mouse_drag);
     auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_right_mouse_drag);
+
+    //// CONTROL > Keyboard
+    g_sizer->Add(create_item_title(_L("Keyboard")), 1, wxEXPAND);
+
+    auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key that triggers each action."), [this]() {
+        wxGetApp().keyboard_shortcuts(this);
+    });
+    g_sizer->Add(item_shortcuts);
 
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
