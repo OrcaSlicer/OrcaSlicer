@@ -761,9 +761,9 @@ void PressureEqualizer::adjust_volumetric_rate(const size_t first_line_idx, cons
                 rate_end = rate_succ;
 
             // don't alter the flow rate for these extrusion types
-            if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erIroning ||
+            if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erBridgePerimeter || line.extrusion_role == ExtrusionRole::erIroning ||
                 // Orca: Limit ERS to external perimeters and overhangs if option selected by user
-                (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
+                (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erBridgePerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
                 rate_end = line.volumetric_extrusion_rate_end;
             } else if (line.volumetric_extrusion_rate_end > rate_end) {
                 line.volumetric_extrusion_rate_end = rate_end;
@@ -818,9 +818,9 @@ void PressureEqualizer::adjust_volumetric_rate(const size_t first_line_idx, cons
 
             float rate_start = feedrate_per_extrusion_role[iRole];
             // don't alter the flow rate for these extrusion types
-            if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erIroning ||
+            if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erBridgePerimeter || line.extrusion_role == ExtrusionRole::erIroning ||
                 // Orca: Limit ERS to external perimeters and overhangs if option selected by user
-                (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
+                (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erBridgePerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
                 rate_start = line.volumetric_extrusion_rate_start;
             } else if (iRole == size_t(line.extrusion_role) && rate_prec < rate_start)
                 rate_start = rate_prec;

@@ -318,6 +318,7 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     case libvgcode::EGCodeExtrusionRole::Brim:                     { return _u8L("Brim"); }
     case libvgcode::EGCodeExtrusionRole::SupportTransition:        { return _u8L("Support transition"); }
     case libvgcode::EGCodeExtrusionRole::Mixed:                    { return _u8L("Mixed"); }
+    case libvgcode::EGCodeExtrusionRole::BridgePerimeter:         { return _u8L("Bridge wall"); }
     default:                                                       { return _u8L("Unknown"); }
     }
 }

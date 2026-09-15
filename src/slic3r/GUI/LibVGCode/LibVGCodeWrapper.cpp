@@ -92,6 +92,7 @@ Slic3r::ExtrusionRole convert(EGCodeExtrusionRole role)
     case EGCodeExtrusionRole::Brim:                     { return Slic3r::ExtrusionRole::erBrim; }
     case EGCodeExtrusionRole::SupportTransition:        { return Slic3r::ExtrusionRole::erSupportTransition; }
     case EGCodeExtrusionRole::Mixed:                    { return Slic3r::ExtrusionRole::erMixed; }
+    case EGCodeExtrusionRole::BridgePerimeter:          { return Slic3r::ExtrusionRole::erBridgePerimeter; }
     default:                                            { return Slic3r::ExtrusionRole::erNone; }
     }
 }
@@ -121,6 +122,7 @@ EGCodeExtrusionRole convert(Slic3r::ExtrusionRole role)
     case Slic3r::ExtrusionRole::erBrim:                        { return EGCodeExtrusionRole::Brim; }
     case Slic3r::ExtrusionRole::erSupportTransition:           { return EGCodeExtrusionRole::SupportTransition; }
     case Slic3r::ExtrusionRole::erMixed:                       { return EGCodeExtrusionRole::Mixed; }
+    case Slic3r::ExtrusionRole::erBridgePerimeter:             { return EGCodeExtrusionRole::BridgePerimeter; }
     default:                                                   { return EGCodeExtrusionRole::None; }
     }
 }

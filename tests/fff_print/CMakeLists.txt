@@ -1,6 +1,11 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
-add_executable(${_TEST_NAME}_tests 
+add_executable(${_TEST_NAME}_tests
 	${_TEST_NAME}_tests.cpp
+	test_bridge_helpers.hpp
+	test_bridge.cpp
+	test_bridge_perimeter_fan.cpp
+	test_extra_bridge_fan.cpp
+	test_bridge_params.cpp
 	test_helpers.cpp
 	test_helpers.hpp
 	test_cooling.cpp

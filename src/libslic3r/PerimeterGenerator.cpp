@@ -504,7 +504,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                         Point last_p  = path.polyline.last_point().to_point();
                         ++point_occurrence[first_p].occurrence;
                         ++point_occurrence[last_p].occurrence;
-                        if (path.role() == erOverhangPerimeter) {
+                        if (path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter) {
                             point_occurrence[first_p].is_overhang = true;
                             point_occurrence[last_p].is_overhang = true;
                         }
@@ -525,7 +525,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
                 if (overhangs_reverse) {
                     for (const ExtrusionPath& path : paths) {
-                        if (path.role() == erOverhangPerimeter) {
+                        if (path.role() == erOverhangPerimeter || path.role() == erBridgePerimeter) {
                             if (pg_extrusion.is_contour)
                                 steep_overhang_contour = true;
                             else
