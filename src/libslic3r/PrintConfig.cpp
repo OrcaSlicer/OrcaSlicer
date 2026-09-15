@@ -209,6 +209,13 @@ static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
     {"each_assembly", int(CenterOfSurfacePattern::Each_Assembly)}};
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CenterOfSurfacePattern)
 
+static t_config_enum_values s_keys_map_ZClearancePlacement {
+    { "before_start_gcode",      int(ZClearancePlacement::BeforeStartGCode) },
+    { "after_start_gcode",       int(ZClearancePlacement::AfterStartGCode) },
+    { "before_and_after_start_gcode", int(ZClearancePlacement::Both) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ZClearancePlacement)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4120,6 +4127,28 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Enable"));
     def->enum_labels.push_back(L("Disable"));
     def->set_default_value(new ConfigOptionEnum<PowerLossRecoveryMode>(PowerLossRecoveryMode::PrinterConfiguration));
+    
+    def = this->add("initial_z_clearance_height", coFloat);
+    def->label = L("Height");
+    def->tooltip = L("Lift Z before initial travel moves to avoid nozzle collisions. Set to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("initial_z_clearance_placement", coEnum);
+    def->label = L("Placement");
+    def->tooltip = L("Choose where to insert the safety lift: before machine start G-code, after it, or both places.");
+    def->mode = comAdvanced;
+    def->enum_keys_map = &ConfigOptionEnum<ZClearancePlacement>::get_enum_values();
+    def->enum_values.push_back("before_start_gcode");
+    def->enum_values.push_back("after_start_gcode");
+    def->enum_values.push_back("before_and_after_start_gcode");
+    def->enum_labels.push_back(L("Before start G-code"));
+    def->enum_labels.push_back(L("After start G-code"));
+    def->enum_labels.push_back(L("Before and after start G-code"));
+    def->set_default_value(new ConfigOptionEnum<ZClearancePlacement>(ZClearancePlacement::AfterStartGCode));
 
     //BBS
     // def = this->add("spaghetti_detector", coBool);
