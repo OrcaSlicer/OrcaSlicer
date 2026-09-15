@@ -155,6 +155,25 @@ namespace Emboss
     HealedExPolygons  text2shapes (FontFileWithCache &font, const char *text,         const FontProp &font_prop, const std::function<bool()> &was_canceled = []() {return false;});
     ExPolygonsWithIds text2vshapes(FontFileWithCache &font, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled = []() {return false;});
 
+    /// <summary>
+    /// Callback function type for providing backup fonts for fallback
+    /// </summary>
+    using BackFontCacheFn = std::function<std::vector<FontFileWithCache>()>;
+
+    /// <summary>
+    /// Convert text into polygons with backup font support for characters not supported by primary font
+    /// </summary>
+    /// <param name="font">Primary font + cache</param>
+    /// <param name="text">Characters to convert</param>
+    /// <param name="font_prop">User defined property of the font</param>
+    /// <param name="was_canceled">Way to interrupt processing</param>
+    /// <param name="backup_font_fn">Function to provide backup fonts when primary font doesn't support a character</param>
+    /// <returns>Inner polygon cw(outer ccw)</returns>
+    HealedExPolygons  text2shapes_with_backup(FontFileWithCache &font, const char *text, const FontProp &font_prop, 
+                                              const std::function<bool()> &was_canceled, BackFontCacheFn backup_font_fn);
+    ExPolygonsWithIds text2vshapes_with_backup(FontFileWithCache &font, const std::wstring& text, const FontProp &font_prop, 
+                                               const std::function<bool()>& was_canceled, BackFontCacheFn backup_font_fn);
+
     const unsigned ENTER_UNICODE = static_cast<unsigned>('\n');
     /// Sum of character '\n'
     unsigned get_count_lines(const std::wstring &ws);
