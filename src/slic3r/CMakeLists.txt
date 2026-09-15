@@ -14,8 +14,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
-    GUI/Widgets/StaticGroup.cpp
-    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp

@@ -53,6 +53,13 @@ void StaticBox::SetCornerRadius(double radius)
     Refresh();
 }
 
+// ORCA use when adding widgets to top to show it like LabeledStaticBox
+void StaticBox::SetTopMargin(int margin)
+{
+    this->top_margin = margin;
+    Refresh();
+}
+
 void StaticBox::SetBorderStyle(wxPenStyle style)
 {
     border_style = style;
@@ -198,7 +205,8 @@ void StaticBox::doRender(wxDC& dc)
     int states = state_handler.states();
     if (background_color2.count() == 0) {
         if ((border_width && border_color.count() > 0) || background_color.count() > 0) {
-            wxRect rc(0, 0, size.x, size.y);
+            int topM = top_margin > 0 ? top_margin : 0;
+            wxRect rc(0, topM, size.x, size.y - topM);
             if (border_width && border_color.count() > 0) {
                 const double scale = dc.GetContentScaleFactor();
 
@@ -245,6 +253,6 @@ void StaticBox::doRender(wxDC& dc)
 
     if (badge.bmp().IsOk()) {
         auto s = badge.bmp().GetScaledSize();
-        dc.DrawBitmap(badge.bmp(), size.x - s.x, 0);
+        dc.DrawBitmap(badge.bmp(), size.x - s.x, top_margin > 0 ? top_margin : 0);
     }
 }
