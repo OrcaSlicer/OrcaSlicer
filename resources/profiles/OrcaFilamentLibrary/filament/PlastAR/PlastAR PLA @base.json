@@ -1,0 +1,48 @@
+{
+	"type": "filament",
+	"name": "PlastAR PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "PLSTAR00",
+	"instantiation": "false",
+	"filament_vendor": [
+		"PlastAR"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_notes": "PlastAR PLA (Printalot budget line). Product page: https://printalot.com.ar/productos/filamentos/pla/plast-ar-pla-1-kg/ Community-contributed profile; not affiliated with or endorsed by Printalot.",
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	]
+}
