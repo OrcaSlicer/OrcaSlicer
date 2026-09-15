@@ -104,7 +104,8 @@ public:
             void set_visible(bool visible) { m_visible = visible; }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
+            // Orca: Hide overhang properties when the loaded file has no metadata, rather than reporting false zeros.
+            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type, bool has_overhang_metadata);
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
         };
 
@@ -153,7 +154,8 @@ public:
         GCodeWindow gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
-        void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
+        // Orca: Forward metadata availability to the marker without consulting a possibly changed process preset.
+        void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type, bool has_overhang_metadata);
     };
     struct ExtruderFilament
     {
@@ -183,7 +185,9 @@ private:
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
     //BBS: save m_gcode_result as well
-    const GCodeProcessorResult* m_gcode_result;
+    const GCodeProcessorResult* m_gcode_result{ nullptr };
+    // Orca: Cache metadata availability for constructing the preview-mode menu.
+    bool m_has_overhang_metadata{ false };
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
     std::array<std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)>, static_cast<size_t>(EMoveType::Count)> m_move_type_times{};
     std::array<float, static_cast<size_t>(EMoveType::Count)> m_move_type_distances{};

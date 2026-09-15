@@ -29,6 +29,11 @@ static float get_step_size(const ColorRange& color_range)
     {
         return (range[0] != 0.0f) ? std::log(range[1] / range[0]) / (static_cast<float>(palette.size()) - 1.0f) : 0.0f;
     }
+    // Orca: A one-unit shift retains zero while giving small overhang values more color resolution.
+    case EColorRangeType::LogarithmicWithZero:
+    {
+        return (std::log1p(range[1]) - std::log1p(range[0])) / (static_cast<float>(palette.size()) - 1.0f);
+    }
     }
 }
 
@@ -41,6 +46,12 @@ ColorRange::ColorRange(EColorRangeType type)
 EColorRangeType ColorRange::get_type() const
 {
     return m_type;
+}
+
+// Orca: Both color interpolation and legend stops consult this type, keeping their transforms in sync.
+void ColorRange::set_type(EColorRangeType type)
+{
+    m_type = type;
 }
 
 const Palette& ColorRange::get_palette() const
@@ -65,6 +76,9 @@ Color ColorRange::get_color_at(float value) const
             if (m_range[0] != 0.0f)
                 global_t = std::log(value / m_range[0]) / step;
         }
+        // Orca: Map zero-inclusive overhang ranges with the same log1p transform used for legend stops.
+        else if (m_type == EColorRangeType::LogarithmicWithZero)
+            global_t = (std::log1p(value) - std::log1p(m_range[0])) / step;
         else
             global_t = (value - m_range[0]) / step;
     }
@@ -106,6 +120,13 @@ std::vector<float> ColorRange::get_values() const
             default:
             case EColorRangeType::Linear:      { value = m_range[0] + static_cast<float>(i) * step_size; break; }
             case EColorRangeType::Logarithmic: { value = ::exp(::log(m_range[0]) + static_cast<float>(i) * step_size);  break; }
+            // Orca: Undo log1p for labels in physical units; keep endpoints exact despite floating-point rounding.
+            case EColorRangeType::LogarithmicWithZero:
+            {
+                value = i == 0 ? m_range[0] : i == m_palette.size() - 1 ? m_range[1] :
+                    std::expm1(std::log1p(m_range[0]) + static_cast<float>(i) * step_size);
+                break;
+            }
             }
             ret.emplace_back(value);
         }

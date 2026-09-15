@@ -1351,6 +1351,27 @@ void ViewerImpl::set_view_type(EViewType type)
     m_settings.update_colors = true;
 }
 
+// Orca: Changing overhang units only recolors existing vertices; metadata and geometry stay unchanged.
+void ViewerImpl::set_overhang_percentage(bool value)
+{
+    if (m_settings.overhang_percentage == value)
+        return;
+    m_settings.overhang_percentage = value;
+    m_settings.update_colors = true;
+}
+
+// Orca: Preserve bounds and palettes while switching both unit modes; only cached colors need rebuilding.
+void ViewerImpl::set_overhang_logarithmic(bool value)
+{
+    if (m_settings.overhang_logarithmic == value)
+        return;
+    m_settings.overhang_logarithmic = value;
+    const EColorRangeType type = value ? EColorRangeType::LogarithmicWithZero : EColorRangeType::Linear;
+    m_overhang_percentage_range.set_type(type);
+    m_overhang_degree_range.set_type(type);
+    m_settings.update_colors = true;
+}
+
 void ViewerImpl::set_time_mode(ETimeMode mode)
 {
     m_settings.time_mode = mode;
@@ -1542,6 +1563,13 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_width_range.get_color_at(v.width);
     }
+    // Orca: Color the same metadata by percentage or its geometric angle, preserving travel colors.
+    case EViewType::Overhang:
+    {
+        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
+            get_color_range(EViewType::Overhang).get_color_at(
+                m_settings.overhang_percentage ? v.overhang_percentage : v.overhang_degree());
+    }
     case EViewType::Speed:
     {
         return m_speed_range.get_color_at(v.feedrate);
@@ -1658,6 +1686,8 @@ const ColorRange& ViewerImpl::get_color_range(EViewType type) const
     {
     case EViewType::Height:                   { return m_height_range; }
     case EViewType::Width:                    { return m_width_range; }
+    // Orca: The legend and toolpaths must use the same fixed range for the selected units.
+    case EViewType::Overhang:                { return m_settings.overhang_percentage ? m_overhang_percentage_range : m_overhang_degree_range; }
     case EViewType::Speed:                    { return m_speed_range; }
     case EViewType::ActualSpeed:              { return m_actual_speed_range; }
     case EViewType::FanSpeed:                 { return m_fan_speed_range; }
@@ -1682,6 +1712,13 @@ void ViewerImpl::set_color_range_palette(EViewType type, const Palette& palette)
     {
     case EViewType::Height:                   { m_height_range.set_palette(palette);          break; }
     case EViewType::Width:                    { m_width_range.set_palette(palette);           break; }
+    // Orca: Keep the unified view's palette consistent when switching units.
+    case EViewType::Overhang:
+    {
+        m_overhang_percentage_range.set_palette(palette);
+        m_overhang_degree_range.set_palette(palette);
+        break;
+    }
     case EViewType::Speed:                    { m_speed_range.set_palette(palette);           break; }
     case EViewType::ActualSpeed:              { m_actual_speed_range.set_palette(palette);    break; }
     case EViewType::FanSpeed:                 { m_fan_speed_range.set_palette(palette);       break; }
@@ -1725,6 +1762,9 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_valid_lines_bitset.size_in_bytes_cpu();
     ret += m_height_range.size_in_bytes_cpu();
     ret += m_width_range.size_in_bytes_cpu();
+    // Orca: Include both dedicated overhang ranges in viewer memory accounting.
+    ret += m_overhang_percentage_range.size_in_bytes_cpu();
+    ret += m_overhang_degree_range.size_in_bytes_cpu();
     ret += m_speed_range.size_in_bytes_cpu();
     ret += m_actual_speed_range.size_in_bytes_cpu();
     ret += m_fan_speed_range.size_in_bytes_cpu();
@@ -1737,7 +1777,8 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_jerk_range.size_in_bytes_cpu();
     ret += m_volumetric_rate_range.size_in_bytes_cpu();
     ret += m_actual_volumetric_rate_range.size_in_bytes_cpu();
-    for (size_t i = 0; i < COLOR_RANGE_TYPES_COUNT; ++i) {
+    // Orca: Count only the actual Layer Time ranges, independent of the available color scale types.
+    for (size_t i = 0; i < m_layer_time_range.size(); ++i) {
         ret += m_layer_time_range[i].size_in_bytes_cpu();
     }
     ret += STDVEC_MEMSIZE(m_tool_colors, Color);
@@ -1880,6 +1921,15 @@ void ViewerImpl::update_color_ranges()
         return;
 
     m_width_range.reset();
+    m_overhang_percentage_range.reset();
+    m_overhang_degree_range.reset();
+    // Orca: Seed absolute endpoints and midpoints so both legends remain stable across models.
+    m_overhang_percentage_range.update(0.0f);
+    m_overhang_percentage_range.update(50.0f);
+    m_overhang_percentage_range.update(100.0f);
+    m_overhang_degree_range.update(0.0f);
+    m_overhang_degree_range.update(45.0f);
+    m_overhang_degree_range.update(90.0f);
     m_height_range.reset();
     m_speed_range.reset();
     m_actual_speed_range.reset();
