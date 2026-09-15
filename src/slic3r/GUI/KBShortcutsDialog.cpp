@@ -404,7 +404,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     m_status_colour = m_status->GetForegroundColour();
     sizer->Add(m_status, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(20));
 
-    auto dlg_btns = new DialogButtons(this, {"Unbind", "Cancel", "OK"}, "", 1 /*left_aligned*/);
+    auto dlg_btns = new DialogButtons(this, {"Unbind", "OK", "Cancel"}, "", 1 /*left_aligned*/);
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         m_chord = KeyChord{};
         m_conflicts.clear();
