@@ -2468,7 +2468,12 @@ void GUI_App::init_download_path()
     }
     else {
         fs::path dp(down_path);
-        if (!fs::exists(dp)) {
+        // exists(p) throws filesystem_error on a path that cannot be probed (a
+        // download_path inherited from another user's config, whose home is not
+        // searchable), which escapes GUI startup. The ec overload reports false,
+        // so such a path is handled like a missing one: fall back to the default.
+        boost::system::error_code ec;
+        if (!fs::exists(dp, ec)) {
 
             std::string user_down_path = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir_Downloads).ToUTF8().data();
             app_config->set("download_path", user_down_path);
@@ -9738,7 +9743,10 @@ void GUI_App::start_download(std::string url)
     }
     //lets always init so if the download dest folder was changed, new dest is used
     boost::filesystem::path dest_folder(app_config->get("download_path"));
-    if (dest_folder.empty() || !boost::filesystem::is_directory(dest_folder)) {
+    // Non-throwing probe, same reason as init_download_path(). ec is not examined:
+    // an unprobeable folder is reported to the user exactly like a missing one.
+    boost::system::error_code ec;
+    if (dest_folder.empty() || !boost::filesystem::is_directory(dest_folder, ec)) {
         std::string msg = _u8L("Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard.");
         BOOST_LOG_TRIVIAL(error) << msg;
         show_error(nullptr, msg);
