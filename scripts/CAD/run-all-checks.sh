@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Every ladder, in one command, as the gate before a push that touched the Design tab.
+#
+# WHY A SCRIPT AND NOT CI. Three of the four rungs need a running application with an OpenGL
+# canvas and synthetic input; GitHub's runners have neither. So the gate is local and explicit:
+# run this, read the last line, and do not push a red one. The kernel suite is the only part CI
+# can carry, and it already does.
+#
+#   scripts/CAD/run-all-checks.sh                 # kernel + engine + corpus (every 20th) + gestures + offer
+#   FULL=1 scripts/CAD/run-all-checks.sh          # corpus over ALL 997 sheets (~25 min)
+#   SKIP_GUI=1 scripts/CAD/run-all-checks.sh      # kernel only, for a machine with no rig
+#
+# The rig container is expected to be up with the app running and ORCA_CAD_MCP set; bring it up
+# with scripts/CAD/start-headless-gui.sh inside it. The corpus lives at /corpus in that container.
+set -uo pipefail
+# ../.. -- this script lives in scripts/CAD/, so one level up is scripts/, not the repo
+# root. It was scripts/ladder-all.sh when it was written; the move fixed the three sibling
+# scripts and missed this one, which left every rung looking for its own path under
+# scripts/scripts/ and reporting instant failures that were all the same typo.
+cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
+
+# orcacad-gui, NOT snapmaker-gui: that is the other fork's rig, and defaulting to it makes
+# this gate verify the wrong fork's binary while reporting green. run-kernel-tests.sh
+# carries the same warning about the build volume, where the defect was found first.
+C="${C:-orcacad-gui}"
+CORPUS="${CORPUS:-/corpus}"
+STEP="${STEP:-20}"
+[ -n "${FULL:-}" ] && STEP=1
+fail=0
+
+step() {
+    local name="$1"; shift
+    echo
+    echo "=== $name ==="
+    if "$@"; then echo "--- $name OK"; else echo "--- $name FAILED"; fail=1; fi
+}
+
+# SC2329: every call goes through step(), which invokes it via "$@", so shellcheck
+# cannot see the callers below.
+# shellcheck disable=SC2329
+# This fork's rig runs Xvfb on :11, the other fork's on :10, and the check scripts default
+# to ":10" when DISPLAY is unset -- which docker exec leaves unset. The rungs that drive the
+# GUI therefore looked for a window on a display that does not exist here and reported
+# "FATAL no app window on :10", which reads like a dead app rather than a wrong display.
+RIG_DISPLAY="${RIG_DISPLAY:-:11}"
+
+run_in_rig() {                      # copy the script in fresh, then run it there
+    docker cp "$1" "$C:/tmp/$(basename "$1")" >/dev/null || return 1
+    shift
+    docker exec -e DISPLAY="$RIG_DISPLAY" "$C" python3 "$@"
+}
+
+# FIRST, and it needs no rig: the offer table the menu is compiled from must be what the atlas
+# says. The header calls itself GENERATED and had been hand-edited anyway — which cost four rows
+# that existed only in the header, one row wired to the wrong action, and a count of 91 for a
+# 92-row array, so the last verb was unreachable (z8rs, ziam).
+# docs/CAD/, not docs/: SoftFever moved the design docs into the CAD subfolder
+# (bbd1989e1e) and this line kept the old path, so the rung failed on a missing file
+# rather than on anything about the table. The other fork still has docs/ux/.
+step "offer table matches the atlas" python3 docs/CAD/ux/mockups/gen_offer_table.py --check
+
+step "kernel suite" scripts/CAD/run-kernel-tests.sh --vol "${KVOL:-orcacad_kerneltest}"
+
+if [ -z "${SKIP_GUI:-}" ]; then
+    step "engine ladder (rungs 1-8, scripted geometry)" \
+        run_in_rig scripts/CAD/check-sketch-engine.py /tmp/check-sketch-engine.py
+    step "corpus rung (real drawings, every ${STEP}th)" \
+        run_in_rig scripts/CAD/check-sketch-engine-corpus.py /tmp/check-sketch-engine-corpus.py --corpus "$CORPUS" --step "$STEP"
+    step "corpus scale rung (the heaviest sheets)" \
+        run_in_rig scripts/CAD/check-sketch-engine-corpus.py /tmp/check-sketch-engine-corpus.py --corpus "$CORPUS" --scale
+    step "gesture ladder (mouse and keyboard)" \
+        run_in_rig scripts/CAD/check-gui-sketching.py /tmp/check-gui-sketching.py
+    # The offer ladder needs TWO extra things the others do not: the app must have been launched
+    # with ORCA_CAD_KEYTRACE=1 (its [OFFER] lines are the whole instrument), and it reads the
+    # generated offer table to predict what each selection should show — which is not in the
+    # container's own baked source tree, so it is copied in beside the script — /tmp, where
+    # run_in_rig puts the script, is one of the paths the ladder looks in.
+    docker cp src/slic3r/GUI/CAD/DesignOffer.hpp "$C:/tmp/DesignOffer.hpp" >/dev/null
+    step "offer ladder (right-click, the menu, the verbs behind it)" \
+        run_in_rig scripts/CAD/check-gui-context-menu.py /tmp/check-gui-context-menu.py
+fi
+
+echo
+if [ "$fail" -eq 0 ]; then echo "ALL LADDERS HELD"; else echo "AT LEAST ONE LADDER FAILED"; fi
+exit "$fail"

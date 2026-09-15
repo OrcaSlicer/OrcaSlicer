@@ -1,0 +1,2213 @@
+{
+  "_comment": [
+    "Source of truth for the object-driven tool offer (see docs/cad_ux_guidelines.md 4.1).",
+    "Every verb, the selections it accepts, the document state it needs, and its fixed",
+    "compass address. Extracted from the code, not from memory:",
+    "  verbs + shortcuts + refusal messages -> src/slic3r/GUI/CAD/DesignPanel.cpp (feat_dropdown",
+    "    call sites at 524/662/734/790/874/904, sk_key table at 369-400, m_keys_feature)",
+    "  kernel coverage            -> src/libslic3r/CAD/CadDocument.hpp  (enum CadFeatureType)",
+    "  headless coverage          -> src/slic3r/GUI/CAD/McpControl.cpp  (method == \"...\")",
+    "  selection kinds            -> src/slic3r/GUI/CAD/DesignCanvas.hpp (the on_*_selected callbacks)",
+    "gen_offer_mockups.py reads this file; the eventual C++ offer table is generated from it",
+    "too, so the map exists once."
+  ],
+  "slots": [
+    {
+      "id": "create",
+      "pos": "N",
+      "angle": 270,
+      "label": "Create",
+      "why": "makes new geometry from nothing you have yet"
+    },
+    {
+      "id": "add",
+      "pos": "NE",
+      "angle": 315,
+      "label": "Add material",
+      "why": "grows solid or sheet material"
+    },
+    {
+      "id": "remove",
+      "pos": "E",
+      "angle": 0,
+      "label": "Remove",
+      "why": "takes material away Shell lives here by decision of 2026-08-01, not by oversight."
+    },
+    {
+      "id": "dressup",
+      "pos": "SE",
+      "angle": 45,
+      "label": "Fillet / chamfer / draft",
+      "why": "finishes faces and edges without changing the shape's intent; named for the tools it holds, not for the trade word. RATIFIED 2026-08-01: Shell stays in Remove and Delete Face in Modify — this row is deliberately NOT the same set as the toolbar's dressup dropdown, which groups all five. Shell hollows a solid, so it belongs with the verbs that take material away. Do not re-open: a verb's row is its address and reordering breaks learned reach."
+    },
+    {
+      "id": "repeat",
+      "pos": "S",
+      "angle": 90,
+      "label": "Repeat",
+      "why": "copies what exists"
+    },
+    {
+      "id": "transform",
+      "pos": "SW",
+      "angle": 135,
+      "label": "Transform",
+      "why": "moves without changing shape"
+    },
+    {
+      "id": "reference",
+      "pos": "W",
+      "angle": 180,
+      "label": "Reference",
+      "why": "makes datums, curves and measurements"
+    },
+    {
+      "id": "modify",
+      "pos": "NW",
+      "angle": 225,
+      "label": "Modify",
+      "why": "edits or removes what is already there"
+    }
+  ],
+  "selections": [
+    {
+      "id": "none",
+      "name": "Nothing selected",
+      "mode": "model",
+      "shape": "empty"
+    },
+    {
+      "id": "face_planar",
+      "name": "Planar face",
+      "mode": "model",
+      "shape": "box_top"
+    },
+    {
+      "id": "face_cyl",
+      "name": "Cylindrical face",
+      "mode": "model",
+      "shape": "box_bore"
+    },
+    {
+      "id": "face_other",
+      "name": "Curved face",
+      "mode": "model",
+      "shape": "box_fillet_face"
+    },
+    {
+      "id": "edge_str",
+      "name": "Straight edge",
+      "mode": "model",
+      "shape": "box_edge"
+    },
+    {
+      "id": "edge_circ",
+      "name": "Circular edge",
+      "mode": "model",
+      "shape": "box_bore_rim"
+    },
+    {
+      "id": "vertex",
+      "name": "Vertex",
+      "mode": "model",
+      "shape": "box_vertex"
+    },
+    {
+      "id": "body_solid",
+      "name": "Solid body",
+      "mode": "model",
+      "shape": "box_whole"
+    },
+    {
+      "id": "body_sheet",
+      "name": "Sheet body",
+      "mode": "model",
+      "shape": "sheet"
+    },
+    {
+      "id": "bodies_2",
+      "name": "Two bodies",
+      "mode": "model",
+      "shape": "two_boxes"
+    },
+    {
+      "id": "datum_plane",
+      "name": "Datum plane",
+      "mode": "model",
+      "shape": "datum"
+    },
+    {
+      "id": "datum_axis",
+      "name": "Datum axis",
+      "mode": "model",
+      "shape": "axis"
+    },
+    {
+      "id": "coordsys",
+      "name": "Coordinate system",
+      "mode": "model",
+      "shape": "csys"
+    },
+    {
+      "id": "art",
+      "name": "Text / imported art",
+      "mode": "model",
+      "shape": "art"
+    },
+    {
+      "id": "sk_loop",
+      "name": "Closed sketch loop",
+      "mode": "model",
+      "shape": "loop"
+    },
+    {
+      "id": "sk_none",
+      "name": "Sketch, nothing picked",
+      "mode": "sketch",
+      "shape": "sk_empty"
+    },
+    {
+      "id": "sk_line",
+      "name": "Sketch line",
+      "mode": "sketch",
+      "shape": "sk_line"
+    },
+    {
+      "id": "sk_arc",
+      "name": "Sketch arc or circle",
+      "mode": "sketch",
+      "shape": "sk_arc"
+    },
+    {
+      "id": "sk_point",
+      "name": "Sketch point",
+      "mode": "sketch",
+      "shape": "sk_point"
+    },
+    {
+      "id": "sk_2ent",
+      "name": "Two sketch entities",
+      "mode": "sketch",
+      "shape": "sk_two"
+    }
+  ],
+  "doc_states": [
+    {
+      "id": "rich",
+      "name": "Working document",
+      "bodies": 2,
+      "sketches": 2,
+      "sheet": true,
+      "note": "two solids, two sketches, one sheet body — everything doc-gated is legal"
+    },
+    {
+      "id": "fresh",
+      "name": "Fresh document",
+      "bodies": 0,
+      "sketches": 0,
+      "sheet": false,
+      "note": "nothing built yet — shows how much of the ring is empty on first open"
+    }
+  ],
+  "verbs": [
+    {
+      "id": "sketch",
+      "name": "Sketch",
+      "slot": "create",
+      "key": "Shift+S",
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "face_planar",
+        "datum_plane",
+        "none"
+      ],
+      "needs": {},
+      "refusal": "Click a face or a reference plane in the viewport, then a sketch tool",
+      "gui": true,
+      "action": "key:S+S",
+      "icon": "design_sketch",
+      "hint": "Click a face or a reference plane, then pick a drawing tool"
+    },
+    {
+      "id": "extrude",
+      "name": "Extrude",
+      "slot": "add",
+      "key": "Shift+E",
+      "feature": "Extrude",
+      "mcp": "extrude",
+      "accepts": [
+        "sk_loop",
+        "face_planar"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch, or pick a solid face, first",
+      "gui": true,
+      "action": "key:S+E",
+      "icon": "design_extrude",
+      "hint": "Extrude a sketch profile, or push/pull a picked face"
+    },
+    {
+      "id": "revolve",
+      "name": "Revolve",
+      "slot": "add",
+      "key": "Shift+R",
+      "feature": "Revolve",
+      "mcp": "revolve",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch profile to revolve first",
+      "gui": true,
+      "action": "key:S+R",
+      "icon": "design_revolve",
+      "hint": "Revolve a profile about an axis"
+    },
+    {
+      "id": "sweep",
+      "name": "Sweep",
+      "slot": "add",
+      "key": "Shift+W",
+      "feature": "Sweep",
+      "mcp": null,
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create a profile sketch to sweep first",
+      "gui": true,
+      "action": "key:S+W",
+      "icon": "design_sweep",
+      "hint": "Sweep a profile along a path"
+    },
+    {
+      "id": "loft",
+      "name": "Loft",
+      "slot": "add",
+      "key": "Shift+L",
+      "feature": "Loft",
+      "mcp": null,
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create at least two profile sketches to loft",
+      "gui": true,
+      "action": "key:S+L",
+      "icon": "design_loft",
+      "hint": "Loft (skin) between two or more profiles"
+    },
+    {
+      "id": "thicken",
+      "name": "Thicken",
+      "slot": "add",
+      "key": null,
+      "feature": "Thicken",
+      "mcp": "thicken",
+      "accepts": [
+        "face_planar",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Thicken needs a solid body — add or import one first",
+      "gui": true,
+      "action": "fly:material#4",
+      "icon": "design_thicken",
+      "hint": "Offset a solid face into a thin plate (new body)"
+    },
+    {
+      "id": "rib",
+      "name": "Rib",
+      "slot": "add",
+      "key": null,
+      "feature": "Rib",
+      "mcp": "rib",
+      "accepts": [
+        "sk_line"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Rib needs a solid body — add or import one first",
+      "gui": true,
+      "action": "fly:material#5",
+      "icon": "design_rib",
+      "hint": "Grow a thin wall from an open sketch line, fused to a body"
+    },
+    {
+      "id": "boolean",
+      "name": "Union",
+      "slot": "add",
+      "key": "Shift+B",
+      "feature": "Boolean",
+      "mcp": "boolean",
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "btn:bool#0",
+      "icon": "design_boolean",
+      "hint": "Fuse the tool body into the target — one solid, no seam"
+    },
+    {
+      "id": "bool_subtract",
+      "name": "Subtract",
+      "slot": "add",
+      "key": null,
+      "feature": "Boolean",
+      "mcp": null,
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "btn:bool#1",
+      "mode": null,
+      "icon": "design_boolean",
+      "hint": "Cut the tool body out of the target"
+    },
+    {
+      "id": "bool_intersect",
+      "name": "Intersect",
+      "slot": "add",
+      "key": null,
+      "feature": "Boolean",
+      "mcp": null,
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "btn:bool#2",
+      "mode": null,
+      "icon": "design_boolean",
+      "hint": "Keep only where the two bodies overlap"
+    },
+    {
+      "id": "surf_extrude",
+      "name": "Surface Extrude",
+      "slot": "add",
+      "key": "Shift+G",
+      "feature": "SurfaceExtrude",
+      "mcp": "surface_extrude",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch first",
+      "gui": true,
+      "action": "key:S+G",
+      "icon": "design_extrude",
+      "hint": "Extrude a sketch into a sheet body (no end caps)"
+    },
+    {
+      "id": "surf_revolve",
+      "name": "Surface Revolve",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceRevolve",
+      "mcp": "surface_revolve",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch profile to revolve first",
+      "gui": true,
+      "action": "fly:surface#1",
+      "icon": "design_revolve",
+      "hint": "Revolve a sketch profile into a sheet body"
+    },
+    {
+      "id": "surf_loft",
+      "name": "Surface Loft",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceLoft",
+      "mcp": "surface_loft",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create at least two profile sketches to loft",
+      "gui": true,
+      "action": "fly:surface#2",
+      "icon": "design_loft",
+      "hint": "Loft (skin) between 2+ profiles, open (no end caps)"
+    },
+    {
+      "id": "surf_fill",
+      "name": "Surface Fill",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceFill",
+      "mcp": "surface_fill",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a closed sketch first",
+      "gui": true,
+      "action": "fly:surface#3",
+      "icon": "design_surface",
+      "hint": "Fill a sketch boundary with a smooth face"
+    },
+    {
+      "id": "thicken_surf",
+      "name": "Thicken Surface",
+      "slot": "add",
+      "key": null,
+      "feature": "ThickenSurface",
+      "mcp": "thicken_surface",
+      "accepts": [
+        "body_sheet"
+      ],
+      "needs": {
+        "sheet": true
+      },
+      "refusal": "target is not a sheet body",
+      "gui": true,
+      "action": "fly:surface#5",
+      "icon": "design_thicken",
+      "hint": "Thicken a sheet body into a solid"
+    },
+    {
+      "id": "hole",
+      "name": "Hole",
+      "slot": "remove",
+      "key": "Shift+H",
+      "feature": "Hole",
+      "mcp": "hole",
+      "accepts": [
+        "face_planar",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a face or a plane to drill into",
+      "gui": true,
+      "action": "key:S+H",
+      "icon": "design_hole",
+      "hint": "Drill a hole, centred on a picked face or placed on a plane"
+    },
+    {
+      "id": "thread",
+      "name": "Thread",
+      "slot": "remove",
+      "key": "Shift+T",
+      "feature": "Thread",
+      "mcp": null,
+      "accepts": [
+        "face_cyl",
+        "edge_circ"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a cylindrical surface (bore / outer) or a circular edge for a thread",
+      "gui": true,
+      "action": "key:S+T",
+      "icon": "design_thread",
+      "hint": "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "slot": "remove",
+      "key": "Shift+K",
+      "feature": "Shell",
+      "mcp": "shell",
+      "accepts": [
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Shell needs a solid body",
+      "gui": true,
+      "action": "key:S+K",
+      "icon": "design_shell",
+      "hint": "Hollow the body to a wall thickness, opening a picked face"
+    },
+    {
+      "id": "cut",
+      "name": "Cut",
+      "slot": "remove",
+      "key": "Shift+X",
+      "feature": "Cut",
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "datum_plane",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to cut first",
+      "gui": true,
+      "action": "key:S+X",
+      "icon": "design_cut",
+      "hint": "Trim the body with a plane — drag the offset arrow; keep one half or both"
+    },
+    {
+      "id": "split",
+      "name": "Split",
+      "slot": "remove",
+      "key": null,
+      "feature": "Cut",
+      "mcp": "split",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Split needs a solid body",
+      "gui": false,
+      "action": null,
+      "icon": null,
+      "hint": "Split the body along a picked face into two solids"
+    },
+    {
+      "id": "fillet",
+      "name": "Fillet",
+      "slot": "dressup",
+      "key": "Shift+F",
+      "feature": "Fillet",
+      "mcp": "fillet",
+      "accepts": [
+        "edge_str",
+        "edge_circ",
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick an edge to round",
+      "gui": true,
+      "action": "btn:dress#0",
+      "icon": "design_filletedge",
+      "hint": "Pick an edge, then drag the radius arrow or type it"
+    },
+    {
+      "id": "chamfer",
+      "name": "Chamfer",
+      "slot": "dressup",
+      "key": null,
+      "feature": "Chamfer",
+      "mcp": "chamfer",
+      "accepts": [
+        "edge_str",
+        "edge_circ",
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick an edge to bevel",
+      "gui": true,
+      "action": "btn:dress#1",
+      "icon": "design_chamfer",
+      "hint": "Pick an edge, then drag the distance arrow or type it"
+    },
+    {
+      "id": "draft",
+      "name": "Draft",
+      "slot": "dressup",
+      "key": "Shift+D",
+      "feature": "Draft",
+      "mcp": "draft",
+      "accepts": [
+        "face_planar",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a face to taper",
+      "gui": true,
+      "action": "key:S+D",
+      "icon": "design_draft",
+      "hint": "Tilt a picked face by a draft angle"
+    },
+    {
+      "id": "surf_offset",
+      "name": "Surface Offset",
+      "slot": "dressup",
+      "key": null,
+      "feature": "SurfaceOffset",
+      "mcp": "surface_offset",
+      "accepts": [
+        "body_sheet"
+      ],
+      "needs": {
+        "sheet": true
+      },
+      "refusal": "target is not a sheet body",
+      "gui": true,
+      "action": "fly:surface#4",
+      "icon": "design_offset",
+      "hint": "Offset a sheet body's shell by a signed distance"
+    },
+    {
+      "id": "pattern",
+      "name": "Linear pattern",
+      "slot": "repeat",
+      "key": "Shift+N",
+      "feature": "Pattern",
+      "mcp": "pattern",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "sk_loop",
+        "art"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to pattern first",
+      "gui": true,
+      "action": "btn:pat#0",
+      "icon": "design_array",
+      "hint": "Repeat the body along a direction — drag the spacing, set the count"
+    },
+    {
+      "id": "pattern_circular",
+      "name": "Circular pattern",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Pattern",
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "sk_loop",
+        "art"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to pattern first",
+      "gui": true,
+      "action": "btn:pat#1",
+      "mode": null,
+      "icon": "design_polararray",
+      "hint": "Repeat the body around an axis — set the count and sweep"
+    },
+    {
+      "id": "mirror",
+      "name": "Mirror",
+      "slot": "repeat",
+      "key": "Shift+Z",
+      "feature": "Mirror",
+      "mcp": "mirror",
+      "accepts": [
+        "body_solid",
+        "datum_plane",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Mirror needs a body — add or import one first",
+      "gui": true,
+      "action": "key:S+Z",
+      "icon": "design_mirror",
+      "hint": "Reflect a body about a plane"
+    },
+    {
+      "id": "pat_curve",
+      "name": "Pattern on Curve",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Pattern",
+      "mcp": "pattern_on_curve",
+      "accepts": [
+        "body_solid",
+        "edge_str"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pattern on curve needs a body and a curve",
+      "gui": false,
+      "action": null,
+      "icon": null,
+      "hint": "Repeat the body along a picked curve"
+    },
+    {
+      "id": "transform",
+      "name": "Move",
+      "slot": "transform",
+      "key": "Shift+Y",
+      "feature": "Transform",
+      "mcp": "transform",
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "art",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Transform needs a body — add or import one first",
+      "gui": true,
+      "action": "key:S+Y",
+      "icon": "design_move",
+      "hint": "Move and/or rotate an existing body"
+    },
+    {
+      "id": "mate",
+      "name": "Mate",
+      "slot": "transform",
+      "key": null,
+      "feature": "Mate",
+      "mcp": "mate",
+      "accepts": [
+        "coordsys",
+        "bodies_2",
+        "face_planar"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "A mate needs two coordinate systems",
+      "gui": true,
+      "action": "fly:placement#2",
+      "icon": "design_c_coincident",
+      "hint": "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+    },
+    {
+      "id": "align",
+      "name": "Align to",
+      "slot": "transform",
+      "key": null,
+      "feature": "Transform",
+      "mcp": "transform",
+      "accepts": [
+        "face_planar"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Align needs a body",
+      "gui": false,
+      "action": null,
+      "icon": null,
+      "hint": "Align the body to a picked face or plane"
+    },
+    {
+      "id": "plane",
+      "name": "Plane",
+      "slot": "reference",
+      "key": "Shift+P",
+      "feature": "Plane",
+      "mcp": null,
+      "accepts": [
+        "none",
+        "face_planar",
+        "edge_str",
+        "datum_plane",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+P",
+      "icon": "design_plane",
+      "hint": "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+    },
+    {
+      "id": "axis",
+      "name": "Axis",
+      "slot": "reference",
+      "key": "Shift+A",
+      "feature": "Axis",
+      "mcp": "axis",
+      "accepts": [
+        "none",
+        "face_planar",
+        "face_cyl",
+        "edge_str",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+A",
+      "icon": "design_line",
+      "hint": "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+    },
+    {
+      "id": "coordsys_v",
+      "name": "Coord Sys",
+      "slot": "reference",
+      "key": "Shift+C",
+      "feature": "CoordSys",
+      "mcp": "coordsys",
+      "accepts": [
+        "none",
+        "face_planar",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+C",
+      "icon": "design_point",
+      "hint": "Datum coordinate system (world point, or face + direction edge)"
+    },
+    {
+      "id": "helix",
+      "name": "Helix",
+      "slot": "reference",
+      "key": null,
+      "feature": "Helix",
+      "mcp": "helix",
+      "accepts": [
+        "none",
+        "datum_plane",
+        "face_cyl"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:plane#3",
+      "icon": "design_thread",
+      "hint": "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+    },
+    {
+      "id": "project",
+      "name": "Project",
+      "slot": "reference",
+      "key": null,
+      "feature": "Project",
+      "mcp": "project",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Project needs a body — add or import one first",
+      "gui": true,
+      "action": "fly:plane#4",
+      "icon": "design_sketch",
+      "hint": "Project body edges onto a plane as sketch entities"
+    },
+    {
+      "id": "measure",
+      "name": "Measure",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "measure",
+      "accepts": [
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex",
+        "body_solid",
+        "body_sheet",
+        "bodies_2",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": false,
+      "action": null,
+      "icon": null,
+      "hint": "Measure between the picked points, edges or faces"
+    },
+    {
+      "id": "mass_props",
+      "name": "Mass",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "mass_properties",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": null,
+      "gui": true,
+      "action": "btn:mass",
+      "icon": "info",
+      "hint": "Report the volume and surface area of the selected body"
+    },
+    {
+      "id": "interference",
+      "name": "Interference",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "check_interference",
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": null,
+      "gui": false,
+      "action": null,
+      "icon": null,
+      "hint": "Check whether two bodies overlap — reports, changes nothing"
+    },
+    {
+      "id": "edit_feature",
+      "name": "Edit",
+      "slot": "modify",
+      "key": null,
+      "feature": null,
+      "mcp": "set_feature_expr",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "sk_loop",
+        "art",
+        "datum_plane",
+        "datum_axis",
+        "coordsys",
+        "body_sheet"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:edit",
+      "icon": "design_edit",
+      "hint": "Reopen the selected feature to change what it was made from"
+    },
+    {
+      "id": "rename",
+      "name": "Rename…",
+      "slot": "modify",
+      "key": "F2",
+      "feature": "Tree",
+      "mcp": null,
+      "mode": "model",
+      "accepts": [
+        "sk_loop",
+        "body_solid"
+      ],
+      "needs": {},
+      "refusal": "Select a feature, or a body, to rename it",
+      "gui": true,
+      "action": "btn:rename",
+      "icon": null,
+      "hint": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
+    },
+    {
+      "id": "delete_face",
+      "name": "Delete Face",
+      "slot": "modify",
+      "key": null,
+      "feature": "DeleteFace",
+      "mcp": "delete_face",
+      "accepts": [
+        "face_planar",
+        "face_cyl",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Delete Face needs a body — add or import one first",
+      "gui": true,
+      "action": "fly:dressup#3",
+      "icon": "design_delete",
+      "hint": "Remove faces from a body and heal the solid"
+    },
+    {
+      "id": "colour",
+      "name": "Colour",
+      "slot": "modify",
+      "key": null,
+      "feature": null,
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": null,
+      "gui": true,
+      "action": "btn:colour",
+      "icon": "color_palette",
+      "hint": "Set the selected body's display colour"
+    },
+    {
+      "id": "delete",
+      "name": "Delete",
+      "slot": "modify",
+      "key": "Del",
+      "feature": null,
+      "mcp": null,
+      "accepts": [
+        "sk_loop",
+        "art",
+        "datum_plane",
+        "datum_axis",
+        "coordsys",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:delete",
+      "icon": "design_delete",
+      "hint": "Delete what is selected"
+    },
+    {
+      "id": "delete_body",
+      "name": "Delete Body",
+      "slot": "modify",
+      "key": null,
+      "action": "btn:delete_body",
+      "refusal": null,
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "mode": "model",
+      "family": null,
+      "icon": "design_delete",
+      "hint": "Delete this whole body — removes the feature it was made from"
+    },
+    {
+      "id": "sk_line_t",
+      "name": "Line",
+      "slot": "create",
+      "key": "L",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:L",
+      "family": "Line",
+      "icon": "design_line",
+      "hint": "Line — click start, then end"
+    },
+    {
+      "id": "sk_polyline",
+      "name": "Polyline",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_line#1",
+      "mode": "sketch",
+      "family": "Line",
+      "icon": "design_polyline",
+      "hint": "Click points; click the first point to close the loop, right-click to end it open"
+    },
+    {
+      "id": "sk_rect",
+      "name": "Corner rectangle",
+      "slot": "create",
+      "key": "R",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:R",
+      "family": "Rectangle",
+      "icon": "design_rect",
+      "hint": "Rectangle — click two opposite corners"
+    },
+    {
+      "id": "sk_rect_center",
+      "name": "Centre rectangle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_rect#1",
+      "mode": "sketch",
+      "family": "Rectangle",
+      "icon": "design_crect",
+      "hint": "Click center, then a corner"
+    },
+    {
+      "id": "sk_rect_oblique",
+      "name": "Oblique rectangle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_rect#2",
+      "mode": "sketch",
+      "family": "Rectangle",
+      "icon": "design_rect_oblique",
+      "hint": "Click two corners of one edge, then a point for the width"
+    },
+    {
+      "id": "sk_rect_rounded",
+      "name": "Rounded rectangle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_rect#3",
+      "mode": "sketch",
+      "family": "Rectangle",
+      "icon": "design_rect_rounded",
+      "hint": "Click two opposite corners, then a point for the corner radius"
+    },
+    {
+      "id": "sk_circle",
+      "name": "Centre circle",
+      "slot": "create",
+      "key": "C",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:C",
+      "family": "Circle",
+      "icon": "design_circle",
+      "hint": "Circle — click center, then radius"
+    },
+    {
+      "id": "sk_circle_2pt",
+      "name": "2-point circle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_circle#1",
+      "mode": "sketch",
+      "family": "Circle",
+      "icon": "design_circle2pt",
+      "hint": "Click two ends of the diameter"
+    },
+    {
+      "id": "sk_circle_3pt",
+      "name": "3-point circle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_circle#2",
+      "mode": "sketch",
+      "family": "Circle",
+      "icon": "design_circle3pt",
+      "hint": "Click three points on the circle"
+    },
+    {
+      "id": "sk_arc_t",
+      "name": "3-point arc",
+      "slot": "create",
+      "key": "A",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:A",
+      "family": "Arc",
+      "icon": "design_arc3pt",
+      "hint": "Arc — click start, end, then a point"
+    },
+    {
+      "id": "sk_arc_tangent",
+      "name": "Tangent arc",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_arc3pt#1",
+      "mode": "sketch",
+      "family": "Arc",
+      "icon": "design_tangentarc",
+      "hint": "Click start (on the last entity) then end"
+    },
+    {
+      "id": "sk_arc_center",
+      "name": "Centre-point arc",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_arc3pt#2",
+      "mode": "sketch",
+      "family": "Arc",
+      "icon": "design_arc_center",
+      "hint": "Click center, then start, then a point for the end angle"
+    },
+    {
+      "id": "sk_slot",
+      "name": "Slot",
+      "slot": "create",
+      "key": "S",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S",
+      "family": "Slot",
+      "icon": "design_slot",
+      "hint": "Slot — two centerline ends, then end radius"
+    },
+    {
+      "id": "sk_slot_arc",
+      "name": "Arc slot",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_slot#1",
+      "mode": "sketch",
+      "family": "Slot",
+      "icon": "design_slot_arc",
+      "hint": "Click center, start, end, then a point for the width"
+    },
+    {
+      "id": "sk_ellipse",
+      "name": "Ellipse",
+      "slot": "create",
+      "key": "E",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:E",
+      "family": "Ellipse",
+      "icon": "design_ellipse",
+      "hint": "Ellipse — center, major end, minor point"
+    },
+    {
+      "id": "sk_ellipse_arc",
+      "name": "Elliptical arc",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_ellipse#1",
+      "mode": "sketch",
+      "family": "Ellipse",
+      "icon": "design_ellipse_arc",
+      "hint": "Click center, major-axis end, minor point, then arc start and end"
+    },
+    {
+      "id": "sk_spline",
+      "name": "Spline",
+      "slot": "create",
+      "key": "B",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:B",
+      "icon": "design_bspline",
+      "hint": "Spline — click control points"
+    },
+    {
+      "id": "sk_poly_3",
+      "name": "Triangle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#3",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Triangle — click centre, then a vertex"
+    },
+    {
+      "id": "sk_poly_4",
+      "name": "Square",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#4",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Square — click centre, then a vertex"
+    },
+    {
+      "id": "sk_poly_5",
+      "name": "Pentagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#5",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Pentagon — click centre, then a vertex"
+    },
+    {
+      "id": "sk_polygon",
+      "name": "Hexagon",
+      "slot": "create",
+      "key": "G",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#6",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Hexagon — click centre, then a vertex"
+    },
+    {
+      "id": "sk_poly_8",
+      "name": "Octagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#8",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Octagon — click centre, then a vertex"
+    },
+    {
+      "id": "sk_poly_12",
+      "name": "Dodecagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#12",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Dodecagon — click centre, then a vertex"
+    },
+    {
+      "id": "sk_poly_inscribed",
+      "name": "Inscribed",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:polyfit#0",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Measure the polygon to its corners (inscribed)"
+    },
+    {
+      "id": "sk_poly_circumscribed",
+      "name": "Circumscribed",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:polyfit#1",
+      "mode": "sketch",
+      "family": "Polygon",
+      "icon": "design_polygon",
+      "hint": "Measure the polygon to its flats (circumscribed)"
+    },
+    {
+      "id": "sk_point_t",
+      "name": "Point",
+      "slot": "create",
+      "key": "P",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:P",
+      "icon": "design_point",
+      "hint": "Point — click to place"
+    },
+    {
+      "id": "sk_text",
+      "name": "Text",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:text",
+      "mode": "sketch",
+      "icon": "design_text",
+      "hint": "Type text; its outline is added to this sketch as editable lines"
+    },
+    {
+      "id": "sk_svg",
+      "name": "SVG",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:svg",
+      "mode": "sketch",
+      "icon": "design_svg",
+      "hint": "Import an SVG outline into this sketch as editable lines"
+    },
+    {
+      "id": "sk_offset",
+      "name": "Offset",
+      "slot": "add",
+      "key": "O",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:O",
+      "icon": "design_offset",
+      "hint": "Offset — pick an entity, drag the distance"
+    },
+    {
+      "id": "sk_trim",
+      "name": "Trim",
+      "slot": "remove",
+      "key": "T",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:T",
+      "icon": "design_trim",
+      "hint": "Trim — click a segment to trim it"
+    },
+    {
+      "id": "sk_fillet",
+      "name": "Fillet",
+      "slot": "dressup",
+      "key": "F",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:F",
+      "icon": "design_filletedge",
+      "hint": "Fillet — pick two lines, set the radius"
+    },
+    {
+      "id": "sk_chamfer",
+      "name": "Chamfer",
+      "slot": "dressup",
+      "key": "H",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:H",
+      "icon": "design_chamfer",
+      "hint": "Chamfer — pick two lines, set the distance"
+    },
+    {
+      "id": "sk_array",
+      "name": "Linear array",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_array#0",
+      "mode": "sketch",
+      "family": "Array",
+      "icon": "design_array",
+      "hint": "Pick entities, drag the spacing handle, click the count; click empty to apply"
+    },
+    {
+      "id": "sk_array_polar",
+      "name": "Polar array",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_array#1",
+      "mode": "sketch",
+      "family": "Array",
+      "icon": "design_polararray",
+      "hint": "Pick entities, drag the sweep handle, click the count; click empty to apply"
+    },
+    {
+      "id": "sk_mirror",
+      "name": "Mirror",
+      "slot": "repeat",
+      "key": "M",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:M",
+      "icon": "design_mirror",
+      "hint": "Mirror — pick axis, then entities"
+    },
+    {
+      "id": "sk_move",
+      "name": "Move",
+      "slot": "transform",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_move#0",
+      "family": "Move",
+      "icon": "design_move",
+      "hint": "Pick entities, then drag the handle or click the distance; click empty to apply"
+    },
+    {
+      "id": "sk_rotate",
+      "name": "Rotate",
+      "slot": "transform",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_move#1",
+      "mode": "sketch",
+      "family": "Move",
+      "icon": "design_rotate",
+      "hint": "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+    },
+    {
+      "id": "sk_scale",
+      "name": "Scale",
+      "slot": "transform",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:design_move#2",
+      "mode": "sketch",
+      "family": "Move",
+      "icon": "design_scale",
+      "hint": "Pick entities, then drag the handle or click the factor; click empty to apply"
+    },
+    {
+      "id": "sk_dimension",
+      "name": "Dimension",
+      "slot": "reference",
+      "key": "D",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:D",
+      "icon": "design_dimension",
+      "hint": "Dimension — click 2 points or an entity"
+    },
+    {
+      "id": "sk_constrain",
+      "name": "Constrain",
+      "slot": "reference",
+      "key": "K",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:K",
+      "icon": "design_constrain",
+      "hint": "Constrain the selected sketch entities to each other"
+    },
+    {
+      "id": "constrain",
+      "name": "Constrain sketch",
+      "slot": "modify",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "model",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 1
+      },
+      "refusal": "Select a sketch to constrain it",
+      "gui": true,
+      "action": "btn:constrain",
+      "icon": "design_constrain",
+      "hint": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch",
+      "note": [
+        "Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the",
+        "state a user is in right after finishing one. Without this row the only way in was the",
+        "toolbar icon, and constraints read as absent — see the Onshape-comparison report."
+      ]
+    },
+    {
+      "id": "sk_construct",
+      "name": "Construction",
+      "slot": "reference",
+      "key": "Q",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:Q",
+      "icon": null,
+      "hint": "Toggle construction: geometry that guides but is never built"
+    },
+    {
+      "id": "sk_extend",
+      "name": "Extend",
+      "slot": "modify",
+      "key": "X",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:X",
+      "icon": "design_extend",
+      "hint": "Extend — click a line/arc to extend it"
+    },
+    {
+      "id": "sk_delete",
+      "name": "Delete",
+      "slot": "modify",
+      "key": "Del",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:sk_delete",
+      "icon": "design_delete",
+      "hint": "Delete the selected sketch entities"
+    },
+    {
+      "id": "sk_length",
+      "name": "Length…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the length of this line",
+      "note": [
+        "Typing the defining number of the element you pointed at. Three rows rather than one so",
+        "each names the quantity in the drawing-office word for THAT element; all three land on",
+        "the same handler, because dimension_kind() already resolves the quantity from the",
+        "selection. Without these, an element's own numbers were reachable only by arming the",
+        "Dimension tool and re-picking geometry that was already selected."
+      ]
+    },
+    {
+      "id": "sk_radius",
+      "name": "Radius / diameter…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_arc"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the radius of this arc, or the diameter of this circle"
+    },
+    {
+      "id": "sk_angdist",
+      "name": "Angle / distance…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the angle between two lines, or the distance between the two picks"
+    }
+  ],
+  "chrome_only": {
+    "_why": "document-level actions act on the DOCUMENT, not on a selection, so they stay in chrome and never enter the offer (see 4.1) Text and SVG were removed from this list 2026-08-01: they create a Sketch feature on the picked face, so they consume a selection like any other Create verb.",
+    "items": [
+      "Import STEP",
+      "Import mesh",
+      "Export STEP",
+      "Commit to Plate",
+      "Undo",
+      "Redo",
+      "Variables",
+      "Section view",
+      "Origin planes",
+      "World axes"
+    ]
+  },
+  "_ratified": "Row order ratified 2026-07-31 by Tommaso. Changing an index is a breaking change (charter 4.1)."
+}
