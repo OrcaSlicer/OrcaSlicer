@@ -4,6 +4,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "test_utils.hpp"
 
@@ -14,6 +15,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;
@@ -42,12 +44,16 @@ FullPrintConfig make_config(double load_time, double unload_time, double tool_ch
     return config;
 }
 
-void run_processor(GCodeProcessor& proc, const FullPrintConfig& config, const char* gcode)
+void run_processor(GCodeProcessor& proc, const FullPrintConfig& config, const char* gcode, bool is_bbl_printer = true)
 {
     // reserved_tag() selects between two tag tables based on this shared static, and
-    // other tests in the binary mutate it -- pin it so our "; FEATURE:" role tags are
-    // parsed deterministically regardless of test execution order.
-    GCodeProcessor::s_IsBBLPrinter = true;
+    // other tests in the binary mutate it -- pin it so role tags are parsed
+    // deterministically regardless of test execution order.
+    const bool previous_is_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    GCodeProcessor::s_IsBBLPrinter = is_bbl_printer;
+    const ScopeGuard restore_flag([previous_is_bbl_printer] {
+        GCodeProcessor::s_IsBBLPrinter = previous_is_bbl_printer;
+    });
     ScopedTemporaryFile temp(".gcode");
     {
         std::ofstream os(temp.string());
@@ -88,6 +94,45 @@ double filament_change_delay(const GCodeProcessorResult& r)
 }
 
 } // namespace
+
+TEST_CASE("G29 preparation time is added only once", "[GCodeTiming][Regression]")
+{
+    const FullPrintConfig config = make_config(0.0, 0.0, 0.0);
+    const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    auto estimate = [&config, mode](bool is_bbl_printer, const char* commands) {
+        std::string gcode = is_bbl_printer ? "; FEATURE: Custom\n" : ";TYPE:Custom\n";
+        gcode += "G1 X10 Y10 Z0.2 F600\nG1 X20 Y10 F600\n";
+        if (is_bbl_printer)
+            gcode += "M622 J1\n";
+        gcode += commands;
+        if (is_bbl_printer)
+            gcode += "M623\n";
+        gcode += "G1 X20 Y20 F600\nG1 X10 Y20 F600\n";
+
+        GCodeProcessor processor;
+        run_processor(processor, config, gcode.c_str(), is_bbl_printer);
+        return std::make_pair(processor.get_time(mode), processor.get_prepare_time(mode));
+    };
+
+    const auto [baseline_time, baseline_prepare] = estimate(false, "G4 S0\n");
+    const auto [one_time, one_prepare] = estimate(false, "G29\n");
+    const auto [repeated_time, repeated_prepare] = estimate(false,
+        "G29 P9 X10 Y-4 W32 H4\nG29 P1\nG29 P1 X0 Y0 W50 H20 C\nG29 P3.2\nG29 P3.13\nG29 A\n");
+
+    REQUIRE_THAT(one_time - baseline_time, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(one_prepare - baseline_prepare, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(repeated_time, WithinAbs(one_time, 1e-2));
+    REQUIRE_THAT(repeated_prepare, WithinAbs(one_prepare, 1e-2));
+
+    const auto [baseline_bbl_time, baseline_bbl_prepare] = estimate(true, "G4 S0\n");
+    const auto [one_bbl_time, one_bbl_prepare] = estimate(true, "G29\n");
+    const auto [repeated_bbl_time, repeated_bbl_prepare] = estimate(true, "G29\nG29\n");
+
+    REQUIRE_THAT(one_bbl_time - baseline_bbl_time, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(one_bbl_prepare - baseline_bbl_prepare, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(repeated_bbl_time, WithinAbs(one_bbl_time, 1e-2));
+    REQUIRE_THAT(repeated_bbl_prepare, WithinAbs(one_bbl_prepare, 1e-2));
+}
 
 TEST_CASE("Filament-change time is attributed to tool-change moves, not extrusion roles", "[GCodeTiming]")
 {
