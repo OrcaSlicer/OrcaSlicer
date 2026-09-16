@@ -22,12 +22,12 @@ REQUIRED_DEV_PACKAGES=(
     libtool
     m4
     glu-devel
-    ninja-build
+    ninja
     openssl-devel
     perl-FindBin-Real
     texinfo
     wayland-protocols-devel
-    webkit2gtk4-devel
+    webkitgtk4-devel
     wget
     libcurl-devel
     pkgconf
