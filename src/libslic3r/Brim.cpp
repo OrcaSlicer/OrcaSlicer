@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <set>
 #include <tbb/parallel_for.h>
 
 #include <boost/log/trivial.hpp>
@@ -433,6 +434,8 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         brimToWrite.insert({ objectWithExtruder.first, {true,true} });
 
     ExPolygons objectIslands;
+    ExPolygons outer_only_brim_ear_no_brim_area;
+    std::set<ObjectInstanceID> outer_only_brim_ear_instances;
     for (unsigned int extruderNo : printExtruders) {
         ++extruderNo;
         for (const auto& objectWithExtruder : objPrintVec) {
@@ -447,7 +450,8 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             bool               has_brim_auto = object->config().brim_type == btAutoBrim;
             const bool         use_auto_brim_ears = object->config().brim_type == btEar;
             const bool         use_brim_ears = object->config().brim_type == btPainted;
-            const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !object->config().brim_ears_outer_only.value;
+            const bool         use_outer_only_brim_ears = (use_auto_brim_ears || use_brim_ears) && object->config().brim_ears_outer_only.value;
+            const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !use_outer_only_brim_ears;
             const bool         has_inner_brim = brim_type == btInnerOnly || brim_type == btOuterAndInner || use_inner_brim_ears;
             const bool         has_outer_brim = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btAutoBrim || use_auto_brim_ears || use_brim_ears;
             coord_t            ear_detection_length = scale_(object->config().brim_ears_detection_length.value);
@@ -535,7 +539,14 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                                 }else {
                                     outerExpoly = offset_ex(innerExpoly, brim_width_mod, jtRound, SCALED_RESOLUTION);
                                 }
-                                append(brim_area_object, diff_ex(outerExpoly, innerExpoly));
+                                // When ears are allowed inside holes, subtract the actual model
+                                // shape rather than treating its outer contour as solid. Otherwise
+                                // an ear generated for a ring erases its own central hole and only
+                                // partial overlap from a neighbouring ear can remain there.
+                                const ExPolygons brim_exclusion =
+                                    (use_auto_brim_ears || use_brim_ears) && !use_outer_only_brim_ears ?
+                                        offset_ex(ex_poly, brim_offset, jtRound, SCALED_RESOLUTION) : innerExpoly;
+                                append(brim_area_object, diff_ex(outerExpoly, brim_exclusion));
                             }
                             if (has_inner_brim) {
                                 ExPolygons outerExpoly;
@@ -559,14 +570,36 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                             append(holes_object, ex_poly_holes_reversed);
                         }
                     }
+                // Unioning only the contours fills every enclosed section while
+                // preserving genuinely separate outer islands. Keep every object's
+                // exterior silhouette so an outer-only ear from another object cannot
+                // leave a detached remnant inside one of this object's holes.
+                Polygons exterior_contours;
+                exterior_contours.reserve(brim_slices->size());
+                for (const ExPolygon& slice : *brim_slices)
+                    exterior_contours.push_back(slice.contour);
+                const ExPolygons exterior_silhouette = union_ex(exterior_contours);
+                const ExPolygons exterior_no_brim_area =
+                    offset_ex(exterior_silhouette, brim_offset, jtRound, SCALED_RESOLUTION);
+                if (use_outer_only_brim_ears && !brim_area_object.empty()) {
+                    // Treat nested material islands in the source object as enclosed
+                    // geometry rather than as independent outer contours.
+                    brim_area_object = diff_ex(
+                        brim_area_object,
+                        exterior_no_brim_area);
+                }
                 auto objectIsland = offset_ex(*brim_slices, brim_offset, jtRound, SCALED_RESOLUTION);
                 append(no_brim_area_object, objectIsland);
 
                 brimToWrite.at(object->id()).obj = false;
                 for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
                     const PrintInstance& instance = object->instances()[instance_idx];
+                    const ObjectInstanceID instance_id { object->id(), instance_idx };
                     if (!brim_area_object.empty())
                         append_and_translate(brim_area_object, instance, instance_idx, brimAreaMap);
+                    if (use_outer_only_brim_ears)
+                        outer_only_brim_ear_instances.insert(instance_id);
+                    append_and_translate(outer_only_brim_ear_no_brim_area, exterior_no_brim_area, instance);
                     append_and_translate(no_brim_area, no_brim_area_object, instance);
                     append_and_translate(holes, holes_object, instance);
                     append_and_translate(objectIslands, objectIsland, instance);
@@ -647,8 +680,12 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         }
 
         for (auto& [key, areas] : brimAreaMap)
-            if (key.object_id == object->id())
-                areas = diff_ex(areas, extruder_no_brim_area);
+            if (key.object_id == object->id()) {
+                ExPolygons instance_no_brim_area = extruder_no_brim_area;
+                if (outer_only_brim_ear_instances.count(key) != 0)
+                    expolygons_append(instance_no_brim_area, outer_only_brim_ear_no_brim_area);
+                areas = diff_ex(areas, instance_no_brim_area);
+            }
 
     }
 
