@@ -195,7 +195,8 @@ void Downloader::on_complete(wxCommandEvent& event)
     set_download_state(event.GetInt(), DownloadState::DownloadDone);
 	wxArrayString paths;
 	paths.Add(event.GetString());
-	wxGetApp().plater()->load_files(paths);
+	// from_url: the user clicked "Open in OrcaSlicer" on this specific project.
+	wxGetApp().plater()->load_files(paths, /* from_url */ true);
 }
 bool Downloader::user_action_callback(DownloaderUserAction action, int id)
 {
