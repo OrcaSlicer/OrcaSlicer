@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo Velo+ PA-GF10@System",
+	"from": "system",
+	"setting_id": "4VCr1Hh5uzDw6U08",
+	"instantiation": "true",
+	"inherits": "Goofoo Velo+ PA-GF10@base",
+	"compatible_printers": []
+}

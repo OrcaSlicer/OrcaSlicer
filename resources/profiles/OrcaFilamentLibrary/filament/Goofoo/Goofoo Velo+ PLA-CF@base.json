@@ -1,0 +1,29 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PLA-CF@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PLA-CF @System",
+  "filament_flow_ratio": [
+    "0.98"
+  ],
+  "hot_plate_temp": [
+    "40"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "40"
+  ],
+  "nozzle_temperature": [
+    "240"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "240"
+  ],
+  "filament_id": "GFG_V013",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PLA-CF"
+  ]
+}

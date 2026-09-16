@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 PETG@base",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "Generic PETG @System",
+	"filament_flow_ratio": [
+		"1.1"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"filament_id": "GFG_V026",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM 90A TPU @System",
+	"from": "system",
+	"setting_id": "E7M50n0kVaq2cIE9",
+	"instantiation": "true",
+	"inherits": "Goofoo TurboM 90A TPU @base",
+	"compatible_printers": []
+}

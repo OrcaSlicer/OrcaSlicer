@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM ABS 260_90 @base",
+	"from": "system",
+	"filament_id": "TBM004",
+	"filament_type": [
+		"ABS"
+	],
+	"instantiation": "false",
+	"inherits": "Generic ABS @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	]
+}

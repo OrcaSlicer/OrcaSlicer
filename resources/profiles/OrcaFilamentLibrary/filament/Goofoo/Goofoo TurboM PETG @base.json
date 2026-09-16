@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PETG @base",
+	"from": "system",
+	"filament_id": "TBM016",
+	"filament_type": [
+		"PETG"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PETG @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	]
+}

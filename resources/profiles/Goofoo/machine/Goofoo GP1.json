@@ -1,0 +1,11 @@
+{
+  "type": "machine_model",
+  "name": "Goofoo GP1",
+  "nozzle_diameter": "0.4",
+  "bed_model": "Goofoo-GP1.stl",
+  "bed_texture": "Goofoo-GP1-texture.svg",
+  "family": "Goofoo",
+  "machine_tech": "FFF",
+  "model_id": "V003",
+  "default_materials": "Goofoo Velo+ ABS"
+}

@@ -1,0 +1,14 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ PVA@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "Generic PVA @System",
+  "filament_id": "GFG_V018",
+  "filament_vendor": [
+    "Goofoo"
+  ],
+  "filament_type": [
+    "PVA"
+  ]
+}

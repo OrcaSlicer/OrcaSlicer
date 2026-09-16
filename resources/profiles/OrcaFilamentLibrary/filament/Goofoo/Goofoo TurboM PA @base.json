@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PA @base",
+	"from": "system",
+	"filament_id": "TBM007",
+	"filament_type": [
+		"PA"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PA @System",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	]
+}

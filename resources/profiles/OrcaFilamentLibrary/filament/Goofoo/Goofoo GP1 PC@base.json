@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 PC@base",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "Generic PC @System",
+	"filament_flow_ratio": [
+		"0.84"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"hot_plate_temp": [
+		"85"
+	],
+	"hot_plate_temp_initial_layer": [
+		"85"
+	],
+	"nozzle_temperature": [
+		"275"
+	],
+	"nozzle_temperature_initial_layer": [
+		"275"
+	],
+	"filament_id": "GFG_V025",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

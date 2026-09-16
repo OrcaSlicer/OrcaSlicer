@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PP-GF @base",
+	"from": "system",
+	"filament_id": "TBM025",
+	"filament_type": [
+		"PP-GF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PP-GF @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}
