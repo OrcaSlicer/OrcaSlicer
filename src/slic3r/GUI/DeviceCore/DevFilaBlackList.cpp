@@ -4,6 +4,8 @@
 #include <set>
 
 #include "DevFilaBlackList.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
 #include "DevFilaSystem.h"
 #include "DevManager.h"
 #include "DevConfigUtil.h"

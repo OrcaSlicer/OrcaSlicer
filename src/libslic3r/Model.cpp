@@ -3598,6 +3598,15 @@ void FacetsAnnotation::shift_states_above(const ModelVolume &mv, EnforcerBlocker
     this->set(selector);
 }
 
+void FacetsAnnotation::remap_states(const ModelVolume &mv, const EnforcerBlockerStateMap &state_map)
+{
+    if (empty()) return;
+    TriangleSelector selector(mv.mesh());
+    selector.deserialize(m_data, false);
+    selector.remap_triangle_state(state_map);
+    this->set(selector);
+}
+
 void FacetsAnnotation::set_enforcer_block_type_limit(const ModelVolume  &mv,
                                                      EnforcerBlockerType max_type,
                                                      EnforcerBlockerType to_delete_filament,
@@ -3860,6 +3869,43 @@ bool model_has_advanced_features(const Model &model)
             	return true;
     }
     return false;
+}
+
+void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations)
+{
+    if (slot_relocations.empty())
+        return;
+
+    // Paint states and the object/volume "extruder" configs store one-based slot numbers
+    // (see Sidebar::on_action_add_filament's insertion remap for the same encoding).
+    std::map<int, int> one_based_slots;
+    for (const auto &[from, to] : slot_relocations)
+        one_based_slots.emplace(from + 1, to + 1);
+
+    EnforcerBlockerStateMap paint_state_map;
+    for (size_t state = 0; state < paint_state_map.size(); ++state)
+        paint_state_map[state] = EnforcerBlockerType(state);
+    for (const auto &[one_based_from, one_based_to] : one_based_slots) {
+        assert(one_based_from >= 0 && size_t(one_based_from) < paint_state_map.size());
+        assert(one_based_to > 0 && size_t(one_based_to) < paint_state_map.size());
+        paint_state_map[size_t(one_based_from)] = EnforcerBlockerType(one_based_to);
+    }
+
+    auto remap_extruder_config = [&one_based_slots](ModelConfig &config) -> bool {
+        const auto it = config.has("extruder") ? one_based_slots.find(config.extruder()) : one_based_slots.end();
+        if (it == one_based_slots.end())
+            return false;
+        config.set("extruder", it->second);
+        return true;
+    };
+
+    for (ModelObject *object : model.objects) {
+        remap_extruder_config(object->config);
+        for (ModelVolume *volume : object->volumes) {
+            remap_extruder_config(volume->config);
+            volume->mmu_segmentation_facets.remap_states(*volume, paint_state_map);
+        }
+    }
 }
 
 #ifndef NDEBUG

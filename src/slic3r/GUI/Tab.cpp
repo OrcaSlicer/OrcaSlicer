@@ -7,6 +7,7 @@
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include "Search.hpp"
@@ -2668,6 +2669,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("role_based_wipe_speed","quality_settings_seam#role-based-wipe-speed");
         optgroup->append_single_option_line("wipe_speed", "quality_settings_seam#wipe-speed");
         optgroup->append_single_option_line("wipe_on_loops","quality_settings_seam#wipe-on-loop-inward-movement");
+        optgroup->append_single_option_line("wipe_inward", "quality_settings_seam#wipe-inward");
+        optgroup->append_single_option_line("wipe_inward_distance", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_before_external_loop","quality_settings_seam#wipe-before-external");
 
 
@@ -5028,28 +5031,12 @@ void TabPrinter::build_fff()
             auto registered_printer_agents = NetworkAgentFactory::get_registered_printer_agents();
             if (!registered_printer_agents.empty())
             {
-                ConfigOptionDef def;
-                def.type = coString;
-                def.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
-                def.width = 3 * Field::def_width_wider() / 2;
-                def.label = L("Printer Agent");
-                def.tooltip = L("Select the network agent implementation for printer communication. "
+                option = optgroup->get_option("printer_agent");
+                option.opt.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
+                option.opt.width = 3 * Field::def_width_wider() / 2;
+                option.opt.tooltip = L("Select the network agent implementation for printer communication. "
                     "Available agents are registered at startup.");
-                def.mode = comAdvanced;
-
-                // Create the field without get_option() so it is not registered in m_opt_map.
-                // ConfigOptionsGroup handles printer_agent before the generic mapped write path.
-                Line agent_line = optgroup->create_single_option_line(Option(def, "printer_agent"));
-                optgroup->append_line(agent_line);
-                if (Field* agent_field = get_field("printer_agent"))
-                {
-                    if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
-                        choice->set_value(m_config->opt_string("printer_agent"), false);
-                }
-
-                // Register by hand so the UnsavedChanges dialog can render a row for it.
-                wxGetApp().sidebar().get_searcher().add_key("printer_agent", m_type, optgroup->title,
-                                                            optgroup->config_category());
+                optgroup->append_single_option_line(option);
             }
         }
 
@@ -5699,26 +5686,16 @@ if (is_marlin_flavor)
             optgroup->append_single_option_line("extruder_offset", "printer_extruder_basic_information#extruder-offset-position", extruder_idx);
 
             //BBS: don't show retract related config menu in machine page
+            // These optgroups are built from publishable_printer_retraction/z_hop_options() so the
+            // published-3MF printer allowlist (their union in libslic3r/PublishSettings.hpp) can
+            // never drift from what the machine page actually shows.
             optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");
-            optgroup->append_single_option_line("retraction_length", "printer_extruder_retraction#length", extruder_idx);
-            optgroup->append_single_option_line("retract_restart_extra", "printer_extruder_retraction#extra-length-on-restart", extruder_idx);
-            optgroup->append_single_option_line("retraction_speed", "printer_extruder_retraction#retraction-speed", extruder_idx);
-            optgroup->append_single_option_line("deretraction_speed", "printer_extruder_retraction#deretraction-speed", extruder_idx);
-            optgroup->append_single_option_line("retraction_minimum_travel", "printer_extruder_retraction#travel-distance-threshold", extruder_idx);
-            optgroup->append_single_option_line("retract_when_changing_layer", "printer_extruder_retraction#retract-on-layer-change", extruder_idx);
-            optgroup->append_single_option_line("wipe", "printer_extruder_retraction#wipe-while-retracting", extruder_idx);
-            optgroup->append_single_option_line("wipe_distance", "printer_extruder_retraction#wipe-distance", extruder_idx);
-            optgroup->append_single_option_line("retract_before_wipe", "printer_extruder_retraction#retract-amount-before-wipe", extruder_idx);
-            // Orca
-            optgroup->append_single_option_line("retract_after_wipe", "printer_extruder_retraction#retract-amount-after-wipe", extruder_idx);
+            for (const PublishablePrinterOption& opt : publishable_printer_retraction_options())
+                optgroup->append_single_option_line(opt.key, opt.icon, extruder_idx);
 
             optgroup = page->new_optgroup(L("Z-Hop"), L"param_extruder_lift_enforcement");
-            optgroup->append_single_option_line("retract_lift_enforce", "printer_extruder_z_hop#on-surfaces", extruder_idx);
-            optgroup->append_single_option_line("z_hop_types", "printer_extruder_z_hop#z-hop-type", extruder_idx);
-            optgroup->append_single_option_line("z_hop", "printer_extruder_z_hop#z-hop-height", extruder_idx);
-            optgroup->append_single_option_line("travel_slope", "printer_extruder_z_hop#traveling-angle", extruder_idx);
-            optgroup->append_single_option_line("retract_lift_above", "printer_extruder_z_hop#only-lift-z-above", extruder_idx);
-            optgroup->append_single_option_line("retract_lift_below", "printer_extruder_z_hop#only-lift-z-below", extruder_idx);
+            for (const PublishablePrinterOption& opt : publishable_printer_z_hop_options())
+                optgroup->append_single_option_line(opt.key, opt.icon, extruder_idx);
 
             optgroup = page->new_optgroup(L("Retraction when switching material"), L"param_retraction_material_change");
             optgroup->append_single_option_line("retract_length_toolchange", "printer_extruder_retraction#retraction-when-switching-materials", extruder_idx);
@@ -5921,15 +5898,6 @@ void TabPrinter::reload_config()
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
 
-    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
-    if (Field* agent_field = get_field("printer_agent"))
-    {
-        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
-        {
-            const std::string selected_agent = m_config->opt_string("printer_agent");
-            choice->set_value(selected_agent, false);
-        }
-    }
 }
 
 void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
@@ -5941,15 +5909,6 @@ void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
 
-    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
-    if (Field* agent_field = get_field("printer_agent"))
-    {
-        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
-        {
-            const std::string selected_agent = m_config->opt_string("printer_agent");
-            choice->set_value(selected_agent, false);
-        }
-    }
 }
 
 void TabPrinter::clear_pages()

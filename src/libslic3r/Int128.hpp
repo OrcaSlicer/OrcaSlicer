@@ -57,7 +57,7 @@
 	#define HAS_INTRINSIC_128_TYPE
 #endif
 
-#if defined(_MSC_VER) && defined(_WIN64)
+#if defined(_MSC_VER) && defined(_M_X64)
 	#include <intrin.h>
 	#pragma intrinsic(_mul128)
 #endif

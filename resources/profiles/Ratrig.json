@@ -277,24 +277,20 @@
 	],
 	"filament_list": [
 		{
-			"name": "Generic ABS BigNozzle @RatRig",
-			"sub_path": "filament/Generic ABS BigNozzle @RatRig.json"
-		},
-		{
 			"name": "Generic ABS @RatRig",
 			"sub_path": "filament/Generic ABS @RatRig.json"
 		},
 		{
-			"name": "RatRig PunkFil ABS",
-			"sub_path": "filament/RatRig PunkFil ABS.json"
-		},
-		{
-			"name": "Generic ASA BigNozzle @RatRig",
-			"sub_path": "filament/Generic ASA BigNozzle @RatRig.json"
+			"name": "Generic ABS BigNozzle @RatRig",
+			"sub_path": "filament/Generic ABS BigNozzle @RatRig.json"
 		},
 		{
 			"name": "Generic ASA @RatRig",
 			"sub_path": "filament/Generic ASA @RatRig.json"
+		},
+		{
+			"name": "Generic ASA BigNozzle @RatRig",
+			"sub_path": "filament/Generic ASA BigNozzle @RatRig.json"
 		},
 		{
 			"name": "Generic PA @RatRig",
@@ -309,36 +305,28 @@
 			"sub_path": "filament/Generic PC @RatRig.json"
 		},
 		{
-			"name": "Generic PCTG BigNozzle @RatRig",
-			"sub_path": "filament/Generic PCTG BigNozzle @RatRig.json"
-		},
-		{
-			"name": "Generic PETG BigNozzle @RatRig",
-			"sub_path": "filament/Generic PETG BigNozzle @RatRig.json"
-		},
-		{
 			"name": "Generic PCTG @RatRig",
 			"sub_path": "filament/Generic PCTG @RatRig.json"
+		},
+		{
+			"name": "Generic PCTG BigNozzle @RatRig",
+			"sub_path": "filament/Generic PCTG BigNozzle @RatRig.json"
 		},
 		{
 			"name": "Generic PETG @RatRig",
 			"sub_path": "filament/Generic PETG @RatRig.json"
 		},
 		{
-			"name": "RatRig PunkFil PETG",
-			"sub_path": "filament/RatRig PunkFil PETG.json"
-		},
-		{
-			"name": "RatRig PunkFil PETG CF",
-			"sub_path": "filament/RatRig PunkFil PETG CF.json"
-		},
-		{
-			"name": "Generic PLA BigNozzle @RatRig",
-			"sub_path": "filament/Generic PLA BigNozzle @RatRig.json"
+			"name": "Generic PETG BigNozzle @RatRig",
+			"sub_path": "filament/Generic PETG BigNozzle @RatRig.json"
 		},
 		{
 			"name": "Generic PLA @RatRig",
 			"sub_path": "filament/Generic PLA @RatRig.json"
+		},
+		{
+			"name": "Generic PLA BigNozzle @RatRig",
+			"sub_path": "filament/Generic PLA BigNozzle @RatRig.json"
 		},
 		{
 			"name": "Generic PLA-CF @RatRig",
@@ -349,12 +337,24 @@
 			"sub_path": "filament/Generic PVA @RatRig.json"
 		},
 		{
+			"name": "Generic TPU @RatRig",
+			"sub_path": "filament/Generic TPU @RatRig.json"
+		},
+		{
 			"name": "Generic TPU BigNozzle @RatRig",
 			"sub_path": "filament/Generic TPU BigNozzle @RatRig.json"
 		},
 		{
-			"name": "Generic TPU @RatRig",
-			"sub_path": "filament/Generic TPU @RatRig.json"
+			"name": "RatRig PunkFil ABS",
+			"sub_path": "filament/RatRig PunkFil ABS.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG",
+			"sub_path": "filament/RatRig PunkFil PETG.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG CF",
+			"sub_path": "filament/RatRig PunkFil PETG CF.json"
 		}
 	],
 	"machine_list": [

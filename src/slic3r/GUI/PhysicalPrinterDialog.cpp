@@ -9,6 +9,7 @@
 #include <boost/regex.hpp>
 
 #include <wx/sizer.h>
+#include <wx/tooltip.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>

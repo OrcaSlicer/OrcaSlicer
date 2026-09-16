@@ -318,12 +318,6 @@
 	"slow_down_min_speed": [
 		"20"
 	],
-	"supertack_plate_temp": [
-		"35"
-	],
-	"supertack_plate_temp_initial_layer": [
-		"35"
-	],
 	"support_material_interface_fan_speed": [
 		"-1"
 	],

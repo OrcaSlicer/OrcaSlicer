@@ -745,6 +745,10 @@ public:
     // Shift painted filament indices >= threshold by delta. Used when a physical filament is
     // inserted ahead of existing slots (mixed-color slots are kept at the end of the list).
     void                 shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta);
+    // Relabel painted filament indices according to state_map (old state value -> new state
+    // value; untouched states keep their identity). Used when published-3MF import relocates
+    // mixed-filament definitions onto new slot numbers.
+    void                 remap_states(const ModelVolume &mv, const EnforcerBlockerStateMap &state_map);
     indexed_triangle_set get_facets_strict(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool has_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool empty() const { return m_data.triangles_to_split.empty(); }
@@ -1789,6 +1793,13 @@ bool model_brim_points_data_changed(const ModelObject& mo, const ModelObject& mo
 bool model_has_multi_part_objects(const Model &model);
 // If the model has advanced features, then it cannot be processed in simple mode.
 bool model_has_advanced_features(const Model &model);
+
+// Remap the model's filament-slot references after a published-3MF import relocated
+// mixed-filament definitions onto new slot numbers: object/volume "extruder" configs and
+// multi-material color-painting states (paint state stores the one-based slot number).
+// slot_relocations maps the author's zero-based slot number to its final zero-based slot;
+// entries are applied simultaneously (no chained lookups), untouched slots keep everything.
+void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations);
 
 #ifndef NDEBUG
 // Verify whether the IDs of Model / ModelObject / ModelVolume / ModelInstance / ModelMaterial are valid and unique.
