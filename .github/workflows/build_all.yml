@@ -14,6 +14,8 @@ on:
      - 'localization/**'
      - 'resources/**'
      - ".github/workflows/build_*.yml"
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
      - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'

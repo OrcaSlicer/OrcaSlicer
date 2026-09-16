@@ -15,7 +15,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 
 Tests are off by default, so the build has to be told to include them.
 
-- Windows: `build_win.bat --run-tests`, which builds and runs them (`-l -x` for the clang-cl and Ninja build CI uses)
+- Windows: `build_win.bat -ds --run-tests`, which builds the dependencies and the tests and runs them (`-l -x` for the clang-cl and Ninja build CI uses)
 - macOS: `./build_release_macos.sh -s -a arm64 -T`, which builds and runs them
 - Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests`
 
