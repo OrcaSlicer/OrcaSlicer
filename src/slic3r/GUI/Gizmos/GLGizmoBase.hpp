@@ -198,7 +198,7 @@ public:
     int get_hover_id() const { return m_hover_id; }
     void set_hover_id(int id);
     
-    bool is_dragging() const { return m_dragging; }
+    virtual bool is_dragging() const { return m_dragging; }
 
     // returns True when Gizmo changed its state
     bool update_items_state();
