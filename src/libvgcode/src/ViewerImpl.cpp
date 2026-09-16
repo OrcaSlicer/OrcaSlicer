@@ -299,6 +299,7 @@ static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRU
     // ORCA
     { 102,  92, 199 }, // BottomSurface
     {  77, 128, 186 }, // InternalBridgeInfill
+    { 115,  61, 191 }, // WaveBridgeInfill
     {   0,  59, 110 }, // Brim
     {   0,  64,   0 }, // SupportTransition
     { 128, 128, 128 }, // Mixed
