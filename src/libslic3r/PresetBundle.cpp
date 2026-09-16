@@ -3417,6 +3417,24 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
+// Preserve metadata only for existing colour slots; new slots get false/empty defaults.
+static void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count)
+{
+    auto resize = [old_slot_count, new_slot_count](auto *opt) {
+        if (opt) {
+            opt->values.resize(std::min(old_slot_count, opt->values.size()));
+            opt->values.resize(new_slot_count);
+        }
+    };
+    resize(config.option<ConfigOptionBools>("filament_is_mixed"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_components"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_range"));
+    resize(config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"));
+    resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"));
+}
+
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();
@@ -3449,37 +3467,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
     ams_multi_color_filment.resize(n);
 
-    // Mixed-color metadata is a parallel per-filament array set, so it has to grow and shrink
-    // with the filament count exactly like filament_colour above. Discard metadata past the
-    // old slots first so stale imported values cannot turn a new physical filament into a mix.
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, false);
-    }
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, std::string{});
-    }
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, std::string{});
-    }
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, false);
-    }
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, std::string{});
-    }
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, std::string{});
-    }
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part")) {
-        opt->values.resize(std::min(old_slot_count, opt->values.size()));
-        opt->values.resize(n, false);
-    }
+    resize_mixed_filament_metadata(project_config, old_slot_count, n);
 
     //BBS set new filament color to new_color
     if (!new_color.empty()) {
@@ -5450,6 +5438,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
+        // Older projects inherit one-element mixed defaults, regardless of their filament count.
+        if (!is_published)
+            resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
 
         break;
     }
