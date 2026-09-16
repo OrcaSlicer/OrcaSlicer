@@ -13,6 +13,8 @@
 		"Snapmaker U1 (0.6 nozzle)"
 	],
 	"ooze_prevention": "1",
+	"prime_tower_width": "30",
+	"prime_volume": "90",
 	"slowdown_for_curled_perimeters": "0",
 	"standby_temperature_delta": "-150",
 	"wipe_tower_filament": "0",

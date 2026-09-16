@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Sparkle @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA08",
+	"filament_id": "OFDxfPgH",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

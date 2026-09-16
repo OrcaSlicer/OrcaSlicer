@@ -3,7 +3,7 @@
 	"name": "Overture Air PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFOT006",
+	"filament_id": "OFcfQk4h",
 	"instantiation": "false",
 	"filament_cost": [
 		"27.99"
@@ -15,6 +15,9 @@
 		"0.95"
 	],
 	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
 		"8"
 	],
 	"filament_vendor": [

@@ -72,8 +72,10 @@ private:
     SwitchButton* m_switch_recording;
     wxStaticText* m_text_vcamera;
     SwitchButton* m_switch_vcamera;
+#if !BBL_RELEASE_TO_PUBLIC
     wxStaticText* m_text_liveview_retry;
     SwitchButton* m_switch_liveview_retry;
+#endif //BBL_RELEASE_TO_PUBLIC
     wxStaticText* m_custom_camera_hint;
     TextInput* m_custom_camera_input;
     Button* m_custom_camera_input_confirm;

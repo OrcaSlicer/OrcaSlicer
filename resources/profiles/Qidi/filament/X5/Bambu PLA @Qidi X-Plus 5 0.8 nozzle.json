@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "MYCn1SS32p63RzX0",
+	"name": "Bambu PLA @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Bambu PLA@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

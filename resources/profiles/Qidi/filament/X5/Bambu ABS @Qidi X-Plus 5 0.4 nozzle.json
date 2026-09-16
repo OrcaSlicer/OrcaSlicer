@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "K3KqxJ3z6lSKoCsQ",
+	"name": "Bambu ABS @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Bambu ABS@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

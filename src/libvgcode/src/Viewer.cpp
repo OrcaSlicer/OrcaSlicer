@@ -82,6 +82,16 @@ void Viewer::set_dim_previous_layers(bool value)
     m_impl->set_dim_previous_layers(value);
 }
 
+float Viewer::get_dim_previous_layers_brightness() const
+{
+    return m_impl->get_dim_previous_layers_brightness();
+}
+
+void Viewer::set_dim_previous_layers_brightness(float value)
+{
+    m_impl->set_dim_previous_layers_brightness(value);
+}
+
 bool Viewer::is_option_visible(EOptionType type) const
 {
     return m_impl->is_option_visible(type);

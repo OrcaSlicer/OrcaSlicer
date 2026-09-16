@@ -306,6 +306,9 @@ class Print;
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
         std::vector<unsigned int> nozzle_change_sequence;
         std::vector<unsigned int> filament_change_sequence;
+        // 0-based mixed (virtual) filament slots actually used on this plate.
+        // Recorded before resolve_mixed_filaments expands them to physical components.
+        std::vector<unsigned int> used_mixed_filaments;
         std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
@@ -357,6 +360,7 @@ class Print;
             printer_extruder_id = other.printer_extruder_id;
             layer_filaments = other.layer_filaments;
             filament_change_sequence = other.filament_change_sequence;
+            used_mixed_filaments = other.used_mixed_filaments;
             nozzle_change_sequence = other.nozzle_change_sequence;
             optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
@@ -637,6 +641,9 @@ class Print;
                 //For line move, there are same. For arc move, there are different.
                 Vec3f enter_direction;
                 Vec3f exit_direction;
+                // Orca: move direction over all four axes, unit length. Used by
+                // calc_vmax_junction_deviation(); see there for why E is normalized in.
+                Vec4f jd_unit_vec;
 
                 void reset();
             };
@@ -1488,6 +1495,16 @@ class Print;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int machine_idx) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        // Orca: junction deviation for a block at the given acceleration, 0 for a classic jerk machine.
+        float get_junction_deviation(PrintEstimatedStatistics::ETimeMode mode, float acceleration) const;
+        // Orca: acceleration along the junction direction, clamped by the per axis limits.
+        float calc_junction_acceleration(const TimeBlock& block, const Vec4f& junction_unit_vec,
+                                         PrintEstimatedStatistics::ETimeMode mode) const;
+        // Orca: entry speed from the junction deviation model, which limits a corner by its angle alone
+        // and is therefore isotropic, unlike per axis jerk. Negative means classic jerk applies instead.
+        float calc_vmax_junction_deviation(const TimeBlock& block, const TimeMachine::State& prev,
+                                           const TimeMachine::State& curr, bool has_prev_move,
+                                           PrintEstimatedStatistics::ETimeMode mode) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const;

@@ -2,7 +2,7 @@
 /* File: uiAMSBestPositionPopup.hpp
 *  Description: The popup with suggest best ams position
 *
-//**********************************************************/
+************************************************************/
 
 #include "uiAMSBestPositionPopup.hpp"
 
@@ -637,7 +637,7 @@ ReselectMachineDialog::ReselectMachineDialog(wxWindow* parent)
 
     wxBoxSizer* okGroupSizer = new wxBoxSizer(wxHORIZONTAL);
     UiAMSSlot* amsSlotOK= new UiAMSSlot(statusBar, colourOK, wxString("Ax\nPLA"), DataStatusType::OK, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(58), FromDIP(90)), 1.0, 1.0);
-    wxStaticText* okLabel = new wxStaticText(statusBar, wxID_ANY, _CTX(L_CONTEXT("OK", "FilamentTrack"), "FilamentTrack"));
+    wxStaticText* okLabel = new wxStaticText(statusBar, wxID_ANY, _L_CONTEXT(L_CONTEXT("OK", "FilamentTrack"), "FilamentTrack"));
     okLabel->SetFont(wxGetApp().normal_font());
     okLabel->SetForegroundColour(wxColour("#6B6B6B"));
 
@@ -705,7 +705,7 @@ ReselectMachineDialog::ReselectMachineDialog(wxWindow* parent)
     Centre();
 }
 
-void ReselectMachineDialog::Update(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
+void ReselectMachineDialog::UpdateInfo(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
 {
 
     if (suggestText)

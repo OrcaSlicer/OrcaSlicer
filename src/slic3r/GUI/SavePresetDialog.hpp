@@ -75,7 +75,6 @@ class SavePresetDialog : public DPIDialog
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
         bool                m_detach{false};
-        wxCheckBox*         m_detach_checkbox{nullptr};
 
         void update();
     };

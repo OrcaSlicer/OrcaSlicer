@@ -37,6 +37,34 @@ function HandleStudio( pVal )
 	{
 		HandleModelList(pVal['response']);
 	}
+	else if(strCmd=='check_new_printers_result')
+	{
+		let button = document.getElementById("CheckNewPrintersBtn");
+		if (button) {
+			button.style.pointerEvents = "auto";
+			button.style.opacity = "1";
+		}
+
+		let noticeBar = document.getElementById("NoticeBar");
+		let noticeText = document.getElementById("NoticeText");
+		let hasError = pVal.hasOwnProperty("error");
+		noticeBar.classList.toggle("notice-error", hasError);
+		if (hasError) {
+			noticeBar.textContent = "Error";
+			noticeText.textContent = pVal["error"];
+		} else if (pVal["vendors"] && pVal["vendors"].length > 0) {
+			noticeBar.textContent = "New printers found";
+			noticeText.textContent = "New printer vendors installed: " + pVal["vendors"].join(", ");
+		} else if (pVal["declined"]) {
+			noticeBar.textContent = "Information";
+			noticeText.textContent = "New printer vendors were found, but installation was cancelled.";
+		} else {
+			noticeBar.textContent = "Information";
+			noticeText.textContent = "No new printers found.";
+		}
+
+		ShowNotice(1);
+	}
 }
 
 function HandleModelList( pVal )
@@ -78,9 +106,13 @@ function HandleModelList( pVal )
 	}
 	
 	//Update Nozzel Html Append
+	// ORCA: HandleModelList can now be called more than once per dialog (e.g. after a new vendor
+	// is installed via "check for new printers"). pModel always holds the full, current list, so
+	// clear each vendor's printer area before repopulating instead of appending on top of a
+	// previous render.
 	for( let key in ModelHtml )
 	{
-		$(".OneVendorBlock[vendor='"+key+"'] .PrinterArea").append( ModelHtml[key] );
+		$(".OneVendorBlock[vendor='"+key+"'] .PrinterArea").empty().append( ModelHtml[key] );
 	}
 	
 	//Update Checkbox
@@ -343,6 +375,9 @@ function OnExit()
 	let nTotal=ModelSelect.length;
 
 	if( nTotal==0 ) {
+		let noticeBar = document.getElementById("NoticeBar");
+		noticeBar.classList.add("notice-error");
+		noticeBar.textContent = "Error";
 		ShowNotice(1);
 		return 0;
 	}

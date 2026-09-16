@@ -98,7 +98,7 @@ void LabeledStaticBox::SetBorderColor(StateColor const &color)
     Refresh();
 }
 
-void LabeledStaticBox::SetFont(wxFont set_font)
+bool LabeledStaticBox::SetFont(const wxFont &set_font)
 {
     m_font = set_font;
 
@@ -109,6 +109,7 @@ void LabeledStaticBox::SetFont(wxFont set_font)
     m_label_width  = tW;
 
     Refresh();
+    return true;
 }
 
 bool LabeledStaticBox::Enable(bool enable)

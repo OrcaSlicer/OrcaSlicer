@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual TPU @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "2971656290",
+	"filament_id": "OFjkdnyN",
 	"instantiation": "false",
 	"filament_loading_speed_start": [
 		"35"

@@ -20,6 +20,7 @@
 	"smooth_coefficient": "150",
 	"overhang_totally_speed": "50",
 	"ooze_prevention": "1",
+	"prime_tower_width": "30",
 	"slowdown_for_curled_perimeters": "0",
 	"standby_temperature_delta": "-150",
 	"wipe_tower_filament": "0",

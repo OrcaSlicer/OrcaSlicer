@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa CORE One HF 0.5",
+	"inherits": "Generic ABS @Prusa CORE One",
+	"renamed_from": "Prusa Generic ABS @CORE One HF 0.5;Prusa Generic ABS CORE One HF 0.5",
+	"from": "system",
+	"setting_id": "mzZCm8XDmAR23YR6",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One HF 0.5 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"27"
+	],
+	"filament_start_gcode": [
+		"M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.02{elsif nozzle_diameter[filament_extruder_id]==0.5}0.018{elsif nozzle_diameter[filament_extruder_id]==0.6}0.015{elsif nozzle_diameter[filament_extruder_id]==0.8}0.01{elsif nozzle_diameter[filament_extruder_id]==0.25}0.09{elsif nozzle_diameter[filament_extruder_id]==0.3}0.065{else}0{endif} ; Filament gcode\nM142 S40 ; set heatbreak target temp"
+	]
+}

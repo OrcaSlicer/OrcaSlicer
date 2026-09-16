@@ -39,7 +39,6 @@ namespace orientation {
         float height_to_bottom_hull_ratio = 0;  // affects stability, the lower the better
         float unprintability = 0;
         Eigen::VectorXf areas_cooling;
-        CostItems(CostItems const & other) = default;
         CostItems() = default;
         static std::string field_names() {
             return "                                      overhang, bottom, bothull, contour, A_laf, A_prj, unprintability";

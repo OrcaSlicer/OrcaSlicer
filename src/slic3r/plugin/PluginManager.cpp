@@ -21,6 +21,7 @@
 #include <chrono>
 #include <mutex>
 #include <slic3r/plugin/PluginConfig.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
@@ -310,6 +311,7 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             }
 
             seen.push_back(descriptor.plugin_key);
+            m_missing_plugin_keys.erase(descriptor.plugin_key);
 
             Plugin* existing = find_plugin_locked(descriptor.plugin_key);
             if (existing == nullptr) {
@@ -330,12 +332,47 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             return;
     }
 
-    // Unloading may call Python and lifecycle subscribers may re-enter the manager, so never do it
-    // while holding m_mutex. unload_and_erase_if() retries until no matching entry is loaded at the
-    // moment of erase, in case another caller starts a load between the initial snapshot and the
-    // teardown.
-    unload_and_erase_if(
-        [&seen](const Plugin& plugin) { return std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end(); });
+    // A package can be temporarily absent while an external side-loader replaces it. Keep the
+    // descriptor and its persisted enable state until the user explicitly removes the missing
+    // entry, or a later scan rediscovers it. In particular, do not unload here: the unload callback
+    // would turn a transient filesystem gap into enabled=false in the sidecar.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const Plugin& plugin : m_plugins) {
+            if (plugin.descriptor.has_local_package() &&
+                std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end())
+                m_missing_plugin_keys.insert(plugin.descriptor.plugin_key);
+        }
+    }
+}
+
+std::vector<PluginDescriptor> PluginManager::get_missing_plugin_descriptors() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<PluginDescriptor> result;
+    result.reserve(m_missing_plugin_keys.size());
+    for (const Plugin& plugin : m_plugins)
+        if (m_missing_plugin_keys.count(plugin.descriptor.plugin_key) != 0)
+            result.push_back(plugin.descriptor);
+    return result;
+}
+
+void PluginManager::remove_missing_plugins(const std::vector<std::string>& plugin_keys)
+{
+    const std::unordered_set<std::string> requested(plugin_keys.begin(), plugin_keys.end());
+
+    // The predicate is evaluated only while m_mutex is held by unload_and_erase_if(). Checking the
+    // current missing set here prevents a package that reappeared between the dialog and removal
+    // from being erased.
+    unload_and_erase_if([this, &requested](const Plugin& plugin) {
+        return requested.count(plugin.descriptor.plugin_key) != 0 &&
+               m_missing_plugin_keys.count(plugin.descriptor.plugin_key) != 0;
+    });
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const std::string& plugin_key : requested)
+        m_missing_plugin_keys.erase(plugin_key);
 }
 
 void PluginManager::unload_and_erase_if(const std::function<bool(const Plugin&)>& should_remove,
@@ -486,6 +523,38 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
     return false;
 }
 
+std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
+{
+    namespace fs = boost::filesystem;
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor))
+        throw std::runtime_error("The current plugin is not registered");
+
+    const fs::path base_storage_dir = fs::path(get_orca_plugins_dir()) / PLUGIN_DATA_DIR;
+
+    if (!descriptor.is_cloud_plugin()) {
+        const fs::path local_storage_dir = base_storage_dir / plugin_key;
+        fs::create_directories(local_storage_dir);
+        return local_storage_dir.string();
+    }
+
+    auto agent = m_cloud_service.get_cloud_agent();
+    if (!agent)
+        throw std::runtime_error("Cloud plugin storage is unavailable before networking is initialized");
+
+    const std::string user_id = agent->get_user_id();
+    if (user_id.empty())
+        throw std::runtime_error("Cloud plugin storage is unavailable without a logged-in user");
+
+    if (!is_valid_plugin_id(plugin_key))
+        throw std::runtime_error("The current cloud plugin key is not a valid folder name");
+
+    const fs::path cloud_storage_dir = base_storage_dir / PLUGIN_SUBSCRIBED_DIR / user_id / plugin_key;
+    fs::create_directories(cloud_storage_dir);
+    return cloud_storage_dir.string();
+}
+
 // ── Capability instances ────────────────────────────────────────────────────────────────────
 
 std::vector<std::shared_ptr<PluginCapabilityInterface>> PluginManager::get_plugin_capabilities(const std::string& plugin_key,
@@ -552,6 +621,20 @@ std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(
     }
 
     return nullptr;
+}
+
+bool PluginManager::get_install_state(const std::string& plugin_key, PluginInstallState& install_state)
+{
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        return false;
+    }
+
+    if (!read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state)) {
+        return false;
+    }
+
+    return true;
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────────────────────
@@ -842,6 +925,8 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
     if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error)) {
         if (error == LOAD_CANCELLED)
             return; // cancelled: nothing materialized survives, and no error is recorded
+        if (error.rfind("Plugin registration failed:", 0) == 0)
+            mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
         return;
     }
@@ -1067,6 +1152,51 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
     write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
 }
 
+void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return;
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        state.installed_from    = descriptor.is_cloud_plugin() ? "cloud" : "local";
+        state.installed_version = !descriptor.installed_version.empty() ? descriptor.installed_version : descriptor.version;
+        state.plugin_name       = descriptor.name;
+        state.cloud_uuid        = descriptor.cloud_uuid();
+    }
+    state.enabled = false;
+    if (!write_install_state(root, state))
+        return;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (Plugin* plugin = find_plugin_locked(plugin_key))
+        plugin->descriptor.enabled = false;
+}
+
+void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return;
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return;
+    }
+
+    state.permissions = {};
+    if (!write_install_state(root, state))
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to revoke permissions for " << plugin_key;
+}
+
 // ── Callbacks ───────────────────────────────────────────────────────────────────────────────
 
 void PluginManager::subscribe_on_load_callback(PluginLifecycleCompleteFn fn)
@@ -1286,6 +1416,11 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
         return false;
     }
 
+    // Every successful install may have replaced executable plugin code. Revoke any permissions
+    // associated with the previous package so the newly installed version must request them again.
+    if (!plugin_descriptor.plugin_key.empty())
+        revoke_plugin_permissions(plugin_descriptor.plugin_key);
+
     if (!plugin_descriptor.plugin_key.empty())
         clear_plugin_error(plugin_descriptor.plugin_key);
 
@@ -1422,7 +1557,8 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
 
     std::vector<PluginDescriptor> cloud_list{};
     std::vector<std::string> not_found{}, unauthorized{};
-    if (!m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized)) {
+    const bool cloud_fetch_succeeded = m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized);
+    if (!cloud_fetch_succeeded) {
         if (wxTheApp != nullptr) {
             GUI::wxGetApp().CallAfter([] {
                 if (GUI::wxGetApp().is_closing())
@@ -1437,9 +1573,10 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
-    update_cloud_metadata(cloud_list);
+    if (cloud_fetch_succeeded)
+        update_cloud_metadata(cloud_list);
 
-    {
+    if (cloud_fetch_succeeded) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Clear the previous cloud verdicts before re-applying the fresh ones.
@@ -1448,19 +1585,28 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
             if (!entry.is_cloud_plugin())
                 continue;
             entry.set_unauthorized(false);
+            if (entry.cloud.has_value())
+                entry.cloud->orphaned = false;
             if (entry.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
                 entry.clear_error();
         }
 
-        for (const std::string& uuid : not_found) {
-            for (Plugin& plugin : m_plugins) {
-                PluginDescriptor& entry = plugin.descriptor;
-                if (!entry.is_cloud_plugin() || entry.cloud_uuid() != uuid)
-                    continue;
-                if (!entry.has_local_package())
-                    entry.set_error(CLOUD_PLUGIN_NOT_FOUND_ERROR);
-                break;
-            }
+        // A successful subscriptions response may report missing UUIDs explicitly, or it may
+        // simply omit an unsubscribed plugin from `data`. Both cases leave a locally retained
+        // cloud package orphaned. Owned plugins are returned by the separate mine endpoint and
+        // must not be orphaned merely because they are not subscribed.
+        for (Plugin& plugin : m_plugins) {
+            PluginDescriptor& entry = plugin.descriptor;
+            if (!entry.is_cloud_plugin() || entry.cloud->is_mine)
+                continue;
+
+            const bool explicitly_not_found = std::find(not_found.begin(), not_found.end(), entry.cloud_uuid()) != not_found.end();
+            const bool returned_by_cloud = std::any_of(cloud_list.begin(), cloud_list.end(), [&entry](const PluginDescriptor& cloud_entry) {
+                return cloud_entry.cloud_uuid() == entry.cloud_uuid();
+            });
+            entry.cloud->orphaned = explicitly_not_found || !returned_by_cloud;
+            if (entry.cloud->orphaned)
+                entry.cloud->update_available = false;
         }
 
         for (const std::string& uuid : unauthorized) {
@@ -1662,6 +1808,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
     }
 
     clear_plugin_error(plugin_key);
+
     return true;
 }
 
@@ -1857,7 +2004,7 @@ bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std:
     }
 
     if (descriptor.cloud && descriptor.cloud->is_mine) {
-        error = "Cannot unsubscribe your own plugins. Use Delete from Cloud instead.";
+        error = "Cannot unsubscribe your own plugins.";
         set_plugin_error(plugin_key, error);
         return false;
     }
@@ -1890,78 +2037,12 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
     }
 
     if (descriptor.cloud->is_mine) {
-        error = "Use Delete local and cloud for owned plugins.";
+        error = "Cannot unsubscribe your own plugins. Use Delete to remove the local files.";
         set_plugin_error(plugin_key, error);
         return false;
     }
 
     if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, false, error);
-}
-
-bool PluginManager::delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from the cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from the cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, true, error);
-}
-
-bool PluginManager::delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from local and cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from local and cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
         set_plugin_error(plugin_key, error);
         return false;
     }
