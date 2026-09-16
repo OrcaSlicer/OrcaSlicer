@@ -5443,7 +5443,6 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
     return timelapse_gcode;
 }
 
-// Orca: the object's periodic recolor plan, built on first use.
 const PeriodicRecolorPlan &GCode::periodic_recolor_plan(const PrintObject &object)
 {
     auto it = m_periodic_recolor_plans.find(&object);
@@ -5851,7 +5850,6 @@ LayerResult GCode::process_layer(
     std::map<std::pair<const SupportLayer *, ExtrusionRole>, unsigned int> support_filaments;
     // Copies made when the wall split or a pattern divides a collection. by_region keeps pointers to them.
     std::vector<std::unique_ptr<ExtrusionEntityCollection>> grouped_extrusion_storage;
-    // Orca: empty rule set for a layer with a whole-layer extruder override.
     static const PeriodicRecolorLayerRules s_periodic_recolor_none;
     bool is_anything_overridden = const_cast<LayerTools&>(layer_tools).wiping_extrusions().is_anything_overridden();
     for (const LayerToPrint &layer_to_print : layers) {
@@ -5975,16 +5973,14 @@ LayerResult GCode::process_layer(
                 layer_tools.extruder_override == 0 ?
                     this->periodic_recolor_plan(*layer_to_print.object()).rules_for(layer.print_z, layer.height) :
                     s_periodic_recolor_none;
-            // Orca: where the outer/inner wall filament split puts a collection's child.
             enum class WallGroup : uint8_t {
                 Whole, // collection not split; a split drops any child left here
                 Outer, // external and overhang perimeters
                 Inner  // internal perimeters
             };
-            // Orca: each child's wall group and target filament, declared here so every collection on this layer reuses the buffers.
+            // Reuse these buffers across collections on the same layer.
             std::vector<WallGroup> child_groups;
             std::vector<int>       child_targets;
-            // Filaments already emitted for the current wall group. Tracked rather than rescanned, so emit_group() stays linear.
             std::vector<int>       emitted_targets;
             // We now define a strategy for building perimeters and fills. The separation
             // between regions doesn't matter in terms of printing order, as we follow
@@ -6140,8 +6136,7 @@ LayerResult GCode::process_layer(
                                 const ExtrusionEntity *child = extrusions->entities[i];
                                 const ExtrusionRole role = child->role();
                                 if (split_walls) {
-                                    // External and overhang perimeters go to the outer group, internal perimeters to the inner, and
-                                    // anything else is dropped; collect_periodic_recolor_extruders() skips the same children.
+                                    // Match the children retained by collect_periodic_recolor_extruders().
                                     if (! is_perimeter(role))
                                         continue;
                                     child_groups[i]  = is_internal_perimeter(role) ? WallGroup::Inner
@@ -6158,17 +6153,14 @@ LayerResult GCode::process_layer(
                             }
                         }
 
-                        // A whole recolor, or no wall split and one filament for every child (none skipped, so front() is
-                        // theirs): pass on the original collection, keeping its order and wiping override. A pattern naming the
-                        // collection's usual filament isn't a recolor. A wall split always prints copies without overrides;
-                        // passing the original there would change the G-code of prints without patterns.
+                        // Preserve the original collection's order and wiping overrides when no split is needed.
+                        // Wall splits must keep using copies without overrides to preserve existing G-code.
                         if (whole_recolor >= 0 || (! split_walls && all_one_target)) {
                             const int  target    = whole_recolor >= 0 ? whole_recolor : child_targets.front();
                             const bool recolored = target != collection_filament;
                             process_extrusions(extrusions, extrusions, recolored ? target : -1, recolored);
                         } else {
-                            // Copy the children into one collection per wall group and filament, outer walls first, then in order
-                            // of first appearance. A copy is recolored when its filament differs from its group's usual one.
+                            // Emit outer walls first, then targets in order of first appearance within each group.
                             auto emit_group = [&](WallGroup group, int baseline) {
                                 emitted_targets.clear();
                                 for (size_t i = 0; i < n; ++i) {

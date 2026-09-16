@@ -1067,10 +1067,8 @@ void ObjectList::update_objects_list_filament_column_when_delete_filament(size_t
     // a workaround for a wrong last column width updating under OSX
     GetColumn(colEditing)->SetWidth(25);
 
-    // Orca: patterns store filament ids in a vector option the fixups above cannot see, so update them here. Deleting a
-    // filament below a pattern's filament would otherwise make the pattern print with a different one. As with the
-    // object's `extruder`, the deleted filament becomes `replace_filament_id` and later ones shift down; with no
-    // replacement, patterns on it are disabled. Covers every object, not just the listed rows.
+    // Pattern filament IDs are packed in a vector option, so the fixups above cannot update them.
+    // Update every object, including those without a listed row.
     if (m_objects)
         for (ModelObject *mo : *m_objects) {
             PeriodicRecolorPatterns patterns = periodic_recolor_patterns_of(mo->config.get());
@@ -1421,7 +1419,7 @@ void ObjectList::paste_settings_into_list()
 
         for (const std::string& opt_key: keys) {
             if (opt_key == "periodic_recolor_patterns")
-                continue; // Orca: kept from this object above
+                continue;
             if (item_type & (itVolume | itLayer) &&
                 std::find(part_options.begin(), part_options.end(), opt_key) == part_options.end())
                 continue; // we can't to add object specific options for the part's(itVolume | itLayer) config
@@ -3072,7 +3070,6 @@ void ObjectList::merge(bool to_multipart_object)
         // resulted objects merge to the one
         Model* model = (*m_objects)[0]->get_model();
         ModelObject* new_object = model->add_object();
-        // Set when any source object carried patterns, so the merge can report dropping them.
         bool dropped_periodic_recolor = false;
         new_object->name = _u8L("Assembly");
         ModelConfig &config = new_object->config;
@@ -3184,7 +3181,6 @@ void ObjectList::merge(bool to_multipart_object)
             }
         }
 
-        // Orca: tell the user the merge removed their patterns.
         if (dropped_periodic_recolor)
             wxGetApp().plater()->get_notification_manager()->push_notification(
                 NotificationType::CustomNotification,

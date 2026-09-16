@@ -122,7 +122,6 @@ public:
     const PeriodicRecolorLayerRules &rules_for(double print_z, double height) const;
 
 private:
-    // The rules for a single layer.
     struct Entry
     {
         double                    print_z = 0.; // layer top

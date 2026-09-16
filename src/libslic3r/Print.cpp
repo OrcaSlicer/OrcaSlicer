@@ -1302,7 +1302,6 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         }
         return ret;
     }
-    // Orca: logical_extruders_of(), so pattern filaments are checked too.
     std::vector<unsigned int> extruders = logical_extruders_of(print);
     std::vector<std::string> filament_types;
     std::vector<int> nozzle_temperatures;
@@ -1416,8 +1415,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                    "other layers. Set it to Auto in the plate settings, or disable periodic recoloring."),
                  nullptr, "other_layers_print_sequence" };
 
-    // Orca: count pattern filaments too, so a print whose only second filament is a pattern filament still gets the
-    // nozzle temperature compatibility check.
     const std::vector<unsigned int> logical_extruders = logical_extruders_of(*this);
 
     if (nozzles < 2 && logical_extruders.size() > 1) {
@@ -1474,20 +1471,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             warn(L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model."), "enable_prime_tower");
     }
 
-    // Orca: periodic feature recoloring.
     if (any_recolor_patterns) {
         // Spiral vase rewrites Z continuously, so a band would smear over a whole turn
         // rather than covering the layers it names.
         if (m_config.spiral_mode)
             return { L("Periodic recoloring cannot be used with spiral (vase) mode."), nullptr, "spiral_mode" };
 
-        // Patterns change the filament, not the paths, which keep the width of the feature's own nozzle. With nozzles of
-        // different sizes, a band may not match its surroundings, so warn.
         const auto &diameters = m_config.nozzle_diameter.values;
         if (diameters.size() > 1 && ! std::equal(diameters.begin() + 1, diameters.end(), diameters.begin()))
             warn(L("This printer has nozzles of different sizes. Periodically recolored features keep the "
-                   "extrusion width of the feature they replace, so a band printed by a different-sized "
-                   "nozzle may not match its surroundings."), "periodic_recolor_patterns");
+                   "extrusion width of the feature they replace, the band may be printed in a different-sized "
+                   "nozzle than expected."), "periodic_recolor_patterns");
     }
 
     if (m_config.spiral_mode) {
@@ -2104,7 +2098,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
 
             // check adaptive pressure advance model
-            // Orca: logical_extruders, so a pattern filament's adaptive PA model is validated too.
             for (unsigned int extruder_id : logical_extruders) {
                 if (m_config.adaptive_pressure_advance.get_at(extruder_id) && 
                     m_config.enable_pressure_advance.get_at(extruder_id)) {

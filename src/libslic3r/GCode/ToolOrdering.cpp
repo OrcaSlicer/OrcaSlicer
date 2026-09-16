@@ -575,7 +575,6 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())
         this->collect_extruders(*object, per_layer_extruder_switches);
-    // Orca: collect periodic recolor extruders after every object's base extruders.
     for (auto object : print.objects())
         this->collect_periodic_recolor_extruders(*object);
 

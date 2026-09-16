@@ -103,7 +103,6 @@ void PeriodicRecolorPatterns::delete_filament(size_t deleted, int replacement)
 
 static const size_t PERIODIC_FIELDS_PER_PATTERN = 8;
 
-// The alignments a pattern may name.
 static constexpr std::array<PeriodicRecolorAlignment, 3> PERIODIC_RECOLOR_ALIGNMENTS = {{
     PeriodicRecolorAlignment::Bottom,
     PeriodicRecolorAlignment::Middle,
@@ -172,7 +171,6 @@ PeriodicRecolorPatterns PeriodicRecolorPatterns::from_doubles(const std::vector<
 // Layer rules
 // ---------------------------------------------------------------------------------------
 
-// Whether any extrusion inside `entity` has a role that `selected_role` matches.
 static bool periodic_recolor_contains_selected_role(const ExtrusionEntity &entity, ExtrusionRole selected_role)
 {
     if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
@@ -186,7 +184,6 @@ static bool periodic_recolor_contains_selected_role(const ExtrusionEntity &entit
 
 int PeriodicRecolorLayerRules::first_matching_filament(const ExtrusionEntity &entity) const
 {
-    // Patterns are checked in order; the first one on this layer whose feature is present wins.
     for (const auto &rule : m_rules)
         if (periodic_recolor_contains_selected_role(entity, rule.first))
             return rule.second;
@@ -214,7 +211,6 @@ PeriodicRecolorPlan PeriodicRecolorPlan::build(const PrintObject &object)
     for (size_t i = 0; i < layers.size(); ++i)
         layer_tops_q[i] = zq(layers[i]->print_z - object_print_z_min);
 
-    // `layers` must be sorted by print_z.
     assert(std::is_sorted(layer_tops_q.begin(), layer_tops_q.end()));
 
     const int64_t object_top_q = layer_tops_q.back();
@@ -264,7 +260,7 @@ PeriodicRecolorPlan PeriodicRecolorPlan::build(const PrintObject &object)
         // object's top, and low enough that the band's bottom is still below the top.
         const int64_t ceiling_mark_q = std::min(object_top_q + layer_height_q(layers.size() - 1) / 2,
                                                 object_top_q + below - 1);
-        // The same, with pattern.end applied.
+        // Highest height a mark may sit with pattern.end applied.
         const int64_t last_mark_q = std::min(zq(pattern.end), ceiling_mark_q);
 
         // The first mark from pattern.start that is at or above floor_mark_q.

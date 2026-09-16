@@ -1579,7 +1579,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
-	// Orca: count from the passed project config, not wxGetApp()'s, so this also works under the CLI.
 	const size_t num_periodic_filaments =
 		project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
@@ -1754,7 +1753,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
-    // Orca: filament count from the config the CLI was handed, not the GUI's preset bundle.
     const size_t num_cli_filaments = full_config.option<ConfigOptionFloats>("filament_diameter")->values.size();
 
     for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)

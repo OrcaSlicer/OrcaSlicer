@@ -1376,7 +1376,6 @@ void GLGizmoMmuSegmentation::update_periodic_band_models()
             const Vec3f &c = world_its.vertices[face(2)];
             const float  tri_lo = std::min({ a.z(), b.z(), c.z() });
             const float  tri_hi = std::max({ a.z(), b.z(), c.z() });
-            // Binary-search the first band that can touch this triangle instead of walking from band 0.
             auto zb = std::lower_bound(fill_bands.begin(), fill_bands.end(), tri_lo,
                                        [](const std::pair<float, float> &band, float z) { return band.second < z; });
             for (; zb != fill_bands.end() && zb->first <= tri_hi; ++zb)
@@ -1431,7 +1430,6 @@ void GLGizmoMmuSegmentation::update_periodic_band_models()
 
 void GLGizmoMmuSegmentation::render_periodic_bands()
 {
-    // Skip the assembly view
     if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView)
         return;
 
@@ -1479,7 +1477,6 @@ void GLGizmoMmuSegmentation::render_periodic_bands()
     for (PeriodicBandModel &entry : m_periodic_band_models)
         if (entry.fill.is_initialized() && entry.filament >= 1 &&
             size_t(entry.filament) <= m_extruders_colors.size()) {
-            // Translucent, so the object's shading still shows through.
             ColorRGBA c = m_extruders_colors[entry.filament - 1];
             c.a(0.55f);
             entry.fill.set_color(c);
@@ -1507,7 +1504,6 @@ void GLGizmoMmuSegmentation::load_periodic_patterns()
     const ModelObject *mo = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr;
     if (mo == m_periodic_patterns_object)
         return;
-    // Selection or model changed: reset the edit and preview state.
     m_periodic_bands_key.clear();
     m_periodic_patterns_object      = mo;
     m_periodic_patterns             = PeriodicRecolorPatterns();
@@ -1568,7 +1564,6 @@ void GLGizmoMmuSegmentation::commit_periodic_patterns()
     }
     m_periodic_patterns_before_edit = values;
 
-    // No update_info_items(): none of the object list's info items shows patterns.
     m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
     m_parent.set_as_dirty();
 }
@@ -1590,20 +1585,18 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
     if (instance_idx >= 0 && instance_idx < int(m_periodic_patterns_object->instances.size()))
         periodic_instance_z(*m_periodic_patterns_object, size_t(instance_idx), object_min_z, object_height);
     const float height_slider_max = float(object_height);
-    // Round values to the fields' three decimals which can handle up to 1000 mm in magnitude.
-    constexpr double FIELD_SCALE = 1000.;  // Multiply and divide by this constant to round the "%.3f" formats below
+    // Round to the displayed precision to avoid float drift at layer boundaries.
+    constexpr double FIELD_SCALE = 1000.;
 
     m_imgui->text_wrapped(_L("Recolor features by repeating height bands periodically. See the results in Preview."), window_width);
     m_imgui->text_wrapped(_L("Start and End elevations are measured from the bottom of the object."), window_width);
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
 
-    // Feature dropdown entries, labeled same as the Preview legend.
     std::vector<std::string> role_labels;
     role_labels.reserve(PERIODIC_RECOLOR_ROLES.size());
     for (ExtrusionRole role : PERIODIC_RECOLOR_ROLES)
         role_labels.emplace_back(into_u8(_L(ExtrusionEntity::role_to_string(role))));
 
-    // Size the dropdown to its widest label to not cut off long extrusion role names
     float role_combo_width = sliders_width;
     for (const std::string &label : role_labels)
         role_combo_width = std::max(role_combo_width, ImGui::CalcTextSize(label.c_str()).x);
@@ -1615,7 +1608,6 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
     bool finished = false;
     int  to_erase = -1;
 
-    // Mixed filament swatches are disabled.
     const PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     // 0 when every filament is mixed, which disables Add pattern.
     int first_selectable = 0;
@@ -1634,14 +1626,12 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
         pattern_dl->ChannelsSetCurrent(1);
         ImGui::BeginGroup();
 
-        // A collapsible heading per pattern
         const ImVec4 pattern_head       = m_is_dark_mode ? ImGuiWrapper::COL_SEPARATOR_DARK : ImGuiWrapper::COL_SEPARATOR;
         const ImVec4 pattern_head_hover = m_is_dark_mode ? ImGuiWrapper::COL_GREY_LIGHT     : ImGuiWrapper::COL_TITLE_BG;
         ImGui::PushStyleColor(ImGuiCol_Header,        pattern_head);
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, pattern_head_hover);
         ImGui::PushStyleColor(ImGuiCol_HeaderActive,  pattern_head_hover);
-        // The title names the feature, so a collapsed pattern still shows it. The ID is fixed ("##pattern"), so changing
-        // the feature does not collapse or expand the pattern.
+        // A stable ID preserves the expanded state when the feature label changes.
         const std::string pattern_title = into_u8(GUI::format(_L("Pattern %1% - %2%"), idx + 1,
                                                               _L(ExtrusionEntity::role_to_string(pattern.role))));
         const bool pattern_open = ImGui::TreeNodeEx("##pattern", ImGuiTreeNodeFlags_Framed |
@@ -1659,10 +1649,8 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
             ImGui::AlignTextToFramePadding();
             m_imgui->text(_L("Enabled"));
 
-            // Target filament swatches. Each pattern tracks its own filament.
             m_imgui->text(_L("Filament") + ":");
             for (size_t f = 0; f < num_filaments; ++f) {
-                // Wrap like the painting swatches
                 if (f == 0)
                     ImGui::SameLine(sliders_left_width);
                 else if (f % PERIODIC_SWATCHES_PER_LINE != 0)
@@ -1709,8 +1697,6 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
             value_row(_L("End"),   "end",   pattern.end,   0.f, height_slider_max);
             value_row(_L("Period"), "period", pattern.period, 0.f,  50.f);
 
-            // Which point of the band sits at the marked height; slicing then rounds the band to whole
-            // layers near that point. Discrete, so it commits immediately.
             ImGui::AlignTextToFramePadding();
             m_imgui->text(_L("Alignment") + ":");
             ImGui::SameLine(sliders_left_width);
@@ -1730,7 +1716,6 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
                                                         &alignment_idx, int(PeriodicRecolorAlignment::Bottom));
                 ImGuiWrapper::pop_radio_style();
                 if (alignment_changed) {
-                    // Only the alignment changes; `start` stays as the user typed it.
                     pattern.alignment = PeriodicRecolorAlignment(alignment_idx);
                     changed = true;
                 }
@@ -1751,7 +1736,6 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
         pattern_dl->ChannelsSetCurrent(0);
         if (idx % 2 == 1) {
             const float pad = ImGui::GetStyle().ItemSpacing.y * 0.5f;
-            // The heading's color at lower alpha, so the two stay consistent.
             ImVec4 wash_col = m_is_dark_mode ? ImGuiWrapper::COL_SEPARATOR_DARK : ImGuiWrapper::COL_SEPARATOR;
             wash_col.w = 0.45f;
             const ImU32 wash = ImGui::GetColorU32(wash_col);
@@ -1762,13 +1746,11 @@ void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, floa
         ImGui::PopID();
     }
 
-    // Extra space before Add pattern, which acts on the whole list, not the pattern above.
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
 
     m_imgui->disabled_begin(first_selectable == 0);
     if (m_imgui->button(_L("Add pattern"))) {
         PeriodicRecolorPattern pattern;
-        // Use the previous pattern's filament if it is still targetable, otherwise the first non-mixed filament.
         const int previous = m_periodic_patterns.patterns.empty() ? 0 : m_periodic_patterns.patterns.back().filament;
         const bool previous_ok = previous >= 1 && size_t(previous) <= num_filaments &&
                                  ! preset_bundle.is_mixed_filament(size_t(previous - 1));
