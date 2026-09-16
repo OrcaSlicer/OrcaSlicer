@@ -9,7 +9,7 @@
     same semantics: every check runs even after an earlier one fails (the workflow's
     continue-on-error), then the script exits non-zero once at the end.
 
-        extra_json_check              scripts/orca_extra_profile_check.py
+        extra_json_check              scripts/orca_profile_tool.py check
         validate_system               validator -p <profiles> -l <level>
         validate_slice                validator -p <profiles> -s -l <level>
         validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -203,7 +203,7 @@ if ($Vendor) {
     }
 }
 
-# The validator's -v and orca_extra_profile_check.py's --vendor both take that stem; an unscoped
+# The validator's -v and orca_profile_tool.py check's --vendor both take that stem; an unscoped
 # run passes neither, so the checks below splat these in either way.
 $VendorArgs = if ($Vendor) { @('-v', $Vendor) } else { @() }
 $VendorPyArgs = if ($Vendor) { @('--vendor', $Vendor) } else { @() }
@@ -435,7 +435,7 @@ function Expand-VendorPresets([string] $Zip, [string] $Tree, [string] $Prefix) {
 $CheckBodies = @{
 
     extra_json_check = {
-        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_extra_profile_check.py')) + $VendorPyArgs)
+        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'check') + $VendorPyArgs)
     }
 
     validate_system = {

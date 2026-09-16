@@ -36,12 +36,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Run extra JSON check
+      - name: Run the profile tool's own unit tests
+        run: python3 -m unittest discover -s scripts/tests -t scripts
+
+      # The step id is the handle the summary and the failure gate below use;
+      # renaming it silently disables them.
+      - name: Check profiles
         id: extra_json_check
         continue-on-error: true
         run: |
           set +e
-          python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
+          python3 ./scripts/orca_profile_tool.py check 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
           exit ${PIPESTATUS[0]}
 
       # download

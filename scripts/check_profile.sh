@@ -38,7 +38,7 @@ PROFILES_DIR="${REPO_ROOT}/resources/profiles"
 WORK_DIR="${REPO_ROOT}/.test/check_profiles"
 VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
 # Vendor to check, named after its <Vendor>.json - empty means every vendor, which is exactly what
-# both the validator's -v and orca_extra_profile_check.py's --vendor take an empty value to mean.
+# both the validator's -v and orca_profile_tool.py check's --vendor take an empty value to mean.
 # So the flag is passed unconditionally below rather than kept in an array bash 3.2 cannot expand
 # empty under `set -u`.
 VENDOR=""
@@ -60,7 +60,7 @@ Run the profile checks from .github/workflows/check_profiles.yml locally.
 Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 Checks (default: all, in this order):
-  extra_json_check              scripts/orca_extra_profile_check.py
+  extra_json_check              scripts/orca_profile_tool.py check
   validate_system               validator -p <profiles> -l <level>
   validate_slice                validator -p <profiles> -s -l <level>
   validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -80,7 +80,8 @@ Options:
   -h, --help           show this help
 
 Note: extra_json_check always looks at the tree next to the script
-(<repo>/resources/profiles); --profiles only redirects the validator checks.
+(<repo>/resources/profiles); --profiles only redirects the validator checks, because
+validating another tree's ids needs that tree's own filament_id snapshot too.
 
 Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
@@ -362,7 +363,7 @@ resolve_validator() {
 # ---------------------------------------------------------------------------- checks
 
 check_extra_json_check() {
-    python3 "${REPO_ROOT}/scripts/orca_extra_profile_check.py" --vendor "${VENDOR}"
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --vendor "${VENDOR}"
 }
 
 check_validate_system() {

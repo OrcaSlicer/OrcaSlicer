@@ -6783,7 +6783,7 @@ std::string PresetBundle::load_vendor_preset(
         loaded.description = entry.description;
         loaded.setting_id = entry.setting_id;
         // Derive the preset setting_id on the fly when a profile ships without one,
-        // matching scripts/orca_id_tool.py. Only instantiated presets carry an id;
+        // matching scripts/orca_profile_tool.py. Only instantiated presets carry an id;
         // non-instantiated base profiles return earlier above. This never
         // touches the per-user cloud-sync setting_id written into user .info files.
         if (loaded.setting_id.empty() && entry.instantiation == "true")
