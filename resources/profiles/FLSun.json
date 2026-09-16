@@ -245,24 +245,8 @@
 			"sub_path": "filament/Generic PLA @FLSun S1.json"
 		},
 		{
-			"name": "Generic PLA High Speed @FLSun S1",
-			"sub_path": "filament/Generic PLA High Speed @FLSun S1.json"
-		},
-		{
-			"name": "Generic PLA Silk @FLSun S1",
-			"sub_path": "filament/Generic PLA Silk @FLSun S1.json"
-		},
-		{
 			"name": "Generic PLA @FLSun T1",
 			"sub_path": "filament/Generic PLA @FLSun T1.json"
-		},
-		{
-			"name": "Generic PLA High Speed @FLSun T1",
-			"sub_path": "filament/Generic PLA High Speed @FLSun T1.json"
-		},
-		{
-			"name": "Generic PLA Silk @FLSun T1",
-			"sub_path": "filament/Generic PLA Silk @FLSun T1.json"
 		},
 		{
 			"name": "Generic TPU @FLSun S1",
@@ -271,6 +255,22 @@
 		{
 			"name": "Generic TPU @FLSun T1",
 			"sub_path": "filament/Generic TPU @FLSun T1.json"
+		},
+		{
+			"name": "Generic PLA High Speed @FLSun S1",
+			"sub_path": "filament/Generic PLA High Speed @FLSun S1.json"
+		},
+		{
+			"name": "Generic PLA High Speed @FLSun T1",
+			"sub_path": "filament/Generic PLA High Speed @FLSun T1.json"
+		},
+		{
+			"name": "Generic PLA Silk @FLSun S1",
+			"sub_path": "filament/Generic PLA Silk @FLSun S1.json"
+		},
+		{
+			"name": "Generic PLA Silk @FLSun T1",
+			"sub_path": "filament/Generic PLA Silk @FLSun T1.json"
 		}
 	],
 	"machine_list": [

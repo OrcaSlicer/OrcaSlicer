@@ -587,10 +587,15 @@ if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR 
         add_compile_options(-Wno-${w})
     endforeach ()
 
-    # Turn everything else into an error. Dependency headers are exempt because the SYSTEM
-    # include flag (-imsvc on clang-cl, -isystem elsewhere) keeps their diagnostics out,
-    # apart from GCC's maybe-uninitialized, demoted below.
-    add_compile_options(-Werror)
+    # GCC is not built in CI, so don't throw errors CI won't catch.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-Werror=return-type)
+    else ()
+        # Turn everything else into an error. Dependency headers are exempt because the
+        # SYSTEM include flag (-imsvc on clang-cl, -isystem elsewhere) keeps their
+        # diagnostics out.
+        add_compile_options(-Werror)
+    endif ()
 
     # Demoted. Remove a name once its category is cleared on every compiler.
     set(warnings_demoted)
@@ -610,20 +615,6 @@ if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR 
             # FARPROC on x64, so only arm64 reports them. Clearing them is a separate
             # sweep.
             cast-function-type-mismatch
-        )
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        list(APPEND warnings_demoted
-            # maybe-uninitialized runs after inlining and reports inside boost/variant,
-            # boost/tuple and the bundled clipper header even with -isystem.
-            maybe-uninitialized
-
-            # array-bounds is reported once, where ConfigOptionVector::set_at inlines
-            # into OrcaSlicer.cpp on a branch the preceding type test rules out.
-            array-bounds
-
-            # template-id-cdtor is a GCC 14+ warning in the bundled Clipper2 headers.
-            template-id-cdtor
         )
     endif ()
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

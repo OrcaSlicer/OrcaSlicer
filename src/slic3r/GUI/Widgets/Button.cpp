@@ -311,8 +311,11 @@ void Button::render(wxDC& dc)
         }
     }
     auto szContent = textSize;
+    // Whether the measured content reserved the text/icon gap. macOS measures an empty label
+    // as 0-high, so the gap is skipped there; the dot must not advance past it in that case.
+    const bool gap_reserved = szContent.y > 0;
     if (icon.bmp().IsOk()) {
-        if (szContent.y > 0) {
+        if (gap_reserved) {
             //BBS norrow size between text and icon
             if (vertical)
                 szContent.y += spacing;
@@ -357,10 +360,10 @@ void Button::render(wxDC& dc)
         dc.DrawBitmap(icon.bmp(), pt);
         //BBS norrow size between text and icon
         if (vertical) {
-            pt.y += szIcon.y + spacing;
+            pt.y += szIcon.y + (gap_reserved ? spacing : 0);
             pt.x = rcContent.x;
         } else {
-            pt.x += szIcon.x + spacing;
+            pt.x += szIcon.x + (gap_reserved ? spacing : 0);
             pt.y = rcContent.y;
         }
     }
