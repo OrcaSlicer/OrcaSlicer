@@ -869,11 +869,11 @@ void AuxiliaryPanel::init_tabpanel()
     m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
     m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
 
-    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), "", true);
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), "", false);
-    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), "", false);
-    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), "", false);
-    m_tabpanel->AddPage(m_others_panel, _L("Others"), "", false);
+    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
+    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
+    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
+    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
+    m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
 }
 
 wxWindow *AuxiliaryPanel::create_side_tools()

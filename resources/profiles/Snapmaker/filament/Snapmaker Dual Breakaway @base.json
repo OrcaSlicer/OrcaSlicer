@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual Breakaway @base",
 	"inherits": "fdm_filament_breakaway",
 	"from": "system",
-	"filament_id": "1207881278",
+	"filament_id": "OFfmHUkQ",
 	"instantiation": "false",
 	"filament_loading_speed_start": [
 		"35"

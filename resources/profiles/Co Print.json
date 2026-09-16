@@ -1,6 +1,6 @@
 {
 	"name": "Co Print",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "CoPrint configurations",
 	"machine_model_list": [
@@ -37,20 +37,20 @@
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
-			"name": "CoPrint Generic PLA",
-			"sub_path": "filament/CoPrint Generic PLA.json"
+			"name": "Generic PLA @CoPrint",
+			"sub_path": "filament/Generic PLA @CoPrint.json"
 		},
 		{
-			"name": "CoPrint Generic ABS",
-			"sub_path": "filament/CoPrint Generic ABS.json"
+			"name": "Generic ABS @CoPrint",
+			"sub_path": "filament/Generic ABS @CoPrint.json"
 		},
 		{
-			"name": "CoPrint Generic PETG",
-			"sub_path": "filament/CoPrint Generic PETG.json"
+			"name": "Generic PETG @CoPrint",
+			"sub_path": "filament/Generic PETG @CoPrint.json"
 		},
 		{
-			"name": "CoPrint Generic TPU",
-			"sub_path": "filament/CoPrint Generic TPU.json"
+			"name": "Generic TPU @CoPrint",
+			"sub_path": "filament/Generic TPU @CoPrint.json"
 		}
 	],
 	"machine_list": [

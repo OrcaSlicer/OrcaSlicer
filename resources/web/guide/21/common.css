@@ -415,7 +415,9 @@ img.ModelThumbnail {
 	border-width: 1px;
 	border-style: solid;
 	border-radius: 4px;
-	background-color: inherit;	
+	border-color: var(--border-color);
+	background-color: var(--bg-color);
+	color: var(--fg-color-text);
 	position: absolute;
 	left: 50%;
 	top: 200px;
@@ -423,11 +425,15 @@ img.ModelThumbnail {
 }
 
 #NoticeBar {
-	background-color:#00f0d8;
+	background-color: var(--main-color);
 	height: 40px;
 	line-height: 40px;
 	color: #fff;
 	text-align: center;
+}
+
+#NoticeBar.notice-error {
+	background-color: var(--button-bg-alert);
 }
 
 #NoticeContent {

@@ -368,7 +368,7 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
         emit_progress(100);
         if (the_job.switch_to_device_tab) {
             const auto mainframe = GUI::wxGetApp().mainframe;
-            mainframe->request_select_tab(MainFrame::TabPosition::tpMonitor);
+            mainframe->request_select_tab(TAB_ID_MONITOR);
         }
     }
 }

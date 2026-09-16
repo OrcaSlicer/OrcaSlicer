@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PLA Burnt Ti@FF G4P 0.8 HF nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
+	"renamed_from": "Flashforge PLA Buint Ti @FF G4P 0.8 nozzle;Flashforge PLA Buint Ti FF G4P 0.8 nozzle",
 	"from": "system",
 	"setting_id": "2HUxAWeolJIlxPs1",
+	"filament_id": "OF8O09RG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -61,6 +66,12 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"205"
+	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
 	],
 	"overhang_fan_threshold": [
 		"25%"

@@ -1,0 +1,18 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @OrcaArena 0.2 nozzle",
+	"inherits": "Generic PLA @OrcaArena base",
+	"renamed_from": "OrcaArena Generic PLA @0.2 nozzle;OrcaArena Generic PLA 0.2 nozzle",
+	"from": "system",
+	"setting_id": "HjJH9JT9x9sFtVES",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if  (bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >30)||(bed_temperature_initial_layer[current_extruder] >30)}M106 P3 S180\n{endif}"
+	],
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.2 nozzle"
+	]
+}

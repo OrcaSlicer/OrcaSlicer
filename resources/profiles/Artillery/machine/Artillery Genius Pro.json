@@ -8,5 +8,5 @@
 	"bed_model": "artillery_geniuspro_buildplate_model.stl",
 	"bed_texture": "artillery_geniuspro_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Artillery Generic ABS;Artillery Generic PLA;Artillery Generic PLA-CF;Artillery Generic PETG;Artillery Generic TPU;Artillery Generic ASA"
+	"default_materials": "Generic ABS @Artillery;Generic PLA @Artillery;Generic PLA-CF @Artillery;Generic PETG @Artillery;Generic TPU @Artillery;Generic ASA @Artillery"
 }

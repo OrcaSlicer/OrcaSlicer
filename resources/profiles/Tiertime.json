@@ -1,6 +1,6 @@
 {
 	"name": "Tiertime",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Tiertime configurations",
 	"machine_model_list": [
@@ -369,12 +369,12 @@
 			"sub_path": "filament/Tiertime ABS@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic ABS",
-			"sub_path": "filament/Tiertime Generic ABS.json"
+			"name": "Generic ABS @Tiertime",
+			"sub_path": "filament/Generic ABS @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic ABS@300HS",
-			"sub_path": "filament/Tiertime Generic ABS@300HS.json"
+			"name": "Generic ABS @Tiertime 300HS",
+			"sub_path": "filament/Generic ABS @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime ASA",
@@ -385,52 +385,52 @@
 			"sub_path": "filament/Tiertime ASA@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic ASA",
-			"sub_path": "filament/Tiertime Generic ASA.json"
+			"name": "Generic ASA @Tiertime",
+			"sub_path": "filament/Generic ASA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic ASA@300HS",
-			"sub_path": "filament/Tiertime Generic ASA@300HS.json"
+			"name": "Generic ASA @Tiertime 300HS",
+			"sub_path": "filament/Generic ASA @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic BVOH",
-			"sub_path": "filament/Tiertime Generic BVOH.json"
+			"name": "Generic BVOH @Tiertime",
+			"sub_path": "filament/Generic BVOH @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic BVOH@300HS",
-			"sub_path": "filament/Tiertime Generic BVOH@300HS.json"
+			"name": "Generic BVOH @Tiertime 300HS",
+			"sub_path": "filament/Generic BVOH @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic EVA",
-			"sub_path": "filament/Tiertime Generic EVA.json"
+			"name": "Generic EVA @Tiertime",
+			"sub_path": "filament/Generic EVA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic EVA@300HS",
-			"sub_path": "filament/Tiertime Generic EVA@300HS.json"
+			"name": "Generic EVA @Tiertime 300HS",
+			"sub_path": "filament/Generic EVA @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic HIPS",
-			"sub_path": "filament/Tiertime Generic HIPS.json"
+			"name": "Generic HIPS @Tiertime",
+			"sub_path": "filament/Generic HIPS @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic HIPS@300HS",
-			"sub_path": "filament/Tiertime Generic HIPS@300HS.json"
+			"name": "Generic HIPS @Tiertime 300HS",
+			"sub_path": "filament/Generic HIPS @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PA",
-			"sub_path": "filament/Tiertime Generic PA.json"
+			"name": "Generic PA @Tiertime",
+			"sub_path": "filament/Generic PA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PA-CF",
-			"sub_path": "filament/Tiertime Generic PA-CF.json"
+			"name": "Generic PA-CF @Tiertime",
+			"sub_path": "filament/Generic PA-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PA-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PA-CF@300HS.json"
+			"name": "Generic PA-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PA-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PA@300HS",
-			"sub_path": "filament/Tiertime Generic PA@300HS.json"
+			"name": "Generic PA @Tiertime 300HS",
+			"sub_path": "filament/Generic PA @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime PA6-CF",
@@ -441,12 +441,12 @@
 			"sub_path": "filament/Tiertime PA6-CF@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PC",
-			"sub_path": "filament/Tiertime Generic PC.json"
+			"name": "Generic PC @Tiertime",
+			"sub_path": "filament/Generic PC @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PC@300HS",
-			"sub_path": "filament/Tiertime Generic PC@300HS.json"
+			"name": "Generic PC @Tiertime 300HS",
+			"sub_path": "filament/Generic PC @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime PC",
@@ -457,44 +457,44 @@
 			"sub_path": "filament/Tiertime PC@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PCTG",
-			"sub_path": "filament/Tiertime Generic PCTG.json"
+			"name": "Generic PCTG @Tiertime",
+			"sub_path": "filament/Generic PCTG @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PCTG@300HS",
-			"sub_path": "filament/Tiertime Generic PCTG@300HS.json"
+			"name": "Generic PCTG @Tiertime 300HS",
+			"sub_path": "filament/Generic PCTG @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PE",
-			"sub_path": "filament/Tiertime Generic PE.json"
+			"name": "Generic PE @Tiertime",
+			"sub_path": "filament/Generic PE @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PE-CF",
-			"sub_path": "filament/Tiertime Generic PE-CF.json"
+			"name": "Generic PE-CF @Tiertime",
+			"sub_path": "filament/Generic PE-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PE-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PE-CF@300HS.json"
+			"name": "Generic PE-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PE-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PE@300HS",
-			"sub_path": "filament/Tiertime Generic PE@300HS.json"
+			"name": "Generic PE @Tiertime 300HS",
+			"sub_path": "filament/Generic PE @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PETG",
-			"sub_path": "filament/Tiertime Generic PETG.json"
+			"name": "Generic PETG @Tiertime",
+			"sub_path": "filament/Generic PETG @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PETG-CF",
-			"sub_path": "filament/Tiertime Generic PETG-CF.json"
+			"name": "Generic PETG-CF @Tiertime",
+			"sub_path": "filament/Generic PETG-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PETG-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PETG-CF@300HS.json"
+			"name": "Generic PETG-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PETG-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PETG@300HS",
-			"sub_path": "filament/Tiertime Generic PETG@300HS.json"
+			"name": "Generic PETG @Tiertime 300HS",
+			"sub_path": "filament/Generic PETG @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime PET-CF",
@@ -513,44 +513,44 @@
 			"sub_path": "filament/Tiertime PETG@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PHA",
-			"sub_path": "filament/Tiertime Generic PHA.json"
+			"name": "Generic PHA @Tiertime",
+			"sub_path": "filament/Generic PHA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PHA@300HS",
-			"sub_path": "filament/Tiertime Generic PHA@300HS.json"
+			"name": "Generic PHA @Tiertime 300HS",
+			"sub_path": "filament/Generic PHA @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PLA",
-			"sub_path": "filament/Tiertime Generic PLA.json"
+			"name": "Generic PLA @Tiertime",
+			"sub_path": "filament/Generic PLA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PLA High Speed",
-			"sub_path": "filament/Tiertime Generic PLA High Speed.json"
+			"name": "Generic PLA High Speed @Tiertime",
+			"sub_path": "filament/Generic PLA High Speed @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PLA High Speed@300HS",
-			"sub_path": "filament/Tiertime Generic PLA High Speed@300HS.json"
+			"name": "Generic PLA High Speed @Tiertime 300HS",
+			"sub_path": "filament/Generic PLA High Speed @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PLA Silk",
-			"sub_path": "filament/Tiertime Generic PLA Silk.json"
+			"name": "Generic PLA Silk @Tiertime",
+			"sub_path": "filament/Generic PLA Silk @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PLA Silk@300HS",
-			"sub_path": "filament/Tiertime Generic PLA Silk@300HS.json"
+			"name": "Generic PLA Silk @Tiertime 300HS",
+			"sub_path": "filament/Generic PLA Silk @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PLA-CF",
-			"sub_path": "filament/Tiertime Generic PLA-CF.json"
+			"name": "Generic PLA-CF @Tiertime",
+			"sub_path": "filament/Generic PLA-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PLA-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PLA-CF@300HS.json"
+			"name": "Generic PLA-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PLA-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PLA@300HS",
-			"sub_path": "filament/Tiertime Generic PLA@300HS.json"
+			"name": "Generic PLA @Tiertime 300HS",
+			"sub_path": "filament/Generic PLA @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime PLA",
@@ -569,68 +569,68 @@
 			"sub_path": "filament/Tiertime PLA@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PP",
-			"sub_path": "filament/Tiertime Generic PP.json"
+			"name": "Generic PP @Tiertime",
+			"sub_path": "filament/Generic PP @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PP-CF",
-			"sub_path": "filament/Tiertime Generic PP-CF.json"
+			"name": "Generic PP-CF @Tiertime",
+			"sub_path": "filament/Generic PP-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PP-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PP-CF@300HS.json"
+			"name": "Generic PP-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PP-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PP-GF",
-			"sub_path": "filament/Tiertime Generic PP-GF.json"
+			"name": "Generic PP-GF @Tiertime",
+			"sub_path": "filament/Generic PP-GF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PP-GF@300HS",
-			"sub_path": "filament/Tiertime Generic PP-GF@300HS.json"
+			"name": "Generic PP-GF @Tiertime 300HS",
+			"sub_path": "filament/Generic PP-GF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PP@300HS",
-			"sub_path": "filament/Tiertime Generic PP@300HS.json"
+			"name": "Generic PP @Tiertime 300HS",
+			"sub_path": "filament/Generic PP @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PPA-CF",
-			"sub_path": "filament/Tiertime Generic PPA-CF.json"
+			"name": "Generic PPA-CF @Tiertime",
+			"sub_path": "filament/Generic PPA-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PPA-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PPA-CF@300HS.json"
+			"name": "Generic PPA-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PPA-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PPA-GF",
-			"sub_path": "filament/Tiertime Generic PPA-GF.json"
+			"name": "Generic PPA-GF @Tiertime",
+			"sub_path": "filament/Generic PPA-GF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PPA-GF@300HS",
-			"sub_path": "filament/Tiertime Generic PPA-GF@300HS.json"
+			"name": "Generic PPA-GF @Tiertime 300HS",
+			"sub_path": "filament/Generic PPA-GF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PPS",
-			"sub_path": "filament/Tiertime Generic PPS.json"
+			"name": "Generic PPS @Tiertime",
+			"sub_path": "filament/Generic PPS @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PPS-CF",
-			"sub_path": "filament/Tiertime Generic PPS-CF.json"
+			"name": "Generic PPS-CF @Tiertime",
+			"sub_path": "filament/Generic PPS-CF @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PPS-CF@300HS",
-			"sub_path": "filament/Tiertime Generic PPS-CF@300HS.json"
+			"name": "Generic PPS-CF @Tiertime 300HS",
+			"sub_path": "filament/Generic PPS-CF @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PPS@300HS",
-			"sub_path": "filament/Tiertime Generic PPS@300HS.json"
+			"name": "Generic PPS @Tiertime 300HS",
+			"sub_path": "filament/Generic PPS @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic PVA",
-			"sub_path": "filament/Tiertime Generic PVA.json"
+			"name": "Generic PVA @Tiertime",
+			"sub_path": "filament/Generic PVA @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic PVA@300HS",
-			"sub_path": "filament/Tiertime Generic PVA@300HS.json"
+			"name": "Generic PVA @Tiertime 300HS",
+			"sub_path": "filament/Generic PVA @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime PVA",
@@ -641,20 +641,20 @@
 			"sub_path": "filament/Tiertime PVA@300HS.json"
 		},
 		{
-			"name": "Tiertime Generic SBS",
-			"sub_path": "filament/Tiertime Generic SBS.json"
+			"name": "Generic SBS @Tiertime",
+			"sub_path": "filament/Generic SBS @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic SBS@300HS",
-			"sub_path": "filament/Tiertime Generic SBS@300HS.json"
+			"name": "Generic SBS @Tiertime 300HS",
+			"sub_path": "filament/Generic SBS @Tiertime 300HS.json"
 		},
 		{
-			"name": "Tiertime Generic TPU",
-			"sub_path": "filament/Tiertime Generic TPU.json"
+			"name": "Generic TPU @Tiertime",
+			"sub_path": "filament/Generic TPU @Tiertime.json"
 		},
 		{
-			"name": "Tiertime Generic TPU@300HS",
-			"sub_path": "filament/Tiertime Generic TPU@300HS.json"
+			"name": "Generic TPU @Tiertime 300HS",
+			"sub_path": "filament/Generic TPU @Tiertime 300HS.json"
 		},
 		{
 			"name": "Tiertime TPU 95A",

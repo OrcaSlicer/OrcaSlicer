@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"setting_id": "hHXz74Ps9x4T7kZl",
+	"name": "PolyLite ABS @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "PolyLite ABS@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.01"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}
