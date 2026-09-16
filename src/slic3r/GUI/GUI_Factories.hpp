@@ -155,6 +155,7 @@ private:
     void        append_menu_item_merge_to_multipart_object(wxMenu *menu);
     void        append_menu_item_merge_to_single_object(wxMenu* menu);
     void        append_menu_item_merge_parts_to_single_part(wxMenu *menu);
+    void        append_menu_item_merge_some_parts_to_single_part(wxMenu *menu);
     void        append_menu_items_mirror(wxMenu *menu);
     void        append_menu_item_invalidate_cut_info(wxMenu *menu);
     void        append_menu_item_edit_text(wxMenu *menu);
