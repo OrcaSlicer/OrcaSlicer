@@ -85,11 +85,14 @@ jobs:
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
-          # clang-cl refuses a precompiled header from another MSVC toolset version
-          # and ccache does not hash that version, so each toolset gets its own cache.
+          # clang-cl refuses a precompiled header from another cl.exe build and ccache
+          # does not hash that build, so each one gets its own cache. The build number
+          # is read from cl.exe itself; the toolset directory keeps its name across patches.
           if [ "${{ runner.os }}" = Windows ]; then
-            f=$('/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe' -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')
-            leg="$leg-vc$(tr -d '\r\n' < "$f")"
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            toolset=$(tr -d '\r\n' < "$("$vswhere" -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')")
+            cl=$("$vswhere" -latest -products '*' -find 'VC\Tools\MSVC\'"$toolset"'\**\cl.exe' | tr -d '\r' | head -1)
+            leg="$leg-vc$("$cl" 2>&1 | grep -o -E 'Version [0-9.]+' | cut -d' ' -f2)"
           fi
           echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
           echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
