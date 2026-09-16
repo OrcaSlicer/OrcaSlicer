@@ -1898,7 +1898,7 @@ void ViewerImpl::update_color_ranges()
 
     for (size_t i = 0; i < m_vertices.size(); i++) {
         const PathVertex& v = m_vertices[i];
-        if (v.is_extrusion()) {
+        if ((v.is_extrusion() && is_extrusion_role_visible(v.role))) {
             m_height_range.update(round_to_bin(v.height));
             if (!v.is_custom_gcode() || m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::Custom)]) {
                 m_width_range.update(round_to_bin(v.width));
@@ -1913,7 +1913,7 @@ void ViewerImpl::update_color_ranges()
         }
         if ((v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
             (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) ||
-             v.is_extrusion()) {
+             (v.is_extrusion() && is_extrusion_role_visible(v.role))) {
             m_speed_range.update(v.feedrate);
             m_actual_speed_range.update(v.actual_feedrate);
             // ORCA: Add Acceleration visualization support
