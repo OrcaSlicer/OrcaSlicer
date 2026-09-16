@@ -178,6 +178,14 @@ namespace ImGui
     const wchar_t gCodeButtonIcon          = 0x0819; // ORCA
     const wchar_t VisibleIcon              = 0x0820; // ORCA
     const wchar_t HiddenIcon               = 0x0821; // ORCA
+    const wchar_t LineToolIcon             = 0x082A; // ORCA — painter LINE tool
+    const wchar_t RectangleToolIcon        = 0x082B; // ORCA — painter RECTANGLE tool
+    const wchar_t GridToolIcon             = 0x082C; // ORCA — painter GRID tool
+    const wchar_t LineToolDarkIcon         = 0x082D; // ORCA — LINE tool, dark theme
+    const wchar_t RectangleToolDarkIcon    = 0x082E; // ORCA — RECTANGLE tool, dark theme
+    const wchar_t GridToolDarkIcon         = 0x082F; // ORCA — GRID tool, dark theme
+    const wchar_t PolygonToolIcon          = 0x0830; // ORCA — painter POLYGON tool (N-click closed shape)
+    const wchar_t PolygonToolDarkIcon      = 0x0831; // ORCA — POLYGON tool, dark theme
 
     const wchar_t MinimalizeDarkButton           = 0x081C;
     const wchar_t MinimalizeHoverDarkButton      = 0x081D;
