@@ -112,6 +112,7 @@ void KBShortcutsDialog::fill_pages()
     const wxString ctrl        = from_u8(KeyChord::modifier_prefix(wxMOD_CONTROL));
     const wxString alt         = from_u8(KeyChord::modifier_prefix(wxMOD_ALT));
     const wxString shift       = from_u8(KeyChord::modifier_prefix(wxMOD_SHIFT));
+    const wxString shift_ctrl  = from_u8(KeyChord::modifier_name(wxMOD_SHIFT)) + "/" + ctrl;   // "Shift/Ctrl+": either one
     const wxString any_key     = key(L_CONTEXT("Key", "Keyboard Shortcut"));   // the key the row's shortcut is bound to
     const wxString esc         = key(L_CONTEXT("Esc", "Keyboard Shortcut"));
     const wxString left_button = _L("Left mouse button");
@@ -153,8 +154,8 @@ void KBShortcutsDialog::fill_pages()
     }
 
     page(_L("Preview"), _L("Available while the 3D view on the Preview tab has focus."), ShortcutContext::Preview, {
-        fixed(Section::Sliders, shift + any_key + " / " + ctrl + any_key, L("Move slider 5x faster")),
-        fixed(Section::Sliders, shift + wheel + " / " + ctrl + wheel, L("Scroll slider 5x faster")),
+        fixed(Section::Sliders, shift_ctrl + any_key, L("Move slider 5x faster")),
+        fixed(Section::Sliders, shift_ctrl + wheel, L("Scroll slider 5x faster")),
     });
 }
 
@@ -247,7 +248,6 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         desc->Wrap(m_row_text_width - key->GetBestSize().x);
 
         wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
-        buttons->SetMinSize(buttons_width, -1);
         if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
             auto settings = icon_button("settings", _L("Preferences"));
             settings->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_mouse_preferences(); });
@@ -264,6 +264,8 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
             m_editable_rows.push_back({ shortcut, desc, key, reset });
         }
+        if (const int used = buttons->GetMinSize().x; used < buttons_width)   // a box sizer recomputes its own min size, so pad it
+            buttons->AddSpacer(buttons_width - used);
 
         wxBoxSizer* row_sizer = new wxBoxSizer(wxHORIZONTAL);
         row_sizer->AddSpacer(row_margin);
