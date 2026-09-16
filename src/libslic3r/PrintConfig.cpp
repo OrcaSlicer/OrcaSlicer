@@ -4731,7 +4731,7 @@ void PrintConfigDef::init_fff_params()
                      "periodic height bands. Set through the Color Painting tool.");
     def->mode = comDevelop;
     def->cli = ConfigOptionDef::nocli;
-    def->set_default_value(new ConfigOptionFloats());
+    def->set_default_value(new ConfigOptionFloats({0.}));
 
     def           = this->add("interlocking_beam", coBool);
     def->label    = L("Use beam interlocking");

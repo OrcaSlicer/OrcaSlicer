@@ -111,6 +111,9 @@ static constexpr std::array<PeriodicRecolorAlignment, 3> PERIODIC_RECOLOR_ALIGNM
 
 std::vector<double> PeriodicRecolorPatterns::to_doubles() const
 {
+    if (this->patterns.empty())
+        return {0.};
+
     std::vector<double> out;
     out.reserve(this->patterns.size() * PERIODIC_FIELDS_PER_PATTERN);
     for (const PeriodicRecolorPattern &pattern : this->patterns) {
