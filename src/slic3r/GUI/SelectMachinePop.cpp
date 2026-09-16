@@ -683,6 +683,7 @@ void SelectMachinePopup::update_user_devices()
         }
         i++;
         op->update_machine_info(mobj, true);
+        op->show_edit_printer_name(false);
         //set in lan
         if (mobj->is_lan_mode_printer()) {
             if (!mobj->is_online()) {
@@ -690,8 +691,8 @@ void SelectMachinePopup::update_user_devices()
             }
             else {
                 op->show_printer_bind(false, PrinterBindState::NONE);
-                op->show_edit_printer_name(false);
                 if (mobj->has_access_right() && mobj->is_avaliable()) {
+                    op->show_edit_printer_name(true);
                     op->set_printer_state(PrinterState::IN_LAN);
                     op->show_printer_bind(true, PrinterBindState::ALLOW_UNBIND);
                     op->SetToolTip(_L("Online"));
@@ -988,7 +989,7 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
             auto           utf8_str = new_dev_name.ToUTF8();
             auto           name     = std::string(utf8_str.data(), utf8_str.length());
             if (m_info)
-                dev->modify_device_name(m_info->get_dev_id(), name, wxGetApp().get_printer_cloud_provider());
+                dev->modify_device_name(*m_info, name, wxGetApp().get_printer_cloud_provider());
         }
         DPIDialog::EndModal(wxID_CLOSE);
     }

@@ -1926,6 +1926,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
     post_update_test_msg(w, _L("connecting..."), true);
 
     detectResult detectData;
+    std::string local_name;
     auto result = -1;
     if (current_input_index == 0) {
 
@@ -1939,6 +1940,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         result = 0;
         detectData.model_id = model_id;
         detectData.dev_name = name;
+        local_name = name;
         detectData.dev_id = sn;
         detectData.connect_type = "lan";
         detectData.bind_state   = "free";
@@ -1976,10 +1978,11 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
     }
     if (w.expired()) return;
 
-    CallAfter([this, detectData, str_ip, str_access_code, w]() {
+    CallAfter([this, detectData, local_name, str_ip, str_access_code, w]() {
         DeviceManager* dev = wxGetApp().getDeviceManager();
         BBLocalMachine machine;
         machine.dev_name = detectData.dev_name;
+        machine.local_name = local_name;
         machine.dev_ip = str_ip;
         machine.dev_id = detectData.dev_id;
         machine.printer_type = detectData.model_id;

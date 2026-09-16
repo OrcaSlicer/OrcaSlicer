@@ -41,6 +41,17 @@ namespace {
         }
         return "";
     }
+
+    std::string get_local_name_from_config(Slic3r::AppConfig* config, const std::string& dev_id, const std::string& agent_id)
+    {
+        const auto& machines = config->get_local_machines();
+        auto        it       = machines.find(dev_id);
+        if (it != machines.end() &&
+            (it->second.printer_agent_id == agent_id ||
+             (it->second.printer_agent_id.empty() && agent_id == Slic3r::BBL_PRINTER_AGENT_ID)))
+            return it->second.local_name;
+        return "";
+    }
 }
 
 namespace Slic3r
@@ -73,6 +84,7 @@ namespace Slic3r
             obj->printer_type        = m.printer_type;
             obj->printer_agent_id    = m.printer_agent_id;
             obj->dev_connection_type = "lan";
+            obj->set_local_name(m.local_name);
             obj->bind_state          = "free";
             obj->bind_sec_link       = "secure";
             obj->m_is_online         = true;
@@ -95,7 +107,8 @@ namespace Slic3r
                 if (m.has_access_right()) {
                     BBLocalMachine local_machine;
                     local_machine.dev_id           = m.get_dev_id();
-                    local_machine.dev_name         = m.get_dev_name();
+                    local_machine.dev_name         = m.get_reported_name();
+                    local_machine.local_name       = m.get_local_name();
                     local_machine.dev_ip           = m.get_dev_ip();
                     local_machine.printer_type     = m.printer_type;
                     local_machine.printer_agent_id = m.printer_agent_id;
@@ -379,6 +392,8 @@ namespace Slic3r
                 AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
                 if (config) {
                     obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id, obj->printer_agent_id), false);
+                    // Rediscovery can recreate an object after switching printer agents.
+                    obj->set_local_name(get_local_name_from_config(config, dev_id, obj->printer_agent_id));
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -408,8 +423,12 @@ namespace Slic3r
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
+            if (AppConfig* config = GUI::wxGetApp().app_config)
+                obj->set_local_name(get_local_name_from_config(config, machine.dev_id, obj->printer_agent_id));
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
+        if (!machine.local_name.empty())
+            obj->set_local_name(machine.local_name);
         if (machine.printer_type.empty())
             obj->printer_type = _parse_printer_type("C11");
         else
@@ -793,12 +812,19 @@ namespace Slic3r
         return "";
     }
 
-    void DeviceManager::modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider)
+    void DeviceManager::modify_device_name(MachineObject& machine, std::string dev_name, const std::string& provider)
     {
         BOOST_LOG_TRIVIAL(trace) << "modify_device_name";
+        if (machine.is_lan_mode_printer()) {
+            if (machine.has_access_right()) {
+                machine.set_local_name(dev_name);
+                update_local_machine(machine);
+            }
+            return;
+        }
         if (m_agent)
         {
-            int result = m_agent->modify_printer_name(dev_id, dev_name, provider);
+            int result = m_agent->modify_printer_name(machine.get_dev_id(), dev_name, provider);
             if (result == 0)
             {
                 update_user_machine_list_info(provider);

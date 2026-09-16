@@ -860,6 +860,9 @@ std::string AppConfig::load()
                     local_machine.dev_id = m.key();
                     if (p.contains("dev_name"))
                         local_machine.dev_name = p["dev_name"].get<std::string>();
+                    // Older configs stored user-entered and discovered names in the same field.
+                    // Preserve that name on upgrade; an explicit empty local_name follows discovery.
+                    local_machine.local_name = p.value("local_name", local_machine.dev_name);
                     if (p.contains("dev_ip"))
                         local_machine.dev_ip = p["dev_ip"].get<std::string>();
                     if (p.contains("printer_type"))
@@ -1078,6 +1081,7 @@ void AppConfig::save()
     for (const auto& local_machine : m_local_machines) {
         json m_json;
         m_json["dev_name"]         = local_machine.second.dev_name;
+        m_json["local_name"]       = local_machine.second.local_name;
         m_json["dev_ip"]           = local_machine.second.dev_ip;
         m_json["printer_type"]     = local_machine.second.printer_type;
         m_json["printer_agent_id"] = local_machine.second.printer_agent_id;

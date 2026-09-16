@@ -111,6 +111,7 @@ private:
     /* properties */
     std::string dev_id;
     std::string dev_name;
+    std::string local_name;
     std::string dev_ip;
     std::string access_code;
 
@@ -190,8 +191,12 @@ public:
     static inline int m_sequence_id = START_SEQ_ID;
 
     /* properties */
-    std::string get_dev_name() const { return dev_name; }
+    // Keep LAN aliases separate from the name refreshed by discovery.
+    std::string get_dev_name() const { return is_lan_mode_printer() && !local_name.empty() ? local_name : dev_name; }
     void set_dev_name(std::string val) { dev_name = val; }
+    std::string get_reported_name() const { return dev_name; }
+    std::string get_local_name() const { return local_name; }
+    void set_local_name(std::string val) { local_name = val; }
 
     std::string get_dev_ip() const { return dev_ip; }
     void set_dev_ip(std::string ip) { dev_ip = ip;  }
