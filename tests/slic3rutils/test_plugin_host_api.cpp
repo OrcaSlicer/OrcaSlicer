@@ -38,6 +38,7 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     REQUIRE(has_attr(host, "Model"));
     REQUIRE(has_attr(host, "ModelObject"));
     REQUIRE(has_attr(host, "Plater"));
+    REQUIRE(has_attr(host, "reload_local_bundle"));
 
     py::object preset_bundle_type = host.attr("PresetBundle");
     CHECK(has_attr(preset_bundle_type, "prints"));
@@ -124,6 +125,14 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
             CHECK(error.matches(PyExc_RuntimeError));
             CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
         }
+    }
+
+    try {
+        host.attr("reload_local_bundle")("test-bundle");
+        FAIL("host.reload_local_bundle unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
     }
 }
 

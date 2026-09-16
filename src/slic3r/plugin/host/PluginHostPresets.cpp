@@ -1,11 +1,20 @@
 #include "PluginHostBindings.hpp"
+#include "PluginHostUi.hpp"
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
+#include <libslic3r/AppConfig.hpp>
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PresetBundle.hpp>
 
+#include <slic3r/GUI/GUI.hpp>
+#include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MainFrame.hpp>
+#include <slic3r/GUI/Plater.hpp>
+#include <slic3r/GUI/Tab.hpp>
+
 #include <pybind11/stl.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -32,10 +41,44 @@ PresetCollection& printer_presets(PresetBundle& bundle)
     return static_cast<PresetCollection&>(bundle.printers);
 }
 
+void reload_local_bundle(const std::string& bundle_id)
+{
+    bool        reloaded = false;
+    std::string error;
+    PluginHostUi::run_on_ui_thread([&] {
+        GUI::GUI_App& app = GUI::wxGetApp();
+        if (app.is_closing())
+            throw std::runtime_error("OrcaSlicer is closing");
+        if (app.preset_bundle == nullptr)
+            throw std::runtime_error("Preset bundle is not available");
+        if (app.app_config == nullptr)
+            throw std::runtime_error("Application configuration is not available");
+        if (app.mainframe == nullptr)
+            throw std::runtime_error("OrcaSlicer main window is not available");
+
+        reloaded = app.preset_bundle->reload_local_bundle(app.app_config->get("preset_folder"), bundle_id, &error);
+        if (!reloaded)
+            return;
+
+        app.mainframe->update_side_preset_ui();
+        for (GUI::Tab* tab : app.tabs_list) {
+            tab->reload_config();
+            tab->update_changed_ui();
+        }
+        if (GUI::Plater* plater = app.plater())
+            plater->sidebar().update_all_preset_comboboxes();
+    });
+    if (!reloaded)
+        throw std::runtime_error(error.empty() ? "Local bundle was not reloaded" : error);
+}
+
 } // namespace
 
 void host_bindings::register_presets(py::module_& host)
 {
+    host.def("reload_local_bundle", &reload_local_bundle, py::arg("bundle_id"),
+             "Reload one local preset bundle from the active user's _local directory.");
+
     py::enum_<Preset::Type>(host, "PresetType")
         .value("Invalid", Preset::TYPE_INVALID)
         .value("Print", Preset::TYPE_PRINT)
