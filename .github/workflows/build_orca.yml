@@ -85,6 +85,12 @@ jobs:
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          # clang-cl refuses a precompiled header from another MSVC toolset version
+          # and ccache does not hash that version, so each toolset gets its own cache.
+          if [ "${{ runner.os }}" = Windows ]; then
+            f=$('/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe' -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')
+            leg="$leg-vc$(tr -d '\r\n' < "$f")"
+          fi
           echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
           echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
