@@ -2,6 +2,7 @@
 #define slic3r_GLGizmoMmuSegmentation_hpp_
 
 #include "GLGizmoPainterBase.hpp"
+#include "libslic3r/PeriodicRecolor.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r::GUI {
@@ -108,6 +109,33 @@ protected:
     size_t                            m_selected_extruder_idx = 0;
     std::vector<ColorRGBA>            m_extruders_colors;
     std::vector<int>                  m_volumes_extruder_idxs;
+
+    // Orca: periodic feature recoloring. m_periodic_patterns is the working copy of the patterns
+    // stored on the currently selected ModelObject.
+    void                              render_periodic_recolor_ui(float window_width, float sliders_left_width, float sliders_width,
+                                                                 float drag_left_width, float slider_icon_width,
+                                                                 float scale);
+    void                              load_periodic_patterns();
+    void                              commit_periodic_patterns();
+    // Commits an unfinished edit when the panel stops rendering before its widget is released.
+    void                              flush_periodic_patterns();
+    PeriodicRecolorPatterns            m_periodic_patterns;
+    // The object m_periodic_patterns was loaded from, so a selection change reloads rather than
+    // writing one object's patterns onto another.
+    const ModelObject                *m_periodic_patterns_object = nullptr;
+    // Value before the in-progress edit, so undo captures the state the user started from.
+    std::vector<double>               m_periodic_patterns_before_edit;
+    // Set by a slider or drag edit and cleared when it is committed on release.
+    bool                              m_periodic_patterns_dirty = false;
+
+    // Band preview: a translucent tint in the target filament's color over the surface each band covers, plus outlines
+    // at the band edges. One fill and one outline model per pattern, so many bands still take two draw calls.
+    void                              render_periodic_bands();
+    void                              update_periodic_band_models();
+    struct PeriodicBandModel { GLModel fill; GLModel outline; int filament = 0; };  // 1-based
+    std::vector<PeriodicBandModel>    m_periodic_band_models;
+    // Signature of the inputs the band models were built from, so they are not rebuilt on every frame.
+    std::string                       m_periodic_bands_key;
 
     // BBS
     wchar_t                           m_current_tool = 0;

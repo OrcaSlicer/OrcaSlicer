@@ -350,6 +350,8 @@ set(lisbslic3r_sources
     pchheader.hpp
     PerimeterGenerator.cpp
     PerimeterGenerator.hpp
+    PeriodicRecolor.cpp
+    PeriodicRecolor.hpp
     PlaceholderParser.cpp
     PlaceholderParser.hpp
     Platform.cpp

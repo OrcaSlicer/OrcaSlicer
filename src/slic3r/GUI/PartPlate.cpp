@@ -38,6 +38,7 @@
 #include "2DBed.hpp"
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "libslic3r/PeriodicRecolor.hpp"
 #include "Camera.hpp"
 #include "GUI_Colors.hpp"
 #include "GUI_ObjectList.hpp"
@@ -1527,6 +1528,19 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
+// Orca: adds the 1-based filaments that enabled, valid patterns target. The get_extruders*() scans below only read
+// the filament settings, so without this a pattern-only filament is missing from the pre-slice filament counts:
+// the prime tower preview size, the G-code viewer statistics and the filament map dialog. Patterns are counted
+// without slicing, so a pattern that ends up recoloring nothing still counts.
+static void append_periodic_recolor_filaments(const ModelObject *mo, size_t num_filaments, std::vector<int> &out)
+{
+    const DynamicPrintConfig &object_config = mo->config.get();
+    std::vector<unsigned int> targets;
+    periodic_recolor_patterns_of(object_config).collect_filaments(num_filaments, targets);
+    for (unsigned int target : targets)
+        out.push_back(int(target) + 1);
+}
+
 std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 {
 	std::vector<int> plate_extruders;
@@ -1565,6 +1579,9 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
+	// Orca: count from the passed project config, not wxGetApp()'s, so this also works under the CLI.
+	const size_t num_periodic_filaments =
+		project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
 		// Any instance on the plate counts, as PrintApply does: after an arrange, instance 0
 		// can sit on a different plate.
@@ -1572,6 +1589,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
+		append_periodic_recolor_filaments(mo, num_periodic_filaments, plate_extruders);
 		for (ModelVolume* mv : mo->volumes) {
 			std::vector<int> volume_extruders = mv->get_extruders();
 			plate_extruders.insert(plate_extruders.end(), volume_extruders.begin(), volume_extruders.end());
@@ -1736,6 +1754,8 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
+    // Orca: filament count from the config the CLI was handed, not the GUI's preset bundle.
+    const size_t num_cli_filaments = full_config.option<ConfigOptionFloats>("filament_diameter")->values.size();
 
     for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)
     {
@@ -1754,6 +1774,10 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
                 std::vector<int> volume_extruders = mv->get_extruders();
                 plate_extruders.insert(plate_extruders.end(), volume_extruders.begin(), volume_extruders.end());
             }
+
+            // Orca: pattern filaments, added here because this loop visits the plate's printable instances; checking
+            // instance 0 would miss an object whose first instance is on another plate. Repeats are removed below.
+            append_periodic_recolor_filaments(object, num_cli_filaments, plate_extruders);
 
             // layer range
             for (auto layer_range : object->layer_config_ranges) {
@@ -1916,11 +1940,14 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	// if 3mf file
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
+	const size_t num_periodic_filaments =
+		wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
 		if (!contain_instance_totally(obj_idx, 0))
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
+		append_periodic_recolor_filaments(mo, num_periodic_filaments, plate_extruders);
 		for (ModelVolume* mv : mo->volumes) {
 			std::vector<int> volume_extruders = mv->get_extruders();
 			plate_extruders.insert(plate_extruders.end(), volume_extruders.begin(), volume_extruders.end());

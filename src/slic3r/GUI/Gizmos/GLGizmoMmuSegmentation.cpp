@@ -12,6 +12,14 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+
+#include <cmath>
+#include <iomanip>
+#include <limits>
+#include <sstream>
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
@@ -40,6 +48,10 @@ void GLGizmoMmuSegmentation::on_shutdown()
 {
     m_parent.use_slope(false);
     m_parent.toggle_model_objects_visibility(true);
+    // Orca: closing the gizmo skips the panel's commit, so finish an unfinished pattern edit here, before the object
+    // pointer is cleared: flush_periodic_patterns() writes only while the patterns still belong to the selected object.
+    this->flush_periodic_patterns();
+    m_periodic_patterns_object = nullptr;
 }
 
 std::string GLGizmoMmuSegmentation::on_get_name() const
@@ -166,6 +178,8 @@ void GLGizmoMmuSegmentation::render_painter_gizmo()
     glsafe(::glEnable(GL_DEPTH_TEST));
 
     render_triangles(selection);
+    // Orca: after the mesh, so the band tint blends over it.
+    render_periodic_bands();
 
     m_c->object_clipper()->render_cut();
     m_c->instances_hider()->render_cut();
@@ -177,6 +191,14 @@ void GLGizmoMmuSegmentation::render_painter_gizmo()
 void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 {
     GLGizmoPainterBase::data_changed(is_serializing);
+
+    // Undo and redo can change the patterns without replacing the object, which load_periodic_patterns() would not
+    // notice, so force a reload.
+    m_periodic_patterns_object = nullptr;
+    // Also drop any unfinished edit: the model changed under it, and with nothing selected the reload returns early
+    // without clearing it.
+    m_periodic_patterns_dirty  = false;
+
     if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().extruders_edited_cnt() <= 1)
         return;
 
@@ -649,6 +671,16 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_parent.set_as_dirty();
         }
     }
+
+    // Orca: periodic recolor patterns, in a section under the Height range tool. While the section is hidden, commit an
+    // unfinished pattern edit, because its fields are no longer drawn to commit it.
+    const bool periodic_ui_open = m_current_tool == ImGui::HeightRangeIcon &&
+                                  ImGui::TreeNodeEx(_u8L("Periodic Height Range").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                    ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    if (periodic_ui_open)
+        this->render_periodic_recolor_ui(window_width, sliders_left_width, sliders_width, drag_left_width, slider_icon_width, scale);
+    else
+        this->flush_periodic_patterns();
 
     ImGui::Separator();
     if (m_c->object_clipper()->get_position() == 0.f) {
@@ -1191,6 +1223,578 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
         
         // ORCA: Refresh used filaments cache
         this->update_used_filaments();
+    }
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Orca: periodic feature recoloring
+// ---------------------------------------------------------------------------------------
+
+// Clips a triangle to the Z range [lo, hi] and appends what is left to `out` as a fan, so the tint matches the band
+// heights exactly (Sutherland-Hodgman against two horizontal planes). `poly` and `clipped` are scratch buffers the
+// caller reuses across calls.
+static void clip_triangle_to_slab(const Vec3f &a, const Vec3f &b, const Vec3f &c,
+                                  float lo, float hi, GLModel::Geometry &out,
+                                  std::vector<Vec3f> &poly, std::vector<Vec3f> &clipped)
+{
+    poly.assign({ a, b, c });
+    for (int pass = 0; pass < 2; ++pass) {
+        const bool  keep_above = (pass == 0);
+        const float plane      = keep_above ? lo : hi;
+        clipped.clear();
+        clipped.reserve(poly.size() + 2);
+        for (size_t i = 0; i < poly.size(); ++i) {
+            const Vec3f &p0  = poly[i];
+            const Vec3f &p1  = next_value_modulo(i, poly);
+            const bool   in0 = keep_above ? (p0.z() >= plane) : (p0.z() <= plane);
+            const bool   in1 = keep_above ? (p1.z() >= plane) : (p1.z() <= plane);
+            if (in0)
+                clipped.emplace_back(p0);
+            if (in0 != in1) {
+                const float dz = p1.z() - p0.z();
+                clipped.emplace_back(p0 + (p1 - p0) * ((plane - p0.z()) / dz));
+            }
+        }
+        poly.swap(clipped);
+        if (poly.size() < 3)
+            return;
+    }
+    const unsigned int base = (unsigned int) out.vertices_count();
+    for (const Vec3f &v : poly)
+        out.add_vertex(v);
+    for (unsigned int i = 2; i < (unsigned int) poly.size(); ++i)
+        out.add_triangle(base, base + i - 1, base + i);
+}
+
+// World Z range of one instance, for the band geometry and the height sliders. Uses the cached convex hulls, since
+// this runs every frame, but falls back to the exact bounding box when a volume has no hull, because the hull
+// bounding box leaves that volume out and would report too short a height.
+static void periodic_instance_z(const ModelObject &mo, size_t instance_idx, double &min_z, double &size_z)
+{
+    for (const ModelVolume *mv : mo.volumes)
+        if (mv->is_model_part() && mv->get_convex_hull().its.indices.empty()) {
+            const BoundingBoxf3 bbox = mo.instance_bounding_box(instance_idx);
+            min_z  = bbox.min.z();
+            size_z = bbox.size().z();
+            return;
+        }
+    const BoundingBoxf3 hull_bbox = mo.instance_convex_hull_bounding_box(instance_idx);
+    min_z  = hull_bbox.min.z();
+    size_z = hull_bbox.size().z();
+}
+
+void GLGizmoMmuSegmentation::update_periodic_band_models()
+{
+    // Most bands the preview builds per pattern; above it the preview stops partway up the object. The print is not
+    // affected. Rebuilding runs on every slider move and grows with triangles x bands, so this trades a cut-off
+    // preview for a smooth drag.
+    static const size_t MAX_PREVIEW_BANDS = 512;
+
+    const ModelObject *mo           = m_periodic_patterns_object;
+    const int          instance_idx = m_parent.get_selection().get_instance_idx();
+    if (mo == nullptr || instance_idx < 0 || instance_idx >= int(mo->instances.size()))
+        return;
+
+    const size_t      num_filaments = std::min((size_t) EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
+    const Transform3d inst_matrix   = mo->instances[instance_idx]->get_transformation().get_matrix();
+
+    // Z range of the whole object's model parts, the same volumes merged into world_its below. Not the selection's box:
+    // selecting one volume must not move the bands.
+    double object_min_z = 0., object_size_z = 0.;
+    periodic_instance_z(*mo, size_t(instance_idx), object_min_z, object_size_z);
+
+    // Rebuild only when these inputs change; slicing and clipping the mesh is too slow for every frame. The instance
+    // matrix is included because a rotation can move the bands without changing the Z range.
+    std::ostringstream key_stream;
+    key_stream << std::setprecision(std::numeric_limits<double>::max_digits10);
+    for (double v : m_periodic_patterns.to_doubles())
+        key_stream << v << ',';
+    key_stream << ';' << object_min_z << ',' << object_size_z << ';' << num_filaments << ';' << instance_idx;
+    for (int r = 0; r < 4; ++r)
+        for (int c = 0; c < 4; ++c)
+            key_stream << ',' << inst_matrix(r, c);
+    const std::string key = key_stream.str();
+    if (key == m_periodic_bands_key)
+        return;
+    m_periodic_bands_key = key;
+    m_periodic_band_models.clear();
+    // GLModel has a destructor and no move constructor, so an entry built outside the vector would be copied in.
+    m_periodic_band_models.reserve(m_periodic_patterns.patterns.size());
+
+    if (object_size_z <= 0.)
+        return;
+
+    indexed_triangle_set world_its;
+    for (const ModelVolume *mv : mo->volumes) {
+        if (! mv->is_model_part())
+            continue;
+        indexed_triangle_set its = mv->mesh().its;
+        // fix_left_handed: a mirrored instance or volume reverses the winding, and the tint renders with GL_CULL_FACE,
+        // so it would disappear on mirrored parts.
+        its_transform(its, inst_matrix * mv->get_matrix(), true);
+        its_merge(world_its, its);
+    }
+    if (world_its.indices.empty())
+        return;
+
+    for (const PeriodicRecolorPattern &pattern : m_periodic_patterns.patterns) {
+        if (! pattern.enabled || ! pattern.is_valid(num_filaments))
+            continue;
+        const std::vector<std::pair<double, double>> bands =
+            periodic_recolor_ideal_bands(pattern, object_size_z, MAX_PREVIEW_BANDS);
+        if (bands.empty())
+            continue;
+
+        // World Z of each band. Both edges ascend, which the merge and the binary search below rely on.
+        std::vector<std::pair<float, float>> zbands;
+        zbands.reserve(bands.size());
+        for (const std::pair<double, double> &band : bands)
+            zbands.emplace_back(float(object_min_z + band.first), float(object_min_z + band.second));
+
+        // Merge overlapping bands for the tint, as build() does for the print. Clipping each separately would draw the
+        // same surface many times, making the translucent tint opaque. The outlines keep every band, since each marks a
+        // height the user asked for.
+        std::vector<std::pair<float, float>> fill_bands;
+        for (const std::pair<float, float> &zb : zbands)
+            if (! fill_bands.empty() && zb.first <= fill_bands.back().second)
+                fill_bands.back().second = std::max(fill_bands.back().second, zb.second);
+            else
+                fill_bands.emplace_back(zb);
+
+        // The filament, not its color: the color is read at draw time.
+        PeriodicBandModel &entry = m_periodic_band_models.emplace_back();
+        entry.filament = pattern.filament;
+
+        // ---- tinted surface, clipped to the band heights -------------------------------------
+        GLModel::Geometry fill;
+        fill.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        std::vector<Vec3f> clip_poly, clip_scratch;
+        for (const stl_triangle_vertex_indices &face : world_its.indices) {
+            const Vec3f &a = world_its.vertices[face(0)];
+            const Vec3f &b = world_its.vertices[face(1)];
+            const Vec3f &c = world_its.vertices[face(2)];
+            const float  tri_lo = std::min({ a.z(), b.z(), c.z() });
+            const float  tri_hi = std::max({ a.z(), b.z(), c.z() });
+            // Binary-search the first band that can touch this triangle instead of walking from band 0.
+            auto zb = std::lower_bound(fill_bands.begin(), fill_bands.end(), tri_lo,
+                                       [](const std::pair<float, float> &band, float z) { return band.second < z; });
+            for (; zb != fill_bands.end() && zb->first <= tri_hi; ++zb)
+                clip_triangle_to_slab(a, b, c, zb->first, zb->second, fill, clip_poly, clip_scratch);
+        }
+        if (fill.vertices_count() > 0)
+            entry.fill.init_from(std::move(fill));
+
+        // ---- outlines at the band edges ------------------------------------------------------
+        // slice_mesh() needs sorted heights, and overlapping bands give unsorted pairs (thickness 4, period 2 gives
+        // [0, 4, 2, 6]), which would lose the outline. Abutting bands share an edge, so duplicates are removed too.
+        std::vector<float> zs;
+        zs.reserve(zbands.size() * 2);
+        for (const std::pair<float, float> &zb : zbands) {
+            zs.emplace_back(zb.first);
+            zs.emplace_back(zb.second);
+        }
+        sort_remove_duplicates(zs);
+        // trafo defaults to identity, and the mesh is already in world space.
+        const std::vector<Polygons> layers = slice_mesh(world_its, zs, MeshSlicingParams{});
+
+        size_t segments = 0;
+        for (const Polygons &polys : layers)
+            for (const Polygon &poly : polys)
+                segments += poly.points.size();
+        if (segments > 0) {
+            GLModel::Geometry outline;
+            outline.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3 };
+            outline.reserve_vertices(2 * segments);
+            outline.reserve_indices(2 * segments);
+            unsigned int vertices_counter = 0;
+            for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx) {
+                const float z = zs[layer_idx];
+                for (const Polygon &poly : layers[layer_idx]) {
+                    for (size_t i = 0; i < poly.points.size(); ++i) {
+                        const Point &p0 = poly.points[i];
+                        const Point &p1 = next_value_modulo(i, poly.points);
+                        outline.add_vertex(Vec3f(unscale<float>(p0.x()), unscale<float>(p0.y()), z));
+                        outline.add_vertex(Vec3f(unscale<float>(p1.x()), unscale<float>(p1.y()), z));
+                        vertices_counter += 2;
+                        outline.add_line(vertices_counter - 2, vertices_counter - 1);
+                    }
+                }
+            }
+            entry.outline.init_from(std::move(outline));
+        }
+
+        if (! entry.fill.is_initialized() && ! entry.outline.is_initialized())
+            m_periodic_band_models.pop_back();
+    }
+}
+
+void GLGizmoMmuSegmentation::render_periodic_bands()
+{
+    // Skip the assembly view
+    if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView)
+        return;
+
+    // Load here too: this renders before the panel, which would otherwise load the patterns a frame late.
+    this->load_periodic_patterns();
+    if (m_periodic_patterns_object == nullptr)
+        return;
+
+    // Nothing to draw or clear; skips building the cache key every frame.
+    if (m_periodic_patterns.patterns.empty() && m_periodic_band_models.empty())
+        return;
+
+    this->update_periodic_band_models();
+    if (m_periodic_band_models.empty())
+        return;
+
+    // Band geometry is in world space, so the volume matrix is identity. flat_clip, so the section view cuts the
+    // bands along with the object.
+    GLShaderProgram *shader = wxGetApp().get_shader("flat_clip");
+    if (shader == nullptr)
+        return;
+    shader->start_using();
+    ScopeGuard shader_guard([shader]() { shader->stop_using(); });
+
+    const ClippingPlaneDataWrapper clp_data = this->get_clipping_plane_data();
+    const Camera                  &camera   = wxGetApp().plater()->get_camera();
+    shader->set_uniform("clipping_plane", clp_data.clp_dataf);
+    shader->set_uniform("z_range", clp_data.z_range);
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+
+    // The tint needs GL_LEQUAL to draw on the surface it covers. Save the depth func and restore it afterward:
+    // render_cursor() and the clipper renders rely on it.
+    GLint prev_depth_func = GL_LESS;
+    glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
+    glsafe(::glDepthFunc(GL_LEQUAL));
+    glsafe(::glDepthMask(GL_FALSE));
+
+    // Back faces would tint the far wall of the object through the near one.
+    glsafe(::glEnable(GL_CULL_FACE));
+    // Pull the tint toward the camera: clipped vertices differ slightly in depth from the surface, which speckles.
+    glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glPolygonOffset(-1.0f, -1.0f));
+    for (PeriodicBandModel &entry : m_periodic_band_models)
+        if (entry.fill.is_initialized() && entry.filament >= 1 &&
+            size_t(entry.filament) <= m_extruders_colors.size()) {
+            // Translucent, so the object's shading still shows through.
+            ColorRGBA c = m_extruders_colors[entry.filament - 1];
+            c.a(0.55f);
+            entry.fill.set_color(c);
+            entry.fill.render();
+        }
+    glsafe(::glPolygonOffset(0.0f, 0.0f));
+    glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glDisable(GL_CULL_FACE));
+
+    for (PeriodicBandModel &entry : m_periodic_band_models)
+        if (entry.outline.is_initialized() && entry.filament >= 1 &&
+            size_t(entry.filament) <= m_extruders_colors.size()) {
+            ColorRGBA c = m_extruders_colors[entry.filament - 1];
+            c.a(1.f);   // opaque: a palette color may carry its own alpha
+            entry.outline.set_color(c);
+            entry.outline.render();
+        }
+
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glDepthFunc(prev_depth_func));
+}
+
+void GLGizmoMmuSegmentation::load_periodic_patterns()
+{
+    const ModelObject *mo = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr;
+    if (mo == m_periodic_patterns_object)
+        return;
+    // Selection or model changed: reset the edit and preview state.
+    m_periodic_bands_key.clear();
+    m_periodic_patterns_object      = mo;
+    m_periodic_patterns             = PeriodicRecolorPatterns();
+    m_periodic_patterns_before_edit.clear();
+    m_periodic_patterns_dirty       = false;
+    if (mo != nullptr && mo->config.has("periodic_recolor_patterns")) {
+        // Start the undo baseline from the stored patterns, so the first undo does not erase patterns loaded from a project.
+        m_periodic_patterns_before_edit = mo->config.get().option<ConfigOptionFloats>("periodic_recolor_patterns")->values;
+        m_periodic_patterns             = PeriodicRecolorPatterns::from_doubles(m_periodic_patterns_before_edit);
+    }
+}
+
+void GLGizmoMmuSegmentation::flush_periodic_patterns()
+{
+    if (! m_periodic_patterns_dirty)
+        return;
+    // Clear before committing: commit posts events that can call back here, which would commit twice.
+    m_periodic_patterns_dirty = false;
+
+    // Drop the edit if the selection moved on, or it would be written onto another object.
+    const CommonGizmosDataObjects::SelectionInfo *sel = m_c != nullptr ? m_c->selection_info() : nullptr;
+    const ModelObject *mo = sel != nullptr ? sel->model_object() : nullptr;
+    if (mo == nullptr || mo != m_periodic_patterns_object)
+        return;
+
+    // Also drop it if the stored patterns changed since the edit began, e.g. an undo that data_changed() has not
+    // reported yet; committing would put the undone value back.
+    const std::vector<double> current = mo->config.has("periodic_recolor_patterns") ?
+        mo->config.get().option<ConfigOptionFloats>("periodic_recolor_patterns")->values : std::vector<double>();
+    if (current != m_periodic_patterns_before_edit) {
+        // Force a reload, so the panel shows what is stored.
+        m_periodic_patterns_object = nullptr;
+        return;
+    }
+
+    this->commit_periodic_patterns();
+}
+
+void GLGizmoMmuSegmentation::commit_periodic_patterns()
+{
+    ModelObject *mo = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr;
+    if (mo == nullptr)
+        return;
+
+    const std::vector<double> values = m_periodic_patterns.to_doubles();
+    const std::vector<double> current = mo->config.has("periodic_recolor_patterns") ?
+        mo->config.get().option<ConfigOptionFloats>("periodic_recolor_patterns")->values : std::vector<double>();
+    if (values == current)
+        return;
+
+    // The config still holds the pre-edit patterns, so the snapshot keeps them for undo. Then apply the new ones.
+    {
+        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Periodic recoloring", UndoRedo::SnapshotType::GizmoAction);
+        if (values.empty())
+            mo->config.erase("periodic_recolor_patterns");
+        else
+            mo->config.set_key_value("periodic_recolor_patterns", new ConfigOptionFloats(values));
+    }
+    m_periodic_patterns_before_edit = values;
+
+    // No update_info_items(): none of the object list's info items shows patterns.
+    m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+    m_parent.set_as_dirty();
+}
+
+void GLGizmoMmuSegmentation::render_periodic_recolor_ui(float window_width, float sliders_left_width, float sliders_width,
+                                                        float drag_left_width, float slider_icon_width,
+                                                        float scale)
+{
+    // Swatches per line in a pattern row, matching the painting swatches at the top of the panel.
+    constexpr size_t PERIODIC_SWATCHES_PER_LINE = 8;
+
+    this->load_periodic_patterns();
+    if (m_periodic_patterns_object == nullptr)
+        return;
+
+    const size_t num_filaments = std::min((size_t) EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
+    const int    instance_idx  = m_parent.get_selection().get_instance_idx();
+    double object_min_z = 0., object_height = 0.;
+    if (instance_idx >= 0 && instance_idx < int(m_periodic_patterns_object->instances.size()))
+        periodic_instance_z(*m_periodic_patterns_object, size_t(instance_idx), object_min_z, object_height);
+    const float height_slider_max = float(object_height);
+    // Round values to the fields' three decimals which can handle up to 1000 mm in magnitude.
+    constexpr double FIELD_SCALE = 1000.;  // Multiply and divide by this constant to round the "%.3f" formats below
+
+    m_imgui->text_wrapped(_L("Recolor features by repeating height bands periodically. See the results in Preview."), window_width);
+    m_imgui->text_wrapped(_L("Start and End elevations are measured from the bottom of the object."), window_width);
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
+
+    // Feature dropdown entries, labeled same as the Preview legend.
+    std::vector<std::string> role_labels;
+    role_labels.reserve(PERIODIC_RECOLOR_ROLES.size());
+    for (ExtrusionRole role : PERIODIC_RECOLOR_ROLES)
+        role_labels.emplace_back(into_u8(_L(ExtrusionEntity::role_to_string(role))));
+
+    // Size the dropdown to its widest label to not cut off long extrusion role names
+    float role_combo_width = sliders_width;
+    for (const std::string &label : role_labels)
+        role_combo_width = std::max(role_combo_width, ImGui::CalcTextSize(label.c_str()).x);
+    role_combo_width += 3.f * ImGui::GetFontSize();   // dropdown arrow and frame padding
+
+    // Slider and drag edits change every frame, so commit on release rather than taking an undo snapshot and re-slicing every frame.
+    bool changed  = false;
+    // Set when a slider or numeric field finishes its own edit this frame.
+    bool finished = false;
+    int  to_erase = -1;
+
+    // Mixed filament swatches are disabled.
+    const PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    // 0 when every filament is mixed, which disables Add pattern.
+    int first_selectable = 0;
+    for (size_t f = 0; f < num_filaments && first_selectable == 0; ++f)
+        if (! preset_bundle.is_mixed_filament(f))
+            first_selectable = int(f + 1);
+
+    for (size_t idx = 0; idx < m_periodic_patterns.patterns.size(); ++idx) {
+        PeriodicRecolorPattern &pattern = m_periodic_patterns.patterns[idx];
+        ImGui::PushID(int(idx));
+
+        // Shade every other pattern. Its height is known only after its controls are drawn, so the controls go on the front
+        // draw channel and the shading is added to the back channel afterward.
+        ImDrawList *pattern_dl = ImGui::GetWindowDrawList();
+        pattern_dl->ChannelsSplit(2);
+        pattern_dl->ChannelsSetCurrent(1);
+        ImGui::BeginGroup();
+
+        // A collapsible heading per pattern
+        const ImVec4 pattern_head       = m_is_dark_mode ? ImGuiWrapper::COL_SEPARATOR_DARK : ImGuiWrapper::COL_SEPARATOR;
+        const ImVec4 pattern_head_hover = m_is_dark_mode ? ImGuiWrapper::COL_GREY_LIGHT     : ImGuiWrapper::COL_TITLE_BG;
+        ImGui::PushStyleColor(ImGuiCol_Header,        pattern_head);
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, pattern_head_hover);
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive,  pattern_head_hover);
+        // The title names the feature, so a collapsed pattern still shows it. The ID is fixed ("##pattern"), so changing
+        // the feature does not collapse or expand the pattern.
+        const std::string pattern_title = into_u8(GUI::format(_L("Pattern %1% - %2%"), idx + 1,
+                                                              _L(ExtrusionEntity::role_to_string(pattern.role))));
+        const bool pattern_open = ImGui::TreeNodeEx("##pattern", ImGuiTreeNodeFlags_Framed |
+                                                          ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                          ImGuiTreeNodeFlags_FramePadding |
+                                                          ImGuiTreeNodeFlags_DefaultOpen,
+                                                   "%s", pattern_title.c_str());
+        ImGui::PopStyleColor(3);
+        // Use the heading's rect so the shading lines up with it.
+        const float pattern_x0 = ImGui::GetItemRectMin().x;
+        const float pattern_x1 = ImGui::GetItemRectMax().x;
+        if (pattern_open) {
+            changed |= m_imgui->bbl_checkbox("##pattern_enabled", pattern.enabled);
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            m_imgui->text(_L("Enabled"));
+
+            // Target filament swatches. Each pattern tracks its own filament.
+            m_imgui->text(_L("Filament") + ":");
+            for (size_t f = 0; f < num_filaments; ++f) {
+                // Wrap like the painting swatches
+                if (f == 0)
+                    ImGui::SameLine(sliders_left_width);
+                else if (f % PERIODIC_SWATCHES_PER_LINE != 0)
+                    ImGui::SameLine();
+                else
+                    ImGui::SetCursorPosX(sliders_left_width);
+                m_imgui->disabled_begin(preset_bundle.is_mixed_filament(f));
+                if (draw_color_button(int(f + 1), "###periodic_filament_", m_extruders_colors[f], m_extruders_colors[f],
+                                      pattern.filament == int(f + 1), scale)) {
+                    pattern.filament = int(f + 1);
+                    changed = true;
+                }
+                m_imgui->disabled_end();
+            }
+
+            const auto role_it = std::find(PERIODIC_RECOLOR_ROLES.begin(), PERIODIC_RECOLOR_ROLES.end(), pattern.role);
+            int role_idx = int(std::distance(PERIODIC_RECOLOR_ROLES.begin(), role_it));
+            if (render_combo(into_u8(_L("Feature") + ":"), role_labels, role_idx, sliders_left_width, role_combo_width)) {
+                pattern.role = PERIODIC_RECOLOR_ROLES[size_t(role_idx)];
+                changed = true;
+            }
+
+            auto value_row = [&](const wxString &label, const char *id, double &value, float min_v, float max_v) {
+                ImGui::AlignTextToFramePadding();
+                m_imgui->text(label + ":");
+                ImGui::SameLine(sliders_left_width);
+                ImGui::SetNextItemWidth(sliders_width);
+                float v = float(value);
+                const std::string fmt = std::string("%.3f ") + into_u8(_L("mm"));
+                bool edited = m_imgui->bbl_slider_float_style((std::string("##slider_") + id).c_str(), &v, min_v, max_v,
+                                                              fmt.c_str(), 1.0f, false);
+                finished |= ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::SameLine(drag_left_width + sliders_left_width);
+                ImGui::SetNextItemWidth(1.5f * slider_icon_width);
+                edited |= ImGui::BBLDragFloat((std::string("##input_") + id).c_str(), &v, 0.05f, 0.0f, 0.0f, "%.3f");
+                finished |= ImGui::IsItemDeactivatedAfterEdit();
+                if (edited) {
+                    value = std::round(double(v) * FIELD_SCALE) / FIELD_SCALE;
+                    m_periodic_patterns_dirty = true;
+                }
+            };
+
+            value_row(_L("Start"), "start", pattern.start, 0.f, height_slider_max);
+            value_row(_L("End"),   "end",   pattern.end,   0.f, height_slider_max);
+            value_row(_L("Period"), "period", pattern.period, 0.f,  50.f);
+
+            // Which point of the band sits at the marked height; slicing then rounds the band to whole
+            // layers near that point. Discrete, so it commits immediately.
+            ImGui::AlignTextToFramePadding();
+            m_imgui->text(_L("Alignment") + ":");
+            ImGui::SameLine(sliders_left_width);
+            {
+                int alignment_idx = int(pattern.alignment);
+                // Reuse the "Alignment" translations of Top, Middle and Bottom; camera views and layer surfaces translate them differently.
+                // push_radio_style() is required: this panel does not set ImGuiCol_CheckMark, so the selected radio would look
+                // unselected. Cut, Emboss and SVG do the same.
+                ImGuiWrapper::push_radio_style(m_parent.get_scale());
+                bool alignment_changed = ImGui::RadioButton(into_u8(_L_CONTEXT("Top", "Alignment")).c_str(),
+                                                            &alignment_idx, int(PeriodicRecolorAlignment::Top));
+                ImGui::SameLine();
+                alignment_changed |= ImGui::RadioButton(into_u8(_L_CONTEXT("Middle", "Alignment")).c_str(),
+                                                        &alignment_idx, int(PeriodicRecolorAlignment::Middle));
+                ImGui::SameLine();
+                alignment_changed |= ImGui::RadioButton(into_u8(_L_CONTEXT("Bottom", "Alignment")).c_str(),
+                                                        &alignment_idx, int(PeriodicRecolorAlignment::Bottom));
+                ImGuiWrapper::pop_radio_style();
+                if (alignment_changed) {
+                    // Only the alignment changes; `start` stays as the user typed it.
+                    pattern.alignment = PeriodicRecolorAlignment(alignment_idx);
+                    changed = true;
+                }
+            }
+
+            value_row(_L("Band thickness"), "band", pattern.band_vertical_height, 0.f, 20.f);
+
+            if (! pattern.is_valid(num_filaments))
+                m_imgui->warning_text(_L("This pattern is incomplete and will be ignored."));
+
+            if (m_imgui->button(_L("Remove")))
+                to_erase = int(idx);
+
+            ImGui::TreePop();
+        }
+
+        ImGui::EndGroup();
+        pattern_dl->ChannelsSetCurrent(0);
+        if (idx % 2 == 1) {
+            const float pad = ImGui::GetStyle().ItemSpacing.y * 0.5f;
+            // The heading's color at lower alpha, so the two stay consistent.
+            ImVec4 wash_col = m_is_dark_mode ? ImGuiWrapper::COL_SEPARATOR_DARK : ImGuiWrapper::COL_SEPARATOR;
+            wash_col.w = 0.45f;
+            const ImU32 wash = ImGui::GetColorU32(wash_col);
+            pattern_dl->AddRectFilled(ImVec2(pattern_x0, ImGui::GetItemRectMin().y - pad),
+                                      ImVec2(pattern_x1, ImGui::GetItemRectMax().y + pad), wash);
+        }
+        pattern_dl->ChannelsMerge();
+        ImGui::PopID();
+    }
+
+    // Extra space before Add pattern, which acts on the whole list, not the pattern above.
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
+
+    m_imgui->disabled_begin(first_selectable == 0);
+    if (m_imgui->button(_L("Add pattern"))) {
+        PeriodicRecolorPattern pattern;
+        // Use the previous pattern's filament if it is still targetable, otherwise the first non-mixed filament.
+        const int previous = m_periodic_patterns.patterns.empty() ? 0 : m_periodic_patterns.patterns.back().filament;
+        const bool previous_ok = previous >= 1 && size_t(previous) <= num_filaments &&
+                                 ! preset_bundle.is_mixed_filament(size_t(previous - 1));
+        pattern.filament             = previous_ok ? previous : first_selectable;
+        // Rounded like a typed value, so the stored End matches the field.
+        pattern.end                  = std::round(object_height * FIELD_SCALE) / FIELD_SCALE;
+        pattern.band_vertical_height = 1.;
+        pattern.period               = 5.;
+        // Start at the band thickness: a mark at 0 gives Top and Middle no layer to place a band on. With the default Top
+        // alignment the first band then starts at the object's bottom.
+        pattern.start                = pattern.band_vertical_height;
+        m_periodic_patterns.patterns.emplace_back(pattern);
+        changed = true;
+    }
+    m_imgui->disabled_end();
+
+    if (to_erase >= 0) {
+        m_periodic_patterns.patterns.erase(m_periodic_patterns.patterns.begin() + to_erase);
+        changed = true;
+    }
+
+    // Commit an unfinished edit once its widget is released or nothing is active. Both checks need the dirty flag,
+    // so a finish that arrives after data_changed() dropped the edit does not restore it.
+    if (changed || (m_periodic_patterns_dirty && (finished || ! ImGui::IsAnyItemActive()))) {
+        this->commit_periodic_patterns();
+        m_periodic_patterns_dirty = false;
     }
 }
 

@@ -14,6 +14,7 @@
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
 #include "GCode/SpiralVase.hpp"
 #include "GCode/ToolOrdering.hpp"
+#include "PeriodicRecolor.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/SeamPlacer.hpp"
 #include "GCode/GCodeProcessor.hpp"
@@ -649,6 +650,10 @@ private:
         std::set<size_t> layer_object_label_ids;
     };
     FarthestPointTimelapseContext m_farthest_point_timelapse;
+
+    // Periodic recolor plans, one per object, cached because building one walks every layer.
+    std::map<const PrintObject *, PeriodicRecolorPlan> m_periodic_recolor_plans;
+    const PeriodicRecolorPlan &periodic_recolor_plan(const PrintObject &object);
 
     bool                                m_enable_loop_clipping;
     //resonance avoidance

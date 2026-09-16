@@ -2,6 +2,7 @@
 #include "Model.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
+#include "PeriodicRecolor.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
@@ -1195,6 +1196,30 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
+// Orca: used filaments plus this print's pattern filaments. normalize_fdm_2() turns the prime tower off when it counts a single
+// filament, so a filament only a pattern uses must be counted. Read from the model's patterns, since object configs
+// are not refreshed from the incoming config yet.
+static std::vector<unsigned int> logical_filaments(const std::vector<unsigned int> &used_filaments,
+                                                   const Model                     &model,
+                                                   const DynamicPrintConfig        &full_config)
+{
+    // On the first apply() nothing is applied yet, so used_filaments is empty. Keep it empty: adding only pattern
+    // filaments would count one filament and switch the tower off.
+    if (used_filaments.empty())
+        return {};
+
+    std::vector<unsigned int> logical = used_filaments;
+    const auto *diameters = full_config.option<ConfigOptionFloats>("filament_diameter");
+    const size_t num_filaments = diameters != nullptr ? diameters->size() : 0;
+    for (const ModelObject *mo : model.objects)
+        // Objects on other plates, or not printable, have no printable instance and are not in this print.
+        if (std::any_of(mo->instances.begin(), mo->instances.end(),
+                        [](const ModelInstance *mi) { return mi->is_printable(); }))
+            periodic_recolor_patterns_of(mo->config.get()).collect_filaments(num_filaments, logical);
+    sort_remove_duplicates(logical);
+    return logical;
+}
+
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
@@ -1223,9 +1248,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
+    // Orca: pattern filaments count as used, both for normalize_fdm_2() below and for `used_filament_set`, whose
+    // filament_map change check skips unused slots and would miss a nozzle map change on a pattern-only filament.
+    const std::vector<unsigned int> logical = logical_filaments(used_filaments, model, new_full_config);
+    used_filament_set.insert(logical.begin(), logical.end());
+
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
-    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
+    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(
+        objects().size(), (int) logical.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
         for (int i = 0; i < changed_keys.size(); i++)
@@ -1838,7 +1869,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     }
 
     //BBS: check the config again
-    int new_used_filaments = this->extruders(true).size();
+    int new_used_filaments = (int) logical_filaments(this->extruders(true), m_model, new_full_config).size();
     t_config_option_keys new_changed_keys = new_full_config.normalize_fdm_2(objects().size(), new_used_filaments);
     if (new_changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got new_changed_keys, size=%1%")%new_changed_keys.size();

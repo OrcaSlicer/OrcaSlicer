@@ -14,6 +14,7 @@
 #include "Tab.hpp"
 #include "wxExtensions.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PeriodicRecolor.hpp"
 #include "GLCanvas3D.hpp"
 #include "Selection.hpp"
 #include "PartPlate.hpp"
@@ -1066,6 +1067,19 @@ void ObjectList::update_objects_list_filament_column_when_delete_filament(size_t
     // a workaround for a wrong last column width updating under OSX
     GetColumn(colEditing)->SetWidth(25);
 
+    // Orca: patterns store filament ids in a vector option the fixups above cannot see, so update them here. Deleting a
+    // filament below a pattern's filament would otherwise make the pattern print with a different one. As with the
+    // object's `extruder`, the deleted filament becomes `replace_filament_id` and later ones shift down; with no
+    // replacement, patterns on it are disabled. Covers every object, not just the listed rows.
+    if (m_objects)
+        for (ModelObject *mo : *m_objects) {
+            PeriodicRecolorPatterns patterns = periodic_recolor_patterns_of(mo->config.get());
+            if (patterns.patterns.empty())
+                continue;
+            patterns.delete_filament(filament_id, replace_filament_id);
+            mo->config.set_key_value("periodic_recolor_patterns", new ConfigOptionFloats(patterns.to_doubles()));
+        }
+
     m_prevent_update_filament_in_config = false;
 }
 
@@ -1381,7 +1395,12 @@ void ObjectList::paste_settings_into_list()
         auto part_options = SettingsFactory::get_options(true);
         auto config       = &get_item_config(item);
         auto extruder     = config->option("extruder") ? config->option("extruder")->clone() : nullptr;
+        // Orca: keep this object's patterns and don't paste the source's: band heights are measured from each object's
+        // own bottom.
+        auto patterns     = config->option("periodic_recolor_patterns") ? config->option("periodic_recolor_patterns")->clone() : nullptr;
         config->reset();
+        if (patterns)
+            config->set_key_value("periodic_recolor_patterns", patterns);
 
         if (item_type & (itVolume | itLayer)) {
             if (global_keys == nullptr) {
@@ -1401,6 +1420,8 @@ void ObjectList::paste_settings_into_list()
         }
 
         for (const std::string& opt_key: keys) {
+            if (opt_key == "periodic_recolor_patterns")
+                continue; // Orca: kept from this object above
             if (item_type & (itVolume | itLayer) &&
                 std::find(part_options.begin(), part_options.end(), opt_key) == part_options.end())
                 continue; // we can't to add object specific options for the part's(itVolume | itLayer) config
@@ -2734,12 +2755,18 @@ void ObjectList::del_settings_from_config(const wxDataViewItem& parent_item)
     if (is_layer_settings)
         layer_height = m_config->opt_float("layer_height");
 
+    // Orca: keep the patterns, like `extruder`. They are edited in the Color Painting tool and not shown in the
+    // settings list, so deleting settings should not remove them.
+    auto patterns = m_config->option("periodic_recolor_patterns") ? m_config->option("periodic_recolor_patterns")->clone() : nullptr;
+
     m_config->reset();
 
     if (extruder >= 0)
         m_config->set_key_value("extruder", new ConfigOptionInt(extruder));
     if (is_layer_settings)
         m_config->set_key_value("layer_height", new ConfigOptionFloat(layer_height));
+    if (patterns)
+        m_config->set_key_value("periodic_recolor_patterns", patterns);
 
     changed_object();
 }
@@ -3045,6 +3072,8 @@ void ObjectList::merge(bool to_multipart_object)
         // resulted objects merge to the one
         Model* model = (*m_objects)[0]->get_model();
         ModelObject* new_object = model->add_object();
+        // Set when any source object carried patterns, so the merge can report dropping them.
+        bool dropped_periodic_recolor = false;
         new_object->name = _u8L("Assembly");
         ModelConfig &config = new_object->config;
 
@@ -3108,6 +3137,12 @@ void ObjectList::merge(bool to_multipart_object)
             auto opt_keys = from_config.keys();
 
             for (auto& opt_key : opt_keys) {
+                // Orca: drop patterns. Their heights are measured from each source object's bottom, so after merging they would
+                // land at the wrong heights.
+                if (opt_key == "periodic_recolor_patterns") {
+                    dropped_periodic_recolor |= ! periodic_recolor_patterns_of(from_config.get()).patterns.empty();
+                    continue;
+                }
                 if (find(new_opt_keys.begin(), new_opt_keys.end(), opt_key) == new_opt_keys.end()) {
                     const ConfigOption* option = from_config.option(opt_key);
                     if (!option) {
@@ -3148,6 +3183,14 @@ void ObjectList::merge(bool to_multipart_object)
                 new_object->brim_points.push_back(p);
             }
         }
+
+        // Orca: tell the user the merge removed their patterns.
+        if (dropped_periodic_recolor)
+            wxGetApp().plater()->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::WarningNotificationLevel,
+                into_u8(_L("Periodic recoloring patterns were removed by the merge, because their heights "
+                           "are measured from the bottom of each original object.")));
 
         //BBS: ensure on bed, and no need to center around origin
         new_object->ensure_on_bed();
