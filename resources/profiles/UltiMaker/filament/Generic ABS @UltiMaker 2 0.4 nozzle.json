@@ -1,0 +1,42 @@
+{
+	"type": "filament",
+  "name": "Generic ABS @UltiMaker 2 0.4 nozzle",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"setting_id": "z65YPRPvIareA5TJ",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"fan_max_speed": [
+		"50"
+	],
+	"overhang_fan_speed": [
+		"50"
+	],
+	"fan_cooling_layer_time": [
+		"15"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"compatible_printers": [
+    "UltiMaker 2 0.4 nozzle"
+	]
+}

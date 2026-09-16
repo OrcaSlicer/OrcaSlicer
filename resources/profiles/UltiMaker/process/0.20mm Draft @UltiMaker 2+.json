@@ -1,0 +1,11 @@
+{
+  "type": "process",
+  "name": "0.20mm Draft @UltiMaker 2+",
+  "inherits": "0.20mm Draft @UltiMaker 2",
+  "from": "system",
+  "setting_id": "YYBsvqtDRBbOVymM",
+  "instantiation": "true",
+  "compatible_printers": [
+    "UltiMaker 2+ 0.4 nozzle"
+  ]
+}

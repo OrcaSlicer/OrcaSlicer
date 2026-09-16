@@ -1,0 +1,18 @@
+{
+  "type": "filament",
+  "name": "Generic PLA @UltiMaker 2 0.6 nozzle",
+  "inherits": "Generic PLA @UltiMaker 2 0.4 nozzle",
+  "from": "system",
+  "setting_id": "yvWYFuY9SPIwwSVG",
+  "filament_id": "GFL99",
+  "instantiation": "true",
+  "filament_diameter": [
+    "2.85"
+  ],
+  "filament_max_volumetric_speed": [
+    "8"
+  ],
+  "compatible_printers": [
+    "UltiMaker 2 0.6 nozzle"
+  ]
+}
