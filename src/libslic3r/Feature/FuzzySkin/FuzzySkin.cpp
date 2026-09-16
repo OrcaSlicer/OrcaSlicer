@@ -38,7 +38,7 @@ class UniformNoise: public noise::module::Module {
         virtual double GetValue(double x, double y, double z) const { return random_value() * 2 - 1; }
 };
 
-static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinConfig& cfg) {
+std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinConfig& cfg) {
     if (cfg.noise_type == NoiseType::Perlin) {
         auto perlin_noise = noise::module::Perlin();
         perlin_noise.SetFrequency(1 / cfg.noise_scale);
