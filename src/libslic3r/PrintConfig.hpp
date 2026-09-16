@@ -2248,6 +2248,14 @@ public:
     OtherPresetsConfigDef();
 };
 
+class FunctionsConfigDef : public ConfigDef {
+public:
+    FunctionsConfigDef();
+
+protected:
+    ConfigOptionDef* add_function(const t_config_option_key &function);
+};
+
 // This classes defines all custom G-code specific placeholders.
 class CustomGcodeSpecificConfigDef : public ConfigDef
 {
@@ -2255,6 +2263,7 @@ public:
     CustomGcodeSpecificConfigDef();
 };
 extern const CustomGcodeSpecificConfigDef    custom_gcode_specific_config_def;
+extern const FunctionsConfigDef              functions_config_def;
 
 // This class defines the command line options representing actions.
 extern const CLIActionsConfigDef    cli_actions_config_def;
