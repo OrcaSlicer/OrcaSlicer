@@ -209,11 +209,26 @@ public:
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
     void sync_colour_config(const std::vector<std::string> &clrs, bool is_gradient);
+    // Open our gradient editor for the current filament (any filament, not just Bambu),
+    // seeded from project_config, and persist the result via sync_gradient_config.
+    void open_gradient_editor();
+    // Persist a full gradient (positioned stops + cycle length + start offset) into
+    // project_config alongside the native filament_colour_type / filament_multi_colour.
+    void sync_gradient_config(const std::string& stops_serialized,
+                              const std::vector<std::string>& colours,
+                              double cycle_length_mm, double start_offset_mm);
     void sys_color_changed() override;
 
 private:
     // BBS
     wxColor m_color;
+    // Guards against the gradient editor reopening when one right-click delivers
+    // both CONTEXT_MENU and RIGHT_UP events (platform-dependent).
+    bool m_gradient_editor_open { false };
+    // Time (ms) the editor last closed. A single right-click can deliver BOTH RIGHT_UP and
+    // CONTEXT_MENU; the second is queued behind the modal and fires right after it closes, so
+    // the boolean guard alone (which only blocks overlapping calls) can't stop the reopen.
+    long long m_gradient_editor_last_close_ms { 0 };
 };
 
 

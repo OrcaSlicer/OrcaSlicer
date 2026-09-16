@@ -99,6 +99,7 @@ enum class EViewType : uint8_t
     // ORCA: Add Jerk visualization support
     Jerk,
     Tool,
+    GradientFilament,
     COUNT
 };
 

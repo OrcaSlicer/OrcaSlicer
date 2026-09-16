@@ -496,6 +496,8 @@ set(lisbslic3r_sources
     VariableWidth.hpp
     Zipper.cpp
     Zipper.hpp
+    FilamentGradient.hpp
+    FilamentGradient.cpp
     FilamentGroup.hpp
     FilamentGroup.cpp
     FilamentGroupUtils.hpp
