@@ -3133,8 +3133,8 @@ void ObjectList::merge(bool to_multipart_object)
                 new_object->printable = false;
                 new_object->instances[0]->printable = false;
             }
-            if (object->instances[0]->auto_drop == false) {
-                new_object->instances[0]->auto_drop = false;
+            if (object->auto_drop == false) {
+                new_object->auto_drop = false;
             }
 
             // merge layers
@@ -6890,18 +6890,10 @@ void ObjectList::toggle_auto_drop()
 
         obj_idxs.emplace_back(static_cast<size_t>(obj_idx));
 
-        ItemType type = m_objects_model->GetItemType(item);
-        // set auto_drop value for selected instance/instances in object
-        if (type == itInstance) {
-            int inst_idx = m_objects_model->GetInstanceIdByItem(item);
-            obj->instances[inst_idx]->auto_drop = !current_auto_drop;
-        } else {
-            for (auto inst : obj->instances)
-                inst->auto_drop = !current_auto_drop;
-                
-        if (current_auto_drop == false) 
+        // auto_drop is shared by all instances of an object.
+        obj->auto_drop = !current_auto_drop;
+        if (current_auto_drop == false)
             obj->ensure_on_bed();
-        }
     }
 
     sort(obj_idxs.begin(), obj_idxs.end());
