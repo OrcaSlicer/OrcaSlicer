@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Tiertime 300HS",
+	"inherits": "fdm_filament_asa",
+	"renamed_from": "Tiertime Generic ASA@300HS;Tiertime Generic ASA300HS",
+	"from": "system",
+	"setting_id": "HLh2XxQuVOa86efy",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"compatible_printers": [
+		"Tiertime UP300 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.6 nozzle",
+		"Tiertime UP600 HS 0.8 nozzle"
+	]
+}

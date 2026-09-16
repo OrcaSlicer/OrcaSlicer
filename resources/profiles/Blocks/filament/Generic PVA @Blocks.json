@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @Blocks",
+	"inherits": "fdm_filament_pva",
+	"renamed_from": "Blocks Generic PVA",
+	"from": "system",
+	"setting_id": "tNw3oe7VovLkgUbB",
+	"filament_id": "OFDvXujf",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"compatible_printers": [
+		"BLOCKS RD50 V2 0.4 nozzle",
+		"BLOCKS RD50 V2 0.6 nozzle",
+		"BLOCKS RD50 V2 0.8 nozzle",
+		"BLOCKS RF50 0.4 nozzle",
+		"BLOCKS RF50 0.6 nozzle",
+		"BLOCKS RF50 0.8 nozzle"
+	]
+}

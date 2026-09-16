@@ -5,7 +5,6 @@
 	"inherits": "Generic PC @System",
 	"from": "system",
 	"setting_id": "HMOa2jbj19Xjipt5",
-	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_cooling_final_speed": [
 		"3.5"

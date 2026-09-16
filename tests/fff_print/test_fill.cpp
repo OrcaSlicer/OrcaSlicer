@@ -9,11 +9,13 @@
 #include <vector>
 
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SVG.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -675,6 +677,73 @@ TEST_CASE("Ironing follows the solid infill rotation template", "[Fill]")
     REQUIRE(compared > int(ironing.size()) / 2);
 }
 
+
+namespace {
+
+PrintRegionConfig ironing_config(IroningType type,
+                                 int top_surface_filament_id = 1,
+                                 int top_shell_layers        = 3,
+                                 int bottom_shell_layers     = 1)
+{
+    PrintRegionConfig cfg;
+    cfg.ironing_type.value            = type;
+    cfg.top_surface_filament_id.value = top_surface_filament_id;
+    cfg.top_shell_layers.value        = top_shell_layers;
+    cfg.bottom_shell_layers.value     = bottom_shell_layers;
+    cfg.outer_wall_filament_id.value  = 1;
+    cfg.wall_loops.value              = 2;
+    return cfg;
+}
+
+} // namespace
+
+TEST_CASE("Ironing an all-solid region uses the top surface filament on every layer", "[Fill]")
+{
+    const PrintRegionConfig cfg = ironing_config(IroningType::AllSolid, /*top_surface_filament_id=*/2);
+    const bool is_topmost_layer = GENERATE(false, true);
+    CAPTURE(is_topmost_layer);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, is_topmost_layer) == 2);
+}
+
+TEST_CASE("Ironing top surfaces uses the top surface filament when the region has top shells", "[Fill]")
+{
+    const PrintRegionConfig cfg = ironing_config(IroningType::TopSurfaces,
+                                                 /*top_surface_filament_id=*/3,
+                                                 /*top_shell_layers=*/2);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, /*is_topmost_layer=*/false) == 3);
+}
+
+TEST_CASE("Ironing top surfaces without top shells needs spiral mode and more than one bottom shell", "[Fill]")
+{
+    const PrintRegionConfig one_bottom_shell = ironing_config(IroningType::TopSurfaces,
+                                                              /*top_surface_filament_id=*/1,
+                                                              /*top_shell_layers=*/0,
+                                                              /*bottom_shell_layers=*/1);
+    const PrintRegionConfig two_bottom_shells = ironing_config(IroningType::TopSurfaces,
+                                                               /*top_surface_filament_id=*/1,
+                                                               /*top_shell_layers=*/0,
+                                                               /*bottom_shell_layers=*/2);
+
+    REQUIRE(Layer::choose_ironing_extruder(two_bottom_shells, /*spiral_mode=*/true, /*is_topmost_layer=*/false) == 1);
+    REQUIRE(Layer::choose_ironing_extruder(one_bottom_shell, /*spiral_mode=*/true, /*is_topmost_layer=*/false) == -1);
+    REQUIRE(Layer::choose_ironing_extruder(two_bottom_shells, /*spiral_mode=*/false, /*is_topmost_layer=*/false) == -1);
+}
+
+TEST_CASE("Ironing the topmost surface only applies to the topmost layer", "[Fill]")
+{
+    const PrintRegionConfig cfg = ironing_config(IroningType::TopmostOnly, /*top_surface_filament_id=*/4);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, /*is_topmost_layer=*/true) == 4);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, /*is_topmost_layer=*/false) == -1);
+}
+
+TEST_CASE("A region with ironing turned off is never ironed", "[Fill]")
+{
+    const PrintRegionConfig cfg = ironing_config(IroningType::NoIroning);
+    const bool spiral_mode      = GENERATE(false, true);
+    CAPTURE(spiral_mode);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, spiral_mode, /*is_topmost_layer=*/true) == -1);
+}
+
 TEST_CASE("Solid infill direction offsets every layer when no template is set", "[Fill]")
 {
     auto angles_for = [](int direction) {
@@ -1228,4 +1297,69 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+}
+
+TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][InternalBridge][Regression]")
+{
+    // Orca: Compare generated anchors with actual extrusion across plane-path patterns,
+    // smoothing, multiline and rotations; an origin shift must not pass as valid support.
+    const std::string pattern = GENERATE("hilbertcurve", "octagramspiral", "archimedeanchords");
+    const std::string smoothing = GENERATE("0%", "100%");
+    const int multiline = GENERATE(1, 2);
+    const bool rotated = GENERATE(false, true);
+    const bool separated = GENERATE(false, true);
+    CAPTURE(pattern, smoothing, multiline, rotated, separated);
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"sparse_infill_smooth_factor", smoothing},
+                                   {"fill_multiline", multiline},
+                                   {"infill_direction", 45},
+                                   {"sparse_infill_rotate_template", rotated ? "0,25,50" : ""},
+                                   {"align_infill_direction_to_model", rotated},
+                                   {"separated_infills", separated},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"top_shell_thickness", 0},
+                                   {"bottom_shell_thickness", 0},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"resolution", 0.012}});
+    Print print;
+    Model model;
+    TriangleMesh mesh = make_cube(30, 24, 1);
+    if (separated) {
+        // Orca: Two disconnected bodies in one object must each use their own infill origin.
+        TriangleMesh second = make_cube(30, 24, 1);
+        second.translate(50, 0, 0);
+        mesh.merge(second);
+    }
+    Slic3r::Test::init_print({mesh}, print, model, config, nullptr, false);
+    if (rotated) {
+        model.objects.front()->instances.front()->set_rotation(Vec3d(0., 0., Geometry::deg2rad(23.)));
+        print.apply(model, config);
+    }
+    print.process();
+
+    const Layer &layer = *print.objects().front()->get_layer(4);
+    Polylines printed;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == erInternalInfill)
+                entity->collect_polylines(printed);
+    REQUIRE_FALSE(printed.empty());
+    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
+
+    // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr),
+                                              shrink(to_polygons(layer.lslices), scale_(3.)));
+    REQUIRE_FALSE(anchors.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : anchors)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
+    // Orca: Allow only the configured simplification tolerance; infill-scale offsets
+    // would hide anchors that no longer coincide with printed lines.
+    CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
 }

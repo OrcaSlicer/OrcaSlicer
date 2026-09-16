@@ -20,6 +20,8 @@
 #include <set>
 
 #include <wx/choice.h>
+#include <wx/filename.h>
+#include <wx/filesys.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 

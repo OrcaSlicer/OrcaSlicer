@@ -178,7 +178,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         wxBoxSizer *sizer_1line = new wxBoxSizer(wxHORIZONTAL);
         m_msg                   = new wxStaticText(m_panel_1line, wxID_ANY, wxEmptyString, wxDefaultPosition, PROGRESSDIALOG_SIMPLEBOOK_SIZE, 0);
         m_msg->Wrap(-1);
-        m_msg->SetFont(::Label::Body_13);
+        m_msg->SetFont(::Label::Body_14);
         m_msg->SetForegroundColour(PROGRESSDIALOG_GREY_700);
         sizer_1line->Add(m_msg, 0, wxALIGN_CENTER, 0);
         m_panel_1line->SetSizer(sizer_1line);
@@ -188,7 +188,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         wxBoxSizer *sizer_2line = new wxBoxSizer(wxVERTICAL);
         m_msg_2line             = new wxStaticText(m_panel_2line, wxID_ANY, wxEmptyString, wxDefaultPosition, PROGRESSDIALOG_SIMPLEBOOK_SIZE, 0);
         m_msg_2line->Wrap(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x);
-        m_msg_2line->SetFont(::Label::Body_13);
+        m_msg_2line->SetFont(::Label::Body_14);
         m_msg_2line->SetForegroundColour(PROGRESSDIALOG_GREY_700);
         m_msg_2line->SetMaxSize(wxSize(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x, -1));
         sizer_2line->Add(m_msg_2line, 1, wxALL, 0);
@@ -204,7 +204,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
 
         m_msg = new wxStaticText(m_msg_scrolledWindow, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x, -1), 0);
         m_msg->Wrap(PROGRESSDIALOG_SIMPLEBOOK_SIZE.x);
-        m_msg->SetFont(::Label::Body_13);
+        m_msg->SetFont(::Label::Body_14);
         m_msg->SetForegroundColour(PROGRESSDIALOG_GREY_700);
 
         m_msg_sizer->Add(m_msg, 0, wxEXPAND | wxALL, 0);
@@ -228,6 +228,9 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
     if (!HasPDFlag(wxPD_NO_PROGRESS)) {
         m_gauge = new wxGauge(this, wxID_ANY, maximum, wxDefaultPosition, PROGRESSDIALOG_GAUGE_SIZE, gauge_style);
         m_gauge->SetValue(0);
+        m_gauge->SetForegroundColour(wxColour("#009688"));
+        m_gauge->SetBackgroundColour(wxColour("#D9D9D9"));
+        wxGetApp().UpdateDarkUI(m_gauge);
         m_sizer_main->Add(m_gauge, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(28));
     }
 

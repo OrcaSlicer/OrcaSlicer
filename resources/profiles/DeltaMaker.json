@@ -1,7 +1,7 @@
 {
 	"name": "DeltaMaker",
 	"url": "",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "DeltaMaker configurations",
 	"machine_model_list": [
@@ -58,20 +58,20 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "DeltaMaker Generic PETG",
-			"sub_path": "filament/DeltaMaker Generic PETG.json"
+			"name": "Generic PETG @DeltaMaker",
+			"sub_path": "filament/Generic PETG @DeltaMaker.json"
 		},
 		{
 			"name": "DeltaMaker Brand PLA",
 			"sub_path": "filament/DeltaMaker Brand PLA.json"
 		},
 		{
-			"name": "DeltaMaker Generic PLA",
-			"sub_path": "filament/DeltaMaker Generic PLA.json"
+			"name": "Generic PLA @DeltaMaker",
+			"sub_path": "filament/Generic PLA @DeltaMaker.json"
 		},
 		{
-			"name": "DeltaMaker Generic TPU",
-			"sub_path": "filament/DeltaMaker Generic TPU.json"
+			"name": "Generic TPU @DeltaMaker",
+			"sub_path": "filament/Generic TPU @DeltaMaker.json"
 		}
 	],
 	"machine_list": [

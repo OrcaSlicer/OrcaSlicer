@@ -3,7 +3,7 @@ import json
 import argparse
 from pathlib import Path
 
-from assign_vendor_setting_ids import generate_preset_setting_id
+from orca_id_tool import generate_preset_setting_id, check_filament_ids
 
 OBSOLETE_KEYS = {
     "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
@@ -289,17 +289,37 @@ def check_name_consistency(profiles_dir, vendor_name):
     
     return error_count, 0
 
-def check_filament_id(vendor, vendor_folder):
+def check_filament_id(profiles_dir, vendor_name):
     """
-    Make sure filament_id is not longer than 8 characters, otherwise AMS won't work properly
+    Make sure filament_id is not longer than 8 characters, otherwise AMS won't work properly.
+
+    Runs tree-wide, every vendor alike (BBL included: the id format is what
+    matters, not the vendor). Every .json file under the vendor's filament
+    directory is still parsed through the duplicate-key hook below, so that
+    coverage is unchanged; only the length rule itself is scoped to presets
+    the vendor's index (<vendor>.json filament_list) actually references. A
+    file the index does not reference never loads, so its filament_id length
+    cannot break AMS -- and some vendors (e.g. SeeMeCNC) ship such orphaned
+    files pre-dating this check, with no bearing on what ships.
     """
-    if vendor not in ('BBL', 'OrcaFilamentLibrary'):
-        return 0
-    
     error = 0
-    vendor_path = Path(vendor_folder)
+    vendor_path = profiles_dir / vendor_name / "filament"
     if not vendor_path.exists():
         return 0
+
+    referenced = set()
+    vendor_file = profiles_dir / (vendor_name + ".json")
+    if vendor_file.exists():
+        try:
+            with open(vendor_file, 'r', encoding='UTF-8') as fp:
+                index = json.load(fp)
+            for entry in index.get('filament_list', []):
+                sub_path = entry.get('sub_path')
+                if sub_path:
+                    referenced.add((profiles_dir / vendor_name / sub_path).resolve())
+        except Exception as e:
+            print_error(f"Error loading vendor profile {vendor_file}: {e}")
+            error += 1
 
     # Use rglob to recursively find .json files.
     for file_path in vendor_path.rglob("*.json"):
@@ -318,13 +338,13 @@ def check_filament_id(vendor, vendor_folder):
 
         if 'filament_id' not in data:
             continue
-            
+
         filament_id = data['filament_id']
 
-        if len(filament_id) > 8:
+        if len(filament_id) > 8 and file_path.resolve() in referenced:
             error += 1
             print_error(f"Filament id too long \"{filament_id}\": {file_path}")
-    
+
     return error
 
 def check_obsolete_keys(profiles_dir, vendor_name):
@@ -467,10 +487,11 @@ PROFILE_SUBDIRS = ("filament", "process", "machine")
 
 def check_setting_id_uniqueness(profiles_dir):
     """
-    Validate setting_id across every vendor (see scripts/assign_vendor_setting_ids.py):
+    Validate setting_id across every vendor (see scripts/orca_id_tool.py):
       1. Every instantiated preset must HAVE a setting_id.            (all vendors)
       2. A stored setting_id must equal generate_preset_setting_id(vendor, type, name); a stale
-         value means the JSON was edited without rerunning assign_vendor_setting_ids.py.
+         value means the JSON was edited without rerunning
+         "python scripts/orca_id_tool.py --generate --setting-id".
          (all vendors EXCEPT the formula-exempt ones, e.g. BBL)
       3. Base profiles (instantiation != "true") must not carry a setting_id.  (all vendors)
       4. setting_id must be globally unique - no two files may share one.       (all vendors)
@@ -502,7 +523,8 @@ def check_setting_id_uniqueness(profiles_dir):
                     errors += 1
                     print_error(
                         f'profile {rel} uses the misspelled key "settings_id" '
-                        f'(should be "setting_id"); run assign_vendor_setting_ids.py'
+                        f'(should be "setting_id"); run '
+                        f'"python scripts/orca_id_tool.py --generate --setting-id"'
                     )
                 sid = data.get("setting_id")
                 instantiated = data.get("instantiation") == "true"
@@ -512,7 +534,8 @@ def check_setting_id_uniqueness(profiles_dir):
                         errors += 1
                         print_error(
                             f'base profile {rel} (instantiation != "true") must not have a '
-                            f'setting_id ("{sid}"); run assign_vendor_setting_ids.py'
+                            f'setting_id ("{sid}"); run '
+                            f'"python scripts/orca_id_tool.py --generate --setting-id"'
                         )
                     continue
                 # Rule 1: every instantiated preset must have a setting_id.
@@ -520,7 +543,7 @@ def check_setting_id_uniqueness(profiles_dir):
                     errors += 1
                     print_error(
                         f"instantiated preset {rel} is missing a setting_id; "
-                        f"run assign_vendor_setting_ids.py"
+                        f'run "python scripts/orca_id_tool.py --generate --setting-id"'
                     )
                     continue
                 # Rule 2: the stored id must match the deterministic rule. BBL keeps its
@@ -532,7 +555,7 @@ def check_setting_id_uniqueness(profiles_dir):
                         print_error(
                             f'setting_id "{sid}" in {rel} does not match the expected '
                             f'"{expected}" for {vendor}/{sub}/{data.get("name", "")}; '
-                            f"run assign_vendor_setting_ids.py"
+                            f'run "python scripts/orca_id_tool.py --generate --setting-id"'
                         )
                         continue
                 # Rule 4: collect for the global-uniqueness check below.
@@ -595,7 +618,7 @@ def main():
 
         errors_found += check_vector_type_keys(profiles_dir, vendor_name)
 
-        errors_found += check_filament_id(vendor_name, vendor_path / "filament")
+        errors_found += check_filament_id(profiles_dir, vendor_name)
         checked_vendor_count += 1
 
     if args.vendor:
@@ -609,6 +632,11 @@ def main():
     # Global (cross-vendor) check: setting_id must be unique and stay in-namespace.
     # Runs once over the whole tree regardless of the --vendor filter.
     errors_found += check_setting_id_uniqueness(profiles_dir)
+
+    # Global filament_id check (see scripts/orca_id_tool.py): effective ids
+    # are resolved loader-faithfully and validated against the sanctioned snapshot
+    # (scripts/filament_id_snapshot.json). Runs once over the whole tree.
+    errors_found += check_filament_ids(profiles_dir)
 
     # ✨ Output finale in stile "compilatore"
     print("\n==================== SUMMARY ====================")
