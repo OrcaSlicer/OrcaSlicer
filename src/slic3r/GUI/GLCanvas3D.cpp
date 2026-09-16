@@ -4270,9 +4270,11 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
             mouse_up_cleanup();
 
-        // Hovering an ImGui window only changes the overlay, unless a full frame is already pending.
+        // Hovering an ImGui window only changes the overlay.
         const bool overlay_only = evt.Moving() && !m_mouse.dragging;
-        _render_frame(!overlay_only || m_dirty);
+        // ImGui takes a press or a release only inside a frame. Motion is rendered from on_idle().
+        if (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick())
+            _render_frame(true);
 #ifdef SLIC3R_DEBUG_MOUSE_EVENTS
         printf((format_mouse_event_debug_message(evt) + " - Consumed by ImGUI\n").c_str());
 #endif /* SLIC3R_DEBUG_MOUSE_EVENTS */
