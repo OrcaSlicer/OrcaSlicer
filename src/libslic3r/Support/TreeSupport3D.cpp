@@ -1140,9 +1140,14 @@ void sample_overhang_area(
             Polygons forbidden_next;
             {
                 const bool min_xy_dist = interface_placer.config.xy_distance > interface_placer.config.xy_min_distance;
-                const Polygons &forbidden_next_raw = interface_placer.config.support_rests_on_model ?
-                    interface_placer.volumes.getCollision(interface_placer.config.getRadius(0), layer_idx - (dtt_roof + 1), min_xy_dist) :
-                    interface_placer.volumes.getAvoidance(interface_placer.config.getRadius(0), layer_idx - (dtt_roof + 1), TreeModelVolumes::AvoidanceType::Fast, false, min_xy_dist);
+                // ORCA: This loop (only reached for a horizontal roof) decides how far down the roof can still
+                // be carried as an interface layer. The roof rests on the branches generated below it and does
+                // not itself need to route to the build plate, so it is bounded by the model collision. With
+                // "support on build plate only" the previous code used the buildplate avoidance here, which
+                // covers the whole overhang and collapsed the roof to nothing, leaving the organic support with
+                // no interface layers. Bound it by collision, exactly like the support-on-model case.
+                const Polygons &forbidden_next_raw =
+                    interface_placer.volumes.getCollision(interface_placer.config.getRadius(0), layer_idx - (dtt_roof + 1), min_xy_dist);
                 // prevent rounding errors down the line
                 //FIXME maybe use SafetyOffset::Yes at the following diff() instead?
                 forbidden_next = offset(union_ex(forbidden_next_raw), scaled<float>(0.005), jtMiter, 1.2);
@@ -1427,7 +1432,17 @@ static void generate_initial_areas(
             if (roof_enabled) {
                 // Try to support the overhangs by dense interfaces for num_support_roof_layers, cover the bottom most interface with tree tips.
                 static constexpr const coord_t support_roof_offset = 0;
-                Polygons overhang_roofs = safe_offset_inc(overhang_raw, support_roof_offset, relevant_forbidden, config.min_radius * 2 + config.xy_min_distance, 0, 1);
+                // ORCA: For "support on build plate only", relevant_forbidden is the buildplate avoidance,
+                // which excludes overhang regions that cannot route a branch straight to the plate. That
+                // collapses the roof area and the whole overhang falls through to base support, leaving the
+                // organic support with no interface layers. The roof only needs to rest on the branches
+                // generated below it, so compute it against the model collision (like the support-on-model
+                // case) so interface is still produced over the supported overhang.
+                Polygons roof_forbidden = relevant_forbidden;
+                if (!config.support_rests_on_model)
+                    roof_forbidden = offset(union_ex(volumes.getCollision(config.getRadius(0), layer_idx, min_xy_dist)),
+                                            scaled<float>(0.005), jtMiter, 1.2);
+                Polygons overhang_roofs = safe_offset_inc(overhang_raw, support_roof_offset, roof_forbidden, config.min_radius * 2 + config.xy_min_distance, 0, 1);
                 if (mesh_group_settings.minimum_support_area > 0)
                     remove_small(overhang_roofs, mesh_group_settings.minimum_roof_area);
                 overhang_regular = diff(overhang_regular, overhang_roofs, ApplySafetyOffset::Yes);
