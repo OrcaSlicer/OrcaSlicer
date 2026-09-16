@@ -1,0 +1,23 @@
+{
+    "type": "process",
+    "name": "0.40mm quality @Pragostroj 0.8",
+    "inherits": "process_common_kinarb",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_thickness": "0.8",
+    "bridge_acceleration": "1000",
+    "bridge_speed": "22",
+    "infill_anchor": "2.5",
+    "infill_anchor_max": "20",
+    "internal_solid_infill_acceleration": "3000",
+    "layer_height": "0.3",
+    "raft_contact_distance": "0.2",
+    "seam_position": "nearest",
+    "small_perimeter_speed": "30%",
+    "thick_bridges": "1",
+    "top_shell_thickness": "1.2",
+    "support_type": "tree(auto)",
+    "support_style": "tree_slim",
+    "support_on_build_plate_only": "1",
+    "tree_support_wall_count": "1"
+}
