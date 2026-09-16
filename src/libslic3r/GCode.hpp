@@ -39,6 +39,7 @@ namespace Slic3r {
 
 // Forward declarations.
 class GCode;
+struct WipeInwardSupport;
 
 namespace CustomGCode{ struct Item; }
 struct PrintInstance;
@@ -61,7 +62,7 @@ public:
     bool enable;
     Polyline path;
 
-    // Orca:
+    // Orca: retraction portions emitted before, during, and after the wipe move.
     struct RetractionValues{
         double retraction_length_before_wipe = 0.;
         double retraction_length_during_wipe = 0.;
@@ -73,8 +74,10 @@ public:
     void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
 
-    // Orca:
+    // Orca: calculate the retraction portions that can be emitted at wipe speed.
     RetractionValues calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange);
+    // Orca: rebuild the stored path while deduplicating shared path boundaries.
+    void update_path(const ExtrusionPaths &paths, bool reverse = false);
 };
 
 class WipeTowerIntegration {
@@ -430,14 +433,16 @@ private:
     std::string extrude_entity(const ExtrusionEntity&      entity,
                                const std::string&          description       = "",
                                double                      speed             = -1.,
-                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
+                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
+                               const WipeInwardSupport*     wipe_support      = nullptr);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
     std::string extrude_loop(const ExtrusionLoop&        loop,
                              const std::string&          description,
                              double                      speed             = -1.,
                              const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                             const Point*                start_point       = nullptr);
+                             const Point*                start_point       = nullptr,
+                             const WipeInwardSupport*     wipe_support      = nullptr);
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 
