@@ -47,6 +47,7 @@ class KBShortcutsDialog : public DPIDialog
     struct EditableRow
     {
         Shortcut        shortcut;
+        wxStaticText*   description;
         wxStaticText*   key;
         ScalableButton* reset;
     };
@@ -59,6 +60,7 @@ class KBShortcutsDialog : public DPIDialog
     std::vector<Page>          m_pages;
     std::vector<EditableRow>   m_editable_rows;
     std::vector<PreferenceRow> m_preference_rows;
+    int                        m_row_text_width = 0;   // what a row's description and key share, so the description wraps at m_row_text_width - key width
 
     TabCtrl*      m_tabs;
     wxSimplebook* m_simplebook;

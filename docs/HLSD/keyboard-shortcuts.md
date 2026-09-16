@@ -114,9 +114,9 @@ Preferences > Control.
 
 1. Add the enum value to `Shortcut` and its row to `shortcut_table`, in the position
    the dialog should list it; the row's section heading is the `section_table` entry
-   above it, so a new section needs an entry there and an icon in the dialog's
-   `SECTION_ICONS`. Pick a default that does not collide inside its contexts; the
-   `[Shortcuts]` tests check every default against the others.
+   above it, so a new section needs an entry there too. Pick a default that does not
+   collide inside its contexts; the `[Shortcuts]` tests check every default against the
+   others.
 2. Handle it in the dispatcher of its context: `MainFrame::handle_global_shortcut`,
    `GLCanvas3D::handle_shortcut`, `ObjectList::dispatch_shortcut`, or a gizmo's
    `on_tool_shortcut`. A gizmo that opens on a key sets `m_shortcut` in its constructor.

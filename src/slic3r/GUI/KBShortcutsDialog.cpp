@@ -4,7 +4,6 @@
 #include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
 #include "Notebook.hpp"
-#include <wx/gbsizer.h>
 #include <wx/scrolwin.h>
 #include <wx/display.h>
 #include <algorithm>
@@ -49,22 +48,6 @@ const char* mouse_action(const char* preference)
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-// Heading icon of each ShortcutSection, in enum order.
-constexpr std::array<const char*, size_t(ShortcutSection::Count)> SECTION_ICONS{
-    "param_information",       // Project
-    "printer",                 // Slicing and printing
-    "param_precision",         // Selection
-    "param_wall",              // Editing
-    "param_printable_space",   // Objects
-    "plate_arrange",           // Placement
-    "toolbar_scale",           // Gizmos
-    "param_layer_height",      // Sliders
-    "objlist_color_painting",  // Painting tools
-    "param_position",          // Camera
-    "im_visible",              // Display
-    "param_settings",          // Application
-};
 
 } // namespace
 
@@ -170,10 +153,8 @@ void KBShortcutsDialog::fill_pages()
     }
 
     page(_L("Preview"), _L("Available while the 3D view on the Preview tab has focus."), ShortcutContext::Preview, {
-        fixed(Section::Sliders, shift + any_key, L("Move slider 5x faster")),
-        fixed(Section::Sliders, ctrl + any_key, L("Move slider 5x faster")),
-        fixed(Section::Sliders, shift + wheel, L("Move slider 5x faster")),
-        fixed(Section::Sliders, ctrl + wheel, L("Move slider 5x faster")),
+        fixed(Section::Sliders, shift + any_key + " / " + ctrl + any_key, L("Move slider 5x faster")),
+        fixed(Section::Sliders, shift + wheel + " / " + ctrl + wheel, L("Scroll slider 5x faster")),
     });
 }
 
@@ -188,8 +169,12 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     scrollable_panel->SetBackgroundColour(page_colour);
     scrollable_panel->SetScrollRate(0, 20);
     const int page_width = FromDIP(600);
-    const int margin     = FromDIP(20);
     scrollable_panel->SetInitialSize(wxSize(page_width, FromDIP(450)));
+
+    // Titles and rows are indented as in the Preferences dialog.
+    const int title_margin = FromDIP(DESIGN_LEFT_MARGIN - 10);
+    const int row_margin   = FromDIP(DESIGN_LEFT_MARGIN);
+    const int gap          = FromDIP(16);
 
     wxBoxSizer* scrollable_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -205,12 +190,12 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     note_text_ctrl->SetFont(Label::Body_13);
     note_text_ctrl->SetForegroundColour(note_text);
     note_text_ctrl->SetBackgroundColour(note_colour);
-    note_text_ctrl->Wrap(page_width - 2 * margin - FromDIP(10 + 16 + 8 + 10));
+    note_text_ctrl->Wrap(page_width - 2 * title_margin - FromDIP(10 + 16 + 8 + 10));
     wxBoxSizer* note_sizer = new wxBoxSizer(wxHORIZONTAL);
     note_sizer->Add(note_icon, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, FromDIP(10));
     note_sizer->Add(note_text_ctrl, 1, wxALIGN_CENTRE_VERTICAL | wxALL, FromDIP(8));
     note->SetSizer(note_sizer);
-    scrollable_panel_sizer->Add(note, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, margin);
+    scrollable_panel_sizer->Add(note, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, title_margin);
 
     auto key_text = [](const Row& row) {
         return std::visit(overloaded{
@@ -226,75 +211,69 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             [](const MouseAction& mouse) { return _(mouse_action(mouse.preference)); },
         }, row.content);
     };
+    auto icon_button = [&](const char* icon, const wxString& tooltip) {
+        auto button = new ScalableButton(scrollable_panel, wxID_ANY, icon);
+        button->SetBackgroundColour(page_colour);
+        button->SetToolTip(tooltip);
+        return button;
+    };
 
-    // Descriptions wrap to the width the widest binding on the page allows.
-    int key_width = 0;
-    for (const Row& row : page.rows) {
-        int width = 0;
-        scrollable_panel->GetTextExtent(key_text(row), &width, nullptr, nullptr, nullptr, &Label::Head_14);
-        key_width = std::max(key_width, width);
-    }
-    const int indent     = FromDIP(18) + 5;   // the heading icon and its gap in StaticLine, so rows align with the heading text
-    const int desc_width = page_width - key_width - 2 * margin - indent - FromDIP(16 + 16 + 44 + 20);
+    // Every row ends in a buttons column of one width, so the right-aligned keys share an
+    // edge without sharing a column; each description wraps at whatever its own key leaves.
+    ScalableButton* probe = icon_button("edit", "");
+    const int buttons_width = 2 * probe->GetBestSize().x + FromDIP(6);
+    probe->Destroy();
+    m_row_text_width = page_width - row_margin - title_margin - 2 * gap - buttons_width;
 
-    // Headings span the three columns (description, key, buttons) of one grid, so the key
-    // column lines up across sections.
-    const wxColour                 text_colour(50, 58, 61);
-    wxGridBagSizer*                grid_sizer = new wxGridBagSizer(FromDIP(4), FromDIP(16));
     std::optional<ShortcutSection> section;
-    int                            grid_row = 0;
     for (const Row& row : page.rows) {
         if (section != row.section) {
-            auto heading = new StaticLine(scrollable_panel, false, _(section_name(row.section)), SECTION_ICONS[size_t(row.section)]);
+            auto heading = new StaticLine(scrollable_panel, false, _(section_name(row.section)));
             heading->SetFont(Label::Head_14);
-            heading->SetForegroundColour(text_colour);
-            wxBoxSizer* heading_sizer = new wxBoxSizer(wxVERTICAL);
-            heading_sizer->Add(heading, 0, wxEXPAND | wxTOP, section.has_value() ? FromDIP(16) : 0);
-            grid_sizer->Add(heading_sizer, wxGBPosition(grid_row++, 0), wxGBSpan(1, 3), wxEXPAND | wxBOTTOM, FromDIP(4));
+            heading->SetForegroundColour(DESIGN_GRAY900_COLOR);
+            wxBoxSizer* heading_sizer = new wxBoxSizer(wxHORIZONTAL);
+            heading_sizer->AddSpacer(title_margin);
+            heading_sizer->Add(heading, 1, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
+            heading_sizer->AddSpacer(title_margin);
+            scrollable_panel_sizer->Add(heading_sizer, 0, wxEXPAND | wxTOP, FromDIP(section.has_value() ? 10 : 6));
             section = row.section;
         }
         auto desc = new wxStaticText(scrollable_panel, wxID_ANY, description(row));
         desc->SetFont(Label::Body_14);
-        desc->SetForegroundColour(text_colour);
-        desc->Wrap(desc_width);
-        grid_sizer->Add(desc, wxGBPosition(grid_row, 0), wxDefaultSpan, wxALIGN_CENTRE_VERTICAL | wxLEFT, indent);
-
+        desc->SetForegroundColour(DESIGN_GRAY900_COLOR);
         auto key = new wxStaticText(scrollable_panel, wxID_ANY, key_text(row));
-        key->SetForegroundColour(text_colour);
         key->SetFont(Label::Head_14);
-        grid_sizer->Add(key, wxGBPosition(grid_row, 1), wxDefaultSpan, wxALIGN_CENTRE_VERTICAL | wxALIGN_RIGHT);
+        key->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        desc->Wrap(m_row_text_width - key->GetBestSize().x);
 
-        const wxGBPosition buttons_cell(grid_row++, 2);
-        if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
-            auto settings = new ScalableButton(scrollable_panel, wxID_ANY, "settings");
-            settings->SetBackgroundColour(page_colour);
-            settings->SetToolTip(_L("Preferences"));
-            settings->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_mouse_preferences(); });
-            grid_sizer->Add(settings, buttons_cell, wxDefaultSpan, wxALIGN_CENTRE_VERTICAL);
-            m_preference_rows.push_back({ mouse->preference, desc });
-            continue;
-        }
-        const Shortcut* editable = std::get_if<Shortcut>(&row.content);
-        if (editable == nullptr)
-            continue;
-        const Shortcut shortcut = *editable;
         wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
-        auto change = new ScalableButton(scrollable_panel, wxID_ANY, "edit");
-        change->SetBackgroundColour(page_colour);
-        change->SetToolTip(_L("Edit"));
-        change->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { edit_shortcut(shortcut); });
-        auto reset = new ScalableButton(scrollable_panel, wxID_ANY, "undo");
-        reset->SetBackgroundColour(page_colour);
-        reset->SetToolTip(_L("Reset"));
-        reset->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { reset_shortcut(shortcut); });
-        reset->Show(wxGetApp().shortcuts().is_customized(shortcut));
-        buttons->Add(change, 0, wxALIGN_CENTRE_VERTICAL | wxRIGHT, FromDIP(6));
-        buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-        grid_sizer->Add(buttons, buttons_cell, wxDefaultSpan, wxALIGN_CENTRE_VERTICAL);
-        m_editable_rows.push_back({ shortcut, key, reset });
+        buttons->SetMinSize(buttons_width, -1);
+        if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
+            auto settings = icon_button("settings", _L("Preferences"));
+            settings->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_mouse_preferences(); });
+            buttons->Add(settings, 0, wxALIGN_CENTRE_VERTICAL);
+            m_preference_rows.push_back({ mouse->preference, desc });
+        } else if (const Shortcut* editable = std::get_if<Shortcut>(&row.content)) {
+            const Shortcut shortcut = *editable;
+            auto change = icon_button("edit", _L("Edit"));
+            change->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { edit_shortcut(shortcut); });
+            auto reset = icon_button("undo", _L("Reset"));
+            reset->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { reset_shortcut(shortcut); });
+            reset->Show(wxGetApp().shortcuts().is_customized(shortcut));
+            buttons->Add(change, 0, wxALIGN_CENTRE_VERTICAL | wxRIGHT, FromDIP(6));
+            buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+            m_editable_rows.push_back({ shortcut, desc, key, reset });
+        }
+
+        wxBoxSizer* row_sizer = new wxBoxSizer(wxHORIZONTAL);
+        row_sizer->AddSpacer(row_margin);
+        row_sizer->Add(desc, 1, wxALIGN_CENTRE_VERTICAL);
+        row_sizer->Add(key, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, gap);
+        row_sizer->Add(buttons, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, gap);
+        row_sizer->AddSpacer(title_margin);
+        scrollable_panel_sizer->Add(row_sizer, 0, wxEXPAND | wxTOP, FromDIP(4));
     }
-    grid_sizer->AddGrowableCol(0, 1);
-    scrollable_panel_sizer->Add(grid_sizer, 0, wxEXPAND | wxALL, margin);
+    scrollable_panel_sizer->AddSpacer(title_margin);
     scrollable_panel->SetSizer(scrollable_panel_sizer);
 
     main_sizer->Add(scrollable_panel, 1, wxEXPAND);
@@ -343,6 +322,8 @@ void KBShortcutsDialog::apply_bindings()
     std::set<wxWindow*>     pages;
     for (const EditableRow& row : m_editable_rows) {
         row.key->SetLabel(from_u8(shortcuts.display(row.shortcut)));
+        row.description->SetLabel(_(shortcut_info(row.shortcut).name));
+        row.description->Wrap(m_row_text_width - row.key->GetBestSize().x);
         row.reset->Show(shortcuts.is_customized(row.shortcut));
         pages.insert(row.key->GetParent());
     }
