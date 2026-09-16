@@ -78,6 +78,14 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
     }
 }
 
+bool PrintHost::support_device_list_management(const DynamicPrintConfig &config)
+{
+    const auto opt = config.option<ConfigOptionEnum<PrintHostType>>("host_type");
+    const auto host_type = opt != nullptr ? opt->value : htOctoPrint;
+    std::vector<PrintHostType> support = { htElegooLink };
+    return std::find(support.begin(), support.end(), host_type) != support.end();
+}
+
 std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
 {
     if (config == nullptr)

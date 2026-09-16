@@ -87,6 +87,7 @@ public:
 
     static PrintHost* get_print_host(DynamicPrintConfig *config);
     static std::string get_print_host_webui(DynamicPrintConfig *config);
+    static bool support_device_list_management(const DynamicPrintConfig &config);
 
     //Support for cloud webui login
     virtual bool is_cloud() const { return false; }

@@ -1,0 +1,82 @@
+@import url("../../../styles/dark.css");
+
+
+/* Selection color for dark theme */
+html.dark ::selection {
+  background: var(--color-primary-light);
+  color: var(--text-primary);
+}
+
+
+html.dark .tray-popover-content {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+html.dark .status-tip {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 8px 32px var(--shadow-light);
+}
+
+
+
+
+/* Button adjustments for better contrast in dark theme */
+html.dark .btn-secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+}
+
+html.dark .btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-tertiary);
+  color: var(--text-primary);
+}
+
+
+
+html.dark .mapping-container {
+  background: var(--bg-tertiary);
+}
+
+html.dark .mapping-container:hover {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+html.dark .tray-rect {
+  box-shadow: 0 -1px 0 var(--border-secondary);
+  background: var(--bg-secondary);
+}
+
+html.dark .tray-popover-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Icon color adjustments for better visibility */
+html.dark .stat-icon {
+  filter: brightness(1.2);
+}
+
+/* El-select adjustments for dark theme */
+html.dark .model-image,
+html.dark .bed-image {
+  filter: brightness(0.9) contrast(1.1);
+}
+
+/* Ensure proper contrast for images and icons */
+html.dark img:not(.model-preview) {
+  filter: brightness(0.9) contrast(1.1);
+}
+
+/* Smooth transition when switching themes */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

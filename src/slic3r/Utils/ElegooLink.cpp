@@ -395,11 +395,167 @@ namespace Slic3r {
     const char* ElegooLink::get_name() const { return "ElegooLink"; }
     PrintHostPostUploadActions ElegooLink::get_post_upload_actions() const
     {
-        if (classify_printer_model(m_printerModel) == ElegooPrinterType::CC2) {
-            return PrintHostPostUploadAction::None;
-        } else {
-            return PrintHostPostUploadAction::StartPrint;
+        // CC2 via CC2 protocol supports upload; StartPrint is handled via WebSocket after upload (loopUploadCC2).
+        // Allow Upload and Print for CC2 as well - ElegooSlicer does it.
+        return PrintHostPostUploadAction::StartPrint;
+    }
+
+    bool ElegooLink::fetch_canvas_slots(std::vector<ElegooCanvasSlot>& slots, wxString& msg) const
+    {
+        // Only for CC2 (CANVAS module). Query via WebSocket Cmd 324.
+        if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2) {
+            msg = _L("CANVAS is only supported on Centauri Carbon 2");
+            return false;
         }
+        slots.clear();
+        std::string ws_host = Http::get_host_from_url(m_host);
+        if (ws_host.empty()) {
+            msg = _L("Invalid printer host");
+            return false;
+        }
+        WebSocketClient client;
+        try {
+            client.connect(ws_host, "3030", "/websocket");
+        } catch (const std::exception& e) {
+            msg = GUI::from_u8(e.what());
+            return false;
+        }
+        // Build Cmd 324 request (Get CANVAS status)
+        boost::uuids::random_generator gen;
+        std::string uuid = to_string(gen());
+        auto now = std::chrono::system_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::string req = R"({"Id":"","Data":{"Cmd":324,"Data":{},"RequestID":")" + uuid + R"(","MainboardID":"","TimeStamp":)" + std::to_string(ms) + R"(,"From":1}})";
+        try {
+            client.send(req);
+        } catch (const std::exception& e) {
+            msg = GUI::from_u8(e.what());
+            return false;
+        }
+        // Wait for response: first ack Cmd 324 Ack 0, then push with canvas_list
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        std::string canvas_payload;
+        bool got_ack = false;
+        while (std::chrono::steady_clock::now() < deadline) {
+            std::string resp;
+            try {
+                resp = client.receive();
+            } catch (...) {
+                break;
+            }
+            if (resp.empty()) continue;
+            try {
+                pt::ptree root;
+                std::istringstream is(resp);
+                pt::read_json(is, root);
+                auto data = root.get_child_optional("Data");
+                if (!data) {
+                    // Check for direct canvas_list at top level (pushed data)
+                    auto cl = root.get_child_optional("canvas_list");
+                    if (cl) canvas_payload = resp;
+                    continue;
+                }
+                auto cmd = data->get_optional<int>("Cmd");
+                if (!cmd || *cmd != 324) continue;
+                auto ack = data->get_optional<int>("Data.Ack");
+                if (ack && *ack != 0) {
+                    msg = wxString::Format(_L("Printer returned error %d"), *ack);
+                    return false;
+                }
+                // Ack 0 -> next message will contain canvas data OR check if this message already has it
+                auto inner = data->get_child_optional("Data");
+                if (inner) {
+                    auto cl2 = inner->get_child_optional("canvas_list");
+                    if (cl2) { canvas_payload = resp; break; }
+                }
+                got_ack = true;
+                // Wait for push
+                continue;
+            } catch (...) {
+                // Try to detect canvas_list via string search as fallback (ElegooSlicer style)
+                if (resp.find("canvas_list") != std::string::npos) {
+                    canvas_payload = resp;
+                    break;
+                }
+            }
+            // Also check top-level JSON for canvas_list without Data wrapper (some fw versions)
+            if (resp.find("canvas_list") != std::string::npos) {
+                canvas_payload = resp;
+                break;
+            }
+        }
+        if (canvas_payload.empty()) {
+            // Try one more time with timeout reading - some printers push async
+            if (got_ack) {
+                try {
+                    std::string resp2 = client.receive();
+                    if (!resp2.empty() && resp2.find("canvas_list") != std::string::npos)
+                        canvas_payload = resp2;
+                } catch (...) {}
+            }
+            if (canvas_payload.empty()) {
+                msg = _L("No CANVAS data received (is CANVAS module connected?)");
+                return false;
+            }
+        }
+        // Parse canvas_payload (handle both Data.canvas_list and top-level canvas_list)
+        try {
+            pt::ptree root;
+            std::istringstream is(canvas_payload);
+            pt::read_json(is, root);
+            pt::ptree canvas_list;
+            // Try Data.Data.canvas_list first (wrapped)
+            if (auto d = root.get_child_optional("Data")) {
+                if (auto dd = d->get_child_optional("Data")) {
+                    if (auto cl = dd->get_child_optional("canvas_list"))
+                        canvas_list = *cl;
+                }
+                if (canvas_list.empty()) {
+                    if (auto cl = d->get_child_optional("canvas_list"))
+                        canvas_list = *cl;
+                }
+            }
+            if (canvas_list.empty()) {
+                if (auto cl = root.get_child_optional("canvas_list"))
+                    canvas_list = *cl;
+            }
+            for (auto& canvas_node : canvas_list) {
+                auto& c = canvas_node.second;
+                int canvas_id = c.get<int>("canvas_id", 0);
+                int connected = c.get<int>("connected", 0);
+                if (!connected) continue;
+                auto tray_list = c.get_child_optional("tray_list");
+                if (!tray_list) continue;
+                for (auto& tray_node : *tray_list) {
+                    auto& t = tray_node.second;
+                    ElegooCanvasSlot slot;
+                    slot.canvas_id = canvas_id;
+                    slot.tray_id = t.get<int>("tray_id", -1);
+                    slot.filament_type = t.get<std::string>("filament_type", "");
+                    slot.filament_name = t.get<std::string>("filament_name", slot.filament_type);
+                    slot.filament_color = t.get<std::string>("filament_color", "#FFFFFF");
+                    slot.brand = t.get<std::string>("brand", "");
+                    slot.min_nozzle_temp = t.get<int>("min_nozzle_temp", 0);
+                    slot.max_nozzle_temp = t.get<int>("max_nozzle_temp", 0);
+                    // status 0 = present, 1 = preloaded etc. Treat anything with type as has_filament
+                    int status = t.get<int>("status", 0);
+                    slot.has_filament = !slot.filament_type.empty() && slot.filament_color != "";
+                    // fallback: status-based
+                    if (status == 0 && !slot.has_filament) slot.has_filament = false;
+                    if (slot.tray_id >= 0)
+                        slots.push_back(std::move(slot));
+                }
+            }
+        } catch (const std::exception& e) {
+            msg = GUI::from_u8(e.what());
+            return false;
+        }
+        // Sort by tray_id for stable UI
+        std::sort(slots.begin(), slots.end(), [](const ElegooCanvasSlot& a, const ElegooCanvasSlot& b){
+            if (a.canvas_id != b.canvas_id) return a.canvas_id < b.canvas_id;
+            return a.tray_id < b.tray_id;
+        });
+        return true;
     }
 
     std::string ElegooLink::get_sn() const
@@ -1006,8 +1162,40 @@ namespace Slic3r {
                 break;
         }
 
-        if (res && upload_data.post_action == PrintHostPostUploadAction::StartPrint)
-            BOOST_LOG_TRIVIAL(info) << get_name() << ": CC2 upload completed; start print is not supported.";
+        if (res && upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
+            // For CC2, perform WebSocket StartPrint like CC does, but also forward filament mapping if present.
+            std::string wsUrl = Http::get_host_from_url(m_host);
+            WebSocketClient client;
+            try {
+                client.connect(wsUrl, "3030", "/websocket");
+            } catch (const std::exception& e) {
+                const auto err = std::string(e.what());
+                if (err.find("The WebSocket handshake was declined by the remote peer") != std::string::npos) {
+                    error_fn(_L("The file has been transferred, but some unknown errors occurred. Please check the device page for the file and try to start printing again."));
+                } else {
+                    error_fn(wxString::FromUTF8(e.what()));
+                }
+                return false;
+            }
+            std::string timeLapse = "0";
+            std::string heatedBedLeveling = "0";
+            std::string bedType = "0";
+            auto it = upload_data.extended_info.find("timeLapse");
+            if (it != upload_data.extended_info.end()) timeLapse = it->second;
+            it = upload_data.extended_info.find("heatedBedLeveling");
+            if (it != upload_data.extended_info.end()) heatedBedLeveling = it->second;
+            it = upload_data.extended_info.find("bedType");
+            if (it != upload_data.extended_info.end()) bedType = it->second;
+            // Filament mapping and autoRefill are stored but printer currently auto-selects trays if not provided.
+            // We forward them for future firmware that uses slotMap; for now they are informational.
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            if (checkResult(client, error_fn)) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                res = print(client, timeLapse, heatedBedLeveling, bedType, upload_filename, error_fn);
+            } else {
+                res = false;
+            }
+        }
 
         (void) info_fn;
         return res;
