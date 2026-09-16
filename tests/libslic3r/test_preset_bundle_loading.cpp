@@ -4246,6 +4246,91 @@ TEST_CASE("Published 3MF overrides each extruder slot on a similar multi-extrude
     }
 }
 
+TEST_CASE("Loading short mixed metadata preserves all filaments when adding a slot", "[Preset][Bundle][FilamentMixer]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const std::vector<std::string> colors = { "#000000", "#FFFFFF", "#5E5C64" };
+    config.option<ConfigOptionStrings>("filament_colour")->values = colors;
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = true;
+    config.option<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values = { "Test PETG", "Test PLA", "Test TPU" };
+    config.option<ConfigOptionBools>("filament_is_mixed")->values = { false };
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config), Semver());
+    const auto presets = bundle.filament_presets;
+    REQUIRE(presets.size() == colors.size());
+    REQUIRE(presets[0] != presets[1]);
+    REQUIRE(presets[1] != presets[2]);
+    REQUIRE(presets[0] != presets[2]);
+    REQUIRE(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values.size() == 1);
+    REQUIRE(bundle.num_physical_filaments() == colors.size());
+    REQUIRE(bundle.num_mixed_filaments() == 0);
+
+    bundle.set_num_filaments(bundle.num_physical_filaments() + bundle.num_mixed_filaments() + 1, "#FF0000");
+    REQUIRE(bundle.filament_presets.size() == presets.size() + 1);
+    const auto &actual_colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(actual_colors.size() == colors.size() + 1);
+    for (size_t i = 0; i < presets.size(); ++i) {
+        CHECK(bundle.filament_presets[i] == presets[i]);
+        CHECK(actual_colors[i] == colors[i]);
+    }
+    CHECK(bundle.num_physical_filaments() == colors.size() + 1);
+    CHECK_FALSE(bundle.is_mixed_filament(colors.size()));
+}
+
+TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[Preset][Bundle][FilamentMixer]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(3u, std::string("#000000"));
+    auto *colors = bundle.project_config.option<ConfigOptionStrings>("filament_colour");
+    colors->values = { "#000000", "#FFFFFF", "#5E5C64" };
+    bundle.filament_presets = { "Test PETG", "Test PLA", "Test TPU" };
+    const auto original_presets = bundle.filament_presets;
+    const auto original_colors = colors->values;
+    auto *flags = bundle.project_config.option<ConfigOptionBools>("filament_is_mixed");
+    flags->values = GENERATE(std::vector<unsigned char>{}, std::vector<unsigned char>{ false },
+                            std::vector<unsigned char>{ false, false, false, true });
+    const std::vector<std::string> string_keys = {
+        "filament_mixed_components", "filament_mixed_sublayer_ratios",
+        "filament_mixed_gradient_range", "filament_mixed_gradient_curve"
+    };
+    const std::vector<std::string> bool_keys = {
+        "filament_mixed_gradient", "filament_mixed_gradient_per_part"
+    };
+    for (const auto &key : string_keys)
+        bundle.project_config.option<ConfigOptionStrings>(key)->values = { "", "", "", "stale" };
+    for (const auto &key : bool_keys)
+        bundle.project_config.option<ConfigOptionBools>(key)->values = { false, false, false, true };
+
+    REQUIRE(bundle.num_physical_filaments() == original_colors.size());
+    REQUIRE(bundle.num_mixed_filaments() == 0);
+    bundle.set_num_filaments(bundle.num_physical_filaments() + bundle.num_mixed_filaments() + 1, "#FF0000");
+
+    REQUIRE(bundle.filament_presets.size() == original_presets.size() + 1);
+    REQUIRE(colors->values.size() == original_colors.size() + 1);
+    for (size_t i = 0; i < original_presets.size(); ++i) {
+        CHECK(bundle.filament_presets[i] == original_presets[i]);
+        CHECK(colors->values[i] == original_colors[i]);
+    }
+    CHECK(colors->values.back() == "#FF0000");
+    CHECK(bundle.num_physical_filaments() == 4);
+    CHECK(bundle.num_mixed_filaments() == 0);
+    REQUIRE(flags->values.size() == 4);
+    CHECK_FALSE(bundle.is_mixed_filament(3));
+    for (const auto &key : string_keys) {
+        CAPTURE(key);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>(key)->values ==
+              std::vector<std::string>{ "", "", "", "" });
+    }
+    for (const auto &key : bool_keys) {
+        CAPTURE(key);
+        CHECK(bundle.project_config.option<ConfigOptionBools>(key)->values ==
+              std::vector<unsigned char>{ false, false, false, false });
+    }
+}
+
 // The nozzle-count top-up in update_multi_material_filament_presets() grows filament_presets on
 // its own, so a physical count derived from that list reports a slot no per-filament array has
 // yet. That is what made the extruder-count handler conclude there was nothing to add and leave

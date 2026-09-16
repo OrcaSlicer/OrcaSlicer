@@ -5498,7 +5498,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     // Mixed-color slots are kept at the tail of the filament arrays, so a new physical
     // filament has to be inserted just after the last physical one rather than appended.
-    // Count off filament_is_mixed, not filament_presets or the combos: the extruder-count spinner
+    // Count actual colour slots, not filament_presets or the combos: the extruder-count spinner
     // reaches this before the sidebar has rebuilt, and update_multi_material_filament_presets()
     // can have grown filament_presets alone.
     auto       *bundle         = wxGetApp().preset_bundle;
