@@ -1,5 +1,6 @@
 #include "PrivacyUpdateDialog.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "BitmapCache.hpp"
 #include <wx/dcgraph.h>
 #include <slic3r/GUI/I18N.hpp>
@@ -97,7 +98,7 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
         this->on_hide();
         });
 
-    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& e) {e.Veto(); });
+    Bind(wxEVT_CLOSE_WINDOW, [](wxCloseEvent& e) {e.Veto(); });
 
     if (btn_style != CONFIRM_AND_CANCEL)
         m_button_cancel->Hide();

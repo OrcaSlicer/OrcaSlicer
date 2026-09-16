@@ -134,7 +134,7 @@ void Downloader::start_download(const std::string& full_url)
     Plater* plater = wxGetApp().plater();
 
     mainframe->Freeze();
-    mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+    mainframe->select_tab(TAB_ID_PREPARE);
     plater->select_view_3D("3D");
     plater->select_view("plate");
     plater->get_current_canvas3D()->zoom_to_bed();

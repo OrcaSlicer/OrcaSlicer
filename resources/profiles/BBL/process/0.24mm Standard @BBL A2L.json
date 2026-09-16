@@ -1,0 +1,43 @@
+{
+	"type": "process",
+	"name": "0.24mm Standard @BBL A2L",
+	"inherits": "fdm_process_single_0.24",
+	"from": "system",
+	"setting_id": "GP192",
+	"instantiation": "true",
+	"description": "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height, and results in more apparent layer lines and lower printing quality, but slightly shorter printing time.",
+	"default_acceleration": [
+		"6000"
+	],
+	"elefant_foot_compensation": "0.075",
+	"enable_arc_fitting": "0",
+	"enable_height_slowdown": [
+		"1"
+	],
+	"prime_tower_brim_width": "-1",
+	"slowdown_end_acc": [
+		"1000"
+	],
+	"slowdown_end_height": [
+		"225"
+	],
+	"slowdown_end_speed": [
+		"500"
+	],
+	"slowdown_start_acc": [
+		"8000"
+	],
+	"slowdown_start_height": [
+		"0"
+	],
+	"slowdown_start_speed": [
+		"500"
+	],
+	"smooth_coefficient": "4",
+	"travel_acceleration": [
+		"8000"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle"
+	]
+}

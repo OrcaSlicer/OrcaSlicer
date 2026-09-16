@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "SE0coLF7Tk072e8V",
 	"name": "QIDI TPU 95A-HF @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI TPU 95A-HF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "SE0coLF7Tk072e8V",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"220"
 	],

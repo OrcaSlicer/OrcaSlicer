@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "YUMI PETG",
-	"inherits": "Yumi Generic PETG",
+	"inherits": "Generic PETG @Yumi",
 	"from": "system",
 	"setting_id": "PFFm20QNgwqyuglH",
-	"filament_id": "GFG99",
+	"filament_id": "OF5NqBfC",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Yumi"
@@ -263,11 +263,11 @@
 		"D12 500 PRO M2 DIRECT 0.4 nozzle",
 		"D12 500 PRO SMARTPAD DIRECT 0.4 nozzle",
 		"D12 230 PRO M2 MONO DUAL 0.4 nozzle",
-		"D12 230 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
+		"D12 230 PRO M2 MONO DUAL 0.4 nozzle PoopTool",
 		"D12 300 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
 		"D12 500 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
 		"D12 230 PRO SMARTPAD MONO DUAL 0.4 nozzle",
-		"D12 230 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
+		"D12 230 PRO SMARTPAD MONO DUAL 0.4 nozzle PoopTool",
 		"D12 300 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
 		"D12 500 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
 		"D12 300 PRO M2 MONO DUAL 0.4 nozzle",

@@ -3,7 +3,7 @@
 	"name": "BETA PLA Glow @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB06",
+	"filament_id": "OFGc9l16",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

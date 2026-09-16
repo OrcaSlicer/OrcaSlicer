@@ -113,6 +113,6 @@
 	"initial_layer_jerk": "7",
 	"travel_jerk": "7",
 	"compatible_printers": [
-		"Creality CR-10SE 0.2 nozzle"
+		"Creality CR-10 SE 0.2 nozzle"
 	]
 }

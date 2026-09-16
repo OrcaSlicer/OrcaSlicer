@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA",
+	"renamed_from": "PolyLite PLA",
 	"inherits": "Snapmaker PLA @base",
 	"from": "system",
 	"setting_id": "cW1b4nGxE9yXIXJP",

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "cG6FXCNr8n34Asel",
 	"name": "Bambu PETG @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Bambu PETG@Q2C-Series",
+	"from": "system",
+	"setting_id": "cG6FXCNr8n34Asel",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.20mm Standard @BBL X1C",
+	"renamed_from": "0.20mm Bambu Support W @BBL X1C",
 	"inherits": "fdm_process_single_0.20",
 	"from": "system",
 	"setting_id": "GP004",

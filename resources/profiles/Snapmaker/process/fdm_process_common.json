@@ -110,7 +110,7 @@
 	"top_surface_jerk": "2",
 	"travel_jerk": "4",
 	"enable_support": "0",
-	"support_type": "normal(auto)",
+	"support_type": "tree(auto)",
 	"support_style": "snug",
 	"support_threshold_angle": "30",
 	"support_on_build_plate_only": "1",

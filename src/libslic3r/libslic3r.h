@@ -64,6 +64,11 @@ static constexpr double LARGE_BED_THRESHOLD = 2147;
 // Orca: maximum number of extruders is 64. For SEMM printers, it defines maximum filament number.
 static constexpr size_t MAXIMUM_EXTRUDER_NUMBER = 64;
 
+// Orca: how many filament slots syncing an AMS setup may create. This was derived from
+// EnforcerBlockerType::ExtruderMax, but that cap now covers 32 paintable filaments, so the AMS
+// limit is pinned here to keep sync behaving as it does for projects without mixed-color filaments.
+static constexpr size_t MAXIMUM_AMS_SYNC_FILAMENT_NUMBER = 16;
+
 // Orca: maximum line width is 5 times the nozzle diameter
 static constexpr float MAX_LINE_WIDTH_MULTIPLIER = 5;
 
@@ -88,6 +93,9 @@ static constexpr double INSET_OVERLAP_TOLERANCE = 0.4;
 static constexpr double EXTERNAL_INFILL_MARGIN = 3;
 static constexpr double BRIDGE_INFILL_MARGIN = 1;
 static constexpr double WIPE_TOWER_MARGIN = 1.;
+// Margin for system placement of the wipe tower (defaults, re-placement, CLI). Positions
+// within WIPE_TOWER_MARGIN stay valid: a user drag down to that limit is respected.
+static constexpr double WIPE_TOWER_AUTO_MARGIN = 15.;
 //FIXME Better to use an inline function with an explicit return type.
 //inline coord_t scale_(coordf_t v) { return coord_t(floor(v / SCALING_FACTOR + 0.5f)); }
 #define scale_(val) ((val) / SCALING_FACTOR)

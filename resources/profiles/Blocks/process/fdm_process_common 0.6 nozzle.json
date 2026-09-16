@@ -9,11 +9,8 @@
 	"bridge_flow": "0.95",
 	"brim_width": "5",
 	"compatible_printers": [
-		"BLOCKS Pro S100",
 		"BLOCKS Pro S100 0.6 nozzle",
-		"BLOCKS RD50 V2",
 		"BLOCKS RD50 V2 0.6 nozzle",
-		"BLOCKS RF50",
 		"BLOCKS RF50 0.6 nozzle"
 	],
 	"print_sequence": "by layer",

@@ -1704,7 +1704,7 @@ void GLGizmoSVG::draw_size()
 
     if (m_keep_ratio) {
         std::stringstream ss;
-        ss << std::setprecision(2) << std::fixed << width << " x " << height << " " << (use_inch ? "in" : "mm");
+        ss << std::setprecision(2) << std::fixed << width << " x " << height << " " << (use_inch ? _L_CONTEXT("in", "inches") : _L("mm"));
 
         ImGui::SameLine(m_gui_cfg->input_offset);
         ImGui::SetNextItemWidth(m_gui_cfg->input_width);
@@ -1989,7 +1989,7 @@ void GLGizmoSVG::draw_mirroring()
 
 void GLGizmoSVG::draw_model_type()
 {
-    ImGui::AlignTextToFramePadding();
+    //ImGui::AlignTextToFramePadding();
     bool is_last_solid_part = m_volume->is_the_only_one_part();
     std::string title = _u8L("Operation");
     if (is_last_solid_part) {
@@ -2005,6 +2005,8 @@ void GLGizmoSVG::draw_model_type()
     ModelVolumeType part = ModelVolumeType::MODEL_PART;
     ModelVolumeType type = m_volume->type();
 
+    ImGui::SameLine();
+
     //TRN EmbossOperation
     ImGuiWrapper::push_radio_style(m_parent.get_scale()); //ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))
@@ -2014,7 +2016,7 @@ void GLGizmoSVG::draw_model_type()
     ImGui::SameLine();
 
     std::string last_solid_part_hint = _u8L("You can't change a type of the last solid part of the object.");
-    if (ImGui::RadioButton(_CTX_utf8(L_CONTEXT("Cut", "EmbossOperation"), "EmbossOperation").c_str(), type == negative))
+    if (ImGui::RadioButton(_u8L_CONTEXT(L_CONTEXT("Cut", "EmbossOperation"), "EmbossOperation").c_str(), type == negative))
         new_type = negative;
     else if (ImGui::IsItemHovered()) {
         if (is_last_solid_part)

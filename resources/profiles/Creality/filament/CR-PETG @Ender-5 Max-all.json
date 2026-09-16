@@ -153,6 +153,7 @@
     "material_flow_dependent_temperature": "0",
     "material_flow_temp_graph": "[[3.0,220],[5.0,240],[10.0,250]]",
     "pressure_advance": "0.05",
+    "filament_id": "06101",
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality Ender-5 Max 0.4 nozzle",

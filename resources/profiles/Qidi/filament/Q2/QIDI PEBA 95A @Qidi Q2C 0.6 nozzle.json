@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "w9NXPAGugtCOi4g4",
 	"name": "QIDI PEBA 95A @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PEBA 95A@Q2C-Series",
+	"from": "system",
+	"setting_id": "w9NXPAGugtCOi4g4",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2C 0.6 nozzle"
 	]

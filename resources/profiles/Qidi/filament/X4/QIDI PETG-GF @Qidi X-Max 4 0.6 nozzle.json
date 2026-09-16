@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "w2EZhFm9uYLHfoY0",
 	"name": "QIDI PETG-GF @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "w2EZhFm9uYLHfoY0",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

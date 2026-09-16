@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "FZbHj2p2roIxznOM",
 	"name": "Generic ABS @Qidi X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "FZbHj2p2roIxznOM",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

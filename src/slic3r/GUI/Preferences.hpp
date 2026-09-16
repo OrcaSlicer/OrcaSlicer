@@ -13,6 +13,7 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/SpinInput.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
@@ -71,6 +72,7 @@ public:
     ::CheckBox * m_sync_user_preset_checkbox = {nullptr};
     ::CheckBox * m_bambu_cloud_checkbox      = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
+    ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
 
@@ -96,6 +98,7 @@ public:
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {}, const wxString wiki_url = "");
     wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr, const wxString wiki_url = "");
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_decimal_input(wxString title, wxString title2, wxString tooltip, std::string param, double min, double max, int decimals, const wxString wiki_url = "");
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);

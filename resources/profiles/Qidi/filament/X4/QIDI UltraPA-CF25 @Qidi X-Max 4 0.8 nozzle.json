@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "1KMg11UnJuf06LFh",
 	"name": "QIDI UltraPA-CF25 @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI UltraPA-CF25@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "1KMg11UnJuf06LFh",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.02"
 	],

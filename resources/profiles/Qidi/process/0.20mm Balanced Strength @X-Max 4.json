@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "oM72sw3mW85qL45A",
 	"name": "0.20mm Balanced Strength @X-Max 4",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "oM72sw3mW85qL45A",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"bridge_flow": "1",

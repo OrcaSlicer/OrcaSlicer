@@ -33,7 +33,8 @@ if (SLIC3R_GUI)
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
         find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core adv html gl aui net media webview)
     else ()
-        find_package(wxWidgets 3.3 CONFIG REQUIRED COMPONENTS html adv gl core base webview aui net media)
+        # propgrid is required by wxInspector.
+        find_package(wxWidgets 3.3 CONFIG REQUIRED COMPONENTS html adv gl core base webview aui net media propgrid)
     endif ()
 
     if(UNIX)
@@ -75,7 +76,7 @@ if (SLIC3R_GUI)
         list(FILTER wxWidgets_LIBRARIES EXCLUDE REGEX expat)
         list(APPEND wxWidgets_LIBRARIES ${EXPAT_LIBRARIES})
     endif ()
-    
+
     # This is an issue in the new wxWidgets cmake build, doesn't deal with librt
     find_library(LIBRT rt)
     if(LIBRT)
@@ -88,6 +89,20 @@ if (SLIC3R_GUI)
     list(FILTER wxWidgets_LIBRARIES EXCLUDE REGEX OpenGL)
 
 #    list(REMOVE_ITEM wxWidgets_LIBRARIES oleacc)
+
+    find_package(wxInspector REQUIRED)
+
+    # wxInspector's exported interface names the release wxWidgets import
+    # libraries, which a Debug build cannot link. wx is linked above instead.
+    get_target_property(_wxinspector_interface wxInspector::wxInspector INTERFACE_LINK_LIBRARIES)
+    if (_wxinspector_interface)
+        list(FILTER _wxinspector_interface EXCLUDE REGEX "wx(base|msw)3[0-9]u[_.]")
+        set_target_properties(wxInspector::wxInspector PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${_wxinspector_interface}")
+    endif ()
+
+    list(APPEND wxWidgets_LIBRARIES "wxInspector::wxInspector")
+
     message(STATUS "wx libs: ${wxWidgets_LIBRARIES}")
 
     add_subdirectory(slic3r)
@@ -128,6 +143,23 @@ if (MINGW)
     target_link_options(OrcaSlicer PUBLIC "-Wl,-allow-multiple-definition")
     set_target_properties(OrcaSlicer PROPERTIES PREFIX "")
 endif (MINGW)
+
+# The GUI embeds the bundled shared libpython (libslic3r_gui -> pybind11::embed);
+# the dep recipe stamps it with an @rpath id / plain SONAME, so the executable
+# needs an rpath entry for each layout in the "Bundled Python/uv layout" map
+# further down. Dead entries are skipped by the loader.
+# OrcaSlicer_profile_validator links libslic3r only (no Python).
+if (APPLE)
+    # A linker flag rather than the BUILD_RPATH property because the release
+    # flow uses the Xcode generator, which does not honor BUILD_RPATH.
+    target_link_options(OrcaSlicer PRIVATE "LINKER:-rpath,@executable_path/python/lib")
+elseif (UNIX AND NOT WIN32)
+    set_target_properties(OrcaSlicer PROPERTIES
+        # Build tree + AppImage, which packages the build-tree binary.
+        BUILD_RPATH "$ORIGIN/python/lib;$ORIGIN/../lib/python/lib"
+        # Flatpak (cmake --install).
+        INSTALL_RPATH "$ORIGIN/../libpython/lib")
+endif ()
 
 if (NOT WIN32 AND NOT APPLE)
     # Binary name on unix like systems (Linux, Unix)
@@ -184,9 +216,12 @@ if (WIN32)
     if(MSVC)
         target_link_options(OrcaSlicer_app_gui PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
     endif()
-    target_compile_definitions(OrcaSlicer_app_gui PRIVATE -DSLIC3R_WRAPPER_NOCONSOLE)
+    target_compile_definitions(OrcaSlicer_app_gui PRIVATE "$<$<NOT:$<CONFIG:RelWithDebInfo>>:SLIC3R_WRAPPER_NOCONSOLE>")
     add_dependencies(OrcaSlicer_app_gui OrcaSlicer)
-    set_target_properties(OrcaSlicer_app_gui PROPERTIES OUTPUT_NAME "orca-slicer")
+    set_target_properties(OrcaSlicer_app_gui PROPERTIES
+        OUTPUT_NAME "orca-slicer"
+        WIN32_EXECUTABLE "$<NOT:$<CONFIG:RelWithDebInfo>>"
+    )
     target_link_libraries(OrcaSlicer_app_gui PRIVATE boost_headeronly)
 endif ()
 
@@ -194,6 +229,26 @@ endif ()
 set(output_dlls_Release "")
 set(output_dlls_Debug "")
 set(output_dlls_RelWithDebInfo "")
+# ---- Bundled Python/uv layout (canonical map) ---------------------------
+# The runtime and uv are staged three ways because packaging differs:
+#   install() rules          - Windows installer; on FHS/Flatpak they stage
+#                              only uv (Flatpak's runtime comes from the deps
+#                              build installing to /app/libpython; plain FHS
+#                              installs bundle no python runtime)
+#   POST_BUILD copies (here) - build-tree runs, and the macOS .app/AppImage
+#                              flows, which package the build tree and
+#                              never run install()
+#   packaging scripts        - build_release_macos.sh (copies the .app),
+#                              build_linux_image.sh.in (assembles $APPDIR)
+# Final locations relative to the executable:
+#   Windows:  <exe dir>/python            <resources>/tools/uv
+#   macOS:    Contents/MacOS/python       Contents/MacOS/tools/uv
+#   AppImage: $APPDIR/lib/python          $APPDIR/resources/tools/uv
+#   Flatpak:  /app/libpython (dep prefix) /app/share/OrcaSlicer/tools/uv
+# Runtime lookup: PythonInterpreter::initialize() / bundled_uv_path().
+# libpython resolution: rpath on the OrcaSlicer target (above); the dep
+# recipe gives the bundled interpreter a self-relative rpath.
+# --------------------------------------------------------------------------
 if (WIN32)
     # This has to be a separate target due to the windows command line length limits
     add_custom_target(COPY_DLLS ALL DEPENDS OrcaSlicer)
@@ -212,14 +267,6 @@ if (WIN32)
                 VERBATIM
             )
         endforeach ()
-
-        if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-            orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" output_dlls_Debug)
-        elseif("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-            orcaslicer_copy_dlls(COPY_DLLS "RelWithDebInfo" "" output_dlls_Release)
-        else()
-            orcaslicer_copy_dlls(COPY_DLLS "Release" "" output_dlls_Release)
-        endif()
     else ()
         file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/resources" WIN_RESOURCES_SYMLINK)
         add_custom_command(TARGET OrcaSlicer POST_BUILD
@@ -228,42 +275,101 @@ if (WIN32)
             VERBATIM
         )
     endif ()
+    # copy libpython to the bin folder for Windows
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:OrcaSlicer>/python"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:OrcaSlicer>/python"
+        COMMENT "Copying Python runtime into the build tree"
+        VERBATIM)
 
+    if (CMAKE_CONFIGURATION_TYPES)
+        # Multi-config generators (Visual Studio, Ninja Multi-Config): copy per config.
+        foreach (cfg ${CMAKE_CONFIGURATION_TYPES})
+            if ("${cfg}" STREQUAL "Debug")
+                orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" output_dlls_Debug)
+            elseif("${cfg}" STREQUAL "RelWithDebInfo")
+                orcaslicer_copy_dlls(COPY_DLLS "RelWithDebInfo" "" output_dlls_RelWithDebInfo)
+            else()
+                orcaslicer_copy_dlls(COPY_DLLS "${cfg}" "" output_dlls_${cfg})
+            endif()
+        endforeach()
+    else()
+        # Single-config generators (Ninja): use CMAKE_BUILD_TYPE.
+        if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+            orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" output_dlls_Debug)
+        elseif("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+            orcaslicer_copy_dlls(COPY_DLLS "RelWithDebInfo" "" output_dlls_RelWithDebInfo)
+        else()
+            orcaslicer_copy_dlls(COPY_DLLS "Release" "" output_dlls_Release)
+        endif()
+    endif()
 
 else ()
+    if (NOT APPLE)
+        set(output_sos_Release "")
+        set(output_sos_Debug "")
+        add_custom_target(OrcaSlicerSosCopy ALL DEPENDS OrcaSlicer)
+        if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+            orcaslicer_copy_sos(OrcaSlicerSosCopy "Debug" "d" output_sos_Debug)
+        else()
+            orcaslicer_copy_sos(OrcaSlicerSosCopy "Release" "" output_sos_Release)
+        endif()
+    endif()
     if (APPLE AND NOT CMAKE_MACOSX_BUNDLE)
         # On OSX, the name of the binary matches the name of the Application.
         add_custom_command(TARGET OrcaSlicer POST_BUILD
             COMMAND ln -sf OrcaSlicer orca-slicer
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:OrcaSlicer>"
             VERBATIM)
-    else ()
-        add_custom_command(TARGET OrcaSlicer POST_BUILD
-            WORKING_DIRECTORY "$<TARGET_FILE_DIR:OrcaSlicer>"
-            VERBATIM)
     endif ()
     if (XCODE)
         # Because of Debug/Release/etc. configurations (similar to MSVC) the slic3r binary is located in an extra level
         set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/resources")
+        set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}")
         set(BIN_CONF_DIR "Debug")
     else ()
         set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/../resources")
+        set(BIN_DIR "$<TARGET_FILE_DIR:OrcaSlicer>")
     endif ()
     if (CMAKE_MACOSX_BUNDLE)
         if (CMAKE_CONFIGURATION_TYPES)
             set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/OrcaSlicer.app/Contents/Resources")
+            set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/OrcaSlicer.app/Contents/MacOS")
         else()
             set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.app/Contents/Resources")
+            set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.app/Contents/MacOS")
         endif()
         set(MACOSX_BUNDLE_ICON_FILE Icon.icns)
         set(MACOSX_BUNDLE_BUNDLE_NAME "OrcaSlicer")
         set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${SoftFever_VERSION})
         set(MACOSX_BUNDLE_COPYRIGHT "Copyright(C) 2022-2024 Li Jiang All Rights Reserved")
+        if (XCODE)
+            # Xcode's CodeSign phase fails on the bundled Python runtime's dotted
+            # dirs (python3.12) under Contents/MacOS. Skip it for local dev builds
+            # and let the linker ad-hoc sign; the shipped bundle is signed by the
+            # Ninja/CI packaging path (build_release_macos.sh, build_orca.yml).
+            set_target_properties(OrcaSlicer PROPERTIES XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
+        endif()
     endif()
     add_custom_command(TARGET OrcaSlicer POST_BUILD
         COMMAND ln -sfn "${SLIC3R_RESOURCES_DIR}" "${BIN_RESOURCES_DIR}"
         COMMENT "Symlinking the resources directory into the build tree"
         VERBATIM)
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${BIN_DIR}/python"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "${BIN_DIR}/python"
+        COMMENT "Copying Python runtime into the build tree"
+        VERBATIM)
+    # Stage uv next to the binary for the build-tree/.app flows, which never
+    # run install() -- see the layout map above; lookup is bundled_uv_path().
+    if(ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_BUNDLED_UV_EXECUTABLE}")
+        add_custom_command(TARGET OrcaSlicer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${BIN_DIR}/tools/uv"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ORCA_BUNDLED_UV_EXECUTABLE}" "${BIN_DIR}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}"
+            COMMAND chmod +x "${BIN_DIR}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}"
+            COMMENT "Copying bundled uv into the build tree"
+            VERBATIM)
+    endif()
 endif ()
 
 # Slic3r binary install target. Default build type is release in case no CMAKE_BUILD_TYPE is provided.
@@ -285,6 +391,11 @@ if (WIN32)
         install(TARGETS OrcaSlicer_app_gui RUNTIME DESTINATION ".")
     endif ()
     install(FILES ${output_dlls_${build_type}} DESTINATION ".")
+    install(DIRECTORY "${CMAKE_PREFIX_PATH}/libpython/" DESTINATION "python")
 else ()
+    if (APPLE)
+    else()
+        install(FILES ${output_sos_${build_type}} DESTINATION "${CMAKE_INSTALL_PREFIX}")
+    endif()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @System",
-	"inherits": "Elegoo PETG @base",
+	"inherits": "Elegoo Rapid PETG @base",
 	"from": "system",
 	"setting_id": "uUQSVOvP8tAaDqvB",
 	"instantiation": "true",
@@ -33,5 +33,5 @@
 		"250"
 	],
 	"compatible_printers": [],
-	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+"
+	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+;Elegoo RAPID PETG;Elegoo RAPID PETG+"
 }

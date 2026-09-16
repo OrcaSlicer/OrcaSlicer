@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "aOg4RWjgsKxj4d64",
 	"name": "QIDI ABS-GF @Qidi Q2C 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "aOg4RWjgsKxj4d64",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

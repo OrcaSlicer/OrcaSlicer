@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "4trzdB5fUzgXxLr6",
 	"name": "QIDI ASA @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA@Q2C-Series",
+	"from": "system",
+	"setting_id": "4trzdB5fUzgXxLr6",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

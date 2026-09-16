@@ -21,15 +21,11 @@ class SyncAmsInfoDialog : public DPIDialog
     bool              m_only_exist_ext_spool_flag{false};
     int               m_current_filament_id{0};
     int               m_print_plate_idx{0};
-    int               m_print_plate_total{0};
     int               m_timeout_count{0};
     int               m_print_error_code{0};
     bool              m_is_in_sending_mode{false};
     bool              m_ams_mapping_res{false};
     bool              m_ams_mapping_valid{false};
-    bool              m_export_3mf_cancel{false};
-    bool              m_is_canceled{false};
-    bool              m_is_rename_mode{false};
     bool              m_check_flag{false};
     PrintPageMode     m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string       m_print_error_msg;
@@ -208,11 +204,12 @@ public:
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
     void set_print_type(PrintFromType type) { m_print_type = type; };
     bool do_ams_mapping(MachineObject *obj_);
+    // Orca: true when a Filament Track Switch is installed and ready (drives the combined dynamic mapping view).
+    bool has_selector(MachineObject *obj_) const;
     void deal_only_exist_ext_spool(MachineObject *obj_);
     void show_thumbnail_page();
     bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
     bool build_nozzles_info(std::string &nozzles_info);
-    bool can_hybrid_mapping(DevExtderSystem data);
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
     bool is_nozzle_type_match(DevExtderSystem data, wxString &error_message) const;
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id);
@@ -306,8 +303,6 @@ private:
    // wxBoxSizer *    m_plate_combox_sizer          = nullptr;
     wxBoxSizer *    m_mode_combox_sizer           = nullptr;
     //wxStaticText *  m_printer_title                = nullptr;
-    wxStaticText *  m_printer_device_name          = nullptr;
-    wxStaticText *  m_printer_is_map_title         = nullptr;
 
     CapsuleButton *  m_colormap_btn = nullptr;
     CapsuleButton *  m_override_btn = nullptr;
@@ -325,7 +320,6 @@ private:
 
     bool m_check_dirty_fialment  = true;
     bool m_expand_more_settings  = true;
-    bool m_image_is_top          = false;
 
     const int LEFT_THUMBNAIL_SIZE_WIDTH = 100;
     const int RIGHT_THUMBNAIL_SIZE_WIDTH = 300;
@@ -370,7 +364,7 @@ public:
     };
     FinishSyncAmsDialog(InputInfo &input_info);
     ~FinishSyncAmsDialog() override;
-    void deal_ok();
+    void deal_ok() override;
     void update_info(InputInfo& info);
     bool Layout() override;
 

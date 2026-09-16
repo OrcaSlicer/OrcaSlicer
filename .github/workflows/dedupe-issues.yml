@@ -20,14 +20,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run Claude Code slash command
         uses: anthropics/claude-code-base-action@beta
         with:
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: "--model claude-sonnet-4-5-20250929"
+          model: "claude-sonnet-4-5-20250929"
           claude_env: |
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

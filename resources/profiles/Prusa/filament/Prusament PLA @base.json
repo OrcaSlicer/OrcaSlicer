@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Prusament PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFnO4wnf",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Prusa Polymers"
+	]
+}
