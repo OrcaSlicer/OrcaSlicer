@@ -14,6 +14,8 @@
 
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 using namespace Slic3r;
 
@@ -42,6 +44,38 @@ TEST_CASE("Moonraker logout revokes access until explicitly rebound", "[DeviceAc
     machine.set_access_code(code, false);
     REQUIRE(machine.has_access_right());
     REQUIRE(machine.get_access_code() == code);
+}
+
+TEST_CASE("Revoked access prevents calls to the printer agent", "[DeviceAccess]")
+{
+    class RecordingAgent : public MoonrakerPrinterAgent
+    {
+    public:
+        RecordingAgent() : MoonrakerPrinterAgent("") {}
+        int connections = 0;
+        int connect_printer(std::string, std::string, std::string, std::string, bool) override
+        {
+            ++connections;
+            return 0;
+        }
+        int disconnect_printer() override { return 0; }
+    };
+
+    auto agent = std::make_shared<RecordingAgent>();
+    NetworkAgent network(nullptr, agent);
+    MachineObject machine(nullptr, &network, "test", "test_dev", "127.0.0.1");
+    machine.printer_agent_id = GENERATE(BBL_PRINTER_AGENT_ID, ORCA_PRINTER_AGENT_ID);
+    machine.set_access_code("configured-key", false);
+    REQUIRE(machine.connect(false) == 0);
+    REQUIRE(agent->connections == 1);
+
+    machine.revoke_access();
+    REQUIRE(machine.connect(false) == -1);
+    REQUIRE(agent->connections == 1);
+
+    machine.set_access_code("configured-key", false);
+    REQUIRE(machine.connect(false) == 0);
+    REQUIRE(agent->connections == 2);
 }
 
 TEST_CASE("Other printer agents require an access code", "[DeviceAccess]")
