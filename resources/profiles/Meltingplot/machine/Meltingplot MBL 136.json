@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Meltingplot MBL 136",
+	"model_id": "Meltingplot-MBL-136",
+	"nozzle_diameter": "0.8;0.4;0.6;1.0;1.2",
+	"machine_tech": "FFF",
+	"family": "Meltingplot",
+	"bed_model": "mbl136-printbed.stl",
+	"bed_texture": "mbl-136-texture.svg",
+	"hotend_model": "",
+	"default_materials": "Meltingplot PLA;Meltingplot PETG;Meltingplot ABS;Meltingplot ASA"
+}

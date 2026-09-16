@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot TitanX @0.8 nozzle",
+	"inherits": "Meltingplot TitanX",
+	"from": "system",
+	"setting_id": "jYrElhVPtK2Dpb9K",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"22"
+	],
+	"slow_down_layer_time": [
+		"15"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.8 nozzle",
+		"Meltingplot MBL 136 0.8 nozzle",
+		"Meltingplot MBL 308 0.8 nozzle",
+		"Meltingplot MBL 480 0.8 nozzle",
+		"Meltingplot CHX 350 0.8 nozzle"
+	]
+}

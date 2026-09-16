@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Meltingplot CHX 350",
+	"model_id": "Meltingplot-CHX-350",
+	"nozzle_diameter": "0.4;0.6;0.8;1.0;1.2",
+	"machine_tech": "FFF",
+	"family": "Meltingplot",
+	"bed_model": "chx350-printbed.stl",
+	"bed_texture": "chx350-texture.svg",
+	"hotend_model": "",
+	"default_materials": "Meltingplot PLA;Meltingplot PETG;Meltingplot ABS;Meltingplot ASA"
+}

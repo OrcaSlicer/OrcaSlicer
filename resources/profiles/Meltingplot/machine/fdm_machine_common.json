@@ -1,0 +1,69 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"printer_technology": "FFF",
+	"gcode_flavor": "reprapfirmware",
+	"host_type": "duet",
+	"disable_m73": "1",
+	"emit_machine_limits_to_gcode": "0",
+	"silent_mode": "0",
+	"extruder_colour": [
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0"
+	],
+	"machine_min_extruding_rate": [
+		"0"
+	],
+	"machine_min_travel_rate": [
+		"0"
+	],
+	"machine_max_speed_e": [
+		"60"
+	],
+	"printer_settings_id": "",
+	"resonance_avoidance": "0",
+	"retraction_length": [
+		"0"
+	],
+	"use_firmware_retraction": "1",
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retract_before_wipe": [
+		"0%"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"retract_restart_extra": [
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0"
+	],
+	"wipe": [
+		"0"
+	],
+	"z_hop": [
+		"0"
+	],
+	"z_hop_types": [
+		"Normal Lift"
+	],
+	"travel_slope": [
+		"1"
+	],
+	"single_extruder_multi_material": "0",
+	"purge_in_prime_tower": "0",
+	"time_cost": "2",
+	"default_print_profile": "",
+	"change_filament_gcode": "",
+	"machine_pause_gcode": "M226",
+	"machine_end_gcode": "G90\nG1 Z{min(max_layer_z + 5, printable_height)} F600\nM98 P\"0:/sys/meltingplot/print_end\"",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n"
+}
