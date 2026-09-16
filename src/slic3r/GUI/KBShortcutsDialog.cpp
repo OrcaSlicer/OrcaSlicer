@@ -265,7 +265,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
             m_editable_rows.push_back({ shortcut, desc, key, reset });
         } else {
-            auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "lock_closed", 16).bmp());
+            auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "printer_status_lock", 16).bmp());
             lock->SetToolTip(_L("Not customizable"));
             buttons->Add((edit_size.x - lock->GetBestSize().x) / 2, edit_size.y);   // centred under the edit icons, at their height
             buttons->Add(lock, 0, wxALIGN_CENTRE_VERTICAL);
