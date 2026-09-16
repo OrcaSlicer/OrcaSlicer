@@ -1701,6 +1701,11 @@ void WipeTower2::toolchange_Change(
     // This is where we want to place the custom gcodes. We will use placeholders for this.
     // These will be substituted by the actual gcodes when the gcode is generated.
     //writer.append("[end_filament_gcode]\n");
+    // Orca: restore Z to the real topmost printed layer before running change_filament_gcode.
+    // The wipe tower can be printing below that height (e.g. wipe_tower_no_sparse_layers), and
+    // change_filament_gcode is free to travel anywhere on the bed, so it must not run while the
+    // toolhead sits lower than already-printed parts. See append_tcr2() in GCode.cpp.
+    writer.append("[restore_layer_z_before_toolchange]\n");
     writer.append("[change_filament_gcode]\n");
 
     if (m_is_mk4mmu3)
