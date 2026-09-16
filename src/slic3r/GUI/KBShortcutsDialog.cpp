@@ -222,7 +222,8 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     // Every row ends in a buttons column of one width, so the right-aligned keys share an
     // edge without sharing a column; each description wraps at whatever its own key leaves.
     ScalableButton* probe = icon_button("edit", "");
-    const int buttons_width = 2 * probe->GetBestSize().x + FromDIP(6);
+    const wxSize edit_size     = probe->GetBestSize();
+    const int    buttons_width = 2 * edit_size.x + FromDIP(6);
     probe->Destroy();
     m_row_text_width = page_width - row_margin - title_margin - 2 * gap - buttons_width;
 
@@ -263,6 +264,11 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             buttons->Add(change, 0, wxALIGN_CENTRE_VERTICAL | wxRIGHT, FromDIP(6));
             buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
             m_editable_rows.push_back({ shortcut, desc, key, reset });
+        } else {
+            auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "lock_closed", 16).bmp());
+            lock->SetToolTip(_L("Not customizable"));
+            buttons->Add((edit_size.x - lock->GetBestSize().x) / 2, edit_size.y);   // centred under the edit icons, at their height
+            buttons->Add(lock, 0, wxALIGN_CENTRE_VERTICAL);
         }
         if (const int used = buttons->GetMinSize().x; used < buttons_width)   // a box sizer recomputes its own min size, so pad it
             buttons->AddSpacer(buttons_width - used);
