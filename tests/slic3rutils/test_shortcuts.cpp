@@ -136,6 +136,7 @@ TEST_CASE("Chords convert to wx accelerator entries", "[Shortcuts]")
 TEST_CASE("Display text matches the canonical text without translations", "[Shortcuts]")
 {
     CHECK(KeyChord{ WXK_DELETE, wxMOD_CONTROL | wxMOD_SHIFT }.display() == "Ctrl+Shift+Del");
+    CHECK(KeyChord{ WXK_DELETE, wxMOD_CONTROL | wxMOD_SHIFT }.display_parts() == std::vector<std::string>{ "Ctrl", "Shift", "Del" });
     CHECK(KeyChord{ '+' }.display() == "+");
     CHECK(KeyChord{}.display().empty());
 }

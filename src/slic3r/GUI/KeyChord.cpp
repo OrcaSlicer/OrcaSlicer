@@ -221,14 +221,22 @@ std::optional<KeyChord> KeyChord::parse(const std::string& text)
 
 std::string KeyChord::display() const
 {
-    if (!valid())
-        return {};
-    std::string out = join_modifiers(modifiers, modifier_prefix);
-    if (is_printable(key))
-        out += char(key);
-    else
-        out += _u8L_CONTEXT(special_key_name(key), "Keyboard Shortcut");
+    std::string out;
+    for (const std::string& part : display_parts())
+        out += (out.empty() ? "" : "+") + part;
     return out;
+}
+
+std::vector<std::string> KeyChord::display_parts() const
+{
+    std::vector<std::string> parts;
+    if (!valid())
+        return parts;
+    for (int modifier : MODIFIER_ORDER)
+        if (modifiers & modifier)
+            parts.push_back(modifier_name(modifier));
+    parts.push_back(is_printable(key) ? std::string(1, char(key)) : _u8L_CONTEXT(special_key_name(key), "Keyboard Shortcut"));
+    return parts;
 }
 
 std::string KeyChord::modifier_prefix(int modifier)
@@ -246,13 +254,16 @@ std::string KeyChord::modifier_prefix(int modifier)
     return {};
 }
 
-// The catalogue holds the "Ctrl+" prefixes, so the bare name is the prefix without its "+".
+// The catalogue holds the "Ctrl+" prefixes, so the bare name is the prefix without its "+"
+// and any space before it ("Strg +" in German).
 std::string KeyChord::modifier_name(int modifier)
 {
-    std::string prefix = modifier_prefix(modifier);
-    if (!prefix.empty())
-        prefix.pop_back();
-    return prefix;
+    std::string name = modifier_prefix(modifier);
+    if (!name.empty() && name.back() == '+')
+        name.pop_back();
+    while (!name.empty() && name.back() == ' ')
+        name.pop_back();
+    return name;
 }
 
 wxAcceleratorEntry KeyChord::to_accelerator_entry(int command) const

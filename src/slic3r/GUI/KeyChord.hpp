@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 class wxKeyEvent;
 
@@ -41,6 +42,8 @@ struct KeyChord
     // Text for menus, tooltips and the shortcuts dialog, with translated modifier names and the
     // command and option glyphs on macOS.
     std::string display() const;
+    // The pieces display() joins with "+": the modifier names, then the key name.
+    std::vector<std::string> display_parts() const;
     // Translated text of one wxMOD_* modifier, as a "Ctrl+" prefix or the bare "Ctrl" name.
     static std::string modifier_prefix(int modifier);
     static std::string modifier_name(int modifier);

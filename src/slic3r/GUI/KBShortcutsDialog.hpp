@@ -24,8 +24,8 @@ class KBShortcutsDialog : public DPIDialog
     // A key the user cannot rebind.
     struct FixedKey
     {
-        wxString    key;
-        const char* description;   // untranslated
+        std::vector<wxString> keys;          // modifier names and the key, shown joined with "+"
+        const char*           description;   // untranslated
     };
     // A mouse button whose camera action is chosen in Preferences.
     struct MouseAction
@@ -48,6 +48,7 @@ class KBShortcutsDialog : public DPIDialog
     {
         Shortcut        shortcut;
         wxStaticText*   description;
+        wxStaticText*   modifiers;
         wxStaticText*   key;
         ScalableButton* reset;
     };
@@ -60,7 +61,8 @@ class KBShortcutsDialog : public DPIDialog
     std::vector<Page>          m_pages;
     std::vector<EditableRow>   m_editable_rows;
     std::vector<PreferenceRow> m_preference_rows;
-    int                        m_row_text_width = 0;   // what a row's description and key share, so the description wraps at m_row_text_width - key width
+    int                        m_row_text_width = 0;   // what a row's description and chord share, so the description wraps at m_row_text_width - chord width
+    int                        m_key_slot       = 0;   // width of the widest single key, the column single keys line up in
 
     TabCtrl*      m_tabs;
     wxSimplebook* m_simplebook;
@@ -79,6 +81,8 @@ private:
     // Asks question before unbinding conflicts; false when the user declined.
     bool take_chord_from(Shortcut shortcut, const std::vector<Shortcut>& conflicts, const wxString& question);
     void apply_bindings();   // refreshes the rows and pushes the change to the rest of the app
+    // Puts a chord on a row's two labels, a single key in the shared column, and returns the width the chord takes.
+    int  set_chord_labels(wxStaticText* modifiers, wxStaticText* key, std::vector<wxString> parts);
     void open_mouse_preferences();
 };
 

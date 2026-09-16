@@ -49,6 +49,23 @@ const char* mouse_action(const char* preference)
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
+std::vector<wxString> to_wx(const std::vector<std::string>& parts)
+{
+    std::vector<wxString> out;
+    for (const std::string& part : parts)
+        out.push_back(from_u8(part));
+    return out;
+}
+
+// The pieces of a chord, spaced out for the dialog: "Ctrl + Shift + A".
+wxString join_keys(const std::vector<wxString>& parts)
+{
+    wxString out;
+    for (const wxString& part : parts)
+        out += (out.empty() ? "" : " + ") + part;
+    return out;
+}
+
 } // namespace
 
 KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent)
@@ -97,7 +114,7 @@ void KBShortcutsDialog::on_dpi_changed(const wxRect& suggested_rect)
 void KBShortcutsDialog::fill_pages()
 {
     // A fixed row is listed in the section of the shortcuts it belongs with.
-    auto fixed = [](ShortcutSection section, const wxString& key, const char* description) { return Row{ FixedKey{ key, description }, section }; };
+    auto fixed = [](ShortcutSection section, std::vector<wxString> keys, const char* description) { return Row{ FixedKey{ std::move(keys), description }, section }; };
     auto mouse = [](ShortcutSection section, const wxString& button, const char* preference) { return Row{ MouseAction{ button, preference }, section }; };
     auto key   = [](const std::string& key) { return _L_CONTEXT(key, "Keyboard Shortcut"); };
     auto page  = [this](const wxString& title, const wxString& caption, ShortcutContext context, std::vector<Row> fixed_rows) {
@@ -109,53 +126,53 @@ void KBShortcutsDialog::fill_pages()
         m_pages.push_back(std::move(entry));
     };
 
-    const wxString ctrl        = from_u8(KeyChord::modifier_prefix(wxMOD_CONTROL));
-    const wxString alt         = from_u8(KeyChord::modifier_prefix(wxMOD_ALT));
-    const wxString shift       = from_u8(KeyChord::modifier_prefix(wxMOD_SHIFT));
-    const wxString shift_ctrl  = from_u8(KeyChord::modifier_name(wxMOD_SHIFT)) + "/" + ctrl;   // "Shift/Ctrl+": either one
+    const wxString ctrl        = from_u8(KeyChord::modifier_name(wxMOD_CONTROL));
+    const wxString alt         = from_u8(KeyChord::modifier_name(wxMOD_ALT));
+    const wxString shift       = from_u8(KeyChord::modifier_name(wxMOD_SHIFT));
+    const wxString shift_ctrl  = shift + "/" + ctrl;   // either one
     const wxString any_key     = key(L_CONTEXT("Key", "Keyboard Shortcut"));   // the key the row's shortcut is bound to
     const wxString esc         = key(L_CONTEXT("Esc", "Keyboard Shortcut"));
-    const wxString left_button = _L("Left mouse button");
+    const wxString left_button = _L("Left mouse");
     const wxString wheel       = _L("Mouse wheel");
     using Section              = ShortcutSection;
 
     if (wxGetApp().is_editor()) {
         page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
-            fixed(Section::Application, ctrl + key(L_CONTEXT("Tab", "Keyboard Shortcut")), L("Switch table page")),
+            fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch table page")),
         });
 
         page(_L("Prepare"), _L("Available while the 3D view on the Prepare tab has focus."), ShortcutContext::Plater, {
-            fixed(Section::Selection, alt + left_button, L("Select a part")),
-            fixed(Section::Selection, ctrl + left_button, L("Select multiple objects")),
-            fixed(Section::Selection, shift + left_button, L("Select objects by rectangle")),
-            fixed(Section::Selection, esc, L("Deselect All")),
-            fixed(Section::Objects, "1-9", L("Keyboard 1-9: set filament for object/part")),
-            fixed(Section::Placement, shift + any_key, L("Movement step set to 1mm")),
-            fixed(Section::Placement, ctrl + any_key, L("Movement in camera space")),
+            fixed(Section::Selection, { alt, left_button }, L("Select a part")),
+            fixed(Section::Selection, { ctrl, left_button }, L("Select multiple objects")),
+            fixed(Section::Selection, { shift, left_button }, L("Select objects by rectangle")),
+            fixed(Section::Selection, { esc }, L("Deselect All")),
+            fixed(Section::Objects, { "1-9" }, L("Keyboard 1-9: set filament for object/part")),
+            fixed(Section::Placement, { shift, any_key }, L("Movement step set to 1mm")),
+            fixed(Section::Placement, { ctrl, any_key }, L("Movement in camera space")),
             mouse(Section::Camera, left_button, "left_mouse_drag_action"),
-            mouse(Section::Camera, _L("Middle mouse button"), "middle_mouse_drag_action"),
-            mouse(Section::Camera, _L("Right mouse button"), "right_mouse_drag_action"),
-            fixed(Section::Camera, wheel, L("Zoom View")),
+            mouse(Section::Camera, _L("Middle mouse"), "middle_mouse_drag_action"),
+            mouse(Section::Camera, _L("Right mouse"), "right_mouse_drag_action"),
+            fixed(Section::Camera, { wheel }, L("Zoom View")),
         });
 
         page(_L("Painting"), _L("Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."), ShortcutContext::Painting, {
-            fixed(Section::Gizmos, esc, L("Deselect All")),
-            fixed(Section::Gizmos, shift + left_button, L("Move: press to snap by 1mm")),
-            fixed(Section::PaintingTools, ctrl + wheel, L("Support/Color Painting: adjust pen radius")),
-            fixed(Section::PaintingTools, alt + wheel, L("Support/Color Painting: adjust section position")),
+            fixed(Section::Gizmos, { esc }, L("Deselect All")),
+            fixed(Section::Gizmos, { shift, left_button }, L("Move: press to snap by 1mm")),
+            fixed(Section::PaintingTools, { ctrl, wheel }, L("Support/Color Painting: adjust pen radius")),
+            fixed(Section::PaintingTools, { alt, wheel }, L("Support/Color Painting: adjust section position")),
         });
 
         page(_L("Objects list"), _L("Available while the object list has focus."), ShortcutContext::ObjectList, {
-            fixed(Section::Selection, esc, L("Deselect All")),
-            fixed(Section::Objects, "1-9", L("Set extruder number for the objects and parts")),
-            fixed(Section::Objects, key(L_CONTEXT("Space", "Keyboard Shortcut")), L("Select the object/part and press space to change the name")),
-            fixed(Section::Objects, _L("Mouse click"), L("Select the object/part and mouse click to change the name")),
+            fixed(Section::Selection, { esc }, L("Deselect All")),
+            fixed(Section::Objects, { "1-9" }, L("Set extruder number for the objects and parts")),
+            fixed(Section::Objects, { key(L_CONTEXT("Space", "Keyboard Shortcut")) }, L("Select the object/part and press space to change the name")),
+            fixed(Section::Objects, { _L("Mouse click") }, L("Select the object/part and mouse click to change the name")),
         });
     }
 
     page(_L("Preview"), _L("Available while the 3D view on the Preview tab has focus."), ShortcutContext::Preview, {
-        fixed(Section::Sliders, shift_ctrl + any_key, L("Move slider 5x faster")),
-        fixed(Section::Sliders, shift_ctrl + wheel, L("Scroll slider 5x faster")),
+        fixed(Section::Sliders, { shift_ctrl, any_key }, L("Move slider 5x faster")),
+        fixed(Section::Sliders, { shift_ctrl, wheel }, L("Scroll slider 5x faster")),
     });
 }
 
@@ -198,11 +215,11 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     note->SetSizer(note_sizer);
     scrollable_panel_sizer->Add(note, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, title_margin);
 
-    auto key_text = [](const Row& row) {
+    auto key_parts = [](const Row& row) {
         return std::visit(overloaded{
-            [](Shortcut shortcut) { return from_u8(wxGetApp().shortcuts().display(shortcut)); },
-            [](const FixedKey& fixed) { return fixed.key; },
-            [](const MouseAction& mouse) { return mouse.button; },
+            [](Shortcut shortcut) { return to_wx(wxGetApp().shortcuts().binding(shortcut).display_parts()); },
+            [](const FixedKey& fixed) { return fixed.keys; },
+            [](const MouseAction& mouse) { return std::vector<wxString>{ mouse.button }; },
         }, row.content);
     };
     auto description = [](const Row& row) {
@@ -226,6 +243,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     const int    buttons_width = 2 * edit_size.x + FromDIP(6);
     probe->Destroy();
     m_row_text_width = page_width - row_margin - title_margin - 2 * gap - buttons_width;
+    scrollable_panel->GetTextExtent("W", &m_key_slot, nullptr, nullptr, nullptr, &Label::Head_14);
 
     std::optional<ShortcutSection> section;
     for (const Row& row : page.rows) {
@@ -243,10 +261,15 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         auto desc = new wxStaticText(scrollable_panel, wxID_ANY, description(row));
         desc->SetFont(Label::Body_14);
         desc->SetForegroundColour(DESIGN_GRAY900_COLOR);
-        auto key = new wxStaticText(scrollable_panel, wxID_ANY, key_text(row));
-        key->SetFont(Label::Head_14);
-        key->SetForegroundColour(DESIGN_GRAY900_COLOR);
-        desc->Wrap(m_row_text_width - key->GetBestSize().x);
+        auto chord_label = [&](long style) {
+            auto label = new wxStaticText(scrollable_panel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, style);
+            label->SetFont(Label::Head_14);
+            label->SetForegroundColour(DESIGN_GRAY900_COLOR);
+            return label;
+        };
+        wxStaticText* modifiers = chord_label(0);
+        wxStaticText* key       = chord_label(wxALIGN_CENTRE_HORIZONTAL);   // a single key is centred in its column
+        desc->Wrap(m_row_text_width - set_chord_labels(modifiers, key, key_parts(row)));
 
         wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
         if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
@@ -263,7 +286,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             reset->Show(wxGetApp().shortcuts().is_customized(shortcut));
             buttons->Add(change, 0, wxALIGN_CENTRE_VERTICAL | wxRIGHT, FromDIP(6));
             buttons->Add(reset, 0, wxALIGN_CENTRE_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-            m_editable_rows.push_back({ shortcut, desc, key, reset });
+            m_editable_rows.push_back({ shortcut, desc, modifiers, key, reset });
         } else {
             auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "printer_status_lock", 16).bmp());
             lock->SetToolTip(_L("Not customizable"));
@@ -276,7 +299,9 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         wxBoxSizer* row_sizer = new wxBoxSizer(wxHORIZONTAL);
         row_sizer->AddSpacer(row_margin);
         row_sizer->Add(desc, 1, wxALIGN_CENTRE_VERTICAL);
-        row_sizer->Add(key, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, gap);
+        row_sizer->AddSpacer(gap);
+        row_sizer->Add(modifiers, 0, wxALIGN_CENTRE_VERTICAL);
+        row_sizer->Add(key, 0, wxALIGN_CENTRE_VERTICAL);
         row_sizer->Add(buttons, 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, gap);
         row_sizer->AddSpacer(title_margin);
         scrollable_panel_sizer->Add(row_sizer, 0, wxEXPAND | wxTOP, FromDIP(4));
@@ -329,15 +354,28 @@ void KBShortcutsDialog::apply_bindings()
     const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
     std::set<wxWindow*>     pages;
     for (const EditableRow& row : m_editable_rows) {
-        row.key->SetLabel(from_u8(shortcuts.display(row.shortcut)));
+        const int chord_width = set_chord_labels(row.modifiers, row.key, to_wx(shortcuts.binding(row.shortcut).display_parts()));
         row.description->SetLabel(_(shortcut_info(row.shortcut).name));
-        row.description->Wrap(m_row_text_width - row.key->GetBestSize().x);
+        row.description->Wrap(m_row_text_width - chord_width);
         row.reset->Show(shortcuts.is_customized(row.shortcut));
         pages.insert(row.key->GetParent());
     }
     for (wxWindow* page : pages)
         page->Layout();
     wxGetApp().on_shortcuts_changed();
+}
+
+int KBShortcutsDialog::set_chord_labels(wxStaticText* modifiers, wxStaticText* key, std::vector<wxString> parts)
+{
+    const wxString last = parts.empty() ? wxString() : parts.back();
+    if (!parts.empty())
+        parts.pop_back();
+    modifiers->SetLabel(parts.empty() ? wxString() : join_keys(parts) + " + ");
+    modifiers->Show(!parts.empty());
+    key->SetLabel(last);
+    const int key_width = last.length() == 1 ? m_key_slot : key->GetBestSize().x;
+    key->SetMinSize(wxSize(key_width, -1));
+    return (parts.empty() ? 0 : modifiers->GetBestSize().x) + key_width;
 }
 
 void KBShortcutsDialog::open_mouse_preferences()
@@ -376,7 +414,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture->SetBackgroundColorNormal(box_colour);
     capture->SetBackgroundColour(box_colour);
     wxBoxSizer* capture_sizer = new wxBoxSizer(wxVERTICAL);
-    m_chord_label = new wxStaticText(capture, wxID_ANY, from_u8(wxGetApp().shortcuts().display(shortcut)));
+    m_chord_label = new wxStaticText(capture, wxID_ANY, join_keys(to_wx(wxGetApp().shortcuts().binding(shortcut).display_parts())));
     m_chord_label->SetFont(::Label::Head_14);
     m_chord_label->SetBackgroundColour(box_colour);
     capture_sizer->AddStretchSpacer();
@@ -450,7 +488,8 @@ void ShortcutCaptureDialog::on_char(wxKeyEvent& evt)
 void ShortcutCaptureDialog::record(const KeyChord& chord)
 {
     m_chord = chord;
-    m_chord_label->SetLabel(from_u8(chord.display()));
+    m_chord_label->SetLabel(join_keys(to_wx(chord.display_parts())));
+    m_chord_label->GetParent()->Layout();
 
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     if (global && !chord.is_menu_accelerator()) {
