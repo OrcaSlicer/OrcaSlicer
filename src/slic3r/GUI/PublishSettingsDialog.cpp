@@ -665,7 +665,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     };
     wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
     links_sizer->Add(make_link(_L("Publish 3MF Wiki"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0, wxALIGN_LEFT);
-    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/@OfficialOrcaSlicer/videos"), 0,
+    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/watch?v=-xt1N29UIOg"), 0,
                      wxTOP | wxALIGN_LEFT, FromDIP(4));
 
     wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);

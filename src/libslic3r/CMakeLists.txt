@@ -260,6 +260,8 @@ set(lisbslic3r_sources
     GCode/SmallAreaInfillFlowCompensator.hpp
     GCode/SpiralVase.cpp
     GCode/SpiralVase.hpp
+    GCode/WipePathHelpers.cpp
+    GCode/WipePathHelpers.hpp
     GCode/ThumbnailData.cpp
     GCode/ThumbnailData.hpp
     GCode/Thumbnails.cpp
@@ -302,6 +304,8 @@ set(lisbslic3r_sources
     Layer.cpp
     Layer.hpp
     LayerRegion.cpp
+    LayOnFace.cpp
+    LayOnFace.hpp
     libslic3r.cpp
     libslic3r.h
     Line.cpp
