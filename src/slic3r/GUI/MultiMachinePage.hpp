@@ -81,7 +81,6 @@ private:
     AppConfig*          app_config;
     Label*              m_label{ nullptr };
     wxScrolledWindow*     scroll_macine_list{ nullptr };
-    wxBoxSizer*         m_sizer_body{ nullptr };
     wxBoxSizer*                         sizer_machine_list{ nullptr };
     std::map<std::string, DevicePickItem*>  m_device_items;
     int                 m_selected_count{0};

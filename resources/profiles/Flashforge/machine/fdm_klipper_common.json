@@ -125,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Flashforge Generic ABS"
+		"Generic ABS @Flashforge"
 	],
 	"default_print_profile": "0.20mm Standard @Flashforge AD5M",
 	"bed_exclude_area": [

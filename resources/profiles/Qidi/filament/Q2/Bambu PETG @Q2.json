@@ -3,7 +3,7 @@
 	"name": "Bambu PETG@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFG99",
+	"filament_id": "OFLYDngx",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

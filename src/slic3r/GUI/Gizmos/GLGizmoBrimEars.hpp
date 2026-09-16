@@ -85,7 +85,7 @@ public:
     void update_model_object();
     //ClippingPlane get_sla_clipping_plane() const;
 
-    bool is_selection_rectangle_dragging() const { return m_selection_rectangle.is_dragging(); }
+    bool is_selection_rectangle_dragging() const override { return m_selection_rectangle.is_dragging(); }
 
     bool wants_enter_leave_snapshots() const override { return true; }
     std::string get_gizmo_entering_text() const override { return _u8L("Entering Brim Ears"); }
@@ -98,12 +98,12 @@ private:
 
     void render_points(const Selection& selection);
 
-    float m_new_point_head_diameter;        // Size of a new point.
+    float m_new_point_head_radius;          // Radius of a new point.
     float m_max_angle = 125.f;
     float m_detection_radius = 1.f;
     double m_detection_radius_max = .0f;
     CacheEntry m_point_before_drag;         // undo/redo - so we know what state was edited
-    float m_old_point_head_diameter = 0.;   // the same
+    float m_old_point_head_radius = 0.;     // the same
     mutable std::vector<CacheEntry> m_editing_cache; // a support point and whether it is currently selectedchanges or undo/redo
     std::map<int, CacheEntry> m_single_brim;
     ObjectID m_old_mo_id;

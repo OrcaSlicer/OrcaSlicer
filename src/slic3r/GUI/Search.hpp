@@ -216,10 +216,12 @@ public:
     SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindow *parent, TextInput *input, wxWindow *search_btn);
     ~SearchDialog();
 
-    void MSWDismissUnfocusedPopup();
-    void Popup(wxPoint position = wxDefaultPosition);
-    void OnDismiss();
-    void Dismiss();
+#ifdef __WXMSW__
+    void MSWDismissUnfocusedPopup() override;
+#endif // __WXMSW__
+    void Popup(wxWindow *focus = nullptr) override;
+    void OnDismiss() override;
+    void Dismiss() override;
     void Die();
     void msw_rescale();
 
@@ -260,10 +262,12 @@ public:
     SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent, TextInput* input);
     ~SearchObjectDialog();
 
-    void MSWDismissUnfocusedPopup();
-    void Popup(wxPoint position = wxDefaultPosition);
-    void OnDismiss();
-    void Dismiss();
+#ifdef __WXMSW__
+    void MSWDismissUnfocusedPopup() override;
+#endif // __WXMSW__
+    void Popup(wxWindow *focus = nullptr) override;
+    void OnDismiss() override;
+    void Dismiss() override;
     void Die();
 
     void OnInputText(wxCommandEvent& event);

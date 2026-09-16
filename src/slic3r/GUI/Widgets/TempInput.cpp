@@ -134,7 +134,7 @@ void TempInput::Create(wxWindow *parent, wxString text, wxString label, wxString
             }
         }
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     text_ctrl->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
         if (m_read_only) {
             return;

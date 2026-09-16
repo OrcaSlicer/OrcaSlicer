@@ -338,6 +338,22 @@ TEST_CASE("G-code lists the resolved extrusion-width settings", "[Print]")
     CHECK(with_first_layer.find("; first layer extrusion width") != std::string::npos);
 }
 
+// gcode_skip_config_block suppresses the resolved-settings block while leaving the
+// header and executable blocks intact.
+TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "gcode_skip_config_block", true },
+        { "gcode_comments",         true },
+    });
+    CHECK(gcode.find("; CONFIG_BLOCK_START")     == std::string::npos);
+    CHECK(gcode.find("; CONFIG_BLOCK_END")       == std::string::npos);
+    CHECK(gcode.find("; layer_height =")         == std::string::npos);
+    CHECK(gcode.find("; fill_density =")         == std::string::npos);
+    CHECK(gcode.find("; HEADER_BLOCK_START")     != std::string::npos);
+    CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {

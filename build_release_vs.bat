@@ -20,6 +20,18 @@ for %%a in (%*) do (
     if "%%a"=="-x" set USE_NINJA=1
 )
 
+@REM Check for clang-cl option (-l). Combined with -x it also builds the deps with
+@REM clang-cl; on the Visual Studio generator it applies to the slicer only, because
+@REM the dependency sub-builds have no toolset to inherit and stay on MSVC.
+set CLANG_ARG=
+set TOOLSET_ARG=
+for %%a in (%*) do (
+    if "%%a"=="-l" (
+        set CLANG_ARG=-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+        set TOOLSET_ARG=-T ClangCL
+    )
+)
+
 @REM Check for unit-tests option ("tests")
 set BUILD_TESTS=OFF
 for %%a in (%*) do (
@@ -74,7 +86,7 @@ if "%VS_MAJOR%"=="16" (
     set CMAKE_GENERATOR="Visual Studio 18 2026"
 ) else (
     echo Error: Unsupported Visual Studio version: %VS_MAJOR%
-    echo Supported versions: VS2019 (16.x^), VS2022 (17.x^), VS2026 (18.x^)
+    echo Supported versions: VS2019 (16.8+^), VS2022 (17.x^), VS2026 (18.x^)
     exit /b 1
 )
 
@@ -127,12 +139,13 @@ if "%1"=="slicer" (
     GOTO :slicer
 )
 echo "building deps.."
+if defined CLANG_ARG if "%USE_NINJA%"=="0" echo Note: -l needs -x for the dependencies; building them with MSVC.
 
 echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake ../ -G %CMAKE_GENERATOR% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake ../ -G %CMAKE_GENERATOR% %CLANG_ARG% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps
 ) else (
     cmake ../ -G %CMAKE_GENERATOR% -A %arch% -DCMAKE_BUILD_TYPE=%build_type%
@@ -151,10 +164,10 @@ cd %build_dir%
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
-    cmake --build . --config %build_type% --target ALL_BUILD
+    cmake .. -G %CMAKE_GENERATOR% %CLANG_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target all
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A %arch% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A %arch% %TOOLSET_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off

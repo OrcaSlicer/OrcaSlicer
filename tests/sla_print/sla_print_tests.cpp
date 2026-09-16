@@ -229,7 +229,7 @@ TEST_CASE("halfcone test", "[halfcone]") {
     indexed_triangle_set m = sla::get_mesh(br, 45);
 
     its_merge_vertices(m);
-    its_write_obj(m, "Halfcone.obj");
+    write_debug_obj("sla_print/Halfcone.obj", m);
 }
 
 TEST_CASE("Test concurrency")

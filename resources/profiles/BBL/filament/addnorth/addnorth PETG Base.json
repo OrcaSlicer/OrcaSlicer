@@ -4,7 +4,7 @@
 	"inherits": "Generic PETG @base",
 	"from": "system",
 	"setting_id": "GF_ANPE_00",
-	"filament_id": "GF_ANPE",
+	"filament_id": "OFHHwrd1",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"

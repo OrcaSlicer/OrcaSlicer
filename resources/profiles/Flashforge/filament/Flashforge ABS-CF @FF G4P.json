@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge ABS-CF @FF G4P",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "NzJJs6yrSik5xuyX",
+	"filament_id": "OFYTIMbj",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"50"
@@ -37,6 +41,9 @@
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n;right_extruder_material: ABS-CF\n"
+	],
+	"filament_type": [
+		"ABS-CF"
 	],
 	"compatible_printers": [
 		"Flashforge Guider4 Pro 0.4 nozzle"

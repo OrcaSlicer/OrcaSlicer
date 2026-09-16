@@ -1,6 +1,6 @@
 {
 	"name": "Blocks",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Blocks configurations",
 	"machine_model_list": [
@@ -249,48 +249,48 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Blocks Generic ABS",
-			"sub_path": "filament/Blocks Generic ABS.json"
+			"name": "Generic ABS @Blocks",
+			"sub_path": "filament/Generic ABS @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic ASA",
-			"sub_path": "filament/Blocks Generic ASA.json"
+			"name": "Generic ASA @Blocks",
+			"sub_path": "filament/Generic ASA @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic ASA-CF",
-			"sub_path": "filament/Blocks Generic ASA-CF.json"
+			"name": "Generic ASA-CF @Blocks",
+			"sub_path": "filament/Generic ASA-CF @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PA",
-			"sub_path": "filament/Blocks Generic PA.json"
+			"name": "Generic PA @Blocks",
+			"sub_path": "filament/Generic PA @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PA-CF",
-			"sub_path": "filament/Blocks Generic PA-CF.json"
+			"name": "Generic PA-CF @Blocks",
+			"sub_path": "filament/Generic PA-CF @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PC",
-			"sub_path": "filament/Blocks Generic PC.json"
+			"name": "Generic PC @Blocks",
+			"sub_path": "filament/Generic PC @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PETG",
-			"sub_path": "filament/Blocks Generic PETG.json"
+			"name": "Generic PETG @Blocks",
+			"sub_path": "filament/Generic PETG @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PLA",
-			"sub_path": "filament/Blocks Generic PLA.json"
+			"name": "Generic PLA @Blocks",
+			"sub_path": "filament/Generic PLA @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PLA-CF",
-			"sub_path": "filament/Blocks Generic PLA-CF.json"
+			"name": "Generic PLA-CF @Blocks",
+			"sub_path": "filament/Generic PLA-CF @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic PVA",
-			"sub_path": "filament/Blocks Generic PVA.json"
+			"name": "Generic PVA @Blocks",
+			"sub_path": "filament/Generic PVA @Blocks.json"
 		},
 		{
-			"name": "Blocks Generic TPU",
-			"sub_path": "filament/Blocks Generic TPU.json"
+			"name": "Generic TPU @Blocks",
+			"sub_path": "filament/Generic TPU @Blocks.json"
 		}
 	],
 	"machine_list": [

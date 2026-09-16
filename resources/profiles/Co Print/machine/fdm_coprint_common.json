@@ -100,7 +100,7 @@
 	"machine_start_gcode": "start_print  EXTRUDER=[initial_extruder] EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]",
 	"machine_end_gcode": "end_print",
 	"default_filament_profile": [
-		"CoPrint Generic PLA"
+		"Generic PLA @CoPrint"
 	],
 	"extruder_clearance_radius": [
 		"65"

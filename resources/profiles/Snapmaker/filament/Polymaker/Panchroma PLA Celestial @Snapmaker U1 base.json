@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Celestial @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM008",
+	"filament_id": "OFRiYgMK",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

@@ -574,6 +574,9 @@ static DynamicPrintConfig dual_extruder_toolchange_config()
     config.set_key_value("nozzle_temperature_range_high", new ConfigOptionInts({240, 240}));
     config.set_key_value("flush_multiplier",     new ConfigOptionFloats({1}));
     config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats({0, 140, 140, 0}));
+    // Inside the 200x200 test bed; the default y, 220, is not, and generation rejects that.
+    config.set_key_value("wipe_tower_x",         new ConfigOptionFloats({50.}));
+    config.set_key_value("wipe_tower_y",         new ConfigOptionFloats({50.}));
     return config;
 }
 

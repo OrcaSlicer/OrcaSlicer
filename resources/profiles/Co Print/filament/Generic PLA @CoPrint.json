@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @CoPrint",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "CoPrint Generic PLA",
+	"from": "system",
+	"setting_id": "9tNsM3FhIDgKJ05R",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_load_time": [
+		"9.75"
+	],
+	"filament_unload_time": [
+		"9.75"
+	],
+	"compatible_printers": [
+		"Co Print ChromaSet 0.4 nozzle",
+		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
+		"Co Print ChromaSet 0.4 nozzle fast"
+	]
+}

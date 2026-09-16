@@ -11,6 +11,7 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include <wx/tooltip.h>
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 
@@ -2100,7 +2101,7 @@ void AmsReplaceMaterialDialog::create()
     m_top_line->SetBackgroundColour(wxColour(166, 169, 170));
     m_main_sizer->Add(m_top_line, 0, wxEXPAND, 0);
 
-    m_nozzle_btn_panel = new SwitchBoard(this, _L("Left"), _L("Right"), wxSize(FromDIP(126), FromDIP(26)));
+    m_nozzle_btn_panel = new SwitchBoard(this, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->Hide();
     m_nozzle_btn_panel->Connect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(AmsReplaceMaterialDialog::on_nozzle_selected), NULL, this);
 

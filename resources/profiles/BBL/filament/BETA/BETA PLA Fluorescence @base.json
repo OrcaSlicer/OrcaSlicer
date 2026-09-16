@@ -3,7 +3,7 @@
 	"name": "BETA PLA Fluorescence @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "BPLB04",
+	"filament_id": "OF4PKvem",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

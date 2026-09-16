@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 SECONDS=0
 
-while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
+while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -38,8 +38,8 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
     i )
         export CMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH:+$CMAKE_IGNORE_PREFIX_PATH;}$OPTARG"
         ;;
-    1 )
-        export CMAKE_BUILD_PARALLEL_LEVEL=1
+    j )
+        export CMAKE_BUILD_PARALLEL_LEVEL="$OPTARG"
         ;;
     T )
         export BUILD_TESTS="1"
@@ -58,7 +58,7 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
-        echo "   -1: Use single job for building"
+        echo "   -j: Set the number of parallel build jobs (CMAKE_BUILD_PARALLEL_LEVEL)"
         echo "   -T: Build and run tests (set ORCA_TESTS_BUILD_ONLY=1 to build without running)"
         exit 0
         ;;

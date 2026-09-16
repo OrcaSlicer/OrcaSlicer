@@ -90,6 +90,7 @@ function OnInit() {
   // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
   // sandboxed), and ignores anything else.
   window.addEventListener("message", OnCustomConfigMessage);
+  OrcaWatchThemeForFrame("configCustom");
 
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".ctx"))
@@ -601,15 +602,17 @@ function SourceLabel(source) {
       return "Mine";
     case "subscribed":
       return "Subscribed";
+    case "orphaned":
+      return "Orphaned";
     default:
       return "Local";
   }
 }
 
-// Shared Local/Subscribed/Mine pill, used both after the row name and in the info panel.
+// Shared source pill, used both after the row name and in the info panel.
 function SourceBadge(source) {
   const normalized = String(source || "").toLowerCase();
-  const variant = (normalized === "mine" || normalized === "subscribed") ? normalized : "local";
+  const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
   const badge = document.createElement("span");
   badge.className = `plugin-source-badge source-${variant}`;
   badge.textContent = SourceLabel(source);
@@ -653,7 +656,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
   const labelCell = document.createElement("span");
   labelCell.className = "label-cell";
 
-  const hasCloudLink = plugin.source === "mine" || plugin.source === "subscribed";
+  const hasCloudLink = plugin.source === "mine" || plugin.source === "subscribed" || plugin.source === "orphaned";
   const pluginLabelText = plugin.label || plugin.name || plugin.plugin_id || "";
   const canExpand = capabilityCount > 0;
 
@@ -704,7 +707,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
 function SourceCell(plugin) {
   const cell = document.createElement("span");
   const normalized = String(plugin.source || "").toLowerCase();
-  const variant = (normalized === "mine" || normalized === "subscribed") ? normalized : "local";
+  const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
   cell.className = `source-cell source-${variant}`;
 
   const sourceLabel = document.createElement("span");
@@ -1077,7 +1080,7 @@ function ApplyCapabilityConfig(payload) {
   if (html) {
     if (custom) {
       custom.hidden = false;
-      custom.srcdoc = BuildCustomConfigDocument(html, config);
+      custom.srcdoc = BuildCustomConfigDocument(html, config, OrcaConfigContext(payload, "global"));
     }
     if (editor)
       editor.hidden = true;
@@ -1178,39 +1181,6 @@ function ApplyCapabilityConfigSaved(payload) {
   SetConfigValidation("");
 }
 
-// The whole host surface a custom config UI gets: read the config, save one, restore the plugin's
-// defaults, and be told when either lands. The frame is sandboxed into an opaque origin, so this
-// bridge is its only channel.
-function BuildCustomConfigDocument(html, config) {
-  // Inlined into a <script>: a stored "</script>" would close the tag early, so escape "<" — the
-  // literal stays valid JSON.
-  const seed = JSON.stringify(config).replace(/</g, "\\u003c");
-  const bridge = `<script>
-(function () {
-  var handlers = [];
-  var current = ${seed};
-  window.orca = {
-    getConfig: function () { return current; },
-    saveConfig: function (cfg) { parent.postMessage({ __orca: "save", config: cfg }, "*"); },
-    restoreDefaults: function () { parent.postMessage({ __orca: "restore" }, "*"); },
-    onConfig: function (cb) {
-      if (typeof cb !== "function") return;
-      handlers.push(cb);
-      try { cb(current); } catch (e) {}
-    }
-  };
-  window.addEventListener("message", function (event) {
-    if (!event.data || event.data.__orca !== "config") return;
-    current = event.data.config || {};
-    handlers.forEach(function (handler) {
-      try { handler(current); } catch (e) {}
-    });
-  });
-})();
-<\/script>`;
-  return bridge + html;
-}
-
 function OnCustomConfigMessage(event) {
   const custom = document.getElementById("configCustom");
   // Only the frame we created, and only while it is actually showing.
@@ -1265,7 +1235,7 @@ function RenderDescription(plugin) {
     return;
   }
 
-  const isCloud = plugin && (plugin.source === "mine" || plugin.source === "subscribed");
+  const isCloud = plugin && (plugin.source === "mine" || plugin.source === "subscribed" || plugin.source === "orphaned");
   if (isCloud && String(plugin?.sharing_token || "")) {
     node.appendChild(document.createTextNode("View on OrcaCloud "));
     const link = document.createElement("a");
@@ -1401,6 +1371,13 @@ function RenderDetailSummary(container, plugin) {
   message.className = errorText ? "detail-description detail-error-text" : "detail-description";
   message.textContent = errorText || StatusDescription(plugin);
   container.appendChild(message);
+
+  if (plugin.orphaned === true) {
+    const warning = document.createElement("div");
+    warning.className = "detail-description detail-warning-text";
+    warning.textContent = "Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.";
+    container.appendChild(warning);
+  }
 
   const updateStatus = GetUpdateStatus(plugin);
   if (updateStatus === "update_available") {
