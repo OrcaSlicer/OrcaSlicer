@@ -243,8 +243,15 @@ bool ObjectSettings::update_settings_list()
                 return false;
             plate_configs.emplace(ppl.get_plate(plate_id), &cfg);
             parent_object = object;
-            const int vol_idx = objects_model->GetVolumeIdByItem(item);
-            assert(vol_idx >= 0);
+            // Cut-connector volumes are hidden from the object tree but remain
+            // in ModelObject::volumes. Translate the visible UI index back to
+            // the real model-volume index before binding the settings panel.
+            const int ui_vol_idx = objects_model->GetVolumeIdByItem(item);
+            if (ui_vol_idx < 0)
+                return false;
+            const int vol_idx = objects_model->get_real_volume_index_in_3d(obj_idx, ui_vol_idx);
+            if (vol_idx < 0 || static_cast<size_t>(vol_idx) >= object->volumes.size())
+                return false;
             auto volume = object->volumes[vol_idx];
             object_configs.emplace(volume, &volume->config);
         }
