@@ -6125,6 +6125,21 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
 
+    def = this->add("seam_angle_threshold", coInt);
+    def->label = L("Corner snapping angle");
+    def->category = L("Quality");
+    def->tooltip = L(
+        "Corners sharper than this angle attract the seam, so aligned and painted seams snap onto them instead "
+        "of drifting along a flat wall. Lower this value to also snap to shallower corners: a chamfer that is "
+        "slanted in 3D measures a smaller angle in each sliced layer than it does on the model, so the default "
+        "can be too strict for it. Very low values force the seam onto the sharpest corner of every layer, which "
+        "can make it wander. The default value is 55°.");
+    def->mode = comAdvanced;
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = 1;
+    def->max = 180;
+    def->set_default_value(new ConfigOptionInt(55));
+
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");
     def->category = L("Quality");
