@@ -665,7 +665,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     };
     wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
     links_sizer->Add(make_link(_L("Publish 3MF Wiki"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0, wxALIGN_LEFT);
-    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/@OfficialOrcaSlicer/videos"), 0,
+    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/watch?v=-xt1N29UIOg"), 0,
                      wxTOP | wxALIGN_LEFT, FromDIP(4));
 
     wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
@@ -1037,9 +1037,6 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         section.mixed_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
         section.mixed_tabs->SetFont(Label::Body_14);
         section.mixed_tabs->SetBackgroundColour(GetBackgroundColour());
-        // The mixed tabs carry full swatch compositions: give them a touch more room than the
-        // filament tabs so neighbouring compositions stay distinguishable (must precede AppendItem).
-        section.mixed_tabs->SetItemSpace(FromDIP(3));
         page_sizer->Add(section.mixed_tabs, 0, wxEXPAND | wxTOP, FromDIP(2));
         section.mixed_tabs->Hide();
     }

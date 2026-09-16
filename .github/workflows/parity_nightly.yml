@@ -1,0 +1,219 @@
+# Nightly parity checks from OrcaSlicer/orca-test-repo, kept out of the
+# per-build "Run external slicer regression tests" step because they take far
+# longer than that step's budget:
+#   effect  - the CLI override sweep's full effect stage: every landed option
+#             re-sliced on its own to see whether it changes the G-code
+#   harness - the GUI-vs-CLI parity harness (metrics only, never fails)
+# Both test the latest successful build_all.yml Linux AppImage from main, with
+# sources checked out at the commit that build was made from. Nothing here
+# gates a build or a PR.
+name: Parity Nightly
+
+on:
+  schedule:
+    # build_all.yml starts at 17:00 UTC and has finished by ~20:00
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      test_repo_ref:
+        description: "orca-test-repo ref to run"
+        required: false
+        default: "main"
+      build_branch:
+        description: "branch whose latest successful build_all artifact to test"
+        required: false
+        default: "main"
+      fixtures:
+        description: "harness fixture ids, space-separated (empty = all)"
+        required: false
+        default: ""
+      cli_presets:
+        description: "harness lane C presets: flat = flatten inherits first, raw = leaf profile as-is"
+        required: false
+        default: "flat"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    name: Find the build to test
+    # Don't run scheduled checks on forks
+    if: github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer'
+    runs-on: ubuntu-24.04
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run list --workflow build_all.yml \
+            --branch "${{ inputs.build_branch || 'main' }}" \
+            --status success --limit 1 --json databaseId,headSha \
+            --jq '"run_id=\(.[0].databaseId)\nhead_sha=\(.[0].headSha)"' \
+            >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  effect:
+    name: Override sweep effect stage (shard ${{ matrix.shard }})
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # orca-test-repo's parity/effect_routing.json holds a 2-way split,
+        # ~12.5 min a shard on this runner
+        shard: [0, 1]
+    steps:
+      - &checkout-suite
+        name: Check out the test suite
+        uses: actions/checkout@v7
+        with:
+          repository: OrcaSlicer/orca-test-repo
+          ref: ${{ inputs.test_repo_ref || 'main' }}
+          path: orca-test-repo
+
+      # The AppImage ships only packed preset caches, so profiles and the CLI
+      # option surface come from the sources the build was made from
+      - &checkout-slicer
+        name: Check out OrcaSlicer at the build's commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.build.outputs.head_sha }}
+          path: slicer
+          lfs: 'false'
+
+      - &extract-appimage
+        name: Download and extract the Linux AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run download "${{ needs.build.outputs.run_id }}" --dir appimage \
+            --pattern "OrcaSlicer_Linux_ubuntu_2404*"
+          appimage=$(find appimage -name "*.AppImage" ! -name "*aarch64*" | head -1)
+          [ -n "$appimage" ] || { echo "no x86_64 AppImage in run ${{ needs.build.outputs.run_id }}"; exit 1; }
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract > /dev/null
+          # The bare binary cannot find the AppImage's bundled libraries; AppRun
+          # sets them up and execs it, so exit codes and signals pass through
+          [ -x squashfs-root/AppRun ] || { echo "no AppRun in the AppImage"; exit 1; }
+          echo "ORCA_BIN=$PWD/squashfs-root/AppRun" >> "$GITHUB_ENV"
+          echo "ORCA_SOURCE=$PWD/slicer" >> "$GITHUB_ENV"
+
+      - name: Install the AppImage's host runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install suite dependencies
+        run: pip install -r orca-test-repo/requirements.txt
+
+      - name: Run the override sweep with the full effect stage
+        id: run
+        continue-on-error: true
+        working-directory: orca-test-repo
+        run: |
+          set -o pipefail
+          # -rA keeps the per-stage summaries, which pytest otherwise swallows
+          # for passing tests
+          python -m pytest test_cli_overrides.py -c pytest.ini -v -rA \
+            --effect-full --effect-shard ${{ matrix.shard }}/2 \
+            --orca-bin "$ORCA_BIN" --orca-source "$ORCA_SOURCE" \
+            2>&1 | tee ../sweep.log
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## Override sweep effect stage, shard ${{ matrix.shard }}/2"
+            echo "Build ${{ needs.build.outputs.head_sha }} (run ${{ needs.build.outputs.run_id }})"
+            echo '```'
+            grep -E "\[override sweep" sweep.log || echo "no stage summaries, see the log"
+            grep -E "^=+ .*(passed|failed)" sweep.log | tail -1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the override report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: override-report-shard${{ matrix.shard }}
+          path: |
+            orca-test-repo/.pytest_cache/override_report.json
+            sweep.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      # The sweep step continues on error so the summary and report still get
+      # published; this puts the failure back on the job
+      - name: Fail the job if the sweep failed
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "the override sweep failed, see the job summary and the uploaded report" >&2
+          exit 1
+
+  harness:
+    name: GUI-vs-CLI parity harness
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - *checkout-suite
+      - *checkout-slicer
+      - *extract-appimage
+
+      - name: Install display tooling and the AppImage's host runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xdotool imagemagick openbox mesa-utils \
+            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
+
+      - name: Run the parity harness
+        run: |
+          set -euo pipefail
+          fixtures=()
+          for f in ${{ inputs.fixtures || '' }}; do
+            fixtures+=(--fixture "$f")
+          done
+          # 2 GUI displays: ~1.5 cores peak / ~1.9 GB on this 4-vCPU runner,
+          # and each fixture is fully isolated, so results match a serial run
+          python3 orca-test-repo/parity/run_parity.py \
+            --slicer-root "$ORCA_SOURCE" --bin "$ORCA_BIN" \
+            --cli-presets "${{ inputs.cli_presets || 'flat' }}" \
+            --gui-workers 2 --out "$PWD/parity-out" "${fixtures[@]}"
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f parity-out/report.md ]; then
+            cat parity-out/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "the harness produced no report, see the log" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Drop per-lane datadirs before upload
+        if: always()
+        run: rm -rf parity-out/*/seed parity-out/*/datadir-* || true
+
+      - name: Upload the scorecard and evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: parity-scorecard
+          path: parity-out/
+          if-no-files-found: warn
+          retention-days: 30

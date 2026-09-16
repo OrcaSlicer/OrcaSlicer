@@ -19,6 +19,7 @@ add_executable(${_TEST_NAME}_tests
     test_preset_setting_id.cpp
     test_preset_diff.cpp
     test_vendor_cache.cpp
+    test_preset_options.cpp
     test_elephant_foot_compensation.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
@@ -42,6 +43,7 @@ add_executable(${_TEST_NAME}_tests
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp
+    test_wipe_path.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     # test_png_io.cpp

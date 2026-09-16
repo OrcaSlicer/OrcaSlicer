@@ -2825,6 +2825,9 @@ public:
 
     //BBS: add json support
     void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    // Same document, written to a stream. Invalid UTF-8 in a string value throws nlohmann's type_error unless
+    // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
+    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
 
     // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
