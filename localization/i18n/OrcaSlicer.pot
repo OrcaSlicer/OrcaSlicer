@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-13 21:36+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2293,13 +2293,6 @@ msgstr ""
 msgid "%s has been removed."
 msgstr ""
 
-
-msgid "Select the language"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
 #, possible-c-format, possible-boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr ""
@@ -4323,6 +4316,12 @@ msgid ""
 msgstr ""
 
 #, possible-boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, possible-boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr ""
 
@@ -4994,8 +4993,10 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid ""
-"Is it %s%% or %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr ""
+
+msgid "%"
 msgstr ""
 
 #, possible-boost-format
@@ -5021,16 +5022,13 @@ msgstr ""
 msgid "System agents"
 msgstr ""
 
-msgid "No plugin selected"
-msgstr ""
-
 msgid "Add plugin"
 msgstr ""
 
-msgid "Select plugin"
+msgid "Remove plugin"
 msgstr ""
 
-msgid "Remove plugin"
+msgid "No plugin selected"
 msgstr ""
 
 msgid "Configure"
@@ -5643,7 +5641,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, possible-boost-format
+#, possible-c-format, possible-boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -7180,6 +7178,12 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr ""
 
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
+
 msgid "Plugin Selection"
 msgstr ""
 
@@ -8290,7 +8294,6 @@ msgstr ""
 msgid "Language selection"
 msgstr ""
 
-
 msgid "Asia-Pacific"
 msgstr ""
 
@@ -8382,6 +8385,9 @@ msgid "Current Instance Path: "
 msgstr ""
 
 msgid "General"
+msgstr ""
+
+msgid "Language"
 msgstr ""
 
 msgid "Metric"
@@ -8771,9 +8777,6 @@ msgid "When scrubbing the layer slider in the sliced preview, render the layers 
 msgstr ""
 
 msgid "Dimmed layer brightness"
-msgstr ""
-
-msgid "%"
 msgstr ""
 
 msgid ""
@@ -9228,6 +9231,9 @@ msgid "Copies all inherited values from the parent into this preset and removes 
 msgstr ""
 
 msgid "Detach from parent"
+msgstr ""
+
+msgid "Save without parent"
 msgstr ""
 
 msgid "Unique preset"
@@ -11401,13 +11407,19 @@ msgstr ""
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr ""
 
-msgid "Please check any unsaved changes before updating the configuration."
+msgid "Downloading new vendor profile(s): "
 msgstr ""
 
 msgid "Configuration package: "
 msgstr ""
 
 msgid " updated to "
+msgstr ""
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
 msgstr ""
 
 msgid "Open G-code file:"
@@ -12752,6 +12764,9 @@ msgstr ""
 msgid "Concentric"
 msgstr ""
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr ""
 
@@ -12821,7 +12836,7 @@ msgid "Top surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
@@ -12830,7 +12845,7 @@ msgid "Bottom surface fill order"
 msgstr ""
 
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
