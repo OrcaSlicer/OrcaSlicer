@@ -78,6 +78,49 @@ SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {
                 REQUIRE(gcode.empty());
             }
         }
+        WHEN("an eager z_hop would exceed the printable height") {
+            PrintConfig config;
+            config.printable_height.value = 10.5;
+            config.z_hop.values = { 1.0 };
+            writer.apply_print_config(config);
+            std::string gcode = writer.eager_lift(LiftType::NormalLift);
+            THEN("the eager lift is clamped to the remaining height") {
+                REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("Z10.5"));
+                REQUIRE_THAT(writer.get_zhop(), Catch::Matchers::WithinAbs(0.5, 1e-6));
+            }
+        }
+        WHEN("the layer advances after a lazy z_hop request near the printable height") {
+            PrintConfig config;
+            config.printable_height.value = 10.5;
+            config.z_hop.values = { 1.0 };
+            writer.apply_print_config(config);
+            writer.set_current_position_clear(true);
+            REQUIRE(writer.lazy_lift(LiftType::NormalLift).empty());
+            writer.get_position().z() = 10.4;
+
+            const std::string travel = writer.travel_to_xyz(Vec3d(20., 20., 10.4));
+            THEN("the deferred lift is re-clamped and unlift restores the advanced layer Z") {
+                REQUIRE_THAT(travel, Catch::Matchers::ContainsSubstring("Z10.5"));
+                REQUIRE_THAT(writer.get_zhop(), Catch::Matchers::WithinAbs(0.1, 1e-6));
+                REQUIRE_THAT(writer.unlift(), Catch::Matchers::ContainsSubstring("Z10.4"));
+            }
+        }
+        WHEN("the layer advances after a lazy z_hop request with sufficient height") {
+            PrintConfig config;
+            config.printable_height.value = 20.;
+            config.z_hop.values = { 1.0 };
+            writer.apply_print_config(config);
+            writer.set_current_position_clear(true);
+            REQUIRE(writer.lazy_lift(LiftType::NormalLift).empty());
+            writer.get_position().z() = 10.4;
+
+            const std::string travel = writer.travel_to_xyz(Vec3d(20., 20., 10.4));
+            THEN("the full deferred lift is retained") {
+                REQUIRE_THAT(travel, Catch::Matchers::ContainsSubstring("Z11.4"));
+                REQUIRE_THAT(writer.get_zhop(), Catch::Matchers::WithinAbs(1., 1e-6));
+                REQUIRE_THAT(writer.unlift(), Catch::Matchers::ContainsSubstring("Z10.4"));
+            }
+        }
     }
 }
 
