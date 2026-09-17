@@ -9,9 +9,9 @@
 		"Snapmaker U1 (0.4 High Flow nozzle)"
 	],
 	"filament_max_volumetric_speed": [
-		"30"
+		"12"
 	],
 	"filament_notes": [
-		"Uses the active Orca Generic material settings. Volumetric speed ceiling is 3x Generic PETG @System: 10 x 3 = 30 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Uses the active Orca Generic material settings. Volumetric speed ceiling: 12 mm^3/s, from Snorca standard preset Generic PETG (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

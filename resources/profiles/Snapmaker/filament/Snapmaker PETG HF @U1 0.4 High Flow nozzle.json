@@ -21,7 +21,7 @@
 		"0.955"
 	],
 	"filament_max_volumetric_speed": [
-		"48"
+		"30"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"50"
@@ -63,6 +63,6 @@
 		"0.035"
 	],
 	"filament_notes": [
-		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 16 x 3 = 48 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling: 30 mm^3/s, from Snorca HF preset Snapmaker PETG HF (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

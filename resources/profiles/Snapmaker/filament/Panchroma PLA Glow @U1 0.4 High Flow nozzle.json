@@ -9,9 +9,9 @@
 		"Snapmaker U1 (0.4 High Flow nozzle)"
 	],
 	"filament_max_volumetric_speed": [
-		"45"
+		"15"
 	],
 	"filament_notes": [
-		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 15 x 3 = 45 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from local standard fallback preset Panchroma PLA Glow @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

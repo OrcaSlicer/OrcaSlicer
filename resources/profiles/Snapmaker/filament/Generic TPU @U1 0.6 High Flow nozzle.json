@@ -9,9 +9,9 @@
 		"Snapmaker U1 (0.6 High Flow nozzle)"
 	],
 	"filament_max_volumetric_speed": [
-		"9.6"
+		"3.2"
 	],
 	"filament_notes": [
-		"Uses the active Orca Generic material settings. Volumetric speed ceiling is 3x Generic TPU @System: 3.2 x 3 = 9.6 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Uses the active Orca Generic material settings. Volumetric speed ceiling: 3.2 mm^3/s, from Snorca standard preset Generic TPU @U1 0.6 nozzle (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

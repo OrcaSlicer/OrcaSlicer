@@ -18,7 +18,7 @@
 		"10"
 	],
 	"filament_max_volumetric_speed": [
-		"24"
+		"22"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -45,6 +45,6 @@
 		"280"
 	],
 	"filament_notes": [
-		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 8 x 3 = 24 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling: 22 mm^3/s, from Snorca HF preset Snapmaker ABS @U1 0.4 nozzle (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

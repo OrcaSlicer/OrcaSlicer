@@ -9,7 +9,7 @@
 		"Snapmaker U1 (0.2 High Flow nozzle)"
 	],
 	"filament_max_volumetric_speed": [
-		"3"
+		"2"
 	],
 	"filament_flow_ratio": [
 		"0.955"
@@ -24,6 +24,6 @@
 		"1"
 	],
 	"filament_notes": [
-		"Estimated 0.2 mm high-flow starting values, not manufacturer-calibrated. Flow ratio and pressure advance use this diameter's standard values times the material's 0.4 mm HF/standard ratio from snorca/main b1831e5dcb. Temperature uses the 0.4 mm HF-standard difference. Retraction and cooling remain diameter-specific. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 1 x 3 = 3 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Estimated 0.2 mm high-flow starting values, not manufacturer-calibrated. Flow ratio and pressure advance use this diameter's standard values times the material's 0.4 mm HF/standard ratio from snorca/main b1831e5dcb. Temperature uses the 0.4 mm HF-standard difference. Retraction and cooling remain diameter-specific. Volumetric speed ceiling: 2 mm^3/s, from Snorca standard preset Snapmaker PETG HF @U1 0.2 nozzle (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

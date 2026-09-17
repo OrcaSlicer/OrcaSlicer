@@ -9,9 +9,9 @@
 		"Snapmaker U1 (0.6 High Flow nozzle)"
 	],
 	"filament_max_volumetric_speed": [
-		"22.8"
+		"7.6"
 	],
 	"filament_notes": [
-		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 7.6 x 3 = 22.8 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 7.6 mm^3/s, from local standard fallback preset Snapmaker TPU High-Flow @U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }
