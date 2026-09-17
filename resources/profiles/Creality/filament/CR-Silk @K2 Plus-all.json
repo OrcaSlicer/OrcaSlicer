@@ -48,7 +48,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "12"
+        "10"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
@@ -99,10 +99,10 @@
         "50"
     ],
     "nozzle_temperature": [
-        "230"
+        "220"
     ],
     "nozzle_temperature_initial_layer": [
-        "230"
+        "220"
     ],
     "nozzle_temperature_range_high": [
         "240"
