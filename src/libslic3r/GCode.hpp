@@ -106,8 +106,13 @@ public:
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
         m_print_config(&print_config),
-        m_last_wipe_tower_print_z(print_config.z_offset.value)
+        m_last_wipe_tower_print_z(print_config.z_offset.value),
+        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config))
     {
+        // Precomputed rather than accumulated while emitting, so that the clearance validator and
+        // the emitter cannot disagree about where the compacted tower sits on any given layer.
+        if (m_sparse_layers_skipped)
+            m_compacted_tower_z = compute_compacted_wipe_tower_z(tool_changes, float(print_config.z_offset.value));
         // initialize with the extruder offset of master extruder id
         m_extruder_offsets.resize(print_config.filament_map.size(), print_config.extruder_offset.get_at(print_config.master_extruder_id.value - 1));
         const auto& filament_map = print_config.filament_map.values; // 1 based idx
@@ -167,6 +172,11 @@ private:
     float                                                        m_wipe_tower_depth;
     BoundingBoxf                                                 m_wipe_tower_bbx;
     Vec2f                                                        m_rib_offset{Vec2f(0, 0)};
+    // wipe_tower_no_sparse_layers, as answered by the shared compaction rule rather than by the raw
+    // option: smooth timelapse and wrapping detection keep a tower on every layer regardless.
+    const bool                                                   m_sparse_layers_skipped;
+    // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
+    std::vector<float>                                           m_compacted_tower_z;
 };
 
 class ColorPrintColors
@@ -524,7 +534,7 @@ private:
 		// For sequential print, the instance of the object to be printing has to be defined.
 		const size_t                     				 single_object_instance_idx);
 
-    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first);
+    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only = false);
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
 
