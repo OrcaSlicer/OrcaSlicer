@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -9729,16 +9729,14 @@ msgid "Filament %d (mixed)"
 msgstr "เส้นพลาสติก %d (ผสม)"
 
 # AI Translated
-msgid "needs"
-msgstr "ต้องการ"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% ต้องใช้ %2% แต่ยังไม่ได้เปิดใช้"
 
 # AI Translated
-msgid "not enabled"
-msgstr "ไม่ได้เปิดใช้"
-
-# AI Translated
-msgid "material not published"
-msgstr "วัสดุยังไม่ถูกเผยแพร่"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% ต้องใช้ %2% แต่วัสดุของมันจะไม่ถูกเผยแพร่"
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21872,6 +21870,18 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "ต้องการ"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "ไม่ได้เปิดใช้"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "วัสดุยังไม่ถูกเผยแพร่"
 
 #~ msgid "Select the language"
 #~ msgstr "เลือกภาษา"

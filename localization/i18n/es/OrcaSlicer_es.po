@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -9482,16 +9482,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filamento %d (mixto)"
 
 # AI Translated
-msgid "needs"
-msgstr "necesita"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% necesita %2%, que no está habilitado."
 
 # AI Translated
-msgid "not enabled"
-msgstr "no habilitado"
-
-# AI Translated
-msgid "material not published"
-msgstr "material no publicado"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% necesita %2%, cuyo material no se publicará."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21343,6 +21341,18 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "necesita"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "no habilitado"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "material no publicado"
 
 #~ msgid "Select the language"
 #~ msgstr "Seleccionar el idioma"

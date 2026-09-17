@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -9551,16 +9551,14 @@ msgid "Filament %d (mixed)"
 msgstr "耗材丝 %d（混合）"
 
 # AI Translated
-msgid "needs"
-msgstr "需要"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% 需要 %2%，但它未开启。"
 
 # AI Translated
-msgid "not enabled"
-msgstr "未开启"
-
-# AI Translated
-msgid "material not published"
-msgstr "材料未发布"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% 需要 %2%，但其材料不会被发布。"
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21620,6 +21618,18 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "需要"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "未开启"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "材料未发布"
 
 #~ msgid "Select the language"
 #~ msgstr "选择语言"

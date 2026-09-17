@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10689,16 +10689,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (gemengd)"
 
 # AI Translated
-msgid "needs"
-msgstr "heeft nodig"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% heeft %2% nodig, dat niet is ingeschakeld."
 
 # AI Translated
-msgid "not enabled"
-msgstr "niet ingeschakeld"
-
-# AI Translated
-msgid "material not published"
-msgstr "materiaal niet gepubliceerd"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% heeft %2% nodig, waarvan het materiaal niet wordt gepubliceerd."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -24284,6 +24282,18 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "heeft nodig"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "niet ingeschakeld"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "materiaal niet gepubliceerd"
 
 #~ msgid "Select the language"
 #~ msgstr "Kies de taal"

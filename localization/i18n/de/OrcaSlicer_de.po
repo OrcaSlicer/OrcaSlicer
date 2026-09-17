@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -9724,16 +9724,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (gemischt)"
 
 # AI Translated
-msgid "needs"
-msgstr "benötigt"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% benötigt %2%, das nicht aktiviert ist."
 
 # AI Translated
-msgid "not enabled"
-msgstr "nicht aktiviert"
-
-# AI Translated
-msgid "material not published"
-msgstr "Material nicht veröffentlicht"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% benötigt %2%, dessen Material nicht veröffentlicht wird."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21797,6 +21795,18 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "benötigt"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "nicht aktiviert"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "Material nicht veröffentlicht"
 
 #~ msgid "Select the language"
 #~ msgstr "Sprache wählen"

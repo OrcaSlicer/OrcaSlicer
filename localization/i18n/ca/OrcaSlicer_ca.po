@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9942,16 +9942,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (mixt)"
 
 # AI Translated
-msgid "needs"
-msgstr "necessita"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% necessita %2%, que no està activat."
 
 # AI Translated
-msgid "not enabled"
-msgstr "no activat"
-
-# AI Translated
-msgid "material not published"
-msgstr "material no publicat"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% necessita %2%, el material del qual no es publicarà."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22396,6 +22394,18 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "necessita"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "no activat"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "material no publicat"
 
 #~ msgid "Select the language"
 #~ msgstr "Seleccioneu l'idioma"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -9755,16 +9755,14 @@ msgid "Filament %d (mixed)"
 msgstr "Gija %d (mišri)"
 
 # AI Translated
-msgid "needs"
-msgstr "reikalauja"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% reikalauja %2%, kuri nėra įjungta."
 
 # AI Translated
-msgid "not enabled"
-msgstr "neįjungta"
-
-# AI Translated
-msgid "material not published"
-msgstr "medžiaga nepatalpinta"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% reikalauja %2%, kurios medžiaga nebus paskelbta."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21844,6 +21842,18 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "reikalauja"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "neįjungta"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "medžiaga nepatalpinta"
 
 #~ msgid "Select the language"
 #~ msgstr "Pasirinkite kalbą"

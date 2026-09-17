@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -10084,16 +10084,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (mieszany)"
 
 # AI Translated
-msgid "needs"
-msgstr "wymaga"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% wymaga %2%, który nie jest włączony."
 
 # AI Translated
-msgid "not enabled"
-msgstr "nie włączony"
-
-# AI Translated
-msgid "material not published"
-msgstr "materiał nieopublikowany"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% wymaga %2%, którego materiał nie zostanie opublikowany."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22741,6 +22739,18 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "wymaga"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "nie włączony"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "materiał nieopublikowany"
 
 #~ msgid "Select the language"
 #~ msgstr "Wybierz język"

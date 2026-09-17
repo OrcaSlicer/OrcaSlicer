@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -9928,16 +9928,14 @@ msgid "Filament %d (mixed)"
 msgstr "필라멘트 %d (혼합)"
 
 # AI Translated
-msgid "needs"
-msgstr "필요"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1%에는 %2%이(가) 필요하지만 활성화되어 있지 않습니다."
 
 # AI Translated
-msgid "not enabled"
-msgstr "활성화되지 않음"
-
-# AI Translated
-msgid "material not published"
-msgstr "재료 미게시"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1%에는 %2%이(가) 필요하지만 해당 재료는 게시되지 않습니다."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22564,6 +22562,18 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "필요"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "활성화되지 않음"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "재료 미게시"
 
 #~ msgid "Select the language"
 #~ msgstr "언어 선택"

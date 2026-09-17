@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -9541,16 +9541,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filamento %d (misto)"
 
 # AI Translated
-msgid "needs"
-msgstr "precisa de"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% precisa de %2%, que não está ativado."
 
 # AI Translated
-msgid "not enabled"
-msgstr "não ativado"
-
-# AI Translated
-msgid "material not published"
-msgstr "material não publicado"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% precisa de %2%, cujo material não será publicado."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21395,6 +21393,18 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "precisa de"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "não ativado"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "material não publicado"
 
 #~ msgid "Select the language"
 #~ msgstr "Selecione o idioma"

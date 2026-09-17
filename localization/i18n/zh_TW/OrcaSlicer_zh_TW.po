@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -9724,16 +9724,14 @@ msgid "Filament %d (mixed)"
 msgstr "線材 %d（混合）"
 
 # AI Translated
-msgid "needs"
-msgstr "需要"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% 需要 %2%，但它未啟用。"
 
 # AI Translated
-msgid "not enabled"
-msgstr "未啟用"
-
-# AI Translated
-msgid "material not published"
-msgstr "材料未發布"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% 需要 %2%，但其材料不會被發布。"
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21833,6 +21831,18 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "需要"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "未啟用"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "材料未發布"
 
 #~ msgid "Select the language"
 #~ msgstr "選擇語言"

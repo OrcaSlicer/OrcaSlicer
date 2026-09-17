@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -9890,16 +9890,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (míchaný)"
 
 # AI Translated
-msgid "needs"
-msgstr "vyžaduje"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% vyžaduje %2%, který není povolen."
 
 # AI Translated
-msgid "not enabled"
-msgstr "není povoleno"
-
-# AI Translated
-msgid "material not published"
-msgstr "materiál není publikován"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% vyžaduje %2%, jehož materiál nebude publikován."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22377,6 +22375,18 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "vyžaduje"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "není povoleno"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "materiál není publikován"
 
 #~ msgid "Select the language"
 #~ msgstr "Zvolte jazyk"

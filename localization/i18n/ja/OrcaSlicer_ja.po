@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9839,16 +9839,14 @@ msgid "Filament %d (mixed)"
 msgstr "フィラメント %d (混合)"
 
 # AI Translated
-msgid "needs"
-msgstr "が必要"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1%には%2%が必要ですが、有効化されていません。"
 
 # AI Translated
-msgid "not enabled"
-msgstr "未有効"
-
-# AI Translated
-msgid "material not published"
-msgstr "材料が未公開"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1%には%2%が必要ですが、その材料は公開されません。"
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22698,6 +22696,18 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "が必要"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "未有効"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "材料が未公開"
 
 #~ msgid "Select the language"
 #~ msgstr "言語を選択"

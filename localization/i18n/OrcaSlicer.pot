@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9172,13 +9172,12 @@ msgstr ""
 msgid "Filament %d (mixed)"
 msgstr ""
 
-msgid "needs"
+#, possible-boost-format
+msgid "%1% needs %2%, which is not enabled."
 msgstr ""
 
-msgid "not enabled"
-msgstr ""
-
-msgid "material not published"
+#, possible-boost-format
+msgid "%1% needs %2%, whose material will not be published."
 msgstr ""
 
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."

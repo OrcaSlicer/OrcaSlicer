@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -10389,16 +10389,14 @@ msgid "Filament %d (mixed)"
 msgstr "Filament %d (pha trộn)"
 
 # AI Translated
-msgid "needs"
-msgstr "cần"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% cần %2%, nhưng filament này chưa được bật."
 
 # AI Translated
-msgid "not enabled"
-msgstr "chưa bật"
-
-# AI Translated
-msgid "material not published"
-msgstr "vật liệu chưa xuất bản"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% cần %2%, nhưng vật liệu của nó sẽ không được xuất bản."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -23211,6 +23209,18 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "cần"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "chưa bật"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "vật liệu chưa xuất bản"
 
 #~ msgid "Select the language"
 #~ msgstr "Chọn ngôn ngữ"

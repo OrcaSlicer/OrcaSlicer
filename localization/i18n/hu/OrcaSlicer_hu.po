@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -9798,16 +9798,14 @@ msgid "Filament %d (mixed)"
 msgstr "%d. filament (kevert)"
 
 # AI Translated
-msgid "needs"
-msgstr "ehhez kell"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% a következőt igényli: %2%, amely nincs engedélyezve."
 
 # AI Translated
-msgid "not enabled"
-msgstr "nincs engedélyezve"
-
-# AI Translated
-msgid "material not published"
-msgstr "az anyag nincs közzétéve"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% a következőt igényli: %2%, amelynek az anyaga nem lesz közzétéve."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -22118,6 +22116,18 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "ehhez kell"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "nincs engedélyezve"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "az anyag nincs közzétéve"
 
 #~ msgid "Select the language"
 #~ msgstr "Válaszd ki a nyelvet"

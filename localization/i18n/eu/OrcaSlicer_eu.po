@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:23-0300\n"
+"POT-Creation-Date: 2026-09-17 10:52-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -9568,16 +9568,14 @@ msgid "Filament %d (mixed)"
 msgstr "%d filamentua (nahasia)"
 
 # AI Translated
-msgid "needs"
-msgstr "honakoa behar du:"
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% filamentuak %2% behar du, baina ez dago gaituta."
 
 # AI Translated
-msgid "not enabled"
-msgstr "ez dago gaituta"
-
-# AI Translated
-msgid "material not published"
-msgstr "materiala ez dago argitaratuta"
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% filamentuak %2% behar du, baina haren materiala ez da argitaratuko."
 
 # AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
@@ -21530,6 +21528,18 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "honakoa behar du:"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "ez dago gaituta"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "materiala ez dago argitaratuta"
 
 #~ msgid "Select the language"
 #~ msgstr "Hautatu hizkuntza"
