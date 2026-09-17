@@ -24,9 +24,11 @@ options shared by several commands:
                        since the snapshot describes resources/profiles alone
 
 After adding, renaming or deleting profile files, run:
-  normalize -> trim -> update-index -> generate-id -> update-snapshot -> check
-Each step feeds the next: normalize writes the "type" update-index files a
-profile by, and trim judges against the index update-index is about to rebuild.
+  normalize -> update-index -> generate-id -> update-snapshot -> check
+normalize supplies missing types; update-index registers presets before id
+generation. update-snapshot is needed when filament ids or claims change.
+Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
+the current index and can delete newly added, unindexed presets.
 
 Run from anywhere; "python scripts/orca_profile_tool.py --help" repeats this list
 and "... <command> --help" documents one command in full.
@@ -149,7 +151,9 @@ PROFILE_TYPES = ("machine_model", "process", "filament", "machine")
 # Data files that sit under a vendor bundle but are not presets: no name, no type.
 NON_PROFILE_FILES = {"filaments_color_codes.json", "cli_config.json"}
 
-# Settings dropped from PrintConfig.cpp. Reported by "check --obsolete-keys".
+# Mirror PrintConfigDef::handle_legacy's ignore set in PrintConfig.cpp; a test
+# checks parity. Used by normalize and check. Active options and
+# legacy aliases that the loader migrates do not belong here.
 OBSOLETE_KEYS = {
     "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
     "bed_size", "print_center", "g0", "wipe_tower_per_color_wipe",
@@ -161,10 +165,11 @@ OBSOLETE_KEYS = {
     "bed_temperature_initial_layer", "can_switch_nozzle_type", "can_add_auxiliary_fan",
     "extra_flush_volume", "spaghetti_detector", "adaptive_layer_height",
     "z_hop_type", "z_lift_type", "bed_temperature_difference", "long_retraction_when_cut",
-    "retraction_distance_when_cut", "extruder_type", "internal_bridge_support_thickness",
-    "extruder_clearance_max_radius", "top_area_threshold", "reduce_wall_solid_infill",
+    "retraction_distance_when_cut", "internal_bridge_support_thickness",
+    "top_area_threshold", "reduce_wall_solid_infill",
     "filament_load_time", "filament_unload_time", "smooth_coefficient",
-    "overhang_totally_speed", "silent_mode", "overhang_speed_classic"
+    "overhang_totally_speed", "silent_mode", "overhang_speed_classic",
+    "anisotropic_surfaces",
 }
 
 # Keys renamed at some point, whose old and new spellings must never co-exist:
@@ -1248,7 +1253,7 @@ def check_filament_id_length(profiles_dir, vendor):
 
 
 def check_obsolete_keys(profiles_dir, vendor):
-    """Warn about settings PrintConfig.cpp no longer defines. Returns the count."""
+    """Warn about settings PrintConfig.cpp explicitly discards. Returns the count."""
     warn_count = 0
     profiles_path = Path(profiles_dir)
     vendor_path = profiles_path / vendor / "filament"
@@ -1399,8 +1404,7 @@ def check_normalized(profiles_dir, vendor):
 # check
 # ---------------------------------------------------------------------------
 
-def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSHOT_PATH,
-                   obsolete_keys=False):
+def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSHOT_PATH):
     """Validate the whole profile tree. Returns the error count.
 
     The per-vendor checks honour `vendors`; the setting_id and filament_id checks are
@@ -1430,8 +1434,7 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
         errors_found += new_errors
         warnings_found += new_warnings
 
-        if obsolete_keys:
-            warnings_found += check_obsolete_keys(profiles_dir, vendor)
+        warnings_found += check_obsolete_keys(profiles_dir, vendor)
 
         new_errors, new_warnings = check_name_consistency(profiles_dir, vendor)
         errors_found += new_errors
@@ -2063,6 +2066,10 @@ def _normalize_profile(data, sub):
             del data[field]
             changes.append(f"remove {field}")
 
+    for field in sorted(OBSOLETE_KEYS.intersection(data)):
+        del data[field]
+        changes.append(f"remove {field}")
+
     # BBS renamed extruder_clearance_radius to extruder_clearance_max_radius, but some
     # profiles carry both with different values, and the slicer cannot tell which one
     # to obey - a toolhead collision waiting to happen. Keep the larger one only.
@@ -2308,8 +2315,9 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
     one message each, for the caller to report. `sections` is None when two files claim
     one preset name: the bundle can only hold one profile under a name, so rebuilding
     would pick a winner by directory order and quietly drop the other, and the index has
-    to be left alone instead. Deleting the stale copy is trim's job, which is why it
-    runs before this.
+    to be left alone instead. Identify the intended preset and delete or rename the
+    duplicate before retrying. Use trim only for deliberate unindexed-file cleanup,
+    previewed with --dry-run.
     """
     vendor_dir = os.path.join(profiles_dir, vendor)
     sections = {}
@@ -2362,8 +2370,8 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
         problems.append(f'{vendor}.json: {len(subs)} profiles are named "{name}" '
                         f'({", ".join(sorted(subs))}); only one can be indexed under '
                         f"that name, so delete or rename the others - "
-                        f'"python scripts/orca_profile_tool.py trim" removes an '
-                        f"unindexed copy")
+                        f"preview unindexed-file cleanup with "
+                        f'"python scripts/orca_profile_tool.py trim --dry-run"')
 
     return (None if clashes else sections), problems
 
@@ -2435,9 +2443,11 @@ examples:
       re-record the sanctioned filament_id state after a generate-id run
 
 after adding, renaming or deleting profile files, run in this order:
-  normalize -> trim -> update-index -> generate-id -> update-snapshot -> check
-each step feeds the next: normalize writes the "type" update-index files a
-profile by, and trim judges against the index update-index is about to rebuild.
+  normalize -> update-index -> generate-id -> update-snapshot -> check
+normalize supplies missing types; update-index registers presets before id
+generation. update-snapshot is needed when filament ids or claims change.
+Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
+the current index and can delete newly added, unindexed presets.
 """
 
 
@@ -2485,20 +2495,18 @@ def build_parser():
             name, parents=parents, help=help_text, description=description,
             allow_abbrev=False, formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    check_cmd = add(
+    add(
         "check", [vendor_opt, snapshot_opt, profiles_opt],
         "validate the whole profile tree -- what CI runs",
         "Validate the whole profile tree: preset name uniqueness, index coverage\n"
-        "both ways, compatible_printers, default-material references, conflicting\n"
-        "and vector-typed keys, filament_id length, that normalize and update-index\n"
-        "would leave every bundle alone, and the tree-wide setting_id and\n"
-        "filament_id state. Exits nonzero on errors.\n"
+        "both ways, compatible_printers, default-material references, obsolete,\n"
+        "conflicting and vector-typed keys, filament_id length, that normalize and\n"
+        "update-index would leave every bundle alone, and the tree-wide setting_id\n"
+        "and filament_id state. Exits nonzero on errors.\n"
         "\n"
         "--vendor narrows the per-vendor checks only: setting_id uniqueness and the\n"
         "filament_id state are cross-vendor properties a narrowed run cannot answer,\n"
         "so they always cover the whole tree.")
-    check_cmd.add_argument("--obsolete-keys", action="store_true", dest="obsolete_keys",
-                           help="also warn about settings the slicer no longer defines")
 
     generate_cmd = add(
         "generate-id", [vendor_opt, dry_run_opt, profiles_opt],
@@ -2532,6 +2540,9 @@ def build_parser():
         "loader only ever reads the sub_paths listed there, so an unindexed preset\n"
         "never loads.\n"
         "\n"
+        "Use only for deliberate cleanup, previewed with --dry-run. Newly added,\n"
+        "unindexed presets can be deleted too; omit trim from the authoring workflow.\n"
+        "\n"
         "Assets and data files are kept, a file that cannot be parsed is kept and\n"
         "reported, and so is one a surviving profile inherits from that no indexed\n"
         "profile provides -- but a stale copy of an indexed profile goes, since\n"
@@ -2545,7 +2556,9 @@ def build_parser():
         "A profile is indexed under the section its own \"type\" names, so run\n"
         "normalize first: it is what writes a missing type. Two files claiming one\n"
         "preset name leave that index alone, because a rebuild could only keep one\n"
-        "of them; run trim first, which is what clears a stale copy.")
+        "of them. Identify the intended preset and delete or rename the duplicate.\n"
+        "Use trim only for deliberate unindexed-file cleanup, previewed with\n"
+        "--dry-run; it can also delete newly authored presets.")
 
     add("update-snapshot", [dry_run_opt, snapshot_opt, profiles_opt],
         "re-record scripts/filament_id_snapshot.json",
@@ -2590,8 +2603,7 @@ def main(argv=None):
         snapshot_path = SNAPSHOT_PATH
 
     if args.command == "check":
-        errors = check_profiles(profiles_dir, vendors, snapshot_path,
-                                obsolete_keys=args.obsolete_keys)
+        errors = check_profiles(profiles_dir, vendors, snapshot_path)
         return 1 if errors else 0
 
     if args.command == "generate-id":

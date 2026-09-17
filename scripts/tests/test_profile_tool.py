@@ -12,6 +12,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -125,6 +126,20 @@ class TreeCase(unittest.TestCase):
 # normalize
 # ---------------------------------------------------------------------------
 
+class TestObsoleteKeys(unittest.TestCase):
+    def test_obsolete_keys_match_the_loader_ignore_set(self):
+        path = os.path.join(REPO_ROOT, "src", "libslic3r", "PrintConfig.cpp")
+        with open(path, encoding="utf-8") as f:
+            source = f.read()
+        match = re.search(
+            r"void PrintConfigDef::handle_legacy\(.*?"
+            r"static\s+std::set<std::string>\s+ignore\s*=\s*\{(.*?)\};",
+            source, re.DOTALL)
+        self.assertIsNotNone(match, "Could not locate the loader's obsolete-key set")
+        keys = re.sub(r"//[^\n]*|/\*.*?\*/", "", match.group(1), flags=re.DOTALL)
+        self.assertEqual(apt.OBSOLETE_KEYS, set(re.findall(r'"([^"\n]+)"', keys)))
+
+
 class TestNormalize(TreeCase):
     def test_a_missing_type_is_filled_in_from_the_directory(self):
         self.t.write("V", "filament/A.json", {"name": "A"})
@@ -148,15 +163,35 @@ class TestNormalize(TreeCase):
         self.t.write("V", "filament/A.json", {
             "type": "filament", "name": "A", "version": "1.2.3",
             "is_custom_defined": "1", "filament_type": "PLA",
-            "filament_vendor": "AV", "travel_speed": 200})
+            "filament_vendor": "AV", "travel_speed": 200,
+            "filament_load_time": ["15"], "filament_unload_time": "0"})
         rc, out = self.run_command("normalize")
         self.assertEqual(rc, 0, out)
         data = self.t.read("V", "filament/A.json")
         self.assertNotIn("version", data)
         self.assertNotIn("is_custom_defined", data)
         self.assertNotIn("travel_speed", data)   # a process setting, not a filament one
+        self.assertNotIn("filament_load_time", data)
+        self.assertNotIn("filament_unload_time", data)
         self.assertEqual(data["filament_type"], ["PLA"])
         self.assertEqual(data["filament_vendor"], ["AV"])
+
+    def test_obsolete_keys_are_removed_from_every_profile_type(self):
+        for sub in ("filament", "process", "machine"):
+            with self.subTest(profile_type=sub):
+                expected = {"type": sub, "name": "A"}
+                self.t.write("V", f"{sub}/A.json", {
+                    **expected, "silent_mode": "", "adaptive_layer_height": "0",
+                    "anisotropic_surfaces": "1", "filament_load_time": ["0"],
+                    "filament_unload_time": "0"})
+                rc, out = self.run_command("normalize")
+                self.assertEqual(rc, 0, out)
+                self.assertEqual(self.t.read("V", f"{sub}/A.json"), expected)
+        before = self.t.bytes_map()
+        rc, out = self.run_command("normalize")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("0 profile(s) normalized", out)
+        self.assertEqual(self.t.bytes_map(), before)
 
     def test_the_larger_extruder_clearance_wins(self):
         # Keeping the smaller one would licence a toolhead collision.
@@ -186,6 +221,15 @@ class TestNormalize(TreeCase):
 
     def test_a_conforming_tree_is_left_byte_identical(self):
         self.t.write("V", "filament/A.json", {"type": "filament", "name": "A"})
+        # These used to be misclassified as obsolete: one is active, the other
+        # is a legacy alias that still supplies the toolhead clearance on load.
+        self.t.write("V", "machine/M.json", {
+            "type": "machine", "name": "M", "extruder_type": ["Direct Drive"],
+            "extruder_clearance_max_radius": "68", "machine_load_filament_time": "15",
+            "machine_unload_filament_time": "10"})
+        self.t.write("V", "process/P.json", {
+            "type": "process", "name": "P", "travel_speed": "200",
+            "top_surface_fill_order": "outward"})
         before = self.t.bytes_map()
         rc, out = self.run_command("normalize")
         self.assertEqual(rc, 0, out)
@@ -200,7 +244,7 @@ class TestNormalize(TreeCase):
                          b'{\n\t"type": "filament",\n\t"name": "A"\n}\n')
 
     def test_dry_run_writes_nothing(self):
-        self.t.write("V", "filament/A.json", {"name": "A"})
+        self.t.write("V", "filament/A.json", {"name": "A", "bed_temperature": ["60"]})
         before = self.t.bytes_map()
         rc, out = self.run_command("normalize", "--dry-run")
         self.assertEqual(rc, 0, out)
@@ -539,14 +583,27 @@ class TestCheck(TreeCase):
         self.assertGreater(errors, 0)
         self.assertIn("Filament id too long", out)
 
-    def test_obsolete_keys_are_opt_in_warnings(self):
+    def test_obsolete_key_warnings_exclude_active_and_renamed_options(self):
         self.bundle().write("V", "filament/B.json", {
-            "type": "filament", "name": "B", "silent_mode": True})
+            "type": "filament", "name": "B", "silent_mode": "0",
+            "anisotropic_surfaces": "0", "extruder_type": ["Direct Drive"],
+            "extruder_clearance_max_radius": "68"})
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             warnings = apt.check_obsolete_keys(self.t.profiles, "V")
-        self.assertEqual(warnings, 1)
+        self.assertEqual(warnings, 2)
         self.assertIn("Obsolete key", buf.getvalue())
+
+    def test_obsolete_key_warnings_run_without_a_flag(self):
+        self.t.write("V", "filament/A.json", {
+            "type": "filament", "name": "A", "silent_mode": "0"})
+        self.run_command("update-index")
+        snapshot = os.path.join(self.t.dir, "snapshot.json")
+        self.run_command("update-snapshot", "--snapshot", snapshot)
+        rc, out = self.run_command("check", "--snapshot", snapshot)
+        self.assertEqual(rc, 1, out)  # normalization also rejects the obsolete key
+        self.assertIn("Obsolete key: 'silent_mode' found in V/filament/A.json", out)
+        self.assertIn("Files with warnings : 1", out)
 
     def test_a_default_material_must_exist_somewhere(self):
         self.bundle().write("V", "machine/M.json", {
@@ -839,8 +896,7 @@ class TestDispatch(TreeCase):
                 self.assertIn(expected, out)
 
     def test_an_option_belongs_to_one_command_only(self):
-        for argv in (["normalize", "--obsolete-keys"],
-                     ["trim", "--force"],
+        for argv in (["trim", "--force"],
                      ["update-index", "--filament-id"],
                      ["check", "--profile-type", "filament"],
                      ["update-snapshot", "--vendor", "V"]):
