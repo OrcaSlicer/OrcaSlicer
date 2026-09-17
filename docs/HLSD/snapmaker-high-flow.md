@@ -32,6 +32,22 @@ settings remain diameter-specific. Standard printers retain their original
 process speeds. HF printers default to the corresponding HF process.
 Volumetric ceilings and machine motion limits still cap actual speeds.
 
+## Chamber and purifier control
+
+All U1 start sequences, including the mixed-diameter and inherited HF
+profiles, issue `SET_PURIFIER_MODE` automatically. The start G-code checks the existing
+`min_vitrification_temperature` placeholder, the lowest Softening temperature
+(`temperature_vitrification`) among the filaments actually used on the plate:
+at or below 50 C selects strong cooling, above 50 C through 70 C selects weak
+cooling, and above 70 C selects keep-warm mode. Unused materials do not affect
+the result. There is no extra filament flag or enable setting.
+
+The firmware parameters match Snorca: strong cooling uses mode 1, target
+42 C, alarm 45 C, fan 0.6 and no delayed shutdown; weak cooling uses mode 3,
+target 0 C, fan 0.6 and a 600-second delay; keep-warm uses mode 3, target
+45 C, fan 0.6 and a 600-second delay. Mode selection happens once at print
+start and depends on the accuracy of each filament's softening temperature.
+
 ## Calibration sources
 
 Except for the volumetric ceiling, the original 0.4 mm HF material overrides come from Snapmaker/OrcaSlicer `snorca/main`
