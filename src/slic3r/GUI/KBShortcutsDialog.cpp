@@ -80,7 +80,7 @@ KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent)
     m_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
     m_tabs->Bind(wxEVT_RIGHT_DOWN, [](auto&) {});
     m_tabs->SetFont(Label::Body_14);
-    m_simplebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(620), FromDIP(500)));
+    m_simplebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(660), FromDIP(500)));
     for (const Page& page : m_pages) {
         m_tabs->AppendItem(page.title);
         m_simplebook->AddPage(create_page(m_simplebook, page), page.title);
@@ -186,7 +186,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     const wxColour page_colour = StateColor::darkModeColorFor(*wxWHITE);
     scrollable_panel->SetBackgroundColour(page_colour);
     scrollable_panel->SetScrollRate(0, 20);
-    const int page_width = FromDIP(600);
+    const int page_width = FromDIP(640);
     scrollable_panel->SetInitialSize(wxSize(page_width, FromDIP(450)));
 
     // Titles and rows are indented as in the Preferences dialog.
@@ -197,7 +197,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     wxBoxSizer* scrollable_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
     const wxColour note_colour = StateColor::darkModeColorFor(wxColour("#F8F8F8"));
-    const wxColour note_text   = StateColor::darkModeColorFor(wxColour("#6B6B6C"));
+    const wxColour note_text   = StateColor::darkModeColorFor(wxColour("#6B6B6A"));
     StaticBox* note = new StaticBox(scrollable_panel);
     note->SetCornerRadius(FromDIP(4));
     note->SetBorderWidth(0);
@@ -402,7 +402,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto prompt = new Label(this, wxGetApp().normal_font(), wxString::Format(_L("Press the new shortcut for \"%s\""), _(shortcut_info(shortcut).name)), LB_AUTO_WRAP);
+    auto prompt = new Label(this, wxGetApp().normal_font(), wxString::Format(_L("Press the new shortcut for\n\"%s\""), _(shortcut_info(shortcut).name)), LB_AUTO_WRAP);
     prompt->SetMinSize(wxSize(FromDIP(400), -1));
     sizer->Add(prompt, 0, wxALL, FromDIP(20));
 
