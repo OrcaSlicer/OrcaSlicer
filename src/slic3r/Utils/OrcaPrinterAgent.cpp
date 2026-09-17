@@ -1250,22 +1250,6 @@ int OrcaPrinterAgent::bind_detect(std::string dev_ip, std::string /*sec_link*/, 
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaPrinterAgent::request_bind_ticket(std::string* ticket)
-{
-    if (ticket)
-        *ticket = "";
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int OrcaPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
-{
-    // No BBL cloud snapshot source; report failure so the caller falls back.
-    (void) dev_id;
-    (void) file_name;
-    (void) callback;
-    return -1;
-}
-
 int OrcaPrinterAgent::set_server_callback(OnServerErrFn fn)
 {
     std::lock_guard<std::mutex> lock(state_mutex);
