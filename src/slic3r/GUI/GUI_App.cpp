@@ -8500,7 +8500,7 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         // or sometimes the application crashes into wxDialogBase() destructor
         // so we put it into an inner scope
         PreferencesDialog dlg(mainframe);
-        dlg.select_tab(PreferencesDialog::Tab(open_on_tab));
+        dlg.select_tab(PreferencesDialog::Tab(open_on_tab), highlight_option);
         dlg.ShowModal();
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();

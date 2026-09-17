@@ -286,6 +286,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
     combobox->SetToolTip(tip);
+    combobox->SetName(param);   // select_tab() finds the row by this name
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) {
@@ -1519,7 +1520,17 @@ PreferencesDialog::~PreferencesDialog()
 {
 }
 
-void PreferencesDialog::select_tab(Tab tab) { m_pref_tabs->SelectItem(int(tab)); }
+void PreferencesDialog::select_tab(Tab tab, const std::string& option)
+{
+    m_pref_tabs->SelectItem(int(tab));
+    wxWindow* control = option.empty() ? nullptr : m_parent->FindWindow(wxString(option));
+    if (control == nullptr)
+        return;
+    int unit = 1;
+    m_parent->GetScrollPixelsPerUnit(nullptr, &unit);
+    m_parent->Scroll(wxDefaultCoord, (m_parent->CalcUnscrolledPosition(control->GetPosition()).y - FromDIP(10)) / unit);
+    control->SetFocus();   // the focused tint marks the row
+}
 
 void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
     m_pref_tabs->Rescale();

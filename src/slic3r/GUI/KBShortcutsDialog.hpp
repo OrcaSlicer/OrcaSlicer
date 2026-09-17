@@ -84,7 +84,7 @@ private:
     void apply_bindings();   // refreshes the rows and pushes the change to the rest of the app
     // Puts a chord on a row's two labels, a single key in the shared column, and returns the width the chord takes.
     int  set_chord_labels(wxStaticText* modifiers, wxStaticText* key, std::vector<wxString> parts);
-    void open_mouse_preferences();
+    void open_mouse_preferences(const char* preference);
 };
 
 // Records one key chord for a shortcut, warning about the shortcuts it would take the chord from.

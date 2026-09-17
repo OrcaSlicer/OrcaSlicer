@@ -275,7 +275,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
         if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
             auto settings = icon_button("settings", _L("Preferences"));
-            settings->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_mouse_preferences(); });
+            settings->Bind(wxEVT_BUTTON, [this, preference = mouse->preference](wxCommandEvent&) { open_mouse_preferences(preference); });
             buttons->Add(settings, 0, wxALIGN_CENTRE_VERTICAL);
             m_preference_rows.push_back({ mouse->preference, desc });
         } else if (const Shortcut* editable = std::get_if<Shortcut>(&row.content)) {
@@ -379,14 +379,16 @@ int KBShortcutsDialog::set_chord_labels(wxStaticText* modifiers, wxStaticText* k
     return (parts.empty() ? 0 : modifiers->GetBestSize().x) + key_width;
 }
 
-void KBShortcutsDialog::open_mouse_preferences()
+void KBShortcutsDialog::open_mouse_preferences(const char* preference)
 {
     // Opened from Preferences > Control, the settings are right behind this dialog.
-    if (dynamic_cast<PreferencesDialog*>(GetParent()) != nullptr) {
+    if (auto preferences = dynamic_cast<PreferencesDialog*>(GetParent()); preferences != nullptr) {
+        // Runs once this dialog has closed and the focus is back in Preferences.
+        preferences->CallAfter([preferences, preference] { preferences->select_tab(PreferencesDialog::Tab::Control, preference); });
         EndModal(wxID_OK);
         return;
     }
-    wxGetApp().open_preferences(size_t(PreferencesDialog::Tab::Control));
+    wxGetApp().open_preferences(size_t(PreferencesDialog::Tab::Control), preference);
     // A language change rebuilds the main frame, taking this dialog with it.
     if (GetParent() != wxGetApp().mainframe) {
         EndModal(wxID_CANCEL);

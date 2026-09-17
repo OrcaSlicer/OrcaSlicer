@@ -101,7 +101,8 @@ The shortcuts dialog has a page per context, each opening with a line that says 
 keys apply. A page lists the shortcuts under the headings of `section_table`, with the
 fixed keys that cannot change (mouse buttons, the step modifiers, Esc, the digit keys
 that pick a filament) sorted into the same sections. The mouse drag rows describe the
-camera actions chosen in Preferences and link there instead of offering an edit button.
+camera actions chosen in Preferences; their button opens Preferences > Control with that
+option scrolled into view and focused, instead of editing a key.
 Editing a row opens a capture dialog that records the next chord, names the shortcuts it
 would take the chord from, and on confirmation unbinds those and binds this one.
 Resetting a row asks the same question when its default is now held by another
