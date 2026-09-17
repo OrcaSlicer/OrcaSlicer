@@ -384,11 +384,11 @@ void KBShortcutsDialog::open_mouse_preferences(const char* preference)
     // Opened from Preferences > Control, the settings are right behind this dialog.
     if (auto preferences = dynamic_cast<PreferencesDialog*>(GetParent()); preferences != nullptr) {
         // Runs once this dialog has closed and the focus is back in Preferences.
-        preferences->CallAfter([preferences, preference] { preferences->select_tab(PreferencesDialog::Tab::Control, preference); });
+        preferences->CallAfter([preferences, preference] { preferences->select_tab(PreferencesTab::Control, preference); });
         EndModal(wxID_OK);
         return;
     }
-    wxGetApp().open_preferences(size_t(PreferencesDialog::Tab::Control), preference);
+    wxGetApp().open_preferences(PreferencesTab::Control, preference);
     // A language change rebuilds the main frame, taking this dialog with it.
     if (GetParent() != wxGetApp().mainframe) {
         EndModal(wxID_CANCEL);

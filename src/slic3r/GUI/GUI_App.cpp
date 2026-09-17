@@ -8484,7 +8484,9 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
     }
 }
 
-void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
+void GUI_App::open_preferences() { open_preferences(PreferencesTab::General); }
+
+void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_option)
 {
     static constexpr const char* opengl_fxaa_setting_key = "opengl_fxaa_enabled";
     static constexpr const char* opengl_fps_cap_setting_key = "opengl_fps_cap";
@@ -8500,7 +8502,7 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         // or sometimes the application crashes into wxDialogBase() destructor
         // so we put it into an inner scope
         PreferencesDialog dlg(mainframe);
-        dlg.select_tab(PreferencesDialog::Tab(open_on_tab), highlight_option);
+        dlg.select_tab(tab, highlight_option);
         dlg.ShowModal();
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();

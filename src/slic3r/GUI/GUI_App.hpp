@@ -72,6 +72,7 @@ class RemovableDriveManager;
 class OtherInstanceMessageHandler;
 class ShortcutRegistry;
 enum class ShortcutContext : uint8_t;
+enum class PreferencesTab;
 class MainFrame;
 class Sidebar;
 class ObjectSettings;
@@ -642,7 +643,8 @@ public:
     wxString 		current_language_code_safe() const;
     bool            is_localized() const { return m_wxLocale->GetLocale() != "English"; }
 
-    void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_preferences();   // on the General tab
+    void            open_preferences(PreferencesTab tab, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.

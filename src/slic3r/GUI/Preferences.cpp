@@ -1520,9 +1520,9 @@ PreferencesDialog::~PreferencesDialog()
 {
 }
 
-void PreferencesDialog::select_tab(Tab tab, const std::string& option)
+void PreferencesDialog::select_tab(PreferencesTab tab, const std::string& option)
 {
-    m_pref_tabs->SelectItem(int(tab));
+    m_pref_tabs->SelectItem(m_tab_index.at(tab));
     wxWindow* control = option.empty() ? nullptr : m_parent->FindWindow(wxString(option));
     if (control == nullptr)
         return;
@@ -1609,7 +1609,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GENERAL TAB 
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("General"));
+    m_tab_index[PreferencesTab::General] = m_pref_tabs->AppendItem(_L("General"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1799,7 +1799,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// CONTROL TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Control"));
+    m_tab_index[PreferencesTab::Control] = m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1901,7 +1901,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GRAPHICS TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Graphics"));
+    m_tab_index[PreferencesTab::Graphics] = m_pref_tabs->AppendItem(_L("Graphics"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -2026,7 +2026,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// ONLINE TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Online"));
+    m_tab_index[PreferencesTab::Online] = m_pref_tabs->AppendItem(_L("Online"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
