@@ -2885,12 +2885,14 @@ bool PerimeterGeneratorLoop::is_internal_contour() const
     return true;
 }
 
-// ORCA: Arachne drops features below min_feature_size and the classic generator builds nothing thinner than a third of the nozzle.
+// ORCA: Arachne drops features below min_feature_size, the classic generator builds nothing thinner than a
+// third of the nozzle. Both describe the lower layer, so neither is taken from the region generating here.
 ExPolygons PerimeterGenerator::printable_slices(const ExPolygons &slices) const
 {
-    const bool   arachne   = object_config->wall_generator.value == PerimeterGeneratorType::Arachne && !m_spiral_vase;
+    const bool   arachne   = object_config->wall_generator.value == PerimeterGeneratorType::Arachne;
     const double min_width = arachne ? Arachne::make_paths_params(layer_id, *object_config, *print_config).min_feature_size :
-                                       ext_perimeter_flow.nozzle_diameter() / 3.;
+                                       *std::min_element(print_config->nozzle_diameter.values.begin(),
+                                                         print_config->nozzle_diameter.values.end()) / 3.;
     return min_width > EPSILON ? opening_ex(slices, float(scale_(min_width / 2.))) : slices;
 }
 
