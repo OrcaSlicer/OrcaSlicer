@@ -11991,6 +11991,19 @@ CLIActionsConfigDef::CLIActionsConfigDef()
                      "the --ground-* options choose from. Machine-readable alternative to --info.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    // --inspect-paint \u2014 dump the per-facet enforcer/blocker/extruder/fuzzy
+    // paint state stored on the loaded model (supports, seam, MMU color,
+    // fuzzy-skin) as JSON. Read-only; lets CI / scripted / AI tooling
+    // reason about existing paint on a .3mf without loading the GUI.
+    def = this->add("inspect_paint", coBool);
+    def->label = L("Inspect paint (JSON to stdout)");
+    def->tooltip = L("Print a structured JSON summary of every painted layer "
+                     "(supports, seam, MMU color, fuzzy-skin) already stored on "
+                     "the loaded model \u2014 per-state facet count, surface area, "
+                     "and mesh-local bounding box \u2014 then exit. Machine-readable "
+                     "alternative to opening the paint gizmos in the GUI.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file. Use - to write them to stdout.");
