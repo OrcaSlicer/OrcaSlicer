@@ -9,7 +9,6 @@ CI cannot see, which is where review earns its keep; the items are the how. What
 | The `version` bump | The change never reaches an upgrading user |
 | A misspelled setting key | Setting silently has no effect |
 | A filename Windows cannot check out, or one that differs from its `sub_path` only in case | Works on the author's machine, breaks the bundle on another platform |
-| `default_materials` / `default_filament_profile` naming a missing preset | The wizard offers a filament the user never receives; run `check --materials` yourself |
 | `bed_model` / `bed_texture` / `hotend_model` pointing at a missing asset | Bed renders as Custom, hotend falls back to the generic model |
 | A nozzle size in a model's list with no matching variant | The size is offered and resolves to nothing |
 | A non-default process | `validate_slice` only slices each printer's `default_print_profile` |
@@ -121,13 +120,14 @@ numbers nobody measured.
 `bed_model`, `bed_texture`, `hotend_model` and `<Model>_cover.png` exist under
 `resources/profiles/<vendor folder>/`. Broken references already ship; nothing checks them.
 
-## 11. `default_materials` (not checked by CI)
+## 11. `default_materials` (checked by CI)
+
+`check` fails on a `default_materials` / `default_filament_profile` name that resolves to no system
+filament, so a dangling entry no longer reaches review. Scope the run while working on one vendor:
 
 ```bash
-python3 scripts/orca_profile_tool.py check --materials   # py -3 on Windows
+python3 scripts/orca_profile_tool.py check --vendor "<Vendor>"   # py -3 on Windows
 ```
-
-It already fails on a clean tree, so read only the lines for the vendor under review.
 
 ## 12. Per-extruder vector lengths (not checked)
 

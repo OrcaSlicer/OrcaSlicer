@@ -453,6 +453,8 @@ class TestCheck(TreeCase):
             errors += apt.check_filament_id_length(self.t.profiles, "V")
             conflict, _warn = apt.check_conflict_keys(self.t.profiles, "V")
             errors += conflict
+            materials, _warn = apt.check_machine_default_materials(self.t.profiles, "V")
+            errors += materials
         return errors, buf.getvalue()
 
     def test_a_clean_bundle_reports_nothing(self):
@@ -466,6 +468,27 @@ class TestCheck(TreeCase):
         errors, out = self.per_vendor_errors()
         self.assertGreater(errors, 0)
         self.assertIn("'compatible_printers' missing", out)
+
+    def test_a_library_filament_may_leave_compatible_printers_empty(self):
+        # The shared library is exempt from that rule and nothing else.
+        self.t.write(apt.OFL, "filament/A.json",
+                     {"type": "filament", "name": "A", "instantiation": "true"})
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            errors = apt.check_filament_compatible_printers(self.t.profiles, apt.OFL)
+        self.assertEqual(errors, 0, buf.getvalue())
+
+    def test_the_library_is_checked_like_any_other_bundle(self):
+        # A file the library's own index does not reference must fail plain
+        # `check`, now that the per-vendor pass no longer skips it.
+        self.t.write(apt.OFL, "filament/Stray.json",
+                     {"type": "filament", "name": "Stray"})
+        snapshot = os.path.join(self.t.dir, "snapshot.json")
+        self.run_command("update-snapshot", "--snapshot", snapshot)
+        rc, out = self.run_command("check", "--snapshot", snapshot)
+        self.assertEqual(rc, 1, out)
+        self.assertIn(f"{apt.OFL}/filament/Stray.json: no {apt.OFL}.json list "
+                      f"references it", out)
 
     def test_a_duplicate_key_is_an_error(self):
         self.bundle().write_raw("V", "filament/B.json",
@@ -534,6 +557,32 @@ class TestCheck(TreeCase):
             errors, _warn = apt.check_machine_default_materials(self.t.profiles, "V")
         self.assertEqual(errors, 1)
         self.assertIn("'Nope'", buf.getvalue())
+
+    def test_a_default_material_fails_check_without_a_flag(self):
+        # The reference check is part of the default run, not an opt-in: a
+        # dangling name has to fail plain `check`.
+        self.bundle()
+        self.t.write("V", "machine/M.json", {
+            "type": "machine", "name": "M 0.4 nozzle",
+            "default_filament_profile": ["A", "Nope"]})
+        self.t.index("V", "machine", "M 0.4 nozzle", "machine/M.json")
+        snapshot = os.path.join(self.t.dir, "snapshot.json")
+        self.run_command("update-snapshot", "--snapshot", snapshot)
+        rc, out = self.run_command("check", "--snapshot", snapshot)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("Missing filament profile: 'Nope'", out)
+
+    def test_the_stray_user_directory_is_not_a_vendor(self):
+        # A local validator run leaves resources/profiles/user/ behind; an
+        # unscoped check must not count it as a bundle and warn about it.
+        self.bundle()
+        for sub in apt.PROFILE_SUBDIRS:
+            os.makedirs(os.path.join(self.t.profiles, apt.USER_DIR, "default", sub))
+        snapshot = os.path.join(self.t.dir, "snapshot.json")
+        self.run_command("update-snapshot", "--snapshot", snapshot)
+        _rc, out = self.run_command("check", "--snapshot", snapshot)
+        self.assertIn("Checked vendors     : 1", out)
+        self.assertNotIn("user", out)
 
     def names(self, vendor="V"):
         """The preset name check for one bundle, which is what --vendor narrows."""
@@ -752,9 +801,8 @@ class TestNormalized(TreeCase):
         self.assertEqual(gaps["stale_index"], 0, out)
 
     def test_the_shared_base_bundle_is_covered_too(self):
-        # The per-vendor pass leaves OrcaFilamentLibrary out because its filaments are
-        # generic by design. That says nothing about the shape of its files, and
-        # normalize and update-index rewrite that bundle like any other.
+        # normalize and update-index own the shape of every bundle, the shared
+        # library included.
         self.t.write(apt.OFL, "filament/A.json",
                      {"type": "filament", "name": "A", "version": "01.00.00.00"})
         rc, out = self.run_command("check", "--snapshot", self.snapshot())
@@ -791,7 +839,7 @@ class TestDispatch(TreeCase):
                 self.assertIn(expected, out)
 
     def test_an_option_belongs_to_one_command_only(self):
-        for argv in (["normalize", "--materials"],
+        for argv in (["normalize", "--obsolete-keys"],
                      ["trim", "--force"],
                      ["update-index", "--filament-id"],
                      ["check", "--profile-type", "filament"],

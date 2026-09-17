@@ -76,16 +76,16 @@ writing half.
 | `check_conflict_keys` | `extruder_clearance_radius` alongside `extruder_clearance_max_radius` |
 | `check_vector_type_keys` | a vector option written as a scalar (`"filament_type": "PLA"`) |
 | `check_filament_id_length` | a declared `filament_id` longer than 8 characters |
-| `check_machine_default_materials` | opt-in, `--materials` |
+| `check_machine_default_materials` | every `default_materials` / `default_filament_profile` name resolves |
 | `check_obsolete_keys` | opt-in, `--obsolete-keys`; **filament files only** |
 
 Tree-wide, **ignoring `--vendor` entirely**: `check_setting_id_uniqueness` and `check_filament_ids`. So a
 vendor-scoped run can and does fail on another vendor's files — and it saves seconds, not minutes.
 
-Unscoped, the per-vendor pass skips `OrcaFilamentLibrary` (its filaments are generic by design, and the
-vendors inheriting them cover it); naming it explicitly checks it. The `check_normalized` pass is the
-exception — it covers every bundle with an index either way, because file shape has nothing to do with
-that exemption.
+Unscoped, the per-vendor pass covers every bundle. The only exclusion is the stray `user/` directory
+(see below); `OrcaFilamentLibrary` is held to the same rules as any vendor, its sole exemption being
+that a library filament may leave `compatible_printers` empty — exactly what
+`check_filament_compatible_printers` allows. `check_normalized` covers every bundle with an index.
 
 Notes that matter:
 
@@ -95,10 +95,11 @@ Notes that matter:
   rather than a pass with a warning nobody read.
 - `--vendor ""` means all vendors; `check_profile.sh` relies on that. `--vendor` is repeatable.
 - A **stray directory** under `resources/profiles/` still gets counted as a vendor by the per-vendor pass
-  and warned about (`No profiles found for vendor: user at …/user.json`, and the "Checked vendors" count
-  goes up by one). Warning only, so the exit code is unaffected. `normalize`, `trim` and `update-index`
-  ignore it — they
-  define a bundle as *a directory with a matching index file*.
+  and warned about (`No profiles found for vendor: <dir> at …/<dir>.json`, and the "Checked vendors" count
+  goes up by one). The one exception is `user/`, the validator's data dir, which an unscoped `check`
+  skips by name; `--vendor user` still checks and warns about it. Warnings never change the exit code.
+  `normalize`, `trim` and `update-index` ignore strays too — they define a bundle as *a directory with a
+  matching index file*.
 - Each remedy is printed once for the whole run, not once per file, as a `[WARNING]` under the errors
   ("2 unreferenced file(s) above: delete them, or run … update-index"). Read those lines: they name the
   command that fixes the batch.
@@ -107,20 +108,17 @@ Notes that matter:
 - `resources/profiles/check_unused_setting_id.py` is dead BBL-only scratch code. CI never runs it and it
   reports nothing.
 
-### The two opt-in checks
+### `--obsolete-keys` is the one opt-in check
 
-Neither is run by CI, and **`--materials` fails on a clean tree while `--obsolete-keys` only
-warns** — use them to audit the vendor you touched, not as a gate:
+`--obsolete-keys` is left opt-in because it only warns:
 
 ```bash
-python3 scripts/orca_profile_tool.py check --materials
 python3 scripts/orca_profile_tool.py check --obsolete-keys
 ```
 
-`--materials` finds `default_materials` / `default_filament_profile` entries naming a preset that
-does not exist. The three authoring errors it surfaces are `,` instead of `;`, wrong case (`@system`), and
-a whole `;`-joined string stuffed into one array element. The two flags are independent and combine
-freely.
+The materials check finds `default_materials` / `default_filament_profile` entries naming a preset
+that does not exist. The three authoring errors it surfaces are `,` instead of `;`, wrong case
+(`@system`), and a whole `;`-joined string stuffed into one array element.
 
 ### `normalize` and `update-index` are part of the check
 
@@ -168,7 +166,7 @@ On ARM64 Linux the nightly is x86-64 only — the script warns and downloads any
 that will not run. Build it locally instead.
 
 > **Trap:** running the validator by hand creates `resources/profiles/user/` as its data dir — the
-> stray vendor warned about above. `check_profile.sh` and `check_profile.ps1` stash and restore it; after
+> stray directory above. `check_profile.sh` and `check_profile.ps1` stash and restore it; after
 > a direct run, delete it yourself. It holds nothing but empty folders the validator made:
 > `find resources/profiles/user -depth -type d -exec rmdir {} +` (macOS/Linux),
 > `Remove-Item -Recurse resources\profiles\user` (PowerShell), `rmdir /s /q resources\profiles\user` (cmd).

@@ -147,7 +147,7 @@ The tree, the checks and every rule above are identical on all three. Only invoc
 
 Work through [references/review-checklist.md](references/review-checklist.md) — ordered by how often
 each item actually goes wrong in this repo, and it opens with the table of what CI cannot see: the
-version bump, key spellings, asset paths, `default_materials`, non-default processes, cross-platform
+version bump, key spellings, asset paths, non-default processes, cross-platform
 filenames and more. What CI *does* run is in [validation.md](references/validation.md).
 
 ## Red flags — stop and re-read the rules

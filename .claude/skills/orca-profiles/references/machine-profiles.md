@@ -40,7 +40,7 @@ key is no evidence it does anything. Printer config options belong on the `machi
 | `model_id` | a *separate* cloud/device printer type. Optional, and not required to be unique. Not the model's identity. Changing it changes device matching. |
 | `machine_tech` | only `starts_with("SL")` means SLA; everything else is FFF. Write `FFF`; a few models write `FGF`, which is a label with no effect. |
 | `nozzle_diameter` | `;`-separated string, one token per available size. Order is free (Qidi writes `0.4;0.2;0.6;0.8` to put the default first). This list is the authoritative set of legal `printer_variant` values. |
-| `default_materials` | `;`-separated filament **preset names**. Used to preselect in the wizard *and* by `PresetBundle::load_installed_filaments` to auto-install a printer's filaments on first run, so a dangling entry costs a real user a filament. Not `,`; case-sensitive (`@System`). Dangling entries across both keys already ship — `check --materials` is what reports them. |
+| `default_materials` | `;`-separated filament **preset names**. Used to preselect in the wizard *and* by `PresetBundle::load_installed_filaments` to auto-install a printer's filaments on first run, so a dangling entry costs a real user a filament. Not `,`; case-sensitive (`@System`). `check` fails on a dangling name here or in `default_filament_profile`. |
 | `family` | a wizard grouping label only; give every model one. |
 
 ### Assets

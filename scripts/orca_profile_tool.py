@@ -128,6 +128,9 @@ BAMBU_MAP_PATH = os.path.normpath(
     os.path.join(SCRIPTS_DIR, "..", "resources", "printers", "bambu_filament_ids.json"))
 
 OFL = "OrcaFilamentLibrary"
+# The validator's data dir, created under resources/profiles by a local run;
+# not a vendor bundle, so an unscoped pass leaves it alone.
+USER_DIR = "user"
 
 # Bambu (BBL) is the only vendor exempt from the setting_id rule: it keeps its
 # authoritative "G*" cloud ids. No vendor is exempt from the filament_id rule.
@@ -1050,13 +1053,12 @@ def load_available_filament_profiles(profiles_dir, vendor):
 def check_machine_default_materials(profiles_dir, vendor):
     """Every default material a machine names must exist, in the bundle or in OFL.
 
-    Returns (errors, warnings); the warning is the bundle having no machine/ at all.
+    Returns (errors, warnings); a bundle with no machine/ has nothing to check.
     """
     error_count = 0
     machine_dir = Path(profiles_dir) / vendor / "machine"
     if not machine_dir.exists():
-        print_warning(f"No machine profiles found for vendor: {vendor}")
-        return 0, 1
+        return 0, 0
 
     available = (load_available_filament_profiles(profiles_dir, vendor)
                  | load_available_filament_profiles(profiles_dir, OFL))
@@ -1398,15 +1400,17 @@ def check_normalized(profiles_dir, vendor):
 # ---------------------------------------------------------------------------
 
 def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSHOT_PATH,
-                   materials=False, obsolete_keys=False):
+                   obsolete_keys=False):
     """Validate the whole profile tree. Returns the error count.
 
     The per-vendor checks honour `vendors`; the setting_id and filament_id checks are
     cross-vendor properties a narrowed run cannot answer, so they always cover the
-    whole tree. With no `vendors`, OrcaFilamentLibrary is left out of the per-vendor
-    pass: it is the shared base bundle, its filaments are generic by design, and they
-    are checked through the vendors that inherit them. Naming it explicitly checks it.
-    The normalization pass covers it either way - see the comment on that loop.
+    whole tree. With no `vendors`, every bundle is checked except the `user` directory
+    a local validator run leaves behind, being its data dir rather than a bundle;
+    naming it explicitly checks it. OrcaFilamentLibrary is checked like any other
+    bundle, its only exemption being that a library filament may leave
+    compatible_printers empty - what check_filament_compatible_printers applies. The
+    normalization pass takes its own vendor list - see the comment on that loop.
     """
     print_info("Checking profiles ...")
     errors_found = 0
@@ -1416,16 +1420,15 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
     if vendors:
         checked = list(vendors)
     else:
-        checked = [v for v in list_profile_dirs(profiles_dir) if v != OFL]
+        checked = [v for v in list_profile_dirs(profiles_dir) if v != USER_DIR]
 
     for vendor in checked:
         errors_found += check_preset_name_uniqueness(profiles_dir, vendor)
         errors_found += check_filament_compatible_printers(profiles_dir, vendor)
 
-        if materials:
-            new_errors, new_warnings = check_machine_default_materials(profiles_dir, vendor)
-            errors_found += new_errors
-            warnings_found += new_warnings
+        new_errors, new_warnings = check_machine_default_materials(profiles_dir, vendor)
+        errors_found += new_errors
+        warnings_found += new_warnings
 
         if obsolete_keys:
             warnings_found += check_obsolete_keys(profiles_dir, vendor)
@@ -1445,12 +1448,11 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
         errors_found += new_errors
         remedies.update(gaps)
 
-    # normalize and update-index know nothing of the OrcaFilamentLibrary exemption
-    # above - that bundle sits out the per-vendor pass because its filaments are
-    # generic by design, which says nothing about the shape of its files - so this pass
-    # takes its own vendor list. Unscoped that is the bundles with an index, exactly
-    # what those two commands take; a --vendor is passed through as given, so a bundle
-    # whose index has not landed yet still has its files held to what normalize writes.
+    # normalize and update-index judge file and index shape, not the preset-content
+    # rules above, so this pass takes its own vendor list. Unscoped that is the
+    # bundles with an index, exactly what those two commands take; a --vendor is
+    # passed through as given, so a bundle whose index has not landed yet still has
+    # its files held to what normalize writes.
     for vendor in (vendors or list_vendor_names(profiles_dir)):
         new_errors, gaps = check_normalized(profiles_dir, vendor)
         errors_found += new_errors
@@ -2487,17 +2489,14 @@ def build_parser():
         "check", [vendor_opt, snapshot_opt, profiles_opt],
         "validate the whole profile tree -- what CI runs",
         "Validate the whole profile tree: preset name uniqueness, index coverage\n"
-        "both ways, compatible_printers, conflicting and vector-typed keys,\n"
-        "filament_id length, that normalize and update-index would leave every\n"
-        "bundle alone, and the tree-wide setting_id and filament_id state.\n"
-        "Exits nonzero on errors.\n"
+        "both ways, compatible_printers, default-material references, conflicting\n"
+        "and vector-typed keys, filament_id length, that normalize and update-index\n"
+        "would leave every bundle alone, and the tree-wide setting_id and\n"
+        "filament_id state. Exits nonzero on errors.\n"
         "\n"
         "--vendor narrows the per-vendor checks only: setting_id uniqueness and the\n"
         "filament_id state are cross-vendor properties a narrowed run cannot answer,\n"
         "so they always cover the whole tree.")
-    check_cmd.add_argument("--materials", action="store_true",
-                           help="also check that every default material a machine names "
-                                "exists")
     check_cmd.add_argument("--obsolete-keys", action="store_true", dest="obsolete_keys",
                            help="also warn about settings the slicer no longer defines")
 
@@ -2592,7 +2591,7 @@ def main(argv=None):
 
     if args.command == "check":
         errors = check_profiles(profiles_dir, vendors, snapshot_path,
-                                materials=args.materials, obsolete_keys=args.obsolete_keys)
+                                obsolete_keys=args.obsolete_keys)
         return 1 if errors else 0
 
     if args.command == "generate-id":
