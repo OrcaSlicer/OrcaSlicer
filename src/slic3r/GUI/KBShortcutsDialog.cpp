@@ -57,6 +57,13 @@ std::vector<wxString> to_wx(const std::vector<std::string>& parts)
     return out;
 }
 
+// The keys a Global shortcut can use, the second line of its hint and of a rejection.
+wxString global_key_advice()
+{
+    return wxString::Format(_L("Use %s or %s, or a key that does not type a character."),
+                            from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT)));
+}
+
 // The pieces of a chord, spaced out for the dialog: "Ctrl + Shift + A".
 wxString join_keys(const std::vector<wxString>& parts)
 {
@@ -433,12 +440,9 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
 
     // A Global shortcut also runs while a text field has the focus, so its hint names the keys it can use.
     const bool global = (shortcut_info(shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    m_hint = global ? wxString::Format(_L("Global shortcuts also apply while typing, so they need %s or %s, or a key that does not type a character."),
-                                       from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT)))
-                    : _L("Esc cancels, Enter confirms.");
+    m_hint = global ? _L("Global shortcuts also apply while typing.") + "\n" + global_key_advice() : _L("Esc cancels, Enter confirms.");
     m_status = new Label(this, wxGetApp().normal_font(), m_hint, LB_AUTO_WRAP);
-    m_status->SetMinSize(wxSize(FromDIP(400), -1));
-    m_status->Wrap(FromDIP(400));   // so the fit below already counts its lines
+    m_status->SetMinSize(wxSize(FromDIP(400), 3 * m_status->GetCharHeight()));   // room for three lines, so the dialog keeps its size while keys are tried
     m_status_colour = m_status->GetForegroundColour();
     sizer->Add(m_status, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(20));
 
@@ -505,8 +509,7 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     if (global && !chord.is_menu_accelerator()) {
         m_status->SetForegroundColour(ERROR_COLOUR);
-        m_status->SetLabel(wxString::Format(_L("%s types a character in text fields, so it cannot be a global shortcut. Include %s or %s, or use a key that does not type a character."),
-                                            join_keys(to_wx(chord.display_parts())), from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT))));
+        m_status->SetLabel(_L("A key that types a character cannot be a global shortcut.") + "\n" + global_key_advice());
         m_conflicts.clear();
         m_ok->Enable(false);
     } else {
@@ -515,7 +518,7 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
         if (m_conflicts.empty())
             m_status->SetLabel(m_hint);
         else
-            m_status->SetLabel(wxString::Format(_L("Already assigned to %s. Confirming moves it here."), shortcut_names(m_conflicts)));
+            m_status->SetLabel(wxString::Format(_L("Already assigned to %s. Press OK to reassign it."), shortcut_names(m_conflicts)));
         m_ok->Enable(true);
     }
     m_status->Refresh();   // a colour change alone does not repaint

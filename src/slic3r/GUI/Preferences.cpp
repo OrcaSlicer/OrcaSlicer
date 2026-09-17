@@ -1872,7 +1872,7 @@ void PreferencesDialog::create_items()
     //// CONTROL > Keyboard
     g_sizer->Add(create_item_title(_L("Keyboard")), 1, wxEXPAND);
 
-    auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key that triggers each action."), [this]() {
+    auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key for each action."), [this]() {
         wxGetApp().keyboard_shortcuts(ShortcutContext::Global, this);
     });
     g_sizer->Add(item_shortcuts);
