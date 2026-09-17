@@ -197,24 +197,16 @@
 			"sub_path": "filament/Generic ABS @CoLiDo X16.json"
 		},
 		{
+			"name": "CoLiDo PETG @CoLiDo SR1",
+			"sub_path": "filament/CoLiDo PETG @CoLiDo SR1.json"
+		},
+		{
 			"name": "Generic PETG @CoLiDo DIY 4.0",
 			"sub_path": "filament/Generic PETG @CoLiDo DIY 4.0.json"
 		},
 		{
 			"name": "Generic PETG @CoLiDo X16",
 			"sub_path": "filament/Generic PETG @CoLiDo X16.json"
-		},
-		{
-			"name": "CoLiDo PETG @CoLiDo SR1",
-			"sub_path": "filament/CoLiDo PETG @CoLiDo SR1.json"
-		},
-		{
-			"name": "Generic PLA @CoLiDo DIY 4.0",
-			"sub_path": "filament/Generic PLA @CoLiDo DIY 4.0.json"
-		},
-		{
-			"name": "Generic PLA @CoLiDo X16",
-			"sub_path": "filament/Generic PLA @CoLiDo X16.json"
 		},
 		{
 			"name": "CoLiDo PLA @CoLiDo SR1",
@@ -227,6 +219,14 @@
 		{
 			"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
 			"sub_path": "filament/CoLiDo PLA+ @CoLiDo DIY 4.0 V2.json"
+		},
+		{
+			"name": "Generic PLA @CoLiDo DIY 4.0",
+			"sub_path": "filament/Generic PLA @CoLiDo DIY 4.0.json"
+		},
+		{
+			"name": "Generic PLA @CoLiDo X16",
+			"sub_path": "filament/Generic PLA @CoLiDo X16.json"
 		},
 		{
 			"name": "Generic TPU @CoLiDo DIY 4.0",

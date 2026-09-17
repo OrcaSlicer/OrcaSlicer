@@ -1,4 +1,6 @@
 #include "SendJob.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"

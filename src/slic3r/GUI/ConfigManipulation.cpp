@@ -2,6 +2,7 @@
 #include "ConfigManipulation.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "DeviceCore/DevConfigUtil.h"
 #include "format.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
@@ -1054,6 +1055,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 
+    bool use_cyclic_ordering = config->opt_enum<ToolChangeOrderingType>("toolchange_ordering") == ToolChangeOrderingType::Cyclic;
+    toggle_line("toolchange_cyclic_order", use_cyclic_ordering);
+    toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering);
+
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 
     for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
@@ -1102,6 +1107,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Orca
     auto is_role_based_wipe_speed = config->opt_bool("role_based_wipe_speed");
     toggle_field("wipe_speed",!is_role_based_wipe_speed);
+
+    const bool have_wipe_inward = config->opt_bool("wipe_inward");
+    toggle_line("wipe_inward_distance", have_wipe_inward);
 
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
         toggle_line(el, gcf_is_klipper);

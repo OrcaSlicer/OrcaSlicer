@@ -1,6 +1,7 @@
 #include "AMSDryControl.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
