@@ -6302,6 +6302,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_inward_distance", coFloatOrPercent);
     def->label = L("Wipe inward distance");
     def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip = L("The distance the wipe path is shifted away from the external perimeter, specified in millimeters "
                      "or as a percentage of the actual outer-wall extrusion width.\n\n"
                      "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited "

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:13-0300\n"
+"POT-Creation-Date: 2026-09-17 10:23-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -4640,11 +4640,14 @@ msgstr ""
 "Kopírování dočasného G-kódu do výstupního G-kódu selhalo. Možná je SD karta uzamčená pro zápis?\n"
 "Chybová zpráva: %1%"
 
+# AI Translated
 #, boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed.\n"
 "Error message: %1%"
 msgstr ""
+"Kopírování dočasného G-kódu do výstupního G-kódu selhalo.\n"
+"Chybová zpráva: %1%"
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -6372,11 +6375,13 @@ msgstr "Uložit projekt jako"
 msgid "Save current project as"
 msgstr "Uložit aktuální projekt jako"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "Publikovat 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "Exportovat soubor 3MF s vloženými vybranými nastaveními"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importovat 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7667,11 +7672,13 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "Spodní"
 
+# AI Translated
 msgid "This setting does not specify a plugin capability type."
-msgstr ""
+msgstr "Toto nastavení neurčuje typ schopnosti pluginu."
 
+# AI Translated
 msgid "This setting specifies an unrecognized plugin capability type: "
-msgstr ""
+msgstr "Toto nastavení určuje neznámý typ schopnosti pluginu: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8239,11 +8246,13 @@ msgstr "Potvrďte prosím, že je G-code v těchto předvolbách bezpečný, aby
 msgid "Customized Preset"
 msgstr "Přizpůsobená předvolba"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "Některá publikovaná nastavení nebylo možné použít:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "Některé sloty filamentu byly změněny:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Názvy komponent v souboru STEP nejsou ve formátu UTF-8!"
@@ -8655,13 +8664,17 @@ msgstr "Uložit rozřezaný soubor jako:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Soubor %s byl odeslán do úložiště tiskárny a lze jej zobrazit na tiskárně."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "Publikovat soubor 3MF jako:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"Export publikovaného souboru 3MF selhal.\n"
+"Zkontrolujte prosím, zda složka existuje online, nebo zda soubor nemají otevřený jiné programy."
 
 msgid "Publish"
 msgstr "Publikovat"
@@ -9859,63 +9872,82 @@ msgstr "Nahrávání dat"
 msgid "Jump to webpage"
 msgstr "Přejít na webovou stránku"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Materiál"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Míchaný filament"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Některé míchané filamenty závisejí na filamentech, které nebudou publikovány:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "Filament %d (míchaný)"
 
+# AI Translated
 msgid "needs"
-msgstr ""
+msgstr "vyžaduje"
 
+# AI Translated
 msgid "not enabled"
-msgstr ""
+msgstr "není povoleno"
 
+# AI Translated
 msgid "material not published"
-msgstr ""
+msgstr "materiál není publikován"
 
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Chcete-li publikovat míchaný filament, povolte každý filament, který používá, a zvolte Úplné publikování nebo splňte jeho požadavek Typ."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Přesto publikovat"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "Publikovat 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "Vyberte, která nastavení se mají publikovat v souboru 3MF"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "Wiki k publikování 3MF"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "Videonávod k publikování 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Míchaný filament - publikuje se jako celek, pokud je výše zvoleno \"Povolit\""
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Publikovat tento míchaný filament a povolit + úplně publikovat jeho složkové filamenty"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Publikovat tento slot filamentu v souboru 3MF"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Úplné publikování"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Vložit celý filament tohoto slotu do souboru 3MF"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Filtrovat nevybrané"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9935,8 +9967,9 @@ msgstr "Zkopíruje do této předvolby všechny hodnoty zděděné z nadřazené
 msgid "Detach from parent"
 msgstr "Oddělit od nadřazeného"
 
+# AI Translated
 msgid "Save without parent"
-msgstr ""
+msgstr "Uložit bez nadřazeného"
 
 # AI Translated
 msgid "Unique preset"
@@ -10644,14 +10677,16 @@ msgstr "Pro detekci shlukování je vyžadována čistící věž. Bez čistíc�
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Povolení přesné výšky Z i čistící věže může způsobit chyby slicování. Chcete přesto povolit přesnou výšku Z?"
 
+# AI Translated
 msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
-msgstr ""
+msgstr "Plynulý časosběr vyžaduje čistící věž na každé vrstvě, což není slučitelné s možností \"Žádné řídké vrstvy\". Možnost \"Žádné řídké vrstvy\" byla vypnuta."
 
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Pro hladký časosběr je potřeba základní věž. Model může mít vady bez základní věže. Chcete povolit základní věž?"
 
+# AI Translated
 msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
-msgstr ""
+msgstr "Možnost \"Žádné řídké vrstvy\" není slučitelná s plynulým časosběrem, který vyžaduje čistící věž na každé vrstvě. Časosběr byl přepnut do tradičního režimu."
 
 msgid "Still print by object?"
 msgstr "Stále tisknout po objektu?"
@@ -12345,8 +12380,9 @@ msgstr "Oprava zrušena"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Kopírování souboru %1% do %2% selhalo: %3%"
 
+# AI Translated
 msgid "Downloading new vendor profile(s): "
-msgstr ""
+msgstr "Stahování nových profilů dodavatelů: "
 
 msgid "Configuration package: "
 msgstr "Balíček konfigurace: "
@@ -12354,8 +12390,9 @@ msgstr "Balíček konfigurace: "
 msgid " updated to "
 msgstr " aktualizováno na "
 
+# AI Translated
 msgid "Failed to download vendor profile(s): "
-msgstr ""
+msgstr "Stažení profilů dodavatelů selhalo: "
 
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Nejprve je třeba zkontrolovat neuložené změny před aktualizací konfigurace."
@@ -12538,8 +12575,9 @@ msgstr "%1% je příliš blízko ostatním, může dojít ke kolizím."
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% je příliš vysoký, může dojít ke kolizím."
 
+# AI Translated
 msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
-msgstr ""
+msgstr "Vzájemná poloha modelu a čistící věže nesplňuje požadavky funkce \"Žádné řídké vrstvy\". Upravte prosím jejich vzájemnou polohu, snižte výšku modelu nebo vypněte možnost \"Žádné řídké vrstvy\"."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " je příliš blízko oblasti vyloučení, při tisku mohou nastat kolize."
@@ -13971,8 +14009,9 @@ msgstr "Zarovnaná pravoúhlá"
 msgid "Concentric"
 msgstr "Koncentrický"
 
+# AI Translated
 msgid "Spiral Inset"
-msgstr ""
+msgstr "Spirálový odsaz"
 
 msgid "Hilbert Curve"
 msgstr "Hilbertova křivka"
@@ -14063,21 +14102,29 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Pořadí vyplňování horního povrchu"
 
+# AI Translated
 msgid ""
 "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
+"Směr, ve kterém se vyplňují horní povrchy při použití vzoru vycházejícího ze středu (Koncentrický, Spirálový odsaz, Archimédovy akordy, Oktagramová spirála).\n"
+"Ven začíná ve středu povrchu, takže se přebytečný materiál vytlačuje k okraji, kde je nejméně vidět. Dovnitř začíná u okraje a končí těsnými oblouky ve středu.\n"
+"Výchozí používá řazení podle nejkratší cesty, které může probíhat v obou směrech."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Pořadí vyplňování spodního povrchu"
 
+# AI Translated
 msgid ""
 "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
+"Směr, ve kterém se vyplňují spodní povrchy při použití vzoru vycházejícího ze středu (Koncentrický, Spirálový odsaz, Archimédovy akordy, Oktagramová spirála).\n"
+"Dovnitř začíná každý povrch širšími vnějšími oblouky, což zlepšuje přilnavost počáteční vrstvy na podložkách, kde se těsné oblouky ve středu nemusí uchytit. Ven začíná ve středu a vytlačuje přebytečný materiál k okraji.\n"
+"Výchozí používá řazení podle nejkratší cesty, které může probíhat v obou směrech."
 
 msgid "Internal solid infill pattern"
 msgstr "Vzor vnitřní plné výplně"
@@ -14180,11 +14227,13 @@ msgstr "Proti směru hodinových ručiček"
 msgid "Clockwise"
 msgstr "Po směru hodinových ručiček"
 
+# AI Translated
 msgid "Distance to rod"
-msgstr ""
+msgstr "Vzdálenost k tyči"
 
+# AI Translated
 msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
-msgstr ""
+msgstr "Vodorovná vzdálenost špičky trysky ke vzdálenější hraně tyče. Používá se pro vyhýbání se kolizím při tisku podle objektu."
 
 msgid "Height to rod"
 msgstr "Výška k tyči"
@@ -16382,14 +16431,19 @@ msgstr "Detekovat převislou stěnu"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Detekuje procento převisu vzhledem k šířce čáry a použije odlišnou rychlost tisku. Pro 100%% převis je použita rychlost mostů."
 
+# AI Translated
 msgid "Print unsupported walls last"
-msgstr ""
+msgstr "Tisknout nepodepřené stěny jako poslední"
 
+# AI Translated
 msgid ""
 "Wall loops that lie entirely in mid air are printed once something can hold them:\n"
 "they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
 "A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
 msgstr ""
+"Smyčky stěn, které leží zcela ve vzduchu, se tisknou až ve chvíli, kdy je má co udržet:\n"
+"extrudují se po ostatních stěnách svého ostrůvku, nejprve ta nejvnitřnější, bez ohledu na pořadí stěn.\n"
+"Smyčka, kterou dokážou ukotvit pouze můstky této vrstvy, čeká, až budou tyto můstky vytištěny, zatímco smyčka vedoucí podél podepřené stěny si ponechá své místo před výplní, která ji potřebuje jako ukotvení."
 
 # AI Translated
 msgid "Outer walls"
@@ -16835,9 +16889,11 @@ msgstr "Očištění na okruzích"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Pro minimalizaci viditelnosti stehu v uzavřené smyčce extruze je před opuštěním smyčky tryskou proveden malý pohyb směrem dovnitř."
 
+# AI Translated
 msgid "Wipe inward"
-msgstr ""
+msgstr "Očištění dovnitř"
 
+# AI Translated
 msgid ""
 "Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
@@ -16845,16 +16901,26 @@ msgid ""
 "\n"
 "Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
+"Platí pouze pro vnější stěny včetně obrysů otvorů. Během očištění posouvá horkou trysku směrem k již vytištěným vnitřním stěnám, aby se omezilo opětovné zahřívání čerstvě vytištěného plastu a stopy po švu.\n"
+"\n"
+"Obzvláště užitečné při výškách vrstvy pod 0,1 mm, kde jsou stopy po očištění výraznější.\n"
+"\n"
+"Použije běžné očištění, pokud není žádná sousední vnitřní stěna již vytištěná (oblasti s jedinou stěnou nebo pořadí stěn Vnější/Vnitřní) nebo pokud nelze najít podepřenou dráhu dovnitř, například v ostrých rozích nebo v mezerách švu."
 
+# AI Translated
 msgid "Wipe inward distance"
-msgstr ""
+msgstr "Vzdálenost očištění dovnitř"
 
-#, c-format, boost-format
+# AI Translated
+#, no-c-format, no-boost-format
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
 "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
 msgstr ""
+"Vzdálenost, o kterou se dráha očištění posune od vnějšího obvodu, uvedená v milimetrech nebo jako procento skutečné šířky extruze vnější stěny.\n"
+"\n"
+"Například 50% posune dráhu o polovinu šířky vnější stěny. Účinný posun je omezen jak skutečnou šířkou vnější stěny, tak dostupnou mezerou k sousední stěně, takže hodnoty nad 100% nebo odpovídající absolutní vzdálenost už nemají další účinek. Nastavením na 0 posun vypnete."
 
 msgid "Wipe before external loop"
 msgstr "Očištění před vnějším okruhem"
@@ -17123,8 +17189,9 @@ msgstr "Vyzvedne nový nástroj, aniž by čekal na dosažení tiskové teploty,
 msgid "No sparse layers (beta)"
 msgstr "Žádné řídké vrstvy (beta)"
 
+# AI Translated
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
-msgstr ""
+msgstr "Pokud je povoleno, čistící věž se nebude tisknout na vrstvách bez změny nástroje. Na vrstvách se změnou nástroje extruder sjede dolů, aby čistící věž vytiskl, takže věž skončí pod modelem a tisková hlava k ní musí dosáhnout dolů. Rozvržení, kde by to znamenalo kolizi s již vytištěným objektem, jsou odmítnuta. Nemá vliv při plynulém časosběru ani při detekci nánosů na trysce, které vyžadují věž na každé vrstvě."
 
 msgid "Prime all printing extruders"
 msgstr "Připravit všechny tiskové extrudery"
@@ -17150,23 +17217,33 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Cyklické"
 
+# AI Translated
 msgid "Cyclic order"
-msgstr ""
+msgstr "Cyklické pořadí"
 
+# AI Translated
 msgid ""
 "Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
 "Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
 "Leave empty to cycle through the filaments in ascending order."
 msgstr ""
+"Vlastní posloupnost filamentů použitá cyklickým řazením změn nástroje, jako čísla filamentů oddělená čárkami (např. \"3,2,1,4\").\n"
+"Každá vrstva tiskne své filamenty podle této posloupnosti; filamenty, které v ní nejsou uvedeny, se tisknou jako poslední, ve vzestupném pořadí.\n"
+"Ponechte prázdné, chcete-li filamenty procházet ve vzestupném pořadí."
 
+# AI Translated
 msgid "Apply cyclic order to first layer"
-msgstr ""
+msgstr "Použít cyklické pořadí na počáteční vrstvu"
 
+# AI Translated
 msgid ""
 "Applies the cyclic toolchange order to the first layer as well.\n"
 "By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
 "Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
 msgstr ""
+"Použije cyklické pořadí změn nástroje také na počáteční vrstvu.\n"
+"Ve výchozím nastavení je vypnuto, protože počáteční vrstva se místo toho řadí pro nejlepší přilnavost k podložce: filamenty, které tisknou malé, křehké prvky počáteční vrstvy, se tisknou jako poslední, takže následné změny nástroje a přejezdy tyto slabě ukotvené části s menší pravděpodobností urazí. Toto pořadí počáteční vrstvy také respektuje vlastní posloupnost filamentů pro počáteční vrstvu, je-li nastavena. Přínos cyklického pořadí (další změny nástroje dávají každé vrstvě více času na vychladnutí) se na počáteční vrstvu nevztahuje, protože se tiskne pomalu a horká kvůli přilnavosti.\n"
+"Povolte to pouze tehdy, pokud potřebujete přesně stejnou posloupnost nástrojů na každé vrstvě včetně první, za cenu této optimalizace přilnavosti."
 
 msgid "Slice gap closing radius"
 msgstr "Poloměr uzavření mezery řezu"
@@ -18179,11 +18256,13 @@ msgstr "Bez kontroly"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Nespouštějte žádné kontroly platnosti, například kontrolu konfliktů dráhy G-kódu."
 
+# AI Translated
 msgid "Strict mode"
-msgstr ""
+msgstr "Přísný režim"
 
+# AI Translated
 msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
-msgstr ""
+msgstr "Skončí s nenulovým návratovým kódem, pokud slicování vyvolá nekritické varování, které by se jinak pouze zapsalo do protokolu, například model vyžadující podpory, zatímco jsou podpory vypnuté. Použijte v CI nebo ve skriptovaných procesech, které nikdy nesmí dodat nenápadně vadný výsledek slicování. Každé takové varování je navíc uvedeno se stabilní třídou v poli `warnings` souboru result.json, který se zapisuje pouze na Linuxu. Nelze kombinovat s --no-check, který přeskakuje kontrolu podpor."
 
 msgid "Normative check"
 msgstr "Normativní kontrola"
@@ -18197,23 +18276,28 @@ msgstr "Informace o výstupním modelu"
 msgid "This outputs the model’s information."
 msgstr "Zobrazit informace o modelu."
 
+# AI Translated
 msgid "Inspect mesh (JSON to stdout)"
-msgstr ""
+msgstr "Prozkoumat síť (JSON na stdout)"
 
+# AI Translated
 msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
-msgstr ""
+msgstr "Vypíše na stdout souhrn JSON pro každý načtený objekt a poté skončí: jeho ohraničující kvádry a stěny konvexní obálky, na které jej lze položit, včetně jejich normál, obsahů a středů. Právě z těchto stěn vybírají volby --ground-*. Strojově čitelná alternativa k --info."
 
+# AI Translated
 msgid "Inspect paint (JSON to stdout)"
-msgstr ""
+msgstr "Prozkoumat malování (JSON na stdout)"
 
+# AI Translated
 msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
-msgstr ""
+msgstr "Vypíše strukturovaný souhrn JSON každé malované vrstvy (podpory, šev, barva MMU, fuzzy skin) již uložené v načteném modelu — počet facet, plochu povrchu a ohraničující kvádr v souřadnicích sítě pro každý stav — a poté skončí. Strojově čitelná alternativa k otevření malovacích nástrojů v rozhraní."
 
 msgid "Export Settings"
 msgstr "Exportovat nastavení"
 
+# AI Translated
 msgid "This exports settings to a file. Use - to write them to stdout."
-msgstr ""
+msgstr "Toto exportuje nastavení do souboru. Použijte - pro zápis na stdout."
 
 msgid "Send progress to pipe"
 msgstr "Odesílat průběh do pipe"
@@ -18269,23 +18353,29 @@ msgstr "Otočit kolem osy Y"
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Úhel rotace kolem osy Y ve stupních."
 
+# AI Translated
 msgid "Ground largest face"
-msgstr ""
+msgstr "Položit na největší stěnu"
 
+# AI Translated
 msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
-msgstr ""
+msgstr "Položí každý objekt na největší stěnu jeho konvexní obálky a spustí jej na podložku. Ze stejně velkých stěn se zachová ta, která již směřuje dolů. Objekty bez stěny dostatečně velké na to, aby na ní mohly spočívat, zůstanou beze změny. Transformace se provádějí v pořadí zadání na příkazové řádce, takže rotace uvedené před touto volbou jsou respektovány. --orient 1 se spouští po všech transformacích a nahrazuje orientaci."
 
+# AI Translated
 msgid "Ground face by normal"
-msgstr ""
+msgstr "Položit na stěnu podle normály"
 
+# AI Translated
 msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
-msgstr ""
+msgstr "Položí každý objekt na tu stěnu konvexní obálky, jejíž vnější normála je nejblíže směru NX,NY,NZ, a spustí jej na podložku. Směr je v souřadnicích objektu, které zahrnují rotace uvedené před touto volbou a odpovídají osám podložky, pokud vstupní soubor objekt neotáčí. Například 1,0,0 postaví objekt na jeho stranu +X. --orient 1 se spouští po všech transformacích a nahrazuje orientaci."
 
+# AI Translated
 msgid "Ground face at point"
-msgstr ""
+msgstr "Položit na stěnu v bodě"
 
+# AI Translated
 msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
-msgstr ""
+msgstr "Položí každý objekt na tu stěnu konvexní obálky, která obsahuje bod X,Y,Z, a spustí jej na podložku. Bod je v souřadnicích objektu, které zahrnují rotace uvedené před touto volbou; --inspect-mesh uvádí středy stěn v těchto souřadnicích. Objekty bez takové stěny zůstanou beze změny a běh selže, pokud ji nemá žádný objekt. --orient 1 se spouští po všech transformacích a nahrazuje orientaci."
 
 msgid "Scale the model by a float factor."
 msgstr "Změnit měřítko modelu podle desetinného faktoru."
@@ -21505,14 +21595,17 @@ msgstr "Tuto akci nelze vrátit zpět. Pokračovat?"
 msgid "Skipping objects."
 msgstr "Přeskakování objektů."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Poměr materiálu"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Výška modelu"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Poměr"
 
 # AI Translated
 msgid "Select Filament"
