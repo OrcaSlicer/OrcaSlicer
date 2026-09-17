@@ -736,6 +736,14 @@ TEST_CASE("Ironing the topmost surface only applies to the topmost layer", "[Fil
     REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, /*is_topmost_layer=*/false) == -1);
 }
 
+TEST_CASE("Paint-on ironing uses the top surface filament on any layer with top shells", "[Fill]")
+{
+    const PrintRegionConfig cfg = ironing_config(IroningType::PaintedOnly, /*top_surface_filament_id=*/2);
+    const bool is_topmost_layer = GENERATE(false, true);
+    CAPTURE(is_topmost_layer);
+    REQUIRE(Layer::choose_ironing_extruder(cfg, /*spiral_mode=*/false, is_topmost_layer) == 2);
+}
+
 TEST_CASE("A region with ironing turned off is never ironed", "[Fill]")
 {
     const PrintRegionConfig cfg = ironing_config(IroningType::NoIroning);
