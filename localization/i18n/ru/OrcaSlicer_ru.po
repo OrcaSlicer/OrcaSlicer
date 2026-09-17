@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -3689,11 +3689,15 @@ msgstr "Втянуть текущий материал на Filament Track Switc
 msgid "Switch track at Filament Track Switch"
 msgstr "Переключить подачу на Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Температура не должна превышать "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Температура не должна превышать %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Температура не должна быть ниже "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Температура не должна быть ниже %d"
 
 msgid "Type to filter..."
 msgstr "Поиск..."
@@ -5656,14 +5660,20 @@ msgstr "Оптимизировать"
 msgid "Regroup filament"
 msgstr "Изменить"
 
-msgid "up to"
-msgstr "до"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "до %1% мм"
 
-msgid "above"
-msgstr "после"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "выше %1% мм"
 
-msgid "from"
-msgstr "с"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "от %1% до %2% мм"
 
 msgid "Usage"
 msgstr "Расход"
@@ -12248,11 +12258,10 @@ msgstr "Не удалось скопировать файл %1% в %2%: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Загрузка новых профилей производителей: "
 
-msgid "Configuration package: "
-msgstr "Пакет профилей: "
-
-msgid " updated to "
-msgstr " обновлён до "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Пакет профилей: %1% обновлён до %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12320,12 +12329,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping поддерживается только в Klipper, RepRapFirmware и Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Ошибка группировки: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Ошибка группировки: %1% нельзя разместить в левом сопле"
 
-# filament_type + <перевод> + extruder_name
-msgid " can not be placed in the "
-msgstr " нельзя заправить в "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Ошибка группировки: %1% нельзя разместить в правом сопле"
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Ошибка группировки в ручном режиме. Проверьте количество сопел или измените группировку."
@@ -22063,11 +22075,15 @@ msgstr "Сушка — нагрев"
 msgid "Drying-Dehumidifying"
 msgstr "Сушка — вывод влаги"
 
-msgid " maximum drying temperature is "
-msgstr " максимальная температура сушки — "
+# AI Translated
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Максимальная температура сушки для %s — %d°C."
 
-msgid " minimum drying temperature is "
-msgstr " минимальная температура сушки — "
+# AI Translated
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Минимальная температура сушки для %s — %d°C."
 
 msgid "This filament may not be completely dried."
 msgstr "Сушка этого материала может не быть эффективной."
@@ -22491,6 +22507,40 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Температура не должна превышать "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Температура не должна быть ниже "
+
+#~ msgid "up to"
+#~ msgstr "до"
+
+#~ msgid "above"
+#~ msgstr "после"
+
+#~ msgid "from"
+#~ msgstr "с"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Пакет профилей: "
+
+#~ msgid " updated to "
+#~ msgstr " обновлён до "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Ошибка группировки: "
+
+# filament_type + <перевод> + extruder_name
+#~ msgid " can not be placed in the "
+#~ msgstr " нельзя заправить в "
+
+#~ msgid " maximum drying temperature is "
+#~ msgstr " максимальная температура сушки — "
+
+#~ msgid " minimum drying temperature is "
+#~ msgstr " минимальная температура сушки — "
 
 # AI Translated
 #~ msgid "needs"

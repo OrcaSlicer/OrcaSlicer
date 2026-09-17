@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3694,11 +3694,15 @@ msgstr "Ištraukite dabartinę giją ties Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Perjunkite takelį ties Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Maksimali temperatūra negali viršyti "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Maksimali temperatūra negali viršyti %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Minimali temperatūra neturi būti mažesnė nei "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Minimali temperatūra neturi būti mažesnė nei %d"
 
 msgid "Type to filter..."
 msgstr "Įveskite tekstą filtravimui..."
@@ -5623,14 +5627,20 @@ msgstr "Nustatyti į optimalų"
 msgid "Regroup filament"
 msgstr "Pergrupuoti gijas"
 
-msgid "up to"
-msgstr "iki"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "iki %1% mm"
 
-msgid "above"
-msgstr "virš"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "virš %1% mm"
 
-msgid "from"
-msgstr "nuo"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "nuo %1% iki %2% mm"
 
 msgid "Usage"
 msgstr "Naudojimas"
@@ -12168,11 +12178,10 @@ msgstr "Failo %1% kopijavimas į %2% nepavyko: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Atsisiunčiami nauji gamintojų profiliai: "
 
-msgid "Configuration package: "
-msgstr "Konfigūracijos paketas: "
-
-msgid " updated to "
-msgstr " atnaujintas į "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Konfigūracijos paketas: %1% atnaujintas į %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12240,11 +12249,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "„Input shaping“ funkcija palaikoma tik „Klipper“, „RepRapFirmware“ ir „Marlin 2“ programinėje aparatinėje įrangoje"
 
-msgid "Grouping error: "
-msgstr "Grupavimo klaida: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Grupavimo klaida: %1% negalima įdėti į kairįjį purkštuką"
 
-msgid " can not be placed in the "
-msgstr "negali būti įkeltas į "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Grupavimo klaida: %1% negalima įdėti į dešinįjį purkštuką"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21393,12 +21406,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Džiovinimas – sausinimas"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " didžiausia džiovinimo temperatūra yra "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Didžiausia %s džiovinimo temperatūra yra %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " mažiausia džiovinimo temperatūra yra "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Mažiausia %s džiovinimo temperatūra yra %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21842,6 +21857,41 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Maksimali temperatūra negali viršyti "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Minimali temperatūra neturi būti mažesnė nei "
+
+#~ msgid "up to"
+#~ msgstr "iki"
+
+#~ msgid "above"
+#~ msgstr "virš"
+
+#~ msgid "from"
+#~ msgstr "nuo"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Konfigūracijos paketas: "
+
+#~ msgid " updated to "
+#~ msgstr " atnaujintas į "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Grupavimo klaida: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr "negali būti įkeltas į "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " didžiausia džiovinimo temperatūra yra "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " mažiausia džiovinimo temperatūra yra "
 
 # AI Translated
 #~ msgid "needs"

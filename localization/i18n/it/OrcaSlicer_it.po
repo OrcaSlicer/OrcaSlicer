@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3706,11 +3706,15 @@ msgstr "Ritira il filamento attuale sul Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Cambia traccia sul Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "La temperatura massima non può superare "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "La temperatura massima non può superare %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "La temperatura minima non deve essere inferiore a "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "La temperatura minima non deve essere inferiore a %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5637,14 +5641,20 @@ msgstr "Imposta al valore ottimale"
 msgid "Regroup filament"
 msgstr "Raggruppa nuovamente i filamenti"
 
-msgid "up to"
-msgstr "fino a"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "fino a %1% mm"
 
-msgid "above"
-msgstr "sopra"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "sopra %1% mm"
 
-msgid "from"
-msgstr "da"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "da %1% a %2% mm"
 
 msgid "Usage"
 msgstr "Utilizzo"
@@ -12248,11 +12258,10 @@ msgstr "Copia del file %1% su %2% non riuscita: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Download dei nuovi profili produttore: "
 
-msgid "Configuration package: "
-msgstr "Pacchetto di configurazione: "
-
-msgid " updated to "
-msgstr " aggiornato a "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Pacchetto di configurazione: %1% aggiornato a %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12320,11 +12329,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "La compensazione della risonanza è supportata solo da Klipper, RepRapFirmware e Marlin 2"
 
-msgid "Grouping error: "
-msgstr "Errore di raggruppamento: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Errore di raggruppamento: %1% non può essere collocato nell'ugello sinistro"
 
-msgid " can not be placed in the "
-msgstr " non può essere posizionato nel "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Errore di raggruppamento: %1% non può essere collocato nell'ugello destro"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21690,12 +21703,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Essiccazione - Deumidificazione"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " la temperatura massima di essiccazione è "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "La temperatura massima di essiccazione di %s è %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " la temperatura minima di essiccazione è "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "La temperatura minima di essiccazione di %s è %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22140,6 +22155,41 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "La temperatura massima non può superare "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "La temperatura minima non deve essere inferiore a "
+
+#~ msgid "up to"
+#~ msgstr "fino a"
+
+#~ msgid "above"
+#~ msgstr "sopra"
+
+#~ msgid "from"
+#~ msgstr "da"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Pacchetto di configurazione: "
+
+#~ msgid " updated to "
+#~ msgstr " aggiornato a "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Errore di raggruppamento: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " non può essere posizionato nel "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " la temperatura massima di essiccazione è "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " la temperatura minima di essiccazione è "
 
 # AI Translated
 #~ msgid "needs"

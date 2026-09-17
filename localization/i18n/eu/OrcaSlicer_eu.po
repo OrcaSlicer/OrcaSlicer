@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3592,11 +3592,15 @@ msgstr "Atzera erakarri uneko filamentua Filament Track Switch-en"
 msgid "Switch track at Filament Track Switch"
 msgstr "Aldatu bidea Filament Track Switch-en"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Gehieneko tenperaturak ezin du hau gainditu: "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Gehieneko tenperaturak ezin du %d gainditu"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Gutxieneko tenperaturak ezin du hau baino txikiagoa izan: "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Gutxieneko tenperaturak ezin du %d baino txikiagoa izan"
 
 msgid "Type to filter..."
 msgstr "Idatzi iragazteko..."
@@ -5496,14 +5500,20 @@ msgstr "Ezarri optimo gisa"
 msgid "Regroup filament"
 msgstr "Taldekatu berriro filamentua"
 
-msgid "up to"
-msgstr "honaino"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm arte"
 
-msgid "above"
-msgstr "honen gainean"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm-tik gora"
 
-msgid "from"
-msgstr "hemendik"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm-tik %2% mm-ra"
 
 msgid "Usage"
 msgstr "Erabilera"
@@ -11940,11 +11950,10 @@ msgstr "%1% fitxategia %2% helmugara kopiatzeak huts egin du: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Hornitzaileen profil berriak deskargatzen: "
 
-msgid "Configuration package: "
-msgstr "Konfigurazio-paketea: "
-
-msgid " updated to "
-msgstr " hona eguneratu da: "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Konfigurazio-paketea: %1% %2% bertsiora eguneratu da"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12012,11 +12021,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Sarrera-moldaketa Klipperrek, RepRapFirmwarek eta Marlin 2k soilik onartzen dute."
 
-msgid "Grouping error: "
-msgstr "Taldekatze-errorea: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Taldekatze-errorea: %1% ezin da ezkerreko pitan jarri"
 
-msgid " can not be placed in the "
-msgstr " ezin da hemen kokatu: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Taldekatze-errorea: %1% ezin da eskuineko pitan jarri"
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Taldekatze-errorea eskuzko moduan. Egiaztatu pita kopurua edo taldekatu berriro."
@@ -21112,11 +21125,15 @@ msgstr "Lehortzen-Berotzen"
 msgid "Drying-Dehumidifying"
 msgstr "Lehortzen-Hezetasuna kentzen"
 
-msgid " maximum drying temperature is "
-msgstr " lehortze-tenperatura maximoa da "
+# AI Translated
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s: gehieneko lehortze-tenperatura %d°C da."
 
-msgid " minimum drying temperature is "
-msgstr " lehortze-tenperatura minimoa da "
+# AI Translated
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s: gutxieneko lehortze-tenperatura %d°C da."
 
 msgid "This filament may not be completely dried."
 msgstr "Baliteke filamentu hau erabat lehortuta ez egotea."
@@ -21528,6 +21545,39 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Gehieneko tenperaturak ezin du hau gainditu: "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Gutxieneko tenperaturak ezin du hau baino txikiagoa izan: "
+
+#~ msgid "up to"
+#~ msgstr "honaino"
+
+#~ msgid "above"
+#~ msgstr "honen gainean"
+
+#~ msgid "from"
+#~ msgstr "hemendik"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Konfigurazio-paketea: "
+
+#~ msgid " updated to "
+#~ msgstr " hona eguneratu da: "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Taldekatze-errorea: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " ezin da hemen kokatu: "
+
+#~ msgid " maximum drying temperature is "
+#~ msgstr " lehortze-tenperatura maximoa da "
+
+#~ msgid " minimum drying temperature is "
+#~ msgstr " lehortze-tenperatura minimoa da "
 
 # AI Translated
 #~ msgid "needs"

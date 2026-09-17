@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -3720,11 +3720,15 @@ msgstr "Filament Track Switch에서 현재 필라멘트 되감기"
 msgid "Switch track at Filament Track Switch"
 msgstr "Filament Track Switch에서 트랙 전환"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "최대 온도는 %d을(를) 초과할 수 없습니다"
 
-msgid "The minmum temperature should not be less than "
-msgstr "최소 온도는 다음 값보다 낮아서는 안 됩니다 "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "최소 온도는 %d보다 낮을 수 없습니다"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5663,14 +5667,20 @@ msgstr "최적으로 설정"
 msgid "Regroup filament"
 msgstr "필라멘트 재그룹핑"
 
-msgid "up to"
-msgstr "까지"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm까지"
 
-msgid "above"
-msgstr "위에"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm 이상"
 
-msgid "from"
-msgstr "부터"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm에서 %2% mm까지"
 
 msgid "Usage"
 msgstr "사용량"
@@ -12407,11 +12417,10 @@ msgstr "파일 %1%를 %2%으로 복사 실패: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "새 제조사 프로파일 다운로드 중: "
 
-msgid "Configuration package: "
-msgstr "구성 패키지: "
-
-msgid " updated to "
-msgstr " 로 업데이트되었습니다 "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "구성 패키지: %1%이(가) %2%(으)로 업데이트되었습니다"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12484,11 +12493,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "인풋 셰이핑은 Klipper, RepRapFirmware, Marlin 2에서만 지원됩니다."
 
-msgid "Grouping error: "
-msgstr "그룹화 오류입니다:"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "그룹화 오류: %1%은(는) 왼쪽 노즐에 배치할 수 없습니다"
 
-msgid " can not be placed in the "
-msgstr " 에 배치할 수 없습니다"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "그룹화 오류: %1%은(는) 오른쪽 노즐에 배치할 수 없습니다"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -22111,12 +22124,14 @@ msgid "Drying-Dehumidifying"
 msgstr "건조-제습"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " 최대 건조 온도는 "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s의 최대 건조 온도는 %d°C입니다."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " 최소 건조 온도는 "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s의 최소 건조 온도는 %d°C입니다."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22562,6 +22577,41 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "최소 온도는 다음 값보다 낮아서는 안 됩니다 "
+
+#~ msgid "up to"
+#~ msgstr "까지"
+
+#~ msgid "above"
+#~ msgstr "위에"
+
+#~ msgid "from"
+#~ msgstr "부터"
+
+#~ msgid "Configuration package: "
+#~ msgstr "구성 패키지: "
+
+#~ msgid " updated to "
+#~ msgstr " 로 업데이트되었습니다 "
+
+#~ msgid "Grouping error: "
+#~ msgstr "그룹화 오류입니다:"
+
+#~ msgid " can not be placed in the "
+#~ msgstr " 에 배치할 수 없습니다"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " 최대 건조 온도는 "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " 최소 건조 온도는 "
 
 # AI Translated
 #~ msgid "needs"

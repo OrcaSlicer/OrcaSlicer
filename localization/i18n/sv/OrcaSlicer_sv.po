@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4097,12 +4097,14 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Byt spår vid Filament Track Switch"
 
 # AI Translated
-msgid "The maximum temperature cannot exceed "
-msgstr "Maxtemperaturen får inte överstiga "
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Maxtemperaturen får inte överstiga %d"
 
 # AI Translated
-msgid "The minmum temperature should not be less than "
-msgstr "Minimitemperaturen bör inte vara lägre än "
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Minimitemperaturen bör inte vara lägre än %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -6233,14 +6235,20 @@ msgstr "Ställ in på optimal"
 msgid "Regroup filament"
 msgstr "Gruppera om filament"
 
-msgid "up to"
-msgstr "upp till"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "upp till %1% mm"
 
-msgid "above"
-msgstr "över"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "över %1% mm"
 
-msgid "from"
-msgstr "från"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "från %1% till %2% mm"
 
 msgid "Usage"
 msgstr "Användning"
@@ -13494,12 +13502,9 @@ msgid "Downloading new vendor profile(s): "
 msgstr "Laddar ner nya leverantörsprofiler: "
 
 # AI Translated
-msgid "Configuration package: "
-msgstr "Konfigurationspaket: "
-
-# AI Translated
-msgid " updated to "
-msgstr " uppdaterat till "
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Konfigurationspaket: %1% uppdaterat till %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -13575,12 +13580,14 @@ msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping stöds endast av Klipper, RepRapFirmware och Marlin 2."
 
 # AI Translated
-msgid "Grouping error: "
-msgstr "Grupperingsfel: "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Grupperingsfel: %1% kan inte placeras i vänster nozzel"
 
 # AI Translated
-msgid " can not be placed in the "
-msgstr " kan inte placeras i "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Grupperingsfel: %1% kan inte placeras i höger nozzel"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -24100,12 +24107,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Torkning – avfuktning"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " maximal torktemperatur är "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Maximal torktemperatur för %s är %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " minimal torktemperatur är "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Minimal torktemperatur för %s är %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24569,6 +24578,47 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Maxtemperaturen får inte överstiga "
+
+# AI Translated
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Minimitemperaturen bör inte vara lägre än "
+
+#~ msgid "up to"
+#~ msgstr "upp till"
+
+#~ msgid "above"
+#~ msgstr "över"
+
+#~ msgid "from"
+#~ msgstr "från"
+
+# AI Translated
+#~ msgid "Configuration package: "
+#~ msgstr "Konfigurationspaket: "
+
+# AI Translated
+#~ msgid " updated to "
+#~ msgstr " uppdaterat till "
+
+# AI Translated
+#~ msgid "Grouping error: "
+#~ msgstr "Grupperingsfel: "
+
+# AI Translated
+#~ msgid " can not be placed in the "
+#~ msgstr " kan inte placeras i "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " maximal torktemperatur är "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " minimal torktemperatur är "
 
 # AI Translated
 #~ msgid "needs"

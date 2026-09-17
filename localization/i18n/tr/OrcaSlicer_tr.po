@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3727,11 +3727,15 @@ msgstr "Geçerli filamenti Filament Track Switch'te geri çek"
 msgid "Switch track at Filament Track Switch"
 msgstr "Filament Track Switch'te hattı değiştir"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Maksimum sıcaklık şu değeri aşamaz: "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Maksimum sıcaklık %d değerini aşamaz"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Minimum sıcaklık şu değerden az olamaz: "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Minimum sıcaklık %d değerinden az olamaz"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5682,14 +5686,20 @@ msgstr "Optimum'a Ayarla"
 msgid "Regroup filament"
 msgstr "Filamenti yeniden gruplandır"
 
-msgid "up to"
-msgstr "kadar"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm'ye kadar"
 
-msgid "above"
-msgstr "üstünde"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm üzerinde"
 
-msgid "from"
-msgstr "itibaren"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm ile %2% mm arasında"
 
 msgid "Usage"
 msgstr "Kullan"
@@ -12335,11 +12345,10 @@ msgstr "%1% dosyasının %2% dosyasına kopyalanması başarısız oldu: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Yeni satıcı profilleri indiriliyor: "
 
-msgid "Configuration package: "
-msgstr "Yapılandırma paketi: "
-
-msgid " updated to "
-msgstr " güncellendi "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Yapılandırma paketi: %1% sürüm %2% olarak güncellendi"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12412,11 +12421,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping yalnızca Klipper, RepRapFirmware ve Marlin 2 tarafından desteklenir."
 
-msgid "Grouping error: "
-msgstr "Gruplama hatası: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Gruplama hatası: %1% sol nozula yerleştirilemez"
 
-msgid " can not be placed in the "
-msgstr " içine yerleştirilemez "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Gruplama hatası: %1% sağ nozula yerleştirilemez"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21874,12 +21887,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Kurutma-Nem Alma"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " için maksimum kurutma sıcaklığı "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s için maksimum kurutma sıcaklığı %d°C'dir."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " için minimum kurutma sıcaklığı "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s için minimum kurutma sıcaklığı %d°C'dir."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22325,6 +22340,41 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Maksimum sıcaklık şu değeri aşamaz: "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Minimum sıcaklık şu değerden az olamaz: "
+
+#~ msgid "up to"
+#~ msgstr "kadar"
+
+#~ msgid "above"
+#~ msgstr "üstünde"
+
+#~ msgid "from"
+#~ msgstr "itibaren"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Yapılandırma paketi: "
+
+#~ msgid " updated to "
+#~ msgstr " güncellendi "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Gruplama hatası: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " içine yerleştirilemez "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " için maksimum kurutma sıcaklığı "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " için minimum kurutma sıcaklığı "
 
 # AI Translated
 #~ msgid "needs"

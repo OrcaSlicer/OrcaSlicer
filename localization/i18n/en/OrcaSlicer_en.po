@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -3475,10 +3475,12 @@ msgstr ""
 msgid "Switch track at Filament Track Switch"
 msgstr ""
 
-msgid "The maximum temperature cannot exceed "
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
 msgstr ""
 
-msgid "The minmum temperature should not be less than "
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
 msgstr ""
 
 msgid "Type to filter..."
@@ -5280,13 +5282,16 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-msgid "up to"
+#, boost-format
+msgid "up to %1% mm"
 msgstr ""
 
-msgid "above"
+#, boost-format
+msgid "above %1% mm"
 msgstr ""
 
-msgid "from"
+#, boost-format
+msgid "from %1% to %2% mm"
 msgstr ""
 
 msgid "Usage"
@@ -11408,10 +11413,8 @@ msgstr ""
 msgid "Downloading new vendor profile(s): "
 msgstr ""
 
-msgid "Configuration package: "
-msgstr ""
-
-msgid " updated to "
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
 msgstr ""
 
 msgid "Failed to download vendor profile(s): "
@@ -11475,10 +11478,12 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr ""
 
-msgid "Grouping error: "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
 msgstr ""
 
-msgid " can not be placed in the "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
 msgstr ""
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -19763,10 +19768,12 @@ msgstr ""
 msgid "Drying-Dehumidifying"
 msgstr ""
 
-msgid " maximum drying temperature is "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
 msgstr ""
 
-msgid " minimum drying temperature is "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
 msgstr ""
 
 msgid "This filament may not be completely dried."

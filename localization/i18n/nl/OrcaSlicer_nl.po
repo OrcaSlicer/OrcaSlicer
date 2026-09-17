@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4024,12 +4024,14 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Van baan wisselen bij de Filament Track Switch"
 
 # AI Translated
-msgid "The maximum temperature cannot exceed "
-msgstr "De maximumtemperatuur mag niet hoger zijn dan "
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "De maximumtemperatuur mag niet hoger zijn dan %d"
 
 # AI Translated
-msgid "The minmum temperature should not be less than "
-msgstr "De minimumtemperatuur mag niet lager zijn dan "
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "De minimumtemperatuur mag niet lager zijn dan %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -6153,14 +6155,20 @@ msgstr "Op optimaal instellen"
 msgid "Regroup filament"
 msgstr "Filamenten opnieuw groeperen"
 
-msgid "up to"
-msgstr "tot"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "tot %1% mm"
 
-msgid "above"
-msgstr "Boven"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "boven %1% mm"
 
-msgid "from"
-msgstr "Van"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "van %1% tot %2% mm"
 
 msgid "Usage"
 msgstr "Gebruik"
@@ -13332,12 +13340,9 @@ msgid "Downloading new vendor profile(s): "
 msgstr "Nieuwe leveranciersprofielen downloaden: "
 
 # AI Translated
-msgid "Configuration package: "
-msgstr "Configuratiepakket: "
-
-# AI Translated
-msgid " updated to "
-msgstr " bijgewerkt naar "
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Configuratiepakket: %1% bijgewerkt naar %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -13413,12 +13418,14 @@ msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping wordt alleen ondersteund door Klipper, RepRapFirmware en Marlin 2."
 
 # AI Translated
-msgid "Grouping error: "
-msgstr "Groeperingsfout: "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Groeperingsfout: %1% kan niet in de linker nozzle worden geplaatst"
 
 # AI Translated
-msgid " can not be placed in the "
-msgstr " kan niet worden geplaatst in de "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Groeperingsfout: %1% kan niet in de rechter nozzle worden geplaatst"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -23827,12 +23834,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Drogen - ontvochtigen"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " de maximale droogtemperatuur is "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "De maximale droogtemperatuur van %s is %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " de minimale droogtemperatuur is "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "De minimale droogtemperatuur van %s is %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -24282,6 +24291,47 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "De maximumtemperatuur mag niet hoger zijn dan "
+
+# AI Translated
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "De minimumtemperatuur mag niet lager zijn dan "
+
+#~ msgid "up to"
+#~ msgstr "tot"
+
+#~ msgid "above"
+#~ msgstr "Boven"
+
+#~ msgid "from"
+#~ msgstr "Van"
+
+# AI Translated
+#~ msgid "Configuration package: "
+#~ msgstr "Configuratiepakket: "
+
+# AI Translated
+#~ msgid " updated to "
+#~ msgstr " bijgewerkt naar "
+
+# AI Translated
+#~ msgid "Grouping error: "
+#~ msgstr "Groeperingsfout: "
+
+# AI Translated
+#~ msgid " can not be placed in the "
+#~ msgstr " kan niet worden geplaatst in de "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " de maximale droogtemperatuur is "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " de minimale droogtemperatuur is "
 
 # AI Translated
 #~ msgid "needs"

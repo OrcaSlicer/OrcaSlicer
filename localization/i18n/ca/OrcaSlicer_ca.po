@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3775,11 +3775,15 @@ msgstr "Retirar el filament actual al Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Canviar de via al Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "La temperatura màxima no pot superar "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "La temperatura màxima no pot superar %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "La temperatura mínima no hauria de ser inferior a "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "La temperatura mínima no hauria de ser inferior a %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5730,14 +5734,20 @@ msgstr "Estableix a l'òptim"
 msgid "Regroup filament"
 msgstr "Reagrupa filaments"
 
-msgid "up to"
-msgstr "fins a"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "fins a %1% mm"
 
-msgid "above"
-msgstr "sobre"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "per sobre de %1% mm"
 
-msgid "from"
-msgstr "des de"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "de %1% a %2% mm"
 
 msgid "Usage"
 msgstr "Ús"
@@ -12399,11 +12409,10 @@ msgstr "La còpia del fitxer %1% a %2% ha fallat: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "S'estan descarregant perfils de fabricant nous: "
 
-msgid "Configuration package: "
-msgstr "Paquet de configuració: "
-
-msgid " updated to "
-msgstr " actualitzat a "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Paquet de configuració: %1% actualitzat a %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12476,11 +12485,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "L'Input Shaping només és compatible amb Klipper, RepRapFirmware i Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Error d'agrupació: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Error d'agrupació: %1% no es pot col·locar al broquet esquerre"
 
-msgid " can not be placed in the "
-msgstr " no es pot col·locar al "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Error d'agrupació: %1% no es pot col·locar al broquet dret"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21944,12 +21957,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Assecatge - Deshumidificació"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " la temperatura màxima d'assecatge és "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "La temperatura màxima d'assecatge de %s és %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " la temperatura mínima d'assecatge és "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "La temperatura mínima d'assecatge de %s és %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22394,6 +22409,41 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "La temperatura màxima no pot superar "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "La temperatura mínima no hauria de ser inferior a "
+
+#~ msgid "up to"
+#~ msgstr "fins a"
+
+#~ msgid "above"
+#~ msgstr "sobre"
+
+#~ msgid "from"
+#~ msgstr "des de"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Paquet de configuració: "
+
+#~ msgid " updated to "
+#~ msgstr " actualitzat a "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Error d'agrupació: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " no es pot col·locar al "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " la temperatura màxima d'assecatge és "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " la temperatura mínima d'assecatge és "
 
 # AI Translated
 #~ msgid "needs"

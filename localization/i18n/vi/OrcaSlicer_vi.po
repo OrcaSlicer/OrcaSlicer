@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3871,12 +3871,14 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Chuyển đường dẫn tại Filament Track Switch"
 
 # AI Translated
-msgid "The maximum temperature cannot exceed "
-msgstr "Nhiệt độ tối đa không được vượt quá "
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Nhiệt độ tối đa không được vượt quá %d"
 
 # AI Translated
-msgid "The minmum temperature should not be less than "
-msgstr "Nhiệt độ tối thiểu không được thấp hơn "
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Nhiệt độ tối thiểu không được thấp hơn %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5959,14 +5961,20 @@ msgstr "Đặt về mức tối ưu"
 msgid "Regroup filament"
 msgstr "Nhóm lại filament"
 
-msgid "up to"
-msgstr "lên đến"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "lên đến %1% mm"
 
-msgid "above"
-msgstr "trên"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "trên %1% mm"
 
-msgid "from"
-msgstr "từ"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "từ %1% đến %2% mm"
 
 msgid "Usage"
 msgstr "Sử dụng"
@@ -12964,11 +12972,10 @@ msgstr "Sao chép file %1% sang %2% thất bại: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Đang tải xuống hồ sơ nhà cung cấp mới: "
 
-msgid "Configuration package: "
-msgstr "Gói cấu hình: "
-
-msgid " updated to "
-msgstr " đã cập nhật lên "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Gói cấu hình: %1% đã cập nhật lên %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -13043,12 +13050,14 @@ msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping chỉ được Klipper, RepRapFirmware và Marlin 2 hỗ trợ."
 
 # AI Translated
-msgid "Grouping error: "
-msgstr "Lỗi nhóm: "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Lỗi nhóm: %1% không thể đặt vào đầu phun trái"
 
 # AI Translated
-msgid " can not be placed in the "
-msgstr " không thể được đặt vào "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Lỗi nhóm: %1% không thể đặt vào đầu phun phải"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -22754,12 +22763,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Sấy - Hút ẩm"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " nhiệt độ sấy tối đa là "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Nhiệt độ sấy tối đa của %s là %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " nhiệt độ sấy tối thiểu là "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Nhiệt độ sấy tối thiểu của %s là %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -23209,6 +23220,45 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Nhiệt độ tối đa không được vượt quá "
+
+# AI Translated
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Nhiệt độ tối thiểu không được thấp hơn "
+
+#~ msgid "up to"
+#~ msgstr "lên đến"
+
+#~ msgid "above"
+#~ msgstr "trên"
+
+#~ msgid "from"
+#~ msgstr "từ"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Gói cấu hình: "
+
+#~ msgid " updated to "
+#~ msgstr " đã cập nhật lên "
+
+# AI Translated
+#~ msgid "Grouping error: "
+#~ msgstr "Lỗi nhóm: "
+
+# AI Translated
+#~ msgid " can not be placed in the "
+#~ msgstr " không thể được đặt vào "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " nhiệt độ sấy tối đa là "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " nhiệt độ sấy tối thiểu là "
 
 # AI Translated
 #~ msgid "needs"

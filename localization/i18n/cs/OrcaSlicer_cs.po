@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -3742,11 +3742,15 @@ msgstr "Vytáhnout aktuální filament zpět na Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Přepnout dráhu na Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Maximální teplota nesmí překročit "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Maximální teplota nesmí překročit %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Minimální teplota nesmí být nižší než "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Minimální teplota nesmí být nižší než %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5689,14 +5693,20 @@ msgstr "Nastavit optimální"
 msgid "Regroup filament"
 msgstr "Znovu seskupit filament"
 
-msgid "up to"
-msgstr "až do"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "až do %1% mm"
 
-msgid "above"
-msgstr "nad"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "nad %1% mm"
 
-msgid "from"
-msgstr "Od"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "od %1% do %2% mm"
 
 msgid "Usage"
 msgstr "Využití"
@@ -12382,11 +12392,10 @@ msgstr "Kopírování souboru %1% do %2% selhalo: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Stahování nových profilů dodavatelů: "
 
-msgid "Configuration package: "
-msgstr "Balíček konfigurace: "
-
-msgid " updated to "
-msgstr " aktualizováno na "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Balíček konfigurace: %1% aktualizováno na %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12454,11 +12463,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input Shaping je podporován pouze v Klipperu, RepRapFirmware a Marlinu 2"
 
-msgid "Grouping error: "
-msgstr "Chyba seskupení: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Chyba seskupení: %1% nelze umístit do levé trysky"
 
-msgid " can not be placed in the "
-msgstr " nelze umístit do "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Chyba seskupení: %1% nelze umístit do pravé trysky"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21919,12 +21932,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Sušení – odvlhčování"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " maximální teplota sušení je "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Maximální teplota sušení pro %s je %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " minimální teplota sušení je "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Minimální teplota sušení pro %s je %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22375,6 +22390,41 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Maximální teplota nesmí překročit "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Minimální teplota nesmí být nižší než "
+
+#~ msgid "up to"
+#~ msgstr "až do"
+
+#~ msgid "above"
+#~ msgstr "nad"
+
+#~ msgid "from"
+#~ msgstr "Od"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Balíček konfigurace: "
+
+#~ msgid " updated to "
+#~ msgstr " aktualizováno na "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Chyba seskupení: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " nelze umístit do "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " maximální teplota sušení je "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " minimální teplota sušení je "
 
 # AI Translated
 #~ msgid "needs"

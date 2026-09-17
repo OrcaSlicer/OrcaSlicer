@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -3663,11 +3663,15 @@ msgstr "在 Filament Track Switch 退回目前線材"
 msgid "Switch track at Filament Track Switch"
 msgstr "在 Filament Track Switch 切換軌道"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "最高溫度不能超過 "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "最高溫度不能超過 %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "最低溫度不應低於 "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "最低溫度不應低於 %d"
 
 msgid "Type to filter..."
 msgstr "輸入以篩選..."
@@ -5602,14 +5606,20 @@ msgstr "設為最佳"
 msgid "Regroup filament"
 msgstr "重新分組線材"
 
-msgid "up to"
-msgstr "達到"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "最高 %1% mm"
 
-msgid "above"
-msgstr "高於"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "高於 %1% mm"
 
-msgid "from"
-msgstr "從"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "從 %1% mm 到 %2% mm"
 
 msgid "Usage"
 msgstr "使用情況"
@@ -12140,11 +12150,10 @@ msgstr "從 %1% 複製檔案到 %2% 失敗：%3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "正在下載新的廠牌設定檔： "
 
-msgid "Configuration package: "
-msgstr "設定檔："
-
-msgid " updated to "
-msgstr "更新到 "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "設定檔：%1% 已更新到 %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12212,11 +12221,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "輸入整形僅受 Klipper、RepRapFirmware 和 Marlin 2 支援"
 
-msgid "Grouping error: "
-msgstr "分組錯誤："
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "分組錯誤：%1% 無法放入左噴嘴"
 
-msgid " can not be placed in the "
-msgstr "無法放置於"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "分組錯誤：%1% 無法放入右噴嘴"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21361,12 +21374,14 @@ msgid "Drying-Dehumidifying"
 msgstr "烘乾—除濕"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " 最高烘乾溫度為 "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s 的最高烘乾溫度為 %d°C。"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " 最低烘乾溫度為 "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s 的最低烘乾溫度為 %d°C。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21831,6 +21846,41 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "最高溫度不能超過 "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "最低溫度不應低於 "
+
+#~ msgid "up to"
+#~ msgstr "達到"
+
+#~ msgid "above"
+#~ msgstr "高於"
+
+#~ msgid "from"
+#~ msgstr "從"
+
+#~ msgid "Configuration package: "
+#~ msgstr "設定檔："
+
+#~ msgid " updated to "
+#~ msgstr "更新到 "
+
+#~ msgid "Grouping error: "
+#~ msgstr "分組錯誤："
+
+#~ msgid " can not be placed in the "
+#~ msgstr "無法放置於"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " 最高烘乾溫度為 "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " 最低烘乾溫度為 "
 
 # AI Translated
 #~ msgid "needs"

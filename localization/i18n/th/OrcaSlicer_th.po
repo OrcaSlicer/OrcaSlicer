@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3689,11 +3689,15 @@ msgstr "ดึงเส้นพลาสติกปัจจุบันกล
 msgid "Switch track at Filament Track Switch"
 msgstr "สลับแทร็กที่ Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "อุณหภูมิสูงสุดต้องไม่เกิน "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "อุณหภูมิสูงสุดต้องไม่เกิน %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า"
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า %d"
 
 msgid "Type to filter..."
 msgstr "พิมพ์เพื่อกรอง..."
@@ -5617,14 +5621,20 @@ msgstr "ตั้งค่าให้เหมาะสมที่สุด"
 msgid "Regroup filament"
 msgstr "จัดกลุ่มเส้นพลาสติกใหม่"
 
-msgid "up to"
-msgstr "สูงสุด"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "สูงสุด %1% มม."
 
-msgid "above"
-msgstr "ข้างบน"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "สูงกว่า %1% มม."
 
-msgid "from"
-msgstr "จาก"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "จาก %1% ถึง %2% มม."
 
 msgid "Usage"
 msgstr "การใช้งาน"
@@ -12140,11 +12150,10 @@ msgstr "การคัดลอกไฟล์ %1% ถึง %2% ล้มเ�
 msgid "Downloading new vendor profile(s): "
 msgstr "กำลังดาวน์โหลดโปรไฟล์ผู้ขายใหม่: "
 
-msgid "Configuration package: "
-msgstr "แพคเกจการกำหนดค่า:"
-
-msgid " updated to "
-msgstr "อัปเดตเป็น"
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "แพคเกจการกำหนดค่า: %1% อัปเดตเป็น %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12210,11 +12219,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "รูปร่างอินพุตรองรับเฉพาะ Klipper, RepRapFirmware และ Marlin 2 เท่านั้น"
 
-msgid "Grouping error: "
-msgstr "ข้อผิดพลาดในการจัดกลุ่ม:"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "ข้อผิดพลาดในการจัดกลุ่ม: %1% ไม่สามารถวางในหัวฉีดซ้ายได้"
 
-msgid " can not be placed in the "
-msgstr "ไม่สามารถวางใน"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "ข้อผิดพลาดในการจัดกลุ่ม: %1% ไม่สามารถวางในหัวฉีดขวาได้"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21421,12 +21434,14 @@ msgid "Drying-Dehumidifying"
 msgstr "อบแห้ง-ลดความชื้น"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " อุณหภูมิอบแห้งสูงสุดคือ "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "อุณหภูมิอบแห้งสูงสุดของ %s คือ %d°C"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " อุณหภูมิอบแห้งต่ำสุดคือ "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "อุณหภูมิอบแห้งต่ำสุดของ %s คือ %d°C"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21870,6 +21885,41 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "อุณหภูมิสูงสุดต้องไม่เกิน "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า"
+
+#~ msgid "up to"
+#~ msgstr "สูงสุด"
+
+#~ msgid "above"
+#~ msgstr "ข้างบน"
+
+#~ msgid "from"
+#~ msgstr "จาก"
+
+#~ msgid "Configuration package: "
+#~ msgstr "แพคเกจการกำหนดค่า:"
+
+#~ msgid " updated to "
+#~ msgstr "อัปเดตเป็น"
+
+#~ msgid "Grouping error: "
+#~ msgstr "ข้อผิดพลาดในการจัดกลุ่ม:"
+
+#~ msgid " can not be placed in the "
+#~ msgstr "ไม่สามารถวางใน"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " อุณหภูมิอบแห้งสูงสุดคือ "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " อุณหภูมิอบแห้งต่ำสุดคือ "
 
 # AI Translated
 #~ msgid "needs"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3565,11 +3565,15 @@ msgstr "退回变轨器的当前耗材"
 msgid "Switch track at Filament Track Switch"
 msgstr "变轨器开关切换"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "最高温度不可超过 "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "最高温度不可超过 %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "最低温度不可低于 "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "最低温度不可低于 %d"
 
 msgid "Type to filter..."
 msgstr "输入以筛选……"
@@ -5473,14 +5477,20 @@ msgstr "设置为最佳"
 msgid "Regroup filament"
 msgstr "重新组合耗材丝"
 
-msgid "up to"
-msgstr "达到"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "最高 %1% mm"
 
-msgid "above"
-msgstr "高于"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "高于 %1% mm"
 
-msgid "from"
-msgstr "从"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "从 %1% mm 到 %2% mm"
 
 msgid "Usage"
 msgstr "用法"
@@ -11936,11 +11946,10 @@ msgstr "从%1%拷贝文件到%2%失败：%3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "正在下载新的供应商配置： "
 
-msgid "Configuration package: "
-msgstr "配置包："
-
-msgid " updated to "
-msgstr "更新到"
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "配置包：%1% 已更新到 %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12008,11 +12017,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "输入整形仅受 Klipper、RepRapFirmware 和 Marlin 2 支持"
 
-msgid "Grouping error: "
-msgstr "分组错误："
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "分组错误：%1% 无法放入左喷嘴"
 
-msgid " can not be placed in the "
-msgstr "不能放置在"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "分组错误：%1% 无法放入右喷嘴"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -21169,12 +21182,14 @@ msgid "Drying-Dehumidifying"
 msgstr "干燥-除湿"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " 最高干燥温度为 "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s 的最高干燥温度为 %d°C。"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " 最低干燥温度为 "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s 的最低干燥温度为 %d°C。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21618,6 +21633,41 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "最高温度不可超过 "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "最低温度不可低于 "
+
+#~ msgid "up to"
+#~ msgstr "达到"
+
+#~ msgid "above"
+#~ msgstr "高于"
+
+#~ msgid "from"
+#~ msgstr "从"
+
+#~ msgid "Configuration package: "
+#~ msgstr "配置包："
+
+#~ msgid " updated to "
+#~ msgstr "更新到"
+
+#~ msgid "Grouping error: "
+#~ msgstr "分组错误："
+
+#~ msgid " can not be placed in the "
+#~ msgstr "不能放置在"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " 最高干燥温度为 "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " 最低干燥温度为 "
 
 # AI Translated
 #~ msgid "needs"

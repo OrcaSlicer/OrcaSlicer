@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -3659,11 +3659,15 @@ msgstr "Відвести назад поточний філамент на Filam
 msgid "Switch track at Filament Track Switch"
 msgstr "Перемкнути доріжку на Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Максимальна температура не повинна перевищувати "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Максимальна температура не повинна перевищувати %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Мінімальна температура не повинна бути нижчою ніж "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Мінімальна температура не повинна бути нижчою ніж %d"
 
 msgid "Type to filter..."
 msgstr "Вводьте для фільтру..."
@@ -5639,14 +5643,20 @@ msgstr "Встановити до оптимального"
 msgid "Regroup filament"
 msgstr "Перегрупувати філамент"
 
-msgid "up to"
-msgstr "аж до"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "до %1% мм"
 
-msgid "above"
-msgstr "вище"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "вище %1% мм"
 
-msgid "from"
-msgstr "від"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "від %1% до %2% мм"
 
 msgid "Usage"
 msgstr "Використання"
@@ -12393,11 +12403,10 @@ msgstr "Копіювання %1% у %2% не вдалося: %3%"
 msgid "Downloading new vendor profile(s): "
 msgstr "Завантаження нових профілів виробників: "
 
-msgid "Configuration package: "
-msgstr "Пакет конфігурації: "
-
-msgid " updated to "
-msgstr " оновлено до "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Пакет конфігурації: %1% оновлено до %2%"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12471,11 +12480,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input Shaping підтримується лише Klipper, RepRapFirmware і Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Помилка групування: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Помилка групування: %1% не можна розмістити в лівому соплі"
 
-msgid " can not be placed in the "
-msgstr " не можливо помістити у "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Помилка групування: %1% не можна розмістити в правому соплі"
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Помилка групування в ручному режимі. Перевірте кількість сопел або перегрупуйте."
@@ -22032,12 +22045,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Сушіння — осушення"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " максимальна температура сушіння — "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Максимальна температура сушіння для %s — %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " мінімальна температура сушіння — "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Мінімальна температура сушіння для %s — %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22486,6 +22501,41 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Максимальна температура не повинна перевищувати "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Мінімальна температура не повинна бути нижчою ніж "
+
+#~ msgid "up to"
+#~ msgstr "аж до"
+
+#~ msgid "above"
+#~ msgstr "вище"
+
+#~ msgid "from"
+#~ msgstr "від"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Пакет конфігурації: "
+
+#~ msgid " updated to "
+#~ msgstr " оновлено до "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Помилка групування: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " не можливо помістити у "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " максимальна температура сушіння — "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " мінімальна температура сушіння — "
 
 # AI Translated
 #~ msgid "needs"

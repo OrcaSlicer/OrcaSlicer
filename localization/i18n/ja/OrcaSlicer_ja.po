@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 10:52-0300\n"
+"POT-Creation-Date: 2026-09-17 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3720,11 +3720,15 @@ msgstr "Filament Track Switchで現在のフィラメントを引き戻す"
 msgid "Switch track at Filament Track Switch"
 msgstr "Filament Track Switchでトラックを切り替える"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "最高温度は次の値を超えることはできません "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "最高温度は %d を超えることはできません"
 
-msgid "The minmum temperature should not be less than "
-msgstr "最低温度は次の値を下回ることはできません "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "最低温度は %d を下回ることはできません"
 
 # AI Translated
 msgid "Type to filter..."
@@ -5652,14 +5656,20 @@ msgstr "最適に設定"
 msgid "Regroup filament"
 msgstr "フィラメントを再グルーピング"
 
-msgid "up to"
-msgstr "最大"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm まで"
 
-msgid "above"
-msgstr "以上"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm 以上"
 
-msgid "from"
-msgstr "から"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm から %2% mm まで"
 
 msgid "Usage"
 msgstr "使用量"
@@ -12275,11 +12285,10 @@ msgstr "ファイル %1% を %2% へのコピーが失敗しました (%3%)"
 msgid "Downloading new vendor profile(s): "
 msgstr "新しいベンダープロファイルをダウンロード中: "
 
-msgid "Configuration package: "
-msgstr "設定パッケージ: "
-
-msgid " updated to "
-msgstr " を更新しました "
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "設定パッケージ: %1% を %2% に更新しました"
 
 # AI Translated
 msgid "Failed to download vendor profile(s): "
@@ -12351,11 +12360,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "インプットシェーピングはKlipper、RepRapFirmware、Marlin 2のみが対応しています。"
 
-msgid "Grouping error: "
-msgstr "グルーピングエラー: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "グルーピングエラー: %1% は左ノズルに配置できません"
 
-msgid " can not be placed in the "
-msgstr " に配置できません "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "グルーピングエラー: %1% は右ノズルに配置できません"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -22235,12 +22248,14 @@ msgid "Drying-Dehumidifying"
 msgstr "乾燥 - 除湿"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " の最高乾燥温度は "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s の最高乾燥温度は %d°C です。"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " の最低乾燥温度は "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s の最低乾燥温度は %d°C です。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22696,6 +22711,41 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "最高温度は次の値を超えることはできません "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "最低温度は次の値を下回ることはできません "
+
+#~ msgid "up to"
+#~ msgstr "最大"
+
+#~ msgid "above"
+#~ msgstr "以上"
+
+#~ msgid "from"
+#~ msgstr "から"
+
+#~ msgid "Configuration package: "
+#~ msgstr "設定パッケージ: "
+
+#~ msgid " updated to "
+#~ msgstr " を更新しました "
+
+#~ msgid "Grouping error: "
+#~ msgstr "グルーピングエラー: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " に配置できません "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " の最高乾燥温度は "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " の最低乾燥温度は "
 
 # AI Translated
 #~ msgid "needs"
