@@ -16,6 +16,8 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 
+#include <algorithm>
+
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
 
