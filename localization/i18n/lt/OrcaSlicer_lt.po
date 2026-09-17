@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 10:13-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2449,13 +2449,6 @@ msgstr "Yra prieinamas atnaujinimas. Atidarykite profilių paketo dialogo langą
 msgid "%s has been removed."
 msgstr "%s buvo pašalintas."
 
-
-msgid "Select the language"
-msgstr "Pasirinkite kalbą"
-
-msgid "Language"
-msgstr "Kalba"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -4588,6 +4581,12 @@ msgstr ""
 "Klaidos pranešimas: %1%"
 
 #, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+
+#, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Nepavyko nukopijuoti laikinojo G-kodo į išvesties G-kodą. Gali kilti problemų dėl tikslinio įrenginio. Bandykite eksportuoti dar kartą arba naudokite kitą įrenginį. Sugadintas išvesties G-kodas yra %1%.tmp."
 
@@ -5324,10 +5323,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Reikšmė %s yra už ribų. Galimas diapazonas yra nuo %d iki %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Ar tai %s%% ar %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Ar tai %s%% ar %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5354,20 +5354,16 @@ msgid "System agents"
 msgstr "Sisteminiai agentai"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nepasirinktas joks papildinys"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Pridėti papildinį"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Pasirinkti papildinį"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Pašalinti papildinį"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nepasirinktas joks papildinys"
 
 # AI Translated
 msgid "Configure"
@@ -5994,7 +5990,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Rasta G-kodo trajektorijų konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome labiau atskirti konfliktuojančius objektus (%s <-> %s)."
 
@@ -7585,6 +7581,12 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "Apatinis"
 
+msgid "This setting does not specify a plugin capability type."
+msgstr ""
+
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr ""
+
 # AI Translated
 msgid "Plugin Selection"
 msgstr "Papildinio pasirinkimas"
@@ -8791,7 +8793,6 @@ msgstr "Ar norite tęsti?"
 msgid "Language selection"
 msgstr "Kalbos pasirinkimas"
 
-
 msgid "Asia-Pacific"
 msgstr "Azija-Ramusis vandenynas"
 
@@ -8895,6 +8896,9 @@ msgstr "Dabartinės versijos kelias: "
 
 msgid "General"
 msgstr "Bendras"
+
+msgid "Language"
+msgstr "Kalba"
 
 msgid "Metric"
 msgstr "Metrinė"
@@ -9323,9 +9327,6 @@ msgstr "Slenkant sluoksnių slankiklį pjaustytoje peržiūroje, atvaizduoti že
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Pritemdytų sluoksnių ryškumas"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9797,6 +9798,9 @@ msgstr "Nukopijuoja į šį profilį visas iš pirminio profilio paveldėtas rei
 
 msgid "Detach from parent"
 msgstr "Atskirti nuo tėvinio profilio"
+
+msgid "Save without parent"
+msgstr ""
 
 # AI Translated
 msgid "Unique preset"
@@ -10500,8 +10504,14 @@ msgstr "Norint aptikti gumbų susidarymą, reikalingas valymo bokštas. Be valym
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Įjungus ir tikslų Z aukštį, ir valymo bokštą, gali kilti sluoksniavimo klaidų. Ar vis tiek norite įjungti tikslų Z aukštį?"
 
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr ""
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Norint sklandžiai įrašyti laiko tarpų (timelapse) vaizdo įrašą, reikalingas valymo bokštas. Be valymo bokšto modelyje gali atsirasti defektų. Ar norite įjungti valymo bokštą?"
+
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr ""
 
 msgid "Still print by object?"
 msgstr "Vis dar spausdinti pagal objektą?"
@@ -10874,9 +10884,6 @@ msgstr "Suderinami apdorojimo profiliai"
 
 msgid "Printable space"
 msgstr "Erdvė spausdinimui"
-
-msgid "Printer Agent"
-msgstr "Spausdintuvo agentas"
 
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti. Prieinami agentai užregistruojami paleidimo metu."
@@ -12124,14 +12131,20 @@ msgstr "Taisymas atšauktas"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Failo %1% kopijavimas į %2% nepavyko: %3%"
 
-msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
+msgid "Downloading new vendor profile(s): "
+msgstr ""
 
 msgid "Configuration package: "
 msgstr "Konfigūracijos paketas: "
 
 msgid " updated to "
 msgstr " atnaujintas į "
+
+msgid "Failed to download vendor profile(s): "
+msgstr ""
+
+msgid "Please check any unsaved changes before updating the configuration."
+msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
 
 msgid "Open G-code file:"
 msgstr "Atidaryti G-kodo failą:"
@@ -12309,6 +12322,9 @@ msgstr "%1% yra per arti kitų, todėl gali įvykti susidūrimas."
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% yra per aukštas, todėl įvyks susidūrimai."
+
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr ""
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " yra per arti uždraustosios zonos, spausdinant gali įvykti susidūrimų."
@@ -12654,6 +12670,9 @@ msgstr "Vietoj G-kodo naudoti 3MF"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Įjunkite, jei spausdintuvas spausdinimo užduotims priima 3MF failus. Kai įjungta, „Orca Slicer“ sugeneruotą failą siunčia kaip „.gcode.3mf“, o ne kaip paprastą „.gcode“ failą."
+
+msgid "Printer Agent"
+msgstr "Spausdintuvo agentas"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti."
@@ -13699,6 +13718,9 @@ msgstr "Sulygiuotas tiesiaeigis"
 msgid "Concentric"
 msgstr "Koncentrinis"
 
+msgid "Spiral Inset"
+msgstr ""
+
 msgid "Hilbert Curve"
 msgstr "Hilberto kreivė"
 
@@ -13788,29 +13810,21 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Viršutinio paviršiaus užpildymo tvarka"
 
-# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
 
 # AI Translated
 msgid "Bottom surface fill order"
 msgstr "Apatinio paviršiaus užpildymo tvarka"
 
-# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
 
 msgid "Internal solid infill pattern"
 msgstr "Vidinio tvirto užpildo raštas"
@@ -13908,6 +13922,12 @@ msgstr "Prieš laikrodžio rodyklę"
 
 msgid "Clockwise"
 msgstr "Pagal laikrodžio rodyklę"
+
+msgid "Distance to rod"
+msgstr ""
+
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr ""
 
 msgid "Height to rod"
 msgstr "Aukštis iki ašies (strypo)"
@@ -16064,6 +16084,15 @@ msgstr "Aptikti iškyšų sieneles"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Nustatykite iškyšos procentinę dalį, palyginti su linijos pločiu, ir naudokite skirtingą spausdinimo greitį. Jei iškyša 100%%, naudojamas tilto greitis."
 
+msgid "Print unsupported walls last"
+msgstr ""
+
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+
 msgid "Outer walls"
 msgstr "Išorinės sienelės"
 
@@ -16497,6 +16526,27 @@ msgstr "Nuvalyti kilpas"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Siekiant sumažinti siūlės matomumą uždaroje ekstruzijos kilpoje, prieš ekstruderiui išeinant iš kilpos atliekamas nedidelis judesys į vidų."
 
+msgid "Wipe inward"
+msgstr ""
+
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+
+msgid "Wipe inward distance"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+
 msgid "Wipe before external loop"
 msgstr "Valymas prieš išorinį kontūrą"
 
@@ -16758,8 +16808,8 @@ msgstr "Paima naują įrankį nelaukdamas, kol jis pasieks spausdinimo temperat�
 msgid "No sparse layers (beta)"
 msgstr "Nėra retų sluoksnių (beta)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Jei įjungta, valymo bokštas nebus spausdinamas tuose sluoksniuose, kur įrankis nekeičiamas. Sluoksniuose, kur įrankis keičiamas, ekstruderis nusileis žemyn atspausdinti valymo bokšto dalies. Naudotojas pats atsako už tai, kad ekstruderis nesusidurtų su spaudiniu."
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr ""
 
 msgid "Prime all printing extruders"
 msgstr "Paruošti (prime) visus spausdinimo ekstruderius"
@@ -16784,6 +16834,24 @@ msgstr ""
 # AI Translated
 msgid "Cyclic"
 msgstr "Ciklinė"
+
+msgid "Cyclic order"
+msgstr ""
+
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+
+msgid "Apply cyclic order to first layer"
+msgstr ""
+
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "Sluoksniavimo tarpo uždarymo spindulys"
@@ -17799,6 +17867,12 @@ msgstr "Netikrinama"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Nevykdyti jokių tinkamumo patikrinimų, pavyzdžiui, G-kodo (G-code) trajektorijų konfliktų patikros."
 
+msgid "Strict mode"
+msgstr ""
+
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr ""
+
 msgid "Normative check"
 msgstr "Normatyvinė patikra"
 
@@ -17811,11 +17885,23 @@ msgstr "Išvesti modelio informaciją"
 msgid "This outputs the model’s information."
 msgstr "Tai išveda modelio informaciją."
 
+msgid "Inspect mesh (JSON to stdout)"
+msgstr ""
+
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr ""
+
+msgid "Inspect paint (JSON to stdout)"
+msgstr ""
+
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr ""
+
 msgid "Export Settings"
 msgstr "Eksportavimo nustatymai"
 
-msgid "This exports settings to a file."
-msgstr "Tai eksportuoja nustatymus į failą."
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr ""
 
 msgid "Send progress to pipe"
 msgstr "Siųsti pažangą į kanalą"
@@ -17870,6 +17956,24 @@ msgstr "Pasukti aplink Y ašį"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Sukimosi kampas aplink Y ašį laipsniais."
+
+msgid "Ground largest face"
+msgstr ""
+
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr ""
+
+msgid "Ground face by normal"
+msgstr ""
+
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr ""
+
+msgid "Ground face at point"
+msgstr ""
+
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr ""
 
 msgid "Scale the model by a float factor."
 msgstr "Keisti modelio mastelį pagal slankiojo kablelio koeficientą."
@@ -21647,6 +21751,39 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Select the language"
+#~ msgstr "Pasirinkite kalbą"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Pasirinkti papildinį"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Jei įjungta, valymo bokštas nebus spausdinamas tuose sluoksniuose, kur įrankis nekeičiamas. Sluoksniuose, kur įrankis keičiamas, ekstruderis nusileis žemyn atspausdinti valymo bokšto dalies. Naudotojas pats atsako už tai, kad ekstruderis nesusidurtų su spaudiniu."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Tai eksportuoja nustatymus į failą."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Tiesioginei „Native Wayland“ peržiūrai reikalingas „GStreamer GTK“ vaizdo sinchronizatorius (video sink). Įdiekite „GStreamer“ skirtą „gtksink“ papildinį, tada iš naujo paleiskite „OrcaSlicer“."
