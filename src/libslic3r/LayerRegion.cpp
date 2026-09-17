@@ -132,7 +132,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);
     g.solid_infill_flow     = this->flow(frSolidInfill);
 
-    // Cummulative sum of polygons over all the regions, less what the lower layer could not print.
+    // Cumulative sum of polygons over all the regions, less what the lower layer could not print.
     ExPolygons lower_slices;
     if (this->layer()->lower_layer != nullptr) {
         lower_slices   = g.printable_slices(this->layer()->lower_layer->lslices);
