@@ -117,9 +117,9 @@ public:
   static constexpr size_t sqr_rays_per_sample_point = 5;
 
   // snapping angle - angles larger than this value will be snapped to during seam painting
-  static constexpr float sharp_angle_snapping_threshold = 55.0f * float(PI) / 180.0f;
+  static constexpr float sharp_angle_snapping_threshold = 15.0f * float(PI) / 180.0f;
   // overhang angle for seam placement that still yields good results, in degrees, measured from vertical direction
-  static constexpr float overhang_angle_threshold = 45.0f * float(PI) / 180.0f;
+  static constexpr float overhang_angle_threshold = 55.0f * float(PI) / 180.0f;
 
   // determines angle importance compared to visibility ( neutral value is 1.0f. )
   static constexpr float angle_importance_aligned = 0.6f;
@@ -132,11 +132,11 @@ public:
   // following value describes, how much worse score can point have and still be picked into seam cluster instead of original seam point on the same layer
   static constexpr float seam_align_score_tolerance = 0.3f;
   // seam_align_tolerable_dist_factor - how far to search for seam from current position, final dist is seam_align_tolerable_dist_factor * flow_width
-  static constexpr float seam_align_tolerable_dist_factor = 4.0f;
+  static constexpr float seam_align_tolerable_dist_factor = 2.0f;
   // minimum number of seams needed in cluster to make alignment happen
   static constexpr size_t seam_align_minimum_string_seams = 6;
   // millimeters covered by spline; determines number of splines for the given string
-  static constexpr size_t seam_align_mm_per_segment = 4.0f;
+  static constexpr size_t seam_align_mm_per_segment = 3.0f;
 
   //The following data structures hold all perimeter points for all PrintObject.
   std::unordered_map<const PrintObject*, PrintObjectSeamData> m_seam_per_object;
