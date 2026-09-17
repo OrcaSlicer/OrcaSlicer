@@ -3,7 +3,7 @@
 	"name": "Arena PLA-CF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA50",
+	"filament_id": "OF2hfMcG",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Orca Arena"

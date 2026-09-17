@@ -1,4 +1,5 @@
 #include "GLGizmoMeasure.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -597,7 +598,6 @@ void GLGizmoMeasure::on_render()
         }
     }
     Vec3d  position_on_model;
-    Vec3d  direction_on_model;
     size_t model_facet_idx = -1;
     double closest_hit_distance = std::numeric_limits<double>::max();
     {

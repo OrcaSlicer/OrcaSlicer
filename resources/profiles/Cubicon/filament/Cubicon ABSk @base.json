@@ -2,17 +2,9 @@
 	"type": "filament",
 	"name": "Cubicon ABSk @base",
 	"inherits": "Cubicon ABS @base",
-	"setting_id": "UbOUO0K3Y2iRPBtf",
-	"filament_id": "P510cfb2",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Cubicon xCeler-I 0.4 nozzle",
-		"Cubicon xCeler-Plus 0.4 nozzle"
-	],
+	"filament_id": "OForhBi4",
+	"instantiation": "false",
 	"default_filament_colour": "",
-	"filament_settings_id": [
-		"Cubicon ABSk @base"
-	],
 	"filament_type": [
 		"ABS"
 	],

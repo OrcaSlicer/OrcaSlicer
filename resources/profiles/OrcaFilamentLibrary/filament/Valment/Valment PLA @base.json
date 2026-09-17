@@ -3,7 +3,7 @@
 	"name": "Valment PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "VLMNT01",
+	"filament_id": "OFDe8uyM",
 	"instantiation": "false",
 	"filament_cost": [
 		"670"

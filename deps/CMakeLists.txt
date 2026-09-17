@@ -157,8 +157,16 @@ endif ()
 function(orcaslicer_add_cmake_project projectname)
     cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
 
+    # MSVC is true for clang-cl as well, so the sub-build toolchain has to key on the
+    # generator. A non-Visual-Studio superbuild passes its own generator down, and with
+    # it the CMAKE_C_COMPILER / CMAKE_CXX_COMPILER forwarded below.
+    set(_dep_msvc_gen FALSE)
+    if (MSVC AND CMAKE_GENERATOR MATCHES "Visual Studio")
+        set(_dep_msvc_gen TRUE)
+    endif ()
+
     set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
-    if (_is_multi OR MSVC)
+    if (_is_multi OR _dep_msvc_gen)
         if (P_ARGS_FORWARD_CONFIG)
             set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
         elseif (ORCA_INCLUDE_DEBUG_INFO AND NOT DEP_DEBUG)
@@ -174,15 +182,20 @@ function(orcaslicer_add_cmake_project projectname)
         set(_target_config "Release")
     endif()
 
-    if (MSVC)
+    if (_dep_msvc_gen)
       set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
+      # The toolset picks the compiler here, not the CMAKE_<LANG>_COMPILER
+      # forwarded below, so without it a clang-cl superbuild builds with cl.
+      if (CMAKE_GENERATOR_TOOLSET)
+        list(APPEND _gen CMAKE_GENERATOR_TOOLSET "${CMAKE_GENERATOR_TOOLSET}")
+      endif ()
     else()
       set(_gen "")
     endif()
 
     if ($ENV{CMAKE_BUILD_PARALLEL_LEVEL})
       set(_build_j "")  # assume environment will control --build parallel setting
-    elseif(MSVC)
+    elseif(_dep_msvc_gen)
       set(_build_j "/m")
     else()
       set(_build_j "-j${NPROC}")
@@ -367,6 +380,9 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
+include(FFMPEG/FFMPEG.cmake)
+include(Assimp/Assimp.cmake)
+
 
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
@@ -448,6 +464,8 @@ set(_dep_list
     dep_libnoise
     dep_python3
     dep_wxInspector
+    dep_FFMPEG
+    dep_Assimp
     )
 
 if (MSVC)

@@ -1,13 +1,12 @@
 {
 	"type": "machine",
 	"name": "Ginger_G1_common",
-	"renamed_from": "ginger_one_common",
 	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
 	"printer_settings_id": "Ginger_G1_common",
 	"default_filament_profile": [
-		"Ginger Generic PLA"
+		"Generic PLA @Ginger"
 	],
 	"default_print_profile": "1.50mm Standard @Ginger G1",
 	"deretraction_speed": [

@@ -681,7 +681,7 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
 
 SearchDialog::~SearchDialog() {}
 
-void SearchDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
+void SearchDialog::Popup(wxWindow *focus /*= nullptr*/)
 {
     /* const std::string& line = searcher->search_string();
      search_line->SetValue(line.empty() ? default_string : from_u8(line));
@@ -696,17 +696,19 @@ void SearchDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     search_line2->SetValue(wxString(""));
     //const std::string &line = searcher->search_string();
     //searcher->search(into_u8(line), true);
-    PopupWindow::Popup();
+    PopupWindow::Popup(focus);
     search_line2->SetFocus();
     update_list();
 }
 
 
+#ifdef __WXMSW__
 void SearchDialog::MSWDismissUnfocusedPopup()
 {
     Dismiss();
     OnDismiss();
 }
+#endif // __WXMSW__
 
 void SearchDialog::OnDismiss() { }
 
@@ -926,7 +928,7 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
 
 SearchObjectDialog::~SearchObjectDialog() {}
 
-void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
+void SearchObjectDialog::Popup(wxWindow *focus /*= nullptr*/)
 {
     if (m_is_dismissing || this->IsShown()) {
         return;
@@ -937,7 +939,7 @@ void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     // dropdown list, otherwise the text input won't be usable
     m_object_list->SetFocus();
 #endif
-    PopupWindow::Popup();
+    PopupWindow::Popup(focus);
     search_line2->SetFocus();
 
     m_object_list->assembly_plate_object_name();
@@ -945,11 +947,13 @@ void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
     update_list();
 }
 
+#ifdef __WXMSW__
 void SearchObjectDialog::MSWDismissUnfocusedPopup()
 {
     Dismiss();
     OnDismiss();
 }
+#endif // __WXMSW__
 
 void SearchObjectDialog::OnDismiss() {}
 

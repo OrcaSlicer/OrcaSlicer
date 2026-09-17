@@ -3,7 +3,7 @@
 	"name": "Arena PLA Tough @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA09",
+	"filament_id": "OFtKeKa9",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Orca Arena"

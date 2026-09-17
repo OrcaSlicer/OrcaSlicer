@@ -16,6 +16,7 @@ class ComboBox : public wxWindowWithItems<TextInput, wxItemContainer>
     bool     drop_down = false;
     bool     text_off = false;
     bool     is_replace_text_to_image = false;
+    bool     m_keep_drop_arrow = false;  // When true, item icon goes to icon_1, keeping drop_down arrow
     wxString replace_text;
     wxString image_for_text;
 
@@ -30,6 +31,11 @@ public:
              long            style     = 0);
 
     DropDown & GetDropDown() { return drop; }
+
+    // When true, item icon is shown as icon_1 (secondary), preserving drop_down arrow.
+    // Note: item bitmaps are set via raw wxBitmap (not ScalableBitmap), so they won't
+    // auto-rescale on DPI change. Caller should recreate items after DPI change.
+    void SetKeepDropArrow(bool keep) { m_keep_drop_arrow = keep; }
 
     virtual bool SetFont(wxFont const & font) override;
 
