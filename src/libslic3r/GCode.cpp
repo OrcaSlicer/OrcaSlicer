@@ -5605,7 +5605,7 @@ LayerResult GCode::process_layer(
     m_layer = &layer;
     m_object_layer_over_raft = false;
 
-    if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
+    if (!need_insert_timelapse_gcode_for_traditional && !m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
