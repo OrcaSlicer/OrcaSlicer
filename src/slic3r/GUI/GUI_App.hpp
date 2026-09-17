@@ -245,6 +245,9 @@ private:
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
+    // macOS delivers orcaslicer:// links through MacOpenURL after launch, not in argv,
+    // so post_init must not start a blank project over the model being downloaded.
+    bool            m_url_open_pending{ false };
 #ifdef __linux__
     bool            m_opengl_initialized{ false };
 #endif
