@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PLA High Speed @U1 0.8 High Flow nozzle",
+	"inherits": "Generic PLA High Speed @System",
+	"from": "system",
+	"setting_id": "DEHdvXmDRZ4klSfG",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.8 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"54"
+	],
+	"filament_notes": [
+		"Uses the active Orca Generic material settings. Volumetric speed ceiling is 3x Generic PLA High Speed @System: 18 x 3 = 54 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

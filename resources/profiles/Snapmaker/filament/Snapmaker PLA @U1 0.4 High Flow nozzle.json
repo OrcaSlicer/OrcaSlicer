@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PLA @U1",
+	"from": "system",
+	"setting_id": "Iw2vC9RsmNnXlyFC",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"42"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 14 x 3 = 42 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

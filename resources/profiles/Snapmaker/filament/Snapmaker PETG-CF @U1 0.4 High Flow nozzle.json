@@ -1,0 +1,65 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PETG-CF @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PETG-CF @U1",
+	"from": "system",
+	"setting_id": "kTtK6gmRn2LVCgPv",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"additional_cooling_fan_speed": [
+		"20"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"fan_min_speed": [
+		"5"
+	],
+	"filament_flow_ratio": [
+		"1.01"
+	],
+	"filament_max_volumetric_speed": [
+		"19.2"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"30"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"13"
+	],
+	"filament_multitool_ramming_volume": [
+		"0.5"
+	],
+	"filament_retract_length_toolchange": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"0.6"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"nozzle_temperature_range_low": [
+		"240"
+	],
+	"pressure_advance": [
+		"0.028"
+	],
+	"filament_notes": [
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 6.4 x 3 = 19.2 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

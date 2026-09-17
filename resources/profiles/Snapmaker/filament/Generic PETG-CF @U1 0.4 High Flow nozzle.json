@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @U1 0.4 High Flow nozzle",
+	"inherits": "Generic PETG-CF @System",
+	"from": "system",
+	"setting_id": "xiruPdezF8sdAwJC",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"34.5"
+	],
+	"filament_notes": [
+		"Uses the active Orca Generic material settings. Volumetric speed ceiling is 3x Generic PETG-CF @System: 11.5 x 3 = 34.5 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

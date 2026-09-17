@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA Glow @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PLA Glow @U1 0.4 nozzle",
+	"from": "system",
+	"setting_id": "z33Hc87sYPmwPL5J",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"additional_cooling_fan_speed": [
+		"100"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"48"
+	],
+	"pressure_advance": [
+		"0.023"
+	],
+	"filament_notes": [
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 16 x 3 = 48 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

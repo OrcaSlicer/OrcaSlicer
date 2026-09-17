@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA Wood @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PLA Wood @U1 0.4 nozzle",
+	"from": "system",
+	"setting_id": "7IGP2hVMK7ajiLuk",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"54"
+	],
+	"filament_retract_length_toolchange": [
+		"6"
+	],
+	"filament_z_hop_types": [
+		"Auto Lift"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"filament_notes": [
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 18 x 3 = 54 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

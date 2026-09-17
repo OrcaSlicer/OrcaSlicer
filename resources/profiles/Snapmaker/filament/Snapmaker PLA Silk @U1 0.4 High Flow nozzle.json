@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA Silk @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PLA Silk @U1",
+	"from": "system",
+	"setting_id": "rpTq4sJFpmbdl0dy",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"additional_cooling_fan_speed": [
+		"80"
+	],
+	"filament_max_volumetric_speed": [
+		"30"
+	],
+	"filament_z_hop_types": [
+		"Slope Lift"
+	],
+	"filament_notes": [
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 10 x 3 = 30 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Snapmaker TPU 95A HF @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker TPU 95A HF @U1",
+	"from": "system",
+	"setting_id": "hVOeZYtFdD5f9n8N",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"27"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling is 3x the inherited non-HF value for this diameter: 9 x 3 = 27 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}

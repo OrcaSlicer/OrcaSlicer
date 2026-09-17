@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @U1 0.4 High Flow nozzle",
+	"inherits": "Generic PLA-CF @System",
+	"from": "system",
+	"setting_id": "LumAEUgsSqWvQcnD",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"36"
+	],
+	"filament_notes": [
+		"Uses the active Orca Generic material settings. Volumetric speed ceiling is 3x Generic PLA-CF @System: 12 x 3 = 36 mm^3/s. This is a configured ceiling, not measured nozzle throughput. Calibrate for your nozzle and filament."
+	]
+}
