@@ -7,7 +7,8 @@ every one of them is registered in `process_list`. There are no global processes
 
 `"<layer height>mm <quality> @<target>"` — near-universal, so match it.
 
-The quality word is **not** a free label: it encodes a layer-height / nozzle ratio.
+Follow the bundle's existing quality vocabulary. BBL's common ladder relates the quality word to
+the layer-height / nozzle ratio; it is a naming convention, not a loader constraint:
 
 | Quality | Ratio | 0.2 nozzle | 0.4 | 0.6 | 0.8 |
 | --- | --- | --- | --- | --- | --- |
@@ -18,11 +19,11 @@ The quality word is **not** a free label: it encodes a layer-height / nozzle rat
 | Draft | 0.6× | 0.12 | 0.24 | 0.36 | 0.48 |
 | Extra Draft | 0.7× | 0.14 | 0.28 | 0.42 | 0.56 |
 
-That is BBL's shipped ladder (`fdm_process_single_<lh>_nozzle_<n>`), and the 0.4 nozzle is the unsuffixed
-default. `Fast` barely exists — the wiki's "Standard, Fine, Fast or Draft" is not the real vocabulary.
+This is the `fdm_process_single_<lh>_nozzle_<n>` ladder; 0.4 is commonly the unsuffixed nozzle default.
+Match neighbouring names rather than renaming shipped tiers to fit the table.
 
 The `@target` is a human label, not a reference: most do not equal any real printer variant name.
-Compatibility comes from `compatible_printers` alone, so do not try to make them match.
+Compatibility comes from the resolved list or condition, not this label.
 
 ## Shape
 
@@ -72,26 +73,26 @@ legitimate for a process, and no check enforces its presence.
 `compatible_printers` is almost always one element. A leaf listing a whole model family is where a newly
 added printer is usually forgotten.
 
-## What must change per nozzle
+## What to review per nozzle
 
-Ordered by how reliably each one changes between a vendor's own same-quality presets:
-
-| Key group | Changes with nozzle |
+| Key group | Review |
 | --- | --- |
-| all eight `*_line_width` | always |
-| `layer_height`, `initial_layer_print_height` | usually |
-| the six main speeds | about half the time |
-| `top_shell_layers`, `wall_loops`, `bottom_shell_layers`, accelerations, support Z distances | sometimes |
+| `line_width` and per-region widths | resolved widths suit the nozzle and layer height |
+| `layer_height`, `initial_layer_print_height` | within the printer's limits |
+| print speeds | consistent with flow limits and hardware tuning |
+| shell layers, wall loops, accelerations, support Z distances | preserve the intended thickness, motion and support behavior |
 
-**Line width = nozzle + 0.02 mm**: 0.22 / 0.42 / 0.62 / 0.82 / 1.02, with two exceptions. At 0.4,
+**A common starting pattern is nozzle + 0.02 mm**: 0.22 / 0.42 / 0.62 / 0.82 / 1.02. In that pattern, at 0.4,
 `inner_wall_line_width`, `sparse_infill_line_width`, `skin_infill_line_width` and
 `skeleton_infill_line_width` widen to 0.45 and `initial_layer_line_width` to 0.5; at 0.2,
 `initial_layer_line_width` widens to 0.25. Also derived, and easily missed:
 `ironing_inset = line_width / 2` (0.11 / 0.21 / 0.31 / 0.41).
+These are examples, not required values; preserve intentional vendor tuning and percentage/automatic
+widths, and validate their resolved values.
 
 `min_layer_height` and `max_layer_height` are machine keys — no process file sets them.
 
-## The only automated content check
+## Slice-time content checks
 
 `Print::validate()` enforces four rules at slice time:
 
@@ -103,9 +104,8 @@ Ordered by how reliably each one changes between a vendor's own same-quality pre
 4. every width ≤ 5 × max `nozzle_diameter` — *"Line width too large"*
 
 Two further rules cover `bridge_line_width` (≤ nozzle diameter; > `layer_height` unless `thick_bridges`
-and `thick_internal_bridges` are both on) — no shipped process sets that key. Shipped processes break rules 2 and 3 today (the Creality Ender3 0.2 and LONGER LK10 families). They
-survive because `validate_slice` only slices each printer's `default_print_profile` and nothing else.
-**A new non-default process gets no slice coverage in CI.**
+and `thick_internal_bridges` are both on). The sweep starts from printer defaults rather than
+enumerating every process. **A new non-default process gets no dedicated slice coverage in CI.**
 
 ## What CI checks on a process
 
@@ -123,12 +123,10 @@ all-clear.
 
 - **Unknown or misspelled keys are discarded with no error and no warning.** They ship all over the
   process tree, both plain typos (`inital_layer_height`, `tree_support_bramch_diameter_angle`,
-  `sparse_infill_patter`) and BambuStudio keys Orca never defined (`overhang_totally_speed`,
-  `smooth_coefficient`, `overhang_speed_classic`). BBL's own `fdm_process_common` carries several, so
-  copying it wholesale propagates them.
+  `sparse_infill_patter`) and keys copied from other slicers that Orca never defined.
 - Keys on the tool's `OBSOLETE_KEYS` list (`adaptive_layer_height`, `overhang_totally_speed`, …) are
-  likewise scattered through `process/`, where nothing looks at them. `check --obsolete-keys` will not
-  show you these: that check reads `filament/` only.
+  rejected by `check`'s normalization pass across preset types; `normalize` removes them.
+  The additional per-key obsolete warnings read `filament/` only.
 - A dangling `compatible_printers` inside an `instantiation: "false"` base is invisible to
   `check_preset_references`: a base never becomes a `Preset` at all (its config goes into `config_maps`
   and the loader returns early), so it is in no collection for the check to walk.
@@ -137,11 +135,11 @@ all-clear.
 
 ## Adding a quality tier or a nozzle's processes
 
-1. Pick the layer height from the ratio table above, matching what the vendor already ships.
+1. Choose the layer height and quality label using the vendor's existing ladder.
 2. If the vendor has per-nozzle bases, add one (`fdm_process_<vendor>_<lh>_nozzle_<n>`) with the layer
-   height, the eight line widths at nozzle + 0.02, `initial_layer_print_height` and `ironing_inset`.
+   height, nozzle-appropriate line widths, `initial_layer_print_height` and `ironing_inset`.
 3. Add the leaf: 7 keys, `compatible_printers` naming the exact printer variant(s).
 4. Register both in `process_list`, parent first. Bump the version, run the id tool, validate.
-5. If this process is a printer's `default_print_profile`, confirm that printer is in its
-   `compatible_printers` — otherwise `validate_slice` reports
-   `fell back to a default preset`.
+5. Slice this process explicitly with its intended printer; the sweep gives non-default tiers no
+   dedicated coverage. If it is a printer's `default_print_profile`, verify the exact name and
+   resolved compatibility too — the sweep may fall back or select another compatible process.

@@ -111,8 +111,9 @@ the wizard and resolves to nothing. `Wanhao France`'s `D12 500 PRO M2 DIRECT` sh
 ### Other fields worth knowing
 
 - `default_print_profile` is a **scalar**, matched by exact preset name. Not a `;` list. The named
-  process must also list this printer in its (possibly inherited) `compatible_printers`. Nothing checks
-  it, and machines naming a nonexistent process — or one that excludes them — already ship.
+  process must be compatible with this printer through its resolved list or condition.
+  `validate_slice` attempts to select it and rejects generic Default fallbacks, but compatibility
+  updates can choose another compatible preset. Check the exact default reference yourself.
 - `default_filament_profile` is an **array**, one name per element.
 - `printable_area` is an array of `"XxY"` strings — four points for a rectangle, one per segment for a
   delta or circular bed.
@@ -160,8 +161,9 @@ Note the two sizing families: the plain per-extruder keys (`extruder_offset`, `e
 extruder count, while `printer_options_with_variant_1` (`retraction_length`, `z_hop`, `wipe`,
 `nozzle_type`, the rest of the retraction family) is sized to `printer_extruder_variant` instead.
 
-- Give **one entry per extruder** for `extruder_offset`, `extruder_colour`, `wipe`,
-  `retract_length_toolchange`, `min_layer_height`, `max_layer_height`, `z_hop`, `retraction_*`.
+- Give **one entry per extruder** for ordinary per-extruder vectors such as `extruder_offset`,
+  `extruder_colour`, `min_layer_height` and `max_layer_height`; size the variant-dependent family
+  to `printer_extruder_variant` instead.
   A single `["0x0"]` `extruder_offset` on a dual or multi-tool machine — which already ships — pads every
   toolhead to the same offset, so the offset never applies.
 - Overriding `nozzle_diameter` to a different count without re-stating every per-extruder vector is the

@@ -1,7 +1,9 @@
 # `setting_id` and `filament_id`
 
-Both are deterministic hashes of a preset's identity, written only by `scripts/orca_profile_tool.py`.
-**Never type one, never copy one from a sibling.**
+Orca-generated ids are deterministic hashes of identity. **Never invent an id or copy a sibling's
+`setting_id`.** Use `scripts/orca_profile_tool.py`; the two special cases are
+[a wrongly inherited filament id](#what-generate-id-does-and-does-not-fix) and
+[BBL's authoritative setting ids](#bbls-exception-precisely).
 
 `docs/HLSD/filament_id.md` is the authoritative design document for `filament_id` — the id landscape, the
 snapshot as the maintainer gate, and the Bambu catalog map. This page is the tooling half.
@@ -21,9 +23,7 @@ its `filament_vendor` or `filament_type`, also changes its `filament_id`.
 
 ## The tool
 
-`orca_profile_tool.py` replaced `orca_id_tool.py`, `orca_extra_profile_check.py` and
-`orca_filament_lib.py` in `ade9e77b6b`. One file, six subcommands; the old flag spellings
-(`--generate`, `--check`, `--update-snapshot`, `-u`, `--fix`) are gone.
+Use `scripts/orca_profile_tool.py` with a subcommand:
 
 | Command | Does |
 | --- | --- |
@@ -35,8 +35,9 @@ its `filament_vendor` or `filament_type`, also changes its `filament_id`.
 | `update-snapshot` | re-records `scripts/filament_id_snapshot.json` |
 
 The order after adding, renaming or deleting files — each step feeds the next, so it is not
-interchangeable — is `normalize` → `update-index` → `generate-id` → `update-snapshot` → `check`
-(`trim` optional; see below). The commands are step 5 of the skill's walkthrough.
+interchangeable — is `normalize` → `update-index` → `generate-id` → `update-snapshot` → `check`.
+The [authoring workflow](../SKILL.md#creating-or-modifying-a-profile) has the commands;
+`update-snapshot` is needed when filament ids or claims change.
 
 > **`trim` deletes.** It removes every profile file the index does not list — including the one you just
 > added and have not registered yet. Register first, or skip `trim` entirely; it is a cleanup sweep, not
@@ -60,9 +61,7 @@ it is registered — its `setting_id` is written regardless.
 - `--profile-type` narrows `normalize`, `trim` and `update-index` to `machine_model`, `process`,
   `filament` or `machine`.
 - Exit codes: 0 clean, 1 errors found (`generate-id` still writes what it could), 2 argparse misuse.
-- Output is ANSI-coloured. Searching for the literal `[ERROR]` still works — the escape sequence
-  precedes it — but to read or parse a log, strip the codes: `sed -e 's/\x1b\[[0-9;]*m//g'` on
-  macOS/Linux, `-replace "\e\[[0-9;]*m"` in PowerShell.
+- Output is ANSI-coloured; searching for the literal `[ERROR]` still works.
 
 `generate-id` is **idempotent and byte-preserving** — BOM and CRLF kept, one key line touched per pass.
 A legitimate `generate-id` diff is one or two changed lines per file: a new instantiated filament gets
@@ -105,8 +104,9 @@ Two fixes, in order of preference:
 1. **Give the product a `@base` root** inheriting a material base (`fdm_filament_pet`,
    `fdm_filament_pla`, …). No `fdm_filament_*` base carries a `filament_id`, so the filament now resolves
    none and `generate-id` mints it for you. This is also the shape the rest of the tree uses.
-2. **Declare the key on the preset itself.** `check`'s error message names the expected value; paste
-   that. Make sure the preset also resolves the right `filament_vendor` and `filament_type` first — with
+2. **Declare the tool-computed key on the preset itself.** Use the expected value reported by `check`
+   or compute it with the function below; this is not a manually chosen id. Make sure the preset
+   resolves the right `filament_vendor` and `filament_type` first — with
    neither set, the triple resolves through the generic parent and the branded product is minted, and
    then sanctioned in the snapshot, under vendor `Generic`. If you need the id before the file exists:
 
@@ -124,6 +124,9 @@ Two fixes, in order of preference:
 `scripts/filament_id_snapshot.json` is the sanctioned state: the id landscape derived from the tree must
 equal it exactly, in both directions. **Any change to a filament id or its claims must be committed with
 the profiles.**
+
+To trace an id from an error, search for it in the snapshot. Each entry records its identity triple
+and `<vendor folder>/<name-before-@>` claims, one per bundle/product pair rather than per preset.
 
 ```bash
 python3 scripts/orca_profile_tool.py update-snapshot

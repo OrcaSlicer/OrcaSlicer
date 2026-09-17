@@ -90,10 +90,12 @@ name.
 
 ## `compatible_printers`
 
-- **Library presets:** empty `[]` or absent — every instantiated library preset is. A non-empty list
-  would stop the preset being the generic fallback everywhere else.
-- **Every other vendor:** non-empty, listing exact printer **variant** names. Enforced twice but not
-  identically: the C++ `has_errors` reads the *flattened* config, so an inherited list satisfies it,
+- **Library fallbacks:** empty `[]` or absent, so they are offered on all printers except where
+  [alias shadowing](#alias-shadowing) supplies a printer-specific tune.
+- **Library printer-specific tunes:** non-empty, listing exact printer **variant** names. These can
+  supersede a same-alias fallback just like a tune in a printer vendor's bundle.
+- **Instantiated filaments in every other vendor:** non-empty, listing exact printer **variant** names.
+  Enforced twice but not identically: the C++ `has_errors` reads the *flattened* config, so an inherited list satisfies it,
   while the Python check reads the file's **own** key. Write the list in the file itself. This is the
   most common filament CI failure.
 - Emptying it to "make it apply everywhere" fails that check *and* creates a duplicate-`filament_id`
@@ -103,8 +105,9 @@ name.
 
 ## Alias shadowing
 
-A vendor's same-name filament supersedes the library's on the printers it lists. The matching key is the
-**alias**: the preset name up to the **first** `@`, right-trimmed (no `@` → the whole name). So
+A printer-specific filament in either the library or a vendor bundle supersedes the library fallback
+on the printers it lists. The matching key is the **alias**: the preset name up to the **first** `@`,
+right-trimmed (no `@` → the whole name). So
 `QIDI ABS-GF@Q2-Series` aliases to `QIDI ABS-GF`.
 
 A library preset with an empty `compatible_printers` collects, into `m_excluded_from`, every printer named
@@ -112,8 +115,9 @@ by any same-alias preset that *has* a non-empty list, and is then hidden on thos
 
 Two consequences:
 
-- **Only the library can be shadowed.** Two vendor presets sharing an alias do not exclude each other —
-  they both stay compatible and trip the duplicate-`filament_id` check instead.
+- **Only an unrestricted library fallback can be shadowed.** Two printer-specific presets sharing
+  an alias do not exclude each other — overlapping lists for the same product trip the
+  duplicate-`filament_id` check instead.
 - This is why adding `Generic PLA @<printer>` to a vendor silently removes the library `Generic PLA`
   from that printer. Intended — and the reason a vendor tuning a generic must **keep the `Generic X`
   base name**.
@@ -154,7 +158,7 @@ The rest are ordinary nullable options (`filament_flow_ratio`, `filament_flush_t
 Anywhere else it throws `Deserializing nil into a non-nullable object`. To not set a non-nullable key,
 omit it — do not write `nil`.
 
-## What actually changes per nozzle
+## What to review per nozzle
 
 Across `@X` / `@X 0.N nozzle` sibling pairs the keys that differ, most often first, are
 `filament_max_volumetric_speed`, `filament_retraction_length`, `slow_down_min_speed`,
@@ -162,16 +166,10 @@ Across `@X` / `@X 0.N nozzle` sibling pairs the keys that differ, most often fir
 `filament_cost`, `filament_density`, `filament_type` and `filament_vendor` belong on the `@base` and
 should not appear in a printer tune.
 
-| Nozzle | typical MVS | typical PA |
-| --- | --- | --- |
-| 0.2 | 1.8 | 0.034 |
-| 0.25 | 8 | 0.035 |
-| 0.4 | 12 | 0.035 |
-| 0.6 | 18 | 0.020 |
-| 0.8 | 18 | 0.011 |
-
-Copying a 0.4 preset to a 0.2 and leaving MVS is the classic bug (`Bambu PLA Basic` drops 21 → 2 at
-0.2); not lowering PA on a 0.8 is the other.
+Use measured values for the material, hotend, extruder and nozzle combination. Neither maximum
+volumetric speed nor pressure advance has a universal nozzle-only lookup table. When cloning a
+0.4 preset for a 0.2 nozzle, explicitly revisit flow limits; do not infer a pressure-advance value
+or a required direction of change from diameter alone.
 
 ## Style
 

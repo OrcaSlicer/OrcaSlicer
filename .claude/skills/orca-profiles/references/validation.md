@@ -33,12 +33,9 @@ report CI posts on the PR. A stale `.test/check_profiles/.lock` after a crash mu
 | `validate_filament_subtypes` | `validator -p … -l 2 -f` | nothing extra — see below |
 | `validate_custom` | `validator -p <tree+fixture> -l 2` | a shipped preset name that a past release offered no longer resolving |
 
-The check was called `extra_json_check` until `ade9e77b6b`; logs, the CI step id and the PR-comment
-heading all use `profile_tool` now.
-
 **`-f` is a no-op.** It is declared `po::bool_switch()->default_value(true)`, so the duplicate-`filament_id`
 check runs whether or not you pass it — `validate_system` already fails on duplicates. The binary's own
-`--help` ("Off unless this flag is present") is wrong, and so is the wiki's framing.
+`--help` ("Off unless this flag is present") does not reflect that default.
 
 ### `validate_custom` — the backward-compatibility gate
 
@@ -53,8 +50,10 @@ mandatory.
 
 ### `validate_slice`
 
-Slices a two-colour cube on every instantiable printer in the tree, strictly sequential — the slow check,
-using that printer's own `default_print_profile` / `default_filament_profile`, forcing the prime tower.
+Slices a two-colour cube on every instantiable printer in the tree, sequentially, forcing the prime tower.
+It selects `default_print_profile` and the first `default_filament_profile`, then updates compatibility;
+that update can select a different compatible preset. Confirm the intended defaults yourself rather
+than treating a passing sweep as proof that those exact presets were sliced.
 A printer fails if it cannot be selected, falls back to a Default preset, throws, produces no g-code, or
 emits no `CP TOOLCHANGE START`. It cannot be scoped to a filament-only vendor
 (`No instantiable printer presets found for vendor OrcaFilamentLibrary`); `check_profile.sh` records it
@@ -62,7 +61,7 @@ as SKIP for a vendor with no `machine/` folder.
 
 ## `orca_profile_tool.py check`
 
-Twelve checks: ten per-vendor, two tree-wide. `check` is one subcommand of the tool that also owns
+`check` is one subcommand of the tool that also owns
 `generate-id`, `normalize`, `trim`, `update-index` and `update-snapshot`; see [ids.md](ids.md) for the
 writing half.
 
@@ -72,12 +71,12 @@ writing half.
 | `check_index_coverage` | a file on disk that no `*_list` references (**an error, not a warning**) |
 | `check_name_consistency` | an index entry whose `name` disagrees with the file, or whose `sub_path` is missing |
 | `check_normalized` | a file `normalize` would rewrite, and an index `update-index` would rebuild |
-| `check_filament_compatible_printers` | a non-library filament with no `compatible_printers` of its own |
+| `check_filament_compatible_printers` | an instantiated non-library filament with no `compatible_printers` of its own |
 | `check_conflict_keys` | `extruder_clearance_radius` alongside `extruder_clearance_max_radius` |
 | `check_vector_type_keys` | a vector option written as a scalar (`"filament_type": "PLA"`) |
 | `check_filament_id_length` | a declared `filament_id` longer than 8 characters |
 | `check_machine_default_materials` | every `default_materials` / `default_filament_profile` name resolves |
-| `check_obsolete_keys` | opt-in, `--obsolete-keys`; **filament files only** |
+| `check_obsolete_keys` | per-key warnings for ignored options; **filament files only** |
 
 Tree-wide, **ignoring `--vendor` entirely**: `check_setting_id_uniqueness` and `check_filament_ids`. So a
 vendor-scoped run can and does fail on another vendor's files — and it saves seconds, not minutes.
@@ -90,9 +89,7 @@ that a library filament may leave `compatible_printers` empty — exactly what
 Notes that matter:
 
 - Exit codes: **0** clean, **1** errors found, **2** argparse misuse. Warnings never change the exit code.
-  (It was `exit(-1)` → shell status 255 before `ade9e77b6b`.)
-- A nonexistent `--vendor` is now a hard error — `[ERROR] unknown vendor "<V>" in <dir>`, exit 1 —
-  rather than a pass with a warning nobody read.
+- A nonexistent `--vendor` is a hard error — `[ERROR] unknown vendor "<V>" in <dir>`, exit 1.
 - `--vendor ""` means all vendors; `check_profile.sh` relies on that. `--vendor` is repeatable.
 - A **stray directory** under `resources/profiles/` still gets counted as a vendor by the per-vendor pass
   and warned about (`No profiles found for vendor: <dir> at …/<dir>.json`, and the "Checked vendors" count
@@ -105,16 +102,15 @@ Notes that matter:
   command that fixes the batch.
 - The trailing summary always suggests `normalize`. That is right for the shape errors and misleading for
   everything else — an id error needs `generate-id`, a dangling `default_materials` needs a human.
-- `resources/profiles/check_unused_setting_id.py` is dead BBL-only scratch code. CI never runs it and it
-  reports nothing.
+- `resources/profiles/check_unused_setting_id.py` is a legacy BBL-only diagnostic, not part of
+  profile CI. Use `orca_profile_tool.py check` for current id validation.
 
-### `--obsolete-keys` is the one opt-in check
+### Obsolete-key diagnostics
 
-`--obsolete-keys` is left opt-in because it only warns:
+`check` always reports per-key warnings for obsolete options in filament profiles.
+The normalization check also rejects obsolete keys across preset types; `normalize` removes them.
 
-```bash
-python3 scripts/orca_profile_tool.py check --obsolete-keys
-```
+### Default-material references
 
 The materials check finds `default_materials` / `default_filament_profile` entries naming a preset
 that does not exist. The three authoring errors it surfaces are `,` instead of `;`, wrong case
@@ -126,11 +122,20 @@ that does not exist. The three authoring errors it surfaces are `,` instead of `
 file that gets reviewed has to be the file that ships. What `normalize` changes is narrow and fixed:
 adds a missing `type`, deletes a `version` or `is_custom_defined` key from a *preset* file, deletes six
 print-speed keys from filament profiles (`initial_layer_print_speed`, `outer_wall_speed`,
-`inner_wall_speed`, `infill_speed`, `top_surface_speed`, `travel_speed`), resolves the
+`inner_wall_speed`, `infill_speed`, `top_surface_speed`, `travel_speed`), deletes the
+obsolete keys in `PrintConfigDef::handle_legacy`'s `ignore` set across preset types, resolves the
 `extruder_clearance_*` conflict pair by keeping the larger, arrayifies five filament options besides
 `filament_type`, and hoists `type`, `name`, `renamed_from`, `inherits`, `from`, `setting_id`,
 `filament_id`, `instantiation` to the front. A file it changes is then rewritten whole — tab-indented,
 LF, one trailing newline, keys reordered.
+
+**Set `type` explicitly when authoring.** For a file in `machine/` without it, normalization guesses
+`machine` only if its name contains `nozzle`, otherwise `machine_model`. That heuristic cannot
+reliably classify shared machine bases or unusually named variants.
+
+The Python obsolete-key set is checked against the C++ source by a unit test. Active options
+and legacy aliases that the loader migrates (such as `extruder_type` and
+`extruder_clearance_max_radius`) are preserved.
 
 Two things it therefore does **not** enforce:
 
@@ -139,8 +144,8 @@ Two things it therefore does **not** enforce:
   `check`. They stay latent until something else trips `normalize` and the whole file reformats inside an
   unrelated diff. (`normalize --force` rewrites every file, which is not something to run on a shipped
   bundle.)
-- **A misspelled setting key.** `inital_layer_height` and `sparse_infill_densiti` pass `check` cleanly,
-  with `--obsolete-keys` on. Rule 8 is still entirely the author's and the reviewer's.
+- **A misspelled setting key.** `inital_layer_height` and `sparse_infill_densiti` pass `check` cleanly.
+  Verify new keys against `PrintConfig.cpp` and `PrintConfigDef::handle_legacy`.
 
 ## The validator binary
 
@@ -165,18 +170,52 @@ If your build lives somewhere else entirely, point at it with `--validator` / `-
 On ARM64 Linux the nightly is x86-64 only — the script warns and downloads anyway, producing a binary
 that will not run. Build it locally instead.
 
-> **Trap:** running the validator by hand creates `resources/profiles/user/` as its data dir — the
-> stray directory above. `check_profile.sh` and `check_profile.ps1` stash and restore it; after
-> a direct run, delete it yourself. It holds nothing but empty folders the validator made:
-> `find resources/profiles/user -depth -type d -exec rmdir {} +` (macOS/Linux),
-> `Remove-Item -Recurse resources\profiles\user` (PowerShell), `rmdir /s /q resources\profiles\user` (cmd).
+Running the validator directly uses the profile tree as its data directory and can create `user/`
+there. Prefer the wrappers, which stash existing user presets and restore them afterward. After a
+direct run, inspect `user/` and remove only empty directories created by that run; fixtures or
+pre-existing user files may be present.
 
 ## Checking a copy of the tree
 
-Both halves take a path now: `--profiles DIR` on every tool command, `-p DIR` on the validator.
+Use `--profiles DIR` on the Python tool and `-p DIR` on the validator.
 `check` and `update-snapshot` describe a tree's sanctioned id state, so pointing them elsewhere also
 needs `--snapshot PATH` for that tree — passing `--profiles` without it exits 2 rather than silently
 judging the copy against `resources/profiles`'s snapshot.
+
+**The wrappers' `--profiles` / `-ProfilesDir` redirects only their validator checks.** Their
+`profile_tool` check still reads this checkout's `resources/profiles`. To validate a copy fully,
+run the Python check separately with that tree's snapshot, then name only validator checks:
+
+```bash
+python3 scripts/orca_profile_tool.py check --profiles "<tree>" --snapshot "<snapshot.json>"
+./scripts/check_profile.sh --profiles "<tree>" validate_system validate_slice validate_filament_subtypes validate_custom
+```
+
+On Windows use `py -3` and `scripts\check_profile.bat -ProfilesDir "<tree>"` with the same check names.
+
+## Testing in the app
+
+Editing this checkout's `resources/profiles` does not update a separately installed application.
+Test with a build using the edited resources and a bumped bundle version; the updater installs newer
+bundles under `<data_dir>/system/`, and the preset cache also depends on the bundle version.
+Use Help ▸ Show Configuration Folder to locate the active data directory:
+
+| Platform | Default data directory |
+| --- | --- |
+| macOS | `~/Library/Application Support/OrcaSlicer` |
+| Linux | `$XDG_CONFIG_HOME/OrcaSlicer`, or `~/.config/OrcaSlicer` when unset |
+| Windows | `%APPDATA%\OrcaSlicer` |
+
+A portable `data_dir` next to the executable takes precedence. Use a separate test configuration
+for a clean-install check; preserve the normal configuration and user presets.
+
+## Cross-platform paths
+
+Match the exact case of each `sub_path` and asset filename; Linux filesystems commonly distinguish
+case even when a macOS or Windows checkout does not. Preset-name references are case-sensitive
+on every platform. Avoid Windows-invalid characters (`< > : " | ? *`), reserved device names
+such as `CON` / `NUL` (including with extensions), and trailing spaces or dots in path components.
+Keep stems tidy too, but a space immediately before `.json` is not a trailing path-component space.
 
 ## Error → remedy
 
@@ -195,15 +234,15 @@ judging the copy against `resources/profiles`'s snapshot.
 | `Ambiguous AMS filament match: N presets share filament_id "X" … printer "Y"` | make the lists disjoint, or fix an `inherits` pointing at another material's `@base` |
 | `Layer height cannot exceed nozzle diameter.` / `Line width too small` | `Print::validate()` flow rules |
 | `[ERROR] … no <V>.json list references it, so it never loads` | `update-index`, or delete the file |
-| `[ERROR] … references it and it declares no profile type` | `normalize` (writes the `type`), then `update-index` |
+| `[ERROR] … references it and it declares no profile type` | set the correct `type` explicitly, then `normalize` and `update-index` |
 | `[ERROR] … normalize would <change>` / `<V>.json: update-index would rebuild <lists>` | run that command and commit the result |
-| `[ERROR] <V> has N <type> profiles named "<name>"` | two files claim one name; delete the stale copy (`trim`) |
+| `[ERROR] <V> has N <type> profiles named "<name>"` | identify the intended preset and remove or rename the duplicate; use `trim --dry-run` only for deliberate unindexed-file cleanup |
 | `[ERROR] … must not have a setting_id` / `is missing a setting_id` | `generate-id --setting-id` |
 | `[ERROR] filament_id "<id>" is not sanctioned by …snapshot.json` | `update-snapshot`, commit the diff |
 | `inherits filament_id "X" but its own triple … mints "Y"` | `generate-id` will **not** fix this — see [ids.md](ids.md) |
 | `vendor <V>'s config version: <s> invalid` | the `version` string is not Semver-parseable |
-| `[json.exception.type_error.302] type must be string` | an unquoted value in a vendor index — this one kills *all* vendors |
-| `Printer "<p>" fell back to a default preset` | `default_print_profile`/`default_filament_profile` does not resolve or is not compatible |
+| `[json.exception.type_error.302] type must be string` | locate the non-string value in the index or model; see [failure scopes](vendor-bundle.md#failure-modes-ranked-by-blast-radius) |
+| `Printer "<p>" fell back to a default preset` | final process or filament selection is a generic Default preset; check named defaults, visibility and available compatible presets. An incompatible default may instead be replaced without this error |
 | `Printer "<p>" sliced but the filament change never fired` | `change_filament_gcode` never expanded |
 
 ## CI

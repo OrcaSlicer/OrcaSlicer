@@ -1,207 +1,120 @@
 ---
 name: orca-profiles
-description: Use when adding support for a new printer, printer brand, nozzle size or filament material to OrcaSlicer, or when creating, modifying or reviewing system profiles under resources/profiles — the vendor bundle index, setting_id, filament_id or filament_id_snapshot.json, renaming or retiring a shipped preset. Also for diagnosing "my vendor/printer vanished from Orca", "this setting has no effect", "the preset does not show up", "the wrong filament matches in the AMS", or a failing profile check (check_profile.sh, orca_profile_tool.py, OrcaSlicer_profile_validator, the "Check profiles" job). FFF only.
+description: Use when creating, modifying, reviewing or debugging OrcaSlicer FFF system profiles under resources/profiles, including printer/vendor/nozzle/material additions, bundle indexes and versions, preset renames, setting_id, filament_id and filament_id_snapshot.json. Also use for missing presets or vendors, ignored profile settings, ambiguous AMS filament matches, and failures from orca_profile_tool.py, check_profile.sh/.bat, OrcaSlicer_profile_validator or the Check profiles CI job.
 ---
 
 # OrcaSlicer system profiles
 
-Shipped profiles live in `resources/profiles/`. A **vendor bundle** is a `<Vendor>.json` index plus a
-`<Vendor>/` folder, one per printer manufacturer, plus `OrcaFilamentLibrary` (the shared filament
-bundle) and `blacklist.json` (no folder, deliberately). Four record kinds: `machine_model` (a printer
-product), `machine` (a selectable printer variant), `process` (quality preset) and `filament`.
+A bundle is `resources/profiles/<Vendor>.json` plus `<Vendor>/`. The vendor id is the
+filename stem, not the index's display `name`. The index is the loader's only entry point:
+unindexed presets never load. `OrcaFilamentLibrary` is the shared filament bundle;
+`blacklist.json` is data, not a bundle.
 
-**The index is the loader's only entry point.** A JSON file in a vendor folder that no `*_list` names is
-never read *as a preset* — no error, no warning, it simply does not exist. The only sanctioned
-exceptions are `BBL/cli_config.json` and `BBL/filament/filaments_color_codes.json`, which the app loads
-by path and the tooling knows are data, not presets. Every other unindexed file is a `check` error.
+## Choose the reference for the task
 
-For the human-facing tutorial see the
-[profile development guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/how_to_create_profiles.md);
-it is wrong or silent on several points — see [Where the wiki is wrong](#where-the-wiki-is-wrong).
+Read the relevant reference before editing; load others only when the task crosses those areas.
+Paths below are relative to this skill. Commands run from the repository root.
+
+| Task | Read |
+| --- | --- |
+| Add or tune a filament, brand or material; fix compatibility / alias shadowing | [filament-profiles.md](references/filament-profiles.md) |
+| Add a printer or nozzle; change models, variants, assets or extruder vectors | [machine-profiles.md](references/machine-profiles.md) |
+| Add a quality tier or tune a process | [process-profiles.md](references/process-profiles.md) |
+| Create a vendor bundle; diagnose loading or inheritance; migrate preset names | [vendor-bundle.md](references/vendor-bundle.md) |
+| Change ids or snapshot claims; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
+| Review a profile diff | [review-checklist.md](references/review-checklist.md) |
+| Run checks, interpret failures, test another tree or verify in the app | [validation.md](references/validation.md) |
 
 ## Golden rules
 
-1. **Bump `version` in `resources/profiles/<Vendor>.json` for every bundle you touch.** Increment only
-   the last component (`02.04.00.03` → `02.04.00.04`) and never past `99` — the 4th component is folded
-   in as `patch*100 + value`, so `x.y.0.100` compares equal to `x.y.1.0`. Without a bump `PresetUpdater`
-   never reinstalls the bundle (`vendor_ver < resource_ver`, strictly less) and the local `.opc` preset
-   cache still "covers" the edit. **Nothing in CI checks this**, and it is the step merged profile PRs
-   forget most often.
-2. **Register every file in the index, bases included, parents before children.** The `*_list` arrays are
-   **order-sensitive**: `inherits` resolves against a map filled in list order, so a parent listed after
-   its child fails to resolve and takes the whole bundle down.
-   `python3 scripts/orca_profile_tool.py update-index --vendor <Vendor>` writes the lists from the files
-   on disk, parents first; `check` fails if you skipped it, if a file is unregistered, or if two files in
-   the bundle claim one preset name.
-3. **Never hand-write `setting_id` or `filament_id`.** Author without the key and run
-   `python3 scripts/orca_profile_tool.py generate-id`. Both are deterministic hashes of the preset's identity;
-   a copied id is a CI error and a wrong one breaks AMS spool matching. See [references/ids.md](references/ids.md).
-4. **One bad preset discards the entire vendor bundle** — every printer, process and filament of that
-   vendor disappears. A bad `inherits`, a missing `sub_path` file, a duplicate name, an unknown
-   `printer_model`/`printer_variant` or a filament with no resolvable `filament_id` all do this.
-5. **Never rename, delete, or flip a shipped `"instantiation": "true"` preset to `"false"` without
-   `renamed_from` on a successor.** A non-instantiated preset is not in the preset collection at all, so
-   every user preset inheriting it dies with `can not find parent <name> for config <file>!`. CI's
-   `validate_custom` replays released user-preset archives (v1.9.0 onwards) and will fail.
-6. **`compatible_printers` lists printer *variant* names** (`"Phrozen Arco 0.4 nozzle"`), never model
-   names or filenames. Empty or absent means *compatible with every printer* — legitimate only for
-   OrcaFilamentLibrary filaments; an error for any other vendor's filament.
-7. **Every value is a string or an array of strings.** `"printable_height": "300"`, not `300`;
-   `"instantiation": "false"`, not `false`; `"filament_type": ["PLA"]`, not `"PLA"`. A raw JSON number in
-   a preset is dropped with only a log line, but two places throw an uncaught `nlohmann` type error that
-   aborts the preset load for **every** vendor, leaving the user with no system profiles at all: a
-   non-string `version`, `name` or `url` at the top level of a vendor index, and a non-string
-   `nozzle_diameter` on a `machine_model`. **The two `nozzle_diameter` keys have different types** — the
-   model's is a `;`-separated string (`"0.4;0.6"`), the variant's is an array (`["0.4"]`). (A non-string
-   inside a `*_list` entry is caught and counted instead.)
-8. **A misspelled setting key is silently discarded.** `handle_legacy` blanks any key
-   `PrintConfigDef` does not know — no error at any log level. Only a key valid for a *different* preset
-   type is reported. Check spellings against `src/libslic3r/PrintConfig.cpp`, and note that
-   `handle_legacy` also has an explicit `ignore` set that drops keys which *do* appear there. Dead keys
-   ship in bulk across the tree, so a neighbouring file carrying a key is no evidence the key is real.
-9. **Validate with `./scripts/check_profile.sh`** (Windows: `.\scripts\check_profile.bat`) before you
-   claim done. It is the exact local twin of the CI job.
-
-## Working on macOS, Linux or Windows
-
-The tree, the checks and every rule above are identical on all three. Only invocation differs.
-
-| | macOS / Linux | Windows |
-| --- | --- | --- |
-| Full check | `./scripts/check_profile.sh` | `scripts\check_profile.bat` |
-| …its flags | `--vendor "<V>"`, `--profiles`, `--download`, `--log-level` | `-Vendor "<V>"`, `-ProfilesDir`, `-Download`, `-LogLevel` |
-| The tool | `python3 scripts/orca_profile_tool.py <cmd>` | `py -3 scripts\orca_profile_tool.py <cmd>` |
-| Orca's data dir (step 7) | `~/Library/Application Support/OrcaSlicer`, or `${XDG_CONFIG_HOME:-~/.config}/OrcaSlicer` on Linux | `%APPDATA%\OrcaSlicer` |
-
-- **Use `py -3` on Windows.** `python3` is rarely on PATH there and a bare `python` is often the
-  Microsoft Store stub, which exits non-zero — see [validation.md](references/validation.md) for how the
-  scripts probe for it.
-- `orca_profile_tool.py` resolves `resources/profiles` relative to *its own* path, so invoking it by
-  absolute path acts on that checkout from any working directory.
-- **Name files so every platform can check them out.** No trailing space or dot before `.json`, and none
-  of `< > : " | ? *` — Windows cannot represent those, so a `sub_path` naming one is unreachable there
-  however correct the JSON is. Nothing checks it, and the tree already ships violations
-  (`Eryone/machine/ER20_Klipper/Eryone ER20 Klipper 0.N nozzle .json` — trailing space in the filename
-  *and* in `Eryone.json`).
-- **Case: your checkout is probably case-insensitive, CI's Linux runner is not.** A `sub_path`, or a
-  `bed_model` / `bed_texture` / `hotend_model` filename, that differs from the real file only in case
-  resolves on macOS and Windows and fails on Linux. (`inherits` and `compatible_printers` are string
-  matches in a map — case-sensitive on every platform, so those break for you too.)
-
-## Which change am I making?
-
-| Goal | What to touch | Reference |
-| --- | --- | --- |
-| New generic material for all printers | `OrcaFilamentLibrary/filament/`, its index, version | [filament-profiles.md](references/filament-profiles.md) |
-| New filament brand or product | `OrcaFilamentLibrary/filament/<Brand>/` — `@base` root + `@System` | [filament-profiles.md](references/filament-profiles.md) |
-| Brand's tune for one printer | `OrcaFilamentLibrary/filament/<Brand>/<PrinterVendor>/` preferred, or `<PrinterVendor>/filament/<Brand>/` | [filament-profiles.md](references/filament-profiles.md#where-a-filament-goes) |
-| Printer vendor tuning a generic | `<Vendor>/filament/`, keep the `Generic X` base name, non-empty `compatible_printers` | [filament-profiles.md](references/filament-profiles.md) |
-| New printer in an existing bundle | model + variants + processes + index entries + assets | [machine-profiles.md](references/machine-profiles.md#adding-a-printer-to-an-existing-bundle), [process-profiles.md](references/process-profiles.md) |
-| A whole new vendor bundle | `<Vendor>.json` + `<Vendor>/{machine,process}/` + bases | [vendor-bundle.md](references/vendor-bundle.md#starting-a-whole-new-vendor-bundle) |
-| New nozzle size on an existing printer | model's `nozzle_diameter` list, a variant, per-nozzle process(es), filament compatibility | [machine-profiles.md](references/machine-profiles.md#adding-a-nozzle-variant), [process-profiles.md](references/process-profiles.md) |
-| New quality tier | one process leaf (+ a per-nozzle base if none exists) | [process-profiles.md](references/process-profiles.md#adding-a-quality-tier-or-a-nozzles-processes) |
-| Rename / retire a preset | `renamed_from`, re-mint ids, index, version | [review-checklist.md](references/review-checklist.md) |
+1. **Bump every changed bundle's `version`**, including `OrcaFilamentLibrary.json` when affected.
+   Increment the last component; carry `.99` into the third component (`02.04.00.99` →
+   `02.04.01.00`). The updater requires a strictly newer version. CI does not check this.
+2. **Register every preset, bases included, parents before children.** `update-index` generates
+   the four `*_list` arrays; `check` requires its output. Index names must equal file `name` fields.
+3. **Generate ids; never invent or copy them.** Keep existing ids during ordinary tuning. New
+   presets normally omit them until `generate-id`; bases must have no `setting_id`.
+   BBL's authoritative `setting_id` and a wrongly inherited `filament_id` need the explicit
+   handling in [ids.md](references/ids.md).
+4. **Load failures can discard a whole vendor bundle.** Broken `inherits`, missing indexed files,
+   duplicate names, invalid model/variant references and unresolved filament ids affect more than
+   the edited preset. Inheritance stays within a bundle, except filaments may inherit the library.
+5. **Preserve shipped selectable names.** Renaming, deleting or changing `instantiation` from
+   `"true"` to `"false"` needs `renamed_from` on a selectable successor. It is a `;`-separated string;
+   update in-tree references too. See [migration rules](references/vendor-bundle.md#renamed_from).
+6. **Compatibility uses exact printer variant names.** Every instantiated non-library filament
+   needs a non-empty `compatible_printers` in its own file. Library fallbacks may omit it;
+   library printer-specific tunes use a non-empty list. Keep same-product tunes disjoint.
+7. **Preset values are strings or arrays of strings.** Use `"instantiation": "false"`, not `false`.
+   Model `nozzle_diameter` is a `;`-separated string; machine `nozzle_diameter` is an array.
+   Wrong types can abort loading; see [failure scopes](references/vendor-bundle.md#failure-modes-ranked-by-blast-radius).
+8. **Verify setting keys against the code.** Unknown keys are silently discarded. Check
+   `PrintConfig.cpp` definitions and `PrintConfigDef::handle_legacy`; neighbours can contain dead
+   keys. `normalize` removes known obsolete keys, but does not detect arbitrary misspellings.
+9. **Run the full profile checks before reporting completion.** A vendor-scoped pass is only a
+   development loop. Review also covers version bumps, assets, non-default processes and hardware
+   tuning that CI cannot establish.
 
 ## Creating or modifying a profile
 
-1. **Read the neighbours first.** Copy the shape of the bundle you are editing, not a different vendor's.
-   Read the `name` field — plenty of preset files have a filename that disagrees with it, so never trust
-   the path. Profile JSON is tab-indented, LF, one trailing newline — match it by hand. `normalize`
-   writes that shape but **only rewrites a file it already has a reason to change**, so a space-indented file passes
-   `check` today and then produces a whole-file diff the day something does trip `normalize`. Keep the
-   filename checkout-safe on every platform — see [above](#working-on-macos-linux-or-windows).
-2. **Write the profile with no `setting_id` and no `filament_id`.** Put shared values in a base
-   (`"instantiation": "false"`, no `setting_id`) and only the deltas in the selectable leaf.
-3. **Register it** in the right `*_list` of `<Vendor>.json` with a `sub_path` relative to the vendor
-   folder, positioned after its parent — or let `update-index` do it in step 5. Either way the committed
-   index has to equal what that command writes.
-4. **Bump the bundle `version`** (rule 1) — including `OrcaFilamentLibrary.json` for a library change.
-5. **Run the tool, in this order** — each step feeds the next:
+1. **Inspect the diff and neighbouring presets.** Read their `name`, parent chain and children;
+   edits to a base or a leaf with descendants propagate. Match the bundle's structure and write
+   only overrides. New files use tab indentation, LF and a trailing newline; preserve unrelated
+   formatting in existing files. Match filename case exactly and use cross-platform names.
+2. **Author explicit metadata.** Set `type` yourself, especially for `machine` vs `machine_model`.
+   Use `"from": "system"` and string `instantiation` on config presets. Omit ids on new presets
+   unless [ids.md](references/ids.md) requires special handling; retain them on existing ones.
+   Complete compatibility, defaults, assets and any rename migration using the task reference.
+3. **Bump the version**, then run the authoring commands in order for each affected bundle:
+
    ```bash
-   python3 scripts/orca_profile_tool.py normalize    --vendor <Vendor>   # canonical shape; writes the "type"
-   python3 scripts/orca_profile_tool.py update-index --vendor <Vendor>   # rebuild the lists, parents first
-   python3 scripts/orca_profile_tool.py generate-id  --vendor <Vendor>   # --dry-run to preview
-   python3 scripts/orca_profile_tool.py update-snapshot                  # whenever an id OR a claim changed
+   python3 scripts/orca_profile_tool.py normalize --vendor "<Vendor>"
+   python3 scripts/orca_profile_tool.py update-index --vendor "<Vendor>"
+   python3 scripts/orca_profile_tool.py generate-id --vendor "<Vendor>"
+   python3 scripts/orca_profile_tool.py update-snapshot
    python3 scripts/orca_profile_tool.py check
    ```
-   Any new filament preset needs the snapshot updated, even one that mints no new id: adding a vendor's
-   `Generic PETG @…` adds the claim `<Vendor>/Generic PETG`, and `check` fails until you do. Commit
-   `scripts/filament_id_snapshot.json` in the same commit as the profiles.
-   **Do not run `trim`** as part of this: it deletes every file the index does not list, which includes
-   the one you just added and have not registered.
-6. **Validate:**
+
+   Writing commands support `--dry-run`. Inspect their diffs: `normalize` changes content and can
+   reformat entire files. `update-snapshot` is tree-wide; include its diff whenever a filament id
+   **or claim** changes, even if no new id was minted. Skip it when filament identity and claims
+   are unchanged. Stop and resolve command errors before proceeding.
+
+   **Do not use `trim` in this workflow:** it can delete newly authored, unindexed profiles.
+   Do not use `normalize --force` for routine edits.
+4. **Validate:**
+
    ```bash
-   ./scripts/check_profile.sh --vendor "<Vendor>"   # fast loop
-   ./scripts/check_profile.sh                       # full tree, before opening the PR
+   ./scripts/check_profile.sh --vendor "<Vendor>"   # development loop
+   ./scripts/check_profile.sh                       # full tree before the PR
    ```
-   A vendor-scoped run is **not** a complete check: the id passes always run tree-wide, and
-   `validate_slice` is skipped for a vendor with no `machine/` folder. Exit codes are 0 clean, 1 errors,
-   2 argparse misuse; logs land in `.test/check_profiles/logs/<check>.log`. A failing message maps to its
-   fix in [error → remedy](references/validation.md#error--remedy); every flag, every check, and working
-   on a copy of the tree, is in [validation.md](references/validation.md).
-7. **Try it in the app** for anything behavioural. Editing `resources/profiles` does not update an
-   installed OrcaSlicer — it reads `<data_dir>/system/` (the data dirs in the table above), unless a
-   `data_dir` folder sits next to the executable, which wins. Bump the version, or delete that folder (Help ▸ Show Configuration Folder).
 
-## Reviewing a profile change
+   On Windows use `py -3` instead of `python3`, and `scripts\check_profile.bat -Vendor "<Vendor>"`
+   / `scripts\check_profile.bat`. Logs: `.test/check_profiles/logs/<check>.log`.
+   Id checks remain tree-wide under `--vendor`; filament-only bundles skip the default slice check.
+   See [validation.md](references/validation.md) for flags, coverage and error remedies.
+5. **Verify the changed behavior.** Slice newly added non-default processes explicitly, and
+   [test in the app](references/validation.md#testing-in-the-app) for selection or UI behavior.
+   Report checks actually run, failures/skips and any hardware tuning still unverified.
 
-Work through [references/review-checklist.md](references/review-checklist.md) — ordered by how often
-each item actually goes wrong in this repo, and it opens with the table of what CI cannot see: the
-version bump, key spellings, asset paths, non-default processes, cross-platform
-filenames and more. What CI *does* run is in [validation.md](references/validation.md).
+## Symptom → first reference
 
-## Red flags — stop and re-read the rules
-
-- "CI is green so the change is complete" → the version bump, key spellings and asset paths are not in CI.
-- "`--vendor` passed, so we're done" → run the unscoped script before the PR.
-- Emptying a filament's `compatible_printers` to make it apply everywhere → **rule 6**; it is an error
-  outside the library and creates a duplicate-`filament_id` collision against the library generic.
-- Hand-formatting a profile, or hand-sorting an index, to make it look like its neighbours → that is
-  `normalize` and `update-index`'s job, and `check` compares against them, not against your judgement.
-
-## Symptom → likely cause
-
-| Symptom | Look at |
+| Symptom | Start here |
 | --- | --- |
-| A vendor's printers vanished from Orca, no dialog | The whole bundle was discarded (rule 4). The error is only in the log and in `validate_system` — see the failure table in [vendor-bundle.md](references/vendor-bundle.md#failure-modes-ranked-by-blast-radius) |
-| A setting has no effect | Rule 8 — misspelled key, or a key on the `machine_model` record, or an obsolete name |
-| A preset exists on disk but is not selectable | Unregistered in the index, or `instantiation` is not `"true"` |
-| A filament is missing on one printer | Alias-shadowed by a vendor preset of the same base name |
-| A filament appears twice, or the AMS picks the wrong spool | Duplicate `filament_id`, or overlapping `compatible_printers` |
-| A bed temperature is ignored | The wrong plate key for this printer's `default_bed_type` |
-| It works locally but not for users | The `version` was not bumped |
+| A vendor disappears | Loader log / `validate_system`; [bundle failure scopes](references/vendor-bundle.md#failure-modes-ranked-by-blast-radius) |
+| A setting has no effect | Key spelling/type, `handle_legacy`, or a config key placed on a `machine_model` |
+| A preset exists but is not selectable | Index registration, `instantiation`, installation and compatibility |
+| A filament is missing, duplicated, or matches the wrong spool | [Compatibility and alias shadowing](references/filament-profiles.md#compatible_printers); [ids](references/ids.md) |
+| A bed temperature is ignored | [Plate-specific temperature keys](references/filament-profiles.md#bed-temperature-is-twelve-keys-not-one) |
+| A change is absent from the running app | Version bump and [installed profile location](references/validation.md#testing-in-the-app) |
+| A check fails | [Error → remedy](references/validation.md#error--remedy) |
 
-To identify a `filament_id` from an error message, grep it in `scripts/filament_id_snapshot.json` — each
-entry carries the triple it was minted from and one `<vendor folder>/<name-before-@>` claim per bundle
-shipping that product (so `BBL/Generic PLA` stands for every `Generic PLA @…` file in BBL, not one per
-file). It is exhaustive: every id declared anywhere in the tree is in it.
+## Source of truth
 
-## Where the wiki is wrong
-
-The [wiki guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/how_to_create_profiles.md)
-is the right place to start, but two of its statements are wrong:
-
-- **`from`.** The vendor-bundle loader never reads it — a shipped preset can even say `"from": "User"`.
-  Keep `"from": "system"` anyway: the CLI's `--load-settings` rejects anything else.
-- **Quality words** are "Standard, Fine, Fast or Draft". `Fast` is barely used; the real ladder is
-  Extra Fine / Fine / Optimal / Standard / Draft / Extra Draft, and the word encodes a
-  layer-height/nozzle ratio.
-
-It is silent on `instantiation: "false"` deleting a name, on `renamed_from` being a `;`-separated list,
-and on the version bump having no CI check — all covered above. Its "The Profile Tool" section is
-accurate and worth reading alongside [ids.md](references/ids.md).
-
-## Reference files
-
-| File | Contents |
-| --- | --- |
-| [vendor-bundle.md](references/vendor-bundle.md) | The index, `version` semantics, registration, every whole-bundle load failure |
-| [machine-profiles.md](references/machine-profiles.md) | `machine_model` vs `machine`, `printer_variant`, assets, multi-extruder |
-| [process-profiles.md](references/process-profiles.md) | Naming ladder, base layering, compatibility, per-nozzle numbers |
-| [filament-profiles.md](references/filament-profiles.md) | OrcaFilamentLibrary, brands, alias shadowing, `nil`, nozzle scaling |
-| [ids.md](references/ids.md) | `setting_id` and `filament_id` tooling, the snapshot, BBL's exception |
-| [validation.md](references/validation.md) | Every check, every flag, error → remedy |
-| [review-checklist.md](references/review-checklist.md) | Ordered reviewer checklist with the evidence for each item |
-
-`docs/HLSD/filament_id.md` is the authoritative design document for `filament_id`; read it before
-changing anything about filament identity.
+When guidance and behavior disagree, inspect the current checkout:
+`scripts/orca_profile_tool.py` for tooling and flags; `src/libslic3r/Preset*.cpp` for loading and
+compatibility; `src/libslic3r/PrintConfig.cpp` for setting types and legacy handling;
+`src/dev-utils/OrcaSlicer_profile_validator.cpp` and `.github/workflows/check_profiles.yml` for
+validation coverage. `docs/HLSD/filament_id.md` defines filament identity. The
+[profile development guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/how_to_create_profiles.md)
+is a tutorial; confirm loader and CLI details against these sources.

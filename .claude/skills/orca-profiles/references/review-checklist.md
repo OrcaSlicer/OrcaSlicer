@@ -1,7 +1,7 @@
 # Reviewing a profile change
 
-Ordered by how often each item actually goes wrong in this repo. The table is the short version — what
-CI cannot see, which is where review earns its keep; the items are the how. What CI *does* run:
+Start with delivery, identity and backward compatibility, then check the affected preset types.
+The table highlights gaps that need human review. What CI *does* run:
 [validation.md](validation.md).
 
 | Not checked by CI | Consequence |
@@ -11,7 +11,8 @@ CI cannot see, which is where review earns its keep; the items are the how. What
 | A filename Windows cannot check out, or one that differs from its `sub_path` only in case | Works on the author's machine, breaks the bundle on another platform |
 | `bed_model` / `bed_texture` / `hotend_model` pointing at a missing asset | Bed renders as Custom, hotend falls back to the generic model |
 | A nozzle size in a model's list with no matching variant | The size is offered and resolves to nothing |
-| A non-default process | `validate_slice` only slices each printer's `default_print_profile` |
+| A non-default process | `validate_slice` gives non-default quality tiers no dedicated coverage |
+| Whether the intended default survived compatibility selection | The sweep can select a different compatible preset |
 | A dangling `compatible_printers` inside an `instantiation: "false"` base | A base never becomes a `Preset`, so the reference check never sees it (a bad `inherits` in a base *is* caught) |
 | A `renamed_from` whose old name is still a live preset | The redirect is inert while a live preset carries that name |
 | Per-extruder vector length on a multi-nozzle printer | Silently padded (with the **first** value) or truncated |
@@ -19,8 +20,8 @@ CI cannot see, which is where review earns its keep; the items are the how. What
 ## 1. Was the vendor `version` bumped?
 
 For **every** bundle whose folder the diff touches, `resources/profiles/<Vendor>.json` must have its
-`version` incremented — last component only, never past 99. A library change means bumping
-`OrcaFilamentLibrary.json`.
+`version` incremented — last component, carrying `.99` into the third component. A library change
+means bumping `OrcaFilamentLibrary.json`.
 
 *Why:* nothing in CI checks it, and `PresetUpdater` reinstalls only when `vendor_ver < resource_ver` —
 without a bump the change reaches neither an upgrading user nor the author's own running app.
@@ -34,12 +35,15 @@ omission yourself. Three things are still yours:
 - **The index diff belongs to this change.** `update-index` rewrites whole `*_list` sections. If the
   bundle had drifted, the author's PR now carries someone else's reordering; ask for it in a separate
   commit rather than reviewing it inline.
-- **A deleted preset is a rename in disguise** unless item 4 is satisfied. `update-index` de-registers
-  it silently and CI is happy.
+- **A deleted selectable preset needs a successor** as in item 4. `update-index` removes its
+  registration; `validate_custom` detects the break only for names covered by released fixtures.
 - **`normalize` edits content, not just layout.** It drops `version` and `is_custom_defined` from preset
-  files, deletes six print-speed keys from filament profiles, and resolves `extruder_clearance_radius`
-  against `extruder_clearance_max_radius` by keeping the larger. Check that the keys it removed were
-  meant to go.
+  files, removes obsolete keys, deletes six print-speed keys from filament profiles, and resolves
+  `extruder_clearance_radius` against `extruder_clearance_max_radius` by keeping the larger.
+  Check that the keys it removed were meant to go.
+
+Obsolete keys fail `check`'s normalization pass and should be removed with `normalize`.
+`check` also reports per-key obsolete warnings for filament profiles in the selected vendors.
 
 *Why:* the index is the loader's only entry point. Out-of-order entries fail with `can not find inherits`
 and take the whole vendor bundle down; an unindexed file gets reviewed, merged and never loads.
@@ -69,8 +73,8 @@ presets are dropped with no error at all. Commit `33923464ae` reverted exactly t
 
 ## 5. Is `compatible_printers` right?
 
-Exact printer **variant** names, non-empty on every filament outside OrcaFilamentLibrary and written in
-the preset's own file — golden rule 6, with the flattened-vs-own-key trap in
+Exact printer **variant** names, non-empty on every instantiated filament outside OrcaFilamentLibrary
+and written in the preset's own file — golden rule 6, with the flattened-vs-own-key trap in
 [filament-profiles.md](filament-profiles.md#compatible_printers). Watch for a nozzle-specific variant that
 inherited or copied the base's full printer list, and for two presets of one product with overlapping
 lists — duplicate combobox entries and an ambiguous AMS match.
@@ -83,18 +87,18 @@ entries).
 - New nozzle size → the model's `nozzle_diameter` list extended, a variant with a matching
   `printer_variant`, and at least one process listing that variant.
 - `default_print_profile` is one exact name (not a `;` list), and that process's resolved
-  `compatible_printers` includes this printer.
+  compatibility list or condition includes this printer.
 - `default_filament_profile` is an array of names that exist.
 
-*Why:* the first two are hard-gated — an unlisted `printer_variant` fails the printer preset and takes
-the whole bundle down. The rest is not: a variant no process lists still loads and passes
-`validate_system`, surfacing only in `validate_slice` as a fallback to the default preset.
+*Why:* an unlisted `printer_variant` is a hard bundle-load failure. Default process selection is
+weaker: the sweep attempts the named default, then updates compatibility and rejects generic Default
+fallbacks. Another compatible process can conceal a bad reference, so inspect it even after a pass.
 
 ## 7. Types and spellings
 
 Every value a string or an array of strings; `filament_type` an array; `instantiation` the string
-`"true"`/`"false"` — golden rule 7, including the two keys whose non-string values abort the load for
-**every** vendor.
+`"true"`/`"false"` — golden rule 7. Check index metadata and model `nozzle_diameter` especially;
+wrong types there can abort loading for **every** vendor.
 
 The part only a reviewer can do: check new setting keys against `src/libslic3r/PrintConfig.cpp`. A
 misspelled key is silently discarded (rule 8), the single most common way a profile edit does nothing
@@ -108,9 +112,10 @@ children of its own: Prusa, Flashforge and Elegoo all chain leaf-inherits-leaf s
 
 ## 9. Do the numbers make sense for the nozzle?
 
-Line widths at nozzle + 0.02; `layer_height` ≤ nozzle; MVS and pressure advance tracking nozzle size
-(tables in [process-profiles.md](process-profiles.md) and [filament-profiles.md](filament-profiles.md)).
-A 0.2-nozzle preset still carrying the 0.4 MVS is the classic copy-paste bug.
+Check resolved widths and layer heights against the nozzle, and flow limits / pressure advance
+against the actual hardware and material. The patterns in [process-profiles.md](process-profiles.md)
+are examples, not mandatory values; [filament-profiles.md](filament-profiles.md) explains what to
+revisit for a nozzle change. A cloned preset's unchanged MVS needs particular scrutiny.
 
 Settings tuned for real hardware cannot be verified by reading the diff. Say so rather than approving
 numbers nobody measured.
@@ -138,21 +143,19 @@ value, not the last — or truncated. The two sizing families and the worked cas
 
 ## 13. Non-default processes get no slice coverage
 
-`validate_slice` only slices each printer's `default_print_profile` and nothing else. A new quality tier
-that is not the default was never sliced by CI.
+`validate_slice` starts from printer defaults; it does not enumerate every process. Slice a new or
+changed non-default tier explicitly with its intended printer.
 
 ## 14. Housekeeping worth a nit, not a block
 
 `"from"` other than `"system"` (the preset-bundle loader ignores it, though the CLI's config-file loader
 rejects anything but `system`/`user`/`User`), `printer_settings_id` copied from another
-vendor, a filename that disagrees with the preset's `name` (common; the loader keys off `name`), and
-obsolete keys (`check --obsolete-keys` warns tree-wide — read only this vendor's).
+vendor, and a filename that disagrees with the preset's `name` (common; the loader keys off `name`).
 
 ## 15. Cross-platform filenames and paths (not checked)
 
-A filename with a trailing space or dot, or one of `< > : " | ? *`; a `sub_path` or asset path that
-matches the file only case-insensitively. Both pass on the author's machine and break on another
-platform — Windows cannot check the first out, Linux will not resolve the second.
+Check for Windows-invalid characters, reserved device names, trailing path-component spaces/dots,
+and case mismatches in `sub_path` or asset paths. See [cross-platform paths](validation.md#cross-platform-paths).
 
 ---
 

@@ -20,7 +20,7 @@ uses the `name`.
 }
 ```
 
-The loader acts on exactly four things: `name`, `version`, `url` and the four `*_list` arrays.
+The loader reads `name`, `version`, `url` and the four `*_list` arrays.
 `description` is only logged. `force_update` is read by `PresetUpdater`, never by the loader.
 `sub_path` is relative to the **vendor folder**.
 
@@ -50,13 +50,17 @@ fine for a one-line addition, but the committed result must equal what `update-i
 The loader itself reports none of this: an unregistered file, or an entry with a typo'd key
 (`"subpath"`), is silently dropped. (A typo'd `sub_path` is a `check` error naming the entry.)
 
+`BBL/cli_config.json` and `BBL/filament/filaments_color_codes.json` are auxiliary data loaded by path,
+not presets. The tool's `NON_PROFILE_FILES` excludes these basenames from preset maintenance.
+
 ## `version`
 
 Parsed by a four-component Semver where the 4th is folded in as `patch = patch*100 + value`. Write it
 zero-padded, `MM.mm.pp.bb`; a couple of bundles drop a component or the padding, but do not imitate them.
 
-- **Bump the last component for every bundle the PR touches.** Nothing in CI checks it; why it matters
-  is golden rule 1 in the skill.
+- **Bump the version for every bundle the PR touches.** `PresetUpdater` installs bundled resources
+  only when their version is newer than the installed version; the `.opc` preset cache is also
+  versioned. Nothing in profile CI checks the bump.
 - **Keep the last component ≤ 99.** `02.04.00.100` and `02.04.01.00` both parse to `2.4.100`. A bundle
   that reaches `.99` carries into the third component (`02.03.02.99` → `02.03.03.00`).
 - An **absent** version is worse than a stale one: the validator still passes, but `Semver::valid()`
@@ -75,6 +79,11 @@ zero-padded, `MM.mm.pp.bb`; a couple of bundles drop a component or the padding,
 | `from` | `"system"` by convention; the vendor loader never reads it |
 | `setting_id` | required on instantiated presets, forbidden on bases — generated |
 | `renamed_from` | `;`-separated list of old names this preset supersedes |
+
+These are config-preset keys; `machine_model` records have their own
+[schema](machine-profiles.md#a-machine_model-is-not-a-config-preset). Keep `from` as `"system"`
+for shipped presets. The vendor loader ignores it, but the CLI config-file loader accepts only
+`system`, `user` or `User` and handles their inheritance differently.
 
 `instantiation` is the one metadata key that is hard-gated: a missing key or any value other than the
 strings `"true"`/`"false"` is an error (`Missing instantiation attribute for <name>`). A JSON boolean
@@ -108,7 +117,7 @@ One JSON string, `;`-separated for several old names.
 
 | Scope | Cause |
 | --- | --- |
-| **All vendors, zero system profiles** | a non-string `version`, `name` or `url` at the top level of a vendor index (`"version": 2`) — `nlohmann::type_error` is not a `std::runtime_error`, so it escapes the per-vendor catch |
+| **All vendors, zero system profiles** | a non-string `version`, `name` or `url` at the top level of a vendor index (`"version": 2`), or non-string `nozzle_diameter` on a model — `nlohmann::type_error` escapes the per-vendor `std::runtime_error` catch |
 | **The whole vendor bundle** | unparseable `version`; index JSON parse error; a `sub_path` file missing or unparseable; unresolvable `inherits`; duplicate preset name within the vendor; empty/unknown `printer_model` or `printer_variant`; a filament resolving no `filament_id` |
 | **One preset** | `instantiation` missing or a wrong string; keys belonging to another preset type (`contains incorrect keys: …, which were removed`); a non-string inside a `*_list` entry (`invalid value type for <key>`) |
 | **Logged, not counted** | a raw JSON number in a preset — `invalid json type for <key>`, the value is dropped and the exit code stays 0 |
@@ -150,7 +159,7 @@ Write the machine files **last**, so you only visit them once:
 6. The `machine_model` record and the `machine` variants, now that every value they reference exists —
    the minimum key sets and the `default_*` shapes are in
    [machine-profiles.md](machine-profiles.md#the-machine-variant).
-7. Run the tool and validate — steps 5 and 6 of
+7. Run the tool and validate — follow
    [Creating or modifying a profile](../SKILL.md#creating-or-modifying-a-profile). `generate-id` is not
    optional for a new bundle: the validator loads presets that have no `setting_id`, but `check` fails
    every one of them. `update-index` will fill the four `*_list` arrays for you once the files exist, so
