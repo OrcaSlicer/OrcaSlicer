@@ -318,7 +318,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , diff_dialog(this)
+    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -738,9 +738,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
-    // bind events from DiffDlg
-
-    bind_diff_dialog();
 }
 
 bool MainFrame::handle_global_shortcut(const KeyChord& chord)
@@ -833,8 +830,10 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
     return true;
 }
 
-void MainFrame::bind_diff_dialog()
+DiffPresetDialog* MainFrame::make_diff_dialog()
 {
+    auto* dialog = new DiffPresetDialog(this);
+
     auto get_tab = [](Preset::Type type) {
         Tab* null_tab = nullptr;
         for (Tab* tab : wxGetApp().tabs_list)
@@ -843,23 +842,24 @@ void MainFrame::bind_diff_dialog()
         return null_tab;
     };
 
-    auto transfer = [this, get_tab](Preset::Type type) {
-        get_tab(type)->transfer_options(diff_dialog.get_left_preset_name(type),
-                                        diff_dialog.get_right_preset_name(type),
-                                        diff_dialog.get_selected_options(type));
+    auto transfer = [dialog, get_tab](Preset::Type type) {
+        get_tab(type)->transfer_options(dialog->get_left_preset_name(type),
+                                        dialog->get_right_preset_name(type),
+                                        dialog->get_selected_options(type));
     };
 
-    auto process_options = [this](std::function<void(Preset::Type)> process) {
-        const Preset::Type diff_dlg_type = diff_dialog.view_type();
+    auto process_options = [dialog](std::function<void(Preset::Type)> process) {
+        const Preset::Type diff_dlg_type = dialog->view_type();
         if (diff_dlg_type == Preset::TYPE_INVALID) {
-            for (const Preset::Type& type : diff_dialog.types_list() )
+            for (const Preset::Type& type : dialog->types_list() )
                 process(type);
         }
         else
             process(diff_dlg_type);
     };
 
-    diff_dialog.Bind(EVT_DIFF_DIALOG_TRANSFER,      [process_options, transfer](SimpleEvent&)         { process_options(transfer); });
+    dialog->Bind(EVT_DIFF_DIALOG_TRANSFER, [process_options, transfer](SimpleEvent&) { process_options(transfer); });
+    return dialog;
 }
 
 
@@ -2700,7 +2700,8 @@ void MainFrame::on_sys_color_changed()
 #endif
 #endif
 
-    diff_dialog.on_sys_color_changed();
+    if (DiffPresetDialog* dialog = DiffPresetDialog::if_built())
+        dialog->on_sys_color_changed();
 
     // BBS
     m_tabpanel->Rescale();
@@ -4020,6 +4021,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
+    m_idle.add(m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

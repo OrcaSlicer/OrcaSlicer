@@ -189,7 +189,7 @@ class MainFrame : public DPIFrame
     bool can_delete() const;
     bool can_delete_all() const;
     bool can_reslice() const;
-    void bind_diff_dialog();
+    DiffPresetDialog* make_diff_dialog();
 
     // BBS
     wxBoxSizer* create_side_tools();
@@ -475,7 +475,8 @@ public:
     ParamsDialog*         m_param_dialog{ nullptr };
     //BBS
     SettingsDialog        m_settings_dialog;
-    DiffPresetDialog      diff_dialog;
+    // The Compare presets dialog, built on first use or at idle through its holder.
+    Lazy<DiffPresetDialog> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 
