@@ -321,7 +321,8 @@ void KBShortcutsDialog::edit_shortcut(Shortcut shortcut)
     ShortcutCaptureDialog dlg(this, shortcut);
     if (dlg.ShowModal() != wxID_OK)
         return;
-    const wxString question = wxString::Format(_L("%s is already used by: %s. Assign it here and remove it from those shortcuts?"), from_u8(dlg.chord().display()), shortcut_names(dlg.conflicts()));
+    const wxString question = wxString::Format(_L("%s is assigned to %s. Reassign it to %s?"),
+                                               join_keys(to_wx(dlg.chord().display_parts())), shortcut_names(dlg.conflicts()), _(shortcut_info(shortcut).name));
     if (!take_chord_from(shortcut, dlg.conflicts(), question))
         return;
     wxGetApp().shortcuts().bind(shortcut, dlg.chord());
@@ -331,7 +332,8 @@ void KBShortcutsDialog::edit_shortcut(Shortcut shortcut)
 void KBShortcutsDialog::reset_shortcut(Shortcut shortcut)
 {
     const std::vector<Shortcut> conflicts = wxGetApp().shortcuts().conflicts(shortcut, shortcut_info(shortcut).default_chord);
-    const wxString question = wxString::Format(_L("The default is already used by: %s. Resetting removes it from those shortcuts."), shortcut_names(conflicts));
+    const wxString question = wxString::Format(_L("The default %s is assigned to %s. Reassign it to %s?"),
+                                               join_keys(to_wx(shortcut_info(shortcut).default_chord.display_parts())), shortcut_names(conflicts), _(shortcut_info(shortcut).name));
     if (!take_chord_from(shortcut, conflicts, question))
         return;
     wxGetApp().shortcuts().reset(shortcut);
@@ -429,8 +431,14 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
     sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
 
-    m_status = new Label(this, wxGetApp().normal_font(), _L("Esc cancels, Enter confirms."), LB_AUTO_WRAP);
+    // A Global shortcut also runs while a text field has the focus, so its hint names the keys it can use.
+    const bool global = (shortcut_info(shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
+    m_hint = global ? wxString::Format(_L("Global shortcuts also apply while typing, so they need %s or %s, or a key that does not type a character."),
+                                       from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT)))
+                    : _L("Esc cancels, Enter confirms.");
+    m_status = new Label(this, wxGetApp().normal_font(), m_hint, LB_AUTO_WRAP);
     m_status->SetMinSize(wxSize(FromDIP(400), -1));
+    m_status->Wrap(FromDIP(400));   // so the fit below already counts its lines
     m_status_colour = m_status->GetForegroundColour();
     sizer->Add(m_status, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(20));
 
@@ -496,20 +504,21 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
 
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     if (global && !chord.is_menu_accelerator()) {
-        m_status->SetLabel(wxString::Format(_L("This shortcut works while typing in text fields too, so it must include %s or %s (Shift alone is not enough) or use a key that does not type a character, such as a function key."),
-                                            from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT))));
         m_status->SetForegroundColour(ERROR_COLOUR);
+        m_status->SetLabel(wxString::Format(_L("%s types a character in text fields, so it cannot be a global shortcut. Include %s or %s, or use a key that does not type a character."),
+                                            join_keys(to_wx(chord.display_parts())), from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_ALT))));
         m_conflicts.clear();
         m_ok->Enable(false);
     } else {
         m_conflicts = wxGetApp().shortcuts().conflicts(m_shortcut, chord);
         m_status->SetForegroundColour(m_status_colour);
         if (m_conflicts.empty())
-            m_status->SetLabel(_L("Esc cancels, Enter confirms."));
+            m_status->SetLabel(m_hint);
         else
-            m_status->SetLabel(wxString::Format(_L("Already used by: %s. Confirming removes it from those shortcuts."), shortcut_names(m_conflicts)));
+            m_status->SetLabel(wxString::Format(_L("Already assigned to %s. Confirming moves it here."), shortcut_names(m_conflicts)));
         m_ok->Enable(true);
     }
+    m_status->Refresh();   // a colour change alone does not repaint
     Layout();
     Fit();
 }

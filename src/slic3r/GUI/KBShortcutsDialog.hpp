@@ -109,6 +109,7 @@ private:
     KeyChord              m_chord;
     std::vector<Shortcut> m_conflicts;
     wxStaticText*         m_chord_label;
+    wxString              m_hint;     // what m_status shows while there is nothing to warn about
     Label*                m_status;
     wxColour              m_status_colour;
     Button*               m_ok;
