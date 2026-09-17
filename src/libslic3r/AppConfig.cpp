@@ -376,6 +376,9 @@ void AppConfig::set_defaults()
     if (get("show_unsupported_presets").empty())
         set_bool("show_unsupported_presets", false);
 
+    if (get("show_preset_source_indicators").empty())
+        set_bool("show_preset_source_indicators", true);
+
     if (get("enable_ssl_for_mqtt").empty())
         set_bool("enable_ssl_for_mqtt", true);
 

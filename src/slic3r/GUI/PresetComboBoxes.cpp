@@ -386,15 +386,7 @@ wxString PresetComboBox::get_preset_item_name(unsigned int index)
 
 wxString PresetComboBox::get_preset_name(const Preset & preset)
 {
-    wxString prefix = "";
-    if (preset.is_default || preset.is_system)
-        prefix = "(S) ";
-    else if (preset.is_project_embedded)
-        prefix = "(P) ";
-    else
-        prefix = "(U) ";
-
-    return prefix + from_u8(preset.name);
+    return from_u8(preset.name);
 }
 
 void PresetComboBox::update(std::string select_preset_name)
@@ -714,31 +706,117 @@ wxBitmap* PresetComboBox::get_bmp(  std::string bitmap_key, bool wide_icons, con
 #endif
 }
 
-wxBitmap *PresetComboBox::get_bmp(Preset const &preset)
+static wxImage make_source_dot_image(const wxColour& colour, int diameter, int scale)
 {
-    static wxBitmap sbmp;
-    if (m_type == Preset::TYPE_FILAMENT) {
-        Preset const & preset2 = &m_collection->get_selected_preset() == &preset ? m_collection->get_edited_preset() : preset;
-        wxString color = preset2.config.opt_string("default_filament_colour", 0);
-        wxColour clr(color);
-        if (clr.IsOk()) {
-            std::string bitmap_key = "default_filament_colour_" + color.ToStdString();
-            wxBitmap *bmp        = bitmap_cache().find(bitmap_key);
-            if (bmp == nullptr) {
-                wxImage img(16, 16);
-                if (clr.Red() > 224 && clr.Blue() > 224 && clr.Green() > 224) {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), 128, 128, 128);
-                    img.SetRGB(wxRect({1, 1}, img.GetSize() - wxSize{2, 2}), clr.Red(), clr.Green(), clr.Blue());
-                } else {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), clr.Red(), clr.Green(), clr.Blue());
-                }
-                bmp = new wxBitmap(img);
-                bmp = bitmap_cache().insert(bitmap_key, *bmp);
-            }
-            return bmp;
+    const int hw   = diameter * scale;
+    const double r = hw / 2.0;
+
+    wxImage hi(hw, hw);
+    hi.InitAlpha();
+    for (int y = 0; y < hw; ++y) {
+        for (int x = 0; x < hw; ++x) {
+            const double dx           = x - r + 0.5;
+            const double dy           = y - r + 0.5;
+            const double dist         = std::sqrt(dx * dx + dy * dy);
+            const unsigned char alpha = dist <= r ? 255 : dist <= r + 1.0 ? static_cast<unsigned char>((r + 1.0 - dist) * 255.0) : 0;
+            hi.SetRGB(x, y, colour.Red(), colour.Green(), colour.Blue());
+            hi.SetAlpha(x, y, alpha);
         }
     }
-    return &sbmp;
+    return hi.Scale(diameter, diameter, wxIMAGE_QUALITY_HIGH);
+}
+
+wxBitmap* PresetComboBox::get_bmp(Preset const& preset)
+{
+    bool show_indicators = wxGetApp().app_config->get_bool("show_preset_source_indicators");
+
+    static constexpr int kDot    = 10;
+    static constexpr int kScale  = 3;
+    static constexpr int kH      = 16;
+    static constexpr int kSwatch = 16;
+    static constexpr int kStrip  = kDot + 4;
+    static constexpr int kTotal  = kSwatch + kStrip;
+
+    // Cache the three dot bitmaps as statics — built once, never looked up again
+    static const wxImage s_dot_sys  = make_source_dot_image(wxColour(0, 120, 212), kDot, kScale);
+    static const wxImage s_dot_proj = make_source_dot_image(wxColour(40, 167, 69), kDot, kScale);
+    static const wxImage s_dot_usr  = make_source_dot_image(wxColour(230, 126, 34), kDot, kScale);
+
+    const bool is_system  = preset.is_default || preset.is_system;
+    const bool is_project = preset.is_project_embedded;
+
+    const wxImage& dot_img    = is_system ? s_dot_sys : is_project ? s_dot_proj : s_dot_usr;
+    const std::string dot_key = is_system ? "sys" : is_project ? "proj" : "usr";
+
+    // Non-filament: return dot bitmap directly
+    if (m_type != Preset::TYPE_FILAMENT) {
+        if (!show_indicators) {
+            static const std::string empty_key = "empty_16x16";
+            wxBitmap* empty_bmp                = bitmap_cache().find(empty_key);
+            if (!empty_bmp) {
+                wxImage empty_img(kSwatch, kH);
+                empty_img.InitAlpha();
+                for (int y = 0; y < kH; ++y)
+                    for (int x = 0; x < kSwatch; ++x)
+                        empty_img.SetAlpha(x, y, 0);
+                empty_bmp = bitmap_cache().insert(empty_key, wxBitmap(empty_img));
+            }
+            return empty_bmp;
+        }
+
+        const std::string key = "dot_" + dot_key + "_t" + std::to_string(static_cast<int>(m_type));
+        wxBitmap* bmp         = bitmap_cache().find(key);
+        if (!bmp)
+            bmp = bitmap_cache().insert(key, wxBitmap(dot_img));
+        return bmp;
+    }
+
+    // Filament: swatch + dot
+    const Preset& dp      = (&m_collection->get_selected_preset() == &preset) ? m_collection->get_edited_preset() : preset;
+    const wxString color  = dp.config.opt_string("default_filament_colour", 0);
+    const std::string key = (show_indicators ? "fil_" + dot_key + "_" : "fil_nodot_") + color.ToStdString();
+
+    wxBitmap* bmp = bitmap_cache().find(key);
+    if (bmp)
+        return bmp;
+
+    wxImage img(show_indicators ? kTotal : kSwatch, kH);
+    img.InitAlpha();
+
+    // Left: colour swatch
+    const wxColour clr(color);
+    if (clr.IsOk()) {
+        const bool light = clr.Red() > 224 && clr.Green() > 224 && clr.Blue() > 224;
+        if (light) {
+            img.SetRGB(wxRect(0, 0, kSwatch, kH), 128, 128, 128);
+            img.SetRGB(wxRect(1, 1, kSwatch - 2, kH - 2), clr.Red(), clr.Green(), clr.Blue());
+        } else {
+            img.SetRGB(wxRect(0, 0, kSwatch, kH), clr.Red(), clr.Green(), clr.Blue());
+        }
+        for (int x = 0; x < kSwatch; ++x)
+            for (int y = 0; y < kH; ++y)
+                img.SetAlpha(x, y, 255);
+    } else {
+        for (int x = 0; x < kSwatch; ++x)
+            for (int y = 0; y < kH; ++y)
+                img.SetAlpha(x, y, 0);
+    }
+    
+    // Right: dot centred in strip, transparent padding around it
+    if (show_indicators) {
+        const int ox = (kStrip - kDot) / 2;
+        const int oy = (kH - kDot) / 2;
+        for (int y = 0; y < kH; ++y) {
+            for (int x = 0; x < kStrip; ++x) {
+                const int ix = x - ox, iy = y - oy;
+                const bool inside = ix >= 0 && ix < kDot && iy >= 0 && iy < kDot;
+                img.SetRGB(kSwatch + x, y, inside ? dot_img.GetRed(ix, iy) : 0, inside ? dot_img.GetGreen(ix, iy) : 0,
+                           inside ? dot_img.GetBlue(ix, iy) : 0);
+                img.SetAlpha(kSwatch + x, y, inside ? dot_img.GetAlpha(ix, iy) : 0);
+            }
+        }
+    }
+    return bitmap_cache().insert(key, wxBitmap(img));
 }
 
 wxBitmap *PresetComboBox::get_bmp(std::string        bitmap_key,
@@ -1134,15 +1212,7 @@ void PlaterPresetComboBox::show_edit_menu()
 
 wxString PlaterPresetComboBox::get_preset_name(const Preset& preset)
 {
-    wxString prefix = "";
-    if (preset.is_default || preset.is_system)
-        prefix = "(S) ";
-    else if (preset.is_project_embedded)
-        prefix = "(P) ";
-    else
-        prefix = "(U) ";
-
-    return prefix + from_u8(preset.label(false));
+    return from_u8(preset.label(false));
 }
 
 // Only the compatible presets are shown.
@@ -1700,16 +1770,7 @@ void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
 wxString TabPresetComboBox::get_preset_name(const Preset& preset)
 {
     wxString name = preset.is_from_bundle() ? from_u8(preset.label(false)) : from_u8(preset.label(true));
-
-    wxString prefix = "";
-    if (preset.is_default || preset.is_system)
-        prefix = "(S) ";
-    else if (preset.is_project_embedded)
-        prefix = "(P) ";
-    else
-        prefix = "(U) ";
-
-    return prefix + name;
+    return name;
 }
 
 // Update the choice UI from the list of presets.

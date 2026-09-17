@@ -1118,6 +1118,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
+        if (param == "show_preset_source_indicators") {
+            if (Plater* plater = wxGetApp().plater()) {
+                Sidebar& sidebar = plater->sidebar();
+                for (Preset::Type type : {Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT, Preset::TYPE_PRINT}) {
+                    sidebar.update_presets(type);
+                }
+                sidebar.Refresh(true);
+            }
+        }
+
         if (param == "use_printer_agents")
         {
             // Rebuild the Device tab so the native/web-UI choice reflects the new flag
@@ -1700,6 +1710,9 @@ void PreferencesDialog::create_items()
 
     auto item_remember_printer = create_item_checkbox(_L("Remember printer configuration"), _L("If enabled, Orca will remember and switch filament/process configuration for each printer automatically."), "remember_printer_config");
     g_sizer->Add(item_remember_printer);
+
+    auto item_show_preset_source = create_item_checkbox(_L("Show preset source indicators"), _L("Show a colored dot on preset icons to differentiate between System, User, and Project profiles."), "show_preset_source_indicators");
+    g_sizer->Add(item_show_preset_source);
 
     auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
         "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
