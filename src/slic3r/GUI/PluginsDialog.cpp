@@ -2,6 +2,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"

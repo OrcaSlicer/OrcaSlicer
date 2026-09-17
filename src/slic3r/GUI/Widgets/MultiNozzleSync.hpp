@@ -89,8 +89,6 @@ private:
 
     bool m_right_on{ true };
     wxStaticBitmap* badget;
-    Label* left;
-    Label* right;
     Label* left_diameter_desp;
     Label* right_diameter_desp;
     Label* left_flow_desp;

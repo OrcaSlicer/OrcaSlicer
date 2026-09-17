@@ -86,8 +86,6 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/)
-    , m_filament_ids(in_out.filament_ids)
-    , m_first_extruder_id(in_out.first_extruder_id)
 {
     auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));

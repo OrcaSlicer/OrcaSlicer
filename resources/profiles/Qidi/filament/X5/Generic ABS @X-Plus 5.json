@@ -8,6 +8,9 @@
 	"box_temperature_range_high": [
 		"45"
 	],
+	"chamber_temperature": [
+		"55"
+	],
 	"close_fan_the_first_x_layers": [
 		"3"
 	],

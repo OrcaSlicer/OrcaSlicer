@@ -15,6 +15,8 @@
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 
+#include <sstream>
+
 using namespace Slic3r;
 
 SCENARIO("Generic config validation performs as expected.", "[Config]") {
@@ -486,6 +488,59 @@ TEST_CASE("save_to_json round-trips plugin capability references as strings", "[
     REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
     CHECK(reason.empty());
     CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+}
+
+TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    config.set_key_value("filament_type", new ConfigOptionStrings({ "PLA", "PETG" }));
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28\nG1 Z5"));
+
+    ScopedTemporaryFile tmp(".json");
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+    std::string file_contents;
+    {
+        boost::nowide::ifstream ifs(tmp.string());
+        file_contents.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    // The file format: one tab per nesting level and a trailing newline.
+    REQUIRE_FALSE(file_contents.empty());
+    CHECK(file_contents.rfind("{\n\t\"", 0) == 0);
+    CHECK(file_contents.back() == '\n');
+
+    std::ostringstream strict, replaced;
+    config.save_to_json(strict, "test_preset", "User", "1.0.0.0");
+    config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true);
+    CHECK(strict.str() == file_contents);
+    CHECK(replaced.str() == file_contents);
+    CHECK(nlohmann::json::parse(strict.str())["machine_start_gcode"] == "G28\nG1 Z5");
+}
+
+TEST_CASE("save_to_json replaces invalid UTF-8 in a stream only when asked", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    std::ostringstream strict, replaced;
+    CHECK_THROWS_AS(config.save_to_json(strict, "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+    REQUIRE_NOTHROW(config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true));
+    CHECK(nlohmann::json::parse(replaced.str())["machine_start_gcode"] == "G28 ; \xEF\xBF\xBD");
+}
+
+TEST_CASE("save_to_json leaves an existing file untouched when the config cannot be serialized", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << "previous";
+    }
+    CHECK_THROWS_AS(config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+
+    boost::nowide::ifstream ifs(tmp.string());
+    const std::string contents((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    CHECK(contents == "previous");
 }
 
 TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {
@@ -1089,5 +1144,130 @@ TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][F
         config.set_key_value("filament_id", new ConfigOptionStrings({"GFS00"}));
         REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
         REQUIRE(displayed == "Sup.PLA");
+    }
+}
+
+namespace {
+
+// min_object_distance reads exactly these three options.
+DynamicPrintConfig spacing_config(PrinterTechnology tech, PrintSequence seq, double clearance_radius)
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(tech));
+    c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(seq));
+    c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(clearance_radius));
+    return c;
+}
+
+} // namespace
+
+TEST_CASE("min_object_distance floors object spacing per print sequence", "[Config]")
+{
+    struct Case
+    {
+        std::string       description;
+        PrinterTechnology tech;
+        PrintSequence     sequence;
+        double            clearance_radius;
+        double            expected;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"sequential FFF takes a clearance radius above the floor", ptFFF, PrintSequence::ByObject, 12., 12.},
+        {"sequential FFF holds the floor at the radius",            ptFFF, PrintSequence::ByObject,  6.,  6.},
+        {"sequential FFF holds the floor below the radius",         ptFFF, PrintSequence::ByObject,  4.,  6.},
+        {"layered FFF ignores the clearance radius",                ptFFF, PrintSequence::ByLayer,  12.,  6.},
+        {"SLA is a flat 6mm",                                       ptSLA, PrintSequence::ByObject, 12.,  6.},
+        {"SLA ignores the print sequence too",                      ptSLA, PrintSequence::ByLayer,  12.,  6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        CHECK_THAT(min_object_distance(spacing_config(c.tech, c.sequence, c.clearance_radius)),
+                   Catch::Matchers::WithinAbs(c.expected, 1e-9));
+    }
+}
+
+TEST_CASE("min_object_distance yields no floor when an FFF config lacks the options", "[Config]")
+{
+    // Missing options yield 0 rather than an error, so a caller gets no floor at all.
+    SECTION("no clearance radius") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("no print sequence") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("nothing at all") {
+        CHECK_THAT(min_object_distance(DynamicPrintConfig{}), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("an unset printer technology is treated as FFF") {
+        DynamicPrintConfig c;
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
+    }
+}
+
+TEST_CASE("Static print configs compare, order and hash by their option values", "[Config]")
+{
+    // PrintObjectConfig comes from PRINT_CONFIG_CLASS_DEFINE; PrintConfig combines MachineEnvelopeConfig
+    // and GCodeConfig through PRINT_CONFIG_CLASS_DERIVED_DEFINE. Both generate hash(), operator==,
+    // operator< and the option registration from the same option list. The hash inequalities use fixed
+    // inputs, so they are deterministic; they check that hash() covers the changed option.
+    SECTION("default-constructed configs are equal and find their options by key")
+    {
+        PrintObjectConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+        REQUIRE_FALSE(a < b);
+        REQUIRE_FALSE(b < a);
+        REQUIRE(a.optptr("layer_height") == &a.layer_height);
+        REQUIRE(a.optptr("brim_object_gap") == &a.brim_object_gap);
+    }
+
+    SECTION("one differing option makes the configs unequal and orders them")
+    {
+        PrintObjectConfig a, b;
+        b.layer_height.value = a.layer_height.value + 0.05;
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+        REQUIRE(a < b);
+        REQUIRE_FALSE(b < a);
+    }
+
+    SECTION("ordering is decided by the first option in declaration order that differs")
+    {
+        PrintObjectConfig a, b;
+        a.brim_object_gap.value = b.brim_object_gap.value + 1.0;  // declared first
+        a.layer_height.value    = b.layer_height.value - 0.05;    // declared later, points the other way
+        REQUIRE(b < a);
+        REQUIRE_FALSE(a < b);
+    }
+
+    SECTION("a derived config sees differences in its parents and in its own options")
+    {
+        PrintConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+
+        b.gcode_flavor.value = b.gcode_flavor.value == gcfMarlinLegacy ? gcfKlipper : gcfMarlinLegacy;  // GCodeConfig parent
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+
+        PrintConfig c, d;
+        d.skirt_distance.value = c.skirt_distance.value + 1.0;  // PrintConfig's own list
+        REQUIRE(c != d);
+        REQUIRE(c.hash() != d.hash());
+        REQUIRE(c.optptr("skirt_distance") == &c.skirt_distance);
+        REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
     }
 }

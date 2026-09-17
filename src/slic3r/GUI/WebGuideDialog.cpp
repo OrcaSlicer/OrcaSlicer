@@ -23,6 +23,7 @@
 #include <wx/textdlg.h>
 
 #include <wx/wx.h>
+#include <wx/weakref.h>
 #include <wx/display.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -560,6 +561,78 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 std::string fName = fSelected[m];
 
                 m_ProfileJson["filament"][fName]["selected"] = 1;
+            }
+        }
+        else if (strCmd == "check_for_new_printers") {
+            json response = json::object();
+            response["command"] = "check_new_printers_result";
+            // Guide pages currently send sequence_id as a number, while older
+            // pages may send it as a string. Preserve the value without
+            // forcing either representation.
+            if (j.contains("sequence_id"))
+                response["sequence_id"] = j["sequence_id"];
+            else
+                response["sequence_id"] = "";
+
+            if (!m_MainPtr->preset_updater) {
+                response["error"] = "Printer update service is unavailable.";
+                wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+            } else {
+                // Orca: enumerate vendors directly from disk rather than from m_ProfileJson["model"]
+                // — a vendor with no machine models (e.g. a filament-only bundle, or a test fixture
+                // like "test123" with an empty machine_model_list) never gets a "vendor" entry
+                // pushed into "model" by LoadProfileFamily(), so it would be invisible to the
+                // request body and get endlessly re-offered by the server. Scan both the system dir
+                // (already-installed vendors) and the bundled resources dir (shipped-but-not-yet-
+                // installed vendors), same as LoadProfileData() does when building loaded_vendors.
+                std::set<std::string> system_vendors;
+                for (const auto& dir : {vendor_dir, rsrc_vendor_dir}) {
+                    if (!boost::filesystem::exists(dir))
+                        continue;
+                    for (const auto& entry : boost::filesystem::directory_iterator(dir)) {
+                        if (!boost::filesystem::is_directory(entry) && boost::iequals(entry.path().extension().string(), ".json"))
+                            system_vendors.insert(entry.path().stem().string());
+                    }
+                }
+                // Orca: check_new_vendors() is async (network + confirmation dialog + download
+                // all happen off the calling thread apart from the dialog itself); guard against
+                // this dialog being closed before the callback fires.
+                wxWeakRef<GuideFrame> weak_this(this);
+                try {
+                    m_MainPtr->preset_updater->check_new_vendors(
+                        system_vendors, [weak_this, response](std::vector<std::string> installed_vendors, bool declined) mutable {
+                            if (!weak_this)
+                                return;
+
+                            // Orca: append the newly installed vendor(s) into the in-memory
+                            // profile data (instead of a full LoadProfileData() rescan of every
+                            // vendor) and push the refreshed list to the webview, the same way
+                            // request_userguide_profile does, so the printer list picks them up
+                            // without needing to reopen the guide.
+                            for (const auto& vendor_id : installed_vendors) {
+                                weak_this->LoadProfileFamily(vendor_id, (weak_this->vendor_dir / (vendor_id + ".json")).string());
+                            }
+                            if (!installed_vendors.empty()) {
+                                json profile_response            = json::object();
+                                profile_response["command"]      = "response_userguide_profile";
+                                profile_response["sequence_id"]  = "10001";
+                                profile_response["response"]     = weak_this->m_ProfileJson;
+                                wxString profileJS = wxString::Format("HandleStudio(%s)", profile_response.dump(-1, ' ', true));
+                                weak_this->RunScript(profileJS);
+                            }
+
+                            response["vendors"]  = installed_vendors;
+                            response["declined"] = declined;
+                            wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                            weak_this->RunScript(strJS);
+                        });
+                } catch (const std::exception &e) {
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
+                    response["error"] = "Failed to check for new printers.";
+                    wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                    wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+                }
             }
         }
         else if (strCmd == "user_guide_finish") {
@@ -1644,13 +1717,15 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
             OneModel["materials"]       = pm["default_materials"];
 
             // wxString strCoverPath = wxString::Format("%s\\%s\\%s_cover.png", strFolder, strVendor, std::string(s1.mb_str()));
-            std::string             cover_file = s1 + "_cover.png";
-            boost::filesystem::path cover_path = boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/profiles/" / strVendor / cover_file).make_preferred();
+            std::string cover_file = s1 + "_cover.png";
+            boost::filesystem::path cover_path = boost::filesystem::absolute(vendor_dir / cover_file).make_preferred();
+            BOOST_LOG_TRIVIAL(info) << "[WebGuideDialog] " << cover_path;
             if (!boost::filesystem::exists(cover_path)) {
-                cover_path =
-                    (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") /
-                     cover_file)
-                        .make_preferred();
+                cover_path = boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/profiles/" / strVendor / cover_file)
+                                 .make_preferred();
+                if (!boost::filesystem::exists(cover_path))
+                    cover_path = (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") / cover_file)
+                                     .make_preferred();
             }
             OneModel["cover"]                  = cover_path.string();
 
