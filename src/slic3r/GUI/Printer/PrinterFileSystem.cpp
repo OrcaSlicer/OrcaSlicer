@@ -1803,7 +1803,7 @@ static void* get_function(const char* name)
         return function;
 
 #if defined(_MSC_VER) || defined(_WIN32)
-    function = GetProcAddress(module, name);
+    function = reinterpret_cast<void*>(GetProcAddress(module, name));
 #else
     function = dlsym(module, name);
 #endif

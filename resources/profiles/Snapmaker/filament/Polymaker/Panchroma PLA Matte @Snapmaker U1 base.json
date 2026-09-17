@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Matte @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM002",
+	"filament_id": "OFrOh600",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

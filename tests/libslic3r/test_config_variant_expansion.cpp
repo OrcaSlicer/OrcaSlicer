@@ -130,6 +130,12 @@ TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a 
     }
 }
 
+TEST_CASE("support interface pattern registry includes spiral inset", "[Config]")
+{
+    const auto &values = ConfigOptionEnum<SupportMaterialInterfacePattern>::get_enum_values();
+    REQUIRE(values.at("spiralinset") == SupportMaterialInterfacePattern::smipSpiralInset);
+}
+
 TEST_CASE("get_extruder_nozzle_volume_count reads the per-extruder volume-type layout", "[Config]")
 {
     std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
@@ -477,6 +483,34 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
         // filament 1 keeps its extruder's Standard column, filament 2 its extruder's High Flow column
         REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
         REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
+    }
+
+    SECTION("a variant option shorter than the filament slots keeps its first value instead of zero") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtHighFlow};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard,Direct Drive High Flow",
+                                                                                     "Direct Drive Standard,Direct Drive High Flow"};
+        make_filament_arrays(config);
+        config.option<ConfigOptionInts>("filament_map", true)->values = {1, 2};
+        // no loaded preset carries the key, so only its single registered default is present
+        config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower", true)->values = {10.};
+        // only the first filament's two variant columns were loaded
+        config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed", true)->values = {-1., -2.};
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        config.update_values_to_printer_extruders_for_multiple_filaments(config, extruder_count, count, filament_keys,
+            "filament_self_index", "filament_extruder_variant");
+
+        // filament 2 resolves to column 3 (its extruder's High Flow column), past the end of both vectors
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower")->values,
+                     Catch::Matchers::Approx(std::vector<double>({10., 10.})));
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed")->values,
+                     Catch::Matchers::Approx(std::vector<double>({-1., -1.})));
+        REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
     }
 }
 

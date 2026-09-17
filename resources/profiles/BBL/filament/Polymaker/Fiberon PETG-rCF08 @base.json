@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-rCF08 @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFL61",
+	"filament_id": "OFw4WD4T",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

@@ -463,7 +463,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     m_table->reload_cell_data(m_current_row, category);
 }
 
-void ObjectTableSettings::UpdateAndShow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
+void ObjectTableSettings::UpdateAndShowRow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
 {
     m_current_row = row;
     m_current_category = category;

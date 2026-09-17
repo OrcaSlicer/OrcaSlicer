@@ -136,6 +136,7 @@ src/slic3r/GUI/BackgroundSlicingProcess.cpp
 src/slic3r/GUI/BedShapeDialog.cpp
 src/slic3r/GUI/BedShapeDialog.hpp
 src/slic3r/GUI/ConfigManipulation.cpp
+src/slic3r/GUI/ConfigValueFormatter.cpp
 src/slic3r/GUI/DeviceManager.cpp
 src/slic3r/GUI/DeviceErrorDialog.cpp
 src/slic3r/GUI/ExtraRenderers.cpp
@@ -175,6 +176,7 @@ src/slic3r/GUI/ProgressStatusBar.cpp
 src/slic3r/GUI/PlateSettingsDialog.cpp
 src/slic3r/GUI/PrivacyUpdateDialog.cpp
 src/slic3r/GUI/PublishDialog.cpp
+src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
 src/slic3r/GUI/Search.cpp
 src/slic3r/GUI/Selection.cpp

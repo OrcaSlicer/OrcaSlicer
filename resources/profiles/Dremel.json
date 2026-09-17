@@ -1,6 +1,6 @@
 {
 	"name": "Dremel",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Dremel configurations",
 	"machine_model_list": [
@@ -89,20 +89,16 @@
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
-			"name": "Dremel Generic PLA",
-			"sub_path": "filament/Dremel Generic PLA.json"
+			"name": "Generic PLA @Dremel 3D20 all",
+			"sub_path": "filament/Generic PLA @Dremel 3D20 all.json"
 		},
 		{
-			"name": "Dremel Generic PLA @3D20 all",
-			"sub_path": "filament/Dremel Generic PLA @3D20 all.json"
+			"name": "Generic PLA @Dremel 3D40 all",
+			"sub_path": "filament/Generic PLA @Dremel 3D40 all.json"
 		},
 		{
-			"name": "Dremel Generic PLA @3D40 all",
-			"sub_path": "filament/Dremel Generic PLA @3D40 all.json"
-		},
-		{
-			"name": "Dremel Generic PLA @3D45 all",
-			"sub_path": "filament/Dremel Generic PLA @3D45 all.json"
+			"name": "Generic PLA @Dremel 3D45 all",
+			"sub_path": "filament/Generic PLA @Dremel 3D45 all.json"
 		}
 	],
 	"machine_list": [

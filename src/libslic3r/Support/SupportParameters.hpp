@@ -141,6 +141,8 @@ struct SupportParameters {
             this->contact_fill_pattern = ipGrid;
         else if (object_config.support_interface_pattern == smipRectilinearInterlaced)
             this->contact_fill_pattern = ipRectilinear;
+        else if (object_config.support_interface_pattern == smipSpiralInset)
+            this->contact_fill_pattern = ipSpiralInset;
         else
             this->contact_fill_pattern =
             (object_config.support_interface_pattern == smipAuto && zero_gap_contact_interface) ||

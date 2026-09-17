@@ -337,7 +337,6 @@ class GLCanvas3D
 
         bool dragging{ false };
         Vec2d position{ DBL_MAX, DBL_MAX };
-        Vec3d scene_position{ DBL_MAX, DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
         bool ignore_right_up;
@@ -656,11 +655,7 @@ public:
     }
 
     void load_arrange_settings();
-    ArrangeSettings& get_arrange_settings();// { return get_arrange_settings(this); }
-    ArrangeSettings& get_arrange_settings(PrintSequence print_seq) {
-        return (print_seq == PrintSequence::ByObject) ? m_arrange_settings_fff_seq_print
-            : m_arrange_settings_fff;
-    }
+    ArrangeSettings& get_arrange_settings();
 
     class SequentialPrintClearance
     {
@@ -1163,17 +1158,6 @@ public:
     void highlight_toolbar_item(const std::string& item_name);
     void highlight_gizmo(const std::string& gizmo_name);
 
-    ArrangeSettings get_arrange_settings() const {
-        const ArrangeSettings &settings = get_arrange_settings();
-        ArrangeSettings ret = settings;
-        if (&settings == &m_arrange_settings_fff_seq_print) {
-            ret.distance = std::max(ret.distance,
-                                    float(min_object_distance(*m_config)));
-        }
-
-        return ret;
-    }
-
     // Timestamp for FPS calculation and notification fade-outs.
     static int64_t timestamp_now() {
 #ifdef _WIN32
@@ -1207,6 +1191,8 @@ public:
 
     bool can_sequential_clearance_show_in_gizmo();
     void update_sequential_clearance();
+    // Orca: by-layer counterpart, for a prime tower compacted by "No sparse layers".
+    void update_compacted_wipe_tower_clearance();
 
     const Print* fff_print() const;
     const SLAPrint* sla_print() const;
@@ -1308,7 +1294,7 @@ private:
     void _render_selection_sidebar_hints() { m_selection.render_sidebar_hints(m_sidebar_field, m_gizmos.get_uniform_scaling()); }
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);
-    bool _render_arrange_menu(float left, float right, float bottom, float top);
+    void _render_arrange_menu(float left, float right, float bottom, float top);
     void _render_3d_navigator();
 
     void _update_volumes_hover_state();

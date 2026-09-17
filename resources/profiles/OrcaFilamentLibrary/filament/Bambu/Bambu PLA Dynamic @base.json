@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Dynamic @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA13",
+	"filament_id": "OFDGigEI",
 	"instantiation": "false",
 	"filament_cost": [
 		"31.99"

@@ -2,8 +2,11 @@
 	"type": "filament",
 	"name": "Snapmaker PLA Matte @U1 base2",
 	"from": "system",
-	"filament_id": "141703112701",
+	"filament_id": "OFF9cgY5",
 	"instantiation": "false",
+	"filament_vendor": [
+		"Snapmaker"
+	],
 	"filament_end_gcode": [
 		""
 	],

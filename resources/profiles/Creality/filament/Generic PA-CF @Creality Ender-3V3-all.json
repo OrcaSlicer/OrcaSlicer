@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Generic PA-CF @Creality Ender-3V3-all",
+	"inherits": "Generic PA-CF @Creality",
+	"renamed_from": "Creality Generic PA-CF @Ender-3V3-all;Creality Generic PA-CF Ender-3V3-all",
+	"from": "system",
+	"setting_id": "L9lg0gKfwuz9xcs4",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Creality Ender-3 V3 0.4 nozzle",
+		"Creality Ender-3 V3 0.6 nozzle",
+		"Creality Ender-3 V3 Plus 0.4 nozzle",
+		"Creality Ender-3 V3 Plus 0.6 nozzle"
+	]
+}

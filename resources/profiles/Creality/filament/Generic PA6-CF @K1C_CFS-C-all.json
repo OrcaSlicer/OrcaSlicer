@@ -87,7 +87,7 @@
         "0"
     ],
     "filament_type": [
-        "PA-CF"
+        "PA6-CF"
     ],
     "filament_vendor": [
         "Generic"
@@ -185,5 +185,5 @@
     "compatible_printers": [
         "Creality K1C_CFS-C 0.4 nozzle"
     ],
-    "filament_id": "00015"
+    "filament_id": "OFhTPf6L"
 }

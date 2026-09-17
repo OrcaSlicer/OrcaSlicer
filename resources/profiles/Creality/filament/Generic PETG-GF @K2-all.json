@@ -60,7 +60,7 @@
         "PETG-GF"
     ],
     "filament_vendor": [
-        "Creality"
+        "Generic"
     ],
     "hot_plate_temp": [
         "70"
@@ -142,5 +142,5 @@
     "compatible_printers": [
         "Creality K2 0.4 nozzle"
     ],
-    "filament_id": "00027"
+    "filament_id": "OFyLWVF3"
 }

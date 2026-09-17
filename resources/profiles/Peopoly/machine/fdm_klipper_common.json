@@ -127,7 +127,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Peopoly Generic PLA"
+		"Generic PLA @Peopoly"
 	],
 	"default_print_profile": "fdm_process_peopoly_common_0_2",
 	"bed_exclude_area": [

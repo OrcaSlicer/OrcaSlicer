@@ -78,7 +78,6 @@ private:
     Tabbook*		m_tabpanel{ nullptr };
     wxSizer*        m_main_sizer{ nullptr };
 
-    AddMachinePanel*    m_status_add_machine_panel;
     StatusPanel*        m_status_info_panel;
     MediaFilePanel*     m_media_file_panel;
     UpgradePanel*       m_upgrade_panel;
@@ -86,8 +85,6 @@ private:
 
 	/* side tools */
     SideTools*      m_side_tools{nullptr};
-    wxStaticBitmap* m_bitmap_arrow;
-    wxStaticBitmap* m_bitmap_wifi_signal;
     SelectMachinePopup m_select_machine;
 
 	/* images */

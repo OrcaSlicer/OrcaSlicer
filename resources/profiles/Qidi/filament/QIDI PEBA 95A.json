@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "qkErLCeMU5ufGB0k",
-	"filament_id": "QD_0_1_36",
+	"filament_id": "OFhiJE7Y",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"100"

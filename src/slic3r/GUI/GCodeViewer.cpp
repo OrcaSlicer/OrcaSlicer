@@ -785,6 +785,19 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
     }
 }
 
+// Byte offset just past the first count characters of str, or its length if it is shorter.
+static size_t utf8_offset(const std::string& str, size_t count)
+{
+    const char* const begin = str.c_str();
+    const char* const end   = begin + str.size();
+    const char*       pos   = begin;
+    for (size_t i = 0; i < count && pos < end; ++i) {
+        unsigned int codepoint = 0;
+        pos += ImTextCharFromUtf8(&codepoint, pos, end);
+    }
+    return pos - begin;
+}
+
 //BBS: GUI refactor: move to right
 void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
 {
@@ -796,23 +809,27 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
             // read line from file
             const size_t start        = id == 1 ? 0 : m_lines_ends[id - 2];
             const size_t original_len = m_lines_ends[id - 1] - start;
-            const size_t len          = std::min(original_len, (size_t) 55);
+            // A character is four bytes at most, so 55 of them always fit in 220.
+            const size_t len          = std::min(original_len, (size_t) 55 * 4);
             std::string  gline(m_file.data() + start, len);
 
-            // If original line is longer than 55 characters, truncate and append "..."
-            if (original_len > 55)
-                gline = gline.substr(0, 52) + "...";
+            // If original line is longer than 55 characters, truncate and append "...".
+            // The cut must land on a character boundary or it leaves half a character behind.
+            if (len < original_len || utf8_offset(gline, 55) < gline.size())
+                gline = gline.substr(0, utf8_offset(gline, 52)) + "...";
 
             std::string command, parameters, comment;
-            // extract comment
-            std::vector<std::string> tokens;
-            boost::split(tokens, gline, boost::is_any_of(";"), boost::token_compress_on);
-            command = tokens.front();
-            if (tokens.size() > 1)
-                comment = ";" + tokens.back();
+            const size_t comment_start = gline.find(';');
+            if (comment_start == std::string::npos)
+                command = gline;
+            else {
+                command = gline.substr(0, comment_start);
+                comment = gline.substr(comment_start);
+            }
 
             // extract gcode command and parameters
             if (!command.empty()) {
+                std::vector<std::string> tokens;
                 boost::split(tokens, command, boost::is_any_of(" "), boost::token_compress_on);
                 command = tokens.front();
                 if (tokens.size() > 1) {

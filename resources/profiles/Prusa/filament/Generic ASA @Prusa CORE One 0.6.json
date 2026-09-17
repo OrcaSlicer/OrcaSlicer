@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Prusa CORE One 0.6",
+	"inherits": "Generic ASA @Prusa CORE One",
+	"renamed_from": "Prusa Generic ASA @CORE One 0.6;Prusa Generic ASA CORE One 0.6",
+	"from": "system",
+	"setting_id": "WJzGT568OrlSqxjt",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.6 nozzle"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"slow_down_layer_time": [
+		"15"
+	]
+}
