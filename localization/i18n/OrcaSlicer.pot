@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -10605,12 +10605,6 @@ msgstr ""
 msgid "Capabilities"
 msgstr ""
 
-msgid "Left: "
-msgstr ""
-
-msgid "Right: "
-msgstr ""
-
 msgid "Show all presets (including incompatible)"
 msgstr ""
 
@@ -15627,9 +15621,6 @@ msgid "Cracks smaller than 2x gap closing radius are being filled during the tri
 msgstr ""
 
 msgid "Slicing Mode"
-msgstr ""
-
-msgid "Other"
 msgstr ""
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."

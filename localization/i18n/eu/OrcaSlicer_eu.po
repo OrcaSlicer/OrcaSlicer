@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -11110,12 +11110,6 @@ msgstr "Estrusore kopurua"
 msgid "Capabilities"
 msgstr "Gaitasunak"
 
-msgid "Left: "
-msgstr "Ezkerra: "
-
-msgid "Right: "
-msgstr "Eskuina: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Erakutsi aurrezarpen guztiak (bateraezinak barne)"
 
@@ -16711,9 +16705,6 @@ msgstr "Tartea ixteko erradioaren bikoitza baino txikiagoak diren pitzadurak bet
 msgid "Slicing Mode"
 msgstr "Xerratze-modua"
 
-msgid "Other"
-msgstr "Bestelakoak"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Erabili \"Bikoiti-bakoiti\" 3DLabPrint hegazkin-modeloetarako. Erabili \"Itxi zuloak\" modeloko zulo guztiak ixteko."
 
@@ -21545,6 +21536,15 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Other"
+#~ msgstr "Bestelakoak"
+
+#~ msgid "Left: "
+#~ msgstr "Ezkerra: "
+
+#~ msgid "Right: "
+#~ msgstr "Eskuina: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Gehieneko tenperaturak ezin du hau gainditu: "

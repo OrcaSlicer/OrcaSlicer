@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -11400,14 +11400,6 @@ msgstr "Numero di estrusori"
 msgid "Capabilities"
 msgstr "Caratteristiche"
 
-# AI Translated
-msgid "Left: "
-msgstr "Sinistra: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Destra: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Mostra tutti i profili (compresi quelli non compatibili)"
 
@@ -17104,9 +17096,6 @@ msgstr "Le fessure più piccole di 2 volte il raggio di chiusura degli spazi vuo
 msgid "Slicing Mode"
 msgstr "Modalità elaborazione"
 
-msgid "Other"
-msgstr "Altro"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Usa \"Pari-dispari\" per modelli di aeroplano 3DLabPrint. Utilizza \"Chiudi fori\" per chiudere tutti i fori del modello."
 
@@ -22155,6 +22144,17 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "Other"
+#~ msgstr "Altro"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Sinistra: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Destra: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "La temperatura massima non può superare "

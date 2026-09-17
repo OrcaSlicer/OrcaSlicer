@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -11719,14 +11719,6 @@ msgstr "Liczba ekstruderów"
 msgid "Capabilities"
 msgstr "Możliwości"
 
-# AI Translated
-msgid "Left: "
-msgstr "Lewy: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Prawy: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Pokaż wszystkie profile (łącznie z niekompatybilnymi)"
 
@@ -17588,9 +17580,6 @@ msgstr "Szpary mniejsze niż dwukrotność wartości parametru „promień zamyk
 msgid "Slicing Mode"
 msgstr "Tryb cięcia"
 
-msgid "Other"
-msgstr "Inne"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Użyj „Parzysto-nieparzysty” dla modeli samolotów 3DLabPrint. Użyj „Zamknij otwory” do zamknięcia wszystkich otworów w modelu."
 
@@ -22754,6 +22743,17 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Other"
+#~ msgstr "Inne"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Lewy: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Prawy: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Maksymalna temperatura nie może przekroczyć "

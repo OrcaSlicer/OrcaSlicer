@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -12385,14 +12385,6 @@ msgstr "Aantal extruders"
 msgid "Capabilities"
 msgstr "Mogelijkheden"
 
-# AI Translated
-msgid "Left: "
-msgstr "Links: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Rechts: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Toon alle presets (inclusief incompatibele)"
 
@@ -18735,9 +18727,6 @@ msgstr "Scheuren kleiner dan 2x de sluitradius van de spleet worden opgevuld tij
 msgid "Slicing Mode"
 msgstr "Slicing-modus"
 
-msgid "Other"
-msgstr "Anders"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Gebruik „Even-Oneven” voor 3DLabPrint-vliegtuigmodellen. Gebruik „Gaten sluiten” om alle gaten in het model te sluiten."
 
@@ -24291,6 +24280,17 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Other"
+#~ msgstr "Anders"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Links: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Rechts: "
 
 # AI Translated
 #~ msgid "The maximum temperature cannot exceed "

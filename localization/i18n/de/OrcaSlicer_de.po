@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -11293,12 +11293,6 @@ msgstr "Anzahl der Extruder"
 msgid "Capabilities"
 msgstr "Fähigkeiten"
 
-msgid "Left: "
-msgstr "Links: "
-
-msgid "Right: "
-msgstr "Rechts: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Alle Profile anzeigen (auch inkompatible)"
 
@@ -16923,9 +16917,6 @@ msgstr "Risse, die kleiner als das 2-fache des Lückenschlussradius sind, werden
 msgid "Slicing Mode"
 msgstr "Slicing-Modus"
 
-msgid "Other"
-msgstr "Sonstiges"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Verwenden Sie \"Gerade-ungerade\" für 3DLabPrint-Flugzeugmodelle. Verwenden Sie \"Löcher schließen\", um alle Löcher im Modell zu schließen."
 
@@ -21810,6 +21801,15 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Other"
+#~ msgstr "Sonstiges"
+
+#~ msgid "Left: "
+#~ msgstr "Links: "
+
+#~ msgid "Right: "
+#~ msgstr "Rechts: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Die maximale Temperatur darf nicht überschritten werden "

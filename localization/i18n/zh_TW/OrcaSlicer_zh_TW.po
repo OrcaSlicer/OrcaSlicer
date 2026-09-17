@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -11296,14 +11296,6 @@ msgstr "擠出機數量"
 msgid "Capabilities"
 msgstr "能力"
 
-# AI Translated
-msgid "Left: "
-msgstr "左： "
-
-# AI Translated
-msgid "Right: "
-msgstr "右： "
-
 msgid "Show all presets (including incompatible)"
 msgstr "顯示所有預設（包括不相容的）"
 
@@ -16897,9 +16889,6 @@ msgstr "在三角網格切片過程中，寬度小於 2 倍間隙閉合半徑的
 msgid "Slicing Mode"
 msgstr "切片模式"
 
-msgid "Other"
-msgstr "其他"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "針對 3DLabPrint 飛機模型，請選擇『奇偶』模式。若需閉合模型中的所有孔洞，請啟用『閉合孔洞』選項。"
 
@@ -21846,6 +21835,17 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "Other"
+#~ msgstr "其他"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "左： "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "右： "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "最高溫度不能超過 "

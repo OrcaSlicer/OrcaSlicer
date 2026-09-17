@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -12045,14 +12045,6 @@ msgstr "Số lượng đầu đùn"
 msgid "Capabilities"
 msgstr "Khả năng"
 
-# AI Translated
-msgid "Left: "
-msgstr "Trái: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Phải: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Hiển thị tất cả preset (bao gồm cả không tương thích)"
 
@@ -17976,9 +17968,6 @@ msgstr "Vết nứt nhỏ hơn 2x bán kính đóng khe được lấp trong sli
 msgid "Slicing Mode"
 msgstr "Chế độ slice"
 
-msgid "Other"
-msgstr "Khác"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Sử dụng \"Chẵn-lẻ\" cho model máy bay 3DLabPrint. Sử dụng \"Đóng lỗ\" để đóng tất cả các lỗ trong model."
 
@@ -23220,6 +23209,17 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Other"
+#~ msgstr "Khác"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Trái: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Phải: "
 
 # AI Translated
 #~ msgid "The maximum temperature cannot exceed "

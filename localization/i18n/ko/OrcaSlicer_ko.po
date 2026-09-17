@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -11543,14 +11543,6 @@ msgstr "익스트루더 수"
 msgid "Capabilities"
 msgstr "성능"
 
-# AI Translated
-msgid "Left: "
-msgstr "왼쪽: "
-
-# AI Translated
-msgid "Right: "
-msgstr "오른쪽: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "모든 사전 설정 표시(호환되지 않는 설정 포함)"
 
@@ -17411,9 +17403,6 @@ msgstr "간격 폐쇄 반경의 2배보다 작은 균열은 삼각형 메시 슬
 msgid "Slicing Mode"
 msgstr "슬라이싱 모드"
 
-msgid "Other"
-msgstr "기타"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrint 비행기 모델에는 \"짝수-홀수\"를 사용하세요. \"구멍 닫기\"를 사용하여 모델의 모든 구멍을 닫습니다."
 
@@ -22577,6 +22566,17 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Other"
+#~ msgstr "기타"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "왼쪽: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "오른쪽: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "

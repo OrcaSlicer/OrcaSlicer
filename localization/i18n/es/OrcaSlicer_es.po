@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -11003,12 +11003,6 @@ msgstr "Número de extrusores"
 msgid "Capabilities"
 msgstr "Capacidades"
 
-msgid "Left: "
-msgstr "Izquierda: "
-
-msgid "Right: "
-msgstr "Derecha: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Mostrar todos los perfiles (incluyendo los compatibles)"
 
@@ -16541,9 +16535,6 @@ msgstr "Las grietas más pequeñas que 2x el radio de cierre se rellenan durante
 msgid "Slicing Mode"
 msgstr "Modo de laminado"
 
-msgid "Other"
-msgstr "Otro"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Utilice \"Par-impar\" para los modelos de avión de 3DLabPrint. Utilice \"Cerrar orificios\" para cerrar todos los orificios del modelo."
 
@@ -21358,6 +21349,15 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Other"
+#~ msgstr "Otro"
+
+#~ msgid "Left: "
+#~ msgstr "Izquierda: "
+
+#~ msgid "Right: "
+#~ msgstr "Derecha: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "La temperatura máxima no puede superar "

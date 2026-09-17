@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -11545,14 +11545,6 @@ msgstr "Nombre d'extrusors"
 msgid "Capabilities"
 msgstr "Capacitats"
 
-# AI Translated
-msgid "Left: "
-msgstr "Esquerra: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Dreta: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Mostra tots els perfils ( inclosos els incompatibles )"
 
@@ -17325,9 +17317,6 @@ msgstr "Les esquerdes de menys de dues vegades el radi de tancament de buits s'o
 msgid "Slicing Mode"
 msgstr "Mode de laminat"
 
-msgid "Other"
-msgstr "Altre"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Utilitzeu \"Parell-imparell\" per als models d'avió 3DLabPrint. Utilitzeu \"Tancar forats\" per tancar tots els forats del model."
 
@@ -22409,6 +22398,17 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Other"
+#~ msgstr "Altre"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Esquerra: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Dreta: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "La temperatura màxima no pot superar "

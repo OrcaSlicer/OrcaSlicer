@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -11489,14 +11489,6 @@ msgstr "Počet extrudérů"
 msgid "Capabilities"
 msgstr "Možnosti"
 
-# AI Translated
-msgid "Left: "
-msgstr "Levý: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Pravý: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Zobrazit všechny předvolby (včetně nekompatibilních)"
 
@@ -17265,9 +17257,6 @@ msgstr "Trhliny menší než 2x poloměr uzavření mezery jsou při řezání t
 msgid "Slicing Mode"
 msgstr "Režim slicingu"
 
-msgid "Other"
-msgstr "Ostatní"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Použijte \"Sudý-lichý\" pro modely letadel 3DLabPrint. Použijte \"Zavřít díry\" pro uzavření všech otvorů v modelu."
 
@@ -22390,6 +22379,17 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Other"
+#~ msgstr "Ostatní"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Levý: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Pravý: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Maximální teplota nesmí překročit "

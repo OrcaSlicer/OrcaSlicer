@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -11529,12 +11529,6 @@ msgstr "Кількість екструдерів"
 msgid "Capabilities"
 msgstr "Можливості"
 
-msgid "Left: "
-msgstr "Лівий: "
-
-msgid "Right: "
-msgstr "Правий: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Показувати всі профілі (включаючи несумісні)"
 
@@ -17449,9 +17443,6 @@ msgstr "Під час розрізання тріщини на трикутну 
 msgid "Slicing Mode"
 msgstr "Режим нарізки"
 
-msgid "Other"
-msgstr "Інший"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Використовуйте «парний-непарний» для моделей літаків 3DLabPrint. Використовуйте «Закрити отвори», щоб закрити всі отвори в моделі."
 
@@ -22501,6 +22492,15 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+#~ msgid "Other"
+#~ msgstr "Інший"
+
+#~ msgid "Left: "
+#~ msgstr "Лівий: "
+
+#~ msgid "Right: "
+#~ msgstr "Правий: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Максимальна температура не повинна перевищувати "

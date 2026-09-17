@@ -1497,7 +1497,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config
             const std::string label = def ? (def->full_label.empty() ? def->label : def->full_label) : std::string();
             option.label_local = (label.empty() ? from_u8(opt_key) : _L(label)).ToStdWstring();
             option.category_local = (def && !def->category.empty() ?
-                Tab::translate_category(from_u8(def->category), type) : _L("Other")).ToStdWstring();
+                Tab::translate_category(from_u8(def->category), type) : _L("Others")).ToStdWstring();
         }
         auto category = option.category_local;
         auto opt = dynamic_cast<ConfigOptionVectorBase*>(config->option(opt_key));

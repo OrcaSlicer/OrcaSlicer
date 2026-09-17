@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -11204,12 +11204,6 @@ msgstr "Nombre d'extrudeurs"
 msgid "Capabilities"
 msgstr "Fonctionnalités"
 
-msgid "Left: "
-msgstr "Gauche : "
-
-msgid "Right: "
-msgstr "Droite : "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Afficher tous les préréglages (y compris incompatibles)"
 
@@ -16818,9 +16812,6 @@ msgstr "Les fissures plus petites que 2x le rayon de fermeture de l’espace son
 msgid "Slicing Mode"
 msgstr "Mode de découpe"
 
-msgid "Other"
-msgstr "Autre"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Utilisez « Pair-impair » pour les modèles d'avion 3DLabPrint. Utilisez « Fermer les trous » pour fermer tous les trous du modèle."
 
@@ -21700,6 +21691,15 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Other"
+#~ msgstr "Autre"
+
+#~ msgid "Left: "
+#~ msgstr "Gauche : "
+
+#~ msgid "Right: "
+#~ msgstr "Droite : "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "La température maximale ne peut pas dépasser "

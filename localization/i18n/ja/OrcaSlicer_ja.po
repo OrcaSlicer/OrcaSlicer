@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -11422,14 +11422,6 @@ msgstr "エクストルーダー数"
 msgid "Capabilities"
 msgstr "能力"
 
-# AI Translated
-msgid "Left: "
-msgstr "左: "
-
-# AI Translated
-msgid "Right: "
-msgstr "右: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "全てのプリセットを表示"
 
@@ -17450,9 +17442,6 @@ msgstr "三角メッシュのスライス時に、隙間閉じ半径の2倍よ�
 msgid "Slicing Mode"
 msgstr "スライシングモード"
 
-msgid "Other"
-msgstr "その他"
-
 # AI Translated
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrintの飛行機モデルには「偶奇」を使用してください。モデル内のすべての穴を閉じるには「穴を閉じる」を使用してください。"
@@ -22711,6 +22700,17 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Other"
+#~ msgstr "その他"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "左: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "右: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "最高温度は次の値を超えることはできません "

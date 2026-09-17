@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -11090,14 +11090,6 @@ msgstr "挤出机数量"
 msgid "Capabilities"
 msgstr "能力"
 
-# AI Translated
-msgid "Left: "
-msgstr "左: "
-
-# AI Translated
-msgid "Right: "
-msgstr "右: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "显示所有预设(包括不兼容的)"
 
@@ -16701,9 +16693,6 @@ msgstr "在三角形网格切片过程中，小于2倍间隙闭合半径的裂�
 msgid "Slicing Mode"
 msgstr "切片模式"
 
-msgid "Other"
-msgstr "其他"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "对3DLabPrint的飞机模型使用 \"奇偶\"。使用 \"闭孔 \"来关闭模型上的所有孔。"
 
@@ -21633,6 +21622,17 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Other"
+#~ msgstr "其他"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "左: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "右: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "最高温度不可超过 "

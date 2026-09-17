@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -11300,14 +11300,6 @@ msgstr "จำนวนชุดดันเส้น"
 msgid "Capabilities"
 msgstr "ความสามารถ"
 
-# AI Translated
-msgid "Left: "
-msgstr "ซ้าย: "
-
-# AI Translated
-msgid "Right: "
-msgstr "ขวา: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "แสดงค่าที่ตั้งล่วงหน้าทั้งหมด (รวมทั้งเข้ากันไม่ได้)"
 
@@ -16943,9 +16935,6 @@ msgstr "รอยแตกร้าวที่มีขนาดเล็กก
 msgid "Slicing Mode"
 msgstr "โหมดการแบ่งส่วน"
 
-msgid "Other"
-msgstr "อื่นๆ"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "ใช้ \"เลขคู่\" สำหรับโมเดลเครื่องบิน 3DLabPrint ใช้ \"ปิดรู\" เพื่อปิดรูทั้งหมดในโมเดล"
 
@@ -21885,6 +21874,17 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Other"
+#~ msgstr "อื่นๆ"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "ซ้าย: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "ขวา: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "อุณหภูมิสูงสุดต้องไม่เกิน "

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -11382,14 +11382,6 @@ msgstr "Extruderek száma"
 msgid "Capabilities"
 msgstr "Képességek"
 
-# AI Translated
-msgid "Left: "
-msgstr "Bal: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Jobb: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Minden beállítás megjelenítése (beleértve az inkompatibiliseket is)"
 
@@ -17080,9 +17072,6 @@ msgstr "A háromszögháló szeletelésekor kitölti a hézagzárási sugár ké
 msgid "Slicing Mode"
 msgstr "Szeletelési mód"
 
-msgid "Other"
-msgstr "Egyéb"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Használd a \"Páros-páratlan\" opciót a 3DLabPrint repülőgépmodellekhez. Használd a \"Hézagok lezárása\" lehetőséget a modell összes házagának lezárásához."
 
@@ -22131,6 +22120,17 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Other"
+#~ msgstr "Egyéb"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Bal: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Jobb: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "A maximális hőmérséklet nem haladhatja meg ezt: "

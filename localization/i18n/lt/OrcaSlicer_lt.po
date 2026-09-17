@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -11330,12 +11330,6 @@ msgstr "Ekstruderių skaičius"
 msgid "Capabilities"
 msgstr "Galimybės"
 
-msgid "Left: "
-msgstr "Kairė:"
-
-msgid "Right: "
-msgstr "Dešinė:"
-
 msgid "Show all presets (including incompatible)"
 msgstr "Rodyti visus profilius (įskaitant nesuderinamus)"
 
@@ -16950,9 +16944,6 @@ msgstr "Plyšiai, mažesni nei 2x tarpo uždarymo spindulys, užpildomi trikampi
 msgid "Slicing Mode"
 msgstr "Sluoksniavimo režimas"
 
-msgid "Other"
-msgstr "Kita"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "„3DLabPrint“ lėktuvų modeliams naudokite „Lyginis-nelyginis“. Naudokite „Uždaryti kiaurymes“, kad uždarytumėte visas modelio kiaurymes."
 
@@ -21857,6 +21848,15 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Other"
+#~ msgstr "Kita"
+
+#~ msgid "Left: "
+#~ msgstr "Kairė:"
+
+#~ msgid "Right: "
+#~ msgstr "Dešinė:"
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Maksimali temperatūra negali viršyti "

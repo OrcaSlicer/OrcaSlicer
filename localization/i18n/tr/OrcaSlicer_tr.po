@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:27-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -11484,14 +11484,6 @@ msgstr "Ekstruder sayısı"
 msgid "Capabilities"
 msgstr "Yetenekler"
 
-# AI Translated
-msgid "Left: "
-msgstr "Sol: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Sağ: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "Tüm ön ayarları göster (uyumsuz olanlar dahil)"
 
@@ -17259,9 +17251,6 @@ msgstr "Üçgen mesh dilimleme sırasında 2x boşluk kapatma yarıçapından k�
 msgid "Slicing Mode"
 msgstr "Dilimleme modu"
 
-msgid "Other"
-msgstr "Diğer"
-
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrint uçak modelleri için \"Çift-tek\" seçeneğini kullanın. Modeldeki tüm delikleri kapatmak için \"Delikleri kapat\"ı kullanın."
 
@@ -22340,6 +22329,17 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Other"
+#~ msgstr "Diğer"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Sol: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Sağ: "
 
 #~ msgid "The maximum temperature cannot exceed "
 #~ msgstr "Maksimum sıcaklık şu değeri aşamaz: "
