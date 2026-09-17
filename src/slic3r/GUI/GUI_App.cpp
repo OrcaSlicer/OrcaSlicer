@@ -4680,9 +4680,9 @@ void GUI_App::system_info()
     //dlg.ShowModal();
 }
 
-void GUI_App::keyboard_shortcuts(wxWindow* parent)
+void GUI_App::keyboard_shortcuts(ShortcutContext page, wxWindow* parent)
 {
-    KBShortcutsDialog dlg(parent != nullptr ? parent : mainframe);
+    KBShortcutsDialog dlg(parent != nullptr ? parent : mainframe, page);
     dlg.ShowModal();
 }
 

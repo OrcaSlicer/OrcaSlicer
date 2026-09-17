@@ -71,6 +71,7 @@ namespace GUI{
 class RemovableDriveManager;
 class OtherInstanceMessageHandler;
 class ShortcutRegistry;
+enum class ShortcutContext : uint8_t;
 class MainFrame;
 class Sidebar;
 class ObjectSettings;
@@ -485,7 +486,7 @@ public:
 
     void            recreate_GUI(const wxString& message);
     void            system_info();
-    void            keyboard_shortcuts(wxWindow* parent = nullptr);   // the main frame when null
+    void            keyboard_shortcuts(ShortcutContext page, wxWindow* parent = nullptr);   // the main frame when null
     void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;

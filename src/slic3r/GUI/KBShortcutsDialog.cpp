@@ -68,7 +68,7 @@ wxString join_keys(const std::vector<wxString>& parts)
 
 } // namespace
 
-KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent)
+KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent, ShortcutContext page)
     : DPIDialog(parent, wxID_ANY, _L("Keyboard Shortcuts"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
 {
     SetFont(wxGetApp().normal_font());
@@ -93,7 +93,8 @@ KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent)
             m_tabs->SetItemBold(i, int(i) == e.GetSelection());
         m_simplebook->SetSelection(e.GetSelection());
     });
-    m_tabs->SelectItem(0);
+    const auto shown = std::find_if(m_pages.begin(), m_pages.end(), [page](const Page& entry) { return entry.context == page; });
+    m_tabs->SelectItem(shown == m_pages.end() ? 0 : int(shown - m_pages.begin()));
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(m_tabs, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(5));
@@ -118,7 +119,7 @@ void KBShortcutsDialog::fill_pages()
     auto mouse = [](ShortcutSection section, const wxString& button, const char* preference) { return Row{ MouseAction{ button, preference }, section }; };
     auto key   = [](const std::string& key) { return _L_CONTEXT(key, "Keyboard Shortcut"); };
     auto page  = [this](const wxString& title, const wxString& caption, ShortcutContext context, std::vector<Row> fixed_rows) {
-        Page entry{ title, caption, {} };
+        Page entry{ title, caption, context, {} };
         for (Shortcut shortcut : shortcuts_in(context))
             entry.rows.push_back({ shortcut, shortcut_section(shortcut) });
         entry.rows.insert(entry.rows.end(), fixed_rows.begin(), fixed_rows.end());

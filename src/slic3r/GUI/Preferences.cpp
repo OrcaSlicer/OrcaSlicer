@@ -18,6 +18,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "Shortcuts.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "NetworkPluginDialog.hpp"
@@ -1861,7 +1862,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(create_item_title(_L("Keyboard")), 1, wxEXPAND);
 
     auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key that triggers each action."), [this]() {
-        wxGetApp().keyboard_shortcuts(this);
+        wxGetApp().keyboard_shortcuts(ShortcutContext::Global, this);
     });
     g_sizer->Add(item_shortcuts);
 

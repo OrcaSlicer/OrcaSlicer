@@ -107,8 +107,8 @@ would take the chord from, and on confirmation unbinds those and binds this one.
 Resetting a row asks the same question when its default is now held by another
 shortcut, so a reset cannot leave two shortcuts on one chord. Each change is written to
 the config at once and pushed to the menus, tooltips and accelerator tables through
-`GUI_App::on_shortcuts_changed()`. The dialog opens from the Help menu, the `?` key, and
-Preferences > Control.
+`GUI_App::on_shortcuts_changed()`. The dialog opens from the Help menu and Preferences >
+Control on the Global page, and from the `?` key on the page of the view that received it.
 
 ## Adding a shortcut
 

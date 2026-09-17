@@ -42,6 +42,7 @@ class KBShortcutsDialog : public DPIDialog
     {
         wxString         title;
         wxString         caption;   // when the page's keys apply
+        ShortcutContext  context;
         std::vector<Row> rows;
     };
     struct EditableRow
@@ -68,7 +69,7 @@ class KBShortcutsDialog : public DPIDialog
     wxSimplebook* m_simplebook;
 
 public:
-    KBShortcutsDialog(wxWindow* parent);
+    KBShortcutsDialog(wxWindow* parent, ShortcutContext page);   // opens on the page of that context
 
 protected:
     void on_dpi_changed(const wxRect &suggested_rect) override;
