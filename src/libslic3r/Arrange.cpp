@@ -10,7 +10,13 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
+#include <algorithm>
+#include <random>
+#include <atomic>
 #include <ClipperUtils.hpp>
+
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
 
 #include <boost/geometry/index/rtree.hpp>
 
@@ -273,15 +279,33 @@ Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParam
 
 // Fill in the placer algorithm configuration with values carefully chosen for
 // Slic3r.
+// Map PlacementTactic to libnest2d Alignment value.
+template<class PConf>
+static typename PConf::Alignment tactic_to_alignment(PlacementTactic tactic)
+{
+    switch (tactic) {
+    case PlacementTactic::Center:   return PConf::Alignment::CENTER;
+    case PlacementTactic::MaxXMinY: return PConf::Alignment::BOTTOM_RIGHT;
+    case PlacementTactic::MinXMaxY: return PConf::Alignment::TOP_LEFT;
+    case PlacementTactic::MinXMinY: return PConf::Alignment::BOTTOM_LEFT;
+    case PlacementTactic::MaxXMaxY: return PConf::Alignment::TOP_RIGHT;
+    default:                        return PConf::Alignment::BOTTOM_LEFT;
+    }
+}
+
 template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
-        if (params.is_seq_print) {
-            // Start placing the items from the center of the print bed
+        if (params.is_seq_print && params.strategy.has_value()) {
+            // Use the strategy's placement tactic for sequential printing
+            pcfg.starting_point = tactic_to_alignment<PConf>(params.strategy->tactic);
+        }
+        else if (params.is_seq_print) {
+            // Default sequential print starting point
             pcfg.starting_point = PConf::Alignment::BOTTOM_LEFT;
         }
         else {
-            // Start placing the items from the center of the print bed
+            // Default non-sequential starting point
             pcfg.starting_point = PConf::Alignment::TOP_RIGHT;
         }
 
@@ -405,6 +429,24 @@ protected:
         // 2) X distance of item corner to bed corner (low weight)
         // 3) item row occupancy (useful when rotation is enabled)
         // 4）需要允许往屏蔽区域的左边或下边去一点，不然很多物体可能认为摆不进去，实际上我们最后是可以做平移的
+    // Compute the origin point for packing based on alignment.
+    // This maps each alignment to the correct corner/center of the bin.
+    static ClipperLib::IntPoint get_origin_for_alignment(
+        const Box &bin,
+        typename Packer::PlacementConfig::Alignment alignment)
+    {
+        auto minc = bin.minCorner();
+        auto maxc = bin.maxCorner();
+        switch (alignment) {
+        case PConfig::Alignment::CENTER:       return bin.center();
+        case PConfig::Alignment::BOTTOM_LEFT:  return minc;
+        case PConfig::Alignment::BOTTOM_RIGHT: return {getX(maxc), getY(minc)};
+        case PConfig::Alignment::TOP_LEFT:     return {getX(minc), getY(maxc)};
+        case PConfig::Alignment::TOP_RIGHT:    return maxc;
+        default:                               return bin.center();
+        }
+    }
+
     double dist_for_BOTTOM_LEFT(Box ibb, const ClipperLib::IntPoint& origin_pack)
     {
         double dist_corner_y = ibb.minCorner().y() - origin_pack.y();
@@ -762,7 +804,7 @@ public:
 
             auto binbb = sl::boundingBox(m_bin);
 
-            auto starting_point = cfg.starting_point == PConfig::Alignment::BOTTOM_LEFT ? binbb.minCorner() : binbb.center();
+            auto starting_point = get_origin_for_alignment(binbb, cfg.starting_point);
             // if we have wipe tower, items should be arranged around wipe tower
             for (Item itm : items) {
                 if (itm.is_wipe_tower) {
@@ -803,15 +845,53 @@ public:
 
         if (stopcond) m_pck.stopCondition(stopcond);
 
-        m_pconf.sortfunc= [&params](Item& i1, Item& i2) {
+        // Determine the object ordering for sequential print mode.
+        // When a strategy is set, use its ordering; otherwise use the default (HeightMinToMax).
+        ObjectOrdering ordering = ObjectOrdering::HeightMinToMax;
+        if (params.is_seq_print && params.strategy.has_value())
+            ordering = params.strategy->ordering;
+
+        m_pconf.sortfunc= [&params, ordering](Item& i1, Item& i2) {
             int p1 = i1.priority(), p2 = i2.priority();
             if (p1 != p2)
                 return p1 > p2;
             if (params.is_seq_print) {
-                return i1.bed_temp != i2.bed_temp                ? (i1.bed_temp > i2.bed_temp) :
-                       i1.height != i2.height                    ? (i1.height < i2.height) :
-                       std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
-                                                                   i1.extrude_ids.front() < i2.extrude_ids.front();
+                // bed_temp sorting is always applied first (physical necessity)
+                if (i1.bed_temp != i2.bed_temp)
+                    return i1.bed_temp > i2.bed_temp;
+
+                // HeightRandom and HeightInput use sort keys that are independent of height,
+                // so they must be evaluated BEFORE the height comparison to maintain
+                // strict weak ordering (transitivity).
+                if (ordering == ObjectOrdering::HeightRandom) {
+                    // Deterministic pseudo-random ordering based on item geometry hash.
+                    // Uses a combined hash of area and height to create a consistent
+                    // total order that differs from height-based orderings.
+                    auto hash = [](const Item& it) -> size_t {
+                        size_t h = std::hash<double>{}(it.area());
+                        h ^= std::hash<double>{}(it.height) + 0x9e3779b9 + (h << 6) + (h >> 2);
+                        return h;
+                    };
+                    size_t h1 = hash(i1), h2 = hash(i2);
+                    if (h1 != h2) return h1 < h2;
+                    // Hash collision fallback: use area then extruder id
+                }
+                else if (ordering == ObjectOrdering::HeightInput) {
+                    // No height-based reordering — fall through directly to tie-breakers.
+                    // This preserves the input order as much as possible (only priority
+                    // and bed_temp can reorder items above).
+                }
+                else if (i1.height != i2.height) {
+                    // HeightMinToMax and HeightMaxToMin: compare by height
+                    if (ordering == ObjectOrdering::HeightMinToMax)
+                        return i1.height < i2.height;
+                    else // HeightMaxToMin
+                        return i1.height > i2.height;
+                }
+
+                // Tie-breakers: area, then extruder id
+                return std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
+                                                                    i1.extrude_ids.front() < i2.extrude_ids.front();
             }
             else {
                 return i1.bed_temp != i2.bed_temp ? (i1.bed_temp > i2.bed_temp) :
@@ -844,8 +924,7 @@ public:
 
 template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Box>::get_objfn()
 {
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? m_bin.center() :
-        m_pconf.starting_point == PConfig::Alignment::TOP_RIGHT ? m_bin.maxCorner() : m_bin.minCorner();
+    auto origin_pack = get_origin_for_alignment(m_bin, m_pconf.starting_point);
 
     return [this, origin_pack](const Item &itm, const ItemGroup&) {
         auto result = objfunc(itm, origin_pack);
@@ -874,7 +953,7 @@ template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Box
 template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Circle>::get_objfn()
 {
     auto bb = sl::boundingBox(m_bin);
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? bb.center() : bb.minCorner();
+    auto origin_pack = get_origin_for_alignment(bb, m_pconf.starting_point);
     return [this, origin_pack](const Item &item, const ItemGroup&) {
 
         auto result = objfunc(item, origin_pack);
@@ -904,7 +983,7 @@ template<>
 std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::get_objfn()
 {
     auto bb = sl::boundingBox(m_bin);
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? bb.center() : bb.minCorner();
+    auto origin_pack = get_origin_for_alignment(bb, m_pconf.starting_point);
     return [this, origin_pack](const Item &itm, const ItemGroup&) {
         auto result = objfunc(itm, origin_pack);
 
@@ -1150,6 +1229,145 @@ template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, c
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const CircleBed &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const Polygon &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const InfiniteBed &bed, const ArrangeParams &params);
+
+// --- Portfolio Parallel Runner (ORCA-2) ---
+
+// Score a completed arrangement result: lower is better.
+// Primary: number of plates used. Secondary: total bounding box area of all plates.
+static std::pair<int, double> score_arrangement(const ArrangePolygons &items)
+{
+    std::set<int> used_beds;
+    int unarranged_count = 0;
+    std::map<int, BoundingBox> bed_bboxes;
+
+    for (const auto &item : items) {
+        if (item.bed_idx == UNARRANGED) {
+            unarranged_count++;
+            continue;
+        }
+        used_beds.insert(item.bed_idx);
+        auto poly = item.transformed_poly();
+        auto bb = get_extents(poly);
+        if (bed_bboxes.find(item.bed_idx) == bed_bboxes.end())
+            bed_bboxes[item.bed_idx] = bb;
+        else
+            bed_bboxes[item.bed_idx].merge(bb);
+    }
+
+    int num_plates = static_cast<int>(used_beds.size()) + unarranged_count;
+
+    double total_area = 0;
+    for (const auto &[bed_id, bb] : bed_bboxes)
+        total_area += double(bb.size().x()) * double(bb.size().y());
+
+    return {num_plates, total_area};
+}
+
+std::optional<PortfolioResult> portfolio_arrange(
+    ArrangePolygons &items,
+    const ArrangePolygons &excludes,
+    const Points &bed,
+    const ArrangeParams &params)
+{
+    // Fallback: not sequential print or empty items
+    if (!params.is_seq_print || items.empty()) {
+        arrange(items, excludes, bed, params);
+        return std::nullopt;
+    }
+
+    // Generate all 20 strategies (5 tactics × 4 orderings)
+    static const PlacementTactic all_tactics[] = {
+        PlacementTactic::Center,
+        PlacementTactic::MaxXMinY,
+        PlacementTactic::MinXMaxY,
+        PlacementTactic::MinXMinY,
+        PlacementTactic::MaxXMaxY,
+    };
+    static const ObjectOrdering all_orderings[] = {
+        ObjectOrdering::HeightMinToMax,
+        ObjectOrdering::HeightMaxToMin,
+        ObjectOrdering::HeightRandom,
+        ObjectOrdering::HeightInput,
+    };
+
+    constexpr int NUM_TACTICS  = 5;
+    constexpr int NUM_ORDERINGS = 4;
+    constexpr int NUM_STRATEGIES = NUM_TACTICS * NUM_ORDERINGS;
+
+    // Prepare per-strategy data: item copies and params copies
+    std::vector<ArrangePolygons> results(NUM_STRATEGIES);
+    std::vector<ArrangeParams>   params_per_strategy(NUM_STRATEGIES);
+    std::vector<ArrangeStrategy> strategies(NUM_STRATEGIES);
+
+    for (int i = 0; i < NUM_STRATEGIES; ++i) {
+        results[i] = items; // deep copy
+        params_per_strategy[i] = params;
+        strategies[i] = {all_tactics[i / NUM_ORDERINGS], all_orderings[i % NUM_ORDERINGS]};
+        params_per_strategy[i].strategy = strategies[i];
+        // Disable per-item progress in parallel runs (would be chaotic from 20 threads)
+        params_per_strategy[i].progressind = [](unsigned, std::string) {};
+        // stopcondition is kept — it reads an atomic flag, thread-safe
+    }
+
+    // Track progress at strategy level
+    std::atomic<int> strategies_completed{0};
+
+    // Report portfolio-level progress if caller provided a callback
+    auto portfolio_progress = params.progressind;
+
+    // Run all strategies in parallel
+    tbb::parallel_for(tbb::blocked_range<int>(0, NUM_STRATEGIES),
+        [&](const tbb::blocked_range<int> &range) {
+            for (int i = range.begin(); i < range.end(); ++i) {
+                // Check cancel before starting
+                if (params.stopcondition && params.stopcondition())
+                    return;
+
+                arrange(results[i], excludes, bed, params_per_strategy[i]);
+
+                int done = ++strategies_completed;
+                if (portfolio_progress)
+                    portfolio_progress(done, "Portfolio " + std::to_string(done) + "/" + std::to_string(NUM_STRATEGIES));
+            }
+        });
+
+    // Find best result
+    int best_idx = -1;
+    std::pair<int, double> best_score = {std::numeric_limits<int>::max(), std::numeric_limits<double>::max()};
+
+    for (int i = 0; i < NUM_STRATEGIES; ++i) {
+        // Skip strategies that were canceled before completion
+        bool has_result = false;
+        for (const auto &item : results[i])
+            if (item.bed_idx != UNARRANGED) { has_result = true; break; }
+        if (!has_result && !items.empty()) continue;
+
+        auto score = score_arrangement(results[i]);
+        if (score < best_score) {
+            best_score = score;
+            best_idx = i;
+        }
+    }
+
+    // Fallback if no strategy produced a result
+    if (best_idx < 0) {
+        BOOST_LOG_TRIVIAL(warning) << "portfolio_arrange: all strategies failed, falling back to single arrange";
+        arrange(items, excludes, bed, params);
+        return std::nullopt;
+    }
+
+    // Apply best result
+    items = std::move(results[best_idx]);
+
+    BOOST_LOG_TRIVIAL(info) << "portfolio_arrange: best strategy idx=" << best_idx
+        << " (tactic=" << static_cast<int>(strategies[best_idx].tactic)
+        << ", ordering=" << static_cast<int>(strategies[best_idx].ordering)
+        << ") plates=" << best_score.first
+        << ", area=" << best_score.second
+        << ", strategies_evaluated=" << strategies_completed.load();
+
+    return PortfolioResult{strategies[best_idx], best_score.first, strategies_completed.load()};
+}
 
 } // namespace arr
 } // namespace Slic3r
