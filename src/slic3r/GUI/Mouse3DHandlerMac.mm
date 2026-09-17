@@ -1,4 +1,6 @@
 #include "Mouse3DController.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "GUI_App.hpp"
 
 #include <stdint.h>
 #include <dlfcn.h>
@@ -190,6 +192,12 @@ namespace GUI {
 // Initialize the application.
 void Mouse3DController::init()
 {
+  m_disabled = wxGetApp().app_config->get_bool("disable_3dmouse");
+  if (m_disabled) {
+    BOOST_LOG_TRIVIAL(info) << "3D mouse support is disabled";
+    return;
+  }
+
   BOOST_LOG_TRIVIAL(info) << "3dx mac handler starts";
   if (load_driver_functions()) {
     mouse_3d_controller = this;
