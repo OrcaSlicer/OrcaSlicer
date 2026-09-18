@@ -234,8 +234,10 @@ bool GLGizmosManager::init()
 #ifdef SLIC3R_CAD
     // Registered last: Primitive and Sketch are the final entries before Undefined, so
     // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
-    m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
-    m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
+        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
+    }
 #endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
@@ -1344,7 +1346,8 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
+    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
+    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const
