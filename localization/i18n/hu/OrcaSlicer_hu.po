@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2460,13 +2460,6 @@ msgstr "Frissítés érhető el. Nyisd meg a beállításcsomag párbeszédablak
 msgid "%s has been removed."
 msgstr "%s eltávolítva."
 
-
-msgid "Select the language"
-msgstr "Válaszd ki a nyelvet"
-
-msgid "Language"
-msgstr "Nyelv"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -3710,11 +3703,15 @@ msgstr "Az aktuális filament visszahúzása a Filament Track Switch-nél"
 msgid "Switch track at Filament Track Switch"
 msgstr "Sáv váltása a Filament Track Switch-nél"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "A maximális hőmérséklet nem haladhatja meg ezt: "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "A maximális hőmérséklet nem haladhatja meg ezt: %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "A minimális hőmérséklet nem lehet kevesebb ennél: "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "A minimális hőmérséklet nem lehet kevesebb ennél: %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -4601,6 +4598,15 @@ msgstr ""
 "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni. Lehet, hogy az SD-kártya írásvédett?\n"
 "Hibaüzenet: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Az ideiglenes G-kód másolása a kimeneti G-kódba nem sikerült.\n"
+"Hibaüzenet: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni. Probléma lehet a céleszközzel. Kérlek, exportáld újra, vagy használj másik eszközt. A sérült kimeneti G-kód helye: %1%.tmp."
@@ -5337,10 +5343,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "%s érték tartományon kívül van. Az érvényes tartomány: %d - %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"%s%% vagy %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% vagy %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5367,20 +5374,16 @@ msgid "System agents"
 msgstr "Rendszerügynökök"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nincs kiválasztott bővítmény"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Bővítmény hozzáadása"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Bővítmény kiválasztása"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Bővítmény eltávolítása"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nincs kiválasztott bővítmény"
 
 # AI Translated
 msgid "Configure"
@@ -5637,14 +5640,20 @@ msgstr "Beállítás optimálisra"
 msgid "Regroup filament"
 msgstr "Filamentek újracsoportosítása"
 
-msgid "up to"
-msgstr "legfeljebb"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "legfeljebb %1% mm"
 
-msgid "above"
-msgstr "felett"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm felett"
 
-msgid "from"
-msgstr "ettől"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm-től %2% mm-ig"
 
 msgid "Usage"
 msgstr "Használat"
@@ -6005,7 +6014,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-kód útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -6319,11 +6328,13 @@ msgstr "Projekt mentése másként"
 msgid "Save current project as"
 msgstr "Jelenlegi projekt mentése másként"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "3MF közzététele"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "3MF fájl exportálása a kiválasztott beállítások beágyazásával"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importálás 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7599,6 +7610,14 @@ msgid "Bottom"
 msgstr "Alsó"
 
 # AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Ez a beállítás nem ad meg bővítményképesség-típust."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Ez a beállítás ismeretlen bővítményképesség-típust ad meg: "
+
+# AI Translated
 msgid "Plugin Selection"
 msgstr "Bővítmény kiválasztása"
 
@@ -8159,11 +8178,13 @@ msgstr "Kérlek, győződj meg arról, hogy a beállításokban található G-k�
 msgid "Customized Preset"
 msgstr "Egyedi beállítás"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "Néhány közzétett beállítást nem sikerült alkalmazni:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "Néhány filamenthely megváltozott:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "A STEP fájlon belüli komponens neve nem UTF-8 formátumban van!"
@@ -8577,13 +8598,17 @@ msgstr "Szeletelt fájl mentése mint:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "A(z) %s fájlt elküldtük a nyomtató tárhelyére. A fájl a nyomtatón tekinthető meg."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "3MF fájl közzététele mint:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"A közzétett 3MF fájl exportálása nem sikerült.\n"
+"Ellenőrizd, hogy a mappa elérhető-e online, illetve hogy más program nem tartja-e nyitva a fájlt."
 
 msgid "Publish"
 msgstr "Közzététel"
@@ -8800,7 +8825,6 @@ msgstr "Szeretnéd folytatni?"
 msgid "Language selection"
 msgstr "Nyelv kiválasztása"
 
-
 msgid "Asia-Pacific"
 msgstr "Ázsia-Csendes-óceáni térség"
 
@@ -8904,6 +8928,9 @@ msgstr "Jelenlegi példány útvonala: "
 
 msgid "General"
 msgstr "Általános"
+
+msgid "Language"
+msgstr "Nyelv"
 
 msgid "Metric"
 msgstr "Metrikus"
@@ -9349,9 +9376,6 @@ msgstr "A rétegcsúszka mozgatásakor a szeletelt előnézetben az aktuális r�
 msgid "Dimmed layer brightness"
 msgstr "Elhalványított rétegek fényereje"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9766,63 +9790,80 @@ msgstr "Adatok feltöltése"
 msgid "Jump to webpage"
 msgstr "Ugrás a weboldalra"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Anyag"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Kevert filament"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Néhány kevert filament olyan filamentektől függ, amelyek nem lesznek közzétéve:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "%d. filament (kevert)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% a következőt igényli: %2%, amely nincs engedélyezve."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% a következőt igényli: %2%, amelynek az anyaga nem lesz közzétéve."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Kevert filament közzétételéhez engedélyezd az összes általa használt filamentet, és válaszd a Teljes közzétételt, vagy teljesítsd a Típus követelményét."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Közzététel mindenképp"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "3MF közzététele..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "Válaszd ki, mely beállítások kerüljenek közzétételre a 3MF fájlban"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "3MF közzététele wiki"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "3MF közzététele videós útmutató"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Kevert filament - egészében kerül közzétételre, ha fent az \"Engedélyezve\" be van jelölve"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Ennek a kevert filamentnek a közzététele, valamint az összetevő filamentjeinek engedélyezése + teljes közzététele"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Ennek a filamenthelynek a közzététele a 3MF fájlban"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Teljes közzététel"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Ennek a helynek a teljes filamentjét beágyazza a 3MF fájlba"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Nem kijelöltek szűrése"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9840,6 +9881,10 @@ msgstr "Az összes örökölt értéket átmásolja a szülő előbeállításb�
 
 msgid "Detach from parent"
 msgstr "Leválasztás a szülőről"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Mentés szülő nélkül"
 
 # AI Translated
 msgid "Unique preset"
@@ -10547,8 +10592,16 @@ msgstr "A csomósodás-észleléshez szükség van a törlőtoronyra. Nélküle 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "A pontos Z magasság és a törlőtorony egyidejű engedélyezése szeletelési hibákat okozhat. Továbbra is engedélyezi a pontos Z magasságot?"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "A sima Timelapse-hez minden rétegen törlőtorony kell, ami nem használható a \"Nincsenek ritka rétegek\" beállítással együtt. A \"Nincsenek ritka rétegek\" kikapcsolva."
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "A sima Timelapse módhoz törlőtorony szükséges. Nélküle hibák jelenhetnek meg a nyomtatott tárgyon. Bekapcsolod a törlőtornyot?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "A \"Nincsenek ritka rétegek\" nem használható a sima Timelapse-szel, amelyhez minden rétegen törlőtorony kell. A Timelapse hagyományos módra váltott."
 
 msgid "Still print by object?"
 msgstr "Továbbra is tárgyanként szeretnél nyomtatni?"
@@ -10924,9 +10977,6 @@ msgstr "Kompatibilis folyamatprofilok"
 
 msgid "Printable space"
 msgstr "Nyomtatási terület"
-
-msgid "Printer Agent"
-msgstr "Nyomtatóügynök"
 
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Válaszd ki a nyomtatóval való kommunikációhoz használt hálózati ügynököt. Az elérhető ügynököket indításkor regisztrálja a rendszer."
@@ -11331,14 +11381,6 @@ msgstr "Extruderek száma"
 
 msgid "Capabilities"
 msgstr "Képességek"
-
-# AI Translated
-msgid "Left: "
-msgstr "Bal: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Jobb: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Minden beállítás megjelenítése (beleértve az inkompatibiliseket is)"
@@ -12183,14 +12225,21 @@ msgstr "Javítás megszakítva"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fájl másolása sikertelen a következő helyre: %2% Hiba: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "Új gyártói profilok letöltése: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Konfigurációs csomag: %1% frissítve erre: %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "Nem sikerült letölteni a gyártói profilokat: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
-
-msgid "Configuration package: "
-msgstr "Konfigurációs csomag: "
-
-msgid " updated to "
-msgstr " frissítve erre: "
 
 msgid "Open G-code file:"
 msgstr "G-kód fájl megnyitása:"
@@ -12251,11 +12300,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "A rezgéskompenzációt csak a Klipper, a RepRapFirmware és a Marlin 2 támogatja"
 
-msgid "Grouping error: "
-msgstr "Csoportosítási hiba: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Csoportosítási hiba: %1% nem helyezhető a bal fúvókába"
 
-msgid " can not be placed in the "
-msgstr " nem helyezhető ide: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Csoportosítási hiba: %1% nem helyezhető a jobb fúvókába"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12368,6 +12421,10 @@ msgstr "%1% túl közel van más tárgyakhoz, a nyomtatás során előfordulhatn
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% túl magas, a nyomtatás során előfordulhatnak ütközések."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "A modell és a törlőtorony egymáshoz viszonyított helyzete nem felel meg a \"Nincsenek ritka rétegek\" funkció követelményeinek. Módosítsd az egymáshoz viszonyított helyzetüket, csökkentsd a modell magasságát, vagy kapcsold ki a \"Nincsenek ritka rétegek\" beállítást."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések."
@@ -12728,6 +12785,9 @@ msgstr "3MF használata G-kód helyett"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Kapcsold be, ha a nyomtató 3MF fájlt fogad el nyomtatási feladatként. Bekapcsolva az Orca Slicer a szeletelt fájlt .gcode.3mf formátumban küldi el egyszerű .gcode fájl helyett."
+
+msgid "Printer Agent"
+msgstr "Nyomtatóügynök"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Válaszd ki a nyomtató kommunikációjához használt hálózati ügynök implementációját."
@@ -13790,6 +13850,10 @@ msgstr "Igazított vonal"
 msgid "Concentric"
 msgstr "Koncentrikus"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Spirális behúzás"
+
 msgid "Hilbert Curve"
 msgstr "Hilbert-görbe"
 
@@ -13881,13 +13945,13 @@ msgstr "Felső felület kitöltési sorrendje"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+"Az az irány, amelyben a felső felületek kitöltése történik középpontból induló mintázat esetén (Koncentrikus, Spirális behúzás, Archimédeszi vonalak, Nyolcágú spirál).\n"
+"A Kifelé a felület közepén indul, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélen indul, és a középen lévő szűk ívekkel ér véget.\n"
+"Az Alapértelmezett a legrövidebb út szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13895,13 +13959,13 @@ msgstr "Alsó felület kitöltési sorrendje"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
-"A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
-"Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+"Az az irány, amelyben az alsó felületek kitöltése történik középpontból induló mintázat esetén (Koncentrikus, Spirális behúzás, Archimédeszi vonalak, Nyolcágú spirál).\n"
+"A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja a kezdőréteg tapadását azokon az asztalokon, amelyeken a középen lévő szűk ívek esetleg nem tapadnak meg. A Kifelé a közepén indul, és a felesleges anyagot a szélek felé tolja.\n"
+"Az Alapértelmezett a legrövidebb út szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
 # AI Translated
 msgid "Internal solid infill pattern"
@@ -14004,6 +14068,14 @@ msgstr "Óramutató járásával ellentétes"
 
 msgid "Clockwise"
 msgstr "Óramutató járásával megegyező"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Távolság a rúdtól"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "A fúvóka hegyének vízszintes távolsága a rúd távolabbi élétől. Ütközés elkerülésére szolgál tárgyankénti nyomtatás esetén."
 
 msgid "Height to rod"
 msgstr "Magasság a rúdig"
@@ -16184,6 +16256,20 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
 
 # AI Translated
+msgid "Print unsupported walls last"
+msgstr "Alátámasztatlan falak nyomtatása utoljára"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"A teljesen a levegőben lévő falhurkok csak akkor kerülnek nyomtatásra, amikor már van, ami megtartsa őket:\n"
+"a szigetük többi fala után kerülnek extrudálásra, a legbelsővel kezdve, függetlenül a falak sorrendjétől.\n"
+"Az a hurok, amelyet csak az adott réteg áthidalásai tudnak rögzíteni, megvárja, amíg ezek az áthidalások kinyomtatásra kerülnek, míg egy alátámasztott fal mellett futó hurok megtartja a helyét a kitöltés előtt, amelynek rögzítésként szüksége van rá."
+
+# AI Translated
 msgid "Outer walls"
 msgstr "Külső falak"
 
@@ -16623,6 +16709,39 @@ msgstr "Törlés hurkokon"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "A varrat láthatóságának csökkentéséhez zárt hurok extrudálásnál egy kis befelé irányuló mozgás történik, mielőtt az extruder elhagyná a hurkot."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "Törlés befelé"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Csak a külső falakra vonatkozik, beleértve a furatok kontúrjait is. Törlés közben a forró fúvókát a már kinyomtatott belső falak felé mozgatja, hogy csökkentse a frissen nyomtatott műanyag újramelegedését és a varratnyomokat.\n"
+"\n"
+"Különösen hasznos 0,1 mm alatti rétegmagasságnál, ahol a törlésnyomok jobban látszanak.\n"
+"\n"
+"A szokásos törlést használja, ha nincs még kinyomtatott szomszédos belső fal (egyfalú területek vagy Külső/Belső falsorrend), illetve ha nem található alátámasztott befelé vezető útvonal, például szűk sarkoknál vagy varrathézagoknál."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Törlés befelé távolsága"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Az a távolság, amennyivel a törlési útvonal eltolódik a külső kerülettől, milliméterben vagy a külső fal tényleges extrudálási szélességének százalékában megadva.\n"
+"\n"
+"Például az 50% a külső fal szélességének felével tolja el az útvonalat. A tényleges eltolást korlátozza a külső fal tényleges szélessége és a szomszédos falig rendelkezésre álló hely is, ezért a 100% feletti értékeknek vagy az ezzel egyenértékű abszolút távolságnak nincs további hatása. Az eltolás kikapcsolásához állítsd 0-ra."
+
 msgid "Wipe before external loop"
 msgstr "Törlés a külső hurok előtt"
 
@@ -16888,8 +17007,9 @@ msgstr "Felveszi az új szerszámot anélkül, hogy megvárná a nyomtatási hő
 msgid "No sparse layers (beta)"
 msgstr "Nincsenek ritka rétegek (béta)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Ha engedélyezed, nem készül törlőtorony azokon a rétegeken, ahol nincs szerszámváltás. A szerszámváltást tartalmazó rétegeknél az extruder az aktuális magasság alá süllyed a törlőtorony nyomtatásához. Ügyelj arra, hogy ez ne okozzon ütközést a nyomtatás során."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Ha be van kapcsolva, a törlőtorony nem kerül nyomtatásra azokon a rétegeken, ahol nincs eszközváltás. Az eszközváltást tartalmazó rétegeken az extruder lefelé mozdul, hogy kinyomtassa a törlőtornyot, így a torony a modell alá kerül, és a szerszámfejnek le kell nyúlnia hozzá. Azok az elrendezések, ahol ez ütközne egy már kinyomtatott tárggyal, elutasításra kerülnek. Nincs hatása sima Timelapse vagy fúvókalerakódás-érzékelés esetén, mert ezekhez minden rétegen kell torony."
 
 msgid "Prime all printing extruders"
 msgstr "Az összes nyomtató extruder előkészítése"
@@ -16915,6 +17035,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Ciklikus"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Ciklikus sorrend"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"A ciklikus eszközváltási sorrend által használt egyéni filamentsorrend, vesszővel elválasztott filamentszámokként (pl. \"3,2,1,4\").\n"
+"Minden réteg ezt a sorrendet követve nyomtatja a filamentjeit; a fel nem sorolt filamentek utoljára kerülnek nyomtatásra, növekvő sorrendben.\n"
+"Hagyd üresen, ha a filamenteket növekvő sorrendben szeretnéd végigjárni."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Ciklikus sorrend alkalmazása a kezdőrétegre"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"A ciklikus eszközváltási sorrendet a kezdőrétegre is alkalmazza.\n"
+"Alapértelmezés szerint ki van kapcsolva, mert a kezdőréteg helyette a legjobb asztalra tapadás érdekében kerül sorba rendezésre: azok a filamentek, amelyek kicsi, törékeny kezdőréteg-elemeket nyomtatnak, utoljára kerülnek sorra, így a következő eszközváltások és mozgások kisebb eséllyel szakítják le ezeket a gyengén rögzített részeket. Ez a kezdőréteg-sorrend figyelembe veszi a kezdőréteghez beállított egyéni filamentsorrendet is, ha van ilyen. A ciklikus sorrend előnye (a további eszközváltások több időt adnak minden rétegnek a hűlésre) nem érvényes a kezdőrétegre, amely a tapadás érdekében lassan és forrón készül.\n"
+"Csak akkor kapcsold be, ha pontosan ugyanarra az eszközsorrendre van szükséged minden rétegen, beleértve az elsőt is, ezen tapadásoptimalizálás rovására."
+
 msgid "Slice gap closing radius"
 msgstr "Szeletelési hézag lezárási sugara"
 
@@ -16923,9 +17071,6 @@ msgstr "A háromszögháló szeletelésekor kitölti a hézagzárási sugár ké
 
 msgid "Slicing Mode"
 msgstr "Szeletelési mód"
-
-msgid "Other"
-msgstr "Egyéb"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Használd a \"Páros-páratlan\" opciót a 3DLabPrint repülőgépmodellekhez. Használd a \"Hézagok lezárása\" lehetőséget a modell összes házagának lezárásához."
@@ -17924,6 +18069,14 @@ msgstr "Nincs ellenőrzés"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Ne futtass érvényességi ellenőrzéseket, például G-kód útvonalütközés-ellenőrzést."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Szigorú mód"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Nem nulla kilépési kóddal lép ki, ha a szeletelés olyan nem kritikus figyelmeztetést ad, amely egyébként csak naplózásra kerülne, például ha egy modellhez támasz kellene, miközben a támasz ki van kapcsolva. Használd CI-ben vagy szkriptelt folyamatokban, amelyek soha nem adhatnak ki észrevétlenül hibás szeletelést. Minden ilyen figyelmeztetés stabil osztállyal szerepel a result.json `warnings` tömbjében is, amely csak Linuxon készül el. Nem használható a --no-check kapcsolóval együtt, amely kihagyja a támaszellenőrzést."
+
 msgid "Normative check"
 msgstr "Normatív ellenőrzés"
 
@@ -17936,11 +18089,28 @@ msgstr "Kimeneti modell információ"
 msgid "This outputs the model’s information."
 msgstr "Kimeneti modell információ."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Háló vizsgálata (JSON a stdout-ra)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "Kiír a stdout-ra egy JSON összegzést minden betöltött tárgyról, majd kilép: a befoglaló dobozait és a konvex burok azon lapjait, amelyekre lefektethető, ezek normálisaival, területével és középpontjával együtt. Ezek közül a lapok közül választanak a --ground-* kapcsolók. Az --info géppel olvasható alternatívája."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Festés vizsgálata (JSON a stdout-ra)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "Kiír egy strukturált JSON összegzést a betöltött modellen már tárolt minden festett rétegről (támaszok, varrat, MMU-szín, barázdált felület) — állapotonkénti lapszám, felület és a hálóhoz viszonyított befoglaló doboz —, majd kilép. A festőeszközök felületen történő megnyitásának géppel olvasható alternatívája."
+
 msgid "Export Settings"
 msgstr "Beállítások exportálása"
 
-msgid "This exports settings to a file."
-msgstr "Beállítások exportálása egy fájlba."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Ez fájlba exportálja a beállításokat. A - használatával a stdout-ra írja őket."
 
 msgid "Send progress to pipe"
 msgstr "Folyamat elküldése"
@@ -17995,6 +18165,30 @@ msgstr "Forgatás Y körül"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Az Y tengely körüli forgatási szög fokban."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Fektetés a legnagyobb lapra"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Minden tárgyat a konvex burkának legnagyobb lapjára fektet, és ráejti az asztalra. Az egyforma méretű lapok közül a már lefelé néző marad. Azok a tárgyak, amelyeknek nincs elég nagy lapjuk a megtámaszkodáshoz, változatlanok maradnak. Az átalakítások a parancssori sorrendben futnak, így az ezen kapcsoló előtt megadott forgatások érvényesülnek. Az --orient 1 az összes átalakítás után fut, és felülírja a tájolást."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Fektetés lapra normális szerint"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Minden tárgyat a konvex burok azon lapjára fektet, amelynek kifelé mutató normálisa a legközelebb van az NX,NY,NZ irányhoz, és ráejti az asztalra. Az irány a tárgy koordinátáiban értendő, amelyek tartalmazzák az ezen kapcsoló előtt megadott forgatásokat, és megegyeznek az asztal tengelyeivel, hacsak a bemeneti fájl el nem forgatja a tárgyat. Például az 1,0,0 a +X oldalára állítja a tárgyat. Az --orient 1 az összes átalakítás után fut, és felülírja a tájolást."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Fektetés pontban lévő lapra"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Minden tárgyat a konvex burok azon lapjára fektet, amely tartalmazza az X,Y,Z pontot, és ráejti az asztalra. A pont a tárgy koordinátáiban értendő, amelyek tartalmazzák az ezen kapcsoló előtt megadott forgatásokat; az --inspect-mesh ezekben adja meg a lapok középpontját. Azok a tárgyak, amelyeknek nincs ilyen lapjuk, változatlanok maradnak, és a futás hibával áll le, ha egyetlen tárgynak sincs ilyen lapja. Az --orient 1 az összes átalakítás után fut, és felülírja a tájolást."
 
 msgid "Scale the model by a float factor."
 msgstr "A modell méretezése egy lebegő tényezővel"
@@ -21180,14 +21374,17 @@ msgstr "Ez a művelet nem vonható vissza. Folytatod?"
 msgid "Skipping objects."
 msgstr "Objektumok kihagyása."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Anyagarány"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Modellmagasság"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Arány"
 
 msgid "Select Filament"
 msgstr "Filament kiválasztása"
@@ -21471,12 +21668,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Szárítás – páramentesítés"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " maximális szárítási hőmérséklete "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s maximális szárítási hőmérséklete %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " minimális szárítási hőmérséklete "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s minimális szárítási hőmérséklete %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21921,6 +22120,97 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Other"
+#~ msgstr "Egyéb"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Bal: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Jobb: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "A maximális hőmérséklet nem haladhatja meg ezt: "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "A minimális hőmérséklet nem lehet kevesebb ennél: "
+
+#~ msgid "up to"
+#~ msgstr "legfeljebb"
+
+#~ msgid "above"
+#~ msgstr "felett"
+
+#~ msgid "from"
+#~ msgstr "ettől"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Konfigurációs csomag: "
+
+#~ msgid " updated to "
+#~ msgstr " frissítve erre: "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Csoportosítási hiba: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " nem helyezhető ide: "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " maximális szárítási hőmérséklete "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " minimális szárítási hőmérséklete "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "ehhez kell"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "nincs engedélyezve"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "az anyag nincs közzétéve"
+
+#~ msgid "Select the language"
+#~ msgstr "Válaszd ki a nyelvet"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Bővítmény kiválasztása"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben a felső felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Kifelé a felület közepén kezd, így a felesleges anyag a szélek felé tolódik, ahol a legkevésbé látszik. A Befelé a szélén kezd, és a középen lévő szűk ívekkel fejeződik be.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Az az irány, amelyben az alsó felületek kitöltése történik középpont alapú mintázat (Koncentrikus, Archimédeszi vonalak, Nyolcágú spirál) használatakor.\n"
+#~ "A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
+#~ "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Ha engedélyezed, nem készül törlőtorony azokon a rétegeken, ahol nincs szerszámváltás. A szerszámváltást tartalmazó rétegeknél az extruder az aktuális magasság alá süllyed a törlőtorony nyomtatásához. Ügyelj arra, hogy ez ne okozzon ütközést a nyomtatás során."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Beállítások exportálása egy fájlba."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."

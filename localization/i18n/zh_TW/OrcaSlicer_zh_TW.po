@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2425,13 +2425,6 @@ msgstr "有可用的更新。請開啟預設組合對話框進行更新。"
 msgid "%s has been removed."
 msgstr "%s 已移除。"
 
-
-msgid "Select the language"
-msgstr "選擇語言"
-
-msgid "Language"
-msgstr "語言"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -3670,11 +3663,15 @@ msgstr "在 Filament Track Switch 退回目前線材"
 msgid "Switch track at Filament Track Switch"
 msgstr "在 Filament Track Switch 切換軌道"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "最高溫度不能超過 "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "最高溫度不能超過 %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "最低溫度不應低於 "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "最低溫度不應低於 %d"
 
 msgid "Type to filter..."
 msgstr "輸入以篩選..."
@@ -4550,6 +4547,15 @@ msgstr ""
 "錯誤訊息：%1%將臨時的 G-code 複製到輸出的 G-code 失敗 ，也許 SD 卡寫入被鎖定？\n"
 "錯誤訊息：%1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"將暫存 G-code 複製到輸出 G-code 失敗。\n"
+"錯誤訊息：%1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "將臨時 G-code 複製到輸出 G-code 時失敗。目標裝置可能存在問題，請嘗試再次匯出或使用不同的裝置。損壞的 G-code 已輸出為 %1%.tmp。將臨時 G-code 複製到輸出 G-code 時失敗。目標裝置可能存在問題，請嘗試再次匯出或使用不同的裝置。損壞的 G-code 已輸出為 %1%.tmp。"
@@ -5303,10 +5309,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "數值 %s 超出範圍。有效範圍是從 %d 到 %d。"
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"是 %s%% 還是 %s %s？"
+msgid "Is it %s%% or %s %s?"
+msgstr "是 %s%% 還是 %s %s？"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5333,20 +5340,16 @@ msgid "System agents"
 msgstr "系統代理程式"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "未選擇外掛"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "新增外掛"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "選擇外掛"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "移除外掛"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "未選擇外掛"
 
 # AI Translated
 msgid "Configure"
@@ -5603,14 +5606,20 @@ msgstr "設為最佳"
 msgid "Regroup filament"
 msgstr "重新分組線材"
 
-msgid "up to"
-msgstr "達到"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "最高 %1% mm"
 
-msgid "above"
-msgstr "高於"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "高於 %1% mm"
 
-msgid "from"
-msgstr "從"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "從 %1% mm 到 %2% mm"
 
 msgid "Usage"
 msgstr "使用情況"
@@ -5970,7 +5979,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -6283,11 +6292,13 @@ msgstr "另存專案為"
 msgid "Save current project as"
 msgstr "將目前專案另存為"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "發布 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "匯出內嵌所選設定的 3MF 檔案"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "匯入 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7551,6 +7562,14 @@ msgid "Bottom"
 msgstr "底部"
 
 # AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "此設定未指定外掛能力類型。"
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "此設定指定了無法識別的外掛能力類型： "
+
+# AI Translated
 msgid "Plugin Selection"
 msgstr "外掛選擇"
 
@@ -8110,11 +8129,13 @@ msgstr "請確認這些預設中的 G-code 是安全的，以防止對列印裝�
 msgid "Customized Preset"
 msgstr "自訂預設"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "部分已發布的設定無法套用："
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "部分線材槽位已變更："
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "STEP 檔案內部元件的名稱不是 UTF-8 格式！"
@@ -8526,13 +8547,17 @@ msgstr "切片檔案另存為："
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "檔案 %s 已經傳送到列印裝置的儲存空間，可以在列印裝置上瀏覽。"
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "發布 3MF 檔案為："
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"匯出已發布的 3MF 檔案失敗。\n"
+"請檢查該資料夾是否在線上可用，或檔案是否被其他程式開啟。"
 
 msgid "Publish"
 msgstr "發布"
@@ -8747,7 +8772,6 @@ msgstr "是否繼續？"
 msgid "Language selection"
 msgstr "語言選擇"
 
-
 msgid "Asia-Pacific"
 msgstr "亞太"
 
@@ -8851,6 +8875,9 @@ msgstr "目前實例路徑："
 
 msgid "General"
 msgstr "一般"
+
+msgid "Language"
+msgstr "語言"
 
 msgid "Metric"
 msgstr "公制"
@@ -9290,9 +9317,6 @@ msgstr "在切片預覽中拖曳層滑桿時，將目前層以下的各層算繪
 msgid "Dimmed layer brightness"
 msgstr "變暗層的亮度"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9692,63 +9716,80 @@ msgstr "正在上傳資料"
 msgid "Jump to webpage"
 msgstr "跳至網頁"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "材料"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "混合線材"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "部分混合線材依賴不會被發布的線材："
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "線材 %d（混合）"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% 需要 %2%，但它未啟用。"
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% 需要 %2%，但其材料不會被發布。"
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "若要發布混合線材，請啟用它所使用的每一種線材，並選擇「完整發布」或滿足其「類型」需求。"
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "仍要發布"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "發布 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "選擇要在 3MF 檔案中發布的設定"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "發布 3MF Wiki"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "發布 3MF 影片指南"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "混合線材 - 在上方選擇「啟用」後將整體發布"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "發布此混合線材，並啟用 + 完整發布其組成線材"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "在 3MF 檔案中發布此線材槽位"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "完整發布"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "將此槽位的整條線材內嵌到 3MF 檔案中"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "篩選未選項"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9766,6 +9807,10 @@ msgstr "將父配置繼承的所有數值複製到目前的配置，並解除繼
 
 msgid "Detach from parent"
 msgstr "從父預設分離"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "不保留父預設另存"
 
 # AI Translated
 msgid "Unique preset"
@@ -10470,8 +10515,16 @@ msgstr "堵塞偵測需要換料塔。若沒有換料塔，列印物件上可能
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "同時啟用精確 Z 高度和擦拭塔可能會導致切片錯誤。您仍然要啟用精確 Z 高度嗎？"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "平滑模式的縮時攝影需要每層都有換料塔，因此與「取消稀疏層」不相容。「取消稀疏層」已關閉。"
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "平滑模式的縮時錄影需要換料塔，否則列印物件上可能會有瑕疵。您是否要啟用換料塔？"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "「取消稀疏層」與平滑模式的縮時攝影不相容，後者需要每層都有換料塔。縮時攝影已切換為傳統模式。"
 
 msgid "Still print by object?"
 msgstr "持續逐件列印？"
@@ -10841,9 +10894,6 @@ msgstr "相容的切片設定"
 
 msgid "Printable space"
 msgstr "可列印區域"
-
-msgid "Printer Agent"
-msgstr "列印裝置代理"
 
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "選擇列印裝置通訊的網路代理實施。可用代理在啟動時註冊。"
@@ -11245,14 +11295,6 @@ msgstr "擠出機數量"
 
 msgid "Capabilities"
 msgstr "能力"
-
-# AI Translated
-msgid "Left: "
-msgstr "左： "
-
-# AI Translated
-msgid "Right: "
-msgstr "右： "
 
 msgid "Show all presets (including incompatible)"
 msgstr "顯示所有預設（包括不相容的）"
@@ -12096,14 +12138,21 @@ msgstr "修復被取消"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "從 %1% 複製檔案到 %2% 失敗：%3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "正在下載新的廠牌設定檔： "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "設定檔：%1% 已更新到 %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "下載廠牌設定檔失敗： "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "在設定更新之前需要檢查未儲存的設定變更。"
-
-msgid "Configuration package: "
-msgstr "設定檔："
-
-msgid " updated to "
-msgstr "更新到 "
 
 msgid "Open G-code file:"
 msgstr "開啟 G-code 檔案："
@@ -12164,11 +12213,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "輸入整形僅受 Klipper、RepRapFirmware 和 Marlin 2 支援"
 
-msgid "Grouping error: "
-msgstr "分組錯誤："
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "分組錯誤：%1% 無法放入左噴嘴"
 
-msgid " can not be placed in the "
-msgstr "無法放置於"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "分組錯誤：%1% 無法放入右噴嘴"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12281,6 +12334,10 @@ msgstr "%1% 離其它物件太近，可能會發生碰撞。"
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 太高，會發生碰撞。"
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "模型與換料塔的相對位置不符合「取消稀疏層」功能的需求。請調整兩者的相對位置、降低模型高度，或關閉「取消稀疏層」。"
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr "離淨空區域太近，列印時可能會發生碰撞。"
@@ -12624,6 +12681,9 @@ msgstr "使用 3MF 取代 G-code"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "若列印裝置接受 3MF 檔案作為列印作業，請啟用此選項。啟用後，Orca Slicer 會將切片後的檔案以 .gcode.3mf 形式傳送，而非單純的 .gcode 檔案。"
+
+msgid "Printer Agent"
+msgstr "列印裝置代理"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "選擇用於列印裝置通訊的網路代理實作。"
@@ -13642,6 +13702,10 @@ msgstr "直線排列"
 msgid "Concentric"
 msgstr "同心"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "螺旋內縮"
+
 msgid "Hilbert Curve"
 msgstr "希爾伯特曲線"
 
@@ -13733,13 +13797,13 @@ msgstr "頂面填充順序"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"使用以中心為基礎的圖樣（同心、阿基米德弦線、八角星螺旋）時，頂面填充的方向。\n"
-"「向外」從表面中心開始，因此多餘的材料會被推向最不明顯的邊緣。「向內」從邊緣開始，並以中心的緊密曲線結束。\n"
-"預設使用最短路徑排序，方向可能為任一種。"
+"使用以中心為起點的圖案（同心、螺旋內縮、阿基米德和弦、八角螺旋）時，頂面的填充方向。\n"
+"向外從表面中心開始，多餘的材料會被推向邊緣，在該處最不明顯。向內從邊緣開始，並以中心處的緊密曲線結束。\n"
+"預設使用最短路徑排序，方向可能為兩者之一。"
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13747,13 +13811,13 @@ msgstr "底面填充順序"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"使用以中心為基礎的圖樣（同心、阿基米德弦線、八角星螺旋）時，底面填充的方向。\n"
-"「向內」讓每個表面從較寬的外側曲線開始，可改善中心緊密曲線可能無法附著的列印板上的第一層附著。「向外」從中心開始，將多餘的材料推向邊緣。\n"
-"預設使用最短路徑排序，方向可能為任一種。"
+"使用以中心為起點的圖案（同心、螺旋內縮、阿基米德和弦、八角螺旋）時，底面的填充方向。\n"
+"向內讓每個表面從較寬的外側曲線開始，可改善首層在列印板上的黏著，尤其當中心處的緊密曲線不易黏牢時。向外從中心開始，將多餘的材料推向邊緣。\n"
+"預設使用最短路徑排序，方向可能為兩者之一。"
 
 msgid "Internal solid infill pattern"
 msgstr "內部實心填充圖案"
@@ -13851,6 +13915,14 @@ msgstr "逆時針"
 
 msgid "Clockwise"
 msgstr "順時針"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "至桿件的距離"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "噴嘴尖端到桿件較遠一側邊緣的水平距離。用於逐件列印時的避障。"
 
 msgid "Height to rod"
 msgstr "到橫杆高度"
@@ -16016,6 +16088,20 @@ msgstr "偵測懸空外牆"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "偵測懸空相對於線寬的百分比，並套用不同的速度列印。100%% 的懸空將使用橋接速度。"
 
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "最後列印無支撐的牆"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"完全懸空的牆迴圈會等到有東西能夠承托它們時才列印：\n"
+"無論牆的順序為何，它們都在同一島嶼的其他牆之後擠出，從最內側開始。\n"
+"只能由本層橋接錨定的迴圈會等待這些橋接列印完成；而沿著有支撐的牆延伸的迴圈則保持在填充之前的位置，因為填充需要它作為錨點。"
+
 msgid "Outer walls"
 msgstr "外牆"
 
@@ -16451,6 +16537,39 @@ msgstr "閉環擦拭"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "為了降低閉環擠出中接縫的可見性，在擠出機退出閉環前會進行一次微小的內縮移動。"
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "向內擦拭"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"僅適用於外牆，包括孔洞邊界。擦拭時將高溫噴嘴移向已列印的內牆，以減少剛列印塑膠的二次受熱與接縫痕跡。\n"
+"\n"
+"在層高低於 0.1 mm 時特別有用，此時擦拭痕跡更明顯。\n"
+"\n"
+"若相鄰內牆尚未列印（單牆區域或外牆/內牆順序），或找不到有支撐的向內路徑（例如在銳角或接縫間隙處），則使用一般擦拭。"
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "向內擦拭距離"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"擦拭路徑偏離外牆輪廓的距離，以公釐或實際外牆擠出寬度的百分比指定。\n"
+"\n"
+"例如，50% 會將路徑偏移外牆寬度的一半。實際偏移量同時受實際外牆寬度與到相鄰牆的可用間距限制，因此超過 100% 的值或等效的絕對距離不會產生額外效果。設為 0 可停用偏移。"
+
 msgid "Wipe before external loop"
 msgstr "外牆迴圈前的擦拭動作"
 
@@ -16705,8 +16824,9 @@ msgstr "取用新工具時不等待其達到列印溫度，先移動到換料塔
 msgid "No sparse layers (beta)"
 msgstr "取消稀疏層（Beta）"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "啟用此選項後，換料塔將不會在沒有工具更換的層中列印。在有工具更換的層中，擠出機將向下移動以列印換料塔。請使用者自行確保清洗塔與列印物之間不會發生碰撞。"
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "啟用後，換料塔不會在沒有換工具的層上列印。在有換工具的層上，擠出機會向下移動去列印換料塔，因此塔會低於模型，工具頭必須向下伸到該處。若這樣會與已列印的物件發生碰撞，該配置將被拒絕。對平滑模式的縮時攝影或噴嘴結塊偵測無效，因為它們需要每層都有塔。"
 
 msgid "Prime all printing extruders"
 msgstr "所有擠出機畫線"
@@ -16732,6 +16852,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "循環"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "循環順序"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"循環換工具排序所使用的自訂線材序列，以逗號分隔的線材編號表示（例如「3,2,1,4」）。\n"
+"每一層依此序列列印其線材；未列出的線材最後列印，並依遞增順序排列。\n"
+"留空則依遞增順序循環使用各線材。"
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "對首層套用循環順序"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"將循環換工具順序同樣套用於首層。\n"
+"預設為關閉，因為首層改為依最佳列印板黏著排序：列印首層細小脆弱特徵的線材會最後列印，如此後續的換工具與空駛就不易將這些附著薄弱的部分蹭掉。若已設定自訂首層線材序列，此首層順序也會遵循它。循環順序的好處（額外的換工具讓每層有更多冷卻時間）並不適用於首層，因為首層為了黏著會以慢速高溫列印。\n"
+"僅當你需要包含首層在內的每一層都使用完全相同的換工具順序時才啟用此項，代價是失去上述黏著最佳化。"
+
 msgid "Slice gap closing radius"
 msgstr "切片間隙閉合半徑"
 
@@ -16740,9 +16888,6 @@ msgstr "在三角網格切片過程中，寬度小於 2 倍間隙閉合半徑的
 
 msgid "Slicing Mode"
 msgstr "切片模式"
-
-msgid "Other"
-msgstr "其他"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "針對 3DLabPrint 飛機模型，請選擇『奇偶』模式。若需閉合模型中的所有孔洞，請啟用『閉合孔洞』選項。"
@@ -17729,6 +17874,14 @@ msgstr "不檢查"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "不要執行任何有效性檢查，如 G-code 路徑衝突檢查。"
 
+# AI Translated
+msgid "Strict mode"
+msgstr "嚴格模式"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "當切片產生原本僅記入日誌的非嚴重警告時（例如停用支撐卻需要支撐的模型），以非零狀態碼結束。請在絕不能交付存在隱蔽缺陷切片結果的 CI 或指令碼流程中使用。每一則此類警告還會以穩定的類別列在 result.json 的 `warnings` 陣列中，該檔案僅在 Linux 上產生。不能與 --no-check 同時使用，後者會略過支撐檢查。"
+
 msgid "Normative check"
 msgstr "規範符合性偵測"
 
@@ -17741,12 +17894,28 @@ msgstr "輸出模型資訊"
 msgid "This outputs the model’s information."
 msgstr "輸出模型資訊。"
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "檢查網格（JSON 輸出至 stdout）"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "將每個已載入物件的 JSON 摘要輸出至 stdout，然後結束：包括其邊界框，以及可供放置的凸包面及其法線、面積與中心。--ground-* 選項正是從這些面中選擇。--info 的機器可讀替代方案。"
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "檢查繪製（JSON 輸出至 stdout）"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "輸出已載入模型上已儲存的每個繪製圖層（支撐、接縫、MMU 顏色、絨毛表面）的結構化 JSON 摘要 — 每種狀態的面片數量、表面積與網格局部邊界框 — 然後結束。在圖形介面中開啟繪製工具的機器可讀替代方案。"
+
 msgid "Export Settings"
 msgstr "匯出設定"
 
 # AI Translated
-msgid "This exports settings to a file."
-msgstr "將設定匯出至檔案。"
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "將設定匯出至檔案。使用 - 可將其寫入 stdout。"
 
 msgid "Send progress to pipe"
 msgstr "將進度傳送到 Pipe"
@@ -17801,6 +17970,30 @@ msgstr "繞 Y 旋轉"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "繞 Y 軸的旋轉角度（以度為單位）。"
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "以最大面著床"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "將每個物件以其凸包的最大面放置，並落到列印板上。若有多個同樣大的面，則保留已經朝下的那一個。沒有足夠大可供放置的面的物件維持原狀。變換依命令列中的先後順序執行，因此在此選項之前給定的旋轉會被保留。--orient 1 在所有變換之後執行，並會取代定向。"
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "依法線以指定面著床"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "將每個物件以其凸包中外法線最接近方向 NX,NY,NZ 的面放置，並落到列印板上。該方向使用物件座標系，其中包含在此選項之前給定的旋轉；除非輸入檔案旋轉了該物件，否則它與列印板的座標軸一致。例如，1,0,0 會讓物件以 +X 面站立。--orient 1 在所有變換之後執行，並會取代定向。"
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "以指定點所在面著床"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "將每個物件以其凸包中包含點 X,Y,Z 的面放置，並落到列印板上。該點使用物件座標系，其中包含在此選項之前給定的旋轉；--inspect-mesh 回報的面中心也使用該座標系。沒有此類面的物件維持原狀；若所有物件都沒有此類面，則本次執行失敗。--orient 1 在所有變換之後執行，並會取代定向。"
 
 msgid "Scale the model by a float factor."
 msgstr "依浮點數比例縮放模型"
@@ -20902,14 +21095,17 @@ msgstr "此操作無法撤消。繼續？"
 msgid "Skipping objects."
 msgstr "跳過物件。"
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "材料比例"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "模型高度"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "比例"
 
 msgid "Select Filament"
 msgstr "選擇線材"
@@ -21167,12 +21363,14 @@ msgid "Drying-Dehumidifying"
 msgstr "烘乾—除濕"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " 最高烘乾溫度為 "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s 的最高烘乾溫度為 %d°C。"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " 最低烘乾溫度為 "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s 的最低烘乾溫度為 %d°C。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21637,6 +21835,98 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "Other"
+#~ msgstr "其他"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "左： "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "右： "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "最高溫度不能超過 "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "最低溫度不應低於 "
+
+#~ msgid "up to"
+#~ msgstr "達到"
+
+#~ msgid "above"
+#~ msgstr "高於"
+
+#~ msgid "from"
+#~ msgstr "從"
+
+#~ msgid "Configuration package: "
+#~ msgstr "設定檔："
+
+#~ msgid " updated to "
+#~ msgstr "更新到 "
+
+#~ msgid "Grouping error: "
+#~ msgstr "分組錯誤："
+
+#~ msgid " can not be placed in the "
+#~ msgstr "無法放置於"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " 最高烘乾溫度為 "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " 最低烘乾溫度為 "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "需要"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "未啟用"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "材料未發布"
+
+#~ msgid "Select the language"
+#~ msgstr "選擇語言"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "選擇外掛"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "使用以中心為基礎的圖樣（同心、阿基米德弦線、八角星螺旋）時，頂面填充的方向。\n"
+#~ "「向外」從表面中心開始，因此多餘的材料會被推向最不明顯的邊緣。「向內」從邊緣開始，並以中心的緊密曲線結束。\n"
+#~ "預設使用最短路徑排序，方向可能為任一種。"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "使用以中心為基礎的圖樣（同心、阿基米德弦線、八角星螺旋）時，底面填充的方向。\n"
+#~ "「向內」讓每個表面從較寬的外側曲線開始，可改善中心緊密曲線可能無法附著的列印板上的第一層附著。「向外」從中心開始，將多餘的材料推向邊緣。\n"
+#~ "預設使用最短路徑排序，方向可能為任一種。"
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "啟用此選項後，換料塔將不會在沒有工具更換的層中列印。在有工具更換的層中，擠出機將向下移動以列印換料塔。請使用者自行確保清洗塔與列印物之間不會發生碰撞。"
+
+# AI Translated
+#~ msgid "This exports settings to a file."
+#~ msgstr "將設定匯出至檔案。"
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "原生 Wayland 即時檢視需要 GStreamer GTK 視訊接收器。請為 GStreamer 安裝 gtksink 外掛程式，然後重新啟動 OrcaSlicer。"

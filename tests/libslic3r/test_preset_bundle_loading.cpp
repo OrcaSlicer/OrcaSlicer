@@ -553,6 +553,107 @@ TEST_CASE("Profile validator flags dangling and renamed preset references", "[Pr
     }
 }
 
+TEST_CASE("Every printer variant has a compatible default material", "[Preset][Validate][DefaultMaterials]")
+{
+    PresetBundle bundle;
+    auto &vendor = bundle.vendors["Acme"];
+    vendor.id = vendor.name = "Acme";
+    vendor.models.emplace_back();
+    auto &model = vendor.models.back();
+    model.id = model.name = "Acme Printer";
+    model.default_materials = {"Acme PLA @0.4", "Acme PLA @0.6"};
+
+    for (const std::string variant : {"0.4", "0.6"}) {
+        model.variants.emplace_back(variant);
+        const std::string printer_name = "Acme Printer " + variant;
+        Preset &printer = add_inmemory_preset(bundle.printers, printer_name);
+        printer.is_system = true;
+        printer.is_visible = false; // Validation covers uninstalled variants too.
+        printer.vendor = &vendor;
+        printer.config.option<ConfigOptionString>("printer_model")->value = model.id;
+        printer.config.option<ConfigOptionString>("printer_variant")->value = variant;
+        printer.config.option<ConfigOptionFloats>("nozzle_diameter")->values = {std::stod(variant)};
+
+        Preset &filament = add_inmemory_preset(bundle.filaments, "Acme PLA @" + variant);
+        filament.is_system = true;
+        filament.vendor = &vendor;
+        filament.alias = "Acme PLA";
+        filament.config.option<ConfigOptionStrings>("compatible_printers")->values = {printer_name};
+    }
+
+    // A second system filament, compatible with a user printer this model does not have, so a
+    // section can list a known-but-incompatible name without tripping the existence check.
+    Preset &other_printer = add_inmemory_preset(bundle.printers, "Acme Printer 0.2");
+    other_printer.vendor = &vendor;
+    Preset &other_filament = add_inmemory_preset(bundle.filaments, "Acme PLA @0.2");
+    other_filament.is_system = true;
+    other_filament.vendor = &vendor;
+    other_filament.alias = "Acme PLA";
+    other_filament.config.option<ConfigOptionStrings>("compatible_printers")->values = {"Acme Printer 0.2"};
+
+    CHECK_FALSE(bundle.has_errors());
+    bool expected_errors = true;
+
+    SECTION("A model default for one nozzle does not cover another nozzle") {
+        model.default_materials = {"Acme PLA @0.4"};
+    }
+    SECTION("An empty default list leaves every variant uncovered") {
+        model.default_materials.clear();
+    }
+    SECTION("An unknown filament cannot be a default") {
+        model.default_materials = {"Missing PLA"};
+    }
+    SECTION("An unknown name is an error even when a compatible default covers the variant") {
+        model.default_materials.insert(model.default_materials.begin(), "Missing PLA");
+    }
+    SECTION("An unknown default_filament_profile name is an error") {
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)
+            ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Missing PLA"};
+    }
+    SECTION("A known default_filament_profile name is not an error") {
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)
+            ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Acme PLA @0.6"};
+        expected_errors = false;
+    }
+    SECTION("A short alias does not resolve as an installed default") {
+        model.default_materials = {"Acme PLA"};
+    }
+    SECTION("A user filament cannot satisfy a shipped default") {
+        bundle.filaments.find_preset("Acme PLA @0.6", false, true)->is_system = false;
+    }
+    SECTION("One compatible default per variant is sufficient") {
+        model.default_materials.insert(model.default_materials.begin(), "Acme PLA @0.2");
+        expected_errors = false;
+    }
+    SECTION("Compatibility conditions apply to each nozzle") {
+        model.default_materials = {"Acme PLA @0.4"};
+        Preset *filament = bundle.filaments.find_preset("Acme PLA @0.4", false, true);
+        auto &library = bundle.vendors[PresetBundle::ORCA_FILAMENT_LIBRARY];
+        library.id = library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        filament->vendor = &library;
+        filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+        filament->config.option<ConfigOptionString>("compatible_printers_condition")->value = "nozzle_diameter[0] == 0.4";
+    }
+    SECTION("Library defaults respect printer exclusions") {
+        model.default_materials = {"Acme PLA @0.4"};
+        Preset *filament = bundle.filaments.find_preset("Acme PLA @0.4", false, true);
+        auto &library = bundle.vendors[PresetBundle::ORCA_FILAMENT_LIBRARY];
+        library.id = library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        filament->vendor = &library;
+        filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+        CHECK_FALSE(bundle.check_printer_default_materials());
+        filament->m_excluded_from.insert("Acme Printer 0.6");
+    }
+    SECTION("User printers do not need model defaults") {
+        model.default_materials = {"Acme PLA @0.4"};
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)->is_system = false;
+        expected_errors = false;
+    }
+
+    CHECK(bundle.check_printer_default_materials() == expected_errors);
+    CHECK(bundle.has_errors() == expected_errors);
+}
+
 // Under a shared override key, the last preset merged into the full config overwrote the others', so an
 // edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
 // re-sliced. Per-type keys make that collision impossible; guard the scoping here.

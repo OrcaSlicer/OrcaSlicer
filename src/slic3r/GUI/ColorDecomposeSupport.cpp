@@ -395,8 +395,9 @@ bool confirm_create_decompose_missing_components(wxWindow* parent, const std::ve
         missing_text += missing[i].display_name;
     }
 
-    wxString message = _L("The current filament list does not contain ") + missing_text +
-        _L(". A project filament required by the mixed filament will be created automatically after decomposition.");
+    wxString message = wxString::Format(_L("The current filament list does not contain %s. A project filament required by "
+                                           "the mixed filament will be created automatically after decomposition."),
+                                        missing_text);
 
     MessageDialog dlg(parent, message, _L("Tip"), wxOK | wxCANCEL | wxICON_INFORMATION);
     dlg.show_dsa_button();

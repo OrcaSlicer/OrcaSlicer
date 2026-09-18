@@ -36,21 +36,17 @@ This page is the rule for authoring `filament_id` in system profiles
 > **Never write a `filament_id` value by hand.** A new filament gets its id from
 > `python scripts/orca_profile_tool.py generate-id`; one already in the tree has one — inherit it.
 
-## The design, in two pieces
+## The design
 
 Because several consumers match **globally by id alone, first hit wins** (see the next
 section), any two materials sharing one id feed wrong data somewhere — a wrong tray name, a
 wrong support-material flag, a wrong nozzle grouping — and inside one printer a duplicated id
 makes AMS spool matching a coin toss. Hand-written ids produce such collisions constantly, so
-the system is built to make them impossible:
-
-1. **Deterministic minting.** An id is a pure hash of the product's identity — no registry to
-   maintain, no next-free-number ceremony, no way for two concurrent PRs to race for the same
-   number, and no way to get it wrong by hand, because you never write it by hand.
-2. **A sanctioned snapshot.** The complete id landscape derived from the tree must equal
-   `scripts/filament_id_snapshot.json` exactly, so every change to ids, claims (which bundles
-   ship which id, and for which filament), or product identity surfaces as a reviewable diff to
-   one file — the maintainer gate.
+the system is built to make them impossible: an id is a pure hash of the product's identity —
+no registry to maintain, no next-free-number ceremony, no way for two concurrent PRs to race
+for the same number, and no way to get it wrong by hand, because you never write it by hand.
+CI holds every id in the tree to that rule, so the profiles themselves are the whole record of
+which products exist and which bundles ship them.
 
 ## Who consumes the id
 
@@ -160,8 +156,8 @@ key needed). Tuning a generic material → **join the OrcaFilamentLibrary filame
    different product by rule 5, so it then needs its own id.
 5. **Ids follow the product identity.** The id is a pure function of the product triple
    `(filament_vendor, filament_type, filament name)`, so correcting any of them re-mints the id
-   **by design**, applied by `generate-id` (preview with `--dry-run`, confine with `--vendor`)
-   and gated by the `update-snapshot` diff; the exact sequence is in the FAQ. Nothing forwards
+   **by design**, applied by `generate-id` (preview with `--dry-run`, confine with `--vendor`);
+   the exact sequence is in the FAQ. Nothing forwards
    the old value, so anything outside the tree that stored it — a device tray, a calibration
    record, a saved project — falls back to matching by filament type until the user re-selects
    the filament. Re-mint deliberately, and only to fix a genuinely wrong identity.
@@ -196,8 +192,8 @@ Snapmaker bundles alike; the OFL generic `Generic/PLA/Generic PLA` mints `OFDSrz
 by 35 bundles — most by independent declarations converging on the same mint, the rest
 purely through inheritance from the OFL preset.
 
-Nothing but the triple feeds the mint — not the rest of the tree, not the snapshot, not what
-another preset of the product happens to carry. Determined triple, determined id: one product
+Nothing but the triple feeds the mint — not the rest of the tree, not what another preset of
+the product happens to carry. Determined triple, determined id: one product
 carries one id and there is no second acceptable value for it, so any other value on a preset
 is a mismatch `check` reports and `generate-id` pulls back. Two *different* products whose
 triples mint the same base62 value would be a collision (a roughly 36-bit id space against a
@@ -214,17 +210,15 @@ Workflow for a new filament:
 # 1. Author the filament with NO filament_id key anywhere.
 python scripts/orca_profile_tool.py generate-id --dry-run  # 2. preview the ids — writes nothing
 python scripts/orca_profile_tool.py generate-id           # 3. apply them to the profile file(s)
-python scripts/orca_profile_tool.py update-snapshot       # 4. record the new claims in the snapshot
-python scripts/orca_profile_tool.py check                 # 5. validate — everything CI checks
-# 6. Commit the profile edits together with scripts/filament_id_snapshot.json, for review.
+python scripts/orca_profile_tool.py check                 # 4. validate — everything CI checks
 ```
 
 `generate-id` makes every filament's id equal the mint of its own
 `(filament_vendor, filament_type, filament name)` triple: it inserts one where an instantiated
 filament resolves none, and re-derives one that does not match. A preset that *inherits* a
-mismatching id is the one case left to the author — check 3b names it, and the fix is to inherit
+mismatching id is the one case left to the author — check 2b names it, and the fix is to inherit
 a preset of the same filament or to give the preset its own key. A declaration is left alone
-exactly when it already equals the one id its triple mints, and a collision (check 3d) is
+exactly when it already equals the one id its triple mints, and a collision (check 2d) is
 reported and left unwritten. The same run assigns
 `generate_preset_setting_id(vendor, type, name)` to every instantiated filament, process
 and machine preset of every vendor except BBL, which keeps its authoritative `G*` ids, strips
@@ -242,9 +236,7 @@ loudly), and a no-op on a tree that already passes `check`.
 - `--dry-run` reports what the run would do and writes nothing, so
   `generate-id --dry-run --vendor <Vendor>` previews just that bundle.
 - `--profiles DIR` points the tooling at a different profile tree (default
-  `resources/profiles`). `check` and `update-snapshot` read and write the sanctioned state of
-  the tree they are given, so pointing them elsewhere needs `--snapshot PATH` for that tree too —
-  `scripts/filament_id_snapshot.json` describes `resources/profiles` and no other tree.
+  `resources/profiles`).
 
 The tool's other commands maintain the tree around the ids: `fix` normalises profile files,
 `trim` drops files no `<vendor>.json` list references, and `update-index` rebuilds those lists.
@@ -252,13 +244,11 @@ They do not touch ids; `--help` documents them.
 
 **Identity fixes need no separate command.** `generate-id` re-derives an id that no longer matches
 its triple exactly the way it fills in a missing one, so a rename or a `filament_vendor` /
-`filament_type` correction is just: fix the config, run `generate-id` (confine it with
-`--vendor`, preview it with `--dry-run`), then `update-snapshot` and review the diff.
+`filament_type` correction is just: fix the config and run `generate-id` (confine it with
+`--vendor`, preview it with `--dry-run`).
 
 If you skip the tooling, CI fails and prints the remedy: the expected id for your filament and
-the instruction to run `python scripts/orca_profile_tool.py generate-id`; once the id is minted,
-the snapshot checks likewise point at `update-snapshot` and tell you to commit the resulting
-diff.
+the instruction to run `python scripts/orca_profile_tool.py generate-id`.
 
 ## Ids other systems compose
 
@@ -339,7 +329,7 @@ OrcaFilamentLibrary. **135 is the number to expect at every regeneration** — 1
 one-off size of the transition and stopped being computable from the tree once the BBL bundle
 was re-minted, so do not "fix" the report to print it.
 
-**Check 5** lives in `check_filament_ids`, so profile CI runs it alongside the other four. It
+**Check 4** lives in `check_filament_ids`, so profile CI runs it alongside the other three. It
 holds the file to its contract: it parses, carries `source` / `bambustudio_commit` /
 `generated`, keys only `OF`-format ids, maps each Bambu id at most once, and — for every row
 whose key the tree actually claims — agrees with the tree on that id's `(vendor, type, name)`
@@ -428,23 +418,14 @@ map would silently reproduce the bug.
 ## How CI enforces this
 
 Profile CI (`check_profiles.yml`) runs `check_filament_ids()` tree-wide via
-`scripts/orca_profile_tool.py check`. Its ground truth is
-**`scripts/filament_id_snapshot.json` — the sanctioned state**: the id state derived from the
-tree must equal the snapshot exactly, in both directions. Any change to the id landscape
-therefore surfaces as a diff to that file, and **that snapshot diff is what maintainers review
-and gate in a PR**. Never edit the snapshot by hand — `update-snapshot` regenerates it
-deterministically (running it twice changes nothing). The snapshot holds one map, `ids`: each
-entry is the product the id is minted from (`filament_vendor`, `filament_type`, `name`) and the
-`filaments` claiming it (`Vendor/Filament`), and it sanctions *state*, never exceptions: no check
-consults it to excuse a preset from a rule, and there is no grandfather list of any kind.
+`scripts/orca_profile_tool.py check`. Every check judges the tree against the rules on this
+page and nothing else — there is no recorded id state to match and no grandfather list of any
+kind.
 
 The checks, in brief:
 
-- **Format** — every id occurring in the tree is `OF` + 6 base62 chars. No exceptions: not a
-  snapshot entry, not BBL.
-- **Snapshot equality** — tree claims == snapshot claims **and** each id's declared triple ==
-  its snapshot entry, both directions: any `filament_vendor`/`filament_type`/name change
-  surfaces as a snapshot diff.
+- **Format** — every id occurring in the tree is `OF` + 6 base62 chars. No exceptions, not
+  even BBL.
 - **Identity** — the id is a function of the triple alone. A declared `OF*` id must equal the
   one id its declarer's own triple mints, with no second acceptable value; the id an
   instantiated preset *inherits* must equal the mint of *its* own triple, however it inherits
@@ -463,9 +444,8 @@ The checks, in brief:
 
 A profile that declares an id no triple mints — a Bambu catalog id, a composed Qidi one, a
 hand-typed value, whatever its vendor — fails the format check. For a Bambu-cataloged product
-the catalog map is where the correspondence belongs. New sharing via a *declared* id is caught
-by the identity check; sharing through inheritance carries no declaration to check and surfaces
-only as a new claim in the snapshot diff — which is exactly why that diff is the gate.
+the catalog map is where the correspondence belongs. Two products sharing one id are caught by
+the identity check whether the id is declared or inherited.
 
 The same `check` run holds every declared id to the AMS 8-character limit, tree-wide and for
 every vendor alike, scoped to the presets a vendor's index actually references (a file the index
@@ -489,19 +469,19 @@ ambiguity check behind structure rule 3.
   (or any real filament) for the settings and declare the id of your own filament; run
   `python scripts/orca_profile_tool.py generate-id` to mint it. Inheritance never changes the id.
 - **I need to fix a filament's `filament_vendor` or `filament_type`.** Fix the config, run
-  `generate-id --vendor <Vendor>` (preview with `--dry-run`), then `update-snapshot`, and commit
-  the profile and snapshot diffs together. The id re-derives from the corrected identity, and
+  `generate-id --vendor <Vendor>` (preview with `--dry-run`), and commit the result. The id
+  re-derives from the corrected identity, and
   nothing forwards the old value, so a tray or record still holding it falls back to matching by
   filament type.
 - **I need to rename a filament.** Rename the presets (adding `renamed_from`, which keeps the
-  preset *name* resolving), then `generate-id --vendor <Vendor>` (preview with `--dry-run`), then
-  `update-snapshot`. The id follows the new filament name; as with any identity fix, the old id
+  preset *name* resolving), then `generate-id --vendor <Vendor>` (preview with `--dry-run`). The
+  id follows the new filament name; as with any identity fix, the old id
   is not forwarded.
 - **Can I reuse a `QD_*` id for a Qidi profile?** No — it is not a mint, so it is not a
   `filament_id`. Those values are composed by the box at runtime, and no preset carries one.
   Author Qidi filaments like any other vendor's.
-- **CI says my filament needs an id.** Run `python scripts/orca_profile_tool.py generate-id`, then
-  `update-snapshot`, and commit both diffs. Do not type an id by hand.
+- **CI says my filament needs an id.** Run `python scripts/orca_profile_tool.py generate-id` and
+  commit the result. Do not type an id by hand.
 
 For general profile authoring, see the profile development guide on the
 [OrcaSlicer wiki](https://www.orcaslicer.com/wiki).

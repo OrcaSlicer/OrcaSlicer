@@ -38,8 +38,7 @@
     under emulation on ARM64.
 
 .PARAMETER ProfilesDir
-    Profile tree to validate (default: resources\profiles). profile_tool always looks at the
-    tree next to the script, so this only redirects the validator checks.
+    Profile tree to validate (default: resources\profiles).
 
 .PARAMETER Vendor
     Check only this vendor, named after its <Vendor>.json (e.g. "Co Print"). validate_custom is
@@ -440,7 +439,7 @@ function Expand-VendorPresets([string] $Zip, [string] $Tree, [string] $Prefix) {
 $CheckBodies = @{
 
     profile_tool = {
-        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'check') + $VendorPyArgs)
+        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'check', '--profiles', $ProfilesDir) + $VendorPyArgs)
     }
 
     validate_system = {
