@@ -437,9 +437,9 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
 
     // Keyboard focus stays on this box so the buttons never receive the key presses.
     const wxColour box_colour = StateColor::darkModeColorFor(*wxWHITE);
-    StaticBox* capture = new StaticBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(240), FromDIP(40)), wxWANTS_CHARS);
+    StaticBox* capture = new StaticBox(this, wxID_ANY, wxDefaultPosition, wxSize(width, FromDIP(60)), wxWANTS_CHARS);
     capture->SetCornerRadius(FromDIP(4));
-    capture->SetBorderColorNormal(StateColor::darkModeColorFor(wxColour("#DBDBDB")));
+    capture->SetBorderColorNormal(StateColor::darkModeColorFor(wxColour("#009688")));   // the focused-input colour, since the box always has the focus
     capture->SetBackgroundColorNormal(box_colour);
     capture->SetBackgroundColour(box_colour);
     wxBoxSizer* capture_sizer = new wxBoxSizer(wxVERTICAL);
@@ -453,7 +453,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture->Bind(wxEVT_KEY_DOWN, &ShortcutCaptureDialog::on_key, this);
     capture->Bind(wxEVT_CHAR, &ShortcutCaptureDialog::on_char, this);
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
-    sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_HORIZONTAL, FromDIP(20));
+    sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
 
     m_status = new Label(this, wxGetApp().normal_font(), m_hint, LB_AUTO_WRAP);
     m_status->SetMinSize(wxSize(width, 3 * m_status->GetCharHeight()));   // room for three lines, so the dialog keeps its size while keys are tried
@@ -518,9 +518,7 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
 {
     m_chord = chord;
     m_chord_label->SetLabel(join_keys(to_wx(chord.display_parts())));
-    wxWindow* box = m_chord_label->GetParent();
-    box->SetMinSize(wxSize(std::max(box->GetSize().x, m_chord_label->GetBestSize().x + FromDIP(20)), box->GetSize().y));   // a long chord widens the box
-    box->Layout();
+    m_chord_label->GetParent()->Layout();
 
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     if (global && !chord.is_menu_accelerator()) {
