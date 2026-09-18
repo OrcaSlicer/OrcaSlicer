@@ -243,6 +243,10 @@ class Print;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
+            // Orca: Unsupported extrusion width in percent, copied from the active G-code tag.
+            float overhang_percentage{ 0.0f };
+            // Orca: Distance between the contours' slicing planes in mm; zero means unavailable in legacy G-code.
+            float overhang_z_distance{ 0.0f };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -258,6 +262,9 @@ class Print;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        // Orca: Record whether the loaded G-code contains valid overhang metadata so the preview
+        // menu reflects the data being displayed rather than the current process preset.
+        bool has_overhang_metadata{ false };
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -328,6 +335,9 @@ class Print;
             filename = other.filename;
             id = other.id;
             moves = other.moves;
+            // Orca: Preserve metadata availability when processor results are copied between the
+            // slicing pipeline and the preview.
+            has_overhang_metadata = other.has_overhang_metadata;
             lines_ends = other.lines_ends;
             printable_area = other.printable_area;
             bed_exclude_area = other.bed_exclude_area;
@@ -514,8 +524,18 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            // Orca: Optional percentage metadata consumed by the overhang preview.
+            Overhang,
+            // Orca: Optional reference-plane spacing for converting percentages to angles on adaptive layers.
+            Overhang_Z_Distance,
+            // Orca: Uniform point samples assembled from bounded comment chunks.
+            Overhang_Arc,
+            // Orca: Inline marker binding the assembled samples to this exact G2/G3 command.
+            Overhang_Arc_Apply,
         };
 
+        // Orca: Bound both exported profiles and untrusted imported metadata, independently of arc length.
+        static constexpr size_t MAX_OVERHANG_ARC_SAMPLES = 65536;
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
@@ -1149,6 +1169,13 @@ class Print;
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
+        // Orca: Active unsupported-width percentage while parsing moves.
+        float m_overhang_percentage;
+        // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
+        float m_overhang_z_distance;
+        // Orca: Collect ordered chunks; only an inline marker may bind a complete profile to an arc.
+        std::vector<float> m_overhang_arc_percentages;
+        size_t m_overhang_arc_samples{ 0 };
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
