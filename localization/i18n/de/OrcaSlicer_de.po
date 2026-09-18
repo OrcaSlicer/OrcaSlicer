@@ -16408,7 +16408,7 @@ msgid "Min print speed"
 msgstr "Minimale Druckgeschwindigkeit"
 
 msgid "The minimum print speed to which the printer slows down to maintain the minimum layer time defined above when the slowdown for better layer cooling is enabled."
-msgstr "Das minimale Drucktempo, bei dem der Drucker verlangsamt wird, um die oben definierte minimale Schichtzeit einzuhalten, wenn die Verlangsamung für eine bessere Schichtkühlung aktiviert ist."
+msgstr "Die minimale Druckgeschwindigkeit, auf die der Drucker verlangsamt wird, um die oben definierte minimale Schichtzeit einzuhalten, wenn die Verlangsamung für eine bessere Schichtkühlung aktiviert ist."
 
 msgid "The diameter of nozzle."
 msgstr "Düsendurchmesser"
