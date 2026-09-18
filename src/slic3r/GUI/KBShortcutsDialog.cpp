@@ -146,7 +146,8 @@ void KBShortcutsDialog::fill_pages()
 
     if (wxGetApp().is_editor()) {
         page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
-            fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch table page")),
+            fixed(Section::Application, { alt, "1-9, 0" }, L("Run a speed dial favorite while the dial is open")),
+            fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch to the next main tab")),
         });
 
         page(_L("Prepare"), _L("Available while the 3D view on the Prepare tab has focus."), ShortcutContext::Plater, {

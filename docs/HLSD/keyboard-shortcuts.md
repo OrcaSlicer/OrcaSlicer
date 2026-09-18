@@ -46,9 +46,12 @@ contexts do not overlap; `C` is the cut gizmo in the 3D view, the G-code window 
 preview and the circle tool while painting. A Global chord is dispatched before every
 other context, so the dialog treats it as conflicting with all of them.
 
-A Global shortcut has to include Ctrl or Alt or use a non-printable key, since a bare
-printable key in the frame hook would swallow that character in every text field. The
-dialog refuses such chords and `ShortcutRegistry::load()` drops them from the config.
+A Global shortcut has to include Ctrl or Alt or use a key that types nothing, since a
+bare printable key in the frame hook would swallow that character in every text field.
+The dialog refuses such chords and `ShortcutRegistry::load()` drops them from the config.
+Space counts as typing. The speed dial's default is the one bare Space, and
+`MainFrame` leaves it to a focused control that uses Space itself (text fields, buttons,
+combo boxes), so it opens the dial from the canvases and the tab strip only.
 
 ## Which event a chord matches
 
