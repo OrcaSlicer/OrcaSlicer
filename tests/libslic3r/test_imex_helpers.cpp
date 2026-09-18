@@ -1423,7 +1423,7 @@ TEST_CASE("imex_resolve_routing - warning and block can never disagree about the
     const std::vector<std::vector<int>> slot_sets = { {}, {1}, {2}, {3}, {1, 2}, {2, 3}, {4} };
     const std::vector<ConfigOptionInts> pems = { make_pem({0, 1}), make_pem({0, 0, 1, 2}), make_pem({1, 0}) };
 
-    for (const std::string& mode : { "copy", "quad" }) {
+    for (const std::string& mode : { std::string("copy"), std::string("quad") }) {
         for (size_t s = 0; s < slot_sets.size(); ++s) {
             for (size_t p = 0; p < pems.size(); ++p) {
                 DYNAMIC_SECTION(mode << " slots#" << s << " pem#" << p) {
@@ -1473,7 +1473,7 @@ TEST_CASE("imex_resolve_routing - an unresolved or ragged mode yields an empty r
                                             { "", "S", "R" });
     const auto pem = make_pem({0, 1});
 
-    for (const std::string& mode : { "copy-renamed", "ragged" }) {
+    for (const std::string& mode : { std::string("copy-renamed"), std::string("ragged") }) {
         DYNAMIC_SECTION("mode " << mode) {
             const ImexRouting r = imex_resolve_routing(cfg, mode, { 2 }, pem);
             CHECK(r.parallel);
