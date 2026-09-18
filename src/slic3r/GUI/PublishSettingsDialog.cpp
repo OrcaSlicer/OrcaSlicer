@@ -26,6 +26,7 @@
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
 #include <wx/image.h>
+#include <wx/wrapsizer.h>
 #include <set>
 #include <algorithm>
 #include <cmath>
@@ -416,12 +417,54 @@ std::set<size_t> project_used_filament_slots(const PresetBundle& bundle, const D
     return used;
 }
 
+// Lays a translated sentence out along `row`, replacing each "%1%"-style placeholder with the
+// matching window from `chips`. Keeping the sentence in one msgid lets a translation put the
+// placeholders wherever its own grammar needs them; spacing comes from the translation itself.
+void add_sentence_with_chips(wxWindow* parent, wxSizer* row, const wxString& sentence, const std::vector<wxWindow*>& chips)
+{
+    std::vector<bool> placed(chips.size(), false);
+    auto add_text = [&](wxString text) {
+        text.Replace("%%", "%"); // the sentence is a format string
+        if (text.IsEmpty())
+            return;
+        auto* label = new wxStaticText(parent, wxID_ANY, text);
+        label->SetFont(Label::Body_12);
+        label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        row->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+    };
+    auto add_chip = [&](size_t i) {
+        if (i < chips.size() && chips[i] != nullptr && !placed[i]) {
+            placed[i] = true;
+            row->Add(chips[i], 0, wxALIGN_CENTER_VERTICAL);
+        }
+    };
+
+    size_t literal = 0, pos = 0;
+    while ((pos = sentence.find('%', pos)) != wxString::npos) {
+        size_t end = pos + 1;
+        while (end < sentence.length() && sentence[end] >= '0' && sentence[end] <= '9')
+            ++end;
+        if (end == pos + 1 || end >= sentence.length() || sentence[end] != '%') {
+            ++pos; // a bare '%'
+            continue;
+        }
+        long index = 0;
+        sentence.Mid(pos + 1, end - pos - 1).ToLong(&index);
+        add_text(sentence.Mid(literal, pos - literal));
+        add_chip(size_t(index - 1));
+        literal = pos = end + 1;
+    }
+    add_text(sentence.Mid(literal));
+    for (size_t i = 0; i < chips.size(); ++i) // whatever the translation left out
+        add_chip(i);
+}
+
 } // namespace
 
 // Warning shown on OK when an enabled mixed-filament slot relies on a filament that would ship
-// without its material. One row per unmet dependency: the mixed slot's colour chip, the
-// component filament's colour chip, and the reason. "Cancel" is the safe choice and keeps the
-// dialog open; "Publish anyway" continues.
+// without its material. One row per unmet dependency, each a single translated sentence whose
+// two placeholders are the mixed slot's and the component filament's colour chips. "Cancel" is
+// the safe choice and keeps the dialog open; "Publish anyway" continues.
 class MixedFilamentWarningDialog : public MsgDialog
 {
 public:
@@ -437,47 +480,37 @@ public:
         content->AddSpacer(FromDIP(10));
 
         const int swatch = FromDIP(20);
-        for (const MixedDependencyIssue& issue : issues) {
-            auto* row = new wxBoxSizer(wxHORIZONTAL);
-
-            // The mixed slot as just its own chip (gradient-aware, numbered like its tab);
-            // falls back to a plain label when the chip cannot be built.
-            const wxString mix_label = wxString::Format(_L("Filament %d (mixed)"), int(issue.mixed_slot) + 1);
-            const wxBitmap mix_bmp   = mixed_filament_chip_bitmap(full, issue.mixed_slot, swatch);
-            if (mix_bmp.IsOk()) {
-                auto* bmp = new wxStaticBitmap(this, wxID_ANY, mix_bmp);
-                bmp->SetToolTip(mix_label);
-                row->Add(bmp, 0, wxALIGN_CENTER_VERTICAL);
-            } else {
-                auto* label = new wxStaticText(this, wxID_ANY, mix_label);
-                label->SetFont(Label::Body_12);
-                row->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+        // The slot's colour swatch, numbered like its tab, with the slot name on hover; falls
+        // back to a label so the sentence always names both filaments.
+        auto make_chip = [&](const wxBitmap& bmp, const wxString& name) -> wxWindow* {
+            if (bmp.IsOk()) {
+                auto* chip = new wxStaticBitmap(this, wxID_ANY, bmp);
+                chip->SetToolTip(name);
+                return chip;
             }
+            auto* label = new wxStaticText(this, wxID_ANY, name);
+            label->SetFont(Label::Body_12);
+            return label;
+        };
 
-            auto* needs = new wxStaticText(this, wxID_ANY, _L("needs"));
-            needs->SetFont(Label::Body_12);
-            needs->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-            row->Add(needs, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
-
-            // The component filament's colour chip, numbered like the tab strips; the slot
-            // name stays on hover to keep the row itself short.
+        for (const MixedDependencyIssue& issue : issues) {
             std::string hex = filament_color_hex(full, issue.component_slot);
             if (hex.empty())
                 hex = "#D9D9D9";
-            if (wxBitmap* chip = get_extruder_color_icon(hex, std::to_string(issue.component_slot + 1), swatch, swatch)) {
-                auto* comp_bmp = new wxStaticBitmap(this, wxID_ANY, *chip);
-                comp_bmp->SetToolTip(wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
-                row->Add(comp_bmp, 0, wxALIGN_CENTER_VERTICAL);
-            }
+            const wxBitmap* comp_bmp = get_extruder_color_icon(hex, std::to_string(issue.component_slot + 1), swatch, swatch);
 
-            auto* reason = new wxStaticText(this, wxID_ANY,
-                                            issue.reason == MixedDependencyIssue::Reason::Disabled ? _L("not enabled") :
-                                                                                                     _L("material not published"));
-            reason->SetFont(Label::Body_12);
-            reason->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#989898")));
-            row->Add(reason, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+            wxWindow* mix_chip  = make_chip(mixed_filament_chip_bitmap(full, issue.mixed_slot, swatch),
+                                            wxString::Format(_L("Filament %d (mixed)"), int(issue.mixed_slot) + 1));
+            wxWindow* comp_chip = make_chip(comp_bmp != nullptr ? *comp_bmp : wxNullBitmap,
+                                            wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
 
-            content->Add(row, 0, wxLEFT, FromDIP(10));
+            auto* row = new wxWrapSizer(wxHORIZONTAL);
+            add_sentence_with_chips(this, row,
+                                    issue.reason == MixedDependencyIssue::Reason::Disabled ?
+                                        _L("%1% needs %2%, which is not enabled.") :
+                                        _L("%1% needs %2%, whose material will not be published."),
+                                    {mix_chip, comp_chip});
+            content->Add(row, 0, wxEXPAND | wxLEFT, FromDIP(10));
             content->AddSpacer(FromDIP(6));
         }
 

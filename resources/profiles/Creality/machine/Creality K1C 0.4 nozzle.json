@@ -168,7 +168,6 @@
 	"printhost_authorization_type": "key",
 	"printhost_ssl_ignore_revoke": "0",
 	"purge_in_prime_tower": "0",
-	"silent_mode": "0",
 	"support_chamber_temp_control": "0",
 	"thumbnails_format": "PNG",
 	"time_cost": "0",
