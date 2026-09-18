@@ -1104,16 +1104,13 @@ bool PartPlate::imex_hull_violates(const Polygon& hull) const
         || imex_hull_violates_zones(m_imex_collision_zones, hull);
 }
 
-// The prime tower is not a ModelObject, so it is invisible to the instance loop
-// below. Reuse the footprint the scene already draws — GLCanvas3D sizes the tower
-// preview from estimate_wipe_tower_footprint(), and estimate_wipe_tower_polygon() wraps
-// that same estimate with the brim, so validating it matches what the user sees and
-// drags. Returns an empty polygon when the plate has no tower.
+// The prime tower is not a ModelObject, so the instance loop below cannot see it. Validate
+// the same footprint the scene draws. Empty polygon when the plate has no tower.
 Polygon PartPlate::imex_wipe_tower_hull() const
 {
-    // m_model is dereferenced by estimate_wipe_tower_footprint (it walks m_model->objects
-    // for the tower height), so guard it here — the instance loop below only reaches
-    // it behind valid_instance(), but this tail call runs even on an empty plate.
+    // The estimate walks m_model->objects, and this runs even on an empty plate. The
+    // m_print arm is dead since the estimate stopped reading it; dropping it would newly
+    // validate plates this currently skips.
     if (!m_plater || !m_print || !m_model)
         return Polygon();
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
@@ -1125,21 +1122,18 @@ Polygon PartPlate::imex_wipe_tower_hull() const
     if (!enable_opt || !enable_opt->value)
         return Polygon();
 
-    // Close to, but not identical to, the reachability test the scene uses before it
-    // draws a tower (GLCanvas3D): a tower exists only for 2+ filaments, unless smooth
-    // timelapse or wrapping detection forces one. The scene additionally suppresses the
-    // tower for ByObject sequences and in gcode-preview mode; both omissions here fail
-    // conservatively (we validate a tower the scene may not draw, never the reverse).
-    // Without this gate a single-filament plate on a dual-nozzle printer still yields a
-    // non-zero estimate (estimate_wipe_tower_footprint's dual_nozzle branch purges by
-    // filament count rather than count - 1) and we would block on a tower that is
-    // never printed.
+    // Approximates normalize_fdm_2(), which is what actually decides whether a tower is
+    // printed: it clears enable_prime_tower for one filament, or ByObject over several
+    // objects, unless smooth timelapse or wrapping detection forces one.
+    //
+    // Do not substitute the footprint estimate's answer. It reports a tower for a single
+    // filament whenever the flush matrix purges (SEMM + purge_in_prime_tower, the Klipper
+    // default), which would hard-block a plate whose tower normalize_fdm_2 already cleared -
+    // with nothing drawn on screen to move. See test_wipe_tower_estimate.cpp.
     auto timelapse_type = print_cfg.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
     bool need_wipe_tower = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
-    // enable_wrapping_detection is a PRINT option, not a printer one. Reading it from
-    // the printer preset returns nullptr and silently leaves this false, which would
-    // skip validation for a tower the user can see and drag — a false negative on
-    // exactly the collision this check exists to catch.
+    // enable_wrapping_detection is a PRINT option; read from the printer preset it returns
+    // nullptr and silently skips validation for a tower the user can see and drag.
     if (auto wrapping_opt = print_cfg.option<ConfigOptionBool>("enable_wrapping_detection"))
         need_wipe_tower |= wrapping_opt->value;
     const int plate_extruder_size = (int) get_extruders(true).size();
@@ -1147,43 +1141,29 @@ Polygon PartPlate::imex_wipe_tower_hull() const
         return Polygon();
 
     Vec3d wt_pos, wt_size;
-    // full_config() rather than the print preset: wipe_tower_x/y are PROJECT options
-    // (PresetBundle s_project_options), and estimate_wipe_tower_polygon dereferences
-    // them unchecked. Passing a print-only config null-derefs. apply_extruder=false
-    // skips three update_values_to_printer_extruders() passes we do not need — none of
-    // the keys the estimate reads are variant-keyed.
-    // plate_extruder_size is passed explicitly so the estimate does not walk every
-    // object and volume on the plate a second time to recompute what we just counted.
+    // full_config(), not the print preset: wipe_tower_x/y are project options the estimate
+    // dereferences unchecked. apply_extruder=false - none of its keys are variant-keyed.
+    // plate_extruder_size is a floor, not an override; the scene passes 0, and both counts
+    // come from the same object walk.
     arrangement::ArrangePolygon ap = estimate_wipe_tower_polygon(preset_bundle->full_config(false), m_plate_index, wt_pos, wt_size, plate_extruder_size);
     if (wt_size(0) <= 0. || wt_size(1) <= 0. || ap.poly.contour.points.empty())
         return Polygon();
 
-    // NOTE: only the tower box and its brim are validated, and only as estimated. Three
-    // known gaps, all of them pre-slice limits rather than oversights:
-    //  - estimate_wipe_tower_size is a heuristic (hard-coded 0.08 layer height, closed-
-    //    form depth, no per-layer purge volumes), so the sliced tower can exceed it. The
-    //    true footprint is Print::first_layer_wipe_tower_corners(), which only exists
-    //    after slicing.
-    //  - A Cone-walled tower prints a stabilization cone past the box. Sizing it needs
-    //    the real tower height (m_wipe_tower_data.height), likewise post-slice;
-    //    approximating it from object height over-reserved space and blocked legal
-    //    placements. The default rib wall prints no cone.
-    // See also the unvalidated object brim / skirt / support gaps, which affect every
-    // print.
+    // Only the estimated box and brim are validated. The depth is approximate, so a sliced
+    // tower can exceed it (the true footprint is Print::first_layer_wipe_tower_corners(),
+    // post-slice only). A Type2 cone's bulge is already in the margin the hull is built
+    // from - do not add a second allowance. Object brim, skirt and supports are unvalidated
+    // here too.
     Polygon hull = ap.poly.contour;
 
-    // estimate_wipe_tower_polygon() builds an axis-aligned box; the real tower is
-    // rotated about its anchor corner before placement (first_layer_wipe_tower_corners
-    // rotates the tower-local box about the local origin, then translates it by
-    // wipe_tower_x/y). Without this a rotated tower's footprint escapes the hull and
-    // the zone check passes on a tower that intrudes.
+    // The estimate is an axis-aligned box, but the real tower is rotated about its anchor
+    // corner before placement, so without this a rotated footprint escapes the hull.
     if (const auto* rot = print_cfg.option<ConfigOptionFloat>("wipe_tower_rotation_angle");
         rot && rot->value != 0.)
         hull.rotate(Geometry::deg2rad(rot->value),
                     Point(scaled(wt_pos.x()), scaled(wt_pos.y())));
 
-    // estimate_wipe_tower_polygon() works in plate-local mm; the zones and the
-    // instance hulls it is compared against are in plate-list coordinates.
+    // Plate-local mm to plate-list coordinates, which the zones and instance hulls use.
     hull.translate(Point(scaled(m_origin.x()), scaled(m_origin.y())));
     return hull;
 }
