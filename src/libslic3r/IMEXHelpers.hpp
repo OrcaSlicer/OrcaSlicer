@@ -122,8 +122,21 @@ std::vector<ImexMode> imex_mode_table(const ConfigBase& cfg);
 //
 // The same nozzle-vs-slot divergence bites in the other direction: anything derived from pem
 // -- `resolve_filament_for_head`, `first_filament_for_physical_head` -- answers in NOZZLE index
-// space, so bound it against the filament array you are about to index before using it as a
-// filament id.
+// space, so bound it against the FILAMENT SLOT COUNT before using it as a filament id. Not
+// against the option you are about to read: a variant-expanded option such as
+// nozzle_temperature is as long as its columns, and is_extruder_used is padded to
+// MAXIMUM_EXTRUDER_NUMBER, so both admit slots the project does not have.
+//
+// A miss is -1, and -1 is a correct tool QUALIFIER but not a skip-the-primary sentinel: no
+// physical head equals it, so a test written as `head == primary` stops skipping anything. Do
+// not substitute the mode's declared primary there. Which head prints a filament is answered by
+// the filament and pem, never by a mode role: a primary-mode print may use any or all tools, one
+// at a time, and pem is what says which. When pem cannot answer, the head is genuinely unknown -
+// an omitted qualifier then applies to the active tool, which is the head printing that filament,
+// so the honest options are to leave it unqualified or to emit nothing, not to name a carriage.
+// Known gap, unreported: the two skip sites in GCode.cpp therefore skip nothing for a filament
+// slot past the end of pem, so a plate with more slots than nozzles double-writes the primary's
+// pressure advance and hands it another filament's transition temperature.
 //
 // -1 as a tool qualifier reaches GCodeWriter::set_pressure_advance, which omits the qualifier
 // on Klipper, Marlin and BBL but substitutes the historical `D0` on RepRapFirmware

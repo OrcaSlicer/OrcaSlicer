@@ -2883,8 +2883,8 @@ static std::vector<int> get_imex_active_tools(const Print& print)
     if (active_mode == kImexPrimaryMode)
         return active_tools;
 
-    // An unresolved mode, and a mode the tools array is too short to cover, both hand back
-    // an empty tools string, which parses to no tools.
+    // An unresolved mode, and a mode the tools array is too short to cover, both hand back an
+    // empty tools string, which parses to no tools.
     for (const auto& [phys, role] : parse_imex_active_tools(find_imex_mode(print.config(), active_mode).active_tools))
         active_tools.push_back(phys);
     return active_tools;
@@ -3418,16 +3418,23 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         const auto plate_head_map = parse_imex_head_filament_map(
             print.objects().front()->config().imex_head_filament_map.value);
         const ConfigOptionInts& pem = print.config().physical_extruder_map;
-        // Bounds-checked, not get_at() -- see IMEXHelpers.hpp. The value is a skip-primary
-        // sentinel below, so a clamp would suppress whichever head sits at pem[0].
+        // Bounds-checked, not get_at(): a clamp would suppress whichever head sits at pem[0].
+        // A miss stays -1 and matches no head, so nothing is skipped -- see IMEXHelpers.hpp.
         const int primary_physical =
             ((int) initial_extruder_id >= 0 &&
              (int) initial_extruder_id < (int) pem.values.size())
                 ? pem.values[(int) initial_extruder_id]
                 : -1;
+        // Bound by the array, not by the filament count. The array is padded to
+        // MAXIMUM_EXTRUDER_NUMBER on purpose: start G-code addresses HEADS through it
+        // (fdm_toolchanger_common.json gates M104 T0..T5 on it), and a parallel copy print has
+        // more heads than filaments by definition. PlaceholderParser clamps an out-of-range
+        // first_layer_temperature read to filament 0, which is the right temperature when every
+        // head is printing the same filament. Narrowing this to the filament count leaves the
+        // secondary carriages unheated.
         for (int logical : imex_secondary_logical_slots(
                 get_imex_active_tools(print), primary_physical, plate_head_map, pem))
-            if (logical < (int)is_extruder_used.size())
+            if (logical >= 0 && logical < (int) is_extruder_used.size())
                 is_extruder_used[logical] = true;
     }
 
@@ -5955,7 +5962,11 @@ LayerResult GCode::process_layer(
             // Mutually exclusive with the `else` below, so a head skipped here gets no
             // transition at all. `tool_idx` is physical; the printing head uses this layer's
             // own filament, the parallel carriages resolve through the head map.
-            const int num_filament_columns = (int)print.config().nozzle_temperature.values.size();
+            // nozzle_temperature is variant-expanded, so its length is columns, not slots:
+            // bound in slot space, or an out-of-slot logical reaches get_filament_config_index
+            // and comes back as filament 0.
+            const int num_filament_columns = std::min((int) print.config().nozzle_temperature.values.size(),
+                                                      (int) print.config().filament_diameter.values.size());
             // Bounds-checked, not get_at() -- see IMEXHelpers.hpp. A clamp would hand the
             // "initial" branch below to whichever secondary sits on pem[0], giving it the wrong
             // filament's transition temperature and never its own.

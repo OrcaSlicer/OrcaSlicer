@@ -400,6 +400,24 @@ TEST_CASE("imex_secondary_logical_slots - drops unrouted physicals, deduplicates
     REQUIRE(out2 == std::vector<int>{0}); // both secondaries point at slot 0; only emitted once
 }
 
+TEST_CASE("imex_secondary_logical_slots - a -1 primary skips nothing", "[IMEX]") {
+    // Why callers must not pass the pem-miss sentinel as the primary: no physical head equals
+    // -1, so the primary is enumerated like a secondary and its first-routed slot is returned.
+    // Downstream that marks the primary's slot as loaded, emits a second pressure advance over
+    // the one set_extruder() already wrote, and hands it another filament's transition
+    // temperature. Take the primary from the mode instead (imex_primary_tool_for_mode).
+    ConfigOptionInts pem; pem.values = {0, 1};
+    CHECK(imex_secondary_logical_slots({0, 1}, /*primary*/0, {}, pem) == std::vector<int>{1});
+    CHECK(imex_secondary_logical_slots({0, 1}, /*primary*/-1, {}, pem) == std::vector<int>{0, 1});
+}
+
+TEST_CASE("imex_primary_tool_for_mode - names the declared primary, -1 when there is none", "[IMEX]") {
+    CHECK(imex_primary_tool_for_mode("0:P,1:C") == 0);
+    CHECK(imex_primary_tool_for_mode("2:P,0:C,1:C") == 2);
+    CHECK(imex_primary_tool_for_mode("0:C,1:C") == -1);
+    CHECK(imex_primary_tool_for_mode("") == -1);
+}
+
 TEST_CASE("imex_secondary_logical_slots - only-primary-active returns empty", "[IMEX]") {
     // Primary mode (just T0 active) → no secondaries.
     auto pem = make_pem({0, 0, 0, 0, 1, 2, 3});
