@@ -617,6 +617,11 @@ public:
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.
     bool check_preset_references() const;
 
+    // Validator-only: every system FFF printer variant needs a compatible system filament
+    // named in its model's default_materials, every name there and in the printer's
+    // default_filament_profile must resolve to a system filament.
+    bool check_printer_default_materials() const;
+
     // Merge one vendor's presets with the other vendor's presets, report duplicates.
     // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
     // bundle out of several per-vendor caches loaded into separate PresetBundle instances.

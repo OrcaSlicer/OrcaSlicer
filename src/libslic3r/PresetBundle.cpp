@@ -7619,6 +7619,9 @@ bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes) const
     if (this->check_preset_references())
         has_errors = true;
 
+    if (this->check_printer_default_materials())
+        has_errors = true;
+
     return has_errors;
 }
 
@@ -7708,6 +7711,70 @@ bool PresetBundle::check_preset_references() const
     check_collection(this->sla_prints,    nullptr);
     check_collection(this->sla_materials, &this->sla_prints);
 
+    return found;
+}
+
+bool PresetBundle::check_printer_default_materials() const
+{
+    bool found = false;
+    // A model's default_materials list is shared by its variants, so report each unknown name once.
+    std::set<const VendorProfile::PrinterModel *> checked_models;
+    // default_filament_profile is inherited from shared base machine presets, so one bad name can
+    // surface on many variants; report it once, at the first printer that names it.
+    std::set<std::string> reported_unknown_profiles;
+    for (const Preset &printer : printers) {
+        if (!printer.is_system || printer.vendor == nullptr || printer.printer_technology() != ptFFF)
+            continue;
+
+        const VendorProfile::PrinterModel *model = PresetUtils::system_printer_model(printer);
+        const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(printer);
+        // Use the same name lookup as load_installed_filaments, not UI aliases or fuzzy matching.
+        // A model's defaults can cover different nozzles, but at least one must cover this variant.
+        const bool has_default = model != nullptr && std::any_of(model->default_materials.begin(), model->default_materials.end(),
+            [&](const std::string &name) {
+                const Preset *filament = filaments.find_preset(name, false);
+                return filament != nullptr && filament->is_system &&
+                       is_compatible_with_printer(filaments.get_preset_with_vendor_profile(*filament), active_printer);
+            });
+        if (!has_default) {
+            found = true;
+            BOOST_LOG_TRIVIAL(error) << "Printer preset \"" << printer.name << "\" (vendor \"" << printer.vendor->name
+                << "\", model \"" << printer.config.opt_string("printer_model") << "\", variant \""
+                << printer.config.opt_string("printer_variant")
+                << "\") has no compatible system filament in its model's \"default_materials\". "
+                   "Add at least one full filament preset name compatible with this printer variant:\n"
+                << preset_file_uri(printer.file);
+        }
+
+        if (model != nullptr && checked_models.insert(model).second) {
+            for (const std::string &name : model->default_materials) {
+                const Preset *filament = filaments.find_preset(name, false);
+                if (filament == nullptr || !filament->is_system) {
+                    found = true;
+                    BOOST_LOG_TRIVIAL(error) << "Printer model \"" << model->name << "\" (vendor \"" << printer.vendor->name
+                        << "\") names the unknown system filament \"" << name
+                        << "\" in its \"default_materials\":\n" << preset_file_uri(printer.file);
+                }
+            }
+        }
+
+        if (printer.config.has("default_filament_profile")) {
+            for (const std::string &name : printer.config.opt<ConfigOptionStrings>("default_filament_profile")->values) {
+                // A ";"-separated list can leave an empty trailing segment; formatting noise, not a name.
+                if (name.empty())
+                    continue;
+                const Preset *filament = filaments.find_preset(name, false);
+                if ((filament == nullptr || !filament->is_system) && reported_unknown_profiles.insert(name).second) {
+                    found = true;
+                    BOOST_LOG_TRIVIAL(error) << "Printer preset \"" << printer.name << "\" (vendor \"" << printer.vendor->name
+                        << "\", model \"" << printer.config.opt_string("printer_model") << "\", variant \""
+                        << printer.config.opt_string("printer_variant")
+                        << "\") names the unknown system filament \"" << name
+                        << "\" in its \"default_filament_profile\":\n" << preset_file_uri(printer.file);
+                }
+            }
+        }
+    }
     return found;
 }
 

@@ -1696,7 +1696,9 @@ class TestCli(unittest.TestCase):
                      ["--update-snapshot"],                # the pre-subcommand flag
                      ["nonsense"],                         # not a command
                      ["generate-id", "--filament-id", "--setting-id"],
-                     ["generate-id", "--materials"],       # check's option
+                     ["generate-id", "--snapshot", "x"],   # check's option
+                     ["check", "--materials"],             # removed flag
+                     ["check", "--obsolete-keys"],         # removed flag
                      ["check", "--filament-id"],           # generate-id's option
                      ["normalize", "--snapshot", "x"],           # not a snapshot command
                      ["normalize", "--profile-type", "nozzle"]):  # not a profile type
