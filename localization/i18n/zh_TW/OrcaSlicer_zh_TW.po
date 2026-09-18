@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-17 12:41-0300\n"
+"POT-Creation-Date: 2026-09-18 15:50+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2462,6 +2462,19 @@ msgstr ""
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "無法開啟外掛對話框（未知錯誤）。"
 
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
+
 # AI Translated
 msgid "Plugin Terminal"
 msgstr "外掛終端機"
@@ -4104,6 +4117,21 @@ msgstr "OrcaSlicer 也源於同樣的精神，汲取了 PrusaSlicer、BambuStudi
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "如今，OrcaSlicer 是 3D 列印社群中使用最廣泛、開發最活躍的開源切片軟體。它的許多創新已被其他切片軟體採用，使其成為推動整個產業的動力。"
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "列印裝置"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS 線材設定"
 
@@ -5679,9 +5707,6 @@ msgctxt "Noun"
 msgid "Print"
 msgstr "列印"
 
-msgid "Printer"
-msgstr "列印裝置"
-
 msgid "Time Estimation"
 msgstr "時間預估"
 
@@ -5979,7 +6004,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -6145,6 +6170,9 @@ msgstr "正在關閉應用程式，部分預設已修改。"
 
 msgid "Logging"
 msgstr "日誌"
+
+msgid "Design"
+msgstr ""
 
 msgid "Prepare"
 msgstr "準備"
@@ -6473,6 +6501,9 @@ msgstr "在 3D 場景中顯示選定物件的輪廓"
 
 msgid "Preferences"
 msgstr "偏好設定"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7407,6 +7438,233 @@ msgstr "不要再顯示此提示"
 msgid "Please refer to Wiki before use->"
 msgstr "使用前請參考 Wiki ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "匯出為 STL 檔案"
+
+msgid "Export 3MF"
+msgstr "匯出為 3MF 檔案"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "最大體積流量校正"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "流量比例校正"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "刪除所有物件"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "分割為物件"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D 滑鼠已中斷連線。"
 
@@ -8257,19 +8515,11 @@ msgid "Delete Object"
 msgstr "刪除物件"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "刪除所有物件"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "重設專案"
 
 msgid "The selected object couldn't be split."
 msgstr "選取的模型不可分割。"
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "分割為物件"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "停用自動落板以保留 Z 定位？\n"
@@ -9083,6 +9333,33 @@ msgstr "多臺裝置管理"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "啟用時可以同時傳送到並管理多個機臺。"
 
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
+
+msgid "CAD feature (experimental)"
+msgstr ""
+
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+msgstr ""
+
 msgid "Pop up to select filament grouping mode"
 msgstr "彈出視窗選擇線材分組模式"
 
@@ -9163,6 +9440,12 @@ msgstr "反轉滑鼠滾輪縮放方向"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "啟用後，改變滑鼠滾輪縮放方向。"
+
+msgid "Draw mate connectors as a face"
+msgstr ""
+
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgstr ""
 
 msgid "Pan"
 msgstr "平移"
@@ -9870,6 +10153,126 @@ msgstr "為「%1%」，增加「%2%」為一個新預設"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "直接切換到「%1%」"
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "其他"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "任務已取消"
@@ -11699,6 +12102,17 @@ msgstr "顯示/隱藏 3Dconnexion 裝置的設定對話框"
 msgid "Switch table page"
 msgstr "切換表單頁面"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
+
 msgid "Show keyboard shortcuts list"
 msgstr "顯示鍵盤快速鍵清單"
 
@@ -11862,15 +12276,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "在準備/預覽模式之中切換"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "開啟操作快捷選單"
 
 msgid "Plater"
 msgstr "準備"
@@ -17802,9 +18207,6 @@ msgstr "線寬過大"
 msgid " not in range "
 msgstr " 不在合理的區間"
 
-msgid "Export 3MF"
-msgstr "匯出為 3MF 檔案"
-
 msgid "This exports the project as a 3MF file."
 msgstr "將專案匯出為 3MF 檔案。"
 
@@ -17819,9 +18221,6 @@ msgstr "載入切片資料"
 
 msgid "Load cached slicing data from directory."
 msgstr "從資料夾載入快取的切片資料"
-
-msgid "Export STL"
-msgstr "匯出為 STL 檔案"
 
 msgid "Export the objects as single STL."
 msgstr "將所有物件匯出為單一 STL 檔案。"
@@ -18527,9 +18926,6 @@ msgstr "檔案包含無效的頂點索引。"
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "無法讀取此 OBJ 檔案，因為它是空的。"
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "最大體積流量校正"
 
 msgid "Manage Result"
 msgstr "管理結果"
@@ -19375,9 +19771,6 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "注意：較高的值可能會導致層移位 (>%s)"
-
-msgid "Flow Ratio Calibration"
-msgstr "流量比例校正"
 
 msgid "Calibration Test Type"
 msgstr "校正測試類型"
@@ -21515,6 +21908,2278 @@ msgstr "線材可能與目前的列印裝置設定不相容，將使用隨機線
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "線材型號未知，將使用隨機線材預設。"
 
+msgid "Construction"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  ·  on %s"
+msgstr ""
+
+msgid "Line — click start, then end"
+msgstr ""
+
+msgid "Rectangle — click two opposite corners"
+msgstr ""
+
+msgid "Circle — click center, then radius"
+msgstr ""
+
+msgid "Arc — click start, end, then a point"
+msgstr ""
+
+msgid "Slot — two centerline ends, then end radius"
+msgstr ""
+
+msgid "Ellipse — center, major end, minor point"
+msgstr ""
+
+msgid "Spline — click control points"
+msgstr ""
+
+msgid "Point — click to place"
+msgstr ""
+
+msgid "Dimension — click 2 points or an entity"
+msgstr ""
+
+msgid "Trim — click a segment to trim it"
+msgstr ""
+
+msgid "Extend — click a line/arc to extend it"
+msgstr ""
+
+msgid "Offset — pick an entity, drag the distance"
+msgstr ""
+
+msgid "Mirror — pick axis, then entities"
+msgstr ""
+
+msgid "Fillet — pick two lines, set the radius"
+msgstr ""
+
+msgid "Chamfer — pick two lines, set the distance"
+msgstr ""
+
+msgid "Polygon — click center, then a vertex"
+msgstr ""
+
+msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
+msgstr ""
+
+msgid "Normal to the sketch plane"
+msgstr ""
+
+msgid "Converted the selection between construction and real geometry"
+msgstr ""
+
+msgid "Origin planes shown"
+msgstr ""
+
+msgid "Origin planes hidden"
+msgstr ""
+
+msgid "World axes shown"
+msgstr ""
+
+msgid "World axes hidden"
+msgstr ""
+
+msgid "Isometric view, fitted"
+msgstr ""
+
+msgid "Bed shown"
+msgstr ""
+
+msgid "Bed hidden"
+msgstr ""
+
+msgid "FEATURES"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketching on %s — pick a tool"
+msgstr ""
+
+msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Drawing on %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
+msgid "Click a face or a reference plane, then a sketch tool."
+msgstr ""
+
+msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgid "Extrude a sketch profile, or push/pull a picked face"
+msgstr ""
+
+msgid "Create a sketch, or pick a solid face, first"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgid "Revolve a profile about an axis"
+msgstr ""
+
+msgid "Create a sketch profile to revolve first"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Sweep a profile along a path"
+msgstr ""
+
+msgid "Create a profile sketch to sweep first"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Loft (skin) between two or more profiles"
+msgstr ""
+
+msgid "Create at least two profile sketches to loft"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgid "Offset a solid face into a thin plate (new body)"
+msgstr ""
+
+msgid "Thicken needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format
+msgid "Body %zu"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch line, fused to a body"
+msgstr ""
+
+msgid "Rib needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgid "Create a solid body to pattern first"
+msgstr ""
+
+msgid "Pattern — needs a solid body to replicate"
+msgstr ""
+
+msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Extrude a sketch into a sheet body (no end caps)"
+msgstr ""
+
+msgid "Create a sketch first"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Revolve a sketch profile into a sheet body"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Loft (skin) between 2+ profiles, open (no end caps)"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Fill a sketch boundary with a smooth face"
+msgstr ""
+
+msgid "Create a sketch profile to fill first"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Offset a sheet body's shell by a signed distance"
+msgstr ""
+
+msgid "No sheet body to offset — create a surface feature first"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken a sheet body into a solid"
+msgstr ""
+
+msgid "No sheet body to thicken — create a surface feature first"
+msgstr ""
+
+msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
+msgstr ""
+
+msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+msgstr ""
+
+msgid "Coord Sys"
+msgstr ""
+
+msgid "Datum coordinate system (world point, or face + direction edge)"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+msgstr ""
+
+msgid "Project body edges onto a plane as sketch entities"
+msgstr ""
+
+msgid "Project needs a body — add or import one first"
+msgstr ""
+
+msgid "(all edges)"
+msgstr ""
+
+msgid "Placement (transform / mirror / mate)"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Move and/or rotate an existing body"
+msgstr ""
+
+msgid "Transform needs a body — add or import one first"
+msgstr ""
+
+msgid "Reflect a body about a plane"
+msgstr ""
+
+msgid "Mirror needs a body — add or import one first"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
+
+msgid "Boolean (combine bodies)"
+msgstr ""
+
+msgid "Boolean — needs two solid bodies to combine"
+msgstr ""
+
+msgid "Cut (split a body with a plane)"
+msgstr ""
+
+msgid "Create a solid body to cut first"
+msgstr ""
+
+msgid "Cut — needs a solid body to slice"
+msgstr ""
+
+msgid "Color — set the selected body's display colour"
+msgstr ""
+
+msgid "Select a feature, or a body, first — then rename it"
+msgstr ""
+
+msgid "Fillet / chamfer / draft / shell / delete face"
+msgstr ""
+
+msgid "Fillet / Chamfer"
+msgstr ""
+
+msgid "Round or bevel a picked edge"
+msgstr ""
+
+msgid "Draft (taper a face)"
+msgstr ""
+
+msgid "Tilt a picked face by a draft angle"
+msgstr ""
+
+msgid "Hollow the body to a wall thickness, opening a picked face"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Remove faces from a body and heal the solid"
+msgstr ""
+
+msgid "Delete Face needs a body — add or import one first"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Hole / thread"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+msgstr ""
+
+msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
+msgstr ""
+
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
+msgid "Constrain selected sketch"
+msgstr ""
+
+msgid "SKETCH"
+msgstr ""
+
+msgid "Click to select; Shift to add; double-click for a whole loop"
+msgstr ""
+
+msgid "Dimension"
+msgstr ""
+
+msgid "Click 2 points or a line / circle / arc to place a dimension"
+msgstr ""
+
+msgid "Line / polyline"
+msgstr ""
+
+msgid "Click start, then end — then set the exact length"
+msgstr ""
+
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click first / right-click to close the loop"
+msgstr ""
+
+msgid "Corner rectangle"
+msgstr ""
+
+msgid "Click two opposite corners"
+msgstr ""
+
+msgid "Center rectangle"
+msgstr ""
+
+msgid "Click center, then a corner"
+msgstr ""
+
+msgid "Oblique rectangle"
+msgstr ""
+
+msgid "Click two corners of one edge, then a point for the width"
+msgstr ""
+
+msgid "Rounded rectangle"
+msgstr ""
+
+msgid "Click two opposite corners, then a point for the corner radius"
+msgstr ""
+
+msgid "Center circle"
+msgstr ""
+
+msgid "Click center, then radius"
+msgstr ""
+
+msgid "2-point circle"
+msgstr ""
+
+msgid "Click two ends of the diameter"
+msgstr ""
+
+msgid "3-point circle"
+msgstr ""
+
+msgid "Click three points on the circle"
+msgstr ""
+
+msgid "Arc"
+msgstr ""
+
+msgid "3-point arc"
+msgstr ""
+
+msgid "Click start, end, then a point on the arc"
+msgstr ""
+
+msgid "Tangent arc"
+msgstr ""
+
+msgid "Click start (on the last entity) then end"
+msgstr ""
+
+msgid "Center-point arc"
+msgstr ""
+
+msgid "Click center, then start, then a point for the end angle"
+msgstr ""
+
+msgid "Slot"
+msgstr ""
+
+msgid "Click two centerline ends, then a point for the end radius"
+msgstr ""
+
+msgid "Arc slot"
+msgstr ""
+
+msgid "Click center, start, end, then a point for the width"
+msgstr ""
+
+msgid "Ellipse"
+msgstr ""
+
+msgid "Click center, a major-axis end, then a point for the minor axis"
+msgstr ""
+
+msgid "Elliptical arc"
+msgstr ""
+
+msgid "Click center, major-axis end, minor point, then arc start and end"
+msgstr ""
+
+msgid "Spline"
+msgstr ""
+
+msgid "Click control points; double-click or right-click to finish"
+msgstr ""
+
+msgid "Click to place a point"
+msgstr ""
+
+msgid "Select — click to select; Shift to add"
+msgstr ""
+
+msgid "Text — emboss text as a profile"
+msgstr ""
+
+msgid "SVG — import an outline as a profile"
+msgstr ""
+
+msgid "Fillet / chamfer"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the radius to set it"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the distance to set it"
+msgstr ""
+
+msgid "Offset"
+msgstr ""
+
+msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
+msgstr ""
+
+msgid "Trim"
+msgstr ""
+
+msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgstr ""
+
+msgid "Extend"
+msgstr ""
+
+msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgstr ""
+
+msgid "Constrain — add geometric/dimensional relations"
+msgstr ""
+
+msgid "Move / rotate / scale"
+msgstr ""
+
+msgid "Move (translate)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Rotate (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+msgstr ""
+
+msgid "Scale (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
+msgstr ""
+
+msgid "Linear / polar array"
+msgstr ""
+
+msgid "Linear array"
+msgstr ""
+
+msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
+msgstr ""
+
+msgid "Polar array (about centroid)"
+msgstr ""
+
+msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Click center then a vertex — %d sides, %s"
+msgstr ""
+
+msgid "circumscribed"
+msgstr ""
+
+msgid "inscribed"
+msgstr ""
+
+msgid "Polygon"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Converted %d entit%s between construction and real geometry"
+msgstr ""
+
+msgid "CONSTRAIN"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Coincident"
+msgstr ""
+
+msgid "Equal length"
+msgstr ""
+
+msgid "Equal radius"
+msgstr ""
+
+msgid "Collinear"
+msgstr ""
+
+msgid "Tangent"
+msgstr ""
+
+msgid "Midpoint"
+msgstr ""
+
+msgid "Symmetric"
+msgstr ""
+
+msgid "Symmetric about the vertical axis"
+msgstr ""
+
+msgid "Symmetric about the horizontal axis"
+msgstr ""
+
+msgid "Fix point (anchor in place)"
+msgstr ""
+
+msgid "Horizontal distance"
+msgstr ""
+
+msgid "Vertical distance"
+msgstr ""
+
+msgid "✓ Confirm"
+msgstr ""
+
+msgid "✗ Cancel"
+msgstr ""
+
+msgid "Undo (Ctrl+Z)"
+msgstr ""
+
+msgid "Redo (Ctrl+Shift+Z)"
+msgstr ""
+
+msgid "New Design — clear the feature tree"
+msgstr ""
+
+msgid "Export STEP…"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Place on Face (F) — lay the picked face on the bed"
+msgstr ""
+
+msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
+msgstr ""
+
+msgid "Flip Section — show the opposite half"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr ""
+
+msgid "Width / X"
+msgstr ""
+
+msgid "Height / Y"
+msgstr ""
+
+msgid "Distance X"
+msgstr ""
+
+msgid "Distance Y"
+msgstr ""
+
+msgid "Distance Z"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Rotation axis"
+msgstr ""
+
+msgid "Angle °"
+msgstr ""
+
+msgid "Move / Rotate"
+msgstr ""
+
+msgid "Sketch: —"
+msgstr ""
+
+msgid "Extrude dist"
+msgstr ""
+
+msgid "End"
+msgstr "結束"
+
+msgid "2nd dist"
+msgstr ""
+
+msgid "Taper °"
+msgstr ""
+
+msgid "New body"
+msgstr ""
+
+msgid "Intersect"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Flip direction"
+msgstr ""
+
+msgid "(no edge picked — group below)"
+msgstr ""
+
+msgid "Bottom"
+msgstr "底部"
+
+msgid "Lateral"
+msgstr ""
+
+msgid "Edges"
+msgstr ""
+
+msgid "Size (r/dist)"
+msgstr ""
+
+msgid "XY"
+msgstr ""
+
+msgid "XZ"
+msgstr ""
+
+msgid "YZ"
+msgstr ""
+
+msgid "Hole plane"
+msgstr ""
+
+msgid "Depth (blind)"
+msgstr ""
+
+msgid "Pos X"
+msgstr ""
+
+msgid "Pos Y"
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid "(none — uses Hole plane)"
+msgstr ""
+
+msgid "On face"
+msgstr ""
+
+msgid "Thread plane"
+msgstr ""
+
+msgid "Pitch"
+msgstr ""
+
+msgid "Thread depth"
+msgstr ""
+
+msgid "(none — uses Thread plane)"
+msgstr ""
+
+msgid "Plane X"
+msgstr ""
+
+msgid "Plane Y"
+msgstr ""
+
+msgid "Profile: —"
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Total angle°"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgid "Union (join)"
+msgstr ""
+
+msgid "Subtract (cut)"
+msgstr ""
+
+msgid "Target (kept)"
+msgstr ""
+
+msgid "Keep tool body"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid ""
+"Drag a corner to size, the centre to move.\n"
+"Confirm or Cancel in the toolbar above."
+msgstr ""
+
+msgid "Midplane"
+msgstr ""
+
+msgid "Two edges"
+msgstr ""
+
+msgid "Plane type"
+msgstr ""
+
+msgid "Base"
+msgstr ""
+
+msgid "Angle°"
+msgstr ""
+
+msgid "Base X"
+msgstr ""
+
+msgid "Base Y"
+msgstr ""
+
+msgid "Tilt axis"
+msgstr ""
+
+msgid "Pick Face A"
+msgstr ""
+
+msgid "Pick Face B"
+msgstr ""
+
+msgid "Pick Edge A"
+msgstr ""
+
+msgid "Pick Edge B"
+msgstr ""
+
+msgid "Size U"
+msgstr ""
+
+msgid "Size V"
+msgstr ""
+
+msgid "Profiles (check 2+, in order):"
+msgstr ""
+
+msgid "Ruled (straight) sections"
+msgstr ""
+
+msgid "Fills the sketch's closed boundary with a smooth face."
+msgstr ""
+
+msgid "Sheet body"
+msgstr ""
+
+msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
+msgstr ""
+
+msgid "Thickens a sheet body into a solid. Flip reverses the direction."
+msgstr ""
+
+msgid "(all faces — closed hollow)"
+msgstr ""
+
+msgid "Open face"
+msgstr ""
+
+msgid "Pick a solid face to open it, then set the wall thickness."
+msgstr ""
+
+msgid "Angle (°)"
+msgstr ""
+
+msgid "(pick a side face)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
+msgstr ""
+
+msgid "Translate X"
+msgstr ""
+
+msgid "Translate Y"
+msgstr ""
+
+msgid "Translate Z"
+msgstr ""
+
+msgid "Rotate axis"
+msgstr ""
+
+msgid "Pivot X"
+msgstr ""
+
+msgid "Pivot Y"
+msgstr ""
+
+msgid "Pivot Z"
+msgstr ""
+
+msgid "Keep original (make a copy)"
+msgstr ""
+
+msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
+msgstr ""
+
+msgid "Mirror plane"
+msgstr ""
+
+msgid "Keep original"
+msgstr ""
+
+msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
+msgstr ""
+
+msgid "(pick a solid face)"
+msgstr ""
+
+msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
+msgstr ""
+
+msgid "Target body"
+msgstr ""
+
+msgid "Entity index"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
+msgstr ""
+
+msgid "Source body"
+msgstr ""
+
+msgid "Target plane"
+msgstr ""
+
+msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
+msgstr ""
+
+msgid "Add picked face"
+msgstr ""
+
+msgid "Click a face on the body first, then Add picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d is already in the list"
+msgstr ""
+
+msgid "Faces to delete"
+msgstr ""
+
+msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
+msgstr ""
+
+msgid "Left-handed"
+msgstr ""
+
+msgid "Taper (°)"
+msgstr ""
+
+msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
+msgstr ""
+
+msgid "Two points"
+msgstr ""
+
+msgid "Face normal"
+msgstr ""
+
+msgid "Cylinder centerline"
+msgstr ""
+
+msgid "Plane intersection"
+msgstr ""
+
+msgid "Along edge"
+msgstr ""
+
+msgid "Axis type"
+msgstr ""
+
+msgid "Pick Face"
+msgstr ""
+
+msgid "Pick Edge"
+msgstr ""
+
+msgid "Plane A"
+msgstr ""
+
+msgid "Plane B"
+msgstr ""
+
+msgid "Point 1 X"
+msgstr ""
+
+msgid "Point 1 Y"
+msgstr ""
+
+msgid "Point 1 Z"
+msgstr ""
+
+msgid "Point 2 X"
+msgstr ""
+
+msgid "Point 2 Y"
+msgstr ""
+
+msgid "Point 2 Z"
+msgstr ""
+
+msgid "Point (world)"
+msgstr ""
+
+msgid "Face + direction"
+msgstr ""
+
+msgid "(all)"
+msgstr ""
+
+msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
+msgstr ""
+
+msgid "Edge (sets in-plane direction)"
+msgstr ""
+
+msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
+msgstr ""
+
+msgid "X hint X"
+msgstr ""
+
+msgid "X hint Y"
+msgstr ""
+
+msgid "X hint Z"
+msgstr ""
+
+msgid "Fastened — 6 DOF locked, B driven onto A exactly"
+msgstr ""
+
+msgid "Planar — z aligned, offset distance; free in-plane slide"
+msgstr ""
+
+msgid "Revolute — axes collinear; free rotation about z"
+msgstr ""
+
+msgid "Slider — orientation locked; free axial slide"
+msgstr ""
+
+msgid "Cylindrical — axes collinear; free spin + axial slide"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "CS A (fixed)"
+msgstr ""
+
+msgid "CS B (moves)"
+msgstr ""
+
+msgid "Flip (oppose z axes)"
+msgstr ""
+
+msgid "Plane distance"
+msgstr ""
+
+msgid "Axial position"
+msgstr ""
+
+msgid "Expression"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Expr"
+msgstr ""
+
+msgid "(no bindings)"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Constraints"
+msgstr ""
+
+msgid "Feature tree"
+msgstr ""
+
+msgid " — the eye suppresses this mate"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s selected — F2 or right-click renames it, double-click edits it"
+msgstr ""
+
+msgid "Rename\tF2"
+msgstr ""
+
+msgid "Scale artwork"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Show / hide"
+msgstr ""
+
+msgid "Check interference — find overlapping bodies"
+msgstr ""
+
+msgid "Bodies"
+msgstr ""
+
+msgid "Move body"
+msgstr ""
+
+msgid "Select a body row first, then move it"
+msgstr ""
+
+msgid "Boolean — join, subtract or intersect with another body"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d selected — right-click for what applies to it"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "+"
+msgstr ""
+
+msgid "Del"
+msgstr "刪除"
+
+msgid "Sketch created — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Sketch empty — nothing committed"
+msgstr ""
+
+msgid "Sketch updated"
+msgstr ""
+
+#, c-format
+msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Could not resolve the sketch to extrude"
+msgstr ""
+
+msgid "Face selected — set the depth and Confirm"
+msgstr ""
+
+msgid "Region selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+msgid "Sketch selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d "
+msgstr ""
+
+msgid "vertex selected — click again for the whole body"
+msgstr ""
+
+msgid "selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click for the drawing tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+msgid "Tool exited"
+msgstr ""
+
+msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgstr ""
+
+msgid "✗ Conflicting constraints"
+msgstr ""
+
+msgid "✓ Fully constrained"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d degrees of freedom"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgstr ""
+
+#, c-format
+msgid "OK — %zu triangles"
+msgstr ""
+
+msgid "Text to insert:"
+msgstr ""
+
+msgid "Import SVG"
+msgstr ""
+
+msgid "Import STEP"
+msgstr ""
+
+msgid "Reading STEP…"
+msgstr ""
+
+msgid "No solids found in STEP"
+msgstr ""
+
+msgid "STEP import failed: "
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+msgid "Import mesh"
+msgstr ""
+
+msgid "Could not read the STL file"
+msgstr ""
+
+msgid "Could not read the OBJ file: "
+msgstr ""
+
+msgid "Unsupported mesh format (STL and OBJ are supported)"
+msgstr ""
+
+msgid "The mesh contains no triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
+"\n"
+"Import anyway?"
+msgstr ""
+
+msgid "Large mesh"
+msgstr ""
+
+msgid "Mesh conversion failed: "
+msgstr ""
+
+msgid "Mesh conversion produced no geometry"
+msgstr ""
+
+msgid "Mesh import failed: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr ""
+
+msgid "No importable geometry found"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s added to the sketch — Confirm to commit it"
+msgstr ""
+
+msgid " — drag to place/size, then Confirm"
+msgstr ""
+
+msgid "Insert cancelled"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Recompute error: "
+msgstr ""
+
+msgid "Add a solid (sketch + extrude) first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Thread standard: %s  (pitch %.3g mm)"
+msgstr ""
+
+msgid "Thread needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to revolve first"
+msgstr ""
+
+msgid "Revolve needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a profile sketch to sweep first"
+msgstr ""
+
+msgid "Pick a path sketch for the sweep"
+msgstr ""
+
+msgid "Sweep needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Check at least two profile sketches to loft"
+msgstr ""
+
+msgid "Loft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to extrude first"
+msgstr ""
+
+msgid "Pick a sketch to fill first"
+msgstr ""
+
+msgid "Select a sheet body first"
+msgstr ""
+
+msgid "Pick a solid face to thicken first"
+msgstr ""
+
+msgid "Pick a sketch with an open line first"
+msgstr ""
+
+msgid "Add at least one face to delete first"
+msgstr ""
+
+msgid "Mate needs two CoordSys features — create them first"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different CoordSys features"
+msgstr ""
+
+msgid "Mate rejected"
+msgstr ""
+
+msgid "No interference — need at least two solid bodies to check"
+msgstr ""
+
+msgid "No interference found"
+msgstr ""
+
+#, c-format
+msgid "%zu interference pairs, worst %.2f mm³"
+msgstr ""
+
+msgid ""
+"Interference pairs:\n"
+"\n"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d"
+msgstr ""
+
+msgid "Interference"
+msgstr ""
+
+msgid "Select a solid body first — its mass properties are what is reported"
+msgstr ""
+
+msgid "Mass properties could not be computed for this body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Sheet body (open shell)\n"
+"Surface area: %.2f cm²\n"
+"\n"
+"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgstr ""
+
+msgid "Mass properties"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: %.3f cm³, %.2f cm²"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Volume: %.3f cm³\n"
+"Surface area: %.2f cm²"
+msgstr ""
+
+msgid "Pattern needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Boolean needs two solid bodies — add or import a second one"
+msgstr ""
+
+msgid "Cut needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "the picked face of Body %d"
+msgstr ""
+
+msgid "the picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "  ·  %d picked"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr ""
+
+msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
+msgstr ""
+
+msgid "Constrain — click one or two entities, then choose a constraint"
+msgstr ""
+
+msgid "Dimension — click an entity, or the first of two points"
+msgstr ""
+
+msgid "Dimension — click the second point"
+msgstr ""
+
+msgid "Line — click the start point"
+msgstr ""
+
+msgid "Line — click the end point, or type the length"
+msgstr ""
+
+msgid "Polyline — click the first point"
+msgstr ""
+
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgstr ""
+
+msgid "Rectangle — click one corner"
+msgstr ""
+
+msgid "Rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Centre rectangle — click the centre"
+msgstr ""
+
+msgid "Centre rectangle — click a corner"
+msgstr ""
+
+msgid "Oblique rectangle — click the start of the base edge"
+msgstr ""
+
+msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
+msgstr ""
+
+msgid "Oblique rectangle — click to set the width"
+msgstr ""
+
+msgid "Rounded rectangle — click one corner"
+msgstr ""
+
+msgid "Rounded rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Rounded rectangle — click to set the corner radius"
+msgstr ""
+
+msgid "Circle — click the centre"
+msgstr ""
+
+msgid "Circle — click to set the radius, or type it"
+msgstr ""
+
+msgid "Circle (2 points) — click one end of the diameter"
+msgstr ""
+
+msgid "Circle (2 points) — click the other end of the diameter"
+msgstr ""
+
+msgid "Circle (3 points) — click the first point on the circle"
+msgstr ""
+
+msgid "Circle (3 points) — click the second point"
+msgstr ""
+
+msgid "Circle (3 points) — click the third point"
+msgstr ""
+
+msgid "Arc — click the start point"
+msgstr ""
+
+msgid "Arc — click the end point"
+msgstr ""
+
+msgid "Arc — click a point the arc passes through"
+msgstr ""
+
+msgid "Tangent arc — click the endpoint it leaves from"
+msgstr ""
+
+msgid "Tangent arc — click its far end"
+msgstr ""
+
+msgid "Centre arc — click the centre"
+msgstr ""
+
+msgid "Centre arc — click the start point (this sets the radius)"
+msgstr ""
+
+msgid "Centre arc — click the end point"
+msgstr ""
+
+msgid "Slot — click one end of the centreline"
+msgstr ""
+
+msgid "Slot — click the other end of the centreline"
+msgstr ""
+
+msgid "Slot — click to set the width"
+msgstr ""
+
+msgid "Arc slot — click the centre the slot curves about"
+msgstr ""
+
+msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgstr ""
+
+msgid "Arc slot — click the end of the centreline"
+msgstr ""
+
+msgid "Arc slot — click to set the width"
+msgstr ""
+
+msgid "Polygon — click the centre"
+msgstr ""
+
+msgid "Polygon — click a vertex (this sets size and orientation)"
+msgstr ""
+
+msgid "Ellipse — click the centre"
+msgstr ""
+
+msgid "Ellipse — click the end of the major axis"
+msgstr ""
+
+msgid "Ellipse — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click the centre"
+msgstr ""
+
+msgid "Elliptical arc — click the end of the major axis"
+msgstr ""
+
+msgid "Elliptical arc — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc starts"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc ends"
+msgstr ""
+
+msgid "Spline — click the first control point"
+msgstr ""
+
+msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgstr ""
+
+msgid "Point — click to place one; the tool stays armed for more"
+msgstr ""
+
+msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Fillet — click the first of two lines that meet"
+msgstr ""
+
+msgid "Fillet — click the second line"
+msgstr ""
+
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Chamfer — click the first of two lines that meet"
+msgstr ""
+
+msgid "Chamfer — click the second line"
+msgstr ""
+
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Offset — click the entity to offset"
+msgstr ""
+
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Mirror — first click the LINE to mirror about (a construction line works)"
+msgstr ""
+
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Move — click the entities to move"
+msgstr ""
+
+msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgstr ""
+
+msgid "Rotate — click the entities to rotate"
+msgstr ""
+
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgstr ""
+
+msgid "Scale — click the entities to scale"
+msgstr ""
+
+msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgstr ""
+
+msgid "Array — click the entities to repeat"
+msgstr ""
+
+msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Polar array — click the entities to repeat"
+msgstr ""
+
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgstr ""
+
+msgid "  ·  Esc goes back to Select"
+msgstr ""
+
+msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+msgid "select something first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mate: %s  →  %s"
+msgstr ""
+
+msgid "Fastened"
+msgstr ""
+
+msgid "Revolute"
+msgstr ""
+
+msgid "Slider"
+msgstr ""
+
+msgid "Cylindrical"
+msgstr ""
+
+msgid "Click a solid FACE in the viewport"
+msgstr ""
+
+msgid "Click a solid EDGE in the viewport"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
+msgstr ""
+
+msgid "Plane added — pick it as a sketch plane"
+msgstr ""
+
+msgid "Axis added"
+msgstr ""
+
+msgid "Coord Sys added"
+msgstr ""
+
+msgid "Shell needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a picked face — click a side face first"
+msgstr ""
+
+msgid ""
+"Nothing yet — import a STEP or a mesh from the toolbar,\n"
+"or click a reference plane and right-click it to start a sketch."
+msgstr ""
+
+msgid "No solid yet — select a sketch and right-click it to Extrude."
+msgstr ""
+
+msgid "Could not restore the CAD model from this project"
+msgstr ""
+
+msgid "Could not restore the CAD model: "
+msgstr ""
+
+#, c-format
+msgid "Body %zu — %s"
+msgstr ""
+
+msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
+msgstr ""
+
+msgid "Section view off"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Section view — showing the %s half"
+msgstr ""
+
+msgid "upper"
+msgstr ""
+
+msgid "lower"
+msgstr ""
+
+msgid "Boolean needs two bodies — create or import a second solid"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr ""
+
+msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
+msgstr ""
+
+msgid "Select a body first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d colour set"
+msgstr ""
+
+msgid "Click a face on the solid, then press F"
+msgstr ""
+
+msgid "Placed on face — body laid flat on the bed"
+msgstr ""
+
+msgid "Edit rejected: "
+msgstr ""
+
+msgid "Erase all features and bodies and start a new design? This cannot be undone."
+msgstr ""
+
+msgid "New Design"
+msgstr ""
+
+msgid "This body has no feature to delete — use New Design to start over"
+msgstr ""
+
+#, c-format, boost-format
+msgid "feature %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete %s?\n"
+"\n"
+"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgstr ""
+
+msgid "Delete body"
+msgstr ""
+
+msgid "Select the FEATURE that created this body (or use New Design)"
+msgstr ""
+
+msgid "Select a feature in the tree first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d shown"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d hidden"
+msgstr ""
+
+msgid "Feature shown"
+msgstr ""
+
+msgid "Feature hidden"
+msgstr ""
+
+msgid "Draw a sketch first, then Constrain"
+msgstr ""
+
+msgid "Select a sketch in the tree first"
+msgstr ""
+
+msgid "Selected feature is not a sketch"
+msgstr ""
+
+msgid "Pick 1-2 lines, then a constraint; right-click exits"
+msgstr ""
+
+msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
+msgstr ""
+
+msgid "Pick an entity first"
+msgstr ""
+
+msgid "Pick two entities first"
+msgstr ""
+
+msgid "Horizontal and Vertical apply to a line"
+msgstr ""
+
+msgid "Angle applies between two lines"
+msgstr ""
+
+msgid "Collinear needs two lines"
+msgstr ""
+
+msgid "Parallel, perpendicular and equal length apply to two lines"
+msgstr ""
+
+msgid "Equal radius needs two circles or arcs"
+msgstr ""
+
+msgid "Concentric needs two circles or arcs"
+msgstr ""
+
+msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
+msgstr ""
+
+msgid "This constraint needs two entities with a point to join"
+msgstr ""
+
+msgid "This dimension needs two entities with a point to measure between"
+msgstr ""
+
+msgid "Midpoint needs a point and a line"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines + an axis"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines"
+msgstr ""
+
+msgid "Symmetric: pick two entities, then an axis line"
+msgstr ""
+
+msgid "Radius/Diameter needs a circle or arc"
+msgstr ""
+
+msgid "Unsupported constraint"
+msgstr ""
+
+msgid "Constraint rejected (over-constrained)"
+msgstr ""
+
+msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr ""
+
+msgid "Applied constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Fix %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock X %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock Y %s"
+msgstr ""
+
+msgid "Equal"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric %s — %s / %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about Y axis %s — %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about X axis %s — %s"
+msgstr ""
+
+msgid "On line"
+msgstr ""
+
+msgid "On edge"
+msgstr ""
+
+msgid "Constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Constraints (%d)"
+msgstr ""
+
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
+msgid "Constraint deleted"
+msgstr ""
+
+msgid "Press Constrain on a sketch first"
+msgstr ""
+
+msgid "Pick the entity, then a mirror-axis line"
+msgstr ""
+
+msgid "Mirror axis must be a line"
+msgstr ""
+
+msgid "Mirror produced nothing"
+msgstr ""
+
+msgid "Offset distance (+left / -right of direction)"
+msgstr ""
+
+msgid "Offset collapsed the entity"
+msgstr ""
+
+msgid "Pick two lines to fillet"
+msgstr ""
+
+msgid "Fillet needs two lines"
+msgstr ""
+
+msgid "Fillet radius"
+msgstr ""
+
+msgid "Fillet failed (parallel lines or radius too large)"
+msgstr ""
+
+msgid "Pick two lines to chamfer"
+msgstr ""
+
+msgid "Chamfer needs two lines"
+msgstr ""
+
+msgid "Chamfer distance"
+msgstr ""
+
+msgid "Chamfer failed (parallel lines or distance too large)"
+msgstr ""
+
+msgid "Trim works on lines, arcs and circles"
+msgstr ""
+
+msgid "Extend works on lines and arcs"
+msgstr ""
+
+msgid "Pick the edge to trim/extend"
+msgstr ""
+
+msgid "Nothing to trim at the pick"
+msgstr ""
+
+msgid "No edge to extend to"
+msgstr ""
+
+msgid "Array count (incl. original)"
+msgstr ""
+
+msgid "Spacing (mm)"
+msgstr ""
+
+msgid "Array produced nothing"
+msgstr ""
+
+msgid "Move dX (mm)"
+msgstr ""
+
+msgid "Move dY (mm)"
+msgstr ""
+
+msgid "Move produced nothing"
+msgstr ""
+
+msgid "Rotate angle (deg)"
+msgstr ""
+
+msgid "Rotate produced nothing"
+msgstr ""
+
+msgid "Scale factor"
+msgstr ""
+
+msgid "Scale produced nothing"
+msgstr ""
+
+msgid "Polar count (incl. original)"
+msgstr ""
+
+msgid "Total sweep (deg)"
+msgstr ""
+
+msgid "Polar array produced nothing"
+msgstr ""
+
+msgid "Applied edit"
+msgstr ""
+
+msgid " — type a value, press Enter (or Confirm)"
+msgstr ""
+
+msgid "Pick a segment in the viewport first"
+msgstr ""
+
+msgid "Applied Horizontal"
+msgstr ""
+
+msgid "Applied Vertical"
+msgstr ""
+
+msgid "Sketch: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "On a face of Body %d"
+msgstr ""
+
+msgid "On a stored face"
+msgstr ""
+
+msgid "Editing sketch — drag a handle or click a quote to edit"
+msgstr ""
+
+msgid "An imported solid has no parameters — use Transform to move or rotate it"
+msgstr ""
+
+msgid "This feature type can't be edited yet"
+msgstr ""
+
+msgid "Nothing to export — add a feature first"
+msgstr ""
+
+msgid "Export STEP"
+msgstr ""
+
+msgid "Exported STEP"
+msgstr ""
+
+msgid "STEP export failed: "
+msgstr ""
+
+msgid "Nothing to commit — add a feature first"
+msgstr ""
+
+msgid "All bodies hidden — show one before committing"
+msgstr ""
+
+msgid "Plane ready"
+msgstr ""
+
+msgid "Axis ready"
+msgstr ""
+
+msgid "Coord Sys ready"
+msgstr ""
+
+msgid "Helix ready"
+msgstr ""
+
+msgid "Project ready"
+msgstr ""
+
+msgid "Sketch ready"
+msgstr ""
+
+msgid "Mate needs at least two CoordSys features"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different"
+msgstr ""
+
+msgid "Mate ready"
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+#, c-format
+msgid "Preview — %zu triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
+msgstr ""
+
+msgid "Profile: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d (push/pull)"
+msgstr ""
+
+msgid "Move cancelled"
+msgstr ""
+
+msgid "Discard this sketch and everything drawn in it?"
+msgstr ""
+
+msgid "Discard sketch"
+msgstr ""
+
+msgid "Keep drawing"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr ""
+
+msgid "Nothing to redo"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+#, c-format
+msgid "Redo  (%zu more)"
+msgstr ""
+
+#, c-format
+msgid "Undo  (%zu more)"
+msgstr ""
+
+msgid "Variable name:"
+msgstr ""
+
+msgid "Add Variable"
+msgstr ""
+
+msgid "Variable name must not contain spaces"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Expression for '%s':"
+msgstr ""
+
+msgid "Select a variable first"
+msgstr ""
+
+msgid "Edit Variable"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "No binding for that field"
+msgstr ""
+
+msgid "Primitive"
+msgstr ""
+
+msgid "Empty mesh generated"
+msgstr ""
+
+msgid "Pocket (Cut)"
+msgstr ""
+
+msgid "Clear All"
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -21836,8 +24501,9 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
 
-#~ msgid "Other"
-#~ msgstr "其他"
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "開啟操作快捷選單"
 
 # AI Translated
 #~ msgid "Left: "
@@ -21980,9 +24646,6 @@ msgstr ""
 #~ msgid "Print order within a single layer."
 #~ msgstr "每一層的列印順序"
 
-#~ msgid "Bottom"
-#~ msgstr "底部"
-
 #~ msgid "Front"
 #~ msgstr "前面"
 
@@ -21994,9 +24657,6 @@ msgstr ""
 
 #~ msgid "Esc"
 #~ msgstr "Esc"
-
-#~ msgid "Del"
-#~ msgstr "刪除"
 
 #~ msgid "Backspace"
 #~ msgstr "Backspace"
@@ -22012,9 +24672,6 @@ msgstr ""
 
 #~ msgid "Arrow Right"
 #~ msgstr "右箭頭"
-
-#~ msgid "End"
-#~ msgstr "結束"
 
 #~ msgid "Hotend"
 #~ msgstr "熱端"

@@ -1736,16 +1736,46 @@ void Tab::toggle_option(const std::string& opt_key, bool toggle, int opt_index/*
 
 void Tab::toggle_line(const std::string &opt_key, bool toggle, int opt_index)
 {
-    if (!m_active_page) return;
-    Line *line = m_active_page->get_line(opt_key, opt_index);
-    if (line) line->toggle_visible = toggle;
+    // Apply to every page that owns the option, not just m_active_page. ConfigManipulation runs while
+    // each tab updates at preset load, so the Speed Dial sees the same visibility regardless of page.
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        if (Line *line = page->get_line(opt_key, opt_index))
+            line->toggle_visible = toggle;
+    }
 };
 
 void Tab::set_option_label(const std::string &opt_key, const wxString &label, int opt_index)
 {
-    if (!m_active_page) return;
-    Line *line = m_active_page->get_line(opt_key, opt_index);
-    if (line) line->set_label(label);
+    // Same as toggle_line: a runtime rename (brim_width -> "Brim ear radius") must reach every page
+    // so the Speed Dial titles the setting before the page has been shown.
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        if (Line *line = page->get_line(opt_key, opt_index))
+            line->set_label(label);
+    }
+}
+
+Tab::SettingRowState Tab::setting_row_state(const std::string &opt_id) const
+{
+    bool found = false;
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            if (!group) continue;
+            for (const Line& line : group->get_lines()) {
+                for (const Option& opt : line.get_options()) {
+                    if (opt.opt_id != opt_id)
+                        continue;
+                    if (line.toggle_visible) // shown on any owning page is enough
+                        return {true, line.label, line.get_options().size() > 1};
+                    found = true;
+                }
+            }
+        }
+    }
+    // Never registered on a page -> visible, but with no row label to contribute.
+    return {!found, wxString(), false};
 }
 
 // To be called by custom widgets, load a value into a config,
@@ -5782,11 +5812,11 @@ if (is_marlin_flavor)
     } else if (m_extruders_count_old == 1) {
         first_extruder_title = wxString::Format("Extruder %d", 1);
     }
-    auto & searcher = wxGetApp().sidebar().get_searcher();
+    auto & index = wxGetApp().sidebar().settings_index();
     for (auto &group : m_pages[n_before_extruders]->m_optgroups) {
         group->set_config_category_and_type(first_extruder_title, m_type);
         for (auto &opt : group->opt_map())
-            searcher.add_key(opt.first + "#0", m_type, group->title, first_extruder_title);
+            index.add_key(opt.first + "#0", m_type, group->title, first_extruder_title, group->icon);
     }
 
     Thaw();
@@ -7870,10 +7900,10 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
         }));
 
     {
-        Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-        const Search::GroupAndCategory& gc = searcher.get_group_and_category("printable_area");
-        searcher.add_key("bed_custom_texture", m_type, gc.group, gc.category);
-        searcher.add_key("bed_custom_model", m_type, gc.group, gc.category);
+        Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+        const Search::GroupAndCategory& gc = index.get_group_and_category("printable_area");
+        index.add_key("bed_custom_texture", m_type, gc.group, gc.category, gc.icon);
+        index.add_key("bed_custom_model", m_type, gc.group, gc.category, gc.icon);
     }
 
     return sizer;

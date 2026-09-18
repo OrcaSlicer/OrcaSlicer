@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.07",
+	"version": "02.04.00.08",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -305,6 +305,14 @@
 			"sub_path": "filament/Generic PA-CF @System.json"
 		},
 		{
+			"name": "INSLOGIC PA6-66 @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @base.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @base.json"
+		},
+		{
 			"name": "Bambu PC @base",
 			"sub_path": "filament/Bambu/Bambu PC @base.json"
 		},
@@ -435,6 +443,10 @@
 		{
 			"name": "GreenGate3D PETG @base",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
 		},
 		{
 			"name": "JAYO PETG @base",
@@ -635,6 +647,10 @@
 		{
 			"name": "Generic PLA-CF @System",
 			"sub_path": "filament/Generic PLA-CF @System.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
 		},
 		{
 			"name": "JAYO PLA @base",
@@ -1117,6 +1133,30 @@
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @System.json"
 		},
 		{
+			"name": "INSLOGIC PA6-66 @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-66 @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-CF @Prusa CORE One.json"
+		},
+		{
 			"name": "Bambu PC @System",
 			"sub_path": "filament/Bambu/Bambu PC @System.json"
 		},
@@ -1311,6 +1351,18 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PETG Pro @Prusa CORE One.json"
 		},
 		{
 			"name": "JAYO PETG @BBL A1 0.4 nozzle",
@@ -1699,6 +1751,18 @@
 		{
 			"name": "Generic PLA Matte @System",
 			"sub_path": "filament/Generic PLA Matte @System.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PLA Pro @Prusa CORE One.json"
 		},
 		{
 			"name": "JAYO PLA @BBL A1 0.4 nozzle",
