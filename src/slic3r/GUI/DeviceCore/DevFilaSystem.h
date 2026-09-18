@@ -146,6 +146,7 @@ public:
     static constexpr AmsType N3F = DevAmsType::N3F;
     static constexpr AmsType N3S = DevAmsType::N3S;
     static constexpr AmsType AMS_LITE_MIXED = DevAmsType::AMS_LITE_MIXED;
+    static constexpr AmsType TOOLCHANGER = DevAmsType::TOOLCHANGER;
 
 public:
 
@@ -338,6 +339,9 @@ public:
 
     bool        HasAms() const { return !amsList.empty(); }
     bool        IsAmsSettingUp() const;
+    // Orca: true when every reported unit is a Moonraker TOOLCHANGER unit (see DevAmsType).
+    // Used by the sync/mapping dialogs to present "Tool" wording instead of "AMS".
+    bool        IsAllToolchanger() const;
 
     /* ams */
     DevAms*                         GetAmsById(const std::string& ams_id) const;

@@ -193,3 +193,174 @@ TEST_CASE("Switch-bound AMS with an invalid track is excluded from mapping", "[D
     DevFilaSystemParser::ParseV1_0(print_push, &obj_no_switch, obj_no_switch.GetFilaSystem().get(), false);
     REQUIRE(obj_no_switch.GetFilaSystem()->GetAmsList().count("0") == 0);
 }
+
+TEST_CASE("A toolchanger's tools all resolve in filament mapping", "[DevMapping]")
+{
+    // Regression guard for two independent defects that both hid tools behind a "tool 0 works
+    // by coincidence" facade for Moonraker toolchangers (Snapmaker U1 and similar):
+    //
+    // 1) DevMapping.cpp's tray-index arms (_parse_tray_info and the tray_index computation in
+    //    ams_filament_mapping) originally didn't match DevAms::TOOLCHANGER, so every unit fell
+    //    through to the AMS-group formula/assert(0) and only unit 0 (index 0) ended up
+    //    distinguishable; tools 1-3 collided or were dropped and stayed unmapped (tray_id == -1).
+    //    Fixed by routing TOOLCHANGER through the same "ams_id + slot_id" arm as N3S.
+    //
+    // 2) is_valid_mapping_result (called internally by ams_filament_mapping with
+    //    check_empty_slot=true) rejects a result whose tray no longer reports is_exists. For any
+    //    unit type >= 4 that isn't AMS_LITE_MIXED, DevFilaSystem.cpp computed is_exists via a
+    //    "some_bit + (ams_id - 128)" formula that assumes real N3S hardware's ams_id-128 wire
+    //    scheme. MoonrakerPrinterAgent::build_ams_payload instead publishes 0-based
+    //    ams_exist_bits/tray_exist_bits (`1 << ams_id`), so that shift went out of range and
+    //    is_exists always came back false, invalidating the first tray is_valid_mapping_result
+    //    examined (mutating just that entry to tray_id == -1 before returning early). Fixed by
+    //    giving TOOLCHANGER its own arm that reads bit ams_id directly, leaving the N3S
+    //    128-offset arithmetic untouched.
+    //
+    // Both defects independently reduce the same observable symptom: with only one of the two
+    // fixes in place, either tools 1-3 stay at tray_id -1 (defect 1) or tool 0 does (defect 2).
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // info bits 0-3 = 6 (DevAms::TOOLCHANGER), matching the "%04X" of TOOLCHANGER that
+    // MoonrakerPrinterAgent::build_ams_payload writes into each unit's "info" field.
+    // tray_exist_bits bit n marks unit n / slot 0, mirroring build_ams_payload's
+    // `tray_exist_bits |= (1 << slot_index)` where slot_index == ams_id for these units.
+    json print_push = json::parse(R"({
+        "ams": {
+            "tray_exist_bits": "F",
+            "ams": [
+                { "id": "0", "info": "0006", "tray": [ { "id": "0", "tray_color": "FF0000FF" } ] },
+                { "id": "1", "info": "0006", "tray": [ { "id": "0", "tray_color": "00FF00FF" } ] },
+                { "id": "2", "info": "0006", "tray": [ { "id": "0", "tray_color": "0000FFFF" } ] },
+                { "id": "3", "info": "0006", "tray": [ { "id": "0", "tray_color": "FFFF00FF" } ] }
+            ]
+        }
+    })");
+    DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+    const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+    std::vector<std::string> colors = {"FF0000FF", "00FF00FF", "0000FFFF", "FFFF00FF"};
+    std::vector<FilamentInfo> filaments;
+    for (int i = 0; i < 4; ++i) {
+        REQUIRE(ams_list.count(std::to_string(i)) == 1);
+        // TOOLCHANGER units carry no extruder nibble, so DevFilaSystemParser defaults them to
+        // MAIN_EXTRUDER_ID; select them via the right-AMS mapping option below.
+        REQUIRE(ams_list.at(std::to_string(i))->GetExtruderId() == MAIN_EXTRUDER_ID);
+
+        // tray_info_idx/tray_type are omitted from the payload above (as in the other tests in
+        // this file) because resolving them needs the GUI preset bundle, unavailable headless.
+        // Set the display filament type directly, as the other tests here do.
+        DevAmsTray* tray = obj.GetFilaSystem()->GetAmsTray(std::to_string(i), "0");
+        REQUIRE(tray != nullptr);
+        tray->m_fila_type = "PLA";
+
+        FilamentInfo fila;
+        fila.id    = i;
+        fila.type  = "PLA";
+        fila.color = colors[i];
+        filaments.push_back(fila);
+    }
+
+    std::vector<FilamentInfo> result;
+    std::vector<bool> map_opt(4, false);
+    map_opt[MappingOption::USE_RIGHT_AMS] = true;
+    DevMappingUtil::ams_filament_mapping(&obj, filaments, result, map_opt, {}, false);
+
+    // The defining property both fixes restore: every tool resolves, not just tool 0, and the
+    // result is accepted as valid (exercises the is_exists check both fixes touch).
+    REQUIRE(result.size() == 4);
+    for (int i = 0; i < 4; ++i) {
+        INFO("filament " << i);
+        REQUIRE(result[i].tray_id >= 0);
+        CHECK(result[i].tray_id == i);
+    }
+    CHECK(DevMappingUtil::is_valid_mapping_result(&obj, result, true));
+}
+
+TEST_CASE("Both AMS unit shapes MoonrakerPrinterAgent::build_ams_payload emits parse into the right unit/tray layout", "[DevMapping]")
+{
+    // Regression guard for the vendor-caller mismatch after MoonrakerPrinterAgent::build_ams_payload
+    // grew a per-vendor unit shape: SnapmakerPrinterAgent (a physical toolchanger) must use one
+    // 1-slot TOOLCHANGER unit per tool, while CrealityPrintAgent/QidiPrinterAgent (4-slot MMU boxes)
+    // must keep chunking into AMS_LITE units of up to 4 slots. This pins the parser's view of both
+    // payload shapes so a future caller regression (e.g. a vendor reverting to the wrong shape, or
+    // a hardcoded unit count) shows up as a wrong unit/tray count here.
+    SECTION("Toolchanger shape: 4 lanes become 4 one-slot units")
+    {
+        // Mirrors what SnapmakerPrinterAgent::fetch_filament_info now requests via
+        // build_ams_payload(slot_count, slot_count - 1, trays, AmsUnitShape::Toolchanger) for a
+        // 4-tool U1: one unit per tool, each with a single tray at id "0" (info 0006 ==
+        // DevAms::TOOLCHANGER). Before the fix, Snapmaker's caller passed a hardcoded ams_count of
+        // 1 into the (by-then-toolchanger-shaped) builder, which emits exactly `ams_count` units,
+        // so this payload would have collapsed to ONE unit / ONE tray instead of four -- this
+        // SECTION fails with `ams_list.size() == 1` if that regresses.
+        json print_push = json::parse(R"({
+            "ams": {
+                "tray_exist_bits": "F",
+                "ams": [
+                    { "id": "0", "info": "0006", "tray": [ { "id": "0", "tray_color": "FF0000FF" } ] },
+                    { "id": "1", "info": "0006", "tray": [ { "id": "0", "tray_color": "00FF00FF" } ] },
+                    { "id": "2", "info": "0006", "tray": [ { "id": "0", "tray_color": "0000FFFF" } ] },
+                    { "id": "3", "info": "0006", "tray": [ { "id": "0", "tray_color": "FFFF00FF" } ] }
+                ]
+            }
+        })");
+
+        MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+        DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+        const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+        REQUIRE(ams_list.size() == 4);
+        for (int i = 0; i < 4; ++i) {
+            INFO("unit " << i);
+            REQUIRE(ams_list.count(std::to_string(i)) == 1);
+            CHECK(ams_list.at(std::to_string(i))->GetTrays().size() == 1);
+        }
+
+        // Global tray index == unit index for TOOLCHANGER (DevFilaSystem.cpp GetTrayIndexMap).
+        auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+        for (int i = 0; i < 4; ++i) {
+            INFO("tray index " << i);
+            REQUIRE(tray_index_map.count(i) == 1);
+            CHECK(tray_index_map.at(i).first == i);   // ams_id
+            CHECK(tray_index_map.at(i).second == 0);  // slot_id
+        }
+    }
+
+    SECTION("Box4 shape: 4 slots stay chunked into a single AMS_LITE unit")
+    {
+        // Mirrors what CrealityPrintAgent/QidiPrinterAgent now request via
+        // build_ams_payload(box_count, ..., trays, AmsUnitShape::Box4): one unit per up-to-4
+        // slots (info 0002 == DevAms::AMS_LITE), byte-identical to the payload shape
+        // build_ams_payload produced before it grew a per-tool TOOLCHANGER arm.
+        json print_push = json::parse(R"({
+            "ams": {
+                "tray_exist_bits": "F",
+                "ams": [
+                    { "id": "0", "info": "0002", "tray": [
+                        { "id": "0", "tray_color": "FF0000FF" },
+                        { "id": "1", "tray_color": "00FF00FF" },
+                        { "id": "2", "tray_color": "0000FFFF" },
+                        { "id": "3", "tray_color": "FFFF00FF" }
+                    ] }
+                ]
+            }
+        })");
+
+        MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+        DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+        const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+        REQUIRE(ams_list.size() == 1);
+        REQUIRE(ams_list.count("0") == 1);
+        CHECK(ams_list.at("0")->GetTrays().size() == 4);
+
+        // Global tray index == ams_id*4 + slot_id for AMS_LITE (DevFilaSystem.cpp GetTrayIndexMap).
+        auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+        for (int i = 0; i < 4; ++i) {
+            INFO("tray index " << i);
+            REQUIRE(tray_index_map.count(i) == 1);
+            CHECK(tray_index_map.at(i).first == 0);   // ams_id
+            CHECK(tray_index_map.at(i).second == i);  // slot_id
+        }
+    }
+}
