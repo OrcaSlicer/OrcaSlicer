@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Medical-450",
+    "model_id": "Medical_450_01",
+    "nozzle_diameter": "2.0",
+    "machine_tech": "FFF",
+    "family": "IEMAI3D",
+    "bed_model": "bed_model_450S.stl",
+    "bed_texture": "bed_texture_450S.png",
+    "hotend_model": "",
+    "default_materials": "Medical-PLA-2.65-175;Medical-PLA-2.65-210"
+}

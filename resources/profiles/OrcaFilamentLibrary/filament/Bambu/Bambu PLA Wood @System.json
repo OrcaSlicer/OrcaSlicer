@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Bambu PLA Wood @System",
-	"inherits": "Bambu PLA Wood @base",
-	"from": "system",
-	"setting_id": "FJKP4YybAXlqyiRm",
-	"instantiation": "true",
-	"compatible_printers": []
-}

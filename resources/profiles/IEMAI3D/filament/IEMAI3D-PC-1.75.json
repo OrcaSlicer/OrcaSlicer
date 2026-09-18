@@ -1,0 +1,56 @@
+{
+    "type": "filament",
+    "filament_id": "YMF007",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PC-1.75",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pc",
+    "filament_type": [
+        "General"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "compatible_printers": [
+        "YM-NT-750 0.6 Nozzle - Dual",
+        "YM-NT-1000 0.6 Nozzle - Dual",
+        "YM-NT-1200 0.6 Nozzle - Dual",
+        "MAGIC-HT-MAX 0.4 nozzle - Dual",
+        "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+        "MAGIC-HT-L 0.4 Nozzle - Dual",
+        "MAGIC-HT-M 0.4 Nozzle"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "chamber_temperature": [
+        "90"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "temperature_vitrification": [
+        "120"
+    ],
+    "idle_temperature": [
+        "170"
+    ],
+    "version": "2.2.0.0"
+}

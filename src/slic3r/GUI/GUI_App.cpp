@@ -307,7 +307,7 @@ public:
         bool dark_mode = m_fg_color != wxColour("#6B6A6A");
         wxSize sz  = m_window->GetClientSize();
         BitmapCache bmp_cache;
-        m_logo_bmp = *bmp_cache.load_svg(dark_mode ? "splash_logo_dark" : "splash_logo", sz.GetWidth(), sz.GetHeight());
+        m_logo_bmp = *bmp_cache.load_svg(dark_mode ? "splash_logo_dark" : "splash_logo", sz.GetWidth() / 2, sz.GetHeight() /2);
 
         m_window->Bind(wxEVT_PAINT, &SplashScreen::OnPaint, this);
         m_window->Refresh();
@@ -321,8 +321,13 @@ public:
 
         dc.SetBackground(wxBrush(m_bg_color));
         dc.Clear();
+        const int width = c_sz.GetWidth();
+        int logo_w;
         if (m_logo_bmp.IsOk())
-            dc.DrawBitmap(m_logo_bmp, 0, 0, true);
+            logo_w = m_logo_bmp.GetWidth();
+            int logo_x = (width - logo_w) / 2;
+            int logo_y = 30;
+            dc.DrawBitmap(m_logo_bmp, logo_x, logo_y, true);
 
         wxRect rc = wxRect(0, 0, c_sz.GetWidth(), 0);
         dc.SetTextForeground(m_fg_color);
@@ -906,9 +911,10 @@ void GUI_App::post_init()
     hms_query = new HMSQuery();
 
     m_show_gcode_window = app_config->get_bool("show_gcode_window");
-    if (m_networking_need_update) {
-        show_network_plugin_download_dialog(false);
-    }
+    // 此处禁用拓竹网络插件检查
+    // if (m_networking_need_update) {
+    //     show_network_plugin_download_dialog(false);
+    // }
 
     // Start preset sync after project opened, otherwise we could have preset change during project opening which could cause crash 
     if (app_config->get("sync_user_preset") == "true") {
@@ -951,8 +957,7 @@ void GUI_App::post_init()
 
     // Orca: notify users upgrading from a pre-2.4.0 version that profile syncing
     // moved from Bambu Cloud to Orca Cloud.
-    if (is_editor() && m_last_config_version && m_last_config_version->valid()
-        && *m_last_config_version < Semver(2, 4, 0)) {
+    if (false) {
         CallAfter([] {
             const wxString wiki_url = "https://www.orcaslicer.com/wiki/user_profiles/user_profiles.html#profiles-missing-after-updating-from-bambu-cloud";
             MessageDialog dlg(nullptr,
@@ -2918,7 +2923,7 @@ bool GUI_App::on_init_inner()
 
         preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-            if (this->plater_ != nullptr) {
+            if (false) {
                 // this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable);
                 //BBS show msg box to download new version
                /* wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_info.version_str);

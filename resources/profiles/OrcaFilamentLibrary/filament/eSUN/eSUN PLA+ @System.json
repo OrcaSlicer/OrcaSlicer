@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "eSUN PLA+ @System",
-	"inherits": "eSUN PLA+ @base",
-	"from": "system",
-	"setting_id": "NA57fOmvp4jNEmn7",
-	"instantiation": "true",
-	"compatible_printers": []
-}

@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Valment PLA @System",
-	"inherits": "Valment PLA @base",
-	"from": "system",
-	"setting_id": "yissaEWECKefSRTG",
-	"instantiation": "true",
-	"compatible_printers": []
-}

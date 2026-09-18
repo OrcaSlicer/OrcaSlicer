@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PCTG @System",
-	"inherits": "fdm_filament_pctg",
-	"from": "system",
-	"setting_id": "21dhMVBuVwR2lzIX",
-	"instantiation": "true",
-	"compatible_printers": []
-}

@@ -1,4 +1,9 @@
 #include "PrinterWebView.hpp"
+#include "CloudServer.hpp"
+#include <nlohmann/json.hpp>
+#include <wx/uri.h>
+#include "NotificationManager.hpp"
+#include "Plater.hpp"
 
 #include "I18N.hpp"
 #include "PrinterWebViewHandler.hpp"
@@ -175,6 +180,8 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
 //    this->Raise();
     if (m_browser == nullptr)
         return;
+    SetupLoginScript(wxString::FromUTF8(wxGetApp().app_config->get("cloud_username")),
+                     wxString::FromUTF8(wxGetApp().app_config->get("cloud_password")), url);
     m_apikey = apikey;
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
@@ -193,6 +200,8 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
 bool PrinterWebView::Show(bool show)
 {
     if (show && !m_url_deferred.empty()) {
+        SetupLoginScript(wxString::FromUTF8(wxGetApp().app_config->get("cloud_username")),
+                         wxString::FromUTF8(wxGetApp().app_config->get("cloud_password")), m_url_deferred);
         m_browser->LoadURL(m_url_deferred);
         //ORCA: m_url_deferred will be cleared on load success
         //m_url_deferred.clear();
@@ -202,6 +211,10 @@ bool PrinterWebView::Show(bool show)
 
 void PrinterWebView::reload()
 {
+    if (!m_browser) return;
+    SetupLoginScript(wxString::FromUTF8(wxGetApp().app_config->get("cloud_username")),
+                     wxString::FromUTF8(wxGetApp().app_config->get("cloud_password")), m_browser->GetCurrentURL());
+    if (m_cloud_login_script_installed) m_apikey_sent = false;
     m_browser->Reload();
 }
 
@@ -253,6 +266,8 @@ void PrinterWebView::SendAPIKey()
     inject_vue_resize_workaround(m_browser);
 #endif
 
+    SetupLoginScript(wxString::FromUTF8(wxGetApp().app_config->get("cloud_username")),
+                     wxString::FromUTF8(wxGetApp().app_config->get("cloud_password")), m_browser->GetCurrentURL());
     m_browser->AddUserScript(script);
     m_browser->Reload();
 }
@@ -286,6 +301,12 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
         e = "wxWEBVIEW_NAV_ERR_OTHER";
         break;
       }
+    if (is_cloud_server_url(evt.GetURL(), cloud_server_url(wxGetApp().app_config->get("cloud_server_url")))) {
+        if (auto* plater = wxGetApp().plater())
+            plater->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                _u8L("Could not load the cloud page."));
+    }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": error loading page %1% %2% %3% %4%") %evt.GetURL() %evt.GetTarget() %e %evt.GetString();
 }
 
@@ -317,6 +338,32 @@ void PrinterWebView::OnScriptMessage(wxWebViewEvent& evt)
     m_handler->on_script_message(evt);
 }
 
+void PrinterWebView::SetupLoginScript(const wxString& username, const wxString& password, const wxString& url)
+{
+    if (!m_browser) return;
+    const auto server = cloud_server_url(wxGetApp().app_config->get("cloud_server_url"));
+    const bool cloud_url = is_cloud_server_url(url, server);
+    if (!cloud_url && !m_cloud_login_script_installed) return;
+    m_cloud_login_script_installed = false;
+    m_browser->RemoveAllUserScripts();
+    m_browser->RemoveScriptMessageHandler("wx");
+    m_browser->AddScriptMessageHandler("wx");
+#ifdef __linux__
+    inject_vue_resize_workaround(m_browser);
+#endif
+    if (!cloud_url || username.empty() || password.empty()) return;
+    const nlohmann::json login = {{"username", into_u8(username)}, {"password", into_u8(password)}};
+    const auto script = "if (window === window.top && window.location.origin === " +
+                        nlohmann::json(server).dump() + ") { window.LOGIN = " + login.dump(-1, ' ', true) + "; }";
+    m_cloud_login_script_installed = m_browser->AddUserScript(wxString::FromUTF8(script), wxWEBVIEW_INJECT_AT_DOCUMENT_START);
+    if (auto* plater = wxGetApp().plater())
+        plater->get_notification_manager()->push_notification(
+            NotificationType::CustomNotification,
+            m_cloud_login_script_installed ? NotificationManager::NotificationLevel::RegularNotificationLevel
+                                           : NotificationManager::NotificationLevel::ErrorNotificationLevel,
+            m_cloud_login_script_installed ? _u8L("Cloud login information configured.")
+                                           : _u8L("Could not configure cloud login."));
+}
 
 } // GUI
 } // Slic3r

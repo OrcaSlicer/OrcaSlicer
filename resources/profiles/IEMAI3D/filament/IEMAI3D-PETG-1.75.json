@@ -1,0 +1,92 @@
+{
+    "type": "filament",
+    "filament_id": "YMF012",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PETG-1.75",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pet",
+    "filament_type": [
+        "General"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "compatible_printers": [
+        "YM-NT-750 0.6 Nozzle - Dual",
+        "YM-NT-1000 0.6 Nozzle - Dual",
+        "YM-NT-1200 0.6 Nozzle - Dual",
+        "MAGIC-HT-MAX 0.4 nozzle - Dual",
+        "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+        "MAGIC-HT-L 0.4 Nozzle - Dual",
+        "MAGIC-HT-M 0.4 Nozzle"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "chamber_temperature": [
+        "50"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature": [
+        "215"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "idle_temperature": [
+        "140"
+    ],
+    "version": "2.2.0.0"
+}

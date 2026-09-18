@@ -1,0 +1,47 @@
+{
+    "type": "filament",
+    "filament_id": "YMF016",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PVA-1.75",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pva",
+    "filament_type": [
+        "Support"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "MAGIC-HT-MAX 0.4 nozzle - Dual",
+        "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+        "MAGIC-HT-L 0.4 Nozzle - Dual",
+        "MAGIC-HT-M 0.4 Nozzle"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "idle_temperature": [
+        "150"
+    ],
+    "is_custom_defined": "0",
+    "version": "2.2.0.0"
+}

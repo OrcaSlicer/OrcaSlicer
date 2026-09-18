@@ -1,19 +1,19 @@
 {
-	"type": "process",
-	"name": "0.08mm Extra Fine @MyKlipper",
-	"inherits": "fdm_process_klipper_common",
-	"from": "system",
-	"setting_id": "qC4SXEgZNVB9eWNQ",
-	"instantiation": "true",
-	"layer_height": "0.08",
-	"bottom_shell_layers": "7",
-	"top_shell_layers": "9",
-	"support_top_z_distance": "0.08",
-	"support_bottom_z_distance": "0.08",
-	"initial_layer_print_height": "0.2",
-	"compatible_printers": [
-		"MyKlipper 0.4 nozzle",
-		"MyKlipper 0.2 nozzle",
-		"MyKlipper 0.6 nozzle"
-	]
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.08mm Extra Fine @MyKlipper",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_klipper_common",
+    "layer_height": "0.08",
+    "bottom_shell_layers": "7",
+    "top_shell_layers": "9",
+    "support_top_z_distance": "0.08",
+    "support_bottom_z_distance": "0.08",
+    "initial_layer_print_height": "0.2",
+    "compatible_printers": [
+        "MyKlipper 0.4 nozzle",
+        "MyKlipper 0.2 nozzle",
+        "MyKlipper 0.6 nozzle"
+    ]
 }

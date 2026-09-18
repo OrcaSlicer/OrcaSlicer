@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Bambu ASA-CF @System",
-	"inherits": "Bambu ASA-CF @base",
-	"from": "system",
-	"setting_id": "SsFpqlvxTjHLQXaI",
-	"instantiation": "true",
-	"compatible_printers": []
-}

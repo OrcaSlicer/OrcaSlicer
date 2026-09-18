@@ -1,268 +1,185 @@
 #include "UploadDialog.hpp"
+#include "CloudServer.hpp"
 
+#include "GUI_App.hpp"
 #include "I18N.hpp"
-#include "libslic3r/AppConfig.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include <curl/curl.h>
-
-#include <wx/fileconf.h>
-
-
-#include <boost/cast.hpp>
-
-
+#include "NotificationManager.hpp"
+#include "Plater.hpp"
+#include "slic3r/Utils/Http.hpp"
 #include <nlohmann/json.hpp>
-#include "MainFrame.hpp"
-#include <boost/dll.hpp>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <thread>
+#include <stdexcept>
 
+namespace Slic3r { namespace GUI {
 
-#include <slic3r/GUI/Widgets/WebView.hpp>
-
-#include "IconManager.hpp"
-
-#define DESIGN_SELECTOR_NOMORE_COLOR wxColour(248, 248, 248)
-#define DESIGN_GRAY900_COLOR wxColour(38, 46, 48)
-#define DESIGN_GRAY800_COLOR wxColour(50, 58, 61)
-#define DESIGN_GRAY600_COLOR wxColour(144, 144, 144)
-#define DESIGN_GRAY400_COLOR wxColour(166, 169, 170)
-using namespace std;
-
-using namespace nlohmann;
-
-namespace Slic3r {
-namespace GUI {
-
-#define NETWORK_OFFLINE_TIMER_ID 10001
-
-BEGIN_EVENT_TABLE(UploadDialog, wxDialog)
-END_EVENT_TABLE()
-
-MyPrinterCheckItem::MyPrinterCheckItem(
-    wxWindow* parent, const std::string& name, const std::string& id, const std::string& model, wxWindowID winid)
-    : wxPanel(parent, winid, wxDefaultPosition, wxSize(400, 80), wxBORDER_SIMPLE), m_id(id), m_name(name)
+UploadDialog::UploadDialog(wxWindow* parent, const std::string& username, const std::string& password,
+                           const std::string& gcode_path, const std::string& filename)
+    : wxDialog(parent, wxID_ANY, _L("Send to cloud"), wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+      m_username(username), m_password(password), m_gcode_path(gcode_path), m_filename(filename), m_timer(this)
 {
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
-    SetMinSize(wxSize(400, -1));
-    nameText = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(name));
-
-    wxBoxSizer* checkbox_sizer = new wxBoxSizer(wxVARIABLE);
-    checkbox_sizer->SetMinSize(wxSize(50, -1));
-    wxBoxSizer* text_sizer = new wxBoxSizer(wxVARIABLE);
-
-    checkbox = new wxCheckBox(this, wxID_ANY, ""); // Do not display text
-    idText   = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(id));
-
-    checkbox_sizer->Add(checkbox, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_CENTER_HORIZONTAL, 5);
-
-    modelText = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(model));
-
-    nameText->SetFont(setFont(16,true));
-    nameText->SetForegroundColour(DESIGN_GRAY600_COLOR);
-    idText->SetFont(setFont(10,false));
-    idText->SetForegroundColour(DESIGN_GRAY600_COLOR);
-    modelText->SetFont(setFont(12,false));
-    modelText->SetForegroundColour(DESIGN_GRAY600_COLOR);
-    text_sizer->Add(nameText);
-    text_sizer->Add(idText);
-    text_sizer->Add(modelText);
-
-    mainSizer->Add(checkbox_sizer, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-    mainSizer->Add(text_sizer, 0, wxBOTTOM, 2);
-
-    SetSizerAndFit(mainSizer);
-    // wxGetApp().UpdateDlgDarkUI(this);
-}
-
-wxFont MyPrinterCheckItem::setFont(int size, bool bold){
-#ifndef __APPLE__
-    size = size * 4 / 5;
-#endif
-
-    wxString face = "HarmonyOS Sans SC";
-
-    // Check if the current locale is Korean
-    if (wxLocale::GetSystemLanguage() == wxLANGUAGE_KOREAN) {
-        face = "NanumGothic";
-    }
-
-    wxFont font{size, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, bold ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL, false, face};
-    font.SetFaceName(face);
-    if (!font.IsOk()) {
-        BOOST_LOG_TRIVIAL(warning) << boost::format("Can't find %1% font") % face;
-        font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-        BOOST_LOG_TRIVIAL(warning) << boost::format("Use system font instead: %1%") % font.GetFaceName();
-        if (bold)
-            font.MakeBold();
-        font.SetPointSize(size);
-    }
-    return font;
-};
-
-UploadDialog::UploadDialog(wxWindow* parent, const std::string& username, const std::string& password)
-    : wxDialog(parent, wxID_ANY, _("Objects List"), wxDefaultPosition, wxSize(600, 800)), u(username), p(password)
-{
-    SetBackgroundColour(*wxWHITE);
-    
-    mainSizer   = new wxBoxSizer(wxVERTICAL);
-
-    // Line 1: Top left button
-    topBarSizer = new wxBoxSizer(wxHORIZONTAL);
-    refreshBtn  = new wxButton(this, wxID_HIGHEST + 1, _("Refresh"));
-    topBarSizer->Add(refreshBtn, 0, wxLEFT | wxTOP | wxBOTTOM, 8);
-    mainSizer->Add(topBarSizer, 0, wxEXPAND | wxLEFT, 5);
-
-    // Create a scrollable area
-    scrollWin = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    scrollWin->SetScrollRate(0, 10);          // Scroll pixels every time
-    scrollWin->SetBackgroundColour(*wxWHITE);            // Adaptable to dark themes
-
-    // Add sizer to scrollWin
-    checkboxSizer = new wxBoxSizer(wxVERTICAL);
-    scrollWin->SetSizer(checkboxSizer);
-    scrollWin->SetMinSize(wxSize(420, 600));
-    // checkbox Area
-    
-    mainSizer->Add(scrollWin, 1, wxEXPAND | wxALL, 10);
-
-    // Bottom confirm/cancel button
-    buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-    okBtn       = new wxButton(this, wxID_OK, _("Print"));
-    onlySendBtn = new wxButton(this, wxID_HIGHEST + 2, _("Only Send"));
-    cancelBtn   = new wxButton(this, wxID_CANCEL, _("Cancel"));
-
-    buttonSizer->AddStretchSpacer();
-    buttonSizer->Add(okBtn, 0, wxALL, 5);
-    buttonSizer->Add(onlySendBtn, 0, wxALL, 5);
-    buttonSizer->Add(cancelBtn, 0, wxALL, 5);
-
-    mainSizer->Add(buttonSizer, 0, wxEXPAND | wxBOTTOM | wxRIGHT, 10);
-
-    SetSizer(mainSizer);
-    Layout();
-    Centre();
-
-    // Bind refresh button event
-    refreshBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { this->getOnlinePrinter(); });
-    onlySendBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_HIGHEST + 2);});
-    // Automatically load during initialization
-    getOnlinePrinter();
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    m_refresh = new wxButton(this, wxID_ANY, _L("Refresh"));
+    sizer->Add(m_refresh, 0, wxALL, FromDIP(10));
+    sizer->Add(new wxStaticText(this, wxID_ANY, _L("Select printers, or send only to the cloud.")), 0, wxALL, FromDIP(10));
+    m_printers = new wxCheckListBox(this, wxID_ANY);
+    sizer->Add(m_printers, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+    auto* buttons = new wxBoxSizer(wxHORIZONTAL);
+    m_send = new wxButton(this, wxID_ANY, _L("Send"));
+    m_cloud_only = new wxButton(this, wxID_ANY, _L("Send only to cloud"));
+    buttons->AddStretchSpacer();
+    buttons->Add(m_send, 0, wxALL, FromDIP(5));
+    buttons->Add(m_cloud_only, 0, wxALL, FromDIP(5));
+    buttons->Add(new wxButton(this, wxID_CANCEL, _L("Cancel")), 0, wxALL, FromDIP(5));
+    sizer->Add(buttons, 0, wxEXPAND | wxALL, FromDIP(5));
+    SetSizer(sizer);
+    SetMinSize(FromDIP(wxSize(540, 400)));
+    SetSize(FromDIP(wxSize(620, 500)));
+    CentreOnParent();
     wxGetApp().UpdateDlgDarkUI(this);
-    // wxGetApp().UpdateDarkUI(refreshBtn);
+    m_refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { get_online_printers(); });
+    m_send->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { send_file(false); });
+    m_cloud_only->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { send_file(true); });
+    Bind(wxEVT_TIMER, &UploadDialog::finish_request, this, m_timer.GetId());
+    CallAfter([this] { get_online_printers(); });
 }
-
 
 UploadDialog::~UploadDialog()
 {
-}
-
-std::vector<std::string> UploadDialog::GetSelectedOptions() const
-{
-    std::vector<std::string> selected_ids;
-    for (size_t i = 0; i < checkboxes.size(); ++i) {
-        if (checkboxes[i]->IsChecked()) {
-            selected_ids.push_back(printers[i].id);
-        }
-    }
-    return selected_ids;
-}
-
-void UploadDialog::onClose(wxCloseEvent& event)
-{
-    Destroy();
-}
-
-
-
-bool UploadDialog::run()
-{
-
-    if (this->ShowModal() == wxID_OK) {
-        return true;
-    } else {
-        return false;
+    m_timer.Stop();
+    if (m_result) {
+        m_result->cancelled = true;
+        notify(m_uploading ? _u8L("Cloud upload cancelled. A file already received by the server may still be processed.")
+                           : _u8L("Loading online printers cancelled."));
     }
 }
 
-void UploadDialog::getOnlinePrinter()
+void UploadDialog::notify(const std::string& message, bool error)
 {
-    CURL* curl = curl_easy_init();
-    if (!curl)
-        return;
-    refreshBtn->Enable(false);
-    curl_mime* mime = curl_mime_init(curl);
+    wxGetApp().plater()->get_notification_manager()->push_notification(
+        NotificationType::CustomNotification,
+        error ? NotificationManager::NotificationLevel::ErrorNotificationLevel
+              : NotificationManager::NotificationLevel::RegularNotificationLevel, message);
+}
 
-    curl_mimepart* part = curl_mime_addpart(mime);
-    curl_mime_name(part, "username");
-    curl_mime_data(part, u.c_str(), CURL_ZERO_TERMINATED);
+void UploadDialog::get_online_printers()
+{
+    m_printers->Clear();
+    m_printer_ids.clear();
+    start_request(false);
+}
 
-    part = curl_mime_addpart(mime);
-    curl_mime_name(part, "password");
-    curl_mime_data(part, p.c_str(), CURL_ZERO_TERMINATED);
+void UploadDialog::send_file(bool cloud_only)
+{
+    std::vector<std::string> selected;
+    if (!cloud_only) {
+        for (size_t i = 0; i < m_printer_ids.size(); ++i)
+            if (m_printers->IsChecked(i)) selected.push_back(m_printer_ids[i]);
+    }
+    start_request(true, std::move(selected));
+}
 
-    std::string response_str;
-    curl_easy_setopt(curl, CURLOPT_URL, url_str.c_str());
-    auto pem = resources_dir() + "/cert/iemai3d.com.pem";
-    curl_easy_setopt(curl, CURLOPT_CAINFO, pem.c_str());
-    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "wxUploader/1.0");
-
-    curl_easy_setopt(
-        curl, CURLOPT_WRITEFUNCTION, +[](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
-            std::string* stream = static_cast<std::string*>(userdata);
-            stream->append(ptr, size * nmemb);
-            return size * nmemb;
-        });
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_str);
-
-    CURLcode res = curl_easy_perform(curl);
-    curl_mime_free(mime);
-    curl_easy_cleanup(curl);
-
-    if (res != CURLE_OK) {
-        wxLogError("network error: %s", curl_easy_strerror(res));
+void UploadDialog::start_request(bool upload, std::vector<std::string> printers)
+{
+    if (m_result) return;
+    if (m_username.empty() || m_password.empty()) {
+        notify(_u8L("Please enter your cloud username and password in Preferences."), true);
         return;
     }
-
-    // Parse JSON and update options
+    const auto server = cloud_server_url(wxGetApp().app_config->get("cloud_server_url"));
+    if (server.empty()) {
+        notify(_u8L("Please enter a valid server URL in Preferences."), true);
+        return;
+    }
+    m_uploading = upload;
+    m_result = std::make_shared<RequestResult>();
+    m_refresh->Disable();
+    m_send->Disable();
+    m_cloud_only->Disable();
+    m_printers->Disable();
+    notify(upload ? _u8L("Sending file to cloud...") : _u8L("Loading online printers..."));
     try {
-        auto json_data = nlohmann::json::parse(response_str);
-        auto printers_json = json_data["online_printer"];
-
-        printers.clear();
-        for (const auto& printer : printers_json) {
-            PrinterItem item;
-            item.id   = printer["printer_id"]; // Assuming the backend field name is printer_id
-            item.name = printer["printer_name"];
-            item.model = printer["printer_model"];
-            printers.push_back(item);
-        }
-
-        // Clear the old ones checkbox
-        for (auto cb : checkboxes) {
-            checkboxSizer->Detach(cb);
-            cb->Destroy();
-        }
-        checkboxes.clear();
-        scrollWin->Freeze();
-        for (const auto& label : printers) {
-            MyPrinterCheckItem* cb = new MyPrinterCheckItem(scrollWin, label.name, label.id, label.model);
-            checkboxes.push_back(cb);
-            checkboxSizer->Add(cb, 0, wxEXPAND | wxALL , 5);
-        }
-
-        checkboxSizer->Layout();
-        scrollWin->FitInside();
-        scrollWin->SetScrollRate(0, 10);
-        scrollWin->Thaw();
-        GetSizer()->Layout();
-        // Fit(); // Automatically adjust the size of the dialog box
-
-    } catch (const std::exception& e) {
-        wxLogError("JSON Analysis failed: %s", e.what());
+        std::thread([result = m_result, username = m_username, password = m_password,
+                     path = m_gcode_path, filename = m_filename, upload, server, printers = std::move(printers)] {
+            try {
+                const std::string base = server + "/api/";
+                auto request = upload ? Http::post(base + "share-file/")
+                                      : Http::get(base + "get-online-printer/?username=" + Http::url_encode(username) +
+                                                  "&password=" + Http::url_encode(password));
+                request.tls_verify(server.rfind("https", 0) == 0).timeout_connect(10).timeout_max(upload ? 600 : 30);
+                if (upload) {
+                    request.form_add("username", username).form_add("password", password).form_add("filename", filename);
+                    for (const auto& printer : printers) request.form_add("printers", printer);
+                    request.form_add_file("file", boost::filesystem::path(path), filename);
+                }
+                request.on_progress([result](Http::Progress, bool& cancel) { cancel = result->cancelled.load(); })
+                    .on_complete([result](std::string body, unsigned status) {
+                        if (status >= 200 && status < 300) result->body = std::move(body);
+                        else result->error = "HTTP " + std::to_string(status);
+                    })
+                    .on_error([result](std::string, std::string, unsigned status) {
+                        // Do not echo transport errors: they can contain the credential-bearing URL.
+                        result->error = status ? "HTTP " + std::to_string(status) : _u8L("Network request failed.");
+                    }).perform_sync();
+            } catch (const std::exception&) {
+                result->error = _u8L("Could not complete the cloud request.");
+            }
+            result->done = true;
+        }).detach();
+        m_timer.Start(100);
+    } catch (const std::exception&) {
+        m_result->error = _u8L("Could not start the cloud request.");
+        m_result->done = true;
+        m_timer.Start(100);
     }
-    refreshBtn->Enable(true);
 }
 
-}}
+void UploadDialog::finish_request(wxTimerEvent&)
+{
+    if (!m_result || !m_result->done.load()) return;
+    m_timer.Stop();
+    auto result = std::move(m_result);
+    m_refresh->Enable();
+    m_send->Enable();
+    m_cloud_only->Enable();
+    m_printers->Enable();
+    const auto failure = m_uploading ? _u8L("Cloud upload failed: ") : _u8L("Could not load online printers: ");
+    if (!result->error.empty()) {
+        notify(failure + result->error, true);
+        return;
+    }
+    try {
+        const auto response = nlohmann::json::parse(result->body);
+        if (!response.at("status").get<bool>()) {
+            notify(failure + response.value("message", std::string("Unknown error")), true);
+            return;
+        }
+        if (m_uploading) {
+            notify(_u8L("File sent successfully."));
+            EndModal(wxID_OK);
+            return;
+        }
+        const auto& printers = response.at("data");
+        if (!printers.is_array()) throw std::runtime_error("Invalid printer list");
+        std::vector<std::string> ids;
+        wxArrayString labels;
+        for (const auto& printer : printers) {
+            auto id = printer.at("printer_id").get<std::string>();
+            const auto name = printer.at("name").get<std::string>();
+            const auto model = printer.at("model").get<std::string>();
+            if (id.empty()) throw std::runtime_error("Empty printer ID");
+            labels.Add(wxString::FromUTF8(name + "  (" + model + ")  " + id));
+            ids.push_back(std::move(id));
+        }
+        m_printer_ids = std::move(ids);
+        m_printers->Append(labels);
+        notify(m_printer_ids.empty() ? _u8L("No online printers. You can still send only to the cloud.")
+                                    : _u8L("Online printers loaded successfully."));
+    } catch (const std::exception&) {
+        notify(failure + _u8L("Invalid response from cloud server."), true);
+    }
+}
 
+}} // namespace Slic3r::GUI

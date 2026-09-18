@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "YM-NT-1000",
+    "model_id": "YM_NT_1000_01",
+    "nozzle_diameter": "0.6",
+    "machine_tech": "FFF",
+    "family": "IEMAI3D",
+    "bed_model": "bed_model_1000.stl",
+    "bed_texture": "bed_texture_1000.png",
+    "hotend_model": "",
+    "default_materials": "IEMAI3D-ABS-1.75;IEMAI3D-CF-PA12-1.75;IEMAI3D-PA12-1.75;IEMAI3D-PC-1.75;IEMAI3D-PETG-1.75;IEMAI3D-PLA-1.75"
+}

@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "UploadDialog.hpp"
 
 #include <wx/panel.h>
 #include <wx/notebook.h>
@@ -1922,6 +1923,22 @@ wxBoxSizer* MainFrame::create_side_tools()
 
     m_print_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
+            if (m_print_select == ePrintPlate || m_print_select == eSendGcode) {
+                m_plater->apply_background_progress();
+                auto* plate = m_plater->get_partplate_list().get_curr_plate();
+                if (!plate || !get_enable_print_status() || !plate->is_valid_gcode_file()) {
+                    m_plater->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                        _u8L("Please slice the current plate before sending it to the cloud."));
+                    return;
+                }
+                auto* config = wxGetApp().app_config;
+                UploadDialog dialog(this, config->get("cloud_username"), config->get("cloud_password"),
+                                    plate->get_gcode_filename(),
+                                    into_u8(m_plater->get_export_gcode_filename(".gcode", true)));
+                dialog.ShowModal();
+                return;
+            }
             //this->m_plater->select_view_3D("Preview");
             if (m_print_select == ePrintAll || m_print_select == ePrintPlate || m_print_select == ePrintMultiMachine)
             {
@@ -2279,8 +2296,6 @@ bool MainFrame::get_enable_print_status()
     {
         if (!current_plate->is_slice_result_valid())
             enable = false;
-        if (!can_send_gcode())
-            enable = false;
         enable = enable && !is_all_plates;
     }
     else if (m_print_select == eUploadGcode)
@@ -2571,23 +2586,23 @@ static wxMenu* generate_help_menu()
     append_menu_item(helpMenu, wxID_ANY, _L("Show Configuration Folder"), _L("Show Configuration Folder"),
         [](wxCommandEvent&) { Slic3r::GUI::desktop_open_datadir_folder(); });
 
-    helpMenu->AppendSeparator();
+    // helpMenu->AppendSeparator();
 
     // Troubleshoot center
-    append_menu_item(helpMenu, wxID_ANY, _L("Troubleshoot Center"), "",
-        [](wxCommandEvent&) { wxGetApp().troubleshoot(); });
+    // append_menu_item(helpMenu, wxID_ANY, _L("Troubleshoot Center"), "",
+    //     [](wxCommandEvent&) { wxGetApp().troubleshoot(); });
 
-    append_menu_item(helpMenu, wxID_ANY, _L("Open Network Test"), _L("Open Network Test"), [](wxCommandEvent&) {
-            NetworkTestDialog dlg(wxGetApp().mainframe);
-            dlg.ShowModal();
-        });
+    // append_menu_item(helpMenu, wxID_ANY, _L("Open Network Test"), _L("Open Network Test"), [](wxCommandEvent&) {
+    //         NetworkTestDialog dlg(wxGetApp().mainframe);
+    //         dlg.ShowModal();
+    //     });
 
-    helpMenu->AppendSeparator();
+    // helpMenu->AppendSeparator();
 
-    append_menu_item(helpMenu, wxID_ANY, _L("Show Tip of the Day"), _L("Show Tip of the Day"), [](wxCommandEvent&) {
-        wxGetApp().plater()->get_dailytips()->open();
-        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-        });
+    // append_menu_item(helpMenu, wxID_ANY, _L("Show Tip of the Day"), _L("Show Tip of the Day"), [](wxCommandEvent&) {
+    //     wxGetApp().plater()->get_dailytips()->open();
+    //     wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+    //     });
 
     // Report a bug
     //append_menu_item(helpMenu, wxID_ANY, _L("Report Bug(TODO)"), _L("Report a bug of OrcaSlicer"),
@@ -2595,12 +2610,12 @@ static wxMenu* generate_help_menu()
     //        //TODO
     //    });
     // Check New Version
-    append_menu_item(helpMenu, wxID_ANY, _L("Check for Updates"), _L("Check for Updates"),
-        [](wxCommandEvent&) {
-            wxGetApp().check_new_version_sf(true, 1);
-        }, "", nullptr, []() {
-            return true;
-        });
+    // append_menu_item(helpMenu, wxID_ANY, _L("Check for Updates"), _L("Check for Updates"),
+    //     [](wxCommandEvent&) {
+    //         wxGetApp().check_new_version_sf(true, 1);
+    //     }, "", nullptr, []() {
+    //         return true;
+    //     });
 
     // About
 #ifndef __APPLE__
@@ -4043,7 +4058,7 @@ void MainFrame::set_print_button_to_default(PrintSelectType select_type)
         m_print_btn->SetLabel(_L("Print"));
         m_print_select = eSendGcode;
         if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
+            m_print_enable = get_enable_print_status();
         m_print_btn->Enable(m_print_enable);
         this->Layout();
     } else if (select_type == PrintSelectType::eExportGcode) {

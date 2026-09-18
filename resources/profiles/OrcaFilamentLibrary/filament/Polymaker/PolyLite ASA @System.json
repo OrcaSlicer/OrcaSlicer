@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "PolyLite ASA @System",
-	"inherits": "PolyLite ASA @base",
-	"from": "system",
-	"setting_id": "BtLQdaeWwqydljxS",
-	"instantiation": "true",
-	"compatible_printers": []
-}

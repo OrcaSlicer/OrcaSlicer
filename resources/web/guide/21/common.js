@@ -45,14 +45,15 @@ function HandleModelList( pVal )
 		return;
 
 	pModel=pVal['model'];
-
 	// ORCA ensure list correctly ordered
 	pModel = pModel.sort((a, b)=>(a["vendor"].localeCompare(b["vendor"])))
 	pModel = [ // move custom printers to top
-		...pModel.filter(i=>i.vendor === "Custom"),
-		...pModel.filter(i=>i.vendor !== "Custom")
+		...pModel.filter(i=>i.vendor === "IEMAI3D"),
+		...pModel.filter(i=>i.vendor === "Custom" && i.vendor !== "IEMAI3D"),
+		...pModel.filter(i=>i.vendor !== "Custom" && i.vendor !== "IEMAI3D"),
 	];
-	
+	// pModel.reverse();
+
 	let nTotal=pModel.length;
 	let ModelHtml={};
 	for(let n=0;n<nTotal;n++)

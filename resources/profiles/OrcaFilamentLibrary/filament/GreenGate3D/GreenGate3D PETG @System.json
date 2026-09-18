@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "GreenGate3D PETG @System",
-	"inherits": "GreenGate3D PETG @base",
-	"from": "system",
-	"setting_id": "I7HaLYHVMkN4Jo1V",
-	"instantiation": "true",
-	"compatible_printers": []
-}

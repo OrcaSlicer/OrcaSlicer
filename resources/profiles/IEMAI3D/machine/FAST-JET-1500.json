@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "FAST-JET-1500",
+    "model_id": "FAST_JET_1500_01",
+    "nozzle_diameter": "4.0",
+    "machine_tech": "FFF",
+    "family": "IEMAI3D",
+    "bed_model": "bed_model_1500.stl",
+    "bed_texture": "bed_texture_1500.png",
+    "hotend_model": "",
+    "default_materials": "IEMAI3D-PA12-CF-Pellet"
+}

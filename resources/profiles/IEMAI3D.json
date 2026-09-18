@@ -1,0 +1,235 @@
+{
+    "name": "IEMAI3D",
+    "url": "",
+    "version": "02.02.00.00",
+    "force_update": "0",
+    "description": "IEMAI3D configurations",
+    "machine_model_list": [
+        {
+            "name": "YM-NT-750",
+            "sub_path": "machine/YM-NT-750.json"
+        },
+        {
+            "name": "YM-NT-1000",
+            "sub_path": "machine/YM-NT-1000.json"
+        },
+        {
+            "name": "YM-NT-1200",
+            "sub_path": "machine/YM-NT-1200.json"
+        },
+        {
+            "name": "MAGIC-HT-MAX",
+            "sub_path": "machine/MAGIC-HT-MAX.json"
+        },
+        {
+            "name": "FAST-JET-1500",
+            "sub_path": "machine/FAST-JET-1500.json"
+        },
+        {
+            "name": "Medical-450",
+            "sub_path": "machine/Medical-450.json"
+        },
+        {
+            "name": "MAGIC-HT-PRO",
+            "sub_path": "machine/MAGIC-HT-PRO.json"
+        },
+        {
+            "name": "MAGIC-HT-M",
+            "sub_path": "machine/MAGIC-HT-M.json"
+        },
+        {
+            "name": "MAGIC-HT-L",
+            "sub_path": "machine/MAGIC-HT-L.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_iemai_common",
+            "sub_path": "process/fdm_process_iemai_common.json"
+        },
+        {
+            "name": "0.24mm Dual For NT@IEMAI3D",
+            "sub_path": "process/0.24mm Dual For NT@IEMAI3D.json"
+        },
+        {
+            "name": "0.24mm Single For NT@IEMAI3D",
+            "sub_path": "process/0.24mm Single For NT@IEMAI3D.json"
+        },
+        {
+            "name": "0.24mm Dual For HT@IEMAI3D",
+            "sub_path": "process/0.24mm Dual For HT@IEMAI3D.json"
+        },
+        {
+            "name": "0.24mm Single For HT@IEMAI3D",
+            "sub_path": "process/0.24mm Single For HT@IEMAI3D.json"
+        },
+        {
+            "name": "Pellet-2.5 @IEMAI3D",
+            "sub_path": "process/Pellet-2.5 @IEMAI3D.json"
+        },
+        {
+            "name": "Medical-450-15 @IEMAI3D",
+            "sub_path": "process/Medical-450-15 @IEMAI3D.json"
+        },
+        {
+            "name": "Medical-450-25 @IEMAI3D",
+            "sub_path": "process/Medical-450-25 @IEMAI3D.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "IEMAI3D-ABS-1.75",
+            "sub_path": "filament/IEMAI3D-ABS-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-CF-PA12-1.75",
+            "sub_path": "filament/IEMAI3D-CF-PA12-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PA12-1.75",
+            "sub_path": "filament/IEMAI3D-PA12-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PC-1.75",
+            "sub_path": "filament/IEMAI3D-PC-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PETG-1.75",
+            "sub_path": "filament/IEMAI3D-PETG-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PLA-1.75",
+            "sub_path": "filament/IEMAI3D-PLA-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-CF-PEEK-1.75",
+            "sub_path": "filament/IEMAI3D-CF-PEEK-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-GF-PEEK-1.75",
+            "sub_path": "filament/IEMAI3D-GF-PEEK-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PEEK-1.75",
+            "sub_path": "filament/IEMAI3D-PEEK-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PEI-1010-1.75",
+            "sub_path": "filament/IEMAI3D-PEI-1010-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PEI-9085-1.75",
+            "sub_path": "filament/IEMAI3D-PEI-9085-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PEKK-1.75",
+            "sub_path": "filament/IEMAI3D-PEKK-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PPS-1.75",
+            "sub_path": "filament/IEMAI3D-PPS-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PPSU-1.75",
+            "sub_path": "filament/IEMAI3D-PPSU-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PVA-1.75",
+            "sub_path": "filament/IEMAI3D-PVA-1.75.json"
+        },
+        {
+            "name": "IEMAI3D-PA12-CF-Pellet",
+            "sub_path": "filament/IEMAI3D-PA12-CF-Pellet.json"
+        },
+        {
+            "name": "Medical-PLA-2.65-175",
+            "sub_path": "filament/Medical-PLA-2.65-175.json"
+        },
+        {
+            "name": "Medical-PLA-2.65-210",
+            "sub_path": "filament/Medical-PLA-2.65-210.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "YM-NT-750 0.6 Nozzle - Dual",
+            "sub_path": "machine/YM-NT-750 0.6 Nozzle - Dual.json"
+        },
+        {
+            "name": "YM-NT-1000 0.6 Nozzle - Dual",
+            "sub_path": "machine/YM-NT-1000 0.6 Nozzle - Dual.json"
+        },
+        {
+            "name": "YM-NT-1200 0.6 Nozzle - Dual",
+            "sub_path": "machine/YM-NT-1200 0.6 Nozzle - Dual.json"
+        },
+        {
+            "name": "MAGIC-HT-MAX 0.4 nozzle - Dual",
+            "sub_path": "machine/MAGIC-HT-MAX 0.4 nozzle - Dual.json"
+        },
+        {
+            "name": "FAST-JET-1500 4.0 Nozzle",
+            "sub_path": "machine/FAST-JET-1500 4.0 Nozzle.json"
+        },
+        {
+            "name": "Medical-450 2.0 Nozzle",
+            "sub_path": "machine/Medical-450 2.0 Nozzle.json"
+        },
+        {
+            "name": "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+            "sub_path": "machine/MAGIC-HT-PRO 0.4 Nozzle - Dual.json"
+        },
+        {
+            "name": "MAGIC-HT-M 0.4 Nozzle",
+            "sub_path": "machine/MAGIC-HT-M 0.4 Nozzle.json"
+        },
+        {
+            "name": "MAGIC-HT-L 0.4 Nozzle - Dual",
+            "sub_path": "machine/MAGIC-HT-L 0.4 Nozzle - Dual.json"
+        }
+    ]
+}

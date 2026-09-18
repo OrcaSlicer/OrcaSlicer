@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "NIT PLA @System",
-	"inherits": "NIT PLA @base",
-	"from": "system",
-	"setting_id": "Bb0fr6cpCxR5lOpU",
-	"instantiation": "true",
-	"compatible_printers": []
-}

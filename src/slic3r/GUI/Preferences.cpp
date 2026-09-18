@@ -1,4 +1,8 @@
 #include "Preferences.hpp"
+#include "CloudServer.hpp"
+#include "slic3r/Utils/Http.hpp"
+#include <nlohmann/json.hpp>
+#include "NotificationManager.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -251,6 +255,214 @@ wxBoxSizer *PreferencesDialog::create_item_title(wxString title)
     m_sizer_title->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN - 10));
 
     return m_sizer_title;
+}
+
+void PreferencesDialog::create_online_settings(wxFlexGridSizer* sizer)
+{
+    // Reuse the fixed label column used by the other preference pages.
+    auto* server_row = create_item_label(_L("Server URL"), _L("Cloud server address"));
+    auto* protocol = new ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                  FromDIP(wxSize(80, -1)), 0, nullptr, wxCB_READONLY);
+    protocol->Append("HTTPS");
+    protocol->Append("HTTP");
+    protocol->SetCornerRadius(0);
+    protocol->SetToolTip(_L("Protocol"));
+    const wxString saved_url = wxString::FromUTF8(app_config->get("cloud_server_url"));
+    const bool use_http = saved_url.StartsWith("http://");
+    protocol->SetSelection(use_http ? 1 : 0);
+    wxString saved_host = saved_url;
+    if (saved_host.Contains("://")) saved_host = saved_host.Mid(saved_host.Find("://") + 3);
+    auto* address = new TextInput(m_parent, saved_host, wxEmptyString, wxEmptyString,
+                                  wxDefaultPosition, FromDIP(wxSize(140, -1)), wxTE_PROCESS_ENTER);
+    address->GetTextCtrl()->SetHint(_L("Server address"));
+    address->SetToolTip(_L("Hostname or IP address, optionally followed by a port."));
+    auto* test = new Button(m_parent, wxEmptyString, "refresh", 0, 16);
+    test->SetCornerRadius(0);
+    test->SetMinSize(FromDIP(wxSize(30, 26)));
+    test->SetToolTip(_L("Test server connection"));
+    test->SetName(_L("Test server connection"));
+    server_row->Add(protocol, 0, wxEXPAND);
+    server_row->Add(address, 1, wxEXPAND);
+    server_row->Add(test, 0, wxEXPAND);
+    server_row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer->Add(server_row, 1, wxEXPAND);
+
+    auto make_account_input = [this, sizer](const wxString& title, const std::string& key, long style) {
+        auto* row = create_item_label(title, title);
+        auto* input = new TextInput(m_parent, wxString::FromUTF8(app_config->get(key)), wxEmptyString, wxEmptyString,
+                                    wxDefaultPosition, FromDIP(wxSize(250, -1)), style | wxTE_PROCESS_ENTER);
+        row->Add(input, 1, wxALIGN_CENTER_VERTICAL);
+        row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+        sizer->Add(row, 1, wxEXPAND);
+        auto save = [this, input, key] {
+            app_config->set(key, into_u8(input->GetTextCtrl()->GetValue()));
+            app_config->save();
+        };
+        input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save](wxCommandEvent& event) { save(); event.Skip(); });
+        input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save](wxFocusEvent& event) { save(); event.Skip(); });
+        return input;
+    };
+    auto* username = make_account_input(_L("Username"), "cloud_username", 0);
+    auto* password = make_account_input(_L("Password"), "cloud_password", wxTE_PASSWORD);
+
+    auto notify = [](const std::string& message, bool error) {
+        wxGetApp().plater()->get_notification_manager()->push_notification(
+            NotificationType::CustomNotification,
+            error ? NotificationManager::NotificationLevel::ErrorNotificationLevel
+                  : NotificationManager::NotificationLevel::RegularNotificationLevel, message);
+    };
+    auto save_server = [this, protocol, address, notify]() -> std::string {
+        wxString host = address->GetTextCtrl()->GetValue();
+        host.Trim(true).Trim(false);
+        // Accept a pasted full URL as well as a hostname, and update the selector.
+        const bool full_url = host.Contains("://");
+        const auto server = cloud_server_url(into_u8(full_url ? host :
+            (protocol->GetSelection() == 1 ? "http://" : "https://") + host));
+        if (server.empty()) {
+            notify(_u8L("Invalid server URL. Enter a hostname or IP address with an optional port."), true);
+            return {};
+        }
+        const wxString url = wxString::FromUTF8(server);
+        protocol->SetSelection(url.StartsWith("http://") ? 1 : 0);
+        address->GetTextCtrl()->ChangeValue(url.Mid(url.Find("://") + 3));
+        if (app_config->get("cloud_server_url") != server) {
+            app_config->set("cloud_server_url", server);
+            app_config->save();
+            wxGetApp().mainframe->load_printer_url(url, wxEmptyString);
+        }
+        return server;
+    };
+    protocol->Bind(wxEVT_COMBOBOX, [save_server](wxCommandEvent& event) { save_server(); event.Skip(); });
+    address->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save_server](wxCommandEvent& event) { save_server(); event.Skip(); });
+    address->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save_server](wxFocusEvent& event) { save_server(); event.Skip(); });
+    test->Bind(wxEVT_BUTTON, [this, test, username, password, protocol, save_server, notify](wxCommandEvent&) {
+        const auto server = save_server();
+        if (server.empty()) return;
+        const auto user = into_u8(username->GetTextCtrl()->GetValue());
+        const auto pass = into_u8(password->GetTextCtrl()->GetValue());
+        // if (user.empty() || pass.empty()) {
+        //     notify(_u8L("Please enter your cloud username and password before testing."), true);
+        //     return;
+        // }
+        test->Disable();
+        notify(_u8L("Testing server connection: ") + server, false);
+        // HTTP callbacks only enqueue GUI work. The shared flag also protects an
+        // already queued callback if Preferences is destroyed before delivery.
+        auto cancelled = m_cloud_test_cancelled;
+        auto finish = [cancelled, test, notify, server](std::string message, bool error) {
+            if (cancelled->load()) return;
+            wxGetApp().CallAfter([cancelled, test, notify, server, message = std::move(message), error] {
+                if (cancelled->load()) return;
+                test->Enable();
+                notify(server + ": " + message, error);
+            });
+        };
+        // try {
+        //     Http::get(server + "/api/get-online-printer/?username=" + Http::url_encode(user) +
+        //               "&password=" + Http::url_encode(pass))
+        //         .tls_verify(true).timeout_connect(10).timeout_max(30)
+        //         .on_progress([cancelled](Http::Progress, bool& cancel) { cancel = cancelled->load(); })
+        //         .on_complete([finish](std::string body, unsigned status) {
+        //             if (status < 200 || status >= 300) { finish("HTTP " + std::to_string(status), true); return; }
+        //             try {
+        //                 const auto response = nlohmann::json::parse(body);
+        //                 if (!response.at("status").get<bool>()) {
+        //                     finish(response.value("message", _u8L("Server authentication failed.")), true);
+        //                 } else if (!response.at("data").is_array()) {
+        //                     finish(_u8L("Invalid response from cloud server."), true);
+        //                 } else {
+        //                     finish(_u8L("Server connection and account verified."), false);
+        //                 }
+        //             } catch (const std::exception&) {
+        //                 finish(_u8L("Invalid response from cloud server."), true);
+        //             }
+        //         })
+        //         .on_error([finish](std::string, std::string, unsigned status) {
+        //             // Transport errors may contain the URL and its credentials.
+        //             finish(status ? "HTTP " + std::to_string(status) : _u8L("Network request failed."), true);
+        //         }).perform();
+        // } catch (const std::exception&) {
+        //     test->Enable();
+        //     notify(_u8L("Could not start the server connection test."), true);
+        // }
+        try {
+            Http::get(server + "/")
+                .tls_verify(protocol->GetSelection() == 0).timeout_connect(10).timeout_max(30)
+                .on_progress([cancelled](Http::Progress, bool& cancel) { cancel = cancelled->load(); })
+                .on_complete([finish](std::string /*body*/, unsigned status) {
+                    // 能收到任何 HTTP 响应，就说明地址可达（包括 401/404/500 等）
+                    finish(_u8L("Server address is reachable (HTTP ") +
+                            std::to_string(status) + ").", false);
+                })
+                .on_error([finish](std::string, std::string, unsigned status) {
+                    // 传输层失败，才会走到这里
+                    finish(status ? "HTTP " + std::to_string(status)
+                                : _u8L("Network request failed."), true);
+                }).perform();
+        } catch (const std::exception&) {
+            test->Enable();
+            notify(_u8L("Could not start the server connection test."), true);
+        }
+    });
+}
+
+wxBoxSizer* PreferencesDialog::create_item_input(wxString                      title,
+                                                 wxString                      title2,
+                                                 wxWindow*                     parent,
+                                                 wxString                      tooltip,
+                                                 std::string                   param,
+                                                 std::function<void(wxString)> onchange,
+                                                 bool                          is_number,
+                                                 long                          style
+    )
+{
+    wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
+    auto        input_title = new wxStaticText(parent, wxID_ANY, title);
+    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetFont(::Label::Body_13);
+    input_title->SetToolTip(tooltip);
+    input_title->Wrap(-1);
+
+    auto       input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, style);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(param == "cloud_username" || param == "cloud_password" || param == "cloud_server_url"
+                                       ? wxString::FromUTF8(app_config->get(param)) : wxString(app_config->get(param)));
+    if (is_number) {
+        wxTextValidator validator(wxFILTER_DIGITS);
+        input->GetTextCtrl()->SetValidator(validator);
+    }
+    auto second_title = new wxStaticText(parent, wxID_ANY, title2, wxDefaultPosition, DESIGN_TITLE_SIZE, 0);
+    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    second_title->SetFont(::Label::Body_13);
+    second_title->SetToolTip(tooltip);
+    second_title->Wrap(-1);
+
+    sizer_input->Add(0, 0, 0, wxEXPAND | wxLEFT, 23);
+    sizer_input->Add(input_title, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+    sizer_input->Add(input, 0, wxALIGN_CENTER_VERTICAL, 0);
+    sizer_input->Add(0, 0, 0, wxEXPAND | wxLEFT, 3);
+    sizer_input->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this, param, input, onchange](wxCommandEvent& e) {
+        auto value = input->GetTextCtrl()->GetValue();
+        app_config->set(param, param == "cloud_username" || param == "cloud_password" || param == "cloud_server_url"
+                                   ? into_u8(value) : std::string(value.mb_str()));
+        app_config->save();
+        onchange(value);
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [this, param, input, onchange](wxFocusEvent& e) {
+        auto value = input->GetTextCtrl()->GetValue();
+        app_config->set(param, param == "cloud_username" || param == "cloud_password" || param == "cloud_server_url"
+                                   ? into_u8(value) : std::string(value.mb_str()));
+        onchange(value);
+        e.Skip();
+    });
+
+    return sizer_input;
 }
 
 wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString tooltip, wxString wiki_url)
@@ -1448,6 +1660,7 @@ void PreferencesDialog::create()
 
 PreferencesDialog::~PreferencesDialog()
 {
+    *m_cloud_test_cancelled = true;
 }
 
 void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
@@ -1837,69 +2050,69 @@ void PreferencesDialog::create_items()
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
-
+    create_online_settings(g_sizer);
     //// ONLINE > Connection
-    g_sizer->Add(create_item_title(_L("Connection")), 1, wxEXPAND);
-
-    auto item_region           = create_item_region_combobox(_L("Login region"), "");
-    g_sizer->Add(item_region);
- 
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
-    g_sizer->Add(item_stealth_mode);
-
-    auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");
-    g_sizer->Add(item_hide_login_side_panel);
-
-    auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
-        NetworkTestDialog dlg(wxGetApp().mainframe);
-        dlg.ShowModal();
-    });
-    g_sizer->Add(item_network_test);
-
-    //// ONLINE > Cloud Providers
-    g_sizer->Add(create_item_title(_L("Cloud Providers")), 1, wxEXPAND);
-
-    auto item_bambu_cloud     = create_item_bambu_cloud(_L("Enable Bambu Cloud"), _L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
-    g_sizer->Add(item_bambu_cloud);
-
-    //// ONLINE > Update & sync
-    g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
-
-    auto item_stable_updates   = create_item_checkbox(_L("Check for stable updates only"), "", "check_stable_update_only");
-    g_sizer->Add(item_stable_updates);
-
-    auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
-    g_sizer->Add(item_user_sync);
-
-    if (app_config->get_stealth_mode()) {
-        if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(false);
-        if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
-    }
-
-    auto item_filament_sync_mode = create_item_combobox(
-        _L("Filament sync mode"),
-        _L("Choose whether sync updates both filament preset and color, or only color."),
-        "sync_ams_filament_mode",
-        {_L("Filament & Color"), _L("Color only")});
-    g_sizer->Add(item_filament_sync_mode);
-
-    auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
-    g_sizer->Add(item_system_sync);
-
-    auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
-                                                      _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),
-                                                      SETTING_USE_ENCRYPTED_TOKEN_FILE);
-    g_sizer->Add(item_token_storage);
-
-    //// ONLINE > Network plugin
-    g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
-
-    auto item_enable_plugin    = create_item_checkbox(_L("Enable network plug-in"), "", "installed_networking");
-    g_sizer->Add(item_enable_plugin);
-
-    auto item_plugin_version = create_item_network_plugin_version(_L("Network plug-in version"), _L("Select the network plug-in version to use"));
-    g_sizer->Add(item_plugin_version);
-
+    //g_sizer->Add(create_item_title(_L("Connection")), 1, wxEXPAND);
+//
+    //auto item_region           = create_item_region_combobox(_L("Login region"), "");
+    //g_sizer->Add(item_region);
+ //
+    //auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
+    //g_sizer->Add(item_stealth_mode);
+//
+    //auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");
+    //g_sizer->Add(item_hide_login_side_panel);
+//
+    //auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
+    //    NetworkTestDialog dlg(wxGetApp().mainframe);
+    //    dlg.ShowModal();
+    //});
+    //g_sizer->Add(item_network_test);
+//
+    ////// ONLINE > Cloud Providers
+    //g_sizer->Add(create_item_title(_L("Cloud Providers")), 1, wxEXPAND);
+//
+    //auto item_bambu_cloud     = create_item_bambu_cloud(_L("Enable Bambu Cloud"), _L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
+    //g_sizer->Add(item_bambu_cloud);
+//
+    ////// ONLINE > Update & sync
+    //g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
+//
+    //auto item_stable_updates   = create_item_checkbox(_L("Check for stable updates only"), "", "check_stable_update_only");
+    //g_sizer->Add(item_stable_updates);
+//
+    //auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
+    //g_sizer->Add(item_user_sync);
+//
+    //if (app_config->get_stealth_mode()) {
+    //    if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(false);
+    //    if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
+    //}
+//
+    //auto item_filament_sync_mode = create_item_combobox(
+    //    _L("Filament sync mode"),
+    //    _L("Choose whether sync updates both filament preset and color, or only color."),
+    //    "sync_ams_filament_mode",
+    //    {_L("Filament & Color"), _L("Color only")});
+    //g_sizer->Add(item_filament_sync_mode);
+//
+    //auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
+    //g_sizer->Add(item_system_sync);
+//
+    //auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
+    //                                                  _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),
+    //                                                  SETTING_USE_ENCRYPTED_TOKEN_FILE);
+    //g_sizer->Add(item_token_storage);
+//
+    ////// ONLINE > Network plugin
+    //g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
+//
+    //auto item_enable_plugin    = create_item_checkbox(_L("Enable network plug-in"), "", "installed_networking");
+    //g_sizer->Add(item_enable_plugin);
+//
+    //auto item_plugin_version = create_item_network_plugin_version(_L("Network plug-in version"), _L("Select the network plug-in version to use"));
+    //g_sizer->Add(item_plugin_version);
+//
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 

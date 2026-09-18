@@ -1,0 +1,111 @@
+{
+    "type": "filament",
+    "filament_id": "YMF020",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PLA-M",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pla",
+    "filament_type": [
+        "General"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "13"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": [
+        "YM-NT-750 0.6 Nozzle - Dual",
+        "YM-NT-1000 0.6 Nozzle - Dual",
+        "YM-NT-1200 0.6 Nozzle - Dual"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "20"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_cooling_moves": [
+        "0"
+    ],
+    "filament_cost": [
+        "80"
+    ],
+    "filament_density": [
+        "1.28"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\nM104 S[first_layer_temperature] "
+    ],
+    "filament_loading_speed_start": [
+        "5"
+    ],
+    "filament_multitool_ramming": [
+        "1"
+    ],
+    "filament_retract_when_changing_layer": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retraction_speed": [
+        "30"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\nM104 S[first_layer_temperature] \n"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_z_hop": [
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Normal Lift"
+    ],
+    "full_fan_speed_layer": [
+        "5"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "200"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "200"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "support_material_interface_fan_speed": [
+        "0"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "version": "2.2.0.0"
+}

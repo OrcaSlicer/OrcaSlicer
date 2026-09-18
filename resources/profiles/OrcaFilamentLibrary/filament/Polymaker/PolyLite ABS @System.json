@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "PolyLite ABS @System",
-	"inherits": "PolyLite ABS @base",
-	"from": "system",
-	"setting_id": "X4JvhjTs6f0bFYlF",
-	"instantiation": "true",
-	"compatible_printers": []
-}

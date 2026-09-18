@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Overture PLA @System",
-	"inherits": "Overture PLA @base",
-	"from": "system",
-	"setting_id": "uSRi3J4c47reOsqv",
-	"instantiation": "true",
-	"compatible_printers": []
-}

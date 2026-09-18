@@ -46,6 +46,7 @@ public:
     void OnLoaded(wxWebViewEvent& evt);
     void OnNewWindow(wxWebViewEvent& evt);
     void OnScriptMessage(wxWebViewEvent& evt);
+    void SetupLoginScript(const wxString& username, const wxString& password, const wxString& url);
     void reload();
     void update_mode();
 
@@ -60,6 +61,7 @@ private:
     long m_zoomFactor;
     wxString m_apikey;
     bool m_apikey_sent;
+    bool m_cloud_login_script_installed = false;
     wxString m_url_deferred;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
 

@@ -675,6 +675,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+
+        GUI/UploadDialog.cpp
+        GUI/UploadDialog.hpp
+        GUI/CloudServer.hpp
 )
 
 add_subdirectory(GUI/DeviceCore)

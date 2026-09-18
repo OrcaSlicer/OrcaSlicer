@@ -1,0 +1,62 @@
+{
+    "type": "filament",
+    "filament_id": "YMF015",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PPSU-1.75",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "filament_type": [
+        "Performance"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "365"
+    ],
+    "nozzle_temperature": [
+        "365"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "MAGIC-HT-MAX 0.4 nozzle - Dual",
+        "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+        "MAGIC-HT-L 0.4 Nozzle - Dual",
+        "MAGIC-HT-M 0.4 Nozzle"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "chamber_temperature": [
+        "120"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "1.21"
+    ],
+    "hot_plate_temp": [
+        "150"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "150"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature_range_high": [
+        "400"
+    ],
+    "nozzle_temperature_range_low": [
+        "330"
+    ],
+    "temperature_vitrification": [
+        "212"
+    ],
+    "idle_temperature": [
+        "300"
+    ],
+    "version": "2.2.0.0"
+}

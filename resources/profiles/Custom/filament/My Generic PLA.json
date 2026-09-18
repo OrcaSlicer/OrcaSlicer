@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "filament_id": "GFL99",
+    "setting_id": "GFSA04",
+    "name": "My Generic PLA",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pla",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": [
+        "MyKlipper 0.4 nozzle",
+        "MyKlipper 0.2 nozzle",
+        "MyKlipper 0.6 nozzle",
+        "MyKlipper 0.8 nozzle",
+        "MyMarlin 0.4 nozzle",
+        "MyRRF 0.4 nozzle"
+    ]
+}

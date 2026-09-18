@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "filament_id": "GFU99",
+    "setting_id": "GFSA04",
+    "name": "My Generic TPU",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_tpu",
+    "filament_max_volumetric_speed": [
+        "3.2"
+    ],
+    "compatible_printers": [
+        "MyKlipper 0.4 nozzle",
+        "MyKlipper 0.2 nozzle",
+        "MyKlipper 0.6 nozzle",
+        "MyKlipper 0.8 nozzle",
+        "MyMarlin 0.4 nozzle",
+        "MyRRF 0.4 nozzle"
+    ]
+}

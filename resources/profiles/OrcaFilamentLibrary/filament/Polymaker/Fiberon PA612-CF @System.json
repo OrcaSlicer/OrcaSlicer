@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Fiberon PA612-CF @System",
-	"inherits": "Fiberon PA612-CF @base",
-	"from": "system",
-	"setting_id": "hllt8pc9lbhAqHOb",
-	"instantiation": "true",
-	"compatible_printers": []
-}

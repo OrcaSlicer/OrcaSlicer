@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "NIT ABS @System",
-	"inherits": "NIT ABS @base",
-	"from": "system",
-	"setting_id": "mmt7wKFsMPBRZSeX",
-	"instantiation": "true",
-	"compatible_printers": []
-}

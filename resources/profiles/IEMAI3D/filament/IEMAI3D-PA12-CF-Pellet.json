@@ -1,0 +1,50 @@
+{
+    "type": "filament",
+    "filament_id": "YMF031",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-PA12-CF-Pellet",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "filament_type": [
+        "Composite"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "filament_max_volumetric_speed": [
+        "600"
+    ],
+    "compatible_printers": [
+        "FAST-JET-1500 4.0 Nozzle"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1000"
+    ],
+    "enable_overhang_bridge_fan": [
+        "0"
+    ],
+    "filament_diameter": [
+        "2.85"
+    ],
+    "hot_plate_temp": [
+        "0"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "0"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "slow_down_for_layer_cooling": [
+        "0"
+    ],
+    "version": "2.2.0.0"
+}

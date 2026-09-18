@@ -10,6 +10,8 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <atomic>
+#include <memory>
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
@@ -32,6 +34,8 @@ class PreferencesDialog : public DPIDialog
 {
 private:
     AppConfig *app_config;
+    std::shared_ptr<std::atomic<bool>> m_cloud_test_cancelled = std::make_shared<std::atomic<bool>>(false);
+    void create_online_settings(wxFlexGridSizer* sizer);
 
 protected:
     wxBoxSizer *  m_sizer_body;
@@ -100,6 +104,15 @@ public:
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);
     wxBoxSizer *create_item_network_plugin_version(wxString title, wxString tooltip);
+    wxBoxSizer* create_item_input(wxString                      title,
+                              wxString                      title2,
+                              wxWindow*                     parent,
+                              wxString                      tooltip,
+                              std::string                   param,
+                              std::function<void(wxString)> onchange = {},
+                              bool                          is_number = true,
+                              long style = wxTE_PROCESS_ENTER  // wxTE_MULTILINE | wxTE_PROCESS_ENTER
+    );
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);
 #endif // WIN32

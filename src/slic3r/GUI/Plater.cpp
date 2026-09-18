@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "CloudServer.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
@@ -2479,16 +2480,18 @@ void Sidebar::update_all_preset_comboboxes()
         // print dropdown) instead of "Export G-code file".
         auto print_btn_type = cfg.opt_bool("use_3mf") ? MainFrame::PrintSelectType::eExportSlicedFile
                                                       : MainFrame::PrintSelectType::eExportGcode;
-        wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
+        // wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
+        wxString url = wxString::FromUTF8(cloud_server_url(wxGetApp().app_config->get("cloud_server_url")));
+        if (url.empty()) url = "about:blank";
         wxString apikey;
-        if(url.empty())
-            url = wxString::Format("file://%s/web/orca/missing_connection.html", from_u8(resources_dir()));
-        else {
-            const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
-            if (cfg.has("printhost_apikey") && (host_type != htSimplyPrint))
-                apikey = cfg.opt_string("printhost_apikey");
-            print_btn_type = preset_bundle.is_bbl_vendor() ? MainFrame::PrintSelectType::ePrintPlate : MainFrame::PrintSelectType::eSendGcode;
-        }
+        // if(url.empty())
+        //     url = wxString::Format("file://%s/web/orca/missing_connection.html", from_u8(resources_dir()));
+        // else {
+        //     const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
+        //     if (cfg.has("printhost_apikey") && (host_type != htSimplyPrint))
+        //         apikey = cfg.opt_string("printhost_apikey");
+        //     print_btn_type = preset_bundle.is_bbl_vendor() ? MainFrame::PrintSelectType::ePrintPlate : MainFrame::PrintSelectType::eSendGcode;
+        // }
 
         p_mainframe->load_printer_url(url, apikey);
 
@@ -10825,7 +10828,7 @@ void Plater::priv::set_project_name(const wxString& project_name)
     if (!m_project_name.IsEmpty())
         wxGetApp().mainframe->update_title_colour_after_set_title();
 #else
-    wxGetApp().mainframe->SetTitle(m_project_name + " - OrcaSlicer");
+    wxGetApp().mainframe->SetTitle(m_project_name + " - IEMAI 3D Slicer");
     wxGetApp().mainframe->topbar()->SetTitle(m_project_name);
 #endif
 }
@@ -10845,7 +10848,7 @@ void Plater::priv::update_title_dirty_status()
     wxGetApp().mainframe->SetTitle(title);
     wxGetApp().mainframe->update_title_colour_after_set_title();
 #else
-    wxGetApp().mainframe->SetTitle(title + " - OrcaSlicer");
+    wxGetApp().mainframe->SetTitle(title + " - IEMAI 3D Slicer");
     wxGetApp().mainframe->topbar()->SetTitle(title);
 #endif    
 }

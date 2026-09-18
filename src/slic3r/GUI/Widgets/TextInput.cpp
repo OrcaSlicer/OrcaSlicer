@@ -56,7 +56,9 @@ void TextInput::Create(wxWindow *     parent,
     StaticBox::Create(parent, wxID_ANY, pos, size, style);
     wxWindow::SetLabel(label);
     assert((style & wxRIGHT) == 0);
-    style &= ~wxALIGN_MASK;
+    // wxTE_PASSWORD shares its bit with wxALIGN_CENTER_VERTICAL. Preserve it
+    // when removing the wrapper's alignment flags from the text control style.
+    style &= ~(wxALIGN_MASK & ~wxTE_PASSWORD);
     state_handler.attach({&label_color, & text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);

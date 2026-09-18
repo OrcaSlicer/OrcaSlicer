@@ -229,6 +229,17 @@ void AppConfig::set_defaults()
     if (get("reverse_mouse_wheel_zoom").empty())
         set_bool("reverse_mouse_wheel_zoom", false);
 
+    if (get("cloud_server_url").empty())
+        set("cloud_server_url", "https://cloud.iemai3d.com");
+
+    if (get("cloud_username").empty()) {
+        set("cloud_username", "");
+    }
+
+    if (get("cloud_password").empty()) {
+        set("cloud_password", "");
+    }
+
     if (get("enable_append_color_by_sync_ams").empty())
         set_bool("enable_append_color_by_sync_ams", true);
     if (get("enable_merge_color_by_sync_ams").empty())
@@ -328,7 +339,7 @@ void AppConfig::set_defaults()
 
 #ifdef SUPPORT_DARK_MODE
     if (get("dark_color_mode").empty())
-        set("dark_color_mode", "0");
+        set("dark_color_mode", "1");
 #endif
 
 //#ifdef SUPPORT_SYS_MENU

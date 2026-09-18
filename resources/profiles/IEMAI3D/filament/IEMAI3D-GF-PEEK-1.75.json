@@ -1,0 +1,62 @@
+{
+    "type": "filament",
+    "filament_id": "YMF005",
+    "setting_id": "YMFS01",
+    "name": "IEMAI3D-GF-PEEK-1.75",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "filament_type": [
+        "Composite"
+    ],
+    "filament_vendor": [
+        "IEMAI3D"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "415"
+    ],
+    "nozzle_temperature": [
+        "415"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "compatible_printers": [
+        "MAGIC-HT-MAX 0.4 nozzle - Dual",
+        "MAGIC-HT-PRO 0.4 Nozzle - Dual",
+        "MAGIC-HT-L 0.4 Nozzle - Dual",
+        "MAGIC-HT-M 0.4 Nozzle"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "chamber_temperature": [
+        "90"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "hot_plate_temp": [
+        "120"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "120"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature_range_high": [
+        "450"
+    ],
+    "nozzle_temperature_range_low": [
+        "370"
+    ],
+    "temperature_vitrification": [
+        "260"
+    ],
+    "idle_temperature": [
+        "360"
+    ],
+    "version": "2.2.0.0"
+}

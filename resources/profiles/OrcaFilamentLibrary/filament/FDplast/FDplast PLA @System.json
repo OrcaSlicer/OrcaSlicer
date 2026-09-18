@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "FDplast PLA @System",
-	"inherits": "FDplast PLA @base",
-	"from": "system",
-	"setting_id": "wqCDOOv5DMTIOYnB",
-	"instantiation": "true",
-	"compatible_printers": []
-}

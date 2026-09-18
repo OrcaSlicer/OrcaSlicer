@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "filament_id": "GFN99",
+    "setting_id": "GFSA04",
+    "name": "My Generic PA",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "compatible_printers": [
+        "MyKlipper 0.4 nozzle",
+        "MyKlipper 0.2 nozzle",
+        "MyKlipper 0.6 nozzle",
+        "MyKlipper 0.8 nozzle",
+        "MyMarlin 0.4 nozzle",
+        "MyRRF 0.4 nozzle"
+    ]
+}

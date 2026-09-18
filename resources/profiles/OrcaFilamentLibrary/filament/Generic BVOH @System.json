@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic BVOH @System",
-	"inherits": "fdm_filament_bvoh",
-	"from": "system",
-	"setting_id": "oUpbqz3uzQqND5DG",
-	"instantiation": "true",
-	"compatible_printers": []
-}

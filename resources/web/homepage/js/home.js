@@ -8,8 +8,8 @@ function OnInit()
 	//-----Official-----
     TranslatePage();
 
-	SendMsg_GetLoginInfo();
-	SendMsg_GetBambuLoginInfo();
+	// SendMsg_GetLoginInfo();
+	// SendMsg_GetBambuLoginInfo();
 	SendMsg_GetRecentFile();
 	SendMsg_GetStaffPick();
 }
