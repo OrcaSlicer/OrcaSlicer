@@ -26,6 +26,8 @@ enum class CalibMode : int {
     Calib_Retraction_tower,
     Calib_Input_shaping_freq,
     Calib_Input_shaping_damp,
+    Calib_Junction_Deviation,
+    Calib_Progressive_Flowratio,
     Calib_Cornering
 };
 
@@ -48,7 +50,11 @@ struct Calib_Params
     // Scale the calibration model to the nozzle diameter and set the layer height accordingly (temp tower / VFA).
     // When false the 0.4 mm / 0.2 mm reference model is printed as-is.
     bool nozzle_based_resize = true;
-
+    // Additional variables for Progressive Calibration Test. They can be a common.
+    bool print_ruler  = true;
+    bool use_zhop     = false;
+    bool interlaced   = false;
+    int model_variant = 0;
     CalibMode mode;
 };
 

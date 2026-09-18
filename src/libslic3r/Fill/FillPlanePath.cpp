@@ -141,8 +141,8 @@ void FillPlanePath::_fill_surface_single(
                 // Default, so it can be overridden from the calibration objects.
                 auto is_flow_calib = params.fill_order == SurfaceFillOrder::Default &&
                                      params.extrusion_role == erTopSolidInfill &&
-                                     this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
-                                     this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool() &&
+                                     calib_params != nullptr &&
+                                     (calib_params->mode == CalibMode::Calib_Flow_Rate) &&
                                      dynamic_cast<FillArchimedeanChords*>(this);
                 if (is_flow_calib) {
                     // We want the spiral part to be printed inside-out
